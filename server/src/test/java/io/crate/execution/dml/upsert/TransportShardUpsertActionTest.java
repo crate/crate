@@ -163,7 +163,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // Avoid null pointer exceptions
         DocTableInfo tableInfo = mock(DocTableInfo.class);
         Schemas schemas = mock(Schemas.class);
-        when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
+        when(tableInfo.rootColumns()).thenReturn(Collections.<Reference>emptyList());
         when(tableInfo.versionCreated()).thenReturn(Version.CURRENT);
         when(schemas.getTableInfo(any(RelationName.class))).thenReturn(tableInfo);
 

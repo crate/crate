@@ -220,7 +220,7 @@ public class InformationSchemaIterables {
             info.ident(),
             info.ident().name(),
             toEntryType(info.relationType()),
-            info.columns().size(),
+            info.rootColumns().size(),
             !info.primaryKey().isEmpty());
     }
 
@@ -231,7 +231,7 @@ public class InformationSchemaIterables {
             info.ident(),
             info.pkConstraintNameOrDefault(),
             PgClassTable.Entry.Type.INDEX,
-            info.columns().size(),
+            info.rootColumns().size(),
             !info.primaryKey().isEmpty());
     }
 

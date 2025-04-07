@@ -119,7 +119,7 @@ class InsertAnalyzer {
         );
         List<Reference> targetColumns;
         if (insert.columns().isEmpty()) {
-            targetColumns = new ArrayList<>(tableInfo.columns());
+            targetColumns = new ArrayList<>(tableInfo.rootColumns());
         } else {
             targetColumns = insert.columns().stream()
                 .map(col -> tableInfo.resolveColumn(col, true, true))

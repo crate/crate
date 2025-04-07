@@ -50,7 +50,7 @@ public class TableInfoAssert extends AbstractAssert<TableInfoAssert, TableInfo> 
     }
 
     public <K extends Comparable<K>> TableInfoAssert hasColsSortedBy(final Function<Reference, K> extractSortingKeyFunction) {
-        refsSortedBy(actual.columns(), extractSortingKeyFunction, false, null);
+        refsSortedBy(actual.rootColumns(), extractSortingKeyFunction, false, null);
         return this;
     }
 

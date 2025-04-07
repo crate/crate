@@ -31,6 +31,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -1525,14 +1526,14 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table dynamic_table");
 
         DocTableInfo table = getTable("dynamic_table");
-        assertThat(table.columns()).hasSize(2);
+        assertThat(table.rootColumns()).hasSize(2);
         assertThat(table.partitionedBy()).containsExactly(ColumnIdent.of("score"));
 
         execute("alter table dynamic_table set (column_policy= 'dynamic')");
         waitNoPendingTasksOnAll();
 
         table = getTable("dynamic_table");
-        assertThat(table.columns()).hasSize(2);
+        assertThat(table.rootColumns()).hasSize(2);
         assertThat(table.partitionedBy()).containsExactly(ColumnIdent.of("score"));
     }
 

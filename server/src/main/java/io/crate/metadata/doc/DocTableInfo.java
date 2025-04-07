@@ -174,7 +174,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public static final Setting<Long> DEPTH_LIMIT_SETTING =
         Setting.longSetting("index.mapping.depth.limit", 20L, 1, Property.Dynamic, Property.IndexScope);
 
-    private final List<Reference> topLevelColumns;
+    private final List<Reference> rootColumns;
     private final Set<Reference> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
     private final List<Reference> partitionedByColumns;
@@ -234,7 +234,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.allColumns = references.entrySet().stream()
             .filter(entry -> !entry.getValue().isDropped())
             .collect(Collectors.toMap(Entry::getKey, Entry::getValue));
-        this.topLevelColumns = this.allColumns.values().stream()
+        this.rootColumns = this.allColumns.values().stream()
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> r.column().isRoot())
             .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
@@ -371,8 +371,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public List<Reference> columns() {
-        return topLevelColumns;
+    public List<Reference> rootColumns() {
+        return rootColumns;
     }
 
     @Override
@@ -730,7 +730,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
 
     private void validateDropColumns(List<DropColumn> dropColumns) {
-        var leftOverCols = columns().stream().map(Reference::column).collect(Collectors.toSet());
+        var leftOverCols = rootColumns().stream().map(Reference::column).collect(Collectors.toSet());
         for (int i = 0 ; i < dropColumns.size(); i++) {
             var refToDrop = dropColumns.get(i).ref();
             var colToDrop = refToDrop.column();
