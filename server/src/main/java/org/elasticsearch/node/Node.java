@@ -533,10 +533,7 @@ public class Node implements Closeable {
                                                  namedWriteableRegistry, repositoriesServiceReference::get).stream())
                 .toList();
 
-            ActionModule actionModule = new ActionModule(
-                settings,
-                settingsModule.getClusterSettings(),
-                pluginsService.filterPlugins(ActionPlugin.class));
+            ActionModule actionModule = new ActionModule(pluginsService.filterPlugins(ActionPlugin.class));
             modules.add(actionModule);
 
             var authentication = AuthSettings.AUTH_HOST_BASED_ENABLED_SETTING.get(settings)

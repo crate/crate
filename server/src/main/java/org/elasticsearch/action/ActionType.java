@@ -20,8 +20,6 @@
 package org.elasticsearch.action;
 
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 
 /**
@@ -50,13 +48,6 @@ public class ActionType<Response extends TransportResponse> {
      */
     public Writeable.Reader<Response> getResponseReader() {
         throw new UnsupportedOperationException("Not implemented by " + this.getClass());
-    }
-
-    /**
-     * Optional request options for the action.
-     */
-    public TransportRequestOptions transportOptions(Settings settings) {
-        return TransportRequestOptions.EMPTY;
     }
 
     @Override

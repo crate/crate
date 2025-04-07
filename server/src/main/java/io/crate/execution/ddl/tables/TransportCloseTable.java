@@ -38,11 +38,11 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.NotifyOnceListener;
 import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
@@ -91,9 +91,17 @@ import io.crate.metadata.cluster.DDLClusterStateService;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
 
+    public static final TransportCloseTable.Action ACTION = new TransportCloseTable.Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/table_or_partition/close";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     private static final Logger LOGGER = LogManager.getLogger(TransportCloseTable.class);
-    private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/close";
-    private static final IndicesOptions STRICT_INDICES_OPTIONS = IndicesOptions.fromOptions(false, false, false, false);
     public static final int INDEX_CLOSED_BLOCK_ID = 4;
 
     private final TransportVerifyShardBeforeCloseAction verifyShardBeforeClose;
@@ -109,7 +117,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                                DDLClusterStateService ddlClusterStateService,
                                TransportVerifyShardBeforeCloseAction verifyShardBeforeClose) {
         super(
-            ACTION_NAME,
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,
@@ -608,7 +616,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 closingBlock
             );
             verifyShardBeforeClose.execute(shardRequest)
-                .thenCompose(response -> verifyShardBeforeClose.execute(
+                .thenCompose(ignored -> verifyShardBeforeClose.execute(
                     new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, false, closingBlock)))
                 .whenComplete(listener);
         }
