@@ -29,6 +29,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.CheckConstraint;
 
@@ -56,16 +57,25 @@ public interface RelationInfo extends Iterable<Reference> {
     }
 
     /**
-     * returns the top level columns of this table with predictable order
+     * Returns the root columns of this table with predictable order.
+     * Excludes system columns.
+     * <p>
+     * Use {@link #iterator()} to get root, child and system columns.
+     * </p>
+     * <p>
+     * Use {@link DocTableInfo#allReferences()} to get both active and dropped
+     * columns for all:
+     * root, child, system and index columns.
+     * </p>
      */
-    Collection<Reference> columns();
+    Collection<Reference> rootColumns();
 
     default Collection<Reference> droppedColumns() {
         return List.of();
     }
 
     default int maxPosition() {
-        return columns().stream()
+        return rootColumns().stream()
             .filter(ref -> !ref.column().isSystemColumn())
             .mapToInt(Reference::position)
             .max()

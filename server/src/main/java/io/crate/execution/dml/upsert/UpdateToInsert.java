@@ -161,7 +161,7 @@ public final class UpdateToInsert {
             this.columns.addAll(insertColumns);
         }
         List<String> updateColumnList = Arrays.asList(updateColumns);
-        for (var ref : table.columns()) {
+        for (var ref : table.rootColumns()) {
             // The Indexer later on injects the generated column values
             // We only include them here if they are provided in the `updateColumns` to validate
             // that users provided the right value (otherwise they'd get ignored and we'd generate them later)

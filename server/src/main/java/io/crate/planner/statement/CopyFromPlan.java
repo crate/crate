@@ -180,7 +180,7 @@ public final class CopyFromPlan implements Plan {
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
-            targetColumns = Lists.map(copyFrom.tableInfo().columns(), Reference::toString);
+            targetColumns = Lists.map(copyFrom.tableInfo().rootColumns(), Reference::toString);
         }
 
         return new BoundCopyFrom(

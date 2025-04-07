@@ -99,7 +99,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Collection<Reference> columns() {
+    public Collection<Reference> rootColumns() {
         return columns;
     }
 

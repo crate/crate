@@ -33,7 +33,7 @@ import io.crate.metadata.table.TableInfo;
 public class TableRelation extends AbstractTableRelation<TableInfo> {
 
     public TableRelation(TableInfo tableInfo) {
-        super(tableInfo, List.copyOf(tableInfo.columns()), List.of());
+        super(tableInfo, List.copyOf(tableInfo.rootColumns()), List.of());
     }
 
     @Override
