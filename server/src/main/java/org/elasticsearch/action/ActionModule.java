@@ -170,65 +170,50 @@ public class ActionModule extends AbstractModule {
         }
 
         ActionRegistry actions = new ActionRegistry();
+
+        // Table actions
         actions.register(TransportCreateTableAction.ACTION, TransportCreateTableAction.class);
+        actions.register(CreatePartitionsAction.INSTANCE, TransportCreatePartitionsAction.class);
+        actions.register(TransportDropTableAction.ACTION, TransportDropTableAction.class);
+        actions.register(TransportDropPartitionsAction.ACTION, TransportDropPartitionsAction.class);
+        actions.register(TransportAlterTable.ACTION, TransportAlterTable.class);
+        actions.register(TransportRenameTable.ACTION, TransportRenameTable.class);
+        actions.register(TransportOpenTable.ACTION, TransportOpenTable.class);
+        actions.register(TransportCloseTable.ACTION, TransportCloseTable.class);
+        actions.register(TransportAddColumn.ACTION, TransportAddColumn.class);
+        actions.register(TransportDropColumn.ACTION, TransportDropColumn.class);
+        actions.register(RenameColumnAction.INSTANCE, TransportRenameColumnAction.class);
+        actions.register(TransportDropConstraint.ACTION, TransportDropConstraint.class);
+        actions.register(ResizeAction.INSTANCE, TransportResizeAction.class);
+        actions.register(UpdateSettingsAction.INSTANCE, TransportUpdateSettingsAction.class);
+        actions.register(RefreshAction.INSTANCE, TransportRefreshAction.class);
+
+        // Blob table actions
         actions.register(TransportCreateBlobTableAction.ACTION, TransportCreateBlobTableAction.class);
-        actions.register(ClusterStateAction.INSTANCE, TransportClusterStateAction.class);
-        actions.register(ClusterHealthAction.INSTANCE, TransportClusterHealthAction.class);
-        actions.register(ClusterUpdateSettingsAction.INSTANCE, TransportClusterUpdateSettingsAction.class);
-        actions.register(ClusterRerouteAction.INSTANCE, TransportClusterRerouteAction.class);
-        actions.register(PendingClusterTasksAction.INSTANCE, TransportPendingClusterTasksAction.class);
+        actions.register(PutChunkAction.INSTANCE, TransportPutChunkAction.class);
+        actions.register(StartBlobAction.INSTANCE, TransportStartBlobAction.class);
+        actions.register(DeleteBlobAction.INSTANCE, TransportDeleteBlobAction.class);
+
+        // Repository & Snapshot actions
         actions.register(PutRepositoryAction.INSTANCE, TransportPutRepositoryAction.class);
         actions.register(DeleteRepositoryAction.INSTANCE, TransportDeleteRepositoryAction.class);
         actions.register(DeleteSnapshotAction.INSTANCE, TransportDeleteSnapshotAction.class);
         actions.register(CreateSnapshotAction.INSTANCE, TransportCreateSnapshotAction.class);
         actions.register(RestoreSnapshotAction.INSTANCE, TransportRestoreSnapshotAction.class);
-        actions.register(IndicesStatsAction.INSTANCE, TransportIndicesStatsAction.class);
-        actions.register(ResizeAction.INSTANCE, TransportResizeAction.class);
-        actions.register(DeleteIndexAction.INSTANCE, TransportDeleteIndexAction.class);
-        actions.register(UpdateSettingsAction.INSTANCE, TransportUpdateSettingsAction.class);
-        actions.register(RefreshAction.INSTANCE, TransportRefreshAction.class);
-        actions.register(ForceMergeAction.INSTANCE, TransportForceMergeAction.class);
-        actions.register(SyncRetentionLeasesAction.INSTANCE, TransportSyncRetentionLeasesAction.class);
-        actions.register(AddVotingConfigExclusionsAction.INSTANCE, TransportAddVotingConfigExclusionsAction.class);
-        actions.register(ClearVotingConfigExclusionsAction.INSTANCE, TransportClearVotingConfigExclusionsAction.class);
-        actions.register(NodesStatsAction.INSTANCE, TransportNodesStatsAction.class);
-        actions.register(ShardDeleteAction.INSTANCE, TransportShardDeleteAction.class);
-        actions.register(ShardUpsertAction.INSTANCE, TransportShardUpsertAction.class);
-        actions.register(CreatePartitionsAction.INSTANCE, TransportCreatePartitionsAction.class);
-        actions.register(KillJobsNodeAction.INSTANCE, TransportKillJobsNodeAction.class);
-        actions.register(KillAllNodeAction.INSTANCE, TransportKillAllNodeAction.class);
-        actions.register(NodeStatsAction.INSTANCE, TransportNodeStatsAction.class);
-        actions.register(CollectProfileNodeAction.INSTANCE, TransportCollectProfileNodeAction.class);
-        actions.register(DecommissionNodeAction.INSTANCE, TransportDecommissionNodeAction.class);
-        actions.register(DistributedResultAction.INSTANCE, TransportDistributedResultAction.class);
-        actions.register(JobAction.INSTANCE, TransportJobAction.class);
-        actions.register(FetchNodeAction.INSTANCE, TransportFetchNodeAction.class);
-        actions.register(RenameColumnAction.INSTANCE, TransportRenameColumnAction.class);
 
-        // internal actions
-        actions.register(GlobalCheckpointSyncAction.TYPE, GlobalCheckpointSyncAction.class);
-        actions.register(TransportVerifyShardBeforeCloseAction.TYPE, TransportVerifyShardBeforeCloseAction.class);
-        actions.register(TransportNodesListGatewayStartedShards.TYPE, TransportNodesListGatewayStartedShards.class);
-        actions.register(TransportNodesListShardStoreMetadata.TYPE, TransportNodesListShardStoreMetadata.class);
-        actions.register(TransportShardRefreshAction.TYPE, TransportShardRefreshAction.class);
+        // Roles & Privileges actions
+        actions.register(TransportPrivilegesAction.ACTION, TransportPrivilegesAction.class);
+        actions.register(TransportCreateRoleAction.ACTION, TransportCreateRoleAction.class);
+        actions.register(TransportDropRoleAction.ACTION, TransportDropRoleAction.class);
+        actions.register(TransportAlterRoleAction.ACTION, TransportAlterRoleAction.class);
 
-        // internal blob actions
-        actions.register(PutChunkAction.INSTANCE, TransportPutChunkAction.class);
-        actions.register(StartBlobAction.INSTANCE, TransportStartBlobAction.class);
-        actions.register(DeleteBlobAction.INSTANCE, TransportDeleteBlobAction.class);
-
-        actions.register(RetentionLeaseActions.Add.INSTANCE, RetentionLeaseActions.Add.TransportAction.class);
-        actions.register(RetentionLeaseActions.Remove.INSTANCE, RetentionLeaseActions.Remove.TransportAction.class);
-        actions.register(RetentionLeaseActions.Renew.INSTANCE, RetentionLeaseActions.Renew.TransportAction.class);
+        // Logical replication actions
         actions.register(PublicationsStateAction.INSTANCE, PublicationsStateAction.TransportAction.class);
-        actions.register(GetFileChunkAction.INSTANCE, GetFileChunkAction.TransportAction.class);
-        actions.register(GetStoreMetadataAction.INSTANCE, GetStoreMetadataAction.TransportAction.class);
-        actions.register(ReleasePublisherResourcesAction.INSTANCE, ReleasePublisherResourcesAction.TransportAction.class);
-        actions.register(ShardChangesAction.INSTANCE, ShardChangesAction.TransportAction.class);
-        actions.register(ReplayChangesAction.INSTANCE, ReplayChangesAction.TransportAction.class);
         actions.register(UpdateSubscriptionAction.INSTANCE, UpdateSubscriptionAction.TransportAction.class);
         actions.register(DropSubscriptionAction.INSTANCE, DropSubscriptionAction.TransportAction.class);
+        actions.register(ReleasePublisherResourcesAction.INSTANCE, ReleasePublisherResourcesAction.TransportAction.class);
 
+        // FDW actions
         actions.register(TransportCreateServerAction.ACTION, TransportCreateServerAction.class);
         actions.register(TransportAlterServerAction.ACTION, TransportAlterServerAction.class);
         actions.register(TransportCreateForeignTableAction.ACTION, TransportCreateForeignTableAction.class);
@@ -237,21 +222,44 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportDropForeignTableAction.ACTION, TransportDropForeignTableAction.class);
         actions.register(TransportDropUserMapping.ACTION, TransportDropUserMapping.class);
 
-        actions.register(TransportAlterTable.ACTION, TransportAlterTable.class);
-        actions.register(TransportRenameTable.ACTION, TransportRenameTable.class);
-        actions.register(TransportOpenTable.ACTION, TransportOpenTable.class);
-        actions.register(TransportCloseTable.ACTION, TransportCloseTable.class);
-        actions.register(TransportAddColumn.ACTION, TransportAddColumn.class);
-        actions.register(TransportDropColumn.ACTION, TransportDropColumn.class);
-        actions.register(TransportDropConstraint.ACTION, TransportDropConstraint.class);
-        actions.register(TransportDropTableAction.ACTION, TransportDropTableAction.class);
-        actions.register(TransportDropPartitionsAction.ACTION, TransportDropPartitionsAction.class);
-        actions.register(TransportGCDanglingArtifactsAction.ACTION, TransportGCDanglingArtifactsAction.class);
+        // Cluster & internal actions
+        actions.register(ClusterStateAction.INSTANCE, TransportClusterStateAction.class);
+        actions.register(ClusterHealthAction.INSTANCE, TransportClusterHealthAction.class);
+        actions.register(ClusterUpdateSettingsAction.INSTANCE, TransportClusterUpdateSettingsAction.class);
+        actions.register(ClusterRerouteAction.INSTANCE, TransportClusterRerouteAction.class);
+        actions.register(PendingClusterTasksAction.INSTANCE, TransportPendingClusterTasksAction.class);
+        actions.register(ForceMergeAction.INSTANCE, TransportForceMergeAction.class);
+        actions.register(SyncRetentionLeasesAction.INSTANCE, TransportSyncRetentionLeasesAction.class);
+        actions.register(AddVotingConfigExclusionsAction.INSTANCE, TransportAddVotingConfigExclusionsAction.class);
+        actions.register(ClearVotingConfigExclusionsAction.INSTANCE, TransportClearVotingConfigExclusionsAction.class);
+        actions.register(NodesStatsAction.INSTANCE, TransportNodesStatsAction.class);
+        actions.register(ShardDeleteAction.INSTANCE, TransportShardDeleteAction.class);
+        actions.register(ShardUpsertAction.INSTANCE, TransportShardUpsertAction.class);
+        actions.register(KillJobsNodeAction.INSTANCE, TransportKillJobsNodeAction.class);
+        actions.register(KillAllNodeAction.INSTANCE, TransportKillAllNodeAction.class);
+        actions.register(NodeStatsAction.INSTANCE, TransportNodeStatsAction.class);
+        actions.register(CollectProfileNodeAction.INSTANCE, TransportCollectProfileNodeAction.class);
+        actions.register(DecommissionNodeAction.INSTANCE, TransportDecommissionNodeAction.class);
+        actions.register(DistributedResultAction.INSTANCE, TransportDistributedResultAction.class);
+        actions.register(JobAction.INSTANCE, TransportJobAction.class);
+        actions.register(FetchNodeAction.INSTANCE, TransportFetchNodeAction.class);
+        actions.register(GlobalCheckpointSyncAction.TYPE, GlobalCheckpointSyncAction.class);
+        actions.register(TransportVerifyShardBeforeCloseAction.TYPE, TransportVerifyShardBeforeCloseAction.class);
+        actions.register(TransportNodesListGatewayStartedShards.TYPE, TransportNodesListGatewayStartedShards.class);
+        actions.register(TransportNodesListShardStoreMetadata.TYPE, TransportNodesListShardStoreMetadata.class);
+        actions.register(TransportShardRefreshAction.TYPE, TransportShardRefreshAction.class);
+        actions.register(RetentionLeaseActions.Add.INSTANCE, RetentionLeaseActions.Add.TransportAction.class);
+        actions.register(RetentionLeaseActions.Remove.INSTANCE, RetentionLeaseActions.Remove.TransportAction.class);
+        actions.register(RetentionLeaseActions.Renew.INSTANCE, RetentionLeaseActions.Renew.TransportAction.class);
+        actions.register(GetFileChunkAction.INSTANCE, GetFileChunkAction.TransportAction.class);
+        actions.register(GetStoreMetadataAction.INSTANCE, GetStoreMetadataAction.TransportAction.class);
+        actions.register(ShardChangesAction.INSTANCE, ShardChangesAction.TransportAction.class);
+        actions.register(ReplayChangesAction.INSTANCE, ReplayChangesAction.TransportAction.class);
 
-        actions.register(TransportPrivilegesAction.ACTION, TransportPrivilegesAction.class);
-        actions.register(TransportCreateRoleAction.ACTION, TransportCreateRoleAction.class);
-        actions.register(TransportDropRoleAction.ACTION, TransportDropRoleAction.class);
-        actions.register(TransportAlterRoleAction.ACTION, TransportAlterRoleAction.class);
+        // Misc actions
+        actions.register(IndicesStatsAction.INSTANCE, TransportIndicesStatsAction.class);
+        actions.register(DeleteIndexAction.INSTANCE, TransportDeleteIndexAction.class);
+        actions.register(TransportGCDanglingArtifactsAction.ACTION, TransportGCDanglingArtifactsAction.class);
 
         return unmodifiableMap(actions.getRegistry());
     }
