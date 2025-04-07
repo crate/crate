@@ -212,7 +212,16 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert(
+                "1",
+                List.of(),
+                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                missingAssignmentsColumns,
+                new Object[]{1},
+                null,
+                0
+            )
+        );
 
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -234,7 +243,15 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert(
+            "1",
+            List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentsColumns,
+            new Object[]{1},
+            null,
+            0
+        ));
 
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
@@ -259,7 +276,15 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert(
+            "1",
+            List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentsColumns,
+            new Object[]{1},
+            null,
+            0
+        ));
 
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
@@ -281,7 +306,14 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             null,
             UUID.randomUUID()
         ).newRequest(shardId);
-        request.add(1, ShardUpsertRequest.Item.forInsert("1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP, missingAssignmentsColumns, new Object[]{1}, null));
+        request.add(1, ShardUpsertRequest.Item.forInsert(
+            "1",
+            List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentsColumns,
+            new Object[]{1},
+            null,
+            0));
         request.items().get(0).seqNo(SequenceNumbers.SKIP_ON_REPLICA);
 
         reset(indexShard);
@@ -319,7 +351,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                         "1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                         missingAssignmentsColumns,
                         new Object[]{1}, // notice that it is not a 'long'
-                        null));
+                        null,
+                        0));
 
         // verifies that it does not throw a ClassCastException: class java.lang.Integer cannot be cast to class java.lang.Long
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
@@ -344,13 +377,15 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 "1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 missingAssignmentsColumns,
                 new Object[]{1},
-                null));
+                null,
+                0));
         request.add(1,
             ShardUpsertRequest.Item.forInsert(
                 "2", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
                 missingAssignmentsColumns,
                 new Object[]{2},
-                null));
+                null,
+                0));
 
 
         // First item is already processed with killed = true, both items must be skipped on replica.

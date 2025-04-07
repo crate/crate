@@ -270,13 +270,16 @@ public final class UpdatePlanner {
                 outputSymbols[i] = new InputColumn(i, returnValues.get(i).valueType());
             }
         }
+
         UpdateProjection updateProjection = new UpdateProjection(
             new InputColumn(0, idReference.valueType()),
             assignments.targetNames(),
             assignmentSources,
             outputSymbols,
             returnValues == null ? null : returnValues.toArray(new Symbol[0]),
-            null);
+            null,
+            plannerCtx.nodeContext().tableStats().estimatedSizePerRow(tableInfo)
+        );
 
         WhereClause where = detailedQuery.toBoundWhereClause(
             tableInfo, params, subQueryResults, plannerCtx.transactionContext(), plannerCtx.nodeContext(), plannerCtx.clusterState().metadata());
