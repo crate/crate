@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
@@ -470,5 +471,18 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             "Insert[INPUT(0)]",
             "  └ Collect[doc.users | [id] | true]"
         );
+    }
+
+    @Test
+    public void test_insert_on_conflict_update_includes_full_doc_size_estimate() throws Exception {
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.t1(id TEXT PRIMARY KEY, a INT)")
+            .addTable("create table doc.t2(id TEXT PRIMARY KEY, a INT)");
+
+        Merge merge = e.plan(
+            "insert into doc.t2 (id, a) select id, a from doc.t1 on conflict(id) do update set a = excluded.a");
+        Collect collect = (Collect) merge.subPlan();
+        var columnIndexWriterProjection = (ColumnIndexWriterProjection) getOnlyElement(collect.collectPhase().projections());
+        assertThat(columnIndexWriterProjection.fullDocSizeEstimate()).isEqualTo(1424L);
     }
 }

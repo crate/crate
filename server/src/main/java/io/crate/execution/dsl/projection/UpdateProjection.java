@@ -52,12 +52,15 @@ public class UpdateProjection extends Projection {
     @Nullable
     private Long requiredVersion;
 
+    private final long fullDocSizeEstimate;
+
     public UpdateProjection(Symbol uidSymbol,
                             String[] assignmentsColumns,
                             Symbol[] assignments,
                             Symbol[] outputs,
                             @Nullable Symbol[] returnValues,
-                            @Nullable Long requiredVersion) {
+                            @Nullable Long requiredVersion,
+                            long fullDocSizeEstimate) {
         this.uidSymbol = uidSymbol;
         this.assignmentsColumns = assignmentsColumns;
         this.assignments = assignments;
@@ -66,6 +69,7 @@ public class UpdateProjection extends Projection {
             : "Cannot operate on Reference, Field or SelectSymbol symbols: " + outputs;
         this.outputs = outputs;
         this.requiredVersion = requiredVersion;
+        this.fullDocSizeEstimate = fullDocSizeEstimate;
     }
 
     public UpdateProjection(StreamInput in) throws IOException {
@@ -102,6 +106,15 @@ public class UpdateProjection extends Projection {
             //the default value in pre 4.1 was a long for a count
             outputs = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
         }
+        if (in.getVersion().onOrAfter(Version.V_5_10_5)) {
+            this.fullDocSizeEstimate = in.readLong();
+        } else {
+            this.fullDocSizeEstimate = 0;
+        }
+    }
+
+    public long fullDocSizeEstimate() {
+        return fullDocSizeEstimate;
     }
 
     public Symbol uidSymbol() {
@@ -206,6 +219,9 @@ public class UpdateProjection extends Projection {
             } else {
                 out.writeVInt(0);
             }
+        }
+        if (out.getVersion().onOrAfter(Version.V_5_10_5)) {
+            out.writeLong(fullDocSizeEstimate);
         }
     }
 }

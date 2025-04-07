@@ -22,6 +22,7 @@
 package io.crate.statistics;
 
 import io.crate.metadata.RelationName;
+import io.crate.metadata.table.TableInfo;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -60,6 +61,21 @@ public class TableStats {
      */
     public long estimatedSizePerRow(RelationName relationName) {
         return tableStats.getOrDefault(relationName, Stats.EMPTY).averageSizePerRowInBytes();
+    }
+
+    /**
+     * Returns an estimation (avg) size of each row of the table in bytes or if no stats are available
+     * for the given table an estimate (avg) based on the column types of the table.
+     */
+    public long estimatedSizePerRow(TableInfo tableInfo) {
+        Stats stats = tableStats.get(tableInfo.ident());
+        if (stats == null) {
+            // if stats are not available we fall back to estimate the size based on
+            // column types. Therefore we need to get the column information.
+            return Stats.EMPTY.estimateSizeForColumns(tableInfo);
+        } else {
+            return stats.averageSizePerRowInBytes();
+        }
     }
 
     public Iterable<ColumnStatsEntry> statsEntries() {

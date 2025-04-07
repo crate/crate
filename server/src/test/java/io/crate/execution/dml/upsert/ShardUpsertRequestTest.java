@@ -25,15 +25,12 @@ package io.crate.execution.dml.upsert;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
-import java.util.Map;
 import java.util.UUID;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
@@ -44,18 +41,13 @@ import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.metadata.table.Operation;
-import io.crate.sql.tree.ColumnPolicy;
-import io.crate.statistics.Stats;
 import io.crate.types.DataTypes;
 
 public class ShardUpsertRequestTest extends ESTestCase {
@@ -97,7 +89,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             missingAssignmentColumns,
             new Object[]{99, "Marvin"},
-            null
+            null,
+            0
         ));
         request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
@@ -105,7 +98,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             missingAssignmentColumns,
             new Object[]{99, "Marvin"},
-            new Symbol[0]
+            new Symbol[0],
+            0
         ));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
@@ -151,7 +145,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             missingAssignmentColumns,
             new Object[]{99, "Marvin"},
-            null
+            null,
+            0
         ));
         request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
@@ -159,7 +154,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             missingAssignmentColumns,
             new Object[]{99, "Marvin"},
-            new Symbol[0]
+            new Symbol[0],
+            0
         ));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
@@ -200,12 +196,13 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ).newRequest(shardId);
 
         request.add(42, ShardUpsertRequest.Item.forInsert(
-                "42",
-                List.of(),
-                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                missingAssignmentColumns,
-                new Object[]{42, "Marvin"},
-                new Symbol[0]
+            "42",
+            List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentColumns,
+            new Object[]{42, "Marvin"},
+            new Symbol[0],
+            0
         ));
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -217,78 +214,4 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ShardUpsertRequest request2 = new ShardUpsertRequest(in);
         assertThat(request2.items().get(0).seqNo()).isEqualTo(SequenceNumbers.SKIP_ON_REPLICA);
     }
-
-    @Test
-    public void test_ram_estimation_with_stats() {
-        Stats stats = new Stats(10L, 1000L, Map.of());
-        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
-            TimeValue.timeValueSeconds(30),
-            DuplicateKeyAction.UPDATE_OR_FAIL,
-            false,
-            new String[]{ID_REF.column().name(), NAME_REF.column().name()},
-            new Reference[]{},
-            null,
-            UUID.randomUUID()
-        ).newRequest(new ShardId("test", UUIDs.randomBase64UUID(), 1));
-        assertThat(request.ramBytesUsed()).isEqualTo(72L);
-
-        long sizeEstimate = ShardUpsertRequest.Item.sizeEstimateForUpdate(stats, DOC_TABLE_INFO);
-        request.add(42, ShardUpsertRequest.Item.forUpdate(
-            "42",
-            new Symbol[]{ID_REF, NAME_REF},
-            1,
-            1,
-            1,
-            sizeEstimate
-        ));
-        assertThat(request.ramBytesUsed()).isEqualTo(836L);
-    }
-
-    @Test
-    public void test_ram_estimation_with_empty_stats_using_columns_estimates() {
-        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
-            new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
-            TimeValue.timeValueSeconds(30),
-            DuplicateKeyAction.UPDATE_OR_FAIL,
-            false,
-            new String[]{ID_REF.column().name(), NAME_REF.column().name()},
-            new Reference[]{},
-            null,
-            UUID.randomUUID()
-        ).newRequest(new ShardId("test", UUIDs.randomBase64UUID(), 1));
-        assertThat(request.ramBytesUsed()).isEqualTo(72L);
-
-        long sizeEstimate = ShardUpsertRequest.Item.sizeEstimateForUpdate(Stats.EMPTY, DOC_TABLE_INFO);
-        request.add(42, ShardUpsertRequest.Item.forUpdate(
-            "42",
-            new Symbol[]{ID_REF, NAME_REF},
-            1,
-            1,
-            1,
-            sizeEstimate
-        ));
-        assertThat(request.ramBytesUsed()).isEqualTo(2160L);
-    }
-
-    private static final DocTableInfo DOC_TABLE_INFO = new DocTableInfo(
-        CHARACTERS_IDENTS,
-        Map.of(ID_REF.column(), ID_REF, NAME_REF.column(), NAME_REF),
-        Map.of(),
-        null,
-        List.of(),
-        List.of(),
-        null,
-        Settings.builder()
-            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 5)
-            .build(),
-        List.of(),
-        ColumnPolicy.DYNAMIC,
-        Version.CURRENT,
-        null,
-        false,
-        Operation.ALL,
-        0
-    );
-
 }
