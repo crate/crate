@@ -21,7 +21,6 @@ package org.elasticsearch.action;
 
 import static java.util.Collections.unmodifiableMap;
 
-import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
@@ -69,15 +68,15 @@ import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
 import org.elasticsearch.action.admin.indices.stats.TransportIndicesStatsAction;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.common.NamedRegistry;
+import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
 import org.elasticsearch.gateway.TransportNodesListGatewayStartedShards;
 import org.elasticsearch.index.seqno.GlobalCheckpointSyncAction;
 import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
-import org.elasticsearch.plugins.ActionPlugin;
-import org.elasticsearch.plugins.ActionPlugin.ActionHandler;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
@@ -148,15 +147,11 @@ public class ActionModule extends AbstractModule {
 
     private final Map<String, ActionHandler<?, ?>> actions;
 
-    public ActionModule(List<ActionPlugin> actionPlugins) {
-        actions = setupActions(actionPlugins);
+    public ActionModule() {
+        actions = setupActions();
     }
 
-    public Map<String, ActionHandler<?, ?>> getActions() {
-        return actions;
-    }
-
-    static Map<String, ActionHandler<?, ?>> setupActions(List<ActionPlugin> actionPlugins) {
+    static Map<String, ActionHandler<?, ?>> setupActions() {
         // Subclass NamedRegistry for easy registration
         class ActionRegistry extends NamedRegistry<ActionHandler<?, ?>> {
             ActionRegistry() {
@@ -164,7 +159,7 @@ public class ActionModule extends AbstractModule {
             }
 
             public void register(ActionHandler<?, ?> handler) {
-                register(handler.getAction().name(), handler);
+                register(handler.action().name(), handler);
             }
 
             public <Request extends TransportRequest, Response extends TransportResponse> void register(
@@ -209,8 +204,6 @@ public class ActionModule extends AbstractModule {
         actions.register(JobAction.INSTANCE, TransportJobAction.class);
         actions.register(FetchNodeAction.INSTANCE, TransportFetchNodeAction.class);
         actions.register(RenameColumnAction.INSTANCE, TransportRenameColumnAction.class);
-
-        actionPlugins.stream().flatMap(p -> p.getActions().stream()).forEach(actions::register);
 
         // internal actions
         actions.register(GlobalCheckpointSyncAction.TYPE, GlobalCheckpointSyncAction.class);
@@ -272,11 +265,29 @@ public class ActionModule extends AbstractModule {
                 = MapBinder.newMapBinder(binder(), ActionType.class, TransportAction.class);
         for (ActionHandler<?, ?> action : actions.values()) {
             // bind the action as eager singleton, so the map binder one will reuse it
-            bind(action.getTransportAction()).asEagerSingleton();
-            transportActionsBinder.addBinding(action.getAction()).to(action.getTransportAction()).asEagerSingleton();
-            for (Class<?> supportAction : action.getSupportTransportActions()) {
+            bind(action.transportAction()).asEagerSingleton();
+            transportActionsBinder.addBinding(action.action()).to(action.transportAction()).asEagerSingleton();
+            for (Class<?> supportAction : action.supportTransportActions()) {
                 bind(supportAction).asEagerSingleton();
             }
+        }
+    }
+
+    /**
+     * Create a record of an action, the {@linkplain TransportAction} that handles it, and any supporting {@linkplain TransportActions}
+     * that are needed by that {@linkplain TransportAction}.
+     */
+    private record ActionHandler<Request extends TransportRequest, Response extends TransportResponse>(
+        ActionType<Response> action, Class<? extends TransportAction<Request, Response>> transportAction,
+        Class<?>... supportTransportActions) {
+
+        @Override
+        public String toString() {
+            StringBuilder b = new StringBuilder().append(action.name()).append(" is handled by ").append(transportAction.getName());
+            if (supportTransportActions.length > 0) {
+                b.append('[').append(Strings.arrayToCommaDelimitedString(supportTransportActions)).append(']');
+            }
+            return b.toString();
         }
     }
 }
