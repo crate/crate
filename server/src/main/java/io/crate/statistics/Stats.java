@@ -22,7 +22,6 @@
 package io.crate.statistics;
 
 import java.io.IOException;
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -138,7 +137,7 @@ public class Stats implements Writeable {
         return statsByColumn.get(column);
     }
 
-    public <T extends Symbol> long estimateSizeForColumns(Collection<T> toCollect) {
+    public long estimateSizeForColumns(Iterable<? extends Symbol> toCollect) {
         long sum = 0L;
         for (Symbol symbol : toCollect) {
             ColumnStats<?> columnStats = null;
