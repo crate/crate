@@ -29,33 +29,34 @@ import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class DropPartitionsRequest extends AcknowledgedRequest<DropPartitionsRequest> {
 
     private final RelationName relationName;
-    private final List<List<String>> partitionValues;
+    private final List<PartitionName> partitions;
 
-    public DropPartitionsRequest(RelationName relationName, List<List<String>> partitionValues) {
+    public DropPartitionsRequest(RelationName relationName, List<PartitionName> partitions) {
         this.relationName = relationName;
-        this.partitionValues = partitionValues;
+        this.partitions = partitions;
     }
 
     public RelationName relationName() {
         return relationName;
     }
 
-    public List<List<String>> partitionValues() {
-        return partitionValues;
+    public List<PartitionName> partitions() {
+        return partitions;
     }
 
     public DropPartitionsRequest(StreamInput in) throws IOException {
         super(in);
         relationName = new RelationName(in);
         int size = in.readVInt();
-        partitionValues = new ArrayList<>(size);
+        partitions = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            partitionValues.add(in.readStringList());
+            partitions.add(new PartitionName(relationName, in.readStringList()));
         }
     }
 
@@ -63,9 +64,9 @@ public class DropPartitionsRequest extends AcknowledgedRequest<DropPartitionsReq
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         relationName.writeTo(out);
-        out.writeVInt(partitionValues.size());
-        for (List<String> values : partitionValues) {
-            out.writeStringCollection(values);
+        out.writeVInt(partitions.size());
+        for (PartitionName partition : partitions) {
+            out.writeStringCollection(partition.values());
         }
     }
 }

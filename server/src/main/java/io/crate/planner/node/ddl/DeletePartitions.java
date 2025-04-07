@@ -37,6 +37,7 @@ import io.crate.execution.ddl.tables.TransportDropPartitionsAction;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.DependencyCarrier;
@@ -71,21 +72,25 @@ public class DeletePartitions implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) {
-        List<List<String>> partitionValues = getPartitionValues(
-            plannerContext.transactionContext(), dependencies.nodeContext(), params, subQueryResults);
+        List<PartitionName> partitionNames = getPartitions(
+            relationName, plannerContext.transactionContext(), dependencies.nodeContext(), params, subQueryResults);
         dependencies.client().execute(
             TransportDropPartitionsAction.ACTION,
-            new DropPartitionsRequest(relationName, partitionValues)
+            new DropPartitionsRequest(relationName, partitionNames)
         ).whenComplete(new OneRowActionListener<>(consumer, ignoredResponse -> Row1.ROW_COUNT_UNKNOWN));
     }
 
     @VisibleForTesting
-    List<List<String>> getPartitionValues(TransactionContext txnCtx, NodeContext nodeCtx, Row parameters, SubQueryResults subQueryResults) {
-        List<List<String>> values = new ArrayList<>();
+    List<PartitionName> getPartitions(RelationName relationName,
+                                      TransactionContext txnCtx,
+                                      NodeContext nodeCtx,
+                                      Row parameters,
+                                      SubQueryResults subQueryResults) {
+        List<PartitionName> values = new ArrayList<>();
         Function<Symbol, String> symbolToString =
             s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, parameters, subQueryResults));
         for (List<Symbol> partitionValues : partitions) {
-            values.add(Lists.map(partitionValues, symbolToString));
+            values.add(new PartitionName(relationName, Lists.map(partitionValues, symbolToString)));
         }
         return values;
     }

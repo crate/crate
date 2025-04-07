@@ -44,19 +44,20 @@ public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testIndexNameGeneration() throws Exception {
+        RelationName relationName = new RelationName("doc", "parted_pks");
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName());
+                new PartitionName(relationName, singletonList("1395874800000")).asIndexName(),
+                new PartitionName(relationName, singletonList("1395961200000")).asIndexName());
         DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
 
         Object[] args1 = {"1395874800000"};
-        assertThat(plan.getPartitionValues(txnCtx, e.nodeCtx, new RowN(args1), SubQueryResults.EMPTY)).containsExactly(
-            List.of("1395874800000"));
+        assertThat(plan.getPartitions(relationName, txnCtx, e.nodeCtx, new RowN(args1), SubQueryResults.EMPTY))
+            .containsExactly(new PartitionName(relationName, List.of("1395874800000")));
 
         Object[] args2 = {"1395961200000"};
-        assertThat(plan.getPartitionValues(txnCtx, e.nodeCtx, new RowN(args2), SubQueryResults.EMPTY)).containsExactly(
-            List.of("1395961200000"));
+        assertThat(plan.getPartitions(relationName, txnCtx, e.nodeCtx, new RowN(args2), SubQueryResults.EMPTY))
+            .containsExactly(new PartitionName(relationName, List.of("1395961200000")));
     }
 }

@@ -42,6 +42,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 
 @Singleton
@@ -92,7 +93,7 @@ public class TransportDropPartitionsAction extends AbstractDDLTransportAction<Dr
                                                 DropPartitionsRequest request,
                                                 Function<IndexMetadata, T> mapFunction) {
         Collection<T> indices;
-        if (request.partitionValues().isEmpty()) {
+        if (request.partitions().isEmpty()) {
             indices = currentState.metadata().getIndices(
                 request.relationName(),
                 List.of(),
@@ -100,10 +101,10 @@ public class TransportDropPartitionsAction extends AbstractDDLTransportAction<Dr
                 mapFunction);
         } else {
             indices = new HashSet<>();
-            for (List<String> values : request.partitionValues()) {
+            for (PartitionName partition : request.partitions()) {
                 indices.addAll(currentState.metadata().getIndices(
                     request.relationName(),
-                    values,
+                    partition.values(),
                     false,
                     mapFunction)
                 );
