@@ -51,7 +51,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     private static AlterTableTask<DropColumnRequest> buildDropColumnTask(SQLExecutor e, RelationName tblName) {
         return new AlterTableTask<>(
-            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportDropColumn.DROP_COLUMN_OPERATOR);
     }
 
     @Test

@@ -60,7 +60,7 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
-import io.crate.execution.ddl.tables.TransportAddColumnAction;
+import io.crate.execution.ddl.tables.TransportAddColumn;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.RawIndexer;
@@ -89,7 +89,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
     private final Schemas schemas;
     private final NodeContext nodeCtx;
-    private final TransportAddColumnAction addColumnAction;
+    private final TransportAddColumn addColumnAction;
 
 
     @Inject
@@ -97,7 +97,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                                       ThreadPool threadPool,
                                       ClusterService clusterService,
                                       TransportService transportService,
-                                      TransportAddColumnAction addColumnAction,
+                                      TransportAddColumn addColumnAction,
                                       TasksService tasksService,
                                       IndicesService indicesService,
                                       ShardStateAction shardStateAction,

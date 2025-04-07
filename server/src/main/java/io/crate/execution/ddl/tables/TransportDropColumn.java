@@ -21,71 +21,64 @@
 
 package io.crate.execution.ddl.tables;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.cluster.AlterTableClusterStateExecutor;
 
 @Singleton
-public class TransportAlterTableAction extends AbstractDDLTransportAction<AlterTableRequest, AcknowledgedResponse> {
+public class TransportDropColumn extends AbstractDDLTransportAction<DropColumnRequest, AcknowledgedResponse> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/table/alter";
+    public static final TransportDropColumn.Action ACTION = new TransportDropColumn.Action();
 
-    private final AlterTableClusterStateExecutor executor;
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/table/drop_column";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
+    @VisibleForTesting
+    public static final AlterTableTask.AlterTableOperator<DropColumnRequest> DROP_COLUMN_OPERATOR =
+        (req, docTableInfo, _, _, _) -> docTableInfo.dropColumns(req.colsToDrop());
+    private final NodeContext nodeContext;
 
     @Inject
-    public TransportAlterTableAction(TransportService transportService,
-                                     ClusterService clusterService,
-                                     ThreadPool threadPool,
-                                     IndexScopedSettings indexScopedSettings,
-                                     MetadataUpdateSettingsService updateSettingsService,
-                                     NodeContext nodeContext) {
-        super(ACTION_NAME,
+    public TransportDropColumn(TransportService transportService,
+                               ClusterService clusterService,
+                               ThreadPool threadPool,
+                               NodeContext nodeContext) {
+        super(ACTION.name(),
               transportService,
               clusterService,
               threadPool,
-              AlterTableRequest::new,
+              DropColumnRequest::new,
               AcknowledgedResponse::new,
               AcknowledgedResponse::new,
-              "alter-table");
-        executor = new AlterTableClusterStateExecutor(
-            indexScopedSettings,
-            updateSettingsService,
-            nodeContext
-        );
+              "drop-column");
+        this.nodeContext = nodeContext;
     }
 
     @Override
-    public ClusterStateTaskExecutor<AlterTableRequest> clusterStateTaskExecutor(AlterTableRequest request) {
-        return executor;
+    public ClusterStateTaskExecutor<DropColumnRequest> clusterStateTaskExecutor(DropColumnRequest request) {
+        return new AlterTableTask<>(nodeContext, request.relationName(), null, DROP_COLUMN_OPERATOR);
     }
 
-    @Override
-    protected void masterOperation(AlterTableRequest request,
-                                   ClusterState state,
-                                   ActionListener<AcknowledgedResponse> listener) throws Exception {
-        if (state.nodes().getMinNodeVersion().before(Version.V_5_10_0)) {
-            throw new IllegalStateException("Cannot alter table settings until all nodes are upgraded to 5.10");
-        }
-        super.masterOperation(request, state, listener);
-    }
 
     @Override
-    public ClusterBlockException checkBlock(AlterTableRequest request, ClusterState state) {
+    public ClusterBlockException checkBlock(DropColumnRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }
