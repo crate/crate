@@ -44,6 +44,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed memory estimation for ``INSERT INTO`` statements with ``ON CONFLICT``
+  clause. This should help prevent nodes from running out of memory.
+
 - Improved the handling of ``statement_timeout`` to reduce memory consumption.
   Before it would consume extra memory per executed query for the full
   ``statement_duration`` even if the query finished early. Now the memory is

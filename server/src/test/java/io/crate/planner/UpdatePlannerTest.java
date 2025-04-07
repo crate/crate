@@ -21,6 +21,7 @@
 
 package io.crate.planner;
 
+import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_MULTIPLE_VALUES;
 import static io.crate.expression.symbol.SelectSymbol.ResultType.SINGLE_COLUMN_SINGLE_VALUE;
 import static io.crate.testing.Asserts.isLiteral;
@@ -227,5 +228,16 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> e.plan("update users set name='test' where id=1 returning id"))
             .isExactlyInstanceOf(UnsupportedFeatureException.class)
             .hasMessage(UpdatePlanner.RETURNING_VERSION_ERROR_MSG);
+    }
+
+    public void test_update_on_query_contains_full_doc_size_estimate() throws Exception {
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.t1(id TEXT PRIMARY KEY, a text, b text)");
+
+        UpdatePlanner.Update update = e.plan("UPDATE doc.t1 SET a = b");
+        var merge = (Merge) update.createExecutionPlan.create(e.getPlannerContext(), Row.EMPTY, SubQueryResults.EMPTY);
+        var collect = (Collect) merge.subPlan();
+        var updateProjection = (UpdateProjection) getOnlyElement(collect.collectPhase().projections());
+        assertThat(updateProjection.fullDocSizeEstimate()).isEqualTo(1920L);
     }
 }
