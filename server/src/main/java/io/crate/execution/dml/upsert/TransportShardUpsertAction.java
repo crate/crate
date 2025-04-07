@@ -203,13 +203,19 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
+            if (shardResponse.failure() != null) {
+                // Skip all remaining items on replica
+                item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
+                continue;
+            }
             int location = item.location();
             if (killed.get()) {
-                // set failure on response and skip all next items.
+                // set failure on response and skip all next items (on primary and on replica)
                 // this way replica operation will be executed, but only items with a valid source (= was processed on primary)
                 // will be processed on the replica
                 shardResponse.failure(new InterruptedException());
-                break;
+                item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
+                continue;
             }
             try {
                 IndexItemResponse indexItemResponse = indexItem(
@@ -245,7 +251,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
 
                 if (!request.continueOnError()) {
                     shardResponse.failure(e);
-                    break;
+                    // Continue, mark remaining items to skip on replica.
+                    continue;
                 }
                 shardResponse.add(location,
                     new ShardResponse.Failure(
