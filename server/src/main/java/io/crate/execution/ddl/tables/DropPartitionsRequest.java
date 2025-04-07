@@ -56,7 +56,12 @@ public class DropPartitionsRequest extends AcknowledgedRequest<DropPartitionsReq
         int size = in.readVInt();
         partitions = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            partitions.add(new PartitionName(relationName, in.readStringList()));
+            int numValues = in.readVInt();
+            ArrayList<String> values = new ArrayList<>(numValues);
+            for (int j = 0; j < numValues; j++) {
+                values.add(in.readOptionalString());
+            }
+            partitions.add(new PartitionName(relationName, values));
         }
     }
 
@@ -66,7 +71,13 @@ public class DropPartitionsRequest extends AcknowledgedRequest<DropPartitionsReq
         relationName.writeTo(out);
         out.writeVInt(partitions.size());
         for (PartitionName partition : partitions) {
-            out.writeStringCollection(partition.values());
+            assert partition.relationName().equals(relationName)
+                : "RelationName of PartitionName must match requets' relationName";
+            List<String> values = partition.values();
+            out.writeVInt(values.size());
+            for (String value : values) {
+                out.writeOptionalString(value);
+            }
         }
     }
 }
