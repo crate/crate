@@ -75,26 +75,26 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testOptimizeSystemTable() {
+    public void testOptimizeSystemTable() throws Exception {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE sys.shards"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE operations");
     }
 
     @Test
-    public void testOptimizeTable() {
+    public void testOptimizeTable() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE users");
         assertThat(analysis.relations()).containsExactly(new PartitionName(RelationName.fromIndexName("users"), List.of()));
     }
 
     @Test
-    public void testOptimizeBlobTable() {
+    public void testOptimizeBlobTable() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE blob.blobs");
         assertThat(analysis.relations()).containsExactly(new PartitionName(RelationName.fromIndexName("blob.blobs"), List.of()));
     }
 
     @Test
-    public void testOptimizeTableWithParams() {
+    public void testOptimizeTableWithParams() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE users WITH (max_num_segments=2)");
         assertThat(analysis.relations()).containsExactly(new PartitionName(RelationName.fromIndexName("users"), List.of()));
@@ -114,28 +114,28 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testOptimizeTableWithInvalidParamName() {
+    public void testOptimizeTableWithInvalidParamName() throws Exception {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE users WITH (invalidParam=123)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Setting 'invalidparam' is not supported");
     }
 
     @Test
-    public void testOptimizeTableWithUpgradeSegmentsAndOtherParam() {
+    public void testOptimizeTableWithUpgradeSegmentsAndOtherParam() throws Exception {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE users WITH (flush=false, upgrade_segments=true)"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("cannot use other parameters if upgrade_segments is set to true");
     }
 
     @Test
-    public void testOptimizePartition() {
+    public void testOptimizePartition() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000)");
         assertThat(analysis.relations()).containsExactly(new PartitionName(RelationName.fromIndexName("parted"), List.of("1395874800000")));
     }
 
     @Test
-    public void testOptimizePartitionedTableNullPartition() {
+    public void testOptimizePartitionedTableNullPartition() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=null)");
         List<String> nullList = new ArrayList<>();
@@ -144,7 +144,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testOptimizePartitionWithParams() {
+    public void testOptimizePartitionWithParams() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze(
             "OPTIMIZE TABLE parted PARTITION (date=1395874800000) " +
             "WITH (only_expunge_deletes=true)");
@@ -152,7 +152,7 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testOptimizeMultipleTables() {
+    public void testOptimizeMultipleTables() throws Exception {
         OptimizeTablePlan.BoundOptimizeTable analysis = analyze("OPTIMIZE TABLE parted, users");
         assertThat(analysis.relations()).hasSize(2);
         assertThat(analysis.relations())
@@ -161,28 +161,28 @@ public class OptimizeTableAnalyzerTest extends CrateDummyClusterServiceUnitTest 
     }
 
     @Test
-    public void testOptimizeMultipleTablesUnknown() {
+    public void testOptimizeMultipleTablesUnknown() throws Exception {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE parted, foo, bar"))
             .isExactlyInstanceOf(RelationUnknown.class)
             .hasMessage("Relation 'foo' unknown");
     }
 
     @Test
-    public void testOptimizeInvalidPartitioned() {
+    public void testOptimizeInvalidPartitioned() throws Exception {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE parted PARTITION (invalid_column='hddsGNJHSGFEFZÜ')"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("\"invalid_column\" is no known partition column");
     }
 
     @Test
-    public void testOptimizeNonPartitioned() {
+    public void testOptimizeNonPartitioned() throws Exception {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE users PARTITION (foo='n')"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("table 'doc.users' is not partitioned");
     }
 
     @Test
-    public void testOptimizeSysPartitioned() {
+    public void testOptimizeSysPartitioned() throws Exception {
         assertThatThrownBy(() -> analyze("OPTIMIZE TABLE sys.shards PARTITION (id='n')"))
             .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
             .hasMessage("The relation \"sys.shards\" doesn't support or allow OPTIMIZE operations");
