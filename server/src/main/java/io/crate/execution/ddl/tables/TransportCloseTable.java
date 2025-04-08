@@ -91,7 +91,7 @@ import io.crate.metadata.cluster.DDLClusterStateService;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
 
-    public static final TransportCloseTable.Action ACTION = new TransportCloseTable.Action();
+    public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
         private static final String NAME = "internal:crate:sql/table_or_partition/close";

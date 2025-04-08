@@ -79,7 +79,7 @@ public class CreateTableClient {
         } else {
             throw new UnsupportedOperationException("All nodes in the cluster must at least have version 5.4.0");
         }
-        return client.execute(TransportCreateTableAction.ACTION, createTableRequest).thenApply(resp -> {
+        return client.execute(TransportCreateTable.ACTION, createTableRequest).thenApply(resp -> {
             if (!resp.isAllShardsAcked() && LOGGER.isWarnEnabled()) {
                 LOGGER.warn("CREATE TABLE `{}` was not acknowledged. This could lead to inconsistent state.", relationName.fqn());
             }

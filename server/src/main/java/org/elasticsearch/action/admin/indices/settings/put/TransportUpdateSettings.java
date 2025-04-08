@@ -45,7 +45,7 @@ import org.elasticsearch.transport.TransportService;
 
 public class TransportUpdateSettings extends TransportMasterNodeAction<UpdateSettingsRequest, AcknowledgedResponse> {
 
-    public static final TransportUpdateSettings.Action ACTION = new TransportUpdateSettings.Action();
+    public static final Action ACTION = new Action();
     private final MetadataUpdateSettingsService updateSettingsService;
 
     public static class Action extends ActionType<AcknowledgedResponse> {

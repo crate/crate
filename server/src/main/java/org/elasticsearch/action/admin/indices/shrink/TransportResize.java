@@ -47,7 +47,7 @@ import io.crate.metadata.PartitionName;
  */
 public class TransportResize extends TransportMasterNodeAction<ResizeRequest, ResizeResponse> {
 
-    public static final TransportResize.Action ACTION = new TransportResize.Action();
+    public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<ResizeResponse> {
         private static final String NAME = "indices:admin/resize";

@@ -84,7 +84,7 @@ import io.crate.execution.ddl.tables.TransportAddColumn;
 import io.crate.execution.ddl.tables.TransportAlterTable;
 import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.execution.ddl.tables.TransportCreateBlobTable;
-import io.crate.execution.ddl.tables.TransportCreateTableAction;
+import io.crate.execution.ddl.tables.TransportCreateTable;
 import io.crate.execution.ddl.tables.TransportDropColumn;
 import io.crate.execution.ddl.tables.TransportDropConstraint;
 import io.crate.execution.ddl.tables.TransportDropPartitionsAction;
@@ -167,7 +167,7 @@ public class ActionModule extends AbstractModule {
         ActionRegistry actions = new ActionRegistry();
 
         // Table actions
-        actions.register(TransportCreateTableAction.ACTION, TransportCreateTableAction.class);
+        actions.register(TransportCreateTable.ACTION, TransportCreateTable.class);
         actions.register(TransportCreatePartitions.ACTION, TransportCreatePartitions.class);
         actions.register(TransportDropTable.ACTION, TransportDropTable.class);
         actions.register(TransportDropPartitionsAction.ACTION, TransportDropPartitionsAction.class);
