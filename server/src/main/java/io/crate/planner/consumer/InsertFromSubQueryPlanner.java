@@ -38,6 +38,7 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 
@@ -58,7 +59,8 @@ public final class InsertFromSubQueryPlanner {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
 
-
+        TableStats tableStats = plannerContext.nodeContext().tableStats();
+        long itemSize = tableStats.estimatedSizePerRow(statement.tableInfo());
 
         // if fields are null default to number of rows imported
         var outputs = statement.outputs() == null ? List.of(new InputColumn(0, DataTypes.LONG)) : statement.outputs();
@@ -77,7 +79,8 @@ public final class InsertFromSubQueryPlanner {
             Settings.EMPTY,
             statement.tableInfo().isPartitioned(),
             outputs,
-            statement.outputs() == null ? List.of() : statement.outputs()
+            statement.outputs() == null ? List.of() : statement.outputs(),
+            itemSize
         );
         LogicalPlan plannedSubQuery = logicalPlanner.plan(
             statement.subQueryRelation(),
@@ -89,4 +92,6 @@ public final class InsertFromSubQueryPlanner {
             Symbols.typeView(statement.columns()), plannedSubQuery.outputs());
         return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);
     }
+
+
 }

@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.pipeline;
 
-import static io.crate.execution.dml.upsert.ShardUpsertRequest.Item.sizeEstimateForUpdate;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.planner.operators.InsertFromValues.checkConstraints;
@@ -138,7 +137,9 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -530,7 +531,8 @@ public class ProjectionToProjectorVisitor
             projection.bulkActions(),
             projection.autoCreateIndices(),
             projection.returnValues(),
-            context.jobId
+            context.jobId,
+            projection.itemSizeEstimate()
         );
     }
 
@@ -561,11 +563,9 @@ public class ProjectionToProjectorVisitor
 
         String indexName = shardId.getIndexName();
         RelationName relationName = RelationName.fromIndexName(indexName);
+        TableInfo tableInfo = nodeCtx.schemas().getTableInfo(relationName);
+        long sizeEstimate =  nodeCtx.tableStats().estimatedSizePerRow(tableInfo);
 
-        long sizeEstimate = sizeEstimateForUpdate(
-            nodeCtx.tableStats().getStats(relationName),
-            nodeCtx.schemas().getTableInfo(relationName)
-        );
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),

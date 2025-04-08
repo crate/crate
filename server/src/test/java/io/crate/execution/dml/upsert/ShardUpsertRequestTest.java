@@ -57,6 +57,7 @@ import io.crate.metadata.settings.SessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public class ShardUpsertRequestTest extends ESTestCase {
@@ -98,7 +99,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             missingAssignmentColumns,
             new Object[]{99, "Marvin"},
-            null
+            null,
+            0
         ));
         request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
@@ -106,7 +108,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             missingAssignmentColumns,
             new Object[]{99, "Marvin"},
-            new Symbol[0]
+            new Symbol[0],
+            0
         ));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
@@ -152,7 +155,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             missingAssignmentColumns,
             new Object[]{99, "Marvin"},
-            null
+            null,
+            0
         ));
         request.add(42, ShardUpsertRequest.Item.forInsert(
             "99",
@@ -160,7 +164,8 @@ public class ShardUpsertRequestTest extends ESTestCase {
             Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
             missingAssignmentColumns,
             new Object[]{99, "Marvin"},
-            new Symbol[0]
+            new Symbol[0],
+            0
         ));
         request.add(5, new ShardUpsertRequest.Item(
             "42",
@@ -201,12 +206,13 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ).newRequest(shardId);
 
         request.add(42, ShardUpsertRequest.Item.forInsert(
-                "42",
-                List.of(),
-                Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
-                missingAssignmentColumns,
-                new Object[]{42, "Marvin"},
-                new Symbol[0]
+            "42",
+            List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentColumns,
+            new Object[]{42, "Marvin"},
+            new Symbol[0],
+            0
         ));
 
         BytesStreamOutput out = new BytesStreamOutput();
@@ -221,7 +227,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
 
     @Test
     public void test_ram_estimation_with_stats() {
-        Stats stats = new Stats(10L, 1000L, Map.of());
+
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
@@ -234,7 +240,10 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ).newRequest(new ShardId("test", UUIDs.randomBase64UUID(), 1));
         assertThat(request.ramBytesUsed()).isEqualTo(72L);
 
-        long sizeEstimate = ShardUpsertRequest.Item.sizeEstimateForUpdate(stats, DOC_TABLE_INFO);
+        TableStats tableStats = new TableStats();
+        tableStats.updateTableStats(Map.of(DOC_TABLE_INFO.ident(), new Stats(10L, 1000L, Map.of())));
+        long sizeEstimate = tableStats.estimatedSizePerRow(DOC_TABLE_INFO.ident());
+
         request.add(42, ShardUpsertRequest.Item.forUpdate(
             "42",
             new Symbol[]{ID_REF, NAME_REF},
@@ -260,7 +269,9 @@ public class ShardUpsertRequestTest extends ESTestCase {
         ).newRequest(new ShardId("test", UUIDs.randomBase64UUID(), 1));
         assertThat(request.ramBytesUsed()).isEqualTo(72L);
 
-        long sizeEstimate = ShardUpsertRequest.Item.sizeEstimateForUpdate(Stats.EMPTY, DOC_TABLE_INFO);
+        TableStats tableStats = new TableStats();
+        long sizeEstimate = tableStats.estimatedSizePerRow(DOC_TABLE_INFO);
+
         request.add(42, ShardUpsertRequest.Item.forUpdate(
             "42",
             new Symbol[]{ID_REF, NAME_REF},

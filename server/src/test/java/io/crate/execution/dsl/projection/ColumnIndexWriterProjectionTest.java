@@ -72,7 +72,8 @@ public class ColumnIndexWriterProjectionTest {
             Settings.EMPTY,
             true,
             List.of(),
-            List.of()
+            List.of(),
+            0
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
