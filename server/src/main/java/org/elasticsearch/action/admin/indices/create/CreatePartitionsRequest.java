@@ -23,7 +23,6 @@ package org.elasticsearch.action.admin.indices.create;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 
 import org.elasticsearch.Version;
@@ -31,48 +30,40 @@ import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
-import io.crate.common.collections.Lists;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartitionsRequest> {
 
     private final RelationName relationName;
-    private final List<List<String>> partitionValuesList;
+    private final List<PartitionName> partitions;
 
     /**
      * @param partitions partitions to create. Limited to one unique relation
      **/
-    public static CreatePartitionsRequest of(Collection<PartitionName> partitions) {
+    public static CreatePartitionsRequest of(List<PartitionName> partitions) {
         List<RelationName> relations = partitions.stream()
             .map(PartitionName::relationName)
             .distinct()
             .toList();
         return switch (relations.size()) {
             case 0 -> throw new IllegalArgumentException("Must create at least one partition");
-            case 1 -> new CreatePartitionsRequest(relations.get(0), Lists.map(partitions, PartitionName::values));
+            case 1 -> new CreatePartitionsRequest(relations.get(0), partitions);
             default -> throw new IllegalArgumentException("Cannot create partitions for more than one table in the same request");
         };
     }
 
-    public CreatePartitionsRequest(RelationName relationName, List<List<String>> partitionValuesList) {
+    public CreatePartitionsRequest(RelationName relationName, List<PartitionName> partitions) {
         this.relationName = relationName;
-        this.partitionValuesList = partitionValuesList;
+        this.partitions = partitions;
     }
 
     public RelationName relationName() {
         return relationName;
     }
 
-    public List<List<String>> partitionValuesList() {
-        return partitionValuesList;
-    }
-
-    /**
-     * @return index names created from {@link #relationName()} and {@link #partitionValuesList()}
-     **/
-    public List<String> indexNames() {
-        return Lists.map(partitionValuesList, values -> new PartitionName(relationName, values).asIndexName());
+    public List<PartitionName> partitionNames() {
+        return partitions;
     }
 
     public CreatePartitionsRequest(StreamInput in) throws IOException {
@@ -80,14 +71,14 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
         if (in.getVersion().onOrAfter(Version.V_5_10_0)) {
             this.relationName = new RelationName(in);
             int numPartitions = in.readVInt();
-            this.partitionValuesList = new ArrayList<>(numPartitions);
+            this.partitions = new ArrayList<>(numPartitions);
             for (int i = 0; i < numPartitions; i++) {
                 int numValues = in.readVInt();
                 List<String> partitionValues = new ArrayList<>(numValues);
                 for (int j = 0; j < numValues; j++) {
                     partitionValues.add(in.readOptionalString());
                 }
-                this.partitionValuesList.add(partitionValues);
+                this.partitions.add(new PartitionName(relationName, partitionValues));
             }
         } else {
             if (in.getVersion().before(Version.V_5_3_0)) {
@@ -97,14 +88,14 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
                 in.readLong();
             }
             int numIndices = in.readVInt();
-            this.partitionValuesList = new ArrayList<>(numIndices);
+            this.partitions = new ArrayList<>(numIndices);
             RelationName relation = null;
             for (int i = 0; i < numIndices; i++) {
                 PartitionName partitionName = PartitionName.fromIndexOrTemplate(in.readString());
                 if (relation == null) {
                     relation = partitionName.relationName();
                 }
-                partitionValuesList.add(partitionName.values());
+                partitions.add(partitionName);
             }
             this.relationName = relation;
         }
@@ -115,10 +106,10 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
         super.writeTo(out);
         if (out.getVersion().onOrAfter(Version.V_5_10_0)) {
             relationName.writeTo(out);
-            out.writeVInt(partitionValuesList.size());
-            for (List<String> partitionValues : partitionValuesList) {
-                out.writeVInt(partitionValues.size());
-                for (String value : partitionValues) {
+            out.writeVInt(partitions.size());
+            for (PartitionName partitionName : partitions) {
+                out.writeVInt(partitionName.values().size());
+                for (String value : partitionName.values()) {
                     out.writeOptionalString(value);
                 }
             }
@@ -131,9 +122,9 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
                 out.writeLong(0L);
             }
 
-            out.writeVInt(partitionValuesList.size());
-            for (List<String> partitionValues : partitionValuesList) {
-                String indexName = new PartitionName(relationName, partitionValues).asIndexName();
+            out.writeVInt(partitions.size());
+            for (PartitionName partitionName : partitions) {
+                String indexName = partitionName.asIndexName();
                 out.writeString(indexName);
             }
         }
