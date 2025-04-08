@@ -183,7 +183,8 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
         ClusterState artificialState = new ClusterState.Builder(clusterState).metadata(metadataBuilder).build();
 
         // Imitation of "insert into tbl (a) values (1)".
-        CreatePartitionsRequest request = new CreatePartitionsRequest(RelationName.fromIndexName(tableTemplateName), List.of(List.of("1")));
+        RelationName relationName = RelationName.fromIndexName(tableTemplateName);
+        CreatePartitionsRequest request = new CreatePartitionsRequest(relationName, List.of(new PartitionName(relationName, List.of("1"))));
 
         TransportCreatePartitions actionSpy = spy(action);
         ClusterState newState = actionSpy.executeCreateIndices(artificialState, request);
@@ -194,7 +195,7 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
 
         // Each node upgrades templates only once when it's a master and creates partitions for the first time.
         // We need a new request to avoid "partition already exists" short-cut logic.
-        request = new CreatePartitionsRequest(RelationName.fromIndexName(tableTemplateName), List.of(List.of("2")));
+        request = new CreatePartitionsRequest(relationName, List.of(new PartitionName(relationName, List.of("2"))));
         actionSpy.executeCreateIndices(newState, request);
         // Without do-once logic would have been 2
         verify(actionSpy, times(1)).upgradeTemplates(any(), any());
@@ -226,7 +227,8 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
         ClusterState artificialState = new ClusterState.Builder(clusterState).metadata(metadataBuilder).build();
 
         // Imitation of "insert into tbl (a) values (1)".
-        CreatePartitionsRequest request = new CreatePartitionsRequest(RelationName.fromIndexName(tableTemplateName), List.of(List.of("1")));
+        RelationName relationName = RelationName.fromIndexName(tableTemplateName);
+        CreatePartitionsRequest request = new CreatePartitionsRequest(relationName, List.of(new PartitionName(relationName, List.of("1"))));
 
         ClusterState newState = action.executeCreateIndices(artificialState, request);
         assertThat(newState.metadata().indices().values().size()).isEqualTo(1);

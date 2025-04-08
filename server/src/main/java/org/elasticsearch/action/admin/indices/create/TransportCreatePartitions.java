@@ -157,7 +157,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                                    final ActionListener<AcknowledgedResponse> listener) throws ElasticsearchException {
         createIndices(request, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
-                List<String> indexNames = request.indexNames();
+                List<String> indexNames = indexNames(request.partitionNames(), clusterService.state());
                 activeShardsObserver.waitForActiveShards(indexNames.toArray(String[]::new), ActiveShardCount.DEFAULT, request.ackTimeout(),
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
@@ -190,10 +190,11 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
         String removalReason = null;
         Index testIndex = null;
         try {
-            List<PartitionName> partitions = getPartitionsToCreate(currentState, request);
-            if (partitions.isEmpty()) {
+            if (request.partitionNames().isEmpty()) {
                 return currentState;
             }
+            validatePartitions(currentState, request);
+            List<PartitionName> partitions = request.partitionNames();
 
             // We always have only 1 matching template per pattern/table.
             // All indices in the request are related to a concrete partitioned table and
@@ -380,10 +381,8 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
         );
     }
 
-    private static List<PartitionName> getPartitionsToCreate(ClusterState state, CreatePartitionsRequest request) {
-        ArrayList<PartitionName> partitions = new ArrayList<>(request.partitionValuesList().size());
-        for (List<String> partitionValues : request.partitionValuesList()) {
-            PartitionName partition = new PartitionName(request.relationName(), partitionValues);
+    private static void validatePartitions(ClusterState state, CreatePartitionsRequest request) {
+        for (PartitionName partition : request.partitionNames()) {
             String indexName = partition.asIndexName();
             if (state.metadata().hasIndex(indexName)) {
                 continue;
@@ -392,9 +391,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                 continue;
             }
             IndexName.validate(indexName);
-            partitions.add(partition);
         }
-        return partitions;
     }
 
     private Settings createCommonIndexSettings(ClusterState currentState, @Nullable IndexTemplateMetadata template) {
@@ -418,7 +415,21 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
     protected ClusterBlockException checkBlock(CreatePartitionsRequest request, ClusterState state) {
         return state.blocks().indicesBlockedException(
             ClusterBlockLevel.METADATA_WRITE,
-            request.indexNames().toArray(String[]::new)
+            indexNames(request.partitionNames(), state).toArray(String[]::new)
         );
+    }
+
+    public List<String> indexNames(List<PartitionName> partitionNames, ClusterState state) {
+        List<String> indexNames = new ArrayList<>(partitionNames.size());
+        for (PartitionName partition : partitionNames) {
+            indexNames.addAll(state.metadata().getIndices(
+                partition.relationName(),
+                partition.values(),
+                false,
+                im -> im.getIndex().getName()
+            ));
+        }
+
+        return indexNames;
     }
 }
