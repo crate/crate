@@ -72,8 +72,6 @@ import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.common.NamedRegistry;
 import org.elasticsearch.common.inject.AbstractModule;
 import org.elasticsearch.common.inject.multibindings.MapBinder;
-import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.gateway.TransportNodesListGatewayStartedShards;
 import org.elasticsearch.index.seqno.GlobalCheckpointSyncAction;
 import org.elasticsearch.index.seqno.RetentionLeaseActions;
@@ -92,12 +90,19 @@ import io.crate.blob.TransportStartBlobAction;
 import io.crate.cluster.decommission.DecommissionNodeAction;
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
 import io.crate.execution.ddl.tables.RenameColumnAction;
+import io.crate.execution.ddl.tables.TransportAddColumn;
+import io.crate.execution.ddl.tables.TransportAlterTable;
+import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.execution.ddl.tables.TransportCreateBlobTableAction;
 import io.crate.execution.ddl.tables.TransportCreateTableAction;
+import io.crate.execution.ddl.tables.TransportDropColumn;
+import io.crate.execution.ddl.tables.TransportDropConstraint;
 import io.crate.execution.ddl.tables.TransportDropPartitionsAction;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
 import io.crate.execution.ddl.tables.TransportGCDanglingArtifactsAction;
+import io.crate.execution.ddl.tables.TransportOpenTable;
 import io.crate.execution.ddl.tables.TransportRenameColumnAction;
+import io.crate.execution.ddl.tables.TransportRenameTable;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
@@ -143,7 +148,7 @@ public class ActionModule extends AbstractModule {
 
     private final Map<String, ActionHandler<?, ?>> actions;
 
-    public ActionModule(Settings settings, ClusterSettings clusterSettings, List<ActionPlugin> actionPlugins) {
+    public ActionModule(List<ActionPlugin> actionPlugins) {
         actions = setupActions(actionPlugins);
     }
 
@@ -239,6 +244,13 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportDropForeignTableAction.ACTION, TransportDropForeignTableAction.class);
         actions.register(TransportDropUserMapping.ACTION, TransportDropUserMapping.class);
 
+        actions.register(TransportAlterTable.ACTION, TransportAlterTable.class);
+        actions.register(TransportRenameTable.ACTION, TransportRenameTable.class);
+        actions.register(TransportOpenTable.ACTION, TransportOpenTable.class);
+        actions.register(TransportCloseTable.ACTION, TransportCloseTable.class);
+        actions.register(TransportAddColumn.ACTION, TransportAddColumn.class);
+        actions.register(TransportDropColumn.ACTION, TransportDropColumn.class);
+        actions.register(TransportDropConstraint.ACTION, TransportDropConstraint.class);
         actions.register(TransportDropTableAction.ACTION, TransportDropTableAction.class);
         actions.register(TransportDropPartitionsAction.ACTION, TransportDropPartitionsAction.class);
         actions.register(TransportGCDanglingArtifactsAction.ACTION, TransportGCDanglingArtifactsAction.class);

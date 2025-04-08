@@ -21,6 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -31,44 +32,52 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
 @Singleton
-public class TransportDropColumnAction extends AbstractDDLTransportAction<DropColumnRequest, AcknowledgedResponse> {
+public class TransportDropConstraint extends AbstractDDLTransportAction<DropConstraintRequest, AcknowledgedResponse> {
 
-    @VisibleForTesting
-    public static final AlterTableTask.AlterTableOperator<DropColumnRequest> DROP_COLUMN_OPERATOR =
-        (req, docTableInfo, _, _, _) -> docTableInfo.dropColumns(req.colsToDrop());
-    private static final String ACTION_NAME = "internal:crate:sql/table/drop_column";
+    public static final TransportDropConstraint.Action ACTION = new TransportDropConstraint.Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/table/drop_constraint";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
+    private static final AlterTableTask.AlterTableOperator<DropConstraintRequest> DROP_CONSTRAINT_OPERATOR =
+        (req, docTableInfo, _, _, _) -> docTableInfo.dropConstraint(req.constraintName());
+
     private final NodeContext nodeContext;
 
     @Inject
-    public TransportDropColumnAction(TransportService transportService,
-                                     ClusterService clusterService,
-                                     ThreadPool threadPool,
-                                     NodeContext nodeContext) {
-        super(ACTION_NAME,
-              transportService,
-              clusterService,
-              threadPool,
-              DropColumnRequest::new,
-              AcknowledgedResponse::new,
-              AcknowledgedResponse::new,
-              "drop-column");
+    public TransportDropConstraint(TransportService transportService,
+                                   ClusterService clusterService,
+                                   ThreadPool threadPool,
+                                   NodeContext nodeContext) {
+        super(ACTION.name(),
+            transportService,
+            clusterService,
+            threadPool,
+            DropConstraintRequest::new,
+            AcknowledgedResponse::new,
+            AcknowledgedResponse::new,
+            "drop-constraint");
         this.nodeContext = nodeContext;
     }
 
+
     @Override
-    public ClusterStateTaskExecutor<DropColumnRequest> clusterStateTaskExecutor(DropColumnRequest request) {
-        return new AlterTableTask<>(nodeContext, request.relationName(), null, DROP_COLUMN_OPERATOR);
+    public ClusterStateTaskExecutor<DropConstraintRequest> clusterStateTaskExecutor(DropConstraintRequest request) {
+        return new AlterTableTask<>(nodeContext, request.relationName(), null, DROP_CONSTRAINT_OPERATOR);
     }
 
-
     @Override
-    public ClusterBlockException checkBlock(DropColumnRequest request, ClusterState state) {
+    public ClusterBlockException checkBlock(DropConstraintRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }

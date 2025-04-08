@@ -54,7 +54,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     private static AlterTableTask<AddColumnRequest> buildAddColumnTask(SQLExecutor e, RelationName tblName) {
         return new AlterTableTask<>(
-            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportAddColumn.ADD_COLUMN_OPERATOR);
     }
 
     @Test

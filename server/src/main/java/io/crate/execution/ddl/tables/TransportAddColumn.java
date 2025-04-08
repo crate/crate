@@ -21,6 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -40,7 +41,17 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfo;
 
 @Singleton
-public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
+public class TransportAddColumn extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
+
+    public static final TransportAddColumn.Action ACTION = new TransportAddColumn.Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/table/add_column";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     @VisibleForTesting
     public static final AlterTableTask.AlterTableOperator<AddColumnRequest> ADD_COLUMN_OPERATOR =
@@ -53,17 +64,17 @@ public class TransportAddColumnAction extends AbstractDDLTransportAction<AddColu
             req.references(),
             req.pKeyIndices(),
             req.checkConstraints());
-    private static final String ACTION_NAME = "internal:crate:sql/table/add_column";
     private final NodeContext nodeContext;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
 
     @Inject
-    public TransportAddColumnAction(TransportService transportService,
-                                    ClusterService clusterService,
-                                    ThreadPool threadPool,
-                                    NodeContext nodeContext,
-                                    FulltextAnalyzerResolver fulltextAnalyzerResolver) {
-        super(ACTION_NAME,
+    public TransportAddColumn(TransportService transportService,
+                              ClusterService clusterService,
+                              ThreadPool threadPool,
+                              NodeContext nodeContext,
+                              FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+        super(
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,

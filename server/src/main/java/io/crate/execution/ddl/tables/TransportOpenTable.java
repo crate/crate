@@ -23,6 +23,7 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.execution.ddl.tables.TransportCloseTable.isEmptyPartitionedTable;
 
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -43,21 +44,29 @@ import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.OpenTableClusterStateTaskExecutor;
 
 @Singleton
-public class TransportOpenTableAction extends AbstractDDLTransportAction<OpenTableRequest, AcknowledgedResponse> {
+public class TransportOpenTable extends AbstractDDLTransportAction<OpenTableRequest, AcknowledgedResponse> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/table_or_partition/open_close";
+    public static final TransportOpenTable.Action ACTION = new TransportOpenTable.Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/table_or_partition/open_close";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     private final OpenTableClusterStateTaskExecutor openExecutor;
 
     @Inject
-    public TransportOpenTableAction(TransportService transportService,
-                                                    ClusterService clusterService,
-                                                    ThreadPool threadPool,
-                                                    AllocationService allocationService,
-                                                    DDLClusterStateService ddlClusterStateService,
-                                                    MetadataUpgradeService metadataIndexUpgradeService,
-                                                    IndicesService indexServices) {
-        super(ACTION_NAME,
+    public TransportOpenTable(TransportService transportService,
+                              ClusterService clusterService,
+                              ThreadPool threadPool,
+                              AllocationService allocationService,
+                              DDLClusterStateService ddlClusterStateService,
+                              MetadataUpgradeService metadataIndexUpgradeService,
+                              IndicesService indexServices) {
+        super(ACTION.name(),
             transportService,
             clusterService,
             threadPool,

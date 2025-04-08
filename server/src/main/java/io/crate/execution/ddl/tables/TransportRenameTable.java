@@ -26,6 +26,7 @@ import java.util.List;
 import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -49,20 +50,28 @@ import io.crate.metadata.cluster.RenameTableClusterStateExecutor;
 import io.crate.metadata.view.ViewsMetadata;
 
 @Singleton
-public class TransportRenameTableAction extends TransportMasterNodeAction<RenameTableRequest, AcknowledgedResponse> {
+public class TransportRenameTable extends TransportMasterNodeAction<RenameTableRequest, AcknowledgedResponse> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/table/rename";
+    public static final TransportRenameTable.Action ACTION = new TransportRenameTable.Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/table/rename";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     private final RenameTableClusterStateExecutor executor;
     private final ActiveShardsObserver activeShardsObserver;
 
     @Inject
-    public TransportRenameTableAction(TransportService transportService,
-                                      ClusterService clusterService,
-                                      ThreadPool threadPool,
-                                      AllocationService allocationService,
-                                      DDLClusterStateService ddlClusterStateService) {
-        super(ACTION_NAME,
+    public TransportRenameTable(TransportService transportService,
+                                ClusterService clusterService,
+                                ThreadPool threadPool,
+                                AllocationService allocationService,
+                                DDLClusterStateService ddlClusterStateService) {
+        super(ACTION.name(),
               transportService,
               clusterService,
               threadPool,
@@ -100,7 +109,7 @@ public class TransportRenameTableAction extends TransportMasterNodeAction<Rename
 
         clusterService.submitStateUpdateTask(
             "rename-table",
-            new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.HIGH, request, waitForShardsListener) {
+            new AckedClusterStateUpdateTask<>(Priority.HIGH, request, waitForShardsListener) {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     ClusterState updatedState = executor.execute(currentState, request);

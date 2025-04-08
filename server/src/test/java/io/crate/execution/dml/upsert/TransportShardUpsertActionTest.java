@@ -62,7 +62,7 @@ import org.junit.Test;
 import org.mockito.Answers;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.execution.ddl.tables.TransportAddColumnAction;
+import io.crate.execution.ddl.tables.TransportAddColumn;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.RawIndexer;
 import io.crate.execution.dml.ShardResponse;
@@ -120,7 +120,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                                                  IndicesService indicesService,
                                                  ShardStateAction shardStateAction,
                                                  NodeContext nodeCtx) {
-            super(Settings.EMPTY, threadPool, clusterService, transportService, mock(TransportAddColumnAction.class),
+            super(Settings.EMPTY, threadPool, clusterService, transportService, mock(TransportAddColumn.class),
                 tasksService, indicesService, shardStateAction, nodeCtx);
         }
 

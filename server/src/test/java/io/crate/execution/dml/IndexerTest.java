@@ -68,7 +68,7 @@ import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.AlterTableTask;
-import io.crate.execution.ddl.tables.TransportAddColumnAction;
+import io.crate.execution.ddl.tables.TransportAddColumn;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Symbol;
@@ -122,7 +122,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     private DocTableInfo addColumns(SQLExecutor e, DocTableInfo table, List<Reference> newColumns) throws Exception {
         var addColumnTask = new AlterTableTask<>(
-            e.nodeCtx, table.ident(), e.fulltextAnalyzerResolver(), TransportAddColumnAction.ADD_COLUMN_OPERATOR);
+            e.nodeCtx, table.ident(), e.fulltextAnalyzerResolver(), TransportAddColumn.ADD_COLUMN_OPERATOR);
         AddColumnRequest request = new AddColumnRequest(
                 table.ident(),
                 newColumns,
