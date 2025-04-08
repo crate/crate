@@ -139,7 +139,6 @@ import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -532,7 +531,7 @@ public class ProjectionToProjectorVisitor
             projection.autoCreateIndices(),
             projection.returnValues(),
             context.jobId,
-            projection.itemSizeEstimate()
+            projection.fullDocSizeEstimate()
         );
     }
 

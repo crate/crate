@@ -58,7 +58,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
      * to match with outputs.
      */
     private List<Symbol> returnValues;
-    private final long itemSizeEstimate;
+    private final long fullDocSizeEstimate;
 
     /**
      * @param relationName              identifying the table to write to
@@ -79,7 +79,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                                        boolean autoCreateIndices,
                                        List<? extends Symbol> outputs,
                                        List<Symbol> returnValues,
-                                       long itemSizeEstimate) {
+                                       long fullDocSizeEstimate) {
 
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, primaryKeySymbols, autoCreateIndices);
         assert partitionedBySymbols.stream().noneMatch(s -> s.any(Symbol.IS_COLUMN))
@@ -91,7 +91,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         this.clusteredBySymbol = clusteredBySymbol;
         this.outputs = outputs;
         this.returnValues = returnValues;
-        this.itemSizeEstimate = itemSizeEstimate;
+        this.fullDocSizeEstimate = fullDocSizeEstimate;
     }
 
     ColumnIndexWriterProjection(StreamInput in) throws IOException {
@@ -157,14 +157,14 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             allTargetColumns = List.of();
         }
         if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
-            itemSizeEstimate = in.readLong();
+            fullDocSizeEstimate = in.readLong();
         } else {
-            itemSizeEstimate = 0;
+            fullDocSizeEstimate = 0;
         }
     }
 
-    public long itemSizeEstimate() {
-        return itemSizeEstimate;
+    public long fullDocSizeEstimate() {
+        return fullDocSizeEstimate;
     }
 
     public List<? extends Symbol> outputs() {
@@ -208,7 +208,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                allTargetColumns.equals(that.allTargetColumns) &&
                Objects.equals(outputs, that.outputs) &&
                Objects.equals(returnValues, that.returnValues) &&
-               Objects.equals(itemSizeEstimate, that.itemSizeEstimate);
+               Objects.equals(fullDocSizeEstimate, that.fullDocSizeEstimate);
     }
 
     @Override
@@ -218,7 +218,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                             allTargetColumns,
                             outputs,
                             returnValues,
-                            itemSizeEstimate);
+            fullDocSizeEstimate);
     }
 
     @Override
@@ -263,7 +263,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             }
         }
         if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
-            out.writeLong(itemSizeEstimate);
+            out.writeLong(fullDocSizeEstimate);
         }
     }
 
@@ -291,7 +291,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             autoCreateIndices(),
             outputs,
             returnValues,
-            itemSizeEstimate
+            fullDocSizeEstimate
             );
     }
 }
