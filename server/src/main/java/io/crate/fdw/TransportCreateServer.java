@@ -39,29 +39,35 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 @Singleton
-public class TransportCreateForeignTableAction extends TransportMasterNodeAction<CreateForeignTableRequest, AcknowledgedResponse> {
+public class TransportCreateServer extends TransportMasterNodeAction<CreateServerRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
 
+
     public static class Action extends ActionType<AcknowledgedResponse> {
-        public static final String NAME = "internal:crate:sql/fdw/table/create";
+        private static final String NAME = "internal:crate:sql/fdw/server/create";
 
         private Action() {
             super(NAME);
         }
     }
 
+    private final ForeignDataWrappers foreignDataWrappers;
+
+
     @Inject
-    public TransportCreateForeignTableAction(TransportService transportService,
-                                             ClusterService clusterService,
-                                             ThreadPool threadPool) {
+    public TransportCreateServer(TransportService transportService,
+                                 ClusterService clusterService,
+                                 ThreadPool threadPool,
+                                 ForeignDataWrappers foreignDataWrappers) {
         super(
             ACTION.name(),
             transportService,
             clusterService,
             threadPool,
-            CreateForeignTableRequest::new
+            CreateServerRequest::new
         );
+        this.foreignDataWrappers = foreignDataWrappers;
     }
 
     @Override
@@ -75,20 +81,20 @@ public class TransportCreateForeignTableAction extends TransportMasterNodeAction
     }
 
     @Override
-    protected void masterOperation(CreateForeignTableRequest request,
+    protected void masterOperation(CreateServerRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         if (state.nodes().getMinNodeVersion().before(Version.V_5_7_0)) {
             throw new IllegalStateException(
-                "Cannot execute CREATE FOREIGN TABLE while there are <5.7.0 nodes in the cluster");
+                "Cannot execute CREATE SERVER while there are <5.7.0 nodes in the cluster");
         }
-        AddForeignTableTask updateTask = new AddForeignTableTask(request);
+        AddServerTask updateTask = new AddServerTask(foreignDataWrappers, request);
         updateTask.completionFuture().whenComplete(listener);
-        clusterService.submitStateUpdateTask("create_table", updateTask);
+        clusterService.submitStateUpdateTask("create_server", updateTask);
     }
 
     @Override
-    protected ClusterBlockException checkBlock(CreateForeignTableRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(CreateServerRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }

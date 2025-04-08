@@ -37,12 +37,12 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportDropServerAction extends TransportMasterNodeAction<DropServerRequest, AcknowledgedResponse> {
+public class TransportDropServer extends TransportMasterNodeAction<DropServerRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
-        public static final String NAME = "internal:crate:sql/fdw/server/drop";
+        private static final String NAME = "internal:crate:sql/fdw/server/drop";
 
         private Action() {
             super(NAME);
@@ -50,9 +50,9 @@ public class TransportDropServerAction extends TransportMasterNodeAction<DropSer
     }
 
     @Inject
-    public TransportDropServerAction(TransportService transportService,
-                                     ClusterService clusterService,
-                                     ThreadPool threadPool) {
+    public TransportDropServer(TransportService transportService,
+                               ClusterService clusterService,
+                               ThreadPool threadPool) {
         super(
             ACTION.name(),
             transportService,

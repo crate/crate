@@ -98,7 +98,7 @@ import io.crate.execution.ddl.tables.TransportDropColumn;
 import io.crate.execution.ddl.tables.TransportDropConstraint;
 import io.crate.execution.ddl.tables.TransportDropPartitionsAction;
 import io.crate.execution.ddl.tables.TransportDropTableAction;
-import io.crate.execution.ddl.tables.TransportGCDanglingArtifactsAction;
+import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
 import io.crate.execution.ddl.tables.TransportOpenTable;
 import io.crate.execution.ddl.tables.TransportRenameColumnAction;
 import io.crate.execution.ddl.tables.TransportRenameTable;
@@ -120,12 +120,12 @@ import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
-import io.crate.fdw.TransportAlterServerAction;
-import io.crate.fdw.TransportCreateForeignTableAction;
-import io.crate.fdw.TransportCreateServerAction;
-import io.crate.fdw.TransportCreateUserMappingAction;
-import io.crate.fdw.TransportDropForeignTableAction;
-import io.crate.fdw.TransportDropServerAction;
+import io.crate.fdw.TransportAlterServer;
+import io.crate.fdw.TransportCreateForeignTable;
+import io.crate.fdw.TransportCreateServer;
+import io.crate.fdw.TransportCreateUserMapping;
+import io.crate.fdw.TransportDropForeignTable;
+import io.crate.fdw.TransportDropServer;
 import io.crate.fdw.TransportDropUserMapping;
 import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.GetFileChunkAction;
@@ -135,10 +135,10 @@ import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
 import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
-import io.crate.role.TransportAlterRoleAction;
-import io.crate.role.TransportCreateRoleAction;
-import io.crate.role.TransportDropRoleAction;
-import io.crate.role.TransportPrivilegesAction;
+import io.crate.role.TransportAlterRole;
+import io.crate.role.TransportCreateRole;
+import io.crate.role.TransportDropRole;
+import io.crate.role.TransportPrivileges;
 
 /**
  * Builds and binds the generic action map, all {@link TransportAction}s
@@ -202,10 +202,10 @@ public class ActionModule extends AbstractModule {
         actions.register(RestoreSnapshotAction.INSTANCE, TransportRestoreSnapshotAction.class);
 
         // Roles & Privileges actions
-        actions.register(TransportPrivilegesAction.ACTION, TransportPrivilegesAction.class);
-        actions.register(TransportCreateRoleAction.ACTION, TransportCreateRoleAction.class);
-        actions.register(TransportDropRoleAction.ACTION, TransportDropRoleAction.class);
-        actions.register(TransportAlterRoleAction.ACTION, TransportAlterRoleAction.class);
+        actions.register(TransportPrivileges.ACTION, TransportPrivileges.class);
+        actions.register(TransportCreateRole.ACTION, TransportCreateRole.class);
+        actions.register(TransportDropRole.ACTION, TransportDropRole.class);
+        actions.register(TransportAlterRole.ACTION, TransportAlterRole.class);
 
         // Logical replication actions
         actions.register(PublicationsStateAction.INSTANCE, PublicationsStateAction.TransportAction.class);
@@ -214,12 +214,12 @@ public class ActionModule extends AbstractModule {
         actions.register(ReleasePublisherResourcesAction.INSTANCE, ReleasePublisherResourcesAction.TransportAction.class);
 
         // FDW actions
-        actions.register(TransportCreateServerAction.ACTION, TransportCreateServerAction.class);
-        actions.register(TransportAlterServerAction.ACTION, TransportAlterServerAction.class);
-        actions.register(TransportCreateForeignTableAction.ACTION, TransportCreateForeignTableAction.class);
-        actions.register(TransportCreateUserMappingAction.ACTION, TransportCreateUserMappingAction.class);
-        actions.register(TransportDropServerAction.ACTION, TransportDropServerAction.class);
-        actions.register(TransportDropForeignTableAction.ACTION, TransportDropForeignTableAction.class);
+        actions.register(TransportCreateServer.ACTION, TransportCreateServer.class);
+        actions.register(TransportAlterServer.ACTION, TransportAlterServer.class);
+        actions.register(TransportCreateForeignTable.ACTION, TransportCreateForeignTable.class);
+        actions.register(TransportCreateUserMapping.ACTION, TransportCreateUserMapping.class);
+        actions.register(TransportDropServer.ACTION, TransportDropServer.class);
+        actions.register(TransportDropForeignTable.ACTION, TransportDropForeignTable.class);
         actions.register(TransportDropUserMapping.ACTION, TransportDropUserMapping.class);
 
         // Cluster & internal actions
@@ -259,7 +259,7 @@ public class ActionModule extends AbstractModule {
         // Misc actions
         actions.register(IndicesStatsAction.INSTANCE, TransportIndicesStatsAction.class);
         actions.register(DeleteIndexAction.INSTANCE, TransportDeleteIndexAction.class);
-        actions.register(TransportGCDanglingArtifactsAction.ACTION, TransportGCDanglingArtifactsAction.class);
+        actions.register(TransportGCDanglingArtifacts.ACTION, TransportGCDanglingArtifacts.class);
 
         return unmodifiableMap(actions.getRegistry());
     }

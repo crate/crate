@@ -45,7 +45,7 @@ import io.crate.fdw.CreateForeignTableRequest;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
-import io.crate.fdw.TransportCreateForeignTableAction;
+import io.crate.fdw.TransportCreateForeignTable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -141,7 +141,7 @@ public class CreateForeignTablePlan implements Plan {
             subQueryResults
         );
         dependencies.client()
-            .execute(TransportCreateForeignTableAction.ACTION, request)
+            .execute(TransportCreateForeignTable.ACTION, request)
             .whenComplete(OneRowActionListener.oneIfAcknowledged(consumer));
     }
 }

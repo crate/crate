@@ -39,7 +39,7 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.replication.logical.LogicalReplicationService;
 
-public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleRequest, WriteRoleResponse> {
+public class TransportDropRole extends TransportMasterNodeAction<DropRoleRequest, WriteRoleResponse> {
 
     public static final Action ACTION = new Action();
 
@@ -54,10 +54,10 @@ public class TransportDropRoleAction extends TransportMasterNodeAction<DropRoleR
     private final LogicalReplicationService logicalReplicationService;
 
     @Inject
-    public TransportDropRoleAction(TransportService transportService,
-                                   ClusterService clusterService,
-                                   ThreadPool threadPool,
-                                   LogicalReplicationService logicalReplicationService) {
+    public TransportDropRole(TransportService transportService,
+                             ClusterService clusterService,
+                             ThreadPool threadPool,
+                             LogicalReplicationService logicalReplicationService) {
         super(
             ACTION.name(),
             transportService,

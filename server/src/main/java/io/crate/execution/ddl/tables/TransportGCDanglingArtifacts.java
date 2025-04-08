@@ -47,7 +47,7 @@ import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 
 @Singleton
-public class TransportGCDanglingArtifactsAction extends AbstractDDLTransportAction<GCDanglingArtifactsRequest, AcknowledgedResponse> {
+public class TransportGCDanglingArtifacts extends AbstractDDLTransportAction<GCDanglingArtifactsRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
 
@@ -62,10 +62,10 @@ public class TransportGCDanglingArtifactsAction extends AbstractDDLTransportActi
     private final DDLClusterStateTaskExecutor<GCDanglingArtifactsRequest> executor;
 
     @Inject
-    public TransportGCDanglingArtifactsAction(TransportService transportService,
-                                              ClusterService clusterService,
-                                              ThreadPool threadPool,
-                                              MetadataDeleteIndexService deleteIndexService) {
+    public TransportGCDanglingArtifacts(TransportService transportService,
+                                        ClusterService clusterService,
+                                        ThreadPool threadPool,
+                                        MetadataDeleteIndexService deleteIndexService) {
         super(
             ACTION.name(),
             transportService,

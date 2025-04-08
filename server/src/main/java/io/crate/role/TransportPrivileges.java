@@ -52,7 +52,7 @@ import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 
 @Singleton
-public class TransportPrivilegesAction extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
+public class TransportPrivileges extends TransportMasterNodeAction<PrivilegesRequest, PrivilegesResponse> {
 
     public static final Action ACTION = new Action();
 
@@ -67,10 +67,10 @@ public class TransportPrivilegesAction extends TransportMasterNodeAction<Privile
     private final Roles roles;
 
     @Inject
-    public TransportPrivilegesAction(TransportService transportService,
-                                     ClusterService clusterService,
-                                     Roles roles,
-                                     ThreadPool threadPool) {
+    public TransportPrivileges(TransportService transportService,
+                               ClusterService clusterService,
+                               Roles roles,
+                               ThreadPool threadPool) {
         super(
             ACTION.name(),
             transportService,

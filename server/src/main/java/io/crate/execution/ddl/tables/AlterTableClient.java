@@ -285,7 +285,7 @@ public class AlterTableClient {
     }
 
     private CompletableFuture<Long> deleteTempIndices() {
-        return client.execute(TransportGCDanglingArtifactsAction.ACTION, GCDanglingArtifactsRequest.INSTANCE)
+        return client.execute(TransportGCDanglingArtifacts.ACTION, GCDanglingArtifactsRequest.INSTANCE)
             .thenApply(_ -> 0L);
     }
 }

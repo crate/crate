@@ -33,36 +33,32 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-@Singleton
-public class TransportAlterServerAction extends TransportMasterNodeAction<AlterServerRequest, AcknowledgedResponse> {
+public class TransportDropForeignTable extends TransportMasterNodeAction<DropForeignTableRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
 
-
     public static class Action extends ActionType<AcknowledgedResponse> {
-        public static final String NAME = "internal:crate:sql/fdw/server/alter";
+        private static final String NAME = "internal:crate:sql/fdw/table/drop";
 
         private Action() {
             super(NAME);
         }
     }
 
-
     @Inject
-    public TransportAlterServerAction(TransportService transportService,
-                                      ClusterService clusterService,
-                                      ThreadPool threadPool) {
+    public TransportDropForeignTable(TransportService transportService,
+                                     ClusterService clusterService,
+                                     ThreadPool threadPool) {
         super(
             ACTION.name(),
             transportService,
             clusterService,
             threadPool,
-            AlterServerRequest::new
+            DropForeignTableRequest::new
         );
     }
 
@@ -77,20 +73,20 @@ public class TransportAlterServerAction extends TransportMasterNodeAction<AlterS
     }
 
     @Override
-    protected void masterOperation(AlterServerRequest request,
+    protected void masterOperation(DropForeignTableRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         if (state.nodes().getMinNodeVersion().before(Version.V_5_7_0)) {
             throw new IllegalStateException(
-                "Cannot execute ALTER SERVER while there are <5.7.0 nodes in the cluster");
+                "Cannot execute DROP FOREIGN TABLE while there are <5.7.0 nodes in the cluster");
         }
-        AlterServerTask updateTask = new AlterServerTask(request);
-        updateTask.completionFuture().whenComplete(listener);
-        clusterService.submitStateUpdateTask("alter_server", updateTask);
+        var task = new DropForeignTableTask(request);
+        task.completionFuture().whenComplete(listener);
+        clusterService.submitStateUpdateTask("drop_foreign_table", task);
     }
 
     @Override
-    protected ClusterBlockException checkBlock(AlterServerRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(DropForeignTableRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }

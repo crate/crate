@@ -33,41 +33,33 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-@Singleton
-public class TransportCreateServerAction extends TransportMasterNodeAction<CreateServerRequest, AcknowledgedResponse> {
+public class TransportCreateUserMapping extends TransportMasterNodeAction<CreateUserMappingRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
 
-
     public static class Action extends ActionType<AcknowledgedResponse> {
-        public static final String NAME = "internal:crate:sql/fdw/server/create";
+        private static final String NAME = "internal:crate:sql/fdw/user/create";
 
         private Action() {
             super(NAME);
         }
     }
 
-    private final ForeignDataWrappers foreignDataWrappers;
-
-
     @Inject
-    public TransportCreateServerAction(TransportService transportService,
-                                       ClusterService clusterService,
-                                       ThreadPool threadPool,
-                                       ForeignDataWrappers foreignDataWrappers) {
+    public TransportCreateUserMapping(TransportService transportService,
+                                      ClusterService clusterService,
+                                      ThreadPool threadPool) {
         super(
             ACTION.name(),
             transportService,
             clusterService,
             threadPool,
-            CreateServerRequest::new
+            CreateUserMappingRequest::new
         );
-        this.foreignDataWrappers = foreignDataWrappers;
     }
 
     @Override
@@ -81,20 +73,20 @@ public class TransportCreateServerAction extends TransportMasterNodeAction<Creat
     }
 
     @Override
-    protected void masterOperation(CreateServerRequest request,
+    protected void masterOperation(CreateUserMappingRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         if (state.nodes().getMinNodeVersion().before(Version.V_5_7_0)) {
             throw new IllegalStateException(
-                "Cannot execute CREATE SERVER while there are <5.7.0 nodes in the cluster");
+                "Cannot execute CREATE USER MAPPING while there are <5.7.0 nodes in the cluster");
         }
-        AddServerTask updateTask = new AddServerTask(foreignDataWrappers, request);
+        AddUserMappingTask updateTask = new AddUserMappingTask(request);
         updateTask.completionFuture().whenComplete(listener);
-        clusterService.submitStateUpdateTask("create_server", updateTask);
+        clusterService.submitStateUpdateTask("create_user_mapping", updateTask);
     }
 
     @Override
-    protected ClusterBlockException checkBlock(CreateServerRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(CreateUserMappingRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }

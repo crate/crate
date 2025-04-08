@@ -33,16 +33,18 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportCreateUserMappingAction extends TransportMasterNodeAction<CreateUserMappingRequest, AcknowledgedResponse> {
+@Singleton
+public class TransportCreateForeignTable extends TransportMasterNodeAction<CreateForeignTableRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
-        public static final String NAME = "internal:crate:sql/fdw/user/create";
+        private static final String NAME = "internal:crate:sql/fdw/table/create";
 
         private Action() {
             super(NAME);
@@ -50,15 +52,15 @@ public class TransportCreateUserMappingAction extends TransportMasterNodeAction<
     }
 
     @Inject
-    public TransportCreateUserMappingAction(TransportService transportService,
-                                            ClusterService clusterService,
-                                            ThreadPool threadPool) {
+    public TransportCreateForeignTable(TransportService transportService,
+                                       ClusterService clusterService,
+                                       ThreadPool threadPool) {
         super(
             ACTION.name(),
             transportService,
             clusterService,
             threadPool,
-            CreateUserMappingRequest::new
+            CreateForeignTableRequest::new
         );
     }
 
@@ -73,20 +75,20 @@ public class TransportCreateUserMappingAction extends TransportMasterNodeAction<
     }
 
     @Override
-    protected void masterOperation(CreateUserMappingRequest request,
+    protected void masterOperation(CreateForeignTableRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         if (state.nodes().getMinNodeVersion().before(Version.V_5_7_0)) {
             throw new IllegalStateException(
-                "Cannot execute CREATE USER MAPPING while there are <5.7.0 nodes in the cluster");
+                "Cannot execute CREATE FOREIGN TABLE while there are <5.7.0 nodes in the cluster");
         }
-        AddUserMappingTask updateTask = new AddUserMappingTask(request);
+        AddForeignTableTask updateTask = new AddForeignTableTask(request);
         updateTask.completionFuture().whenComplete(listener);
-        clusterService.submitStateUpdateTask("create_user_mapping", updateTask);
+        clusterService.submitStateUpdateTask("create_table", updateTask);
     }
 
     @Override
-    protected ClusterBlockException checkBlock(CreateUserMappingRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(CreateForeignTableRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }
