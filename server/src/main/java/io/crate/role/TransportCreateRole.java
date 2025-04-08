@@ -48,7 +48,7 @@ import io.crate.role.metadata.RolesMetadata;
 import io.crate.role.metadata.UsersMetadata;
 import io.crate.role.metadata.UsersPrivilegesMetadata;
 
-public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateRoleRequest, WriteRoleResponse> {
+public class TransportCreateRole extends TransportMasterNodeAction<CreateRoleRequest, WriteRoleResponse> {
 
     public static final Action ACTION = new Action();
 
@@ -61,9 +61,9 @@ public class TransportCreateRoleAction extends TransportMasterNodeAction<CreateR
     }
 
     @Inject
-    public TransportCreateRoleAction(TransportService transportService,
-                                     ClusterService clusterService,
-                                     ThreadPool threadPool) {
+    public TransportCreateRole(TransportService transportService,
+                               ClusterService clusterService,
+                               ThreadPool threadPool) {
         super(
             ACTION.name(),
             transportService,

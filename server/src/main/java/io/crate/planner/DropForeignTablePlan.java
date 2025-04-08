@@ -26,7 +26,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.fdw.DropForeignTableRequest;
-import io.crate.fdw.TransportDropForeignTableAction;
+import io.crate.fdw.TransportDropForeignTable;
 import io.crate.planner.operators.SubQueryResults;
 
 public class DropForeignTablePlan implements Plan {
@@ -55,7 +55,7 @@ public class DropForeignTablePlan implements Plan {
             dropForeignTable.cascadeMode()
         );
         dependencies.client()
-            .execute(TransportDropForeignTableAction.ACTION, request)
+            .execute(TransportDropForeignTable.ACTION, request)
             .whenComplete(OneRowActionListener.oneIfAcknowledged(consumer));
     }
 }

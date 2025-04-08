@@ -38,7 +38,7 @@ import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
-import io.crate.execution.ddl.tables.TransportGCDanglingArtifactsAction;
+import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
 import io.crate.metadata.PartitionName;
 
 /**
@@ -49,7 +49,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
     private final MetadataCreateIndexService createIndexService;
     private final Client client;
     private final TransportSwapAndDropIndexNameAction swapAndDropIndexAction;
-    private final TransportGCDanglingArtifactsAction gcDanglingArtifactsAction;
+    private final TransportGCDanglingArtifacts gcDanglingArtifactsAction;
 
     @Inject
     public TransportResizeAction(TransportService transportService,
@@ -57,7 +57,7 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
                                  ThreadPool threadPool,
                                  MetadataCreateIndexService createIndexService,
                                  TransportSwapAndDropIndexNameAction swapAndDropIndexAction,
-                                 TransportGCDanglingArtifactsAction gcDanglingArtifactsAction,
+                                 TransportGCDanglingArtifacts gcDanglingArtifactsAction,
                                  Client client) {
         super(ResizeAction.NAME, transportService, clusterService, threadPool, ResizeRequest::new);
         this.createIndexService = createIndexService;

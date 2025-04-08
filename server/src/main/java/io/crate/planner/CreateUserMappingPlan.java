@@ -38,7 +38,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.CreateUserMappingRequest;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.fdw.ServersMetadata;
-import io.crate.fdw.TransportCreateUserMappingAction;
+import io.crate.fdw.TransportCreateUserMapping;
 import io.crate.planner.operators.SubQueryResults;
 
 public class CreateUserMappingPlan implements Plan {
@@ -96,7 +96,7 @@ public class CreateUserMappingPlan implements Plan {
             optionsBuilder.build()
         );
         dependencies.client()
-            .execute(TransportCreateUserMappingAction.ACTION, request)
+            .execute(TransportCreateUserMapping.ACTION, request)
             .whenComplete(OneRowActionListener.oneIfAcknowledged(consumer));
     }
 }

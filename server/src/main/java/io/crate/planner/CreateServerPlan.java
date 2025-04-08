@@ -37,7 +37,7 @@ import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.CreateServerRequest;
 import io.crate.fdw.ForeignDataWrappers;
-import io.crate.fdw.TransportCreateServerAction;
+import io.crate.fdw.TransportCreateServer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
 
@@ -106,7 +106,7 @@ public class CreateServerPlan implements Plan {
             optionsBuilder.build()
         );
         dependencies.client()
-            .execute(TransportCreateServerAction.ACTION, request)
+            .execute(TransportCreateServer.ACTION, request)
             .whenComplete(OneRowActionListener.oneIfAcknowledged(consumer));
     }
 }
