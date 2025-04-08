@@ -30,7 +30,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -40,10 +39,9 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.doc.DocTableInfo;
 
-@Singleton
 public class TransportAddColumn extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
 
-    public static final TransportAddColumn.Action ACTION = new TransportAddColumn.Action();
+    public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
         private static final String NAME = "internal:crate:sql/table/add_column";
@@ -90,7 +88,6 @@ public class TransportAddColumn extends AbstractDDLTransportAction<AddColumnRequ
     public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
         return new AlterTableTask<>(nodeContext, request.relationName(), fulltextAnalyzerResolver, ADD_COLUMN_OPERATOR);
     }
-
 
     @Override
     public ClusterBlockException checkBlock(AddColumnRequest request, ClusterState state) {

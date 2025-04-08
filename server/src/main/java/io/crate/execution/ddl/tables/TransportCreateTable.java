@@ -41,7 +41,6 @@ import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -68,8 +67,7 @@ import io.crate.metadata.doc.DocTableInfoFactory;
  *
  * See also: {@link TransportCreateView}
  */
-@Singleton
-public class TransportCreateTableAction extends TransportMasterNodeAction<CreateTableRequest, CreateTableResponse> {
+public class TransportCreateTable extends TransportMasterNodeAction<CreateTableRequest, CreateTableResponse> {
 
     public static final Action ACTION = new Action();
 
@@ -87,13 +85,13 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     private final DocTableInfoFactory docTableInfoFactory;
 
     @Inject
-    public TransportCreateTableAction(TransportService transportService,
-                                      ClusterService clusterService,
-                                      NodeContext nodeContext,
-                                      ThreadPool threadPool,
-                                      IndicesService indicesService,
-                                      IndexScopedSettings indexScopedSettings,
-                                      MetadataCreateIndexService createIndexService) {
+    public TransportCreateTable(TransportService transportService,
+                                ClusterService clusterService,
+                                NodeContext nodeContext,
+                                ThreadPool threadPool,
+                                IndicesService indicesService,
+                                IndexScopedSettings indexScopedSettings,
+                                MetadataCreateIndexService createIndexService) {
         super(
             ACTION.name(),
             transportService,

@@ -38,7 +38,7 @@ import org.elasticsearch.transport.TransportService;
  */
 public class TransportRefresh extends TransportBroadcastReplicationAction<RefreshRequest, RefreshResponse, BasicReplicationRequest, ReplicationResponse> {
 
-    public static final TransportRefresh.Action ACTION = new TransportRefresh.Action();
+    public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<RefreshResponse> {
         private static final String NAME = "indices:admin/refresh";
