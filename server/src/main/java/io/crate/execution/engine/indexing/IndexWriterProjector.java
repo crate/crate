@@ -29,8 +29,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.function.Function;
-import java.util.function.Predicate;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
@@ -126,8 +125,10 @@ public class IndexWriterProjector implements Projector {
             null
         );
 
-        Predicate<UpsertResults> earlyTerminationCondition = results -> failFast && results.containsErrors();
-        Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator = UpsertResults::resultsToFailure;
+        BiFunction<UpsertResults, Throwable, Boolean> earlyTerminationCondition =
+                (results, err) -> failFast && results != null ? results.containsErrors() : err != null;
+        BiFunction<UpsertResults, Throwable, Throwable> earlyTerminationExceptionGenerator =
+            (results, err) -> UpsertResults.resultsToFailure(results);
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             (ignored1, ignored2) -> {},

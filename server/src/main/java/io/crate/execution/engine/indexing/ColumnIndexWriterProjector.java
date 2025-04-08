@@ -27,6 +27,7 @@ import java.util.UUID;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
+import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import org.elasticsearch.client.ElasticsearchClient;
@@ -128,6 +129,10 @@ public class ColumnIndexWriterProjector implements Projector {
 
         var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
 
+        BiFunction<UpsertResults, Throwable, Boolean> earlyTerminationCondition =
+            (results, err) -> continueOnError == false && results == null && err != null;
+        BiFunction<UpsertResults, Throwable, Throwable> earlyTerminationExceptionGenerator =
+            (results, err) -> err != null ? err : null;
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             constraintsChecker,
@@ -148,8 +153,8 @@ public class ColumnIndexWriterProjector implements Projector {
             targetTableNumShards,
             targetTableNumReplicas,
             upsertResultContext,
-            upsertResults -> false,
-            UpsertResults::resultsToFailure
+            earlyTerminationCondition,
+            earlyTerminationExceptionGenerator
         );
     }
 

@@ -2109,13 +2109,14 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_insert_from_select_stopped_across_all_shards() throws Exception {
+    public void test_insert_from_select_new_batches_are_not_inserted_after_failure() throws Exception {
         // No replicas to speed up the test, they are not relevant for the test
         execute("""
             create table t (a int check(a != 10))
             clustered by (a) into 4 shards
             with (number_of_replicas = 0)
-        """);
+            """
+        );
         try (var session = sqlExecutor.newSession()) {
             session.sessionSettings().allowFailOnPartialWrites(true);
             // Insert more than BULK_SIZE_SETTING * initial_concurrency > 10000 * 5 > 50000
@@ -2128,6 +2129,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             execute("refresh table t");
             execute("select count(*) from t");
             // At least one batch shouldn't be executed
+            // Without applying early termination logic, consistently used to be 57479L.
+            // Currently, it depends on concurrency level of a testing machine
+            // but constantly less than 50000.
             assertThat((long) response.rows()[0][0]).isLessThan(50000);
         }
     }
