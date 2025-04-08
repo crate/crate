@@ -24,6 +24,7 @@ package io.crate.execution.ddl.views;
 import java.io.IOException;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -39,14 +40,24 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.metadata.view.ViewsMetadata;
 
-public final class TransportCreateViewAction extends TransportMasterNodeAction<CreateViewRequest, CreateViewResponse> {
+public final class TransportCreateView extends TransportMasterNodeAction<CreateViewRequest, CreateViewResponse> {
+
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<CreateViewResponse> {
+        private static final String NAME = "internal:crate:sql/views/create";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     @Inject
-    public TransportCreateViewAction(TransportService transportService,
-                                     ClusterService clusterService,
-                                     ThreadPool threadPool) {
+    public TransportCreateView(TransportService transportService,
+                               ClusterService clusterService,
+                               ThreadPool threadPool) {
         super(
-            "internal:crate:sql/views/create",
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,
@@ -73,7 +84,7 @@ public final class TransportCreateViewAction extends TransportMasterNodeAction<C
             listener.onResponse(new CreateViewResponse(true));
         } else {
             clusterService.submitStateUpdateTask("views/create [" + request.name() + "]",
-                new AckedClusterStateUpdateTask<CreateViewResponse>(Priority.HIGH, request, listener) {
+                new AckedClusterStateUpdateTask<>(Priority.HIGH, request, listener) {
 
                     boolean alreadyExitsFailure = false;
 

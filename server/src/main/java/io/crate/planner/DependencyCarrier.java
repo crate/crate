@@ -36,16 +36,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.analyze.repositories.RepositoryParamValidator;
 import io.crate.execution.ddl.RepositoryService;
-import io.crate.execution.ddl.TransportSwapRelationsAction;
 import io.crate.execution.ddl.tables.AlterTableClient;
-import io.crate.execution.ddl.tables.TransportDropTableAction;
-import io.crate.execution.ddl.views.TransportCreateViewAction;
-import io.crate.execution.ddl.views.TransportDropViewAction;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.execution.jobs.NodeLimits;
-import io.crate.expression.udf.TransportCreateUserDefinedFunctionAction;
-import io.crate.expression.udf.TransportDropUserDefinedFunctionAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
@@ -70,13 +64,7 @@ public class DependencyCarrier {
     private final NodeContext nodeCtx;
     private final ClusterService clusterService;
     private final DCLStatementDispatcher dclStatementDispatcher;
-    private final TransportDropTableAction transportDropTableAction;
     private final ProjectionBuilder projectionBuilder;
-    private final TransportCreateViewAction createViewAction;
-    private final TransportDropViewAction dropViewAction;
-    private final TransportSwapRelationsAction swapRelationsAction;
-    private final TransportCreateUserDefinedFunctionAction createFunctionAction;
-    private final TransportDropUserDefinedFunctionAction dropFunctionAction;
     private final Provider<TransportAnalyzeAction> analyzeAction;
     private final AlterTableClient alterTableClient;
     private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
@@ -101,12 +89,6 @@ public class DependencyCarrier {
                              NodeLimits nodeLimits,
                              CircuitBreakerService circuitBreakerService,
                              DCLStatementDispatcher dclStatementDispatcher,
-                             TransportDropTableAction transportDropTableAction,
-                             TransportCreateViewAction createViewAction,
-                             TransportDropViewAction dropViewAction,
-                             TransportSwapRelationsAction swapRelationsAction,
-                             TransportCreateUserDefinedFunctionAction createFunctionAction,
-                             TransportDropUserDefinedFunctionAction dropFunctionAction,
                              Provider<TransportAnalyzeAction> analyzeAction,
                              AlterTableClient alterTableOperation,
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
@@ -127,13 +109,7 @@ public class DependencyCarrier {
         this.nodeLimits = nodeLimits;
         this.circuitBreakerService = circuitBreakerService;
         this.dclStatementDispatcher = dclStatementDispatcher;
-        this.transportDropTableAction = transportDropTableAction;
         projectionBuilder = new ProjectionBuilder(nodeCtx);
-        this.createViewAction = createViewAction;
-        this.dropViewAction = dropViewAction;
-        this.swapRelationsAction = swapRelationsAction;
-        this.createFunctionAction = createFunctionAction;
-        this.dropFunctionAction = dropFunctionAction;
         this.analyzeAction = analyzeAction;
         this.alterTableClient = alterTableOperation;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
@@ -148,10 +124,6 @@ public class DependencyCarrier {
 
     public Schemas schemas() {
         return schemas;
-    }
-
-    public TransportSwapRelationsAction swapRelationsAction() {
-        return swapRelationsAction;
     }
 
     public DCLStatementDispatcher dclAction() {
@@ -182,32 +154,12 @@ public class DependencyCarrier {
         return clusterService().localNode().getId();
     }
 
-    public TransportDropTableAction transportDropTableAction() {
-        return transportDropTableAction;
-    }
-
     public PhasesTaskFactory phasesTaskFactory() {
         return phasesTaskFactory;
     }
 
     public ThreadPool threadPool() {
         return threadPool;
-    }
-
-    public TransportCreateViewAction createViewAction() {
-        return createViewAction;
-    }
-
-    public TransportDropViewAction dropViewAction() {
-        return dropViewAction;
-    }
-
-    public TransportCreateUserDefinedFunctionAction createFunctionAction() {
-        return createFunctionAction;
-    }
-
-    public TransportDropUserDefinedFunctionAction dropFunctionAction() {
-        return dropFunctionAction;
     }
 
     public FulltextAnalyzerResolver fulltextAnalyzerResolver() {

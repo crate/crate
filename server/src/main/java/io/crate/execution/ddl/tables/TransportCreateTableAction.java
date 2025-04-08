@@ -52,6 +52,7 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.Templates;
+import io.crate.execution.ddl.views.TransportCreateView;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -65,7 +66,7 @@ import io.crate.metadata.doc.DocTableInfoFactory;
  * To atomically run the actions on the master, this action wraps around the ES actions and runs them
  * inside this action on the master with checking for views beforehand.
  *
- * See also: {@link io.crate.execution.ddl.views.TransportCreateViewAction}
+ * See also: {@link TransportCreateView}
  */
 @Singleton
 public class TransportCreateTableAction extends TransportMasterNodeAction<CreateTableRequest, CreateTableResponse> {
@@ -73,10 +74,9 @@ public class TransportCreateTableAction extends TransportMasterNodeAction<Create
     public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<CreateTableResponse> {
+        private static final String NAME = "internal:crate:sql/tables/admin/create";
 
-        public static final String NAME = "internal:crate:sql/tables/admin/create";
-
-        public Action() {
+        private Action() {
             super(NAME);
         }
     }

@@ -21,6 +21,13 @@
 
 package io.crate.planner;
 
+import static java.util.Collections.emptyList;
+
+import java.util.Collections;
+import java.util.Objects;
+
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
+
 import io.crate.analyze.AnalyzedSwapTable;
 import io.crate.analyze.SwapTableAnalyzer;
 import io.crate.analyze.SymbolEvaluator;
@@ -29,16 +36,11 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.RelationNameSwap;
 import io.crate.execution.ddl.SwapRelationsRequest;
+import io.crate.execution.ddl.TransportSwapRelations;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.RelationName;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataTypes;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-
-import java.util.Collections;
-import java.util.Objects;
-
-import static java.util.Collections.emptyList;
 
 public class SwapTablePlan implements Plan {
 
@@ -77,6 +79,6 @@ public class SwapTablePlan implements Plan {
             consumer,
             r -> r.isAcknowledged() ? new Row1(1L) : new Row1(0L)
         );
-        dependencies.swapRelationsAction().execute(request).whenComplete(listener);
+        dependencies.client().execute(TransportSwapRelations.ACTION, request).whenComplete(listener);
     }
 }

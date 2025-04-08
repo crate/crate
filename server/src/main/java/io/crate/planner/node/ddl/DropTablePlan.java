@@ -36,6 +36,7 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.ddl.tables.DropTableRequest;
+import io.crate.execution.ddl.tables.TransportDropTable;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -71,7 +72,7 @@ public class DropTablePlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) {
         var request = new DropTableRequest(dropTable.tableName());
-        dependencies.transportDropTableAction().execute(request).whenComplete((response, err) -> {
+        dependencies.client().execute(TransportDropTable.ACTION, request).whenComplete((response, err) -> {
             if (err == null) {
                 if (!response.isAcknowledged() && LOGGER.isWarnEnabled()) {
                     LOGGER.warn("Dropping table {} was not acknowledged. This could lead to inconsistent state.",
