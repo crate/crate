@@ -312,9 +312,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                                      long requiredVersion,
                                      long seqNo,
                                      long primaryTerm,
-                                     long sizeEstimate) {
+                                     long fullDocSizeEstimate) {
             long usedBytes = SHALLOW_SIZE;
-            usedBytes += sizeEstimate;
+            usedBytes += fullDocSizeEstimate;
             usedBytes += RamUsageEstimator.sizeOf(id);
             for (var assignment : assignments) {
                 usedBytes += assignment.ramBytesUsed();
@@ -338,9 +338,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                                      @Nullable Reference[] insertColumns,
                                      @Nullable Object[] values,
                                      @Nullable Symbol[] onConflictAssignments,
-                                     long sizeEstimate) {
+                                     long fullDocSizeEstimate) {
             long usedBytes = SHALLOW_SIZE;
-            usedBytes += sizeEstimate;
+            usedBytes += fullDocSizeEstimate;
             usedBytes += RamUsageEstimator.sizeOf(id);
             for (String pkValue : pkValues) {
                 usedBytes += RamUsageEstimator.sizeOf(pkValue);

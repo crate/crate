@@ -60,7 +60,7 @@ public final class InsertFromSubQueryPlanner {
         }
 
         TableStats tableStats = plannerContext.nodeContext().tableStats();
-        long itemSize = tableStats.estimatedSizePerRow(statement.tableInfo());
+        long fullDocSizeEstimate = tableStats.estimatedSizePerRow(statement.tableInfo());
 
         // if fields are null default to number of rows imported
         var outputs = statement.outputs() == null ? List.of(new InputColumn(0, DataTypes.LONG)) : statement.outputs();
@@ -80,7 +80,7 @@ public final class InsertFromSubQueryPlanner {
             statement.tableInfo().isPartitioned(),
             outputs,
             statement.outputs() == null ? List.of() : statement.outputs(),
-            itemSize
+            fullDocSizeEstimate
         );
         LogicalPlan plannedSubQuery = logicalPlanner.plan(
             statement.subQueryRelation(),

@@ -86,7 +86,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       boolean autoCreateIndices,
                                       List<Symbol> returnValues,
                                       UUID jobId,
-                                      long sizeEstimate
+                                      long fullDocSizeEstimate
                                       ) {
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
@@ -124,7 +124,7 @@ public class ColumnIndexWriterProjector implements Projector {
             insertColumns,
             insertValues.materialize(),
             onConflictAssignments,
-            sizeEstimate
+            fullDocSizeEstimate
         );
 
         var upsertResultContext = returnValues.isEmpty() ? UpsertResultContext.forRowCount() : UpsertResultContext.forResultRows();
