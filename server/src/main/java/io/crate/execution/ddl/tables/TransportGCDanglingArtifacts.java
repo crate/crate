@@ -52,7 +52,7 @@ public class TransportGCDanglingArtifacts extends AbstractDDLTransportAction<GCD
     public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
-        public static final String NAME = "internal:crate:admin/gc";
+        private static final String NAME = "internal:crate:admin/gc";
 
         private Action() {
             super(NAME);

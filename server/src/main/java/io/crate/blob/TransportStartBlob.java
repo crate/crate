@@ -21,9 +21,10 @@
 
 package io.crate.blob;
 
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
+import java.io.IOException;
+
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -35,59 +36,66 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
+public class TransportStartBlob extends TransportReplicationAction<StartBlobRequest, StartBlobRequest, StartBlobResponse> {
 
-public class TransportDeleteBlobAction extends TransportReplicationAction<DeleteBlobRequest, DeleteBlobRequest, DeleteBlobResponse> {
+    public static final TransportStartBlob.Action ACTION = new TransportStartBlob.Action();
+    private final BlobTransferTarget transferTarget;
 
-    private final BlobIndicesService blobIndicesService;
+    public static class Action extends ActionType<StartBlobResponse> {
+        private static final String NAME = "internal:crate:blob/start_blob";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     @Inject
-    public TransportDeleteBlobAction(Settings settings,
-                                     TransportService transportService,
-                                     ClusterService clusterService,
-                                     IndicesService indicesService,
-                                     ThreadPool threadPool,
-                                     ShardStateAction shardStateAction,
-                                     BlobIndicesService blobIndicesService) {
+    public TransportStartBlob(Settings settings,
+                              TransportService transportService,
+                              ClusterService clusterService,
+                              IndicesService indicesService,
+                              ThreadPool threadPool,
+                              ShardStateAction shardStateAction,
+                              BlobTransferTarget transferTarget) {
         super(
             settings,
-            DeleteBlobAction.NAME,
+            ACTION.name(),
             transportService,
             clusterService,
             indicesService,
             threadPool,
             shardStateAction,
-            DeleteBlobRequest::new,
-            DeleteBlobRequest::new,
+            StartBlobRequest::new,
+            StartBlobRequest::new,
             ThreadPool.Names.WRITE
         );
-        this.blobIndicesService = blobIndicesService;
+        this.transferTarget = transferTarget;
         logger.trace("Constructor");
     }
 
     @Override
-    protected DeleteBlobResponse newResponseInstance(StreamInput in) throws IOException {
-        return new DeleteBlobResponse(in);
+    protected StartBlobResponse newResponseInstance(StreamInput in) throws IOException {
+        logger.trace("newResponseInstance");
+        return new StartBlobResponse(in);
     }
 
     @Override
-    protected void shardOperationOnPrimary(DeleteBlobRequest shardRequest,
+    protected void shardOperationOnPrimary(StartBlobRequest request,
                                            IndexShard primary,
-                                           ActionListener<PrimaryResult<DeleteBlobRequest, DeleteBlobResponse>> listener) {
+                                           ActionListener<PrimaryResult<StartBlobRequest, StartBlobResponse>> listener) {
         ActionListener.completeWith(listener, () -> {
-            logger.trace("shardOperationOnPrimary {}", shardRequest);
-            BlobShard blobShard = blobIndicesService.blobShardSafe(shardRequest.shardId());
-            boolean deleted = blobShard.delete(shardRequest.id());
-            final DeleteBlobResponse response = new DeleteBlobResponse(deleted);
-            return new PrimaryResult<>(shardRequest, response);
+            logger.trace("shardOperationOnPrimary {}", request);
+            final StartBlobResponse response = new StartBlobResponse();
+            transferTarget.startTransfer(request, response);
+            return new PrimaryResult<>(request, response);
         });
     }
 
     @Override
-    protected ReplicaResult shardOperationOnReplica(DeleteBlobRequest request, IndexShard replica) {
-        logger.warn("shardOperationOnReplica operating on replica but relocation is not implemented {}", request);
-        BlobShard blobShard = blobIndicesService.blobShardSafe(request.shardId());
-        blobShard.delete(request.id());
+    protected ReplicaResult shardOperationOnReplica(StartBlobRequest request, IndexShard replica) {
+        logger.trace("shardOperationOnReplica operating on replica {}", request);
+        final StartBlobResponse response = new StartBlobResponse();
+        transferTarget.startTransfer(request, response);
         return new ReplicaResult();
     }
 }

@@ -26,6 +26,7 @@ import java.util.Arrays;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -42,16 +43,25 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportUpdateSettingsAction extends TransportMasterNodeAction<UpdateSettingsRequest, AcknowledgedResponse> {
+public class TransportUpdateSettings extends TransportMasterNodeAction<UpdateSettingsRequest, AcknowledgedResponse> {
 
+    public static final TransportUpdateSettings.Action ACTION = new TransportUpdateSettings.Action();
     private final MetadataUpdateSettingsService updateSettingsService;
 
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "indices:admin/settings/update";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportUpdateSettingsAction(TransportService transportService,
-                                         ClusterService clusterService,
-                                         ThreadPool threadPool,
-                                         MetadataUpdateSettingsService updateSettingsService) {
-        super(UpdateSettingsAction.NAME, transportService, clusterService, threadPool, UpdateSettingsRequest::new);
+    public TransportUpdateSettings(TransportService transportService,
+                                   ClusterService clusterService,
+                                   ThreadPool threadPool,
+                                   MetadataUpdateSettingsService updateSettingsService) {
+        super(ACTION.name(), transportService, clusterService, threadPool, UpdateSettingsRequest::new);
         this.updateSettingsService = updateSettingsService;
     }
 

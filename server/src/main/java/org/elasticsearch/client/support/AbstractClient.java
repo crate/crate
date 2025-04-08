@@ -31,14 +31,14 @@ import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
-import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefresh;
+import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettings;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
+import org.elasticsearch.action.admin.indices.stats.TransportIndicesStats;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
@@ -56,7 +56,7 @@ public abstract class AbstractClient implements Client {
     private final Admin admin;
     protected final Settings settings;
 
-    public AbstractClient(Settings settings, ThreadPool threadPool) {
+    protected AbstractClient(Settings settings, ThreadPool threadPool) {
         this.settings = settings;
         this.threadPool = threadPool;
         this.admin = new Admin(this);
@@ -152,17 +152,17 @@ public abstract class AbstractClient implements Client {
 
         @Override
         public CompletableFuture<RefreshResponse> refresh(final RefreshRequest request) {
-            return execute(RefreshAction.INSTANCE, request);
+            return execute(TransportRefresh.ACTION, request);
         }
 
         @Override
         public CompletableFuture<IndicesStatsResponse> stats(final IndicesStatsRequest request) {
-            return execute(IndicesStatsAction.INSTANCE, request);
+            return execute(TransportIndicesStats.ACTION, request);
         }
 
         @Override
         public CompletableFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request) {
-            return execute(UpdateSettingsAction.INSTANCE, request);
+            return execute(TransportUpdateSettings.ACTION, request);
         }
     }
 }
