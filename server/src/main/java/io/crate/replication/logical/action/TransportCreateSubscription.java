@@ -28,6 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -53,21 +54,28 @@ import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Roles;
 
-public class TransportCreateSubscriptionAction extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
+public class TransportCreateSubscription extends TransportMasterNodeAction<CreateSubscriptionRequest, AcknowledgedResponse> {
 
-    public static final String ACTION_NAME = "internal:crate:replication/logical/subscription/create";
-
+    public static final Action ACTION = new Action();
     private final String source;
     private final LogicalReplicationService logicalReplicationService;
     private final Roles roles;
 
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:replication/logical/subscription/create";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportCreateSubscriptionAction(TransportService transportService,
-                                             ClusterService clusterService,
-                                             LogicalReplicationService logicalReplicationService,
-                                             ThreadPool threadPool,
-                                             Roles roles) {
-        super(ACTION_NAME,
+    public TransportCreateSubscription(TransportService transportService,
+                                       ClusterService clusterService,
+                                       LogicalReplicationService logicalReplicationService,
+                                       ThreadPool threadPool,
+                                       Roles roles) {
+        super(ACTION.name(),
               transportService,
               clusterService,
               threadPool,

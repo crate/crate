@@ -37,19 +37,19 @@ import io.crate.replication.logical.metadata.Publication;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
-public class TransportAlterPublicationActionTest extends CrateDummyClusterServiceUnitTest {
+public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_unknown_table_raises_exception() {
         var pub = new Publication("owner", false, List.of());
         var metadata = Metadata.builder().build();
-        var request = new TransportAlterPublicationAction.Request(
+        var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.SET,
             List.of(RelationName.fromIndexName("t1"))
         );
 
-        assertThatThrownBy(() -> TransportAlterPublicationAction.updatePublication(request, metadata, pub))
+        assertThatThrownBy(() -> TransportAlterPublication.updatePublication(request, metadata, pub))
             .isExactlyInstanceOf(RelationUnknown.class);
     }
 
@@ -65,13 +65,13 @@ public class TransportAlterPublicationActionTest extends CrateDummyClusterServic
                 true
             )
             .build();
-        var request = new TransportAlterPublicationAction.Request(
+        var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.SET,
             List.of(RelationName.fromIndexName("t2"))
         );
 
-        var newPublication = TransportAlterPublicationAction.updatePublication(request, metadata, oldPublication);
+        var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactly(RelationName.fromIndexName("t2"));
     }
@@ -88,13 +88,13 @@ public class TransportAlterPublicationActionTest extends CrateDummyClusterServic
                 true
             )
             .build();
-        var request = new TransportAlterPublicationAction.Request(
+        var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.ADD,
             List.of(RelationName.fromIndexName("t2"))
         );
 
-        var newPublication = TransportAlterPublicationAction.updatePublication(request, metadata, oldPublication);
+        var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactlyInAnyOrder(
             RelationName.fromIndexName("t1"), RelationName.fromIndexName("t2"));
@@ -116,13 +116,13 @@ public class TransportAlterPublicationActionTest extends CrateDummyClusterServic
                 true
             )
             .build();
-        var request = new TransportAlterPublicationAction.Request(
+        var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.DROP,
             List.of(RelationName.fromIndexName("t2"))
         );
 
-        var newPublication = TransportAlterPublicationAction.updatePublication(request, metadata, oldPublication);
+        var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactly(RelationName.fromIndexName("t1"));
     }
