@@ -19,74 +19,78 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.tables;
+package io.crate.expression.udf;
 
-import java.util.List;
+import java.io.IOException;
 
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
+import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
-
-@Singleton
-public class TransportDropTableAction extends AbstractDDLTransportAction<DropTableRequest, AcknowledgedResponse> {
+public class TransportDropUserDefinedFunction
+    extends TransportMasterNodeAction<DropUserDefinedFunctionRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
+    private final UserDefinedFunctionService udfService;
 
     public static class Action extends ActionType<AcknowledgedResponse> {
-        public static final String NAME = "internal:crate:sql/table/drop";
+        private static final String NAME = "internal:crate:sql/udf/drop";
 
         private Action() {
             super(NAME);
         }
     }
 
-    private final DropTableClusterStateTaskExecutor executor;
-
     @Inject
-    public TransportDropTableAction(TransportService transportService,
-                                    ClusterService clusterService,
-                                    ThreadPool threadPool,
-                                    MetadataDeleteIndexService deleteIndexService,
-                                    DDLClusterStateService ddlClusterStateService) {
+    public TransportDropUserDefinedFunction(TransportService transportService,
+                                            ClusterService clusterService,
+                                            ThreadPool threadPool,
+                                            UserDefinedFunctionService udfService) {
         super(
             ACTION.name(),
             transportService,
             clusterService,
             threadPool,
-            DropTableRequest::new,
-            AcknowledgedResponse::new,
-            AcknowledgedResponse::new,
-            "drop-table"
+            DropUserDefinedFunctionRequest::new
         );
-        executor = new DropTableClusterStateTaskExecutor(deleteIndexService, ddlClusterStateService);
+        this.udfService = udfService;
     }
 
     @Override
-    public ClusterStateTaskExecutor<DropTableRequest> clusterStateTaskExecutor(DropTableRequest request) {
-        return executor;
+    protected String executor() {
+        return ThreadPool.Names.GENERIC;
     }
 
     @Override
-    protected ClusterBlockException checkBlock(DropTableRequest request, ClusterState state) {
-        String[] indexNames = state.metadata().getIndices(
-            request.tableIdent(),
-            List.of(),
-            false,
-            imd -> imd.getIndex().getName()
-        ).toArray(String[]::new);
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
+    protected AcknowledgedResponse read(StreamInput in) throws IOException {
+        return new AcknowledgedResponse(in);
+    }
+
+    @Override
+    protected void masterOperation(final DropUserDefinedFunctionRequest request,
+                                   ClusterState state,
+                                   ActionListener<AcknowledgedResponse> listener) throws Exception {
+        udfService.dropFunction(
+            request.schema(),
+            request.name(),
+            request.argumentTypes(),
+            request.ifExists(),
+            listener,
+            request.masterNodeTimeout()
+        );
+    }
+
+    @Override
+    protected ClusterBlockException checkBlock(DropUserDefinedFunctionRequest request, ClusterState state) {
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
     }
 }

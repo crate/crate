@@ -33,6 +33,7 @@ import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.udf.CreateUserDefinedFunctionRequest;
+import io.crate.expression.udf.TransportCreateUserDefinedFunction;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -77,6 +78,6 @@ public class CreateFunctionPlan implements Plan {
         );
         CreateUserDefinedFunctionRequest request = new CreateUserDefinedFunctionRequest(metadata, createFunction.replace());
         OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(consumer, ignoredResponse -> new Row1(1L));
-        dependencies.createFunctionAction().execute(request).whenComplete(listener);
+        dependencies.client().execute(TransportCreateUserDefinedFunction.ACTION, request).whenComplete(listener);
     }
 }

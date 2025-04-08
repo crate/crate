@@ -34,6 +34,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.views.CreateViewRequest;
+import io.crate.execution.ddl.views.TransportCreateView;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -87,12 +88,13 @@ public final class CreateViewPlan implements Plan {
             plannerContext.transactionContext().sessionSettings().searchPath(),
             owner == null ? null : owner.name()
         );
-        dependencies.createViewAction().execute(request).whenComplete(new OneRowActionListener<>(consumer, resp -> {
-            if (resp.alreadyExistsFailure()) {
-                throw new RelationAlreadyExists(createViewStmt.name());
-            }
-            return new Row1(1L);
-        }));
+        dependencies.client().execute(TransportCreateView.ACTION, request).whenComplete(
+            new OneRowActionListener<>(consumer, resp -> {
+                if (resp.alreadyExistsFailure()) {
+                    throw new RelationAlreadyExists(createViewStmt.name());
+                }
+                return new Row1(1L);
+            }));
     }
 
     private static void ensureFormattedQueryCanStillBeAnalyzed(RelationName viewName,
