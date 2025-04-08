@@ -30,6 +30,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.action.DropPublicationRequest;
+import io.crate.replication.logical.action.TransportDropPublication;
 import io.crate.replication.logical.analyze.AnalyzedDropPublication;
 
 public class DropPublicationPlan implements Plan {
@@ -51,7 +52,7 @@ public class DropPublicationPlan implements Plan {
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
         var request = new DropPublicationRequest(analyzedDropPublication.name(), analyzedDropPublication.ifExists());
-        dependencies.dropPublicationAction().execute(request)
+        dependencies.client().execute(TransportDropPublication.ACTION, request)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : 1L)));
     }
 }

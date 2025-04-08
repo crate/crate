@@ -21,14 +21,9 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.exceptions.RelationUnknown;
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
-import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
-import io.crate.replication.logical.metadata.Publication;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.role.Roles;
+import java.util.Locale;
+
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -37,24 +32,37 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Locale;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
+import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
+import io.crate.replication.logical.metadata.Publication;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
+import io.crate.role.Roles;
 
-@Singleton
-public class TransportCreatePublicationAction extends AbstractDDLTransportAction<CreatePublicationRequest, AcknowledgedResponse> {
+public class TransportCreatePublication extends AbstractDDLTransportAction<CreatePublicationRequest, AcknowledgedResponse> {
 
-    public static final String ACTION_NAME = "internal:crate:replication/logical/publication/create";
+    public static final Action ACTION = new Action();
     private final Roles roles;
 
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:replication/logical/publication/create";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportCreatePublicationAction(TransportService transportService,
-                                            ClusterService clusterService,
-                                            ThreadPool threadPool,
-                                            Roles roles) {
-        super(ACTION_NAME,
+    public TransportCreatePublication(TransportService transportService,
+                                      ClusterService clusterService,
+                                      ThreadPool threadPool,
+                                      Roles roles) {
+        super(ACTION.name(),
               transportService,
               clusterService,
               threadPool,

@@ -58,13 +58,11 @@ import io.crate.role.Roles;
 import io.crate.role.StubRoleManager;
 import io.crate.sql.tree.QualifiedName;
 
-public class TransportCreateSubscriptionActionTest {
+public class TransportCreateSubscriptionTest {
 
     private final LogicalReplicationService logicalReplicationService = mock(LogicalReplicationService.class);
     private final Roles roles = new StubRoleManager();
     private final ClusterService clusterService = mock(ClusterService.class);
-    private TransportCreateSubscriptionAction transportCreateSubscriptionAction;
-
 
     @Test
     public void test_subscribing_to_tables_with_higher_version_raises_error() throws Exception {
@@ -87,7 +85,7 @@ public class TransportCreateSubscriptionActionTest {
 
     private void subscribeToTablesWithVersion(FutureActionListener<AcknowledgedResponse> responseFuture,
                                               int internalVersionId) throws Exception {
-        transportCreateSubscriptionAction = new TransportCreateSubscriptionAction(
+        var transportCreateSubscription = new TransportCreateSubscription(
             mock(TransportService.class),
             clusterService,
             logicalReplicationService,
@@ -135,7 +133,7 @@ public class TransportCreateSubscriptionActionTest {
         when(logicalReplicationService.getPublicationState(anyString(), any(List.class), any(ConnectionInfo.class)))
             .thenReturn(CompletableFuture.completedFuture(response));
 
-        transportCreateSubscriptionAction.masterOperation(
+        transportCreateSubscription.masterOperation(
             new CreateSubscriptionRequest(
                 "crate",
                 "dummy",
@@ -147,5 +145,4 @@ public class TransportCreateSubscriptionActionTest {
             responseFuture
         );
     }
-
 }

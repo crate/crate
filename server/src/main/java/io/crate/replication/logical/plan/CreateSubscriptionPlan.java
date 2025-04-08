@@ -38,6 +38,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.action.CreateSubscriptionRequest;
+import io.crate.replication.logical.action.TransportCreateSubscription;
 import io.crate.replication.logical.analyze.AnalyzedCreateSubscription;
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.replication.logical.metadata.ConnectionInfo;
@@ -93,7 +94,7 @@ public class CreateSubscriptionPlan implements Plan {
             settings
         );
 
-        dependencies.createSubscriptionAction().execute(request)
+        dependencies.client().execute(TransportCreateSubscription.ACTION, request)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : 1L)));
     }
 

@@ -21,8 +21,7 @@
 
 package io.crate.execution.ddl.index;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.cluster.SwapAndDropIndexExecutor;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -31,26 +30,34 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.cluster.SwapAndDropIndexExecutor;
 
 /**
  * Renames a sourceIndex to targetIndex, and drops the former targetIndex - effectively overriding the target
  */
-@Singleton
-public class TransportSwapAndDropIndexNameAction extends AbstractDDLTransportAction<SwapAndDropIndexRequest, AcknowledgedResponse> {
+public class TransportSwapAndDropIndexName extends AbstractDDLTransportAction<SwapAndDropIndexRequest, AcknowledgedResponse> {
 
-    private static final String ACTION_NAME = "internal:crate:sql/index/swap_and_drop_index";
-
+    public static final Action ACTION = new Action();
     private final SwapAndDropIndexExecutor executor;
 
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/index/swap_and_drop_index";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportSwapAndDropIndexNameAction(TransportService transportService,
-                                               ClusterService clusterService,
-                                               ThreadPool threadPool,
-                                               AllocationService allocationService) {
-        super(ACTION_NAME,
+    public TransportSwapAndDropIndexName(TransportService transportService,
+                                         ClusterService clusterService,
+                                         ThreadPool threadPool,
+                                         AllocationService allocationService) {
+        super(ACTION.name(),
             transportService,
             clusterService,
             threadPool,

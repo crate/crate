@@ -80,6 +80,7 @@ import io.crate.blob.TransportStartBlob;
 import io.crate.cluster.decommission.DecommissionNodeAction;
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
 import io.crate.execution.ddl.TransportSwapRelations;
+import io.crate.execution.ddl.index.TransportSwapAndDropIndexName;
 import io.crate.execution.ddl.tables.TransportAddColumn;
 import io.crate.execution.ddl.tables.TransportAlterTable;
 import io.crate.execution.ddl.tables.TransportCloseTable;
@@ -129,6 +130,10 @@ import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
 import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.action.TransportAlterPublication;
+import io.crate.replication.logical.action.TransportCreatePublication;
+import io.crate.replication.logical.action.TransportCreateSubscription;
+import io.crate.replication.logical.action.TransportDropPublication;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
 import io.crate.role.TransportAlterRole;
 import io.crate.role.TransportCreateRole;
@@ -212,6 +217,10 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportAlterRole.ACTION, TransportAlterRole.class);
 
         // Logical replication actions
+        actions.register(TransportCreatePublication.ACTION, TransportCreatePublication.class);
+        actions.register(TransportAlterPublication.ACTION, TransportAlterPublication.class);
+        actions.register(TransportDropPublication.ACTION, TransportDropPublication.class);
+        actions.register(TransportCreateSubscription.ACTION, TransportCreateSubscription.class);
         actions.register(PublicationsStateAction.INSTANCE, PublicationsStateAction.TransportAction.class);
         actions.register(UpdateSubscriptionAction.INSTANCE, UpdateSubscriptionAction.TransportAction.class);
         actions.register(DropSubscriptionAction.INSTANCE, DropSubscriptionAction.TransportAction.class);
@@ -263,6 +272,7 @@ public class ActionModule extends AbstractModule {
         // Misc actions
         actions.register(TransportIndicesStats.ACTION, TransportIndicesStats.class);
         actions.register(TransportDeleteIndex.ACTION, TransportDeleteIndex.class);
+        actions.register(TransportSwapAndDropIndexName.ACTION, TransportSwapAndDropIndexName.class);
         actions.register(TransportGCDanglingArtifacts.ACTION, TransportGCDanglingArtifacts.class);
 
         return unmodifiableMap(actions.getRegistry());

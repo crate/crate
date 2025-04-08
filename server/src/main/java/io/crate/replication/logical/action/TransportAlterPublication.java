@@ -29,6 +29,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -43,8 +44,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -53,18 +54,25 @@ import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.sql.tree.AlterPublication;
 
-public class TransportAlterPublicationAction extends TransportMasterNodeAction<TransportAlterPublicationAction.Request, AcknowledgedResponse> {
+public class TransportAlterPublication extends TransportMasterNodeAction<TransportAlterPublication.Request, AcknowledgedResponse> {
 
-    public static final String NAME = "internal:crate:replication/logical/publication/alter";
+    public static final Action ACTION = new Action();
+    private static final Logger LOGGER = LogManager.getLogger(TransportAlterPublication.class);
 
-    private static final Logger LOGGER = LogManager.getLogger(TransportAlterPublicationAction.class);
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:replication/logical/publication/alter";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     @Inject
-    public TransportAlterPublicationAction(TransportService transportService,
-                                           ClusterService clusterService,
-                                           ThreadPool threadPool) {
+    public TransportAlterPublication(TransportService transportService,
+                                     ClusterService clusterService,
+                                     ThreadPool threadPool) {
         super(
-            NAME,
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,

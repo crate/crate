@@ -36,7 +36,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
-import io.crate.execution.ddl.index.TransportSwapAndDropIndexNameAction;
+import io.crate.execution.ddl.index.TransportSwapAndDropIndexName;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
 import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
@@ -59,7 +59,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
 
     private final MetadataCreateIndexService createIndexService;
     private final Client client;
-    private final TransportSwapAndDropIndexNameAction swapAndDropIndexAction;
+    private final TransportSwapAndDropIndexName swapAndDropIndexAction;
     private final TransportGCDanglingArtifacts gcDanglingArtifactsAction;
 
     @Inject
@@ -67,7 +67,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
                            ClusterService clusterService,
                            ThreadPool threadPool,
                            MetadataCreateIndexService createIndexService,
-                           TransportSwapAndDropIndexNameAction swapAndDropIndexAction,
+                           TransportSwapAndDropIndexName swapAndDropIndexAction,
                            TransportGCDanglingArtifacts gcDanglingArtifactsAction,
                            Client client) {
         super(ACTION.name(), transportService, clusterService, threadPool, ResizeRequest::new);
