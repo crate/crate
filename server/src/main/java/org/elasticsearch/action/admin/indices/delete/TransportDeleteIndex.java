@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Arrays;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
@@ -41,16 +42,25 @@ import org.elasticsearch.transport.TransportService;
 /**
  * Delete index action.
  */
-public class TransportDeleteIndexAction extends TransportMasterNodeAction<DeleteIndexRequest, AcknowledgedResponse> {
+public class TransportDeleteIndex extends TransportMasterNodeAction<DeleteIndexRequest, AcknowledgedResponse> {
 
+    public static final TransportDeleteIndex.Action ACTION = new TransportDeleteIndex.Action();
     private final MetadataDeleteIndexService deleteIndexService;
 
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "indices:admin/delete";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportDeleteIndexAction(TransportService transportService,
-                                      ClusterService clusterService,
-                                      ThreadPool threadPool,
-                                      MetadataDeleteIndexService deleteIndexService) {
-        super(DeleteIndexAction.NAME, transportService, clusterService, threadPool, DeleteIndexRequest::new);
+    public TransportDeleteIndex(TransportService transportService,
+                                ClusterService clusterService,
+                                ThreadPool threadPool,
+                                MetadataDeleteIndexService deleteIndexService) {
+        super(ACTION.name(), transportService, clusterService, threadPool, DeleteIndexRequest::new);
         this.deleteIndexService = deleteIndexService;
     }
 

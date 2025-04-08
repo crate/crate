@@ -24,6 +24,7 @@ package io.crate.blob;
 import java.io.IOException;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -35,58 +36,71 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportStartBlobAction extends TransportReplicationAction<StartBlobRequest, StartBlobRequest, StartBlobResponse> {
+public class TransportPutChunk extends TransportReplicationAction<PutChunkRequest, PutChunkReplicaRequest, PutChunkResponse> {
 
+    public static final TransportPutChunk.Action ACTION = new TransportPutChunk.Action();
     private final BlobTransferTarget transferTarget;
 
+    public static class Action extends ActionType<PutChunkResponse> {
+        private static final String NAME = "internal:crate:blob/put_chunk";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportStartBlobAction(Settings settings,
-                                    TransportService transportService,
-                                    ClusterService clusterService,
-                                    IndicesService indicesService,
-                                    ThreadPool threadPool,
-                                    ShardStateAction shardStateAction,
-                                    BlobTransferTarget transferTarget) {
+    public TransportPutChunk(Settings settings,
+                             TransportService transportService,
+                             ClusterService clusterService,
+                             IndicesService indicesService,
+                             ThreadPool threadPool,
+                             ShardStateAction shardStateAction,
+                             BlobTransferTarget transferTarget) {
         super(
             settings,
-            StartBlobAction.NAME,
+            ACTION.name(),
             transportService,
             clusterService,
             indicesService,
             threadPool,
             shardStateAction,
-            StartBlobRequest::new,
-            StartBlobRequest::new,
+            PutChunkRequest::new,
+            PutChunkReplicaRequest::new,
             ThreadPool.Names.WRITE
         );
         this.transferTarget = transferTarget;
-        logger.trace("Constructor");
     }
 
     @Override
-    protected StartBlobResponse newResponseInstance(StreamInput in) throws IOException {
-        logger.trace("newResponseInstance");
-        return new StartBlobResponse(in);
+    protected PutChunkResponse newResponseInstance(StreamInput in) throws IOException {
+        return new PutChunkResponse(in);
     }
 
     @Override
-    protected void shardOperationOnPrimary(StartBlobRequest request,
+    protected void shardOperationOnPrimary(PutChunkRequest request,
                                            IndexShard primary,
-                                           ActionListener<PrimaryResult<StartBlobRequest, StartBlobResponse>> listener) {
+                                           ActionListener<PrimaryResult<PutChunkReplicaRequest, PutChunkResponse>> listener) {
         ActionListener.completeWith(listener, () -> {
-            logger.trace("shardOperationOnPrimary {}", request);
-            final StartBlobResponse response = new StartBlobResponse();
-            transferTarget.startTransfer(request, response);
-            return new PrimaryResult<>(request, response);
+            PutChunkResponse response = new PutChunkResponse();
+            transferTarget.continueTransfer(request, response);
+            final PutChunkReplicaRequest replicaRequest = new PutChunkReplicaRequest(
+                request.shardId(),
+                clusterService.localNode().getId(),
+                request.transferId(),
+                request.currentPos(),
+                request.content(),
+                request.isLast()
+            );
+            replicaRequest.index(request.index());
+            return new PrimaryResult<>(replicaRequest, response);
         });
     }
 
     @Override
-    protected ReplicaResult shardOperationOnReplica(StartBlobRequest request, IndexShard replica) {
-        logger.trace("shardOperationOnReplica operating on replica {}", request);
-        final StartBlobResponse response = new StartBlobResponse();
-        transferTarget.startTransfer(request, response);
+    protected ReplicaResult shardOperationOnReplica(PutChunkReplicaRequest shardRequest, IndexShard replica) {
+        PutChunkResponse response = new PutChunkResponse();
+        transferTarget.continueTransfer(shardRequest, response);
         return new ReplicaResult();
     }
 }
-

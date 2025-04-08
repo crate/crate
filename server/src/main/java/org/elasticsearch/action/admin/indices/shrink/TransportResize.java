@@ -21,6 +21,7 @@ package org.elasticsearch.action.admin.indices.shrink;
 import java.io.IOException;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.client.Client;
@@ -44,7 +45,17 @@ import io.crate.metadata.PartitionName;
 /**
  * Main class to initiate resizing (shrink / split) an index into a new index
  */
-public class TransportResizeAction extends TransportMasterNodeAction<ResizeRequest, ResizeResponse> {
+public class TransportResize extends TransportMasterNodeAction<ResizeRequest, ResizeResponse> {
+
+    public static final TransportResize.Action ACTION = new TransportResize.Action();
+
+    public static class Action extends ActionType<ResizeResponse> {
+        private static final String NAME = "indices:admin/resize";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     private final MetadataCreateIndexService createIndexService;
     private final Client client;
@@ -52,14 +63,14 @@ public class TransportResizeAction extends TransportMasterNodeAction<ResizeReque
     private final TransportGCDanglingArtifacts gcDanglingArtifactsAction;
 
     @Inject
-    public TransportResizeAction(TransportService transportService,
-                                 ClusterService clusterService,
-                                 ThreadPool threadPool,
-                                 MetadataCreateIndexService createIndexService,
-                                 TransportSwapAndDropIndexNameAction swapAndDropIndexAction,
-                                 TransportGCDanglingArtifacts gcDanglingArtifactsAction,
-                                 Client client) {
-        super(ResizeAction.NAME, transportService, clusterService, threadPool, ResizeRequest::new);
+    public TransportResize(TransportService transportService,
+                           ClusterService clusterService,
+                           ThreadPool threadPool,
+                           MetadataCreateIndexService createIndexService,
+                           TransportSwapAndDropIndexNameAction swapAndDropIndexAction,
+                           TransportGCDanglingArtifacts gcDanglingArtifactsAction,
+                           Client client) {
+        super(ACTION.name(), transportService, clusterService, threadPool, ResizeRequest::new);
         this.createIndexService = createIndexService;
         this.swapAndDropIndexAction = swapAndDropIndexAction;
         this.gcDanglingArtifactsAction = gcDanglingArtifactsAction;

@@ -39,7 +39,7 @@ import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.CreateBlobTableRequest;
-import io.crate.execution.ddl.tables.TransportCreateBlobTableAction;
+import io.crate.execution.ddl.tables.TransportCreateBlobTable;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -87,7 +87,7 @@ public class CreateBlobTablePlan implements Plan {
 
         if (plannerContext.clusterState().nodes().getSmallestNonClientNodeVersion().onOrAfter(Version.V_5_10_0)) {
             CreateBlobTableRequest request = new CreateBlobTableRequest(relationName, settings);
-            dependencies.client().execute(TransportCreateBlobTableAction.ACTION, request)
+            dependencies.client().execute(TransportCreateBlobTable.ACTION, request)
                 .whenComplete(new OneRowActionListener<>(consumer, _ -> new Row1(1L)));
         } else {
             throw new UnsupportedOperationException(

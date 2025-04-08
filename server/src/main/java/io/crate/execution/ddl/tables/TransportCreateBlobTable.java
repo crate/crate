@@ -37,25 +37,25 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 
-public class TransportCreateBlobTableAction extends TransportMasterNodeAction<CreateBlobTableRequest, CreateTableResponse> {
+public class TransportCreateBlobTable extends TransportMasterNodeAction<CreateBlobTableRequest, CreateTableResponse> {
 
     public static final Action ACTION = new Action();
     private final MetadataCreateIndexService createIndexService;
 
     public static class Action extends ActionType<CreateTableResponse> {
 
-        public static final String NAME = "internal:crate:sql/tables/blob/create";
+        private static final String NAME = "internal:crate:sql/tables/blob/create";
 
-        public Action() {
+        private Action() {
             super(NAME);
         }
     }
 
     @Inject
-    public TransportCreateBlobTableAction(TransportService transportService,
-                                          ClusterService clusterService,
-                                          ThreadPool threadPool,
-                                          MetadataCreateIndexService createIndexService) {
+    public TransportCreateBlobTable(TransportService transportService,
+                                    ClusterService clusterService,
+                                    ThreadPool threadPool,
+                                    MetadataCreateIndexService createIndexService) {
         super(
             ACTION.name(),
             transportService,

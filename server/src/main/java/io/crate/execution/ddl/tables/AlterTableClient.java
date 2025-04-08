@@ -34,8 +34,8 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.indices.shrink.ResizeAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
+import org.elasticsearch.action.admin.indices.shrink.TransportResize;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -213,7 +213,7 @@ public class AlterTableClient {
             targetNumberOfShards
         );
         return future
-            .thenCompose(_ -> client.execute(ResizeAction.INSTANCE, request))
+            .thenCompose(_ -> client.execute(TransportResize.ACTION, request))
             .thenApply(_ -> 0L);
     }
 

@@ -35,6 +35,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
@@ -93,7 +94,17 @@ import io.crate.metadata.RelationName;
  * - and alias / mappings / etc. are not taken from the request
  */
 @Singleton
-public class TransportCreatePartitionsAction extends TransportMasterNodeAction<CreatePartitionsRequest, AcknowledgedResponse> {
+public class TransportCreatePartitions extends TransportMasterNodeAction<CreatePartitionsRequest, AcknowledgedResponse> {
+
+    public static final TransportCreatePartitions.Action ACTION = new TransportCreatePartitions.Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "indices:admin/bulk_create";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     private final IndicesService indicesService;
     private final AllocationService allocationService;
@@ -116,14 +127,14 @@ public class TransportCreatePartitionsAction extends TransportMasterNodeAction<C
     private final MetadataUpgradeService metadataUpgradeService;
 
     @Inject
-    public TransportCreatePartitionsAction(TransportService transportService,
-                                           ClusterService clusterService,
-                                           ThreadPool threadPool,
-                                           IndicesService indicesService,
-                                           AllocationService allocationService,
-                                           MetadataUpgradeService metadataUpgradeService,
-                                           ShardLimitValidator shardLimitValidator) {
-        super(CreatePartitionsAction.NAME, transportService, clusterService, threadPool, CreatePartitionsRequest::new);
+    public TransportCreatePartitions(TransportService transportService,
+                                     ClusterService clusterService,
+                                     ThreadPool threadPool,
+                                     IndicesService indicesService,
+                                     AllocationService allocationService,
+                                     MetadataUpgradeService metadataUpgradeService,
+                                     ShardLimitValidator shardLimitValidator) {
+        super(ACTION.name(), transportService, clusterService, threadPool, CreatePartitionsRequest::new);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
         this.metadataUpgradeService = metadataUpgradeService;

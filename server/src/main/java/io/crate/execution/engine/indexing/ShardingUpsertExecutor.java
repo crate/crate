@@ -39,8 +39,8 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitions;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
 import org.elasticsearch.client.ElasticsearchClient;
@@ -166,7 +166,7 @@ public class ShardingUpsertExecutor
         }
         createPartitionsRequestOngoing = true;
         return elasticsearchClient.execute(
-            CreatePartitionsAction.INSTANCE,
+            TransportCreatePartitions.ACTION,
             CreatePartitionsRequest.of(requests.itemsByMissingPartition.keySet()))
             .thenCompose(resp -> {
                 grouper.reResolveShardLocations(requests);

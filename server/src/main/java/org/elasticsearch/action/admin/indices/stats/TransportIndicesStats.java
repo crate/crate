@@ -24,6 +24,7 @@ import java.util.List;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.broadcast.node.TransportBroadcastByNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -44,16 +45,25 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-public class TransportIndicesStatsAction extends TransportBroadcastByNodeAction<IndicesStatsRequest, IndicesStatsResponse, ShardStats> {
+public class TransportIndicesStats extends TransportBroadcastByNodeAction<IndicesStatsRequest, IndicesStatsResponse, ShardStats> {
 
+    public static final TransportIndicesStats.Action ACTION = new TransportIndicesStats.Action();
     private final IndicesService indicesService;
 
+    public static class Action extends ActionType<IndicesStatsResponse> {
+        private static final String NAME = "indices:monitor/stats";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportIndicesStatsAction(ClusterService clusterService,
-                                       TransportService transportService,
-                                       IndicesService indicesService) {
+    public TransportIndicesStats(ClusterService clusterService,
+                                 TransportService transportService,
+                                 IndicesService indicesService) {
         super(
-            IndicesStatsAction.NAME,
+            ACTION.name(),
             clusterService,
             transportService,
             IndicesStatsRequest::new,

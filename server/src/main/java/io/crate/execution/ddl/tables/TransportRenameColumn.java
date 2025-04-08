@@ -21,6 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -37,7 +38,17 @@ import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
 @Singleton
-public class TransportRenameColumnAction extends AbstractDDLTransportAction<RenameColumnRequest, AcknowledgedResponse> {
+public class TransportRenameColumn extends AbstractDDLTransportAction<RenameColumnRequest, AcknowledgedResponse> {
+
+    public static final TransportRenameColumn.Action ACTION = new TransportRenameColumn.Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/table/rename_column";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     @VisibleForTesting
     public static final AlterTableTask.AlterTableOperator<RenameColumnRequest> RENAME_COLUMN_OPERATOR =
@@ -45,11 +56,12 @@ public class TransportRenameColumnAction extends AbstractDDLTransportAction<Rena
     private final NodeContext nodeContext;
 
     @Inject
-    public TransportRenameColumnAction(TransportService transportService,
-                                       ClusterService clusterService,
-                                       ThreadPool threadPool,
-                                       NodeContext nodeContext) {
-        super(RenameColumnAction.NAME,
+    public TransportRenameColumn(TransportService transportService,
+                                 ClusterService clusterService,
+                                 ThreadPool threadPool,
+                                 NodeContext nodeContext) {
+        super(
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,

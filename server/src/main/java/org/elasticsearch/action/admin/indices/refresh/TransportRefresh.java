@@ -21,6 +21,7 @@ package org.elasticsearch.action.admin.indices.refresh;
 
 import java.util.List;
 
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.replication.BasicReplicationRequest;
@@ -35,14 +36,24 @@ import org.elasticsearch.transport.TransportService;
 /**
  * Refresh action.
  */
-public class TransportRefreshAction extends TransportBroadcastReplicationAction<RefreshRequest, RefreshResponse, BasicReplicationRequest, ReplicationResponse> {
+public class TransportRefresh extends TransportBroadcastReplicationAction<RefreshRequest, RefreshResponse, BasicReplicationRequest, ReplicationResponse> {
+
+    public static final TransportRefresh.Action ACTION = new TransportRefresh.Action();
+
+    public static class Action extends ActionType<RefreshResponse> {
+        private static final String NAME = "indices:admin/refresh";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     @Inject
-    public TransportRefreshAction(ClusterService clusterService,
-                                  TransportService transportService,
-                                  NodeClient client) {
+    public TransportRefresh(ClusterService clusterService,
+                            TransportService transportService,
+                            NodeClient client) {
         super(
-            RefreshAction.NAME,
+            ACTION.name(),
             RefreshRequest::new,
             clusterService,
             transportService,

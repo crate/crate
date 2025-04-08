@@ -44,8 +44,8 @@ import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitions;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.ElasticsearchClient;
@@ -759,7 +759,7 @@ public class InsertFromValues implements LogicalPlan {
         if (partitionsToCreate.isEmpty()) {
             return CompletableFuture.completedFuture(new AcknowledgedResponse(true));
         }
-        return client.execute(CreatePartitionsAction.INSTANCE, CreatePartitionsRequest.of(partitionsToCreate));
+        return client.execute(TransportCreatePartitions.ACTION, CreatePartitionsRequest.of(partitionsToCreate));
     }
 
     @Override
