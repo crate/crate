@@ -120,8 +120,10 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
 
     @Override
     public void onNodeDisconnected(DiscoveryNode node, Connection connection) {
+        LOGGER.error("Node disconnected={}, activeTasks={}", node.getId(), activeTasks);
         for (var task : activeTasks.values()) {
             if (task.participatingNodes().contains(node.getId())) {
+                LOGGER.error("Disconnected node is participating in task : {}", task);
                 task.kill("Participating node " + node.getId() + " disconnected");
             }
         }
@@ -180,16 +182,19 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         DiscoveryNodes nodes = clusterService.state().nodes();
         for (String participatingNode : newRootTask.participatingNodes()) {
             if (!nodes.nodeExists(participatingNode)) {
+                LOGGER.error("Participating node missing on createTask ({})", participatingNode);
                 throw new NoSuchNodeException(participatingNode);
             }
         }
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace(
-                "RootTask created for job={} tasks={} totalTasks={}",
+                "RootTask created for job={} tasks={} totalTasks={} node={}/{}",
                 jobId,
                 builder.size(),
-                activeTasks.size()
+                activeTasks.size(),
+                nodes.getLocalNodeId(),
+                nodes.getLocalNode().getName()
             );
         }
         return newRootTask;
@@ -229,6 +234,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         for (UUID jobId : toKill) {
             RootTask ctx = activeTasks.get(jobId);
             if (ctx == null) {
+                LOGGER.trace("killTasks jobId={} context not found", jobId);
                 // no kill but we need to count down
                 countDownFuture.onSuccess();
                 continue;

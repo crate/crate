@@ -41,6 +41,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
@@ -55,6 +56,7 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
     public void prepare() {
         rowDownstreamFactory = new DistributingConsumerFactory(
             clusterService,
+            mock(TransportKillJobsNodeAction.class),
             THREAD_POOL,
             mock(Node.class)
         );

@@ -51,6 +51,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.AbstractSimpleTransportTestCase;
@@ -319,6 +320,7 @@ public class RetentionLeaseIT extends IntegTestCase  {
     }
 
     @Test
+    @TestLogging("io.crate.execution.jobs.TasksService:TRACE,io.crate.execution.engine.distribution.DistributingConsumer:TRACE")
     public void testRetentionLeasesSyncOnRecovery() throws Exception {
         final int numberOfReplicas = 2 - scaledRandomIntBetween(0, 2);
         cluster().ensureAtLeastNumDataNodes(1 + numberOfReplicas);
@@ -397,6 +399,8 @@ public class RetentionLeaseIT extends IntegTestCase  {
             // check retention leases have been written on the replica; see RecoveryTarget#finalizeRecovery
             assertThat(currentRetentionLeases).isEqualTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases()));
         }
+
+        primaryTransportService.clearAllRules();
     }
 
     @Test
