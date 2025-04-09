@@ -30,7 +30,9 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.TasksService;
@@ -47,7 +49,7 @@ public class NodeFetchOperationTest extends CrateDummyClusterServiceUnitTest {
                 threadPoolExecutor,
                 2,
                 jobsLogs,
-                new TasksService(clusterService, jobsLogs),
+                new TasksService(clusterService, Mockito.mock(TransportService.class), jobsLogs),
                 new NoopCircuitBreaker("dummy"));
 
             fetchOperation.fetch(UUID.randomUUID(), 1, null, true).get(5, TimeUnit.SECONDS);

@@ -95,6 +95,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
 
         TasksService tasksService = new TasksService(
             clusterService,
+            mock(TransportService.class),
             new JobsLogs(() -> true));
         numBroadcastCalls = new AtomicInteger(0);
         transportKillJobsNodeAction = new TransportKillJobsNodeAction(

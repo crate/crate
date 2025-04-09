@@ -181,7 +181,6 @@ import io.crate.execution.engine.collect.files.CopyModule;
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.jobs.JobModule;
 import io.crate.execution.jobs.TasksService;
-import io.crate.execution.jobs.transport.NodeDisconnectJobMonitorService;
 import io.crate.expression.reference.sys.check.SysChecksModule;
 import io.crate.expression.reference.sys.check.node.SysNodeChecksModule;
 import io.crate.expression.udf.UserDefinedFunctionService;
@@ -969,7 +968,6 @@ public class Node implements Closeable {
         injector.getInstance(BlobService.class).start();
 
         injector.getInstance(DecommissioningService.class).start();
-        injector.getInstance(NodeDisconnectJobMonitorService.class).start();
         injector.getInstance(JobsLogService.class).start();
         injector.getInstance(PostgresNetty.class).start();
         injector.getInstance(TasksService.class).start();
@@ -1136,7 +1134,6 @@ public class Node implements Closeable {
         injector.getInstance(TransportService.class).stop();
 
         injector.getInstance(DecommissioningService.class).stop();
-        injector.getInstance(NodeDisconnectJobMonitorService.class).stop();
         injector.getInstance(JobsLogService.class).stop();
         injector.getInstance(PostgresNetty.class).stop();
         injector.getInstance(TasksService.class).stop();
@@ -1226,8 +1223,6 @@ public class Node implements Closeable {
 
         toClose.add(() -> stopWatch.stop().start("decommission_service"));
         toClose.add(injector.getInstance(DecommissioningService.class));
-        toClose.add(() -> stopWatch.stop().start("node_disconnect_job_monitor_service"));
-        toClose.add(injector.getInstance(NodeDisconnectJobMonitorService.class));
         toClose.add(() -> stopWatch.stop().start("jobs_log_service"));
         toClose.add(injector.getInstance(JobsLogService.class));
         toClose.add(() -> stopWatch.stop().start("postgres_netty"));

@@ -30,10 +30,10 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
-
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbols;
@@ -48,10 +48,13 @@ import io.crate.types.DataTypes;
 public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhase {
 
     private final List<? extends DataType<?>> inputTypes;
+
     private final int numUpstreams;
+
     /** The number of different inputs, e.g. Union has inputs from two Collect phases */
     private final int numInputs;
     private final Collection<String> executionNodes;
+    private final Collection<String> upstreamNodes;
 
     private DistributionInfo distributionInfo;
 
@@ -65,7 +68,8 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
      * @param jobId The JobID of the entire execution.
      * @param executionNodeId A unique execution id for this phase.
      * @param name The name of the MergePhase.
-     * @param numUpstreams The number of nodes to expect data from.
+     * @param numUpstreams The number of upstreams to expect data from. Typically the number of upstream nodes.
+     *                     But can be more (e.g. in case of union)
      * @param numInputs The number of different inputs to read data from which is equal to
      *                  the number of upstream phases.
      * @param executionNodes The nodes where this MergePhase executes.
@@ -83,12 +87,15 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
                       Collection<String> executionNodes,
                       List<? extends DataType<?>> inputTypes,
                       List<Projection> projections,
+                      Collection<String> upstreamNodes,
                       DistributionInfo distributionInfo,
                       @Nullable PositionalOrderBy positionalOrderBy) {
         super(jobId, executionNodeId, name, projections);
         this.numInputs = numInputs;
         this.inputTypes = inputTypes;
+        // numUpstreams can be different than upstreamNodes.size() - e.g. in union cases
         this.numUpstreams = numUpstreams;
+        this.upstreamNodes = upstreamNodes;
         this.distributionInfo = distributionInfo;
         if (projections.isEmpty()) {
             outputTypes = List.copyOf(inputTypes);
@@ -140,6 +147,10 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         return positionalOrderBy;
     }
 
+    public Collection<String> upstreamNodes() {
+        return upstreamNodes;
+    }
+
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitMergePhase(this, context);
@@ -172,6 +183,11 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         }
 
         positionalOrderBy = PositionalOrderBy.fromStream(in);
+        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+            upstreamNodes = in.readStringList();
+        } else {
+            upstreamNodes = List.of();
+        }
     }
 
     @Override
@@ -193,6 +209,9 @@ public class MergePhase extends AbstractProjectionsPhase implements UpstreamPhas
         }
 
         PositionalOrderBy.toStream(positionalOrderBy, out);
+        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+            out.writeStringCollection(upstreamNodes);
+        }
     }
 
     @Override
