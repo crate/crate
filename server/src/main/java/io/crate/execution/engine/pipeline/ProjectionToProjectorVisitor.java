@@ -467,7 +467,8 @@ public class ProjectionToProjectorVisitor
             projection.overwriteDuplicates(),
             context.jobId,
             upsertResultContext,
-            projection.failFast()
+            projection.failFast(),
+            projection.fullDocEstimate()
         );
     }
 

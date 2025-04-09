@@ -112,7 +112,8 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             false,
             UUID.randomUUID(),
             UpsertResultContext.forRowCount(),
-            false
+            false,
+            0
         );
 
         BatchIterator<Row> rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)

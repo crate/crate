@@ -56,6 +56,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     @Nullable
     private final String[] excludes;
+    private final long fullDocEstimate;
 
     public SourceIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
@@ -69,7 +70,8 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
                                        List<Symbol> idSymbols,
                                        @Nullable Symbol clusteredBySymbol,
                                        List<? extends Symbol> outputs,
-                                       boolean autoCreateIndices) {
+                                       boolean autoCreateIndices,
+                                       long fullDocEstimate) {
         super(relationName, partitionIdent, primaryKeys, clusteredByColumn, settings, idSymbols, autoCreateIndices);
         this.rawSourceReference = rawSourceReference;
         this.excludes = excludes;
@@ -79,6 +81,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         this.outputs = outputs;
         this.overwriteDuplicates = OVERWRITE_DUPLICATES_SETTING.get(settings);
         this.failFast = FAIL_FAST_SETTING.get(settings);
+        this.fullDocEstimate = fullDocEstimate;
     }
 
     SourceIndexWriterProjection(StreamInput in) throws IOException {
@@ -115,6 +118,12 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         if (version.onOrAfter(Version.V_4_8_0) && version.before(Version.V_5_5_0)) {
             in.readBoolean(); // validation
         }
+
+        if (version.onOrAfter(Version.V_6_0_0)) {
+            fullDocEstimate = in.readLong();
+        } else {
+            fullDocEstimate = 0;
+        }
     }
 
     @Override
@@ -146,11 +155,19 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         if (version.onOrAfter(Version.V_4_8_0) && version.before(Version.V_5_5_0)) {
             out.writeBoolean(true);
         }
+
+        if (version.onOrAfter(Version.V_6_0_0)) {
+            out.writeLong(fullDocEstimate);
+        }
     }
 
     @Override
     public <C, R> R accept(ProjectionVisitor<C, R> visitor, C context) {
         return visitor.visitSourceIndexWriterProjection(this, context);
+    }
+
+    public long fullDocEstimate() {
+        return fullDocEstimate;
     }
 
     public InputColumn rawSource() {

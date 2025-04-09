@@ -1148,7 +1148,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         Object[][] bulkArgs = new Object[bulkSize][];
         for (int i = 0; i < bulkSize; i++) {
             HashMap<String, Object> doc = new HashMap<>();
-            for (int j = 0; j < 100; j++) {
+            for (int j = 0; j < 300; j++) {
                 doc.put(Integer.toString(j), randomAlphaOfLength(20));
             }
             int a = randomIntBetween(1, 10);
@@ -1165,6 +1165,39 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("analyze");
         assertNoTasksAreLeftOpen();
          execute("insert into doc.t2 (id, a, document) select id, a, document from doc.t1");
+        execute("analyze");
+        assertNoTasksAreLeftOpen();
+
+        LOGGER.info("-------> Start insert-on-conflict update");
+        execute("insert into doc.t2 (id, a) select id, a from doc.t1 on conflict(id) do update set a = excluded.a;");
+    }
+
+    public void test_insert_on_update_conflict_small() throws Exception {
+
+        execute("create table doc.t1(id TEXT PRIMARY KEY, a INT, document OBJECT(DYNAMIC))");
+        execute("create table doc.t2(id TEXT PRIMARY KEY, a INT, document OBJECT(DYNAMIC))");
+
+        int bulkSize = 10;
+        Object[][] bulkArgs = new Object[bulkSize][];
+        for (int i = 0; i < bulkSize; i++) {
+            HashMap<String, Object> doc = new HashMap<>();
+            for (int j = 0; j < 100; j++) {
+                doc.put(Integer.toString(j), randomAlphaOfLength(20));
+            }
+            int a = randomIntBetween(1, 10);
+            bulkArgs[i] = new Object[]{i, a, doc};
+        }
+
+        LOGGER.info("-------> Start inserts doc.t1");
+
+        var rowCounts = execute("insert into doc.t1 (id,a,document) values (?, ?, ?)", bulkArgs);
+        assertThat(rowCounts.size()).isEqualTo(bulkSize);
+        assertNoTasksAreLeftOpen();
+        execute("refresh table doc.t1");
+        execute("refresh table doc.t2");
+        execute("analyze");
+        assertNoTasksAreLeftOpen();
+        execute("insert into doc.t2 (id, a, document) select id, a, document from doc.t1");
         execute("analyze");
         assertNoTasksAreLeftOpen();
 

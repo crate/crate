@@ -90,6 +90,7 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public final class CopyFromPlan implements Plan {
@@ -279,7 +280,8 @@ public final class CopyFromPlan implements Plan {
                 sourceUriSymbol,
                 sourceUriFailureSymbol,
                 sourceParsingFailureSymbol,
-                lineNumberSymbol
+                lineNumberSymbol,
+                0
             );
         } else {
             sourceIndexWriterProjection = new SourceIndexWriterProjection(
@@ -295,7 +297,8 @@ public final class CopyFromPlan implements Plan {
                 InputColumns.create(primaryKeyRefs, sourceSymbols),
                 clusteredByInputCol,
                 projectionOutputs,
-                table.isPartitioned() // autoCreateIndices
+                table.isPartitioned(), // autoCreateIndices,
+                0
             );
         }
 

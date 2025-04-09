@@ -38,7 +38,6 @@ import io.crate.planner.SubqueryPlanner;
 import io.crate.planner.operators.Insert;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 
@@ -59,8 +58,7 @@ public final class InsertFromSubQueryPlanner {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
 
-        TableStats tableStats = plannerContext.nodeContext().tableStats();
-        long fullDocSizeEstimate = tableStats.estimatedSizePerRow(statement.tableInfo());
+        long fullDocSizeEstimate = plannerContext.nodeContext().tableStats().estimatedSizePerRow(statement.tableInfo());
 
         // if fields are null default to number of rows imported
         var outputs = statement.outputs() == null ? List.of(new InputColumn(0, DataTypes.LONG)) : statement.outputs();

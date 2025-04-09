@@ -87,7 +87,8 @@ public class SourceIndexWriterProjectionSerializationTest {
             List.of(),
             null,
             AbstractIndexWriterProjection.OUTPUTS,
-            false
+            false,
+            0
         );
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_6_0);
@@ -146,7 +147,8 @@ public class SourceIndexWriterProjectionSerializationTest {
             List.of(),
             null,
             AbstractIndexWriterProjection.OUTPUTS,
-            false
+            false,
+            0
         );
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_7_0);

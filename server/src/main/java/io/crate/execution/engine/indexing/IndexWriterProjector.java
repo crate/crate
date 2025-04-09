@@ -94,7 +94,8 @@ public class IndexWriterProjector implements Projector {
                                 boolean overwriteDuplicates,
                                 UUID jobId,
                                 UpsertResultContext upsertResultContext,
-                                boolean failFast) {
+                                boolean failFast,
+                                long fullDocEstimate) {
         Input<String> source;
         if (excludes == null) {
             //noinspection unchecked
@@ -124,7 +125,7 @@ public class IndexWriterProjector implements Projector {
             missingAssignmentsColumns,
             new Object[]{source.value()},
             null,
-            0
+            fullDocEstimate
         );
 
         Predicate<UpsertResults> earlyTerminationCondition = results -> failFast && results.containsErrors();
