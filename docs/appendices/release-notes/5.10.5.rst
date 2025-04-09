@@ -44,6 +44,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a race condition that could lead to a memory leak if nodes within the
+  cluster were temporarily not reachable.
+
 - Fixed an issue that led to an ``no viable alternative at input 'SELECT FROM'``
   error when using ``SELECT count(*) FROM remote_tbl`` where ``remote_tbl`` is a
   foreign table using the JDBC foreign data wrapper.
