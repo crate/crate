@@ -44,7 +44,7 @@ import io.crate.fdw.AlterServerRequest;
 import io.crate.fdw.ForeignDataWrapper;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.fdw.ServersMetadata;
-import io.crate.fdw.TransportAlterServerAction;
+import io.crate.fdw.TransportAlterServer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
 
@@ -148,7 +148,7 @@ public class AlterServerPlan implements Plan {
             optionsRemoved
         );
         dependencies.client()
-            .execute(TransportAlterServerAction.ACTION, request)
+            .execute(TransportAlterServer.ACTION, request)
             .whenComplete(OneRowActionListener.oneIfAcknowledged(consumer));
     }
 }

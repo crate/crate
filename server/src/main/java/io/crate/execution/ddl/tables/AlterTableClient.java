@@ -34,11 +34,9 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexRequest;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
-import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
-import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.admin.indices.shrink.TransportResize;
+import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -49,8 +47,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.action.FutureActionListener;
-import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.data.Row;
 import io.crate.metadata.GeneratedReference;
@@ -72,44 +68,20 @@ public class AlterTableClient {
     private static final Logger LOGGER = LogManager.getLogger(AlterTableClient.class);
 
     private final ClusterService clusterService;
-    private final TransportAlterTableAction transportAlterTableAction;
-    private final TransportDropConstraintAction transportDropConstraintAction;
-    private final TransportAddColumnAction transportAddColumnAction;
-    private final TransportDropColumnAction transportDropColumnAction;
-    private final TransportRenameTableAction transportRenameTableAction;
-    private final TransportOpenTableAction transportOpenCloseTableOrPartitionAction;
-    private final TransportResizeAction transportResizeAction;
-    private final TransportDeleteIndexAction transportDeleteIndexAction;
-    private final TransportCloseTable transportCloseTable;
+    private final NodeClient client;
     private final Sessions sessions;
     private final IndexScopedSettings indexScopedSettings;
     private final LogicalReplicationService logicalReplicationService;
 
     @Inject
     public AlterTableClient(ClusterService clusterService,
-                            TransportRenameTableAction transportRenameTableAction,
-                            TransportOpenTableAction transportOpenCloseTableOrPartitionAction,
-                            TransportCloseTable transportCloseTable,
-                            TransportResizeAction transportResizeAction,
-                            TransportDeleteIndexAction transportDeleteIndexAction,
-                            TransportAlterTableAction transportAlterTableAction,
-                            TransportDropConstraintAction transportDropConstraintAction,
-                            TransportAddColumnAction transportAddColumnAction,
-                            TransportDropColumnAction transportDropColumnAction,
+                            NodeClient client,
                             Sessions sessions,
                             IndexScopedSettings indexScopedSettings,
                             LogicalReplicationService logicalReplicationService) {
 
         this.clusterService = clusterService;
-        this.transportRenameTableAction = transportRenameTableAction;
-        this.transportResizeAction = transportResizeAction;
-        this.transportDeleteIndexAction = transportDeleteIndexAction;
-        this.transportOpenCloseTableOrPartitionAction = transportOpenCloseTableOrPartitionAction;
-        this.transportCloseTable = transportCloseTable;
-        this.transportAlterTableAction = transportAlterTableAction;
-        this.transportAddColumnAction = transportAddColumnAction;
-        this.transportDropColumnAction = transportDropColumnAction;
-        this.transportDropConstraintAction = transportDropConstraintAction;
+        this.client = client;
         this.sessions = sessions;
         this.indexScopedSettings = indexScopedSettings;
         this.logicalReplicationService = logicalReplicationService;
@@ -142,14 +114,10 @@ public class AlterTableClient {
                     }
                     LOGGER.warn(finalWarning);
                 }
-                return transportAddColumnAction.execute(addColumnRequest).thenApply(_ -> -1L);
+                return client.execute(TransportAddColumn.ACTION, addColumnRequest).thenApply(_ -> -1L);
             });
         }
-        return transportAddColumnAction.execute(addColumnRequest).thenApply(_ -> -1L);
-    }
-
-    public CompletableFuture<Long> dropColumn(DropColumnRequest dropColumnRequest) {
-        return transportDropColumnAction.execute(dropColumnRequest).thenApply(_ -> -1L);
+        return client.execute(TransportAddColumn.ACTION, addColumnRequest).thenApply(_ -> -1L);
     }
 
     private CompletableFuture<Long> getRowCount(RelationName ident) {
@@ -171,13 +139,13 @@ public class AlterTableClient {
                                                boolean openTable,
                                                @Nullable PartitionName partitionName) {
         if (openTable) {
-            OpenTableRequest request = new OpenTableRequest(relationName, partitionName == null ? List.of() : partitionName.values());
-            return transportOpenCloseTableOrPartitionAction.execute(request, _ -> -1L);
+            OpenTableRequest request = new OpenTableRequest(
+                relationName, partitionName == null ? List.of() : partitionName.values());
+            return client.execute(TransportOpenTable.ACTION, request).thenApply(_ -> -1L);
         } else {
-            return transportCloseTable.execute(
-                new CloseTableRequest(relationName, partitionName == null ? List.of() : partitionName.values()),
-                _ -> -1L
-            );
+            CloseTableRequest request = new CloseTableRequest(
+                relationName, partitionName == null ? List.of() : partitionName.values());
+            return client.execute(TransportCloseTable.ACTION, request).thenApply(_ -> -1L);
         }
     }
 
@@ -211,9 +179,9 @@ public class AlterTableClient {
                 analysis.excludePartitions(),
                 analysis.settings()
             );
-            return transportAlterTableAction.execute(request, _ -> -1L);
+            return client.execute(TransportAlterTable.ACTION, request).thenApply(_ -> -1L);
         } catch (IOException e) {
-            return FutureActionListener.failedFuture(e);
+            return CompletableFuture.failedFuture(e);
         }
     }
 
@@ -234,7 +202,7 @@ public class AlterTableClient {
 
         CompletableFuture<Long> future;
         if (currentState.metadata().hasIndex(resizedIndex)) {
-            future = deleteIndex(resizedIndex);
+            future = deleteTempIndices();
         } else {
             future = CompletableFuture.completedFuture(1L);
         }
@@ -245,7 +213,7 @@ public class AlterTableClient {
             targetNumberOfShards
         );
         return future
-            .thenCompose(_ -> transportResizeAction.execute(request))
+            .thenCompose(_ -> client.execute(TransportResize.ACTION, request))
             .thenApply(_ -> 0L);
     }
 
@@ -316,19 +284,8 @@ public class AlterTableClient {
         }
     }
 
-    private CompletableFuture<Long> deleteIndex(String... indexNames) {
-        DeleteIndexRequest request = new DeleteIndexRequest(indexNames);
-        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN_CLOSED);
-        return transportDeleteIndexAction.execute(request, _ -> 0L);
+    private CompletableFuture<Long> deleteTempIndices() {
+        return client.execute(TransportGCDanglingArtifacts.ACTION, GCDanglingArtifactsRequest.INSTANCE)
+            .thenApply(_ -> 0L);
     }
-
-    public CompletableFuture<Long> rename(AnalyzedAlterTableRenameTable renameTable) {
-        var request = new RenameTableRequest(renameTable.sourceName(), renameTable.targetName(), renameTable.isPartitioned());
-        return transportRenameTableAction.execute(request, _ -> -1L);
-    }
-
-    public CompletableFuture<Long> dropConstraint(DropConstraintRequest request) {
-        return transportDropConstraintAction.execute(request).thenApply(_ -> -1L);
-    }
-
 }

@@ -21,11 +21,13 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.data.Row1.ROW_COUNT_UNKNOWN;
+
 import io.crate.analyze.AnalyzedAlterTableDropColumn;
 import io.crate.data.Row;
-import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.DropColumnRequest;
+import io.crate.execution.ddl.tables.TransportDropColumn;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -52,7 +54,7 @@ public class AlterTableDropColumnPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
         var dropColumnRequest = new DropColumnRequest(alterTable.table().ident(), alterTable.columns());
-        dependencies.alterTableClient().dropColumn(dropColumnRequest)
-            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+        dependencies.client().execute(TransportDropColumn.ACTION, dropColumnRequest)
+            .whenComplete(new OneRowActionListener<>(consumer, _ -> ROW_COUNT_UNKNOWN));
     }
 }

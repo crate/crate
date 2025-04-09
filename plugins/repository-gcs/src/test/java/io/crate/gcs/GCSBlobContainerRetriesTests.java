@@ -304,7 +304,8 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
             .containsAnyOf("read timed out",
                 "premature end of chunk coded message body: closing chunk expected",
                 "Read timed out",
-                "unexpected end of file from server");
+                "unexpected end of file from server",
+                "premature eof");
         assertThat(exception.getSuppressed().length).isEqualTo(maxRetries);
     }
 
@@ -351,7 +352,8 @@ public class GCSBlobContainerRetriesTests extends IntegTestCase {
         assertThat(exception.getMessage().toLowerCase(Locale.ROOT))
             .containsAnyOf(
                 "premature end of chunk coded message body: closing chunk expected",
-                "premature end of content-length delimited message body", "connection closed prematurely"
+                "premature end of content-length delimited message body", "connection closed prematurely",
+                "premature eof"
             );
         assertThat(exception.getSuppressed().length).isEqualTo(Math.min(10, maxRetries));
     }

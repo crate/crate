@@ -161,6 +161,9 @@ JAVA_OPTS="$JAVA_OPTS -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=tru
 # Disable netty recycler
 JAVA_OPTS="$JAVA_OPTS -Dio.netty.recycler.maxCapacityPerThread=0"
 
+# Netty uses Unsafe, disable warning, continue to allow it (See also https://github.com/netty/netty/pull/14975)
+JAVA_OPTS="$JAVA_OPTS --sun-misc-unsafe-memory-access=allow"
+
 # Lucene uses native access and vector module
 JAVA_OPTS="$JAVA_OPTS --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector"
 

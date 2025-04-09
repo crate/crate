@@ -21,11 +21,13 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.data.Row1.ROW_COUNT_UNKNOWN;
+
 import io.crate.analyze.AnalyzedAlterTableDropCheckConstraint;
 import io.crate.data.Row;
-import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.DropConstraintRequest;
+import io.crate.execution.ddl.tables.TransportDropConstraint;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -56,8 +58,7 @@ public class AlterTableDropCheckConstraintPlan implements Plan {
             dropCheckConstraint.name()
         );
 
-        dependencies.alterTableClient()
-            .dropConstraint(request)
-            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+        dependencies.client().execute(TransportDropConstraint.ACTION, request)
+            .whenComplete(new OneRowActionListener<>(consumer, _ -> ROW_COUNT_UNKNOWN));
     }
 }

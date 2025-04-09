@@ -21,6 +21,8 @@
 
 package io.crate.planner;
 
+import java.util.function.Function;
+
 import io.crate.analyze.AnalyzedDropView;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -28,10 +30,9 @@ import io.crate.data.RowConsumer;
 import io.crate.exceptions.RelationsUnknown;
 import io.crate.execution.ddl.views.DropViewRequest;
 import io.crate.execution.ddl.views.DropViewResponse;
+import io.crate.execution.ddl.views.TransportDropView;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.operators.SubQueryResults;
-
-import java.util.function.Function;
 
 public class DropViewPlan implements Plan {
 
@@ -59,6 +60,7 @@ public class DropViewPlan implements Plan {
             }
             throw new RelationsUnknown(resp.missing());
         };
-        dependencies.dropViewAction().execute(request).whenComplete(new OneRowActionListener<>(consumer, responseToRow));
+        dependencies.client().execute(TransportDropView.ACTION, request)
+            .whenComplete(new OneRowActionListener<>(consumer, responseToRow));
     }
 }

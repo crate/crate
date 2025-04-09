@@ -74,7 +74,7 @@ public class RoleManagerService implements RoleManager {
                                               @Nullable SecureHash hashedPw,
                                               @Nullable JwtProperties jwtProperties) {
         CreateRoleRequest request = new CreateRoleRequest(roleName, isUser, hashedPw, jwtProperties);
-        return client.execute(TransportCreateRoleAction.ACTION, request).thenApply(r -> {
+        return client.execute(TransportCreateRole.ACTION, request).thenApply(r -> {
             if (r.doesUserExist()) {
                 throw new RoleAlreadyExistsException(String.format(Locale.ENGLISH, "Role '%s' already exists", roleName));
             }
@@ -86,7 +86,7 @@ public class RoleManagerService implements RoleManager {
     public CompletableFuture<Long> dropRole(String roleName, boolean suppressNotFoundError) {
         ensureDropRoleTargetIsNotSuperUser(roles.findUser(roleName));
         DropRoleRequest request = new DropRoleRequest(roleName, suppressNotFoundError);
-        return client.execute(TransportDropRoleAction.ACTION, request).thenApply(r -> {
+        return client.execute(TransportDropRole.ACTION, request).thenApply(r -> {
             if (r.doesUserExist() == false) {
                 if (suppressNotFoundError) {
                     return 0L;
@@ -112,7 +112,7 @@ public class RoleManagerService implements RoleManager {
             resetJwtProperties,
             sessionSettingsChange
         );
-        return client.execute(TransportAlterRoleAction.ACTION, request).thenApply(r -> {
+        return client.execute(TransportAlterRole.ACTION, request).thenApply(r -> {
             if (r.doesUserExist() == false) {
                 throw new RoleUnknownException(roleName);
             }
@@ -125,7 +125,7 @@ public class RoleManagerService implements RoleManager {
                                                    GrantedRolesChange grantedRolesChange) {
         roleNames.forEach(s -> ensureAlterPrivilegeTargetIsNotSuperuser(roles.findUser(s)));
         PrivilegesRequest request = new PrivilegesRequest(roleNames, privileges, grantedRolesChange);
-        return client.execute(TransportPrivilegesAction.ACTION, request).thenApply(r -> {
+        return client.execute(TransportPrivileges.ACTION, request).thenApply(r -> {
             if (!r.unknownUserNames().isEmpty()) {
                 throw new RoleUnknownException(r.unknownUserNames());
             }

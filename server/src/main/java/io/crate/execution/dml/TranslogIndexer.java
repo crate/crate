@@ -66,7 +66,7 @@ public class TranslogIndexer {
     @SuppressWarnings("unchecked")
     public TranslogIndexer(DocTableInfo table, Version shardCreatedVersion) {
         sourceParser = new SourceParser(table.lookupNameBySourceKey(), false);
-        for (var ref : table.columns()) {
+        for (var ref : table.rootColumns()) {
             var storageSupport = ref.valueType().storageSupport();
             if (storageSupport != null) {
                 var columnIndexer = new ColumnIndexer<>(

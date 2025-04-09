@@ -23,6 +23,7 @@ package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -50,7 +51,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     private static AlterTableTask<DropColumnRequest> buildDropColumnTask(SQLExecutor e, RelationName tblName) {
         return new AlterTableTask<>(
-            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportDropColumnAction.DROP_COLUMN_OPERATOR);
+            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportDropColumn.DROP_COLUMN_OPERATOR);
     }
 
     @Test
@@ -78,7 +79,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
         assertThat(newTable.getReference(colToDrop.column())).isNull();
-        assertThat(newTable.columns()).hasSize(2);
+        assertThat(newTable.rootColumns()).hasSize(2);
         assertThat(newTable.droppedColumns()).satisfiesExactly(
             x -> assertThat(x)
                 .hasName("y")
@@ -112,7 +113,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
         assertThat(newTable.getReference(colToDrop.column())).isNull();
-        assertThat(newTable.columns()).hasSize(2);
+        assertThat(newTable.rootColumns()).hasSize(2);
         assertThat(newTable.droppedColumns()).satisfiesExactly(
             x -> assertThat(x)
                 .hasName("y")

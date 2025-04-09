@@ -27,6 +27,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -389,7 +390,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat((Long)response.rows()[0][0])
             .as("Documents were restored but the restored index mapping was older than some " +
                 "documents and misses some of their fields")
-            .isLessThanOrEqualTo(table.columns().size());
+            .isLessThanOrEqualTo(table.rootColumns().size());
     }
 
     @Test

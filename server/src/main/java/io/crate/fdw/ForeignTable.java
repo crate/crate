@@ -149,7 +149,7 @@ public record ForeignTable(RelationName name,
     }
 
     @Override
-    public Collection<Reference> columns() {
+    public Collection<Reference> rootColumns() {
         return references.values();
     }
 

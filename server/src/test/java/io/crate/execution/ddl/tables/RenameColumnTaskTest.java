@@ -48,7 +48,7 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
 
     private static AlterTableTask<RenameColumnRequest> buildRenameColumnTask(SQLExecutor e, RelationName tblName) {
         return new AlterTableTask<>(
-            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportRenameColumnAction.RENAME_COLUMN_OPERATOR);
+            e.nodeCtx, tblName, e.fulltextAnalyzerResolver(), TransportRenameColumn.RENAME_COLUMN_OPERATOR);
     }
 
     @Test

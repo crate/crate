@@ -147,7 +147,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         List<Symbol> toCollect = new ArrayList<>();
-        for (Reference reference : tablesTableInfo.columns()) {
+        for (Reference reference : tablesTableInfo.rootColumns()) {
             toCollect.add(reference);
         }
         Symbol tableNameRef = toCollect.get(12);
@@ -172,7 +172,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         List<Symbol> toCollect = new ArrayList<>();
-        for (Reference ref : tableInfo.columns()) {
+        for (Reference ref : tableInfo.rootColumns()) {
             if (Set.of("column_name", "data_type", "table_name").contains(ref.column().name())) {
                 toCollect.add(ref);
             }

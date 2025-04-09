@@ -76,7 +76,7 @@
           <!-- by default is false but is set to true by `serverTest` profile to avoid running tests
                for modules on which `server` module depends on, when running `mvn -Pserver test` -->
           <skip>${skipRunTests}</skip>
-          <argLine>@{argLine} -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:ReservedCodeCacheSize=512M --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED</argLine>
+          <argLine>@{argLine} -XX:+UseSerialGC -XX:TieredStopAtLevel=1 -XX:ReservedCodeCacheSize=512M --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow</argLine>
         </configuration>
       </plugin>
       <plugin>
@@ -304,13 +304,13 @@
 
   <properties>
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-    <maven.compiler.source>23</maven.compiler.source>
-    <maven.compiler.target>23</maven.compiler.target>
+    <maven.compiler.source>24</maven.compiler.source>
+    <maven.compiler.target>24</maven.compiler.target>
 
     <!-- see surefire plugin configuration for explanation -->
     <skipRunTests>false</skipRunTests>
 
-    <versions.jdk>23.0.2</versions.jdk>
+    <versions.jdk>24</versions.jdk>
     <versions.annotations>26.0.2</versions.annotations>
     <versions.log4j>2.24.3</versions.log4j>
     <versions.assertj>3.27.3</versions.assertj>
@@ -340,7 +340,7 @@
     <versions.commonscodec>1.18.0</versions.commonscodec>
     <versions.bigmath>2.3.2</versions.bigmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>24.1.2</versions.graalvm>
+    <versions.graalvm>24.2.0</versions.graalvm>
     <versions.jwt>4.5.0</versions.jwt>
     <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
 
@@ -381,8 +381,8 @@
     <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
     <versions.plugin.puppycrawl>10.21.4</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
-    <versions.plugin.jacoco>0.8.12</versions.plugin.jacoco>
-    <versions.plugin.forbiddenapis>3.8</versions.plugin.forbiddenapis>
+    <versions.plugin.jacoco>0.8.13</versions.plugin.jacoco>
+    <versions.plugin.forbiddenapis>3.9</versions.plugin.forbiddenapis>
     <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
     <versions.plugin.assembly>3.7.1</versions.plugin.assembly>
     <versions.plugin.download>1.13.0</versions.plugin.download>

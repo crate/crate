@@ -455,7 +455,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             List.of(newReference),
             new IntArrayList(),
             Map.of());
-        assertThat(table2.columns()).satisfiesExactly(
+        assertThat(table2.rootColumns()).satisfiesExactly(
             x -> assertThat(x)
                 .hasName("x")
                 .hasType(DataTypes.INTEGER)

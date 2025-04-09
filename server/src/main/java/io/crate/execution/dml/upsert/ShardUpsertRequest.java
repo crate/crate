@@ -338,8 +338,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             // if stats are not available we fall back to estimate the size based on
             // column types. Therefore we need to get the column information.
             if (stats.isEmpty()) {
-                Collection<Reference> ramAccountedColumns = tableInfo.allColumns();
-                return stats.estimateSizeForColumns(ramAccountedColumns);
+                return stats.estimateSizeForColumns(tableInfo);
             } else {
                 return stats.averageSizePerRowInBytes();
             }

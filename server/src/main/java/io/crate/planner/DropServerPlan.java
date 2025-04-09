@@ -26,7 +26,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.fdw.DropServerRequest;
-import io.crate.fdw.TransportDropServerAction;
+import io.crate.fdw.TransportDropServer;
 import io.crate.planner.operators.SubQueryResults;
 
 public class DropServerPlan implements Plan {
@@ -54,7 +54,7 @@ public class DropServerPlan implements Plan {
             dropServer.mode()
         );
         dependencies.client()
-            .execute(TransportDropServerAction.ACTION, request)
+            .execute(TransportDropServer.ACTION, request)
             .whenComplete(OneRowActionListener.oneIfAcknowledged(consumer));
     }
 }

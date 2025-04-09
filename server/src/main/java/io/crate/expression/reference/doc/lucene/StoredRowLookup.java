@@ -125,7 +125,7 @@ public abstract class StoredRowLookup implements StoredRow {
     }
 
     public void registerAll() {
-        for (Reference ref : table.columns()) {
+        for (Reference ref : table.rootColumns()) {
             if (ref.column().isSystemColumn() == false & ref.granularity() == RowGranularity.DOC) {
                 registerRef(DocReferences.toDocLookup(ref));
             }

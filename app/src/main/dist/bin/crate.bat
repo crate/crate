@@ -93,6 +93,9 @@ set JAVA_OPTS=%JAVA_OPTS% -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx
 REM Disable netty recycler
 set JAVA_OPTS=%JAVA_OPTS% -Dio.netty.recycler.maxCapacityPerThread=0
 
+REM Netty uses Unsafe, disable warning, continue to allow it (See also https://github.com/netty/netty/pull/14975)
+set JAVA_OPTS=%JAVA_OPTS% --sun-misc-unsafe-memory-access=allow
+
 REM Lucene uses native access
 set JAVA_OPTS=%JAVA_OPTS% --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector
 

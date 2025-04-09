@@ -40,7 +40,7 @@ import org.elasticsearch.transport.TransportService;
 public class TransportShardRefreshAction
         extends TransportReplicationAction<BasicReplicationRequest, BasicReplicationRequest, ReplicationResponse> {
 
-    public static final String NAME = RefreshAction.NAME + "[s]";
+    public static final String NAME = TransportRefresh.ACTION.name() + "[s]";
     public static final ActionType<ReplicationResponse> TYPE = new ActionType<>(NAME);
 
     @Inject

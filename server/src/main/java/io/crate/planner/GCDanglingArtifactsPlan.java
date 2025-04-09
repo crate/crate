@@ -24,7 +24,7 @@ package io.crate.planner;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
-import io.crate.execution.ddl.tables.TransportGCDanglingArtifactsAction;
+import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.operators.SubQueryResults;
 
@@ -42,7 +42,7 @@ public final class GCDanglingArtifactsPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) {
         var listener = OneRowActionListener.oneIfAcknowledged(consumer);
-        dependencies.client().execute(TransportGCDanglingArtifactsAction.ACTION, GCDanglingArtifactsRequest.INSTANCE)
+        dependencies.client().execute(TransportGCDanglingArtifacts.ACTION, GCDanglingArtifactsRequest.INSTANCE)
             .whenComplete(listener);
     }
 }

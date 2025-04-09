@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefresh;
 
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.SymbolEvaluator;
@@ -92,7 +92,7 @@ public class RefreshTablePlan implements Plan {
 
         RefreshRequest request = new RefreshRequest(toRefresh);
 
-        dependencies.client().execute(RefreshAction.INSTANCE, request)
+        dependencies.client().execute(TransportRefresh.ACTION, request)
             .whenComplete(
                 new OneRowActionListener<>(
                     consumer,

@@ -46,7 +46,7 @@ public class SystemTableTest {
             .endObject()
             .build();
 
-        assertThat(table.columns()).satisfiesExactly(isReference("obj_a"));
+        assertThat(table.rootColumns()).satisfiesExactly(isReference("obj_a"));
         assertThat(table.getReference(ColumnIdent.of("obj_a", List.of("obj_b", "x"))))
             .hasName("obj_a['obj_b']['x']");
 

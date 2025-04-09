@@ -125,7 +125,7 @@ public final class SystemTable<T> implements TableInfo {
     }
 
     @Override
-    public Collection<Reference> columns() {
+    public Collection<Reference> rootColumns() {
         return rootColumns;
     }
 

@@ -37,7 +37,7 @@ import io.crate.metadata.table.Operation;
 public class ForeignTableRelation extends AbstractTableRelation<ForeignTable> {
 
     public ForeignTableRelation(ForeignTable table) {
-        super(table, List.copyOf(table.columns()), List.of());
+        super(table, List.copyOf(table.rootColumns()), List.of());
     }
 
     @Override

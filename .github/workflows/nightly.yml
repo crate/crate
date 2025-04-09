@@ -18,7 +18,7 @@ jobs:
       - name: Setup Maven Java
         uses: actions/setup-java@v4
         with:
-          java-version: "23"
+          java-version: "24"
           distribution: "temurin"
           cache: maven
 

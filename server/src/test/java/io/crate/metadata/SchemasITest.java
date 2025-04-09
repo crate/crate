@@ -67,7 +67,7 @@ public class SchemasITest extends IntegTestCase {
         DocTableInfo ti = schemas.getTableInfo(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
         assertThat(ti.ident().name()).isEqualTo("t1");
 
-        assertThat(ti.columns()).hasSize(3);
+        assertThat(ti.rootColumns()).hasSize(3);
         assertThat(ti.primaryKey()).hasSize(1);
         assertThat(ti.primaryKey().get(0)).isEqualTo(ColumnIdent.of("id"));
         assertThat(ti.clusteredBy()).isEqualTo(ColumnIdent.of("id"));

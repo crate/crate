@@ -51,7 +51,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         // E.g. in `select a._id from tbl as a`
         super(
             tableInfo,
-            List.copyOf(tableInfo.columns()),
+            List.copyOf(tableInfo.rootColumns()),
             concat(SysColumns.forTable(tableInfo.ident()), tableInfo.indexColumns())
         );
     }

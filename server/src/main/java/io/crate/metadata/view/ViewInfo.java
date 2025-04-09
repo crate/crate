@@ -65,7 +65,7 @@ public class ViewInfo implements RelationInfo {
     }
 
     @Override
-    public Collection<Reference> columns() {
+    public Collection<Reference> rootColumns() {
         return columns;
     }
 

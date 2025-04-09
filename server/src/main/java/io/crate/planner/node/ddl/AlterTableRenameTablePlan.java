@@ -21,10 +21,13 @@
 
 package io.crate.planner.node.ddl;
 
+import static io.crate.data.Row1.ROW_COUNT_UNKNOWN;
+
 import io.crate.analyze.AnalyzedAlterTableRenameTable;
 import io.crate.data.Row;
-import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.execution.ddl.tables.RenameTableRequest;
+import io.crate.execution.ddl.tables.TransportRenameTable;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -49,7 +52,11 @@ public class AlterTableRenameTablePlan implements Plan {
                               PlannerContext plannerContext,
                               RowConsumer consumer,
                               Row params, SubQueryResults subQueryResults) throws Exception {
-        dependencies.alterTableClient().rename(analyzedAlterTableRenameTable)
-            .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
+        var request = new RenameTableRequest(
+            analyzedAlterTableRenameTable.sourceName(),
+            analyzedAlterTableRenameTable.targetName(),
+            analyzedAlterTableRenameTable.isPartitioned());
+        dependencies.client().execute(TransportRenameTable.ACTION, request)
+            .whenComplete(new OneRowActionListener<>(consumer, _ -> ROW_COUNT_UNKNOWN));
     }
 }

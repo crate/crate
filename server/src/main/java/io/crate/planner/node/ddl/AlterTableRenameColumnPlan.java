@@ -25,8 +25,8 @@ import io.crate.analyze.AnalyzedAlterTableRenameColumn;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
-import io.crate.execution.ddl.tables.RenameColumnAction;
 import io.crate.execution.ddl.tables.RenameColumnRequest;
+import io.crate.execution.ddl.tables.TransportRenameColumn;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -53,7 +53,7 @@ public class AlterTableRenameColumnPlan implements Plan {
                               SubQueryResults subQueryResults) throws Exception {
         var renameColumnRequest = new RenameColumnRequest(renameColumn.table(), renameColumn.refToRename(), renameColumn.newName());
         dependencies.client()
-            .execute(RenameColumnAction.INSTANCE, renameColumnRequest)
+            .execute(TransportRenameColumn.ACTION, renameColumnRequest)
             .whenComplete(new OneRowActionListener<>(consumer, r -> r.isAcknowledged() ? new Row1(-1L) : new Row1(0L)));
     }
 }
