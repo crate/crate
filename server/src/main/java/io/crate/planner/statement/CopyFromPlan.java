@@ -90,7 +90,6 @@ import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.GenericProperties;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public final class CopyFromPlan implements Plan {

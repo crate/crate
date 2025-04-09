@@ -110,6 +110,10 @@ public class UpdateProjection extends Projection {
 
     }
 
+    public long fullDocEstimate() {
+        return fullDocEstimate;
+    }
+
     public Symbol uidSymbol() {
         return uidSymbol;
     }

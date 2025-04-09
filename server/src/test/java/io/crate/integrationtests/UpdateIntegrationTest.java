@@ -1164,7 +1164,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("refresh table doc.t2");
         execute("analyze");
         assertNoTasksAreLeftOpen();
-         execute("insert into doc.t2 (id, a, document) select id, a, document from doc.t1");
+        execute("insert into doc.t2 (id, a, document) select id, a, document from doc.t1");
         execute("analyze");
         assertNoTasksAreLeftOpen();
 

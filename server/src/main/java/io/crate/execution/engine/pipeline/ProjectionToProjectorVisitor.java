@@ -137,7 +137,6 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.SysNodeChecksTableInfo;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -558,13 +557,8 @@ public class ProjectionToProjectorVisitor
         Context context, UpdateProjection projection,
         Collector<ShardResponse, A, Iterable<Row>> collector) {
 
-        // Get Stats to improve ram estimation for the update items
-        assert shardId != null : "ShardId must be provided for updates";
+        // Get Stats to improve ram estimation for the update itemsassert shardId != null : "ShardId must be provided for updates";
 
-        String indexName = shardId.getIndexName();
-        RelationName relationName = RelationName.fromIndexName(indexName);
-        TableInfo tableInfo = nodeCtx.schemas().getTableInfo(relationName);
-        long sizeEstimate =  nodeCtx.tableStats().estimatedSizePerRow(tableInfo);
 
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             context.txnCtx.sessionSettings(),
@@ -596,7 +590,7 @@ public class ProjectionToProjectorVisitor
                     requiredVersion == null ? Versions.MATCH_ANY : requiredVersion,
                     SequenceNumbers.UNASSIGNED_SEQ_NO,
                     SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
-                    sizeEstimate
+                    projection.fullDocEstimate()
                 );
             },
             (req, resp) -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, req).whenComplete(resp),

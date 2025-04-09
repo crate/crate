@@ -60,7 +60,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.TableInfo;
