@@ -38,7 +38,7 @@ import org.elasticsearch.transport.TransportService;
 
 public class TransportStartBlob extends TransportReplicationAction<StartBlobRequest, StartBlobRequest, StartBlobResponse> {
 
-    public static final TransportStartBlob.Action ACTION = new TransportStartBlob.Action();
+    public static final Action ACTION = new Action();
     private final BlobTransferTarget transferTarget;
 
     public static class Action extends ActionType<StartBlobResponse> {

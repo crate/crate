@@ -79,19 +79,22 @@ import io.crate.blob.TransportPutChunk;
 import io.crate.blob.TransportStartBlob;
 import io.crate.cluster.decommission.DecommissionNodeAction;
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
+import io.crate.execution.ddl.TransportSwapRelations;
 import io.crate.execution.ddl.tables.TransportAddColumn;
 import io.crate.execution.ddl.tables.TransportAlterTable;
 import io.crate.execution.ddl.tables.TransportCloseTable;
 import io.crate.execution.ddl.tables.TransportCreateBlobTable;
-import io.crate.execution.ddl.tables.TransportCreateTableAction;
+import io.crate.execution.ddl.tables.TransportCreateTable;
 import io.crate.execution.ddl.tables.TransportDropColumn;
 import io.crate.execution.ddl.tables.TransportDropConstraint;
 import io.crate.execution.ddl.tables.TransportDropPartitionsAction;
-import io.crate.execution.ddl.tables.TransportDropTableAction;
+import io.crate.execution.ddl.tables.TransportDropTable;
 import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
 import io.crate.execution.ddl.tables.TransportOpenTable;
 import io.crate.execution.ddl.tables.TransportRenameColumn;
 import io.crate.execution.ddl.tables.TransportRenameTable;
+import io.crate.execution.ddl.views.TransportCreateView;
+import io.crate.execution.ddl.views.TransportDropView;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
@@ -110,6 +113,8 @@ import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.expression.udf.TransportCreateUserDefinedFunction;
+import io.crate.expression.udf.TransportDropUserDefinedFunction;
 import io.crate.fdw.TransportAlterServer;
 import io.crate.fdw.TransportCreateForeignTable;
 import io.crate.fdw.TransportCreateServer;
@@ -162,9 +167,9 @@ public class ActionModule extends AbstractModule {
         ActionRegistry actions = new ActionRegistry();
 
         // Table actions
-        actions.register(TransportCreateTableAction.ACTION, TransportCreateTableAction.class);
+        actions.register(TransportCreateTable.ACTION, TransportCreateTable.class);
         actions.register(TransportCreatePartitions.ACTION, TransportCreatePartitions.class);
-        actions.register(TransportDropTableAction.ACTION, TransportDropTableAction.class);
+        actions.register(TransportDropTable.ACTION, TransportDropTable.class);
         actions.register(TransportDropPartitionsAction.ACTION, TransportDropPartitionsAction.class);
         actions.register(TransportAlterTable.ACTION, TransportAlterTable.class);
         actions.register(TransportRenameTable.ACTION, TransportRenameTable.class);
@@ -177,12 +182,21 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportResize.ACTION, TransportResize.class);
         actions.register(TransportUpdateSettings.ACTION, TransportUpdateSettings.class);
         actions.register(TransportRefresh.ACTION, TransportRefresh.class);
+        actions.register(TransportSwapRelations.ACTION, TransportSwapRelations.class);
+
+        // View actions
+        actions.register(TransportCreateView.ACTION, TransportCreateView.class);
+        actions.register(TransportDropView.ACTION, TransportDropView.class);
 
         // Blob table actions
         actions.register(TransportCreateBlobTable.ACTION, TransportCreateBlobTable.class);
         actions.register(TransportPutChunk.ACTION, TransportPutChunk.class);
         actions.register(TransportStartBlob.ACTION, TransportStartBlob.class);
         actions.register(TransportDeleteBlob.ACTION, TransportDeleteBlob.class);
+
+        // UDF actions
+        actions.register(TransportCreateUserDefinedFunction.ACTION, TransportCreateUserDefinedFunction.class);
+        actions.register(TransportDropUserDefinedFunction.ACTION, TransportDropUserDefinedFunction.class);
 
         // Repository & Snapshot actions
         actions.register(PutRepositoryAction.INSTANCE, TransportPutRepositoryAction.class);

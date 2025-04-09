@@ -41,7 +41,7 @@ import io.crate.blob.v2.BlobShard;
 
 public class TransportDeleteBlob extends TransportReplicationAction<DeleteBlobRequest, DeleteBlobRequest, DeleteBlobResponse> {
 
-    public static final TransportDeleteBlob.Action ACTION = new TransportDeleteBlob.Action();
+    public static final Action ACTION = new Action();
     private final BlobIndicesService blobIndicesService;
 
     public static class Action extends ActionType<DeleteBlobResponse> {

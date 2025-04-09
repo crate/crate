@@ -150,7 +150,7 @@ import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.DropTableRequest;
-import io.crate.execution.ddl.tables.TransportDropTableAction;
+import io.crate.execution.ddl.tables.TransportDropTable;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.RelationInfo.RelationType;
@@ -422,7 +422,7 @@ public final class TestCluster implements Closeable {
             for (var relation : infoSchema.relations()) {
                 if (relation.relationType() == RelationType.BASE_TABLE && relation instanceof SystemTable<?> == false) {
                     relationNames.add(relation.ident());
-                    futures.add(client().execute(TransportDropTableAction.ACTION, new DropTableRequest(relation.ident())));
+                    futures.add(client().execute(TransportDropTable.ACTION, new DropTableRequest(relation.ident())));
                 }
             }
             CompletableFuture<List<AcknowledgedResponse>> allResponses = CompletableFutures.allAsList(futures);

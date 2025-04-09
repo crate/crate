@@ -29,6 +29,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.udf.DropUserDefinedFunctionRequest;
+import io.crate.expression.udf.TransportDropUserDefinedFunction;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
@@ -59,6 +60,6 @@ public class DropFunctionPlan implements Plan {
             analyzedDropFunction.ifExists()
         );
         OneRowActionListener<AcknowledgedResponse> listener = new OneRowActionListener<>(consumer, r -> new Row1(1L));
-        dependencies.dropFunctionAction().execute(request).whenComplete(listener);
+        dependencies.client().execute(TransportDropUserDefinedFunction.ACTION, request).whenComplete(listener);
     }
 }

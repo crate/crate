@@ -44,7 +44,7 @@ import org.elasticsearch.transport.TransportService;
  */
 public class TransportDeleteIndex extends TransportMasterNodeAction<DeleteIndexRequest, AcknowledgedResponse> {
 
-    public static final TransportDeleteIndex.Action ACTION = new TransportDeleteIndex.Action();
+    public static final Action ACTION = new Action();
     private final MetadataDeleteIndexService deleteIndexService;
 
     public static class Action extends ActionType<AcknowledgedResponse> {

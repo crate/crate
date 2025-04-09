@@ -61,7 +61,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.ValidationException;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
@@ -93,10 +92,9 @@ import io.crate.metadata.RelationName;
  *   which must be the case for partitions anyway.
  * - and alias / mappings / etc. are not taken from the request
  */
-@Singleton
 public class TransportCreatePartitions extends TransportMasterNodeAction<CreatePartitionsRequest, AcknowledgedResponse> {
 
-    public static final TransportCreatePartitions.Action ACTION = new TransportCreatePartitions.Action();
+    public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
         private static final String NAME = "indices:admin/bulk_create";

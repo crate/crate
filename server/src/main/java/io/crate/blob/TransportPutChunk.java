@@ -38,7 +38,7 @@ import org.elasticsearch.transport.TransportService;
 
 public class TransportPutChunk extends TransportReplicationAction<PutChunkRequest, PutChunkReplicaRequest, PutChunkResponse> {
 
-    public static final TransportPutChunk.Action ACTION = new TransportPutChunk.Action();
+    public static final Action ACTION = new Action();
     private final BlobTransferTarget transferTarget;
 
     public static class Action extends ActionType<PutChunkResponse> {

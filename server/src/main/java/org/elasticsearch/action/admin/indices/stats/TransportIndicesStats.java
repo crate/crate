@@ -47,7 +47,7 @@ import org.elasticsearch.transport.TransportService;
 
 public class TransportIndicesStats extends TransportBroadcastByNodeAction<IndicesStatsRequest, IndicesStatsResponse, ShardStats> {
 
-    public static final TransportIndicesStats.Action ACTION = new TransportIndicesStats.Action();
+    public static final Action ACTION = new Action();
     private final IndicesService indicesService;
 
     public static class Action extends ActionType<IndicesStatsResponse> {

@@ -29,17 +29,15 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.NodeContext;
 
-@Singleton
 public class TransportDropConstraint extends AbstractDDLTransportAction<DropConstraintRequest, AcknowledgedResponse> {
 
-    public static final TransportDropConstraint.Action ACTION = new TransportDropConstraint.Action();
+    public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
         private static final String NAME = "internal:crate:sql/table/drop_constraint";
