@@ -40,7 +40,6 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.SSLContext;
@@ -53,11 +52,12 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Protocol;
 import io.crate.common.Optionals;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.netty.handler.ssl.ApplicationProtocolConfig;
 import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
@@ -138,6 +138,7 @@ public class SslContextProvider implements Supplier<SslContext> {
                 .ciphers(List.of(sslContext.createSSLEngine().getEnabledCipherSuites()))
                 .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
                 .trustManager(concat(keyStoreRootCerts, trustStoreRootCerts))
+                .endpointIdentificationAlgorithm(null)
                 .sessionCacheSize(0)
                 .sessionTimeout(0)
                 .startTls(false)
@@ -187,6 +188,7 @@ public class SslContextProvider implements Supplier<SslContext> {
                 .applicationProtocolConfig(ApplicationProtocolConfig.DISABLED)
                 .clientAuth(AuthSettings.resolveClientAuth(settings, protocol))
                 .trustManager(concat(keyStoreCertChain, trustStoreRootCerts))
+                .endpointIdentificationAlgorithm(null)
                 .sessionCacheSize(0)
                 .sessionTimeout(0)
                 .startTls(false)
