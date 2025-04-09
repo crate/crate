@@ -117,9 +117,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     }
 
     private void continueConsumptionOrFinish(@Nullable R result, Throwable failure) {
-        if (earlyTerminationCondition.apply(result, failure)) {
-            setResult(null, resultsToFailure.apply(result, failure));
-            return;
+        if (failure != null) {
+            consumptionFinished = true;
         }
 
         if (result != null) {
