@@ -49,6 +49,7 @@ public class DistributingConsumerFactory {
     private final ClusterService clusterService;
     private final Executor responseExecutor;
     private final ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction;
+    private final ThreadPool threadPool;
 
     @Inject
     public DistributingConsumerFactory(ClusterService clusterService,
@@ -57,6 +58,7 @@ public class DistributingConsumerFactory {
         this.clusterService = clusterService;
         this.responseExecutor = threadPool.executor(RESPONSE_EXECUTOR_NAME);
         this.distributedResultAction = req -> node.client().execute(DistributedResultAction.INSTANCE, req);
+        this.threadPool = threadPool;
     }
 
     public DistributingConsumer create(NodeOperation nodeOperation,
@@ -110,7 +112,8 @@ public class DistributingConsumerFactory {
             bucketIdx,
             nodeOperation.downstreamNodes(),
             distributedResultAction,
-            pageSize
+            pageSize,
+            threadPool
         );
     }
 
