@@ -56,6 +56,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.GroupByConsumer;
 import io.crate.statistics.ColumnStats;
@@ -271,17 +272,19 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
                                       ExecutionPlan executionPlan,
                                       List<Projection> projections,
                                       Collection<String> nodeIds) {
+        ResultDescription resultDescription = executionPlan.resultDescription();
         return new Merge(
             executionPlan,
             new MergePhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 DISTRIBUTED_MERGE_PHASE_NAME,
-                executionPlan.resultDescription().nodeIds().size(),
+                resultDescription.nodeIds().size(),
                 1,
                 nodeIds,
-                executionPlan.resultDescription().streamOutputs(),
+                resultDescription.streamOutputs(),
                 projections,
+                resultDescription.nodeIds(),
                 DistributionInfo.DEFAULT_BROADCAST,
                 null
             ),

@@ -208,6 +208,7 @@ public class WindowAgg extends ForwardingLogicalPlan {
                 resultDescription.nodeIds(),
                 resultDescription.streamOutputs(),
                 projections,
+                resultDescription.nodeIds(),
                 DistributionInfo.DEFAULT_BROADCAST,
                 null
             );

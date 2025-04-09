@@ -77,6 +77,7 @@ public class ExecutionPhasesRootTaskTest {
             Set.of("node3", "node4"),
             List.of(),
             List.of(),
+            List.of("node1"),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );
@@ -90,6 +91,7 @@ public class ExecutionPhasesRootTaskTest {
             Set.of("node1", "node3"),
             List.of(),
             List.of(),
+            List.of("node1"),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );

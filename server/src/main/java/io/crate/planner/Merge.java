@@ -21,6 +21,14 @@
 
 package io.crate.planner;
 
+import java.util.Collection;
+import java.util.Collections;
+import java.util.List;
+import java.util.Objects;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.data.Paging;
 import io.crate.execution.dsl.phases.CollectPhase;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.MergePhase;
@@ -29,16 +37,9 @@ import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.execution.engine.pipeline.LimitAndOffset;
-import io.crate.data.Paging;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.types.DataType;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.List;
-import java.util.Objects;
 
 public class Merge implements ExecutionPlan, ResultDescription {
 
@@ -88,6 +89,7 @@ public class Merge implements ExecutionPlan, ResultDescription {
             handlerNodeIds,
             resultDescription.streamOutputs(),
             addProjection(projections, limitAndOffset),
+            resultDescription.nodeIds(),
             DistributionInfo.DEFAULT_BROADCAST,
             resultDescription.orderBy()
         );

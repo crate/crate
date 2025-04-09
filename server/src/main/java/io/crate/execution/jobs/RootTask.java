@@ -24,9 +24,11 @@ package io.crate.execution.jobs;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
@@ -79,7 +81,7 @@ public class RootTask implements CompletionListenable<Void> {
         private final JobsLogs jobsLogs;
         private final List<Task> tasks = new ArrayList<>();
         private final String user;
-        private final Collection<String> participatingNodes;
+        private final Set<String> participatingNodes;
 
         @Nullable
         private ProfilingContext profilingContext = null;
@@ -94,7 +96,7 @@ public class RootTask implements CompletionListenable<Void> {
             this.jobId = jobId;
             this.user = user;
             this.coordinatorNode = coordinatorNode;
-            this.participatingNodes = participatingNodes;
+            this.participatingNodes = new HashSet<>(participatingNodes);
             this.jobsLogs = jobsLogs;
         }
 
@@ -106,6 +108,11 @@ public class RootTask implements CompletionListenable<Void> {
         public void addTask(Task task) {
             assert tasks.stream().noneMatch(x -> x.id() == task.id()) : "Task with id=" + task.id() + " already registered. " + tasks;
             tasks.add(task);
+        }
+
+        /// @param participants nodeIds of nodes involved in the job's execution
+        public void addParticipants(Collection<String> participants) {
+            participatingNodes.addAll(participants);
         }
 
         boolean isEmpty() {

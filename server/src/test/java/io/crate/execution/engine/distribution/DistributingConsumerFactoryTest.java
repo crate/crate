@@ -85,6 +85,7 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
             downstreamExecutionNodes,
             List.of(LongType.INSTANCE),
             List.of(),
+            List.of("n1"),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );

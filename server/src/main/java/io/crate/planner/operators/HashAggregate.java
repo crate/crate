@@ -54,6 +54,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.ResultDescription;
 import io.crate.planner.distribution.DistributionInfo;
 
 public class HashAggregate extends ForwardingLogicalPlan {
@@ -141,17 +142,19 @@ public class HashAggregate extends ForwardingLogicalPlan {
             AggregateMode.PARTIAL_FINAL,
             RowGranularity.CLUSTER
         );
+        ResultDescription resultDescription = executionPlan.resultDescription();
         return new Merge(
             executionPlan,
             new MergePhase(
                 plannerContext.jobId(),
                 plannerContext.nextExecutionPhaseId(),
                 MERGE_PHASE_NAME,
-                executionPlan.resultDescription().nodeIds().size(),
+                resultDescription.nodeIds().size(),
                 1,
                 Collections.singletonList(plannerContext.handlerNode()),
-                executionPlan.resultDescription().streamOutputs(),
+                resultDescription.streamOutputs(),
                 Collections.singletonList(toFinal),
+                resultDescription.nodeIds(),
                 DistributionInfo.DEFAULT_BROADCAST,
                 null
             ),
