@@ -74,6 +74,7 @@ public class MergeNodeTest extends ESTestCase {
             Set.of("node1", "node2"),
             List.of(DataTypes.UNDEFINED, DataTypes.STRING),
             projections,
+            List.of("node1"),
             DistributionInfo.DEFAULT_BROADCAST,
             null
         );
