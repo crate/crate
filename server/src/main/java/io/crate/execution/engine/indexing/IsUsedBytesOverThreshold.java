@@ -54,7 +54,6 @@ class IsUsedBytesOverThreshold implements Predicate<Accountable> {
         long usedMemoryEstimate = accountable.ramBytesUsed();
         boolean requestsTooBig = usedMemoryEstimate > maxUsableByShardRequests;
         if (requestsTooBig && LOGGER.isDebugEnabled()) {
-            System.out.println("requestsTooBig = " + requestsTooBig);
             LOGGER.debug(
                 "Creating smaller bulk requests because shardedRequests is using too much memory. "
                     + "request={} maxBytesUsableByShardedRequests={}",
