@@ -397,6 +397,8 @@ public class RetentionLeaseIT extends IntegTestCase  {
             // check retention leases have been written on the replica; see RecoveryTarget#finalizeRecovery
             assertThat(currentRetentionLeases).isEqualTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.loadRetentionLeases()));
         }
+
+        primaryTransportService.clearAllRules();
     }
 
     @Test

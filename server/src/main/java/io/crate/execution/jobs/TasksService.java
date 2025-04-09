@@ -36,17 +36,23 @@ import java.util.stream.Stream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.action.NoSuchNodeException;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
+import org.elasticsearch.transport.Transport.Connection;
+import org.elasticsearch.transport.TransportConnectionListener;
+import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -54,7 +60,7 @@ import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.role.Role;
 
 @Singleton
-public class TasksService extends AbstractLifecycleComponent {
+public class TasksService extends AbstractLifecycleComponent implements TransportConnectionListener {
 
     private static final Logger LOGGER = LogManager.getLogger(TasksService.class);
 
@@ -72,18 +78,25 @@ public class TasksService extends AbstractLifecycleComponent {
         .expireAfterWrite(30, TimeUnit.SECONDS)
         .build();
 
+    private final TransportService transportService;
+
     @Inject
-    public TasksService(ClusterService clusterService, JobsLogs jobsLogs) {
+    public TasksService(ClusterService clusterService,
+                        TransportService transportService,
+                        JobsLogs jobsLogs) {
         this.clusterService = clusterService;
+        this.transportService = transportService;
         this.jobsLogs = jobsLogs;
     }
 
     @Override
     protected void doStart() throws ElasticsearchException {
+        transportService.addConnectionListener(this);
     }
 
     @Override
     protected void doStop() throws ElasticsearchException {
+        transportService.removeConnectionListener(this);
         for (RootTask rootTask : activeTasks.values()) {
             rootTask.kill("TasksService stopped");
         }
@@ -105,13 +118,16 @@ public class TasksService extends AbstractLifecycleComponent {
         return rootTask;
     }
 
-    public Stream<UUID> getJobIdsByCoordinatorNode(final String coordinatorNodeId) {
-        return activeTasks.values()
-            .stream()
-            .filter(task -> task.coordinatorNodeId().equals(coordinatorNodeId))
-            .map(RootTask::jobId);
+    @Override
+    public void onNodeDisconnected(DiscoveryNode node, Connection connection) {
+        for (var task : activeTasks.values()) {
+            if (task.participatingNodes().contains(node.getId())) {
+                task.kill("Participating node " + node.getId() + " disconnected");
+            }
+        }
     }
 
+    @VisibleForTesting
     public Stream<UUID> getJobIdsByParticipatingNodes(final String nodeId) {
         return activeTasks.values().stream()
             .filter(i -> i.participatingNodes().contains(nodeId))
@@ -160,6 +176,14 @@ public class TasksService extends AbstractLifecycleComponent {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "task for job %s already exists:%n%s", jobId, existing));
         }
+
+        DiscoveryNodes nodes = clusterService.state().nodes();
+        for (String participatingNode : newRootTask.participatingNodes()) {
+            if (!nodes.nodeExists(participatingNode)) {
+                throw new NoSuchNodeException(participatingNode);
+            }
+        }
+
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace(
                 "RootTask created for job={} tasks={} totalTasks={}",
