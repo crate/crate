@@ -69,6 +69,7 @@ public class JoinPhaseTest extends ESTestCase {
             Collections.emptyList(),
             List.of(DataTypes.STRING),
             List.of(),
+            List.of("node1"),
             DistributionInfo.DEFAULT_BROADCAST,
             null);
         mp2 = new MergePhase(
@@ -80,6 +81,7 @@ public class JoinPhaseTest extends ESTestCase {
             Collections.emptyList(),
             List.of(DataTypes.STRING),
             List.of(),
+            List.of("node1"),
             DistributionInfo.DEFAULT_BROADCAST,
             null);
         joinCondition = new Function(

@@ -50,12 +50,13 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
 
     @Test
     public void testKillIsInvokedIfContextIsNotFound() throws Exception {
-        TasksService tasksService = new TasksService(clusterService, new JobsLogs(() -> false));
+        TransportService transportService = mock(TransportService.class);
+        TasksService tasksService = new TasksService(clusterService, transportService, new JobsLogs(() -> false));
         AtomicInteger numBroadcasts = new AtomicInteger(0);
         TransportKillJobsNodeAction killJobsAction = new TransportKillJobsNodeAction(
             tasksService,
             clusterService,
-            mock(TransportService.class)
+            transportService
         ) {
             @Override
             public void doExecute(KillJobsNodeRequest request, ActionListener<KillResponse> listener) {
@@ -66,7 +67,7 @@ public class TransportDistributedResultActionTest extends CrateDummyClusterServi
             mock(Transports.class),
             tasksService,
             THREAD_POOL,
-            mock(TransportService.class),
+            transportService,
             clusterService,
             killJobsAction::execute,
             BackoffPolicy.exponentialBackoff(TimeValue.ZERO, 0)

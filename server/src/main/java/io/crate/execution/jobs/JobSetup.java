@@ -503,6 +503,7 @@ public class JobSetup {
                 return rowConsumer;
             }
 
+            taskBuilder.addParticipants(nodeOperation.downstreamNodes());
             DistributionType distributionType = phase.distributionInfo().distributionType();
             switch (distributionType) {
                 case BROADCAST:
@@ -648,6 +649,7 @@ public class JobSetup {
 
         @Override
         public Void visitMergePhase(final MergePhase phase, final Context context) {
+            context.taskBuilder.addParticipants(phase.upstreamNodes());
             boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.phaseId());
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
 
@@ -660,7 +662,7 @@ public class JobSetup {
 
             RowConsumer finalRowConsumer = context.getRowConsumer(phase, pageSize, ramAccountingForMerge);
             MemoryManager memoryManager = memoryManagerFactory.getMemoryManager(ramAccounting);
-            finalRowConsumer.completionFuture().whenComplete((result, error) -> {
+            finalRowConsumer.completionFuture().whenComplete((_, _) -> {
                 memoryManager.close();
                 ramAccounting.close();
             });
@@ -998,6 +1000,7 @@ public class JobSetup {
                 ctx.consumersByPhaseInputId.put(toKey(nlPhaseId, inputId), rowConsumer);
                 return null;
             }
+            ctx.taskBuilder.addParticipants(mergePhase.upstreamNodes());
 
             // In case of join on virtual table the left or right merge phase
             // of the nl might have projections (LimitAndOffset)
