@@ -21,9 +21,9 @@ package org.elasticsearch.action;
 
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedRunnable;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 
 import io.crate.common.CheckedSupplier;
+import io.crate.common.concurrent.RejectableRunnable;
 
 /**
  * Base class for {@link Runnable}s that need to call {@link ActionListener#onFailure(Exception)} in case an uncaught

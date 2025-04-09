@@ -27,6 +27,8 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.common.concurrent.RejectableRunnable;
+
 public class RunOnceTests extends ESTestCase {
 
     @Test

@@ -35,9 +35,10 @@ import java.util.stream.IntStream;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
+
+import io.crate.common.concurrent.RejectableRunnable;
 
 public class LocalCheckpointTrackerTests extends ESTestCase {
 
