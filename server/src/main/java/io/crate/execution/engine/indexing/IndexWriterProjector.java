@@ -52,6 +52,7 @@ import io.crate.data.Input;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -128,7 +129,8 @@ public class IndexWriterProjector implements Projector {
         BiFunction<UpsertResults, Throwable, Boolean> earlyTerminationCondition =
                 (results, err) -> failFast && results != null ? results.containsErrors() : err != null;
         BiFunction<UpsertResults, Throwable, Throwable> earlyTerminationExceptionGenerator =
-            (results, err) -> UpsertResults.resultsToFailure(results);
+            (results, err) ->
+                results != null ? UpsertResults.resultsToFailure(results) : JobKilledException.of(null);
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             (ignored1, ignored2) -> {},

@@ -132,7 +132,10 @@ public class ColumnIndexWriterProjector implements Projector {
         BiFunction<UpsertResults, Throwable, Boolean> earlyTerminationCondition =
             (results, err) -> continueOnError == false && results == null && err != null;
         BiFunction<UpsertResults, Throwable, Throwable> earlyTerminationExceptionGenerator =
-            (results, err) -> err != null ? err : null;
+            (results, err) -> {
+                assert err != null : "Exception generator is used only when error is not null.";
+                return err;
+            };
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
             constraintsChecker,
