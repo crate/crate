@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 
 import io.crate.metadata.table.TableInfo;
@@ -28,4 +29,6 @@ import io.crate.metadata.table.TableInfo;
 public interface TableInfoFactory<T extends TableInfo> {
 
     T create(RelationName ident, Metadata metadata);
+
+    T create(IndexMetadata indexMetadata);
 }

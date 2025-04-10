@@ -41,6 +41,7 @@ import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.jetbrains.annotations.NotNull;
@@ -330,6 +331,14 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return schemas.get(schemaName);
     }
 
+    public SchemaInfo getOrCreateSchemaInfo(String schemaName) {
+        SchemaInfo schemaInfo = schemas.get(schemaName);
+        if (schemaInfo == null) {
+            schemaInfo = getCustomSchemaInfo(schemaName);
+        }
+        return schemaInfo;
+    }
+
     private SchemaInfo getSchemaInfo(RelationName ident) {
         String schemaName = ident.schema();
         SchemaInfo schemaInfo = schemas.get(schemaName);
@@ -389,12 +398,14 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         // 'doc' schema is always available and has the special property that its indices
         // don't have to be prefixed with the schema name
         schemas.add(DOC_SCHEMA_NAME);
-        for (String index : metadata.getConcreteAllIndices()) {
-            addIfSchema(schemas, index);
+
+        for (RelationMetadata relationMetadata : metadata.relations(RelationMetadata.Table.class)) {
+            String schema = relationMetadata.name().schema();
+            if (schema != null) {
+                schemas.add(schema);
+            }
         }
-        for (ObjectCursor<String> cursor : metadata.templates().keys()) {
-            addIfSchema(schemas, cursor.value);
-        }
+
         UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
         if (udfMetadata != null) {
             udfMetadata.functionsMetadata()

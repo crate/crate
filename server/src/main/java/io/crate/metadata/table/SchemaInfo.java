@@ -22,6 +22,7 @@
 package io.crate.metadata.table;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.jetbrains.annotations.Nullable;
 
@@ -51,6 +52,10 @@ public interface SchemaInfo extends AutoCloseable {
 
     @Nullable
     default TableInfo create(RelationName relationName, Metadata metadata) {
+        throw new UnsupportedOperationException("create() not supported on " + getClass().getName());
+    }
+
+    default TableInfo create(IndexMetadata indexMetadata) {
         throw new UnsupportedOperationException("create() not supported on " + getClass().getName());
     }
 }
