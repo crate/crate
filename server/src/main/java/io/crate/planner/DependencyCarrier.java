@@ -44,10 +44,6 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Schemas;
 import io.crate.replication.logical.LogicalReplicationService;
-import io.crate.replication.logical.action.TransportAlterPublicationAction;
-import io.crate.replication.logical.action.TransportCreatePublicationAction;
-import io.crate.replication.logical.action.TransportCreateSubscriptionAction;
-import io.crate.replication.logical.action.TransportDropPublicationAction;
 import io.crate.session.DCLStatementDispatcher;
 import io.crate.statistics.TransportAnalyzeAction;
 
@@ -71,10 +67,6 @@ public class DependencyCarrier {
     private final RepositoryService repositoryService;
     private final RepositoryParamValidator repositoryParamValidator;
     private final NodeLimits nodeLimits;
-    private final TransportCreatePublicationAction createPublicationAction;
-    private final TransportDropPublicationAction dropPublicationAction;
-    private final TransportAlterPublicationAction alterPublicationAction;
-    private final TransportCreateSubscriptionAction createSubscriptionAction;
     private final LogicalReplicationService logicalReplicationService;
     private final ElasticsearchClient client;
     private final CircuitBreakerService circuitBreakerService;
@@ -94,10 +86,6 @@ public class DependencyCarrier {
                              FulltextAnalyzerResolver fulltextAnalyzerResolver,
                              RepositoryService repositoryService,
                              RepositoryParamValidator repositoryParamValidator,
-                             TransportCreatePublicationAction createPublicationAction,
-                             TransportDropPublicationAction dropPublicationAction,
-                             TransportAlterPublicationAction alterPublicationAction,
-                             TransportCreateSubscriptionAction createSubscriptionAction,
                              LogicalReplicationService logicalReplicationService) {
         this.settings = settings;
         this.client = node.client();
@@ -115,10 +103,6 @@ public class DependencyCarrier {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.repositoryService = repositoryService;
         this.repositoryParamValidator = repositoryParamValidator;
-        this.createPublicationAction = createPublicationAction;
-        this.dropPublicationAction = dropPublicationAction;
-        this.alterPublicationAction = alterPublicationAction;
-        this.createSubscriptionAction = createSubscriptionAction;
         this.logicalReplicationService = logicalReplicationService;
     }
 
@@ -184,22 +168,6 @@ public class DependencyCarrier {
 
     public NodeLimits nodeLimits() {
         return nodeLimits;
-    }
-
-    public TransportCreatePublicationAction createPublicationAction() {
-        return createPublicationAction;
-    }
-
-    public TransportDropPublicationAction dropPublicationAction() {
-        return dropPublicationAction;
-    }
-
-    public TransportAlterPublicationAction alterPublicationAction() {
-        return alterPublicationAction;
-    }
-
-    public TransportCreateSubscriptionAction createSubscriptionAction() {
-        return createSubscriptionAction;
     }
 
     public LogicalReplicationService logicalReplicationService() {

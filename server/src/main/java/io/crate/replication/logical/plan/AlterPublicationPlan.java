@@ -29,7 +29,7 @@ import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
-import io.crate.replication.logical.action.TransportAlterPublicationAction;
+import io.crate.replication.logical.action.TransportAlterPublication;
 import io.crate.replication.logical.analyze.AnalyzedAlterPublication;
 
 public class AlterPublicationPlan implements Plan {
@@ -51,12 +51,12 @@ public class AlterPublicationPlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
-        var request = new TransportAlterPublicationAction.Request(
+        var request = new TransportAlterPublication.Request(
             alterPublication.name(),
             alterPublication.operation(),
             alterPublication.tables()
         );
-        dependencies.alterPublicationAction().execute(request)
+        dependencies.client().execute(TransportAlterPublication.ACTION, request)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1L : 1L)));
     }
 }

@@ -21,10 +21,7 @@
 
 package io.crate.replication.logical.action;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
-import io.crate.replication.logical.exceptions.PublicationUnknownException;
-import io.crate.replication.logical.metadata.PublicationsMetadata;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
@@ -33,21 +30,31 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-@Singleton
-public class TransportDropPublicationAction extends AbstractDDLTransportAction<DropPublicationRequest, AcknowledgedResponse> {
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
+import io.crate.replication.logical.exceptions.PublicationUnknownException;
+import io.crate.replication.logical.metadata.PublicationsMetadata;
 
-    public static final String ACTION_NAME = "internal:crate:replication/logical/publication/drop";
+public class TransportDropPublication extends AbstractDDLTransportAction<DropPublicationRequest, AcknowledgedResponse> {
 
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:replication/logical/publication/drop";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     @Inject
-    public TransportDropPublicationAction(TransportService transportService,
-                                          ClusterService clusterService,
-                                          ThreadPool threadPool) {
-        super(ACTION_NAME,
+    public TransportDropPublication(TransportService transportService,
+                                    ClusterService clusterService,
+                                    ThreadPool threadPool) {
+        super(ACTION.name(),
               transportService,
               clusterService,
               threadPool,
