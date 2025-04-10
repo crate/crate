@@ -41,12 +41,13 @@ import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataType;
 
 /**
- * Parses transaction log entries based on column information from a {@link DocTableInfo}
+ * Parses transaction log entries based on column information from a {@link DocTableInfo} or {@link BlobTableInfo}
  */
 public class TranslogIndexer {
 
@@ -85,6 +86,27 @@ public class TranslogIndexer {
             reference -> new IndexInput(reference.column())
         );
         ignoreUnknownColumns = table.columnPolicy() != ColumnPolicy.STRICT;
+        this.shardCreatedVersion = shardCreatedVersion;
+    }
+
+    /**
+     * Creates a new TranslogIndexer backed by a {@link BlobTableInfo} instance
+     */
+    @SuppressWarnings("unchecked")
+    public TranslogIndexer(BlobTableInfo table, Version shardCreatedVersion) {
+        sourceParser = new SourceParser(s -> s, false);
+        for (var ref : table.rootColumns()) {
+            var storageSupport = ref.valueType().storageSupport();
+            if (storageSupport != null) {
+                var columnIndexer = new ColumnIndexer<>(
+                    ref.valueType(),
+                    (ValueIndexer<Object>) storageSupport.valueIndexer(table.ident(), ref, table::getReference));
+                indexers.put(ref.column().name(), columnIndexer);
+            }
+        }
+
+        this.indexColumns = List.of();
+        ignoreUnknownColumns = false;
         this.shardCreatedVersion = shardCreatedVersion;
     }
 

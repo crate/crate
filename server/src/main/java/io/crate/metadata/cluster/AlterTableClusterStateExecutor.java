@@ -56,7 +56,7 @@ import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
@@ -163,8 +163,10 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             currentState = updateSettings(currentState, settings, partitions);
         }
 
-        // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        new DocTableInfoFactory(nodeContext).create(request.tableIdent(), currentState.metadata());
+        // ensure the new table can still be parsed into a Doc|BlobTableInfo to avoid breaking the table.
+        RelationName relationName = request.tableIdent();
+        SchemaInfo schemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(relationName.schema());
+        schemaInfo.create(relationName, currentState.metadata());
 
         return currentState;
     }
