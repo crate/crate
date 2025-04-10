@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 
@@ -98,5 +99,10 @@ public class BlobSchemaInfo implements SchemaInfo {
     @Override
     public BlobTableInfo create(RelationName relationName, Metadata metadata) {
         return blobTableInfoFactory.create(relationName, metadata);
+    }
+
+    @Override
+    public TableInfo create(IndexMetadata indexMetadata) {
+        return blobTableInfoFactory.create(indexMetadata);
     }
 }

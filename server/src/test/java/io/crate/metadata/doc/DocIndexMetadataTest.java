@@ -26,7 +26,6 @@ import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.emptyMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -42,7 +41,6 @@ import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
@@ -73,8 +71,6 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.server.xcontent.XContentHelper;
@@ -116,11 +112,7 @@ public class DocIndexMetadataTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private DocTableInfo newTable(IndexMetadata indexMetadata, String name) throws IOException {
-        RelationName relation = new RelationName(Schemas.DOC_SCHEMA_NAME, name);
-        Metadata metadata = Metadata.builder()
-            .put(indexMetadata, true)
-            .build();
-        return docTableFactory.create(relation, metadata);
+        return docTableFactory.create(indexMetadata);
     }
 
     @Before

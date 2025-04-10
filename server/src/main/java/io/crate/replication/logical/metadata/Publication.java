@@ -136,8 +136,7 @@ public class Publication implements Writeable {
                 return routingTable.allPrimaryShardsActive();
 
             }
-            // Partitioned table case (template, no index).
-            return true;
+            return false;
         };
 
         if (isForAllTables()) {

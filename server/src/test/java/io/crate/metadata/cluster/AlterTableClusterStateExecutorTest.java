@@ -23,65 +23,18 @@ package io.crate.metadata.cluster;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_ROUTING_EXCLUDE_GROUP_PREFIX;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
-import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
-import java.util.Map;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.analyze.TableParameters;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 
 public class AlterTableClusterStateExecutorTest {
-
-    @Test
-    public void testPrivateSettingsAreRemovedOnUpdateTemplate() throws IOException {
-        IndexScopedSettings indexScopedSettings = IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
-
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-
-        Settings settings = Settings.builder()
-            .put(SETTING_CREATION_DATE, false)      // private, must be filtered out
-            .put(SETTING_NUMBER_OF_SHARDS, 4)
-            .build();
-        IndexTemplateMetadata indexTemplateMetadata = IndexTemplateMetadata.builder(templateName)
-            .patterns(Collections.singletonList("*"))
-            .settings(settings)
-            .putMapping("{\"default\": {}}")
-            .build();
-
-        ClusterState initialState = ClusterState.builder(ClusterState.EMPTY_STATE)
-            .metadata(Metadata.builder().put(indexTemplateMetadata))
-            .build();
-
-        ClusterState result =
-            AlterTableClusterStateExecutor.updateTemplate(initialState,
-                                                          relationName,
-                                                          settings,
-                                                          Map.of(),
-                                                          indexScopedSettings);
-
-        IndexTemplateMetadata template = result.metadata().templates().get(templateName);
-        assertThat(template.settings().keySet()).containsExactly(SETTING_NUMBER_OF_SHARDS);
-    }
 
     @Test
     public void testMarkArchivedSettings() {
@@ -106,39 +59,5 @@ public class AlterTableClusterStateExecutorTest {
         Settings filteredSettings = AlterTableClusterStateExecutor.filterSettings(settingToFilter, supportedSettings);
         assertThat(filteredSettings.isEmpty()).isFalse();
         assertThat(filteredSettings.get(fullName)).isEqualTo("node1");
-    }
-
-    @Test
-    public void test_altering_settings_do_not_modify_version_created() throws IOException {
-        IndexScopedSettings indexScopedSettings = IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
-
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-
-        final Version v = Version.V_5_4_0;
-
-        Settings settings = Settings.builder()
-            .put(IndexMetadata.SETTING_VERSION_CREATED, v)
-            .build();
-        IndexTemplateMetadata indexTemplateMetadata = IndexTemplateMetadata.builder(templateName)
-            .patterns(Collections.singletonList("*"))
-            .settings(settings)
-            .putMapping("{\"default\": {}}")
-            .build();
-
-        ClusterState initialState = ClusterState.builder(ClusterState.EMPTY_STATE)
-            .metadata(Metadata.builder().put(indexTemplateMetadata))
-            .build();
-
-        ClusterState result =
-            AlterTableClusterStateExecutor.updateTemplate(initialState,
-                relationName,
-                settings,
-                Map.of(),
-                indexScopedSettings);
-
-        IndexTemplateMetadata template = result.metadata().templates().get(templateName);
-        assertThat(template.settings().keySet()).containsExactly(SETTING_VERSION_CREATED);
-        assertThat(SETTING_INDEX_VERSION_CREATED.get(template.settings())).isEqualTo(v);
     }
 }

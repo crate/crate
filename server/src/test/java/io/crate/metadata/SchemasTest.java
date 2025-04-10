@@ -21,6 +21,7 @@
 
 package io.crate.metadata;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
@@ -31,11 +32,15 @@ import static org.mockito.Mockito.mock;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -58,6 +63,18 @@ import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class SchemasTest extends CrateDummyClusterServiceUnitTest {
+
+    private final NodeContext nodeCtx = createNodeContext();
+    private MetadataUpgradeService metadataUpgradeService;
+
+    @Before
+    public void setUpUpgradeService() throws Exception {
+        metadataUpgradeService = new MetadataUpgradeService(
+            nodeCtx,
+            new IndexScopedSettings(Settings.EMPTY, Set.of()),
+            null
+        );
+    }
 
     @Test
     public void testSystemSchemaIsNotWritable() throws Exception {
@@ -129,6 +146,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
             .build();
+        metadata = metadataUpgradeService.addOrUpgradeRelationMetadata(metadata);
         assertThat(Schemas.getNewCurrentSchemas(metadata)).containsExactly("foo", "doc");
     }
 

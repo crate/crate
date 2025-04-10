@@ -398,7 +398,9 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 throw new ColumnUnknownException(partitionColumnIdent, tableName);
             }
             ensureValidPartitionColumn(clusteredBy, partitionColumnIdent, column);
-            column.indexType = IndexType.NONE;
+            // Partition column values are never stored, so index type is ignored. Set it to PLAIN, so the
+            // string representation won't add it. E.g. SHOW CREATE TABLE
+            column.indexType = IndexType.PLAIN;
             column.rowGranularity = RowGranularity.PARTITION;
         }));
 
