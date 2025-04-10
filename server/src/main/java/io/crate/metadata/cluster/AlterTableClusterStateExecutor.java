@@ -25,7 +25,6 @@ import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -37,7 +36,6 @@ import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
@@ -54,9 +52,8 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.analyze.TableParameters;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<AlterTableRequest> {
@@ -131,18 +128,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             if (!request.partitionValues().isEmpty()) {
                 currentState = updateSettings(currentState, settings, concreteIndices);
             } else {
-                // using settings from request with column policy still present
-                Map<String, Object> newMapping = settingsToMapping(request.settings());
-
-                // template gets all changes unfiltered
-                currentState = updateTemplate(
-                    currentState,
-                    request.tableIdent(),
-                    settings,
-                    newMapping,
-                    indexScopedSettings
-                );
-
                 if (!request.excludePartitions()) {
                     // These settings only apply for already existing partitions
                     List<Setting<?>> supportedSettings = new ArrayList<>(
@@ -231,34 +216,6 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             closedSettings,
             openSettings
         );
-    }
-
-    public static Map<String, Object> settingsToMapping(Settings settings) {
-        String policy = settings.get(TableParameters.COLUMN_POLICY.getKey());
-        if (policy == null) {
-            return Map.of();
-        }
-        return Map.of(ColumnPolicy.MAPPING_KEY, ColumnPolicy.of(policy).toMappingValue());
-    }
-
-    static ClusterState updateTemplate(ClusterState currentState,
-                                       RelationName relationName,
-                                       Settings newSettings,
-                                       Map<String, Object> newMapping,
-                                       IndexScopedSettings indexScopedSettings) {
-
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-        IndexTemplateMetadata indexTemplateMetadata = currentState.metadata().templates().get(templateName);
-        IndexTemplateMetadata newIndexTemplateMetadata = DDLClusterStateHelpers.updateTemplate(
-            indexTemplateMetadata,
-            newMapping,
-            Collections.emptyMap(),
-            newSettings,
-            indexScopedSettings
-        );
-
-        final Metadata.Builder metadata = Metadata.builder(currentState.metadata()).put(newIndexTemplateMetadata);
-        return ClusterState.builder(currentState).metadata(metadata).build();
     }
 
     @VisibleForTesting

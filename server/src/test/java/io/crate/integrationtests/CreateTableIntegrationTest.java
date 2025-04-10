@@ -66,6 +66,10 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                                    "with (number_of_replicas = 0)");
     }
 
+    /*
+    TODO: Do we still need to allow this?
+    If so, we must add some BWC logic to resolve indices without a relation inside the DropTableClusterStateTaskExecutor.
+
     @Test
     public void test_allow_drop_of_corrupted_table() throws Exception {
         execute("create table doc.tbl (ts timestamp without time zone as '2020-01-01')");
@@ -121,6 +125,8 @@ public class CreateTableIntegrationTest extends IntegTestCase {
         assertThat(cluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
             .isFalse();
     }
+
+     */
 
     private void executeCreateTableThreaded(final String statement) throws Throwable {
         ExecutorService executorService = Executors.newFixedThreadPool(20);

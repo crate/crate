@@ -42,7 +42,6 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.Diffs;
@@ -75,7 +74,6 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
@@ -788,6 +786,26 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
+        @Nullable
+        @SuppressWarnings("unchecked")
+        public <T extends RelationMetadata> T getRelation(RelationName relation) {
+            SchemaMetadata schemaMetadata = schemas.get(relation.schema());
+            if (schemaMetadata == null) {
+                return null;
+            }
+            RelationMetadata relationMetadata = schemaMetadata.get(relation);
+            if (relationMetadata == null) {
+                return null;
+            }
+            try {
+                return (T) relationMetadata;
+            } catch (ClassCastException e) {
+                throw new OperationOnInaccessibleRelationException(
+                    relation,
+                    "The relation " + relation.sqlFqn() + " doesn't support the operation");
+            }
+        }
+
         public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state) {
             setRelation(new RelationMetadata.BlobTable(name, indexUUID, settings, state));
             return this;
@@ -1192,6 +1210,25 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 indexUUIDs
             );
         }
+
+        public Builder addIndexUUIDs(RelationMetadata.Table table, List<String> indexUUIDs) {
+            ArrayList<String> newIndexUUIDs = new ArrayList<>(table.indexUUIDs());
+            newIndexUUIDs.addAll(indexUUIDs);
+            setTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                newIndexUUIDs
+            );
+            return this;
+        }
     }
 
     public static class UnknownGatewayOnlyCustom implements Custom {
@@ -1270,7 +1307,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         if (schemaMetadata != null && schemaMetadata.relations().containsKey(tableName.name())) {
             return true;
         }
-        return false;
+        return getRelation(tableName) != null;
     }
 
     @Nullable
@@ -1306,6 +1343,21 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return relations;
     }
 
+    public <T extends RelationMetadata> List<T> relations(String schemaName, Class<T> clazz) {
+        SchemaMetadata schemaMetadata = schemas.get(schemaName);
+        if (schemaMetadata == null) {
+            return List.of();
+        }
+        ArrayList<T> relations = new ArrayList<>();
+        for (ObjectCursor<RelationMetadata> relationCursor : schemaMetadata.relations().values()) {
+            RelationMetadata relationMetadata = relationCursor.value;
+            if (clazz.isInstance(relationMetadata)) {
+                relations.add(clazz.cast(relationMetadata));
+            }
+        }
+        return relations;
+    }
+
     /**
      * <p>
      * Resolve the indices for a relation and return their data either as
@@ -1322,6 +1374,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                                   boolean strict,
                                   Function<IndexMetadata, T> as) {
         RelationMetadata relation = getRelation(relationName);
+        if (relation == null) {
+            if (strict) {
+                throw new RelationUnknown(relationName);
+            }
+            return List.of();
+        }
         if (relation instanceof RelationMetadata.BlobTable blobTable) {
             IndexMetadata imd = indexByUUID(blobTable.indexUUID());
             if (imd == null) {
@@ -1354,41 +1412,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             }
             return result;
         }
-        IndicesOptions indicesOptions = strict
-            ? IndicesOptions.STRICT_EXPAND_OPEN
-            : IndicesOptions.LENIENT_EXPAND_OPEN;
-
-        Index[] indices;
-        try {
-            if (partitionValues.isEmpty()) {
-                indices = IndexNameExpressionResolver.concreteIndices(
-                    this,
-                    indicesOptions,
-                    relationName.indexNameOrAlias()
-                );
-            } else {
-                PartitionName partitionName = new PartitionName(relationName, partitionValues);
-                indices = IndexNameExpressionResolver.concreteIndices(
-                    this,
-                    indicesOptions,
-                    partitionName.asIndexName()
-                );
-            }
-        } catch (IndexNotFoundException ex) {
-            throw new RelationUnknown(relationName);
-        }
-        ArrayList<T> result = new ArrayList<>(indices.length);
-        for (int i = 0; i < indices.length; i++) {
-            Index index = indices[i];
-            IndexMetadata imd = indexByUUID(index.getUUID());
-            if (imd == null || index.getName().startsWith(AlterTableClient.RESIZE_PREFIX)) {
-                continue;
-            }
-            T item = as.apply(imd);
-            if (item != null) {
-                result.add(item);
-            }
-        }
-        return result;
+        // should be never reached
+        throw new UnsupportedOperationException("Unsupported relation type: " + (relation == null ? null : relation.getClass().getName()));
     }
 }

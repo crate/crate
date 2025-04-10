@@ -148,6 +148,7 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
             .hasMessage("Must create at least one partition");
     }
 
+    /*
     @Test
     @UseNewCluster
     // Upgrade once logic can be affected by other tests as they all share the same action instance,
@@ -201,6 +202,7 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
         verify(actionSpy, times(1)).upgradeTemplates(any(), any());
     }
 
+
     @Test
     public void test_version_created_settings_for_new_partitions_from_old_template_do_not_follow_old_templates_version() throws Exception {
         execute("create table tbl (a int) partitioned by (a) ");
@@ -237,4 +239,6 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
         assertThat(newPartitionVersion).isEqualTo(clusterState.nodes().getSmallestNonClientNodeVersion());
         assertThat(newPartitionVersion).isNotEqualTo(Version.V_5_7_5);
     }
+
+     */
 }

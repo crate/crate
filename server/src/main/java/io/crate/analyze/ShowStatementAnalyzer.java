@@ -186,7 +186,7 @@ class ShowStatementAnalyzer {
         sb.append("WHERE table_name = ");
         singleQuote(sb, node.table().toString());
 
-        sb.append("AND table_schema = ");
+        sb.append(" AND table_schema = ");
         QualifiedName schema = node.schema();
         if (schema != null) {
             singleQuote(sb, schema.toString());
@@ -195,12 +195,12 @@ class ShowStatementAnalyzer {
         }
         String likePattern = node.likePattern();
         if (likePattern != null) {
-            sb.append("AND column_name LIKE ");
+            sb.append(" AND column_name LIKE ");
             singleQuote(sb, likePattern);
         } else if (node.where().isPresent()) {
-            sb.append(String.format(Locale.ENGLISH, "AND %s", ExpressionFormatter.formatExpression(node.where().get())));
+            sb.append(String.format(Locale.ENGLISH, " AND %s", ExpressionFormatter.formatExpression(node.where().get())));
         }
-        sb.append("ORDER BY column_name");
+        sb.append(" ORDER BY column_name");
         return (Query) SqlParser.createStatement(sb.toString());
     }
 
