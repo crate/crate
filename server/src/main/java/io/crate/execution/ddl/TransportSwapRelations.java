@@ -29,6 +29,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.ActiveShardsObserver;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
@@ -44,7 +45,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -52,20 +52,28 @@ import io.crate.action.ActionListeners;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
-public final class TransportSwapRelationsAction extends TransportMasterNodeAction<SwapRelationsRequest, AcknowledgedResponse> {
+public final class TransportSwapRelations extends TransportMasterNodeAction<SwapRelationsRequest, AcknowledgedResponse> {
 
+    public static final Action ACTION = new Action();
     private final SwapRelationsOperation swapRelationsOperation;
     private final ActiveShardsObserver activeShardsObserver;
 
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/alter/cluster/indices";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportSwapRelationsAction(Settings settings,
-                                        TransportService transportService,
-                                        ClusterService clusterService,
-                                        ThreadPool threadPool,
-                                        DDLClusterStateService ddlClusterStateService,
-                                        AllocationService allocationService) {
+    public TransportSwapRelations(TransportService transportService,
+                                  ClusterService clusterService,
+                                  ThreadPool threadPool,
+                                  DDLClusterStateService ddlClusterStateService,
+                                  AllocationService allocationService) {
         super(
-            "internal:crate:sql/alter/cluster/indices",
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,
@@ -99,7 +107,7 @@ public final class TransportSwapRelationsAction extends TransportMasterNodeActio
             indexNamesAfterRelationSwap::get
         );
         AckedClusterStateUpdateTask<AcknowledgedResponse> updateTask =
-            new AckedClusterStateUpdateTask<AcknowledgedResponse>(Priority.HIGH, request, waitForShardsListener) {
+            new AckedClusterStateUpdateTask<>(Priority.HIGH, request, waitForShardsListener) {
 
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {

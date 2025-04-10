@@ -50,23 +50,17 @@ import org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.TransportPendingClusterTasksAction;
 import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
-import org.elasticsearch.action.admin.indices.create.CreatePartitionsAction;
-import org.elasticsearch.action.admin.indices.create.TransportCreatePartitionsAction;
-import org.elasticsearch.action.admin.indices.delete.DeleteIndexAction;
-import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndexAction;
+import org.elasticsearch.action.admin.indices.create.TransportCreatePartitions;
+import org.elasticsearch.action.admin.indices.delete.TransportDeleteIndex;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.TransportForceMergeAction;
-import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
-import org.elasticsearch.action.admin.indices.refresh.TransportRefreshAction;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefresh;
 import org.elasticsearch.action.admin.indices.refresh.TransportShardRefreshAction;
 import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesAction;
 import org.elasticsearch.action.admin.indices.retention.TransportSyncRetentionLeasesAction;
-import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsAction;
-import org.elasticsearch.action.admin.indices.shrink.ResizeAction;
-import org.elasticsearch.action.admin.indices.shrink.TransportResizeAction;
-import org.elasticsearch.action.admin.indices.stats.IndicesStatsAction;
-import org.elasticsearch.action.admin.indices.stats.TransportIndicesStatsAction;
+import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettings;
+import org.elasticsearch.action.admin.indices.shrink.TransportResize;
+import org.elasticsearch.action.admin.indices.stats.TransportIndicesStats;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.common.NamedRegistry;
@@ -80,28 +74,28 @@ import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
-import io.crate.blob.DeleteBlobAction;
-import io.crate.blob.PutChunkAction;
-import io.crate.blob.StartBlobAction;
-import io.crate.blob.TransportDeleteBlobAction;
-import io.crate.blob.TransportPutChunkAction;
-import io.crate.blob.TransportStartBlobAction;
+import io.crate.blob.TransportDeleteBlob;
+import io.crate.blob.TransportPutChunk;
+import io.crate.blob.TransportStartBlob;
 import io.crate.cluster.decommission.DecommissionNodeAction;
 import io.crate.cluster.decommission.TransportDecommissionNodeAction;
-import io.crate.execution.ddl.tables.RenameColumnAction;
+import io.crate.execution.ddl.TransportSwapRelations;
+import io.crate.execution.ddl.index.TransportSwapAndDropIndexName;
 import io.crate.execution.ddl.tables.TransportAddColumn;
 import io.crate.execution.ddl.tables.TransportAlterTable;
 import io.crate.execution.ddl.tables.TransportCloseTable;
-import io.crate.execution.ddl.tables.TransportCreateBlobTableAction;
-import io.crate.execution.ddl.tables.TransportCreateTableAction;
+import io.crate.execution.ddl.tables.TransportCreateBlobTable;
+import io.crate.execution.ddl.tables.TransportCreateTable;
 import io.crate.execution.ddl.tables.TransportDropColumn;
 import io.crate.execution.ddl.tables.TransportDropConstraint;
 import io.crate.execution.ddl.tables.TransportDropPartitionsAction;
-import io.crate.execution.ddl.tables.TransportDropTableAction;
+import io.crate.execution.ddl.tables.TransportDropTable;
 import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
 import io.crate.execution.ddl.tables.TransportOpenTable;
-import io.crate.execution.ddl.tables.TransportRenameColumnAction;
+import io.crate.execution.ddl.tables.TransportRenameColumn;
 import io.crate.execution.ddl.tables.TransportRenameTable;
+import io.crate.execution.ddl.views.TransportCreateView;
+import io.crate.execution.ddl.views.TransportDropView;
 import io.crate.execution.dml.delete.ShardDeleteAction;
 import io.crate.execution.dml.delete.TransportShardDeleteAction;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
@@ -120,6 +114,8 @@ import io.crate.execution.jobs.kill.TransportKillAllNodeAction;
 import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.jobs.transport.JobAction;
 import io.crate.execution.jobs.transport.TransportJobAction;
+import io.crate.expression.udf.TransportCreateUserDefinedFunction;
+import io.crate.expression.udf.TransportDropUserDefinedFunction;
 import io.crate.fdw.TransportAlterServer;
 import io.crate.fdw.TransportCreateForeignTable;
 import io.crate.fdw.TransportCreateServer;
@@ -134,6 +130,10 @@ import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.ReleasePublisherResourcesAction;
 import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
+import io.crate.replication.logical.action.TransportAlterPublication;
+import io.crate.replication.logical.action.TransportCreatePublication;
+import io.crate.replication.logical.action.TransportCreateSubscription;
+import io.crate.replication.logical.action.TransportDropPublication;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
 import io.crate.role.TransportAlterRole;
 import io.crate.role.TransportCreateRole;
@@ -172,9 +172,9 @@ public class ActionModule extends AbstractModule {
         ActionRegistry actions = new ActionRegistry();
 
         // Table actions
-        actions.register(TransportCreateTableAction.ACTION, TransportCreateTableAction.class);
-        actions.register(CreatePartitionsAction.INSTANCE, TransportCreatePartitionsAction.class);
-        actions.register(TransportDropTableAction.ACTION, TransportDropTableAction.class);
+        actions.register(TransportCreateTable.ACTION, TransportCreateTable.class);
+        actions.register(TransportCreatePartitions.ACTION, TransportCreatePartitions.class);
+        actions.register(TransportDropTable.ACTION, TransportDropTable.class);
         actions.register(TransportDropPartitionsAction.ACTION, TransportDropPartitionsAction.class);
         actions.register(TransportAlterTable.ACTION, TransportAlterTable.class);
         actions.register(TransportRenameTable.ACTION, TransportRenameTable.class);
@@ -182,17 +182,26 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportCloseTable.ACTION, TransportCloseTable.class);
         actions.register(TransportAddColumn.ACTION, TransportAddColumn.class);
         actions.register(TransportDropColumn.ACTION, TransportDropColumn.class);
-        actions.register(RenameColumnAction.INSTANCE, TransportRenameColumnAction.class);
+        actions.register(TransportRenameColumn.ACTION, TransportRenameColumn.class);
         actions.register(TransportDropConstraint.ACTION, TransportDropConstraint.class);
-        actions.register(ResizeAction.INSTANCE, TransportResizeAction.class);
-        actions.register(UpdateSettingsAction.INSTANCE, TransportUpdateSettingsAction.class);
-        actions.register(RefreshAction.INSTANCE, TransportRefreshAction.class);
+        actions.register(TransportResize.ACTION, TransportResize.class);
+        actions.register(TransportUpdateSettings.ACTION, TransportUpdateSettings.class);
+        actions.register(TransportRefresh.ACTION, TransportRefresh.class);
+        actions.register(TransportSwapRelations.ACTION, TransportSwapRelations.class);
+
+        // View actions
+        actions.register(TransportCreateView.ACTION, TransportCreateView.class);
+        actions.register(TransportDropView.ACTION, TransportDropView.class);
 
         // Blob table actions
-        actions.register(TransportCreateBlobTableAction.ACTION, TransportCreateBlobTableAction.class);
-        actions.register(PutChunkAction.INSTANCE, TransportPutChunkAction.class);
-        actions.register(StartBlobAction.INSTANCE, TransportStartBlobAction.class);
-        actions.register(DeleteBlobAction.INSTANCE, TransportDeleteBlobAction.class);
+        actions.register(TransportCreateBlobTable.ACTION, TransportCreateBlobTable.class);
+        actions.register(TransportPutChunk.ACTION, TransportPutChunk.class);
+        actions.register(TransportStartBlob.ACTION, TransportStartBlob.class);
+        actions.register(TransportDeleteBlob.ACTION, TransportDeleteBlob.class);
+
+        // UDF actions
+        actions.register(TransportCreateUserDefinedFunction.ACTION, TransportCreateUserDefinedFunction.class);
+        actions.register(TransportDropUserDefinedFunction.ACTION, TransportDropUserDefinedFunction.class);
 
         // Repository & Snapshot actions
         actions.register(PutRepositoryAction.INSTANCE, TransportPutRepositoryAction.class);
@@ -208,6 +217,10 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportAlterRole.ACTION, TransportAlterRole.class);
 
         // Logical replication actions
+        actions.register(TransportCreatePublication.ACTION, TransportCreatePublication.class);
+        actions.register(TransportAlterPublication.ACTION, TransportAlterPublication.class);
+        actions.register(TransportDropPublication.ACTION, TransportDropPublication.class);
+        actions.register(TransportCreateSubscription.ACTION, TransportCreateSubscription.class);
         actions.register(PublicationsStateAction.INSTANCE, PublicationsStateAction.TransportAction.class);
         actions.register(UpdateSubscriptionAction.INSTANCE, UpdateSubscriptionAction.TransportAction.class);
         actions.register(DropSubscriptionAction.INSTANCE, DropSubscriptionAction.TransportAction.class);
@@ -257,8 +270,9 @@ public class ActionModule extends AbstractModule {
         actions.register(ReplayChangesAction.INSTANCE, ReplayChangesAction.TransportAction.class);
 
         // Misc actions
-        actions.register(IndicesStatsAction.INSTANCE, TransportIndicesStatsAction.class);
-        actions.register(DeleteIndexAction.INSTANCE, TransportDeleteIndexAction.class);
+        actions.register(TransportIndicesStats.ACTION, TransportIndicesStats.class);
+        actions.register(TransportDeleteIndex.ACTION, TransportDeleteIndex.class);
+        actions.register(TransportSwapAndDropIndexName.ACTION, TransportSwapAndDropIndexName.class);
         actions.register(TransportGCDanglingArtifacts.ACTION, TransportGCDanglingArtifacts.class);
 
         return unmodifiableMap(actions.getRegistry());

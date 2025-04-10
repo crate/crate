@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -44,15 +43,14 @@ import org.junit.Test;
 import com.carrotsearch.randomizedtesting.ThreadFilter;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakFilters;
 
-import io.crate.blob.PutChunkAction;
 import io.crate.blob.PutChunkRequest;
-import io.crate.blob.StartBlobAction;
 import io.crate.blob.StartBlobRequest;
+import io.crate.blob.TransportPutChunk;
+import io.crate.blob.TransportStartBlob;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
-import io.crate.common.unit.TimeValue;
 import io.crate.test.utils.Blobs;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 0, numClientNodes = 0)
@@ -66,8 +64,6 @@ public class RecoveryTests extends BlobIntegrationTestBase {
             return (t.getName().contains("blob-uploader"));
         }
     }
-
-    private final TimeValue ACCEPTABLE_RELOCATION_TIME = new TimeValue(25, TimeUnit.MINUTES);
 
     // the time to sleep between chunk requests in upload
     private AtomicInteger timeBetweenChunks = new AtomicInteger();
@@ -90,7 +86,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
         logger.trace("Uploading {} digest {}", content, digestString);
         BytesArray bytes = new BytesArray(new byte[]{contentBytes[0]});
         if (content.length() == 1) {
-            FutureUtils.get(client.execute(StartBlobAction.INSTANCE,
+            FutureUtils.get(client.execute(TransportStartBlob.ACTION,
                 new StartBlobRequest(
                     resolveShardId(BlobIndex.fullIndexName("test"), digestString),
                     digest,
@@ -104,7 +100,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 bytes,
                 false
             );
-            FutureUtils.get(client.execute(StartBlobAction.INSTANCE, startBlobRequest));
+            FutureUtils.get(client.execute(TransportStartBlob.ACTION, startBlobRequest));
             for (int i = 1; i < contentBytes.length; i++) {
                 try {
                     Thread.sleep(timeBetweenChunks.get());
@@ -113,7 +109,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
                 }
                 bytes = new BytesArray(new byte[]{contentBytes[i]});
                 try {
-                    FutureUtils.get(client.execute(PutChunkAction.INSTANCE,
+                    FutureUtils.get(client.execute(TransportPutChunk.ACTION,
                         new PutChunkRequest(
                             resolveShardId(BlobIndex.fullIndexName("test"), digestString),
                             digest,

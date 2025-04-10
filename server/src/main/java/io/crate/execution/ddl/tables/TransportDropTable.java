@@ -21,76 +21,70 @@
 
 package io.crate.execution.ddl.tables;
 
+import java.util.List;
+
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.FulltextAnalyzerResolver;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
 
-public class TransportAddColumn extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
+public class TransportDropTable extends AbstractDDLTransportAction<DropTableRequest, AcknowledgedResponse> {
 
     public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
-        private static final String NAME = "internal:crate:sql/table/add_column";
+        private static final String NAME = "internal:crate:sql/table/drop";
 
         private Action() {
             super(NAME);
         }
     }
 
-    @VisibleForTesting
-    public static final AlterTableTask.AlterTableOperator<AddColumnRequest> ADD_COLUMN_OPERATOR =
-        (req, doctableInfo, metadataBuilder, nodeCtx, fulltextAnalyzerResolver) -> doctableInfo.addColumns(
-            nodeCtx,
-            fulltextAnalyzerResolver,
-            doctableInfo.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION) ?
-                metadataBuilder.columnOidSupplier() :
-                () -> Metadata.COLUMN_OID_UNASSIGNED,
-            req.references(),
-            req.pKeyIndices(),
-            req.checkConstraints());
-    private final NodeContext nodeContext;
-    private final FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final DropTableClusterStateTaskExecutor executor;
 
     @Inject
-    public TransportAddColumn(TransportService transportService,
+    public TransportDropTable(TransportService transportService,
                               ClusterService clusterService,
                               ThreadPool threadPool,
-                              NodeContext nodeContext,
-                              FulltextAnalyzerResolver fulltextAnalyzerResolver) {
+                              MetadataDeleteIndexService deleteIndexService,
+                              DDLClusterStateService ddlClusterStateService) {
         super(
             ACTION.name(),
             transportService,
             clusterService,
             threadPool,
-            AddColumnRequest::new,
+            DropTableRequest::new,
             AcknowledgedResponse::new,
             AcknowledgedResponse::new,
-            "add-column");
-        this.nodeContext = nodeContext;
-        this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+            "drop-table"
+        );
+        executor = new DropTableClusterStateTaskExecutor(deleteIndexService, ddlClusterStateService);
     }
 
     @Override
-    public ClusterStateTaskExecutor<AddColumnRequest> clusterStateTaskExecutor(AddColumnRequest request) {
-        return new AlterTableTask<>(nodeContext, request.relationName(), fulltextAnalyzerResolver, ADD_COLUMN_OPERATOR);
+    public ClusterStateTaskExecutor<DropTableRequest> clusterStateTaskExecutor(DropTableRequest request) {
+        return executor;
     }
 
     @Override
-    public ClusterBlockException checkBlock(AddColumnRequest request, ClusterState state) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
+    protected ClusterBlockException checkBlock(DropTableRequest request, ClusterState state) {
+        String[] indexNames = state.metadata().getIndices(
+            request.tableIdent(),
+            List.of(),
+            false,
+            imd -> imd.getIndex().getName()
+        ).toArray(String[]::new);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indexNames);
     }
 }

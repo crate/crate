@@ -49,13 +49,13 @@ import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
-public class TransportCreatePartitionsActionTest extends IntegTestCase {
+public class TransportCreatePartitionsTest extends IntegTestCase {
 
-    TransportCreatePartitionsAction action;
+    TransportCreatePartitions action;
 
     @Before
     public void prepare() {
-        action = cluster().getInstance(TransportCreatePartitionsAction.class, cluster().getMasterName());
+        action = cluster().getInstance(TransportCreatePartitions.class, cluster().getMasterName());
     }
 
     @Test
@@ -185,7 +185,7 @@ public class TransportCreatePartitionsActionTest extends IntegTestCase {
         // Imitation of "insert into tbl (a) values (1)".
         CreatePartitionsRequest request = new CreatePartitionsRequest(RelationName.fromIndexName(tableTemplateName), List.of(List.of("1")));
 
-        TransportCreatePartitionsAction actionSpy = spy(action);
+        TransportCreatePartitions actionSpy = spy(action);
         ClusterState newState = actionSpy.executeCreateIndices(artificialState, request);
         indexTemplateMetadata = newState.metadata().templates().get(tableTemplateName);
         // Value of the removed setting used to be "true"

@@ -28,8 +28,8 @@ import java.util.Arrays;
 import java.util.Map;
 import java.util.function.Function;
 
-import org.elasticsearch.action.admin.indices.refresh.RefreshAction;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefresh;
 import org.elasticsearch.action.support.IndicesOptions;
 
 import io.crate.analyze.AnalyzedRefreshTable;
@@ -91,7 +91,7 @@ public class RefreshTablePlan implements Plan {
         RefreshRequest request = new RefreshRequest(toRefresh.toArray(String[]::new));
         request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
-        dependencies.client().execute(RefreshAction.INSTANCE, request)
+        dependencies.client().execute(TransportRefresh.ACTION, request)
             .whenComplete(
                 new OneRowActionListener<>(
                     consumer,

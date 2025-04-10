@@ -19,57 +19,65 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.index;
+package io.crate.execution.ddl.tables;
 
-import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.cluster.SwapAndDropIndexExecutor;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.VisibleForTesting;
 
-/**
- * Renames a sourceIndex to targetIndex, and drops the former targetIndex - effectively overriding the target
- */
-@Singleton
-public class TransportSwapAndDropIndexNameAction extends AbstractDDLTransportAction<SwapAndDropIndexRequest, AcknowledgedResponse> {
+import io.crate.execution.ddl.AbstractDDLTransportAction;
+import io.crate.metadata.NodeContext;
 
-    private static final String ACTION_NAME = "internal:crate:sql/index/swap_and_drop_index";
+public class TransportRenameColumn extends AbstractDDLTransportAction<RenameColumnRequest, AcknowledgedResponse> {
 
-    private final SwapAndDropIndexExecutor executor;
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/table/rename_column";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
+    @VisibleForTesting
+    public static final AlterTableTask.AlterTableOperator<RenameColumnRequest> RENAME_COLUMN_OPERATOR =
+        (req, docTableInfo, _, _, _) -> docTableInfo.renameColumn(req.refToRename(), req.newName());
+    private final NodeContext nodeContext;
 
     @Inject
-    public TransportSwapAndDropIndexNameAction(TransportService transportService,
-                                               ClusterService clusterService,
-                                               ThreadPool threadPool,
-                                               AllocationService allocationService) {
-        super(ACTION_NAME,
+    public TransportRenameColumn(TransportService transportService,
+                                 ClusterService clusterService,
+                                 ThreadPool threadPool,
+                                 NodeContext nodeContext) {
+        super(
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,
-            SwapAndDropIndexRequest::new,
+            RenameColumnRequest::new,
             AcknowledgedResponse::new,
             AcknowledgedResponse::new,
-            "swap-and-drop-index");
-        executor = new SwapAndDropIndexExecutor(allocationService);
+            "rename-column");
+        this.nodeContext = nodeContext;
     }
 
     @Override
-    public ClusterStateTaskExecutor<SwapAndDropIndexRequest> clusterStateTaskExecutor(SwapAndDropIndexRequest request) {
-        return executor;
+    public ClusterStateTaskExecutor<RenameColumnRequest> clusterStateTaskExecutor(RenameColumnRequest request) {
+        return new AlterTableTask<>(nodeContext, request.relationName(), null, RENAME_COLUMN_OPERATOR);
     }
 
+
     @Override
-    protected ClusterBlockException checkBlock(SwapAndDropIndexRequest request, ClusterState state) {
-        return state.blocks().indicesBlockedException(
-            ClusterBlockLevel.METADATA_WRITE,
-            new String[] { request.source(), request.target() });
+    public ClusterBlockException checkBlock(RenameColumnRequest request, ClusterState state) {
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }

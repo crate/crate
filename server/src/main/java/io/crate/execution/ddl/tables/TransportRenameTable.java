@@ -39,7 +39,6 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -49,10 +48,9 @@ import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.RenameTableClusterStateExecutor;
 import io.crate.metadata.view.ViewsMetadata;
 
-@Singleton
 public class TransportRenameTable extends TransportMasterNodeAction<RenameTableRequest, AcknowledgedResponse> {
 
-    public static final TransportRenameTable.Action ACTION = new TransportRenameTable.Action();
+    public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
         private static final String NAME = "internal:crate:sql/table/rename";

@@ -19,55 +19,64 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.ddl.tables;
+package io.crate.execution.ddl.index;
 
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.NodeContext;
+import io.crate.metadata.cluster.SwapAndDropIndexExecutor;
 
-@Singleton
-public class TransportRenameColumnAction extends AbstractDDLTransportAction<RenameColumnRequest, AcknowledgedResponse> {
+/**
+ * Renames a sourceIndex to targetIndex, and drops the former targetIndex - effectively overriding the target
+ */
+public class TransportSwapAndDropIndexName extends AbstractDDLTransportAction<SwapAndDropIndexRequest, AcknowledgedResponse> {
 
-    @VisibleForTesting
-    public static final AlterTableTask.AlterTableOperator<RenameColumnRequest> RENAME_COLUMN_OPERATOR =
-        (req, docTableInfo, _, _, _) -> docTableInfo.renameColumn(req.refToRename(), req.newName());
-    private final NodeContext nodeContext;
+    public static final Action ACTION = new Action();
+    private final SwapAndDropIndexExecutor executor;
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "internal:crate:sql/index/swap_and_drop_index";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     @Inject
-    public TransportRenameColumnAction(TransportService transportService,
-                                       ClusterService clusterService,
-                                       ThreadPool threadPool,
-                                       NodeContext nodeContext) {
-        super(RenameColumnAction.NAME,
+    public TransportSwapAndDropIndexName(TransportService transportService,
+                                         ClusterService clusterService,
+                                         ThreadPool threadPool,
+                                         AllocationService allocationService) {
+        super(ACTION.name(),
             transportService,
             clusterService,
             threadPool,
-            RenameColumnRequest::new,
+            SwapAndDropIndexRequest::new,
             AcknowledgedResponse::new,
             AcknowledgedResponse::new,
-            "rename-column");
-        this.nodeContext = nodeContext;
+            "swap-and-drop-index");
+        executor = new SwapAndDropIndexExecutor(allocationService);
     }
 
     @Override
-    public ClusterStateTaskExecutor<RenameColumnRequest> clusterStateTaskExecutor(RenameColumnRequest request) {
-        return new AlterTableTask<>(nodeContext, request.relationName(), null, RENAME_COLUMN_OPERATOR);
+    public ClusterStateTaskExecutor<SwapAndDropIndexRequest> clusterStateTaskExecutor(SwapAndDropIndexRequest request) {
+        return executor;
     }
 
-
     @Override
-    public ClusterBlockException checkBlock(RenameColumnRequest request, ClusterState state) {
-        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
+    protected ClusterBlockException checkBlock(SwapAndDropIndexRequest request, ClusterState state) {
+        return state.blocks().indicesBlockedException(
+            ClusterBlockLevel.METADATA_WRITE,
+            new String[] { request.source(), request.target() });
     }
 }

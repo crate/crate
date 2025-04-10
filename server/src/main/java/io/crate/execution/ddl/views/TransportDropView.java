@@ -21,10 +21,11 @@
 
 package io.crate.execution.ddl.views;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateService;
-import io.crate.metadata.view.ViewsMetadata;
+import java.io.IOException;
+import java.util.List;
+
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
 import org.elasticsearch.cluster.ClusterState;
@@ -38,20 +39,31 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.List;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.cluster.DDLClusterStateService;
+import io.crate.metadata.view.ViewsMetadata;
 
-public final class TransportDropViewAction extends TransportMasterNodeAction<DropViewRequest, DropViewResponse> {
+public final class TransportDropView extends TransportMasterNodeAction<DropViewRequest, DropViewResponse> {
+
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<DropViewResponse> {
+        private static final String NAME = "internal:crate:sql/views/drop";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     private final DDLClusterStateService ddlClusterStateService;
 
     @Inject
-    public TransportDropViewAction(TransportService transportService,
-                                   ClusterService clusterService,
-                                   ThreadPool threadPool,
-                                   DDLClusterStateService ddlClusterStateService) {
+    public TransportDropView(TransportService transportService,
+                             ClusterService clusterService,
+                             ThreadPool threadPool,
+                             DDLClusterStateService ddlClusterStateService) {
         super(
-            "internal:crate:sql/views/drop",
+            ACTION.name(),
             transportService,
             clusterService,
             threadPool,
@@ -75,7 +87,7 @@ public final class TransportDropViewAction extends TransportMasterNodeAction<Dro
                                    ClusterState state,
                                    ActionListener<DropViewResponse> listener) {
         clusterService.submitStateUpdateTask("views/drop",
-            new AckedClusterStateUpdateTask<DropViewResponse>(Priority.HIGH, request, listener) {
+            new AckedClusterStateUpdateTask<>(Priority.HIGH, request, listener) {
 
                 private List<RelationName> missing;
 
