@@ -276,9 +276,9 @@ consumption for the particular query.
   cr> SET search_path TO DEFAULT;
   SET OK, 0 rows affected (... sec)
 
-.. _conf-session-fail-writes:
+.. _conf-session-insert-select-fail-fast:
 
-**allow_fail_on_partial_writes**
+**insert_select_fail_fast**
   | *Default:* ``false``
   | *Modifiable:* ``yes``
    This setting enables partial failures of ``INSERT FROM SELECT`` statements.

@@ -92,15 +92,15 @@ public class CoordinatorSessionSettings extends SessionSettings {
                                       Set<Class<? extends Rule<?>>> excludedOptimizerRules,
                                       boolean errorOnUnknownObjectKey,
                                       int memoryLimit,
-                                      boolean allowFailOnPartialWrites) {
-        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey, memoryLimit, allowFailOnPartialWrites);
+                                      boolean insertSelectFailFast) {
+        super(authenticatedUser.name(), searchPath, hashJoinsEnabled, errorOnUnknownObjectKey, memoryLimit, insertSelectFailFast);
         this.authenticatedUser = authenticatedUser;
         this.sessionUser = sessionUser;
         this.excludedOptimizerRules = new HashSet<>(excludedOptimizerRules);
         this.dateStyle = DEFAULT_DATE_STYLE;
         this.statementTimeout = TimeValue.ZERO;
         this.memoryLimit = memoryLimit;
-        this.allowFailOnPartialWrites = allowFailOnPartialWrites;
+        this.insertSelectFailFast = insertSelectFailFast;
     }
 
     /**
@@ -181,8 +181,8 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.memoryLimit = memoryLimit;
     }
 
-    public void allowFailOnPartialWrites(boolean allowFailOnPartialWrites) {
-        this.allowFailOnPartialWrites = allowFailOnPartialWrites;
+    public void insertSelectFailFast(boolean insertSelectFailFast) {
+        this.insertSelectFailFast = insertSelectFailFast;
     }
 
     public Map<String, Object> toMap() {
@@ -195,7 +195,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
         map.put(SessionSettingRegistry.APPLICATION_NAME_KEY, applicationName);
         map.put(Sessions.MEMORY_LIMIT_KEY, memoryLimit);
         map.put(Sessions.STATEMENT_TIMEOUT_KEY, statementTimeout.toString());
-        map.put(SessionSettingRegistry.ALLOW_FAIL_ON_PARTIAL_WRITES_KEY, allowFailOnPartialWrites);
+        map.put(SessionSettingRegistry.INSERT_SELECT_FAIL_FAST_KEY, insertSelectFailFast);
         map.put("disabled_optimizer_rules",
             excludedOptimizerRules
                 .stream()

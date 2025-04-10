@@ -2069,7 +2069,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void test_insert_from_select_fail_fast() throws Exception {
         execute("create table t (a int NOT NULL) clustered into 1 shards");
         try (var session = sqlExecutor.newSession()) {
-            session.sessionSettings().allowFailOnPartialWrites(true);
+            session.sessionSettings().insertSelectFailFast(true);
             assertSQLError(() -> execute("insert into t (a) select unnest([NULL, 1])", session))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -2097,7 +2097,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             """
         );
         try (var session = sqlExecutor.newSession()) {
-            session.sessionSettings().allowFailOnPartialWrites(true);
+            session.sessionSettings().insertSelectFailFast(true);
             // Insert more than BULK_SIZE_SETTING * initial_concurrency > 10000 * 5 > 50000
             // records to reliably verify that next batch is not executed.
             assertSQLError(() -> execute("insert into t select * from generate_series(1, 60000)", session))

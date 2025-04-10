@@ -104,7 +104,7 @@ public class ColumnIndexWriterProjector implements Projector {
         }
 
         Reference[] insertColumns = columnReferences.toArray(new Reference[columnReferences.size()]);
-        boolean continueOnError = !txnCtx.sessionSettings().allowFailOnPartialWrites();
+        boolean continueOnError = !txnCtx.sessionSettings().insertSelectFailFast();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),

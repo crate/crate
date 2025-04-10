@@ -54,7 +54,7 @@ public class SessionSettingRegistry {
     public static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
     public static final String APPLICATION_NAME_KEY = "application_name";
     public static final String DATE_STYLE_KEY = "datestyle";
-    public static final String ALLOW_FAIL_ON_PARTIAL_WRITES_KEY = "allow_fail_on_partial_writes";
+    public static final String INSERT_SELECT_FAIL_FAST_KEY = "insert_select_fail_fast";
 
     static final String MAX_INDEX_KEYS = "max_index_keys";
     static final String MAX_IDENTIFIER_LENGTH = "max_identifier_length";
@@ -123,12 +123,12 @@ public class SessionSettingRegistry {
     );
 
     static final SessionSetting<Boolean> ALLOW_FAIL_ON_PARTIAL_WRITES = new SessionSetting<>(
-        ALLOW_FAIL_ON_PARTIAL_WRITES_KEY,
+        INSERT_SELECT_FAIL_FAST_KEY,
         inputs -> DataTypes.BOOLEAN.implicitCast(inputs[0]),
-        CoordinatorSessionSettings::allowFailOnPartialWrites,
-        settings -> Boolean.toString(settings.allowFailOnPartialWrites()),
+        CoordinatorSessionSettings::insertSelectFailFast,
+        settings -> Boolean.toString(settings.insertSelectFailFast()),
         () -> "false",
-        "Allows partial failure of 'INSERT' and 'UPDATE' statements",
+        "Allows partial failure of 'INSERT FROM SELECT' statements",
         DataTypes.BOOLEAN
     );
 
