@@ -152,7 +152,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             .doesNotContainKey("dropped")
             .hasSize(4);
         IndexMetadata indexMetadata = clusterService.state().metadata().indices().valuesIt().next();
-        assertThat(indexMetadata.mapping()).isNull();;
+        assertThat(indexMetadata.mapping()).isNull();
         assertThat(reference.valueType()).isEqualTo(StringType.of(40));
     }
 

@@ -583,7 +583,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                         "RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-                .hasMessageContaining(String.format("[%s..partitioned.employees.] template not found",
+                .hasMessageContaining(String.format("Relation [%s.employees] not found in snapshot",
                                                     sqlExecutor.getCurrentSchema()));
     }
 
