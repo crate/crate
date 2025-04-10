@@ -281,8 +281,8 @@ consumption for the particular query.
 **allow_fail_on_partial_writes**
   | *Default:* ``false``
   | *Modifiable:* ``yes``
-   This setting enables partial failures of ``INSERT`` and ``UPDATE``
-   statements. If enabled, the first error encountered gets propagated and the
+   This setting enables partial failures of ``INSERT FROM SELECT`` statements.
+   If enabled, the first error encountered gets propagated and the
    operation is terminated. The number of already written records is not
    reported.
 

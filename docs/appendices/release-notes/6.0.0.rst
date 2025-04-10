@@ -191,7 +191,7 @@ Administration and Operations
   table only.
 
 - Added a :ref:`allow_fail_on_partial_writes <conf-session-fail-writes>`
-  session setting that allows partial failures of ``INSERT`` and ``UPDATE``
+  session setting that allows partial failures of ``INSERT FROM SELECT``
   statements.
 
 Client interfaces

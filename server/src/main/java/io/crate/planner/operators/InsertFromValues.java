@@ -250,16 +250,13 @@ public class InsertFromValues implements LogicalPlan {
 
         List<Symbol> returnValues = this.writerProjection.returnValues();
 
-        // If INSERT FROM VALUES inserts only 1 row, we throw an error regardless of insert_fail_fast setting value.
-        boolean continueOnError = !plannerContext.transactionContext().sessionSettings().allowFailOnPartialWrites() && rows.size() > 1;
-
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            continueOnError,
+            rows.size() > 1, // continueOnErrors
             onConflictColumns,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),
@@ -360,15 +357,13 @@ public class InsertFromValues implements LogicalPlan {
             writerProjection.partitionIdent(),
             partitionedByInputs);
 
-        var sessionSettings = plannerContext.transactionContext().sessionSettings();
-        boolean continueOnError = !sessionSettings.allowFailOnPartialWrites();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
             BULK_REQUEST_TIMEOUT_SETTING.get(dependencies.settings()),
             writerProjection.isIgnoreDuplicateKeys()
                 ? ShardUpsertRequest.DuplicateKeyAction.IGNORE
                 : ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            continueOnError,
+            true, // continueOnErrors
             updateColumnNames,
             writerProjection.allTargetColumns().toArray(new Reference[0]),
             null,

@@ -566,12 +566,11 @@ public class ProjectionToProjectorVisitor
             nodeCtx.tableStats().getStats(relationName),
             nodeCtx.schemas().getTableInfo(relationName)
         );
-        boolean continueOnError = !context.txnCtx.sessionSettings().allowFailOnPartialWrites();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             context.txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
             ShardUpsertRequest.DuplicateKeyAction.UPDATE_OR_FAIL,
-            continueOnError,
+            true,
             projection.assignmentsColumns(),
             null,
             projection.returnValues(),
