@@ -32,7 +32,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.function.Supplier;
@@ -101,8 +100,8 @@ public class ShardingUpsertExecutor
     private final String localNode;
     private final BlockBasedRamAccounting ramAccounting;
     private volatile boolean createPartitionsRequestOngoing = false;
-    private final BiFunction<UpsertResults, Throwable, Boolean> earlyTerminationCondition;
-    private final BiFunction<UpsertResults, Throwable, Throwable> earlyTerminationExceptionGenerator;
+    private final Predicate<UpsertResults> earlyTerminationCondition;
+    private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
 
     ShardingUpsertExecutor(ClusterService clusterService,
                            BiConsumer<String, IndexItem> constraintsChecker,
@@ -123,8 +122,8 @@ public class ShardingUpsertExecutor
                            int targetTableNumShards,
                            int targetTableNumReplicas,
                            UpsertResultContext upsertResultContext,
-                           BiFunction<UpsertResults, Throwable, Boolean> earlyTerminationCondition,
-                           BiFunction<UpsertResults, Throwable, Throwable> earlyTerminationExceptionGenerator) {
+                           Predicate<UpsertResults> earlyTerminationCondition,
+                           Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator) {
         this.localNode = clusterService.state().nodes().getLocalNodeId();
         this.nodeLimits = nodeJobsCounter;
         this.queryCircuitBreaker = queryCircuitBreaker;

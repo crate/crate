@@ -31,7 +31,6 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
-import java.util.function.BiFunction;
 import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -66,8 +65,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     private final BinaryOperator<R> combiner;
     private final Predicate<T> pauseConsumption;
     private final BiConsumer<R, Throwable> continueConsumptionOrFinish;
-    private final BiFunction<R, Throwable, Boolean> earlyTerminationCondition;
-    private final BiFunction<R, Throwable, Throwable> resultsToFailure;
+    private final Predicate<R> earlyTerminationCondition;
+    private final Function<R, Throwable> resultsToFailure;
     private final AtomicInteger inFlightExecutions = new AtomicInteger(0);
     private final CompletableFuture<R> resultFuture = new CompletableFuture<>();
     private final Semaphore semaphore = new Semaphore(1);
@@ -93,8 +92,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
                                              BinaryOperator<R> combiner,
                                              R identity,
                                              Predicate<T> pauseConsumption,
-                                             @Nullable BiFunction<R, Throwable, Boolean> earlyTerminationCondition,
-                                             @Nullable BiFunction<R, Throwable, Throwable> resultsToFailure,
+                                             @Nullable Predicate<R> earlyTerminationCondition,
+                                             @Nullable Function<R, Throwable> resultsToFailure,
                                              Function<T, Long> getDelayInMs) {
 
         this.jobId = jobId;
@@ -107,8 +106,8 @@ public class BatchIteratorBackpressureExecutor<T, R> {
         this.getDelayInMs = getDelayInMs;
         this.resultRef = new AtomicReference<>(identity);
         this.continueConsumptionOrFinish = this::continueConsumptionOrFinish;
-        this.earlyTerminationCondition = earlyTerminationCondition == null ? (_, _) -> false : earlyTerminationCondition;
-        this.resultsToFailure = resultsToFailure == null ? (_, _) -> JobKilledException.of(null) : resultsToFailure;
+        this.earlyTerminationCondition = earlyTerminationCondition == null ? (results) -> false : earlyTerminationCondition;
+        this.resultsToFailure = resultsToFailure == null ? (result) -> JobKilledException.of(null) : resultsToFailure;
     }
 
     public CompletableFuture<R> consumeIteratorAndExecute() {
@@ -117,16 +116,15 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     }
 
     private void continueConsumptionOrFinish(@Nullable R result, Throwable failure) {
-         if (result != null) {
-              if (earlyTerminationCondition.test(result)) {
-                  setResult(null, resultsToFailure.apply(result));
-            return;
-        }
-
         if (result != null) {
+            if (earlyTerminationCondition.test(result)) {
+                setResult(null, resultsToFailure.apply(result));
+                return;
+            }
             resultRef.accumulateAndGet(result, combiner);
         }
         if (failure != null) {
+            consumptionFinished = true;
             failureRef.set(failure);
         }
 
