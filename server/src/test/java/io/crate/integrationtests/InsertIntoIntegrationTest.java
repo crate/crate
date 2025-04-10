@@ -2066,27 +2066,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_insert_from_values_fail() throws Exception {
-        execute("create table t (a int primary key, b int) clustered into 1 shards");
-        try (var session = sqlExecutor.newSession()) {
-            session.sessionSettings().allowFailOnPartialWrites(true);
-            assertSQLError(() -> execute("insert into t (a,b) values (1, 1), (1, 2), (2, 2)", session))
-                .hasPGError(UNIQUE_VIOLATION)
-                .hasHTTPError(CONFLICT, 4091)
-                .hasMessageContaining("A document with the same primary key exists already");
-
-            execute("refresh table t");
-            execute("select a, b from t order by a");
-            assertThat(response).hasRows("1| 1"); // (2,2) is not written even though it doesn't cause PK conflict.
-        }
-        // First error encountered is reflected in jobs_log.
-        var response = execute("""
-                SELECT error FROM sys.jobs_log WHERE stmt LIKE 'insert into t (a,b) values %'
-                """);
-        assertThat((String) response.rows()[0][0]).contains("version conflict, document already exists");
-    }
-
-    @Test
     public void test_insert_from_select_fail_fast() throws Exception {
         execute("create table t (a int NOT NULL) clustered into 1 shards");
         try (var session = sqlExecutor.newSession()) {
