@@ -23,20 +23,12 @@ package org.elasticsearch.action.admin.indices.create;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.spy;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
 
 import java.util.ArrayList;
 import java.util.List;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,7 +37,6 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedSchema;
 
 @UseRandomizedSchema(random = false)
@@ -146,93 +137,5 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
     public void testEmpty() throws Exception {
         assertThatThrownBy(() -> CreatePartitionsRequest.of(List.of()))
             .hasMessage("Must create at least one partition");
-    }
-
-    @Test
-    @UseNewCluster
-    // Upgrade once logic can be affected by other tests as they all share the same action instance,
-    // use new cluster to aovid flakiness
-    public void test_creation_of_a_new_partition_upgrades_template_and_does_it_once() throws Exception {
-        execute("create table tbl (a int) " +
-            "partitioned by (a) " +
-            "clustered into 1 shards " +
-            "with (number_of_replicas=0)");
-
-        ensureYellow();
-
-        ClusterState clusterState = cluster().clusterService().state();
-        Metadata.Builder metadataBuilder = Metadata.builder(clusterState.metadata());
-
-        String tableTemplateName = PartitionName.templateName("doc", "tbl");
-        IndexTemplateMetadata indexTemplateMetadata = clusterState.metadata().templates().get(tableTemplateName);
-        assertThat(indexTemplateMetadata).isNotNull();
-
-
-        // Remove template and re-add with artificially injected setting that was removed in 5.8
-        metadataBuilder.removeTemplate(tableTemplateName);
-        IndexTemplateMetadata.Builder templateBuilder = IndexTemplateMetadata.builder(tableTemplateName)
-            .version(1)
-            .patterns(indexTemplateMetadata.patterns())
-            .putMapping(indexTemplateMetadata.mapping())
-            .settings(Settings.builder()
-                .put(indexTemplateMetadata.settings())
-                .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_7_5)
-                .put("index.warmer.enabled", "true")
-            );
-        metadataBuilder.put(templateBuilder);
-        ClusterState artificialState = new ClusterState.Builder(clusterState).metadata(metadataBuilder).build();
-
-        // Imitation of "insert into tbl (a) values (1)".
-        CreatePartitionsRequest request = new CreatePartitionsRequest(RelationName.fromIndexName(tableTemplateName), List.of(List.of("1")));
-
-        TransportCreatePartitions actionSpy = spy(action);
-        ClusterState newState = actionSpy.executeCreateIndices(artificialState, request);
-        indexTemplateMetadata = newState.metadata().templates().get(tableTemplateName);
-        // Value of the removed setting used to be "true"
-        assertThat(indexTemplateMetadata.settings().get("index.warmer.enabled", null)).isNull();
-        verify(actionSpy, times(1)).upgradeTemplates(any(), any());
-
-        // Each node upgrades templates only once when it's a master and creates partitions for the first time.
-        // We need a new request to avoid "partition already exists" short-cut logic.
-        request = new CreatePartitionsRequest(RelationName.fromIndexName(tableTemplateName), List.of(List.of("2")));
-        actionSpy.executeCreateIndices(newState, request);
-        // Without do-once logic would have been 2
-        verify(actionSpy, times(1)).upgradeTemplates(any(), any());
-    }
-
-    @Test
-    public void test_version_created_settings_for_new_partitions_from_old_template_do_not_follow_old_templates_version() throws Exception {
-        execute("create table tbl (a int) partitioned by (a) ");
-        ensureYellow();
-
-        ClusterState clusterState = cluster().clusterService().state();
-        Metadata.Builder metadataBuilder = Metadata.builder(clusterState.metadata());
-
-        String tableTemplateName = PartitionName.templateName("doc", "tbl");
-        IndexTemplateMetadata indexTemplateMetadata = clusterState.metadata().templates().get(tableTemplateName);
-        assertThat(indexTemplateMetadata).isNotNull();
-
-        // modify the template's version created to V_5_7_5
-        metadataBuilder.removeTemplate(tableTemplateName);
-        IndexTemplateMetadata.Builder templateBuilder = IndexTemplateMetadata.builder(tableTemplateName)
-            .version(1)
-            .patterns(indexTemplateMetadata.patterns())
-            .putMapping(indexTemplateMetadata.mapping())
-            .settings(Settings.builder()
-                .put(indexTemplateMetadata.settings())
-                .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_5_7_5)
-            );
-        metadataBuilder.put(templateBuilder);
-        ClusterState artificialState = new ClusterState.Builder(clusterState).metadata(metadataBuilder).build();
-
-        // Imitation of "insert into tbl (a) values (1)".
-        CreatePartitionsRequest request = new CreatePartitionsRequest(RelationName.fromIndexName(tableTemplateName), List.of(List.of("1")));
-
-        ClusterState newState = action.executeCreateIndices(artificialState, request);
-        assertThat(newState.metadata().indices().values().size()).isEqualTo(1);
-        IndexMetadata indexMetadata = newState.metadata().indices().values().iterator().next().value;
-        Version newPartitionVersion = indexMetadata.getSettings().getAsVersion(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), Version.V_EMPTY);
-        assertThat(newPartitionVersion).isEqualTo(clusterState.nodes().getSmallestNonClientNodeVersion());
-        assertThat(newPartitionVersion).isNotEqualTo(Version.V_5_7_5);
     }
 }

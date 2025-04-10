@@ -22,7 +22,6 @@
 package io.crate.metadata.doc;
 
 import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
-import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -48,10 +47,8 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -1107,29 +1104,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                     .settingsVersion(newSettingsVersion)
             );
         }
-        if (isPartitioned) {
-            String templateName = PartitionName.templateName(ident.schema(), ident.name());
-            IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-            if (indexTemplateMetadata == null) {
-                throw new UnsupportedOperationException("Cannot create template via DocTableInfo.writeTo");
-            }
-            Integer version = indexTemplateMetadata.version();
-            Settings settings = Settings.builder()
-                .put(indexTemplateMetadata.settings())
-                // Override only the settings that might have changed
-                .put(tableParameters.filter(s -> !indexTemplateMetadata.settings().hasValue(s)))
-                .build();
-            var template = new IndexTemplateMetadata.Builder(indexTemplateMetadata)
-                .putMapping(new CompressedXContent(mapping))
-                .settings(settings)
-                .version(version == null ? 1 : version + 1)
-                .build();
-            metadataBuilder.put(template);
-        }
-        return metadataBuilder.setTable(
-            versionCreated.before(DocTableInfo.COLUMN_OID_VERSION)
-                ? NO_OID_COLUMN_OID_SUPPLIER
-                : metadataBuilder.columnOidSupplier(),
+        metadataBuilder.setTable(
+            versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION) ?
+                metadataBuilder.columnOidSupplier() :
+                () -> Metadata.COLUMN_OID_UNASSIGNED,
             ident,
             allColumns,
             tableParameters,
@@ -1143,6 +1121,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             indexUUIDs,
             tableVersion
         );
+        return metadataBuilder;
     }
 
     private boolean addNewReferences(LongSupplier acquireOid,

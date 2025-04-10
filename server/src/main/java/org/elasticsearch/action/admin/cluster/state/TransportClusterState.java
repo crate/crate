@@ -50,7 +50,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class TransportClusterState extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {
@@ -217,10 +216,6 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
                             if (indexMetadata != null) {
                                 mdBuilder.put(indexMetadata, false);
                             }
-                        }
-                        if (!table.partitionedBy().isEmpty()) {
-                            String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-                            mdBuilder.put(currentState.metadata().templates().get(templateName));
                         }
                     }
                 }
