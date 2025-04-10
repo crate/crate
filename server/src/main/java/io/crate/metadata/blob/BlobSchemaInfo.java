@@ -26,6 +26,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Stream;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 
 import io.crate.blob.v2.BlobIndex;
@@ -54,7 +55,7 @@ public class BlobSchemaInfo implements SchemaInfo {
         try {
             return tableByName.computeIfAbsent(
                 name,
-                n -> blobTableInfoFactory.create(new RelationName(NAME, n), clusterService.state())
+                n -> blobTableInfoFactory.create(new RelationName(NAME, n), clusterService.state().metadata())
             );
         } catch (Exception e) {
             if (e instanceof ResourceUnknownException) {
@@ -92,5 +93,10 @@ public class BlobSchemaInfo implements SchemaInfo {
 
     @Override
     public void close() throws Exception {
+    }
+
+    @Override
+    public BlobTableInfo create(RelationName relationName, Metadata metadata) {
+        return blobTableInfoFactory.create(relationName, metadata);
     }
 }
