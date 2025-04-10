@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -19,38 +19,13 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.table;
+package io.crate.metadata;
 
-import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewInfo;
+import io.crate.metadata.table.TableInfo;
 
-public interface SchemaInfo extends AutoCloseable {
+public interface TableInfoFactory<T extends TableInfo> {
 
-    @Nullable
-    TableInfo getTableInfo(String name);
-
-    @Nullable
-    default ViewInfo getViewInfo(String name) {
-        return null;
-    }
-
-    String name();
-
-    /**
-     * Called when cluster state and so the table definitions changes.
-     */
-    void update(ClusterChangedEvent event);
-
-    Iterable<TableInfo> getTables();
-
-    Iterable<ViewInfo> getViews();
-
-    @Nullable
-    default TableInfo create(RelationName relationName, Metadata metadata) {
-        throw new UnsupportedOperationException("create() not supported on " + getClass().getName());
-    }
+    T create(RelationName ident, Metadata metadata);
 }

@@ -168,6 +168,11 @@ public class DocSchemaInfo implements SchemaInfo {
         }
     }
 
+    @Override
+    public DocTableInfo create(RelationName relationName, Metadata metadata) {
+        return docTableInfoFactory.create(relationName, metadata);
+    }
+
     private static long getTableVersion(Metadata metadata, RelationName name) {
         RelationMetadata relation = metadata.getRelation(name);
         if (relation instanceof RelationMetadata.Table) {

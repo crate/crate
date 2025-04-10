@@ -86,14 +86,16 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
 public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
@@ -128,7 +130,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     private IndexAnalyzers indexAnalyzers;
     private final Analyzer indexAnalyzer;
     private final NodeContext nodeContext;
-    private final DocTableInfoFactory tableFactory;
 
     public IndexService(
             NodeContext nodeContext,
@@ -148,7 +149,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
             List<IndexingOperationListener> indexingOperationListeners) throws IOException {
         super(indexSettings);
         this.nodeContext = nodeContext;
-        this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexSettings = indexSettings;
         this.circuitBreakerService = circuitBreakerService;
         this.analysisRegistry = analysisRegistry;
@@ -501,9 +501,23 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         if (IndexName.isDangling(indexName)) {
             return;
         }
-        var tableInfo = tableFactory.create(RelationName.fromIndexName(indexName), metadata);
-        var indexer = new TranslogIndexer(tableInfo, this.indexSettings.getIndexVersionCreated());
+        RelationName relationName = RelationName.fromIndexName(indexName);
+        SchemaInfo schemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(relationName.schema());
+        var tableInfo = schemaInfo.create(RelationName.fromIndexName(indexName), metadata);
+        TranslogIndexer indexer = getTranslogIndexer(tableInfo);
         this.getTranslogIndexer = () -> indexer;
+    }
+
+    private <T extends TableInfo> TranslogIndexer getTranslogIndexer(T tableInfo) {
+        TranslogIndexer indexer;
+        if (tableInfo instanceof DocTableInfo docTableInfo) {
+            indexer = new TranslogIndexer(docTableInfo, this.indexSettings.getIndexVersionCreated());
+        } else if (tableInfo instanceof BlobTableInfo blobTableInfo) {
+            indexer = new TranslogIndexer(blobTableInfo, this.indexSettings.getIndexVersionCreated());
+        } else {
+            throw new UnsupportedFeatureException("Unsupported table type: " + tableInfo.getClass().getName());
+        }
+        return indexer;
     }
 
     @VisibleForTesting
