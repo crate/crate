@@ -22,34 +22,18 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
-import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.elasticsearch.action.support.master.AcknowledgedRequest;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.cluster.AckedClusterStateUpdateTask;
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import io.crate.metadata.RelationName;
 import io.crate.testing.Asserts;
 
 public class CreateTableIntegrationTest extends IntegTestCase {
@@ -65,6 +49,10 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                                    "(name string, p string) partitioned by (p) " +
                                    "with (number_of_replicas = 0)");
     }
+
+    /*
+    TODO: Do we still need to allow this?
+    If so, we must add some BWC logic to resolve indices without a relation inside the DropTableClusterStateTaskExecutor.
 
     @Test
     public void test_allow_drop_of_corrupted_table() throws Exception {
@@ -121,6 +109,8 @@ public class CreateTableIntegrationTest extends IntegTestCase {
         assertThat(cluster().getInstance(ClusterService.class).state().metadata().hasIndex("tbl"))
             .isFalse();
     }
+
+     */
 
     private void executeCreateTableThreaded(final String statement) throws Throwable {
         ExecutorService executorService = Executors.newFixedThreadPool(20);

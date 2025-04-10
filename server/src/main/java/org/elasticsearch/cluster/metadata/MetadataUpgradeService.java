@@ -24,6 +24,7 @@ import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -40,7 +41,9 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -112,51 +115,11 @@ public class MetadataUpgradeService {
      */
     public Metadata addOrUpgradeRelationMetadata(Metadata metadata) {
         Metadata.Builder newMetadata = Metadata.builder(metadata);
-        for (IndexMetadata indexMetadata : metadata) {
-            String indexName = indexMetadata.getIndex().getName();
-            if (IndexName.isPartitioned(indexName) == false) {
-                RelationName relationName = IndexName.decode(indexName).toRelationName();
-                DocTableInfo docTable = tableFactory.create(relationName, metadata);
-                List<String> indexUUIDs = metadata.getIndices(
-                    relationName,
-                    List.of(),
-                    false,
-                    IndexMetadata::getIndexUUID
-                );
-
-                newMetadata.setTable(
-                    docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
-                        ? NO_OID_COLUMN_OID_SUPPLIER
-                        : newMetadata.columnOidSupplier(),
-                    relationName,
-                    docTable.allReferences(),
-                    // If RelationMetadata exist in the cluster state, make sure to override them with
-                    // the upgraded settings which currently takes place on IndexMetadata
-                    indexMetadata.getSettings(),
-                    docTable.clusteredBy(),
-                    docTable.columnPolicy(),
-                    docTable.pkConstraintName(),
-                    docTable.checkConstraints()
-                        .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
-                    docTable.primaryKey(),
-                    docTable.partitionedBy(),
-                    indexMetadata.getState(),
-                    indexUUIDs,
-                    docTable.tableVersion()
-                );
-            }
-        }
 
         for (ObjectObjectCursor<String, IndexTemplateMetadata> entry : metadata.templates()) {
             IndexTemplateMetadata indexTemplateMetadata = entry.value;
             RelationName relationName = IndexName.decode(indexTemplateMetadata.name()).toRelationName();
-            DocTableInfo docTable = tableFactory.create(relationName, metadata);
-            List<String> indexUUIDs = metadata.getIndices(
-                relationName,
-                List.of(),
-                false,
-                IndexMetadata::getIndexUUID
-            );
+            DocTableInfo docTable = tableFactory.create(indexTemplateMetadata, metadata);
             // versionCreated could be missing from the template settings and "calculated" afterwards
             // in DocTableInfo, so put it back to RelationMetadata#parameters
             Settings settings = Settings.builder()
@@ -180,10 +143,57 @@ public class MetadataUpgradeService {
                 docTable.primaryKey(),
                 docTable.partitionedBy(),
                 docTable.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
-                indexUUIDs,
-                docTable.tableVersion()
+                List.of(),
+                docTable.tableVersion() + 1
             );
+            // Remove the template, it's not needed anymore
+            newMetadata.removeTemplate(indexTemplateMetadata.name());
         }
+
+        for (IndexMetadata indexMetadata : metadata) {
+            DocTableInfo docTable = tableFactory.create(indexMetadata);
+            String indexName = indexMetadata.getIndex().getName();
+            IndexParts indexParts = IndexName.decode(indexName);
+            RelationName relationName = indexParts.toRelationName();
+            RelationMetadata relation = newMetadata.getRelation(relationName);
+            LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
+                ? NO_OID_COLUMN_OID_SUPPLIER
+                : newMetadata.columnOidSupplier();
+            if (relation == null) {
+                newMetadata.setTable(
+                    columnOidSupplier,
+                    relationName,
+                    docTable.allReferences(),
+                    // If RelationMetadata exist in the cluster state, make sure to override them with
+                    // the upgraded settings which currently takes place on IndexMetadata
+                    indexMetadata.getSettings(),
+                    docTable.clusteredBy(),
+                    docTable.columnPolicy(),
+                    docTable.pkConstraintName(),
+                    docTable.checkConstraints()
+                        .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
+                    docTable.primaryKey(),
+                    docTable.partitionedBy(),
+                    indexMetadata.getState(),
+                    List.of(indexMetadata.getIndexUUID()),
+                    docTable.tableVersion() + 1
+                );
+            } else if (relation instanceof RelationMetadata.Table table) {
+                if (table.indexUUIDs().contains(indexMetadata.getIndexUUID())) {
+                    // already added
+                    continue;
+                }
+                if (indexParts.isPartitioned()) {
+                    indexMetadata = IndexMetadata.builder(indexMetadata)
+                        .partitionValues(PartitionName.decodeIdent(indexParts.partitionIdent()))
+                        .build();
+                    newMetadata.put(indexMetadata, false);
+                }
+                newMetadata.addIndexUUIDs(table, columnOidSupplier, List.of(indexMetadata.getIndexUUID()));
+            }
+
+        }
+
         return newMetadata.build();
     }
 
