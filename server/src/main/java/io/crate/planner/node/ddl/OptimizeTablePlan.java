@@ -158,7 +158,7 @@ public class OptimizeTablePlan implements Plan {
             if (tableSymbol.partitionProperties().isEmpty()) {
                 toOptimize.add(new PartitionName(tableInfo.ident(), List.of()));
             } else {
-                assert tableInfo instanceof DocTableInfo;
+                assert tableInfo instanceof DocTableInfo : "Only DocTableInfo cases can have partition properties";
                 DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
                 var partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)), metadata);
                 toOptimize.add(partitionName);
