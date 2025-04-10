@@ -163,8 +163,10 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             currentState = updateSettings(currentState, settings, partitions);
         }
 
-        // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
-        new DocTableInfoFactory(nodeContext).create(request.tableIdent(), currentState.metadata());
+        // ensure the new table can still be parsed into a Doc|BlobTableInfo to avoid breaking the table.
+        RelationName relationName = request.tableIdent();
+        SchemaInfo schemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(relationName.schema());
+        schemaInfo.create(relationName, currentState.metadata());
 
         return currentState;
     }

@@ -789,8 +789,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        public Builder setBlobTable(RelationName name, String indexUUID) {
-            setRelation(new RelationMetadata.BlobTable(name, indexUUID));
+        public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state) {
+            setRelation(new RelationMetadata.BlobTable(name, indexUUID, settings, state));
             return this;
         }
 

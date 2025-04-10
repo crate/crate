@@ -24,7 +24,6 @@ package io.crate.metadata.blob;
 import java.nio.file.Path;
 
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -40,6 +39,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.TableInfoFactory;
 import io.crate.metadata.settings.NumberOfReplicas;
 
 /**
@@ -48,7 +48,7 @@ import io.crate.metadata.settings.NumberOfReplicas;
  * The reason there is no shared interface with generics is that guice cannot bind different implementations based
  * on the generic
  */
-public class BlobTableInfoFactory {
+public class BlobTableInfoFactory implements TableInfoFactory<BlobTableInfo> {
 
     private final Path[] dataFiles;
     private final Path globalBlobPath;
@@ -71,20 +71,21 @@ public class BlobTableInfoFactory {
         return metadata.index(index);
     }
 
-    public BlobTableInfo create(RelationName ident, ClusterState clusterState) {
+    @Override
+    public BlobTableInfo create(RelationName ident, Metadata metadata) {
 
         // Blob tables can be read from pre-6.0 state, try to resolve it in the old way
         // TODO: Remove BWC code on a version that won't read persisted state from <6.0.0
-        IndexMetadata indexMetadata = resolveIndexMetadata(ident.name(), clusterState.metadata());
+        IndexMetadata indexMetadata = resolveIndexMetadata(ident.name(), metadata);
 
         if (indexMetadata == null) {
             // Read blob table persisted in version 6.0+
-            RelationMetadata.BlobTable blobTable = clusterState.metadata().getRelation(ident);
+            RelationMetadata.BlobTable blobTable = metadata.getRelation(ident);
             if (blobTable == null) {
 
                 throw new RelationUnknown(ident);
             }
-            indexMetadata = clusterState.metadata().indexByUUID(blobTable.indexUUID());
+            indexMetadata = metadata.indexByUUID(blobTable.indexUUID());
             if (indexMetadata == null) {
                 throw new RelationUnknown(ident);
             }
