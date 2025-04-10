@@ -123,9 +123,10 @@ public class BatchIteratorBackpressureExecutor<T, R> {
             }
             resultRef.accumulateAndGet(result, combiner);
         }
+
         if (failure != null) {
-            consumptionFinished = true;
-            failureRef.set(failure);
+            setResult(null, failure);
+            return;
         }
 
         int inFlight = inFlightExecutions.decrementAndGet();
