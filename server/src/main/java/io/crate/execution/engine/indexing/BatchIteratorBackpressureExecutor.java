@@ -117,10 +117,9 @@ public class BatchIteratorBackpressureExecutor<T, R> {
     }
 
     private void continueConsumptionOrFinish(@Nullable R result, Throwable failure) {
-        if (failure != null) {
-            consumptionFinished = true;
-            // We night have inFlight > 0, so set the result and short circuit.
-            setResult(null, failure);
+         if (result != null) {
+              if (earlyTerminationCondition.test(result)) {
+                  setResult(null, resultsToFailure.apply(result));
             return;
         }
 
