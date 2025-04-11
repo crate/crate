@@ -30,6 +30,7 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_CLOSED_BLOC
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
+import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 import static org.elasticsearch.cluster.routing.ShardRoutingState.STARTED;
 import static org.elasticsearch.env.Environment.PATH_HOME_SETTING;
@@ -752,20 +753,7 @@ public class SQLExecutor {
         // skip mapping generation if using RelationMetadata
         // This is a bit different than production code but is done to avoids issues with duplicate oid generation
         // (which would happen once here, and once again further done via mdBuilder.setTable)
-        Map<String, Object> mapping = versionCreated.before(Version.V_6_0_0)
-            ? mapping = TestingHelpers.toMapping(columnOidSupplier, boundCreateTable)
-            : (partitioned ? Map.of() : null);
-        AliasMetadata alias = new AliasMetadata(boundCreateTable.tableName().indexNameOrAlias());
-        if (partitioned) {
-            XContentBuilder mappingBuilder =
-                JsonXContent.builder().map(Map.of(Constants.DEFAULT_MAPPING_TYPE, mapping));
-            IndexTemplateMetadata.Builder template = IndexTemplateMetadata.builder(boundCreateTable.templateName())
-                .patterns(singletonList(boundCreateTable.templatePrefix()))
-                .settings(buildSettings(false, combinedSettings, smallestVersion))
-                .putMapping(new CompressedXContent(BytesReference.bytes(mappingBuilder)))
-                .putAlias(alias);
-            mdBuilder.put(template);
-        }
+        Map<String, Object> mapping = Map.of();
         List<String> indexUUIDs = new ArrayList<>();
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(prevState.blocks());
@@ -778,7 +766,6 @@ public class SQLExecutor {
             );
             if (partitioned) {
                 imdBuilder.partitionValues(PartitionName.fromIndexOrTemplate(partition).values());
-                imdBuilder.putAlias(alias);
             }
             IndexMetadata indexMetadata = imdBuilder.build();
             mdBuilder.put(indexMetadata, true);
@@ -786,26 +773,26 @@ public class SQLExecutor {
             indexUUIDs.add(indexMetadata.getIndexUUID());
             blocksBuilder.addBlocks(indexMetadata);
         }
-        if (versionCreated.onOrAfter(Version.V_6_0_0)) {
-            RelationMetadata relation = prevState.metadata().getRelation(boundCreateTable.tableName());
-            if (partitioned && relation instanceof RelationMetadata.Table table) {
-                indexUUIDs = Lists.concatUnique(table.indexUUIDs(), indexUUIDs);
-            }
-            mdBuilder.setTable(
-                columnOidSupplier,
-                boundCreateTable.tableName(),
-                List.copyOf(boundCreateTable.columns().values()),
-                combinedSettings,
-                boundCreateTable.routingColumn(),
-                TableParameters.COLUMN_POLICY.get(boundCreateTable.settings()),
-                boundCreateTable.pkConstraintName(),
-                boundCreateTable.getCheckConstraints(),
-                Lists.map(boundCreateTable.primaryKeys(), Reference::column),
-                Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
-                State.OPEN,
-                indexUUIDs
-            );
+        RelationMetadata relation = prevState.metadata().getRelation(boundCreateTable.tableName());
+        if (partitioned && relation instanceof RelationMetadata.Table table) {
+            indexUUIDs = Lists.concatUnique(table.indexUUIDs(), indexUUIDs);
         }
+        mdBuilder.setTable(
+            versionCreated.before(DocTableInfo.COLUMN_OID_VERSION)
+                ? NO_OID_COLUMN_OID_SUPPLIER
+                : columnOidSupplier,
+            boundCreateTable.tableName(),
+            List.copyOf(boundCreateTable.columns().values()),
+            combinedSettings,
+            boundCreateTable.routingColumn(),
+            TableParameters.COLUMN_POLICY.get(boundCreateTable.settings()),
+            boundCreateTable.pkConstraintName(),
+            boundCreateTable.getCheckConstraints(),
+            Lists.map(boundCreateTable.primaryKeys(), Reference::column),
+            Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
+            State.OPEN,
+            indexUUIDs
+        );
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(mdBuilder.build())
             .routingTable(routingBuilder.build())
@@ -968,7 +955,7 @@ public class SQLExecutor {
         ).build();
 
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata())
-            .setBlobTable(relationName, indexMetadata.getIndexUUID())
+            .setBlobTable(relationName, indexMetadata.getIndexUUID(), settings, State.OPEN)
             .put(indexMetadata, true);
         ClusterState state = ClusterState.builder(prevState)
             .metadata(mdBuilder)

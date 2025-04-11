@@ -227,26 +227,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         });
     }
 
-    public CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData,
-                                                                     SnapshotId snapshotId,
-                                                                     IndexId index) {
-        assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        RelationName relationName = IndexName.decode(index.getName()).toRelationName();
-        return getRemoteClusterState(relationName).thenApply(response -> {
-            ClusterState remoteClusterState = response.getState();
-            var indexMetadata = remoteClusterState.metadata().index(index.getName());
-            // Add replication specific settings, this setting will trigger a custom engine, see {@link SQLPlugin#getEngineFactory}
-            var builder = Settings.builder().put(indexMetadata.getSettings());
-            builder.put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
-            // Store publishers original index UUID to be able to resolve the original index later on
-            builder.put(PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
-
-            var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
-            indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a));
-            return indexMdBuilder.build();
-        });
-    }
-
     @Override
     public CompletableFuture<RepositoryData> getRepositoryData() {
         return getPublicationsState()

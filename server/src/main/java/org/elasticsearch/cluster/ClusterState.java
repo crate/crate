@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigE
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingNodes;
@@ -236,6 +237,34 @@ public class ClusterState implements Diffable<ClusterState> {
                 sb.append(TAB).append(TAB).append(shard).append(": ");
                 sb.append("p_term [").append(indexMetadata.primaryTerm(shard)).append("], ");
                 sb.append("isa_ids ").append(indexMetadata.inSyncAllocationIds(shard)).append("\n");
+            }
+        }
+        if (metadata().schemas().isEmpty() == false) {
+            sb.append("metadata table relations:\n");
+            for (RelationMetadata.Table table : metadata.relations(RelationMetadata.Table.class)) {
+                sb.append(TAB).append(table.name()).append("\n");
+                boolean partitioned = !table.partitionedBy().isEmpty();
+                if (partitioned) {
+                    sb.append(TAB).append(TAB).append("partitioned by: ").append(table.partitionedBy()).append("\n");
+                }
+                sb.append(TAB).append(TAB).append("indices:\n");
+                for (String indexUUID : table.indexUUIDs()) {
+                    IndexMetadata indexMetadata = metadata.indexByUUID(indexUUID);
+                    assert indexMetadata != null : "indexUUID " + indexUUID + " not found in metadata";
+                    sb.append(TAB).append(TAB).append(TAB).append(indexMetadata.getIndex());
+                    if (partitioned) {
+                        sb.append("/").append(indexMetadata.partitionValues());
+                    }
+                    sb.append("\n");
+                }
+                if (table.indexUUIDs().isEmpty()) {
+                    sb.append("\n");
+                }
+            }
+            sb.append("metadata blob table relations:\n");
+            for (RelationMetadata.BlobTable blobTable : metadata.relations(RelationMetadata.BlobTable.class)) {
+                sb.append(TAB).append(blobTable.name()).append("\n");
+                sb.append(TAB).append(TAB).append("indexUUID: ").append(blobTable.indexUUID()).append("\n");
             }
         }
         if (metadata.customs().isEmpty() == false) {

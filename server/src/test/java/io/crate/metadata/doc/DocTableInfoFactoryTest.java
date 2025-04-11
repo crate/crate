@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
+import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
@@ -37,8 +38,11 @@ import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.RelationUnknown;
@@ -50,6 +54,7 @@ import io.crate.metadata.RelationName;
 public class DocTableInfoFactoryTest extends ESTestCase {
 
     private NodeContext nodeCtx = createNodeContext();
+    private MetadataUpgradeService metadataUpgradeService;
 
     private String randomSchema() {
         if (randomBoolean()) {
@@ -57,6 +62,15 @@ public class DocTableInfoFactoryTest extends ESTestCase {
         } else {
             return randomAsciiLettersOfLength(3);
         }
+    }
+
+    @Before
+    public void setUpUpgradeService() throws Exception {
+        metadataUpgradeService = new MetadataUpgradeService(
+            nodeCtx,
+            new IndexScopedSettings(Settings.EMPTY, Set.of()),
+            null
+        );
     }
 
     @Test
@@ -136,10 +150,11 @@ public class DocTableInfoFactoryTest extends ESTestCase {
                 .put(indexMetadataBuilder)
                 .put(template)
                 .build();
+        metadata = metadataUpgradeService.addOrUpgradeRelationMetadata(metadata);
 
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
         DocTableInfo docTableInfo = docTableInfoFactory.create(tbl, metadata);
-        assertThat(docTableInfo.versionCreated()).isEqualTo(Version.V_5_9_6);
+        assertThat(docTableInfo.versionCreated()).isEqualTo(Version.V_5_7_5);
     }
 
     @Test
@@ -173,6 +188,8 @@ public class DocTableInfoFactoryTest extends ESTestCase {
         Metadata metadata = Metadata.builder()
                 .put(template)
                 .build();
+        metadata = metadataUpgradeService.addOrUpgradeRelationMetadata(metadata);
+
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
         DocTableInfo docTableInfo = docTableInfoFactory.create(tbl, metadata);
         assertThat(docTableInfo.versionCreated()).isEqualTo(Version.V_5_4_0);

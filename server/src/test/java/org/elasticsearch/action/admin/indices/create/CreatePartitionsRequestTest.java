@@ -28,6 +28,7 @@ import java.util.List;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 
@@ -36,12 +37,13 @@ public class CreatePartitionsRequestTest {
     @Test
     public void testSerialization() throws Exception {
         RelationName tbl = new RelationName("doc", "tbl");
-        CreatePartitionsRequest request = new CreatePartitionsRequest(tbl, List.of(List.of("1"), List.of("2")));
+        List<PartitionName> partitionNames = List.of(new PartitionName(tbl, List.of("1")), new PartitionName(tbl, List.of("2")));
+        CreatePartitionsRequest request = new CreatePartitionsRequest(tbl, partitionNames);
         BytesStreamOutput out = new BytesStreamOutput();
         request.writeTo(out);
         CreatePartitionsRequest requestDeserialized = new CreatePartitionsRequest(out.bytes().streamInput());
 
-        assertThat(requestDeserialized.partitionValuesList()).containsExactly(List.of("1"), List.of("2"));
+        assertThat(requestDeserialized.partitionNames()).isEqualTo(partitionNames);
         assertThat(requestDeserialized.relationName()).isEqualTo(tbl);
     }
 }

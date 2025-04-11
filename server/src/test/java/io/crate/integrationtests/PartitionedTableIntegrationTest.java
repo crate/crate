@@ -31,7 +31,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -1634,18 +1633,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(response.rows()[0][0]).isEqualTo(1);
         execute("select distinct table_name, partition_ident from sys.shards where table_name = 't'");
         assertThat(printedTable(response.rows())).isEqualTo("t| 04132\n");
-    }
-
-
-    @Test
-    public void testCreateTableWithIllegalCustomSchemaCheckedByES() {
-        Asserts.assertSQLError(() -> execute("create table \"AA A\".t (" +
-            "   name string," +
-            "   d timestamp with time zone" +
-            ") partitioned by (d) with (number_of_replicas=0)"))
-            .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(BAD_REQUEST, 4002)
-            .hasMessageContaining("Relation name \"AA A.t\" is invalid.");
     }
 
     @Test
