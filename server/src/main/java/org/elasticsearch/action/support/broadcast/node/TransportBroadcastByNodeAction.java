@@ -31,18 +31,15 @@ import java.util.concurrent.atomic.AtomicReferenceArray;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
-import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.action.support.broadcast.BroadcastShardOperationFailedException;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -72,7 +69,7 @@ import org.elasticsearch.transport.TransportService;
  * @param <Response>             the response to the client request
  * @param <ShardOperationResult> per-shard operation results
  */
-public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRequest<Request>,
+public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRequest,
         Response extends BroadcastResponse,
         ShardOperationResult extends Writeable> extends HandledTransportAction<Request, Response> {
 
@@ -233,7 +230,8 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
                 throw globalBlockException;
             }
 
-            String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(clusterState, request);
+            String[] concreteIndices
+                = clusterState.metadata().getIndices(request.partitions(), false, im -> im.getIndex().getName()).toArray(String[]::new);
             ClusterBlockException requestBlockException = checkRequestBlock(clusterState, request, concreteIndices);
             if (requestBlockException != null) {
                 throw requestBlockException;
@@ -456,7 +454,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         }
     }
 
-    public class NodeRequest extends TransportRequest implements IndicesRequest {
+    public class NodeRequest extends TransportRequest {
 
         private final String nodeId;
         private final List<ShardRouting> shards;
@@ -475,16 +473,6 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
 
         public String getNodeId() {
             return nodeId;
-        }
-
-        @Override
-        public String[] indices() {
-            return indicesLevelRequest.indices();
-        }
-
-        @Override
-        public IndicesOptions indicesOptions() {
-            return indicesLevelRequest.indicesOptions();
         }
 
         public NodeRequest(StreamInput in) throws IOException {

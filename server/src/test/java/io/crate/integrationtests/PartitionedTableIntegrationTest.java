@@ -1402,7 +1402,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             "partitioned by (date) with (refresh_interval=0)");
 
         execute("refresh table parted");
-        assertThat(response.rowCount()).isIn(0L, -1L);
+        assertThat(response.rowCount()).isIn(1L);
 
         execute("insert into parted (id, name, date) values " +
                 "(1, 'Trillian', '1970-01-01'), " +
@@ -1417,7 +1417,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat((Long) response.rows()[0][0]).isLessThanOrEqualTo(2L);
 
         execute("refresh table parted");
-        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         // assert that all is available after refresh
         execute("select count(*) from parted");
@@ -1457,7 +1457,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
 
         ensureYellow();
         execute("refresh table parted");
-        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rowCount()).isEqualTo(1L);
 
         // assert that after refresh all columns are available
         execute("select * from parted");

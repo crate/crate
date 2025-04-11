@@ -20,56 +20,102 @@
 package org.elasticsearch.action.support.broadcast;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
 
-import org.elasticsearch.action.IndicesRequest;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-public class BroadcastRequest<Request extends BroadcastRequest<Request>> extends TransportRequest implements IndicesRequest {
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
-    protected String[] indices;
-    private IndicesOptions indicesOptions = IndicesOptions.STRICT_EXPAND_OPEN_FORBID_CLOSED;
+public class BroadcastRequest extends TransportRequest {
 
-    public BroadcastRequest() {
+    protected final List<PartitionName> partitions;
+
+    protected BroadcastRequest(List<PartitionName> partitions) {
+        this.partitions = partitions;
     }
 
-    protected BroadcastRequest(String[] indices) {
-        this.indices = indices;
+    protected BroadcastRequest(PartitionName partition) {
+        this(List.of(partition));
     }
 
-    protected BroadcastRequest(String[] indices, IndicesOptions indicesOptions) {
-        this.indices = indices;
-        this.indicesOptions = indicesOptions;
+    public BroadcastRequest(StreamInput in) throws IOException {
+        super(in);
+        this.partitions = readPartitions(in);
     }
 
-    @Override
-    public String[] indices() {
-        return indices;
-    }
-
-    @Override
-    public IndicesOptions indicesOptions() {
-        return indicesOptions;
-    }
-
-    @SuppressWarnings("unchecked")
-    public final Request indicesOptions(IndicesOptions indicesOptions) {
-        this.indicesOptions = indicesOptions;
-        return (Request) this;
+    public final List<PartitionName> partitions() {
+        return partitions;
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeStringArrayNullable(indices);
-        indicesOptions.writeIndicesOptions(out);
+        writePartitions(out, partitions);
     }
 
-    public BroadcastRequest(StreamInput in) throws IOException {
-        super(in);
-        indices = in.readStringArray();
-        indicesOptions = IndicesOptions.readIndicesOptions(in);
+    private static final Version STREAMED_RELATIONSET_VERSION = Version.V_6_0_0;
+
+    private static List<PartitionName> readPartitions(StreamInput in) throws IOException {
+        if (in.getVersion().onOrAfter(STREAMED_RELATIONSET_VERSION)) {
+            return in.readList(PartitionName::new);
+        } else {
+            return readFromPre60(in);
+        }
+    }
+
+    private static List<PartitionName> readFromPre60(StreamInput in) throws IOException {
+        List<PartitionName> relations = new ArrayList<>();
+        String[] indexes = in.readStringArray();
+        IndicesOptions.readIndicesOptions(in);
+        RelationName table = null;
+        List<String> partitionValues = new ArrayList<>();
+        for (String index : indexes) {
+            IndexParts indexParts = IndexName.decode(index);
+            if (table == null) {
+                table = indexParts.toRelationName();
+            } else {
+                if (table.equals(indexParts.toRelationName()) == false) {
+                    relations.add(new PartitionName(table, partitionValues));
+                    table = null;
+                    partitionValues = new ArrayList<>();
+                }
+            }
+            if (indexParts.isPartitioned()) {
+                partitionValues.add(indexParts.partitionIdent());
+            }
+        }
+        relations.add(new PartitionName(table, partitionValues));
+        return relations;
+    }
+
+    private static void writePartitions(StreamOutput out, List<PartitionName> relations) throws IOException {
+        if (out.getVersion().onOrAfter(STREAMED_RELATIONSET_VERSION)) {
+            out.writeCollection(relations);
+        } else {
+            out.writeStringCollection(bwcIndicesNames(relations));
+            IndicesOptions.LENIENT_EXPAND_OPEN.writeIndicesOptions(out);
+        }
+    }
+
+    private static List<String> bwcIndicesNames(List<PartitionName> relations) {
+        List<String> output = new ArrayList<>();
+        for (PartitionName r : relations) {
+            if (r.values().isEmpty()) {
+                output.add(r.relationName().name());
+            } else {
+                for (String v : r.values()) {
+                    output.add(IndexName.encode(r.relationName(), v));
+                }
+            }
+        }
+        return output;
     }
 }

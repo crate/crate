@@ -22,14 +22,17 @@
 package org.elasticsearch.action.admin.indices.retention;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 
-public class SyncRetentionLeasesRequest extends BroadcastRequest<SyncRetentionLeasesRequest> {
+import io.crate.metadata.PartitionName;
 
-    public SyncRetentionLeasesRequest(String... indices) {
-        super(indices);
+public class SyncRetentionLeasesRequest extends BroadcastRequest {
+
+    public SyncRetentionLeasesRequest(List<PartitionName> partitions) {
+        super(partitions);
     }
 
     public SyncRetentionLeasesRequest(StreamInput in) throws IOException {

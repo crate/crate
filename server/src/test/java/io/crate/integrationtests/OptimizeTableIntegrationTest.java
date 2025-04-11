@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -131,7 +130,7 @@ public class OptimizeTableIntegrationTest extends SQLHttpIntegrationTest {
         execute("delete from parted where id in (1, 4)");
         execute("refresh table parted");
         execute("optimize table parted");
-        assertThat(response.rowCount()).isEqualTo(2L);
+        assertThat(response.rowCount()).isEqualTo(1L);
         assertThat(response.rows().length).isEqualTo(0);
 
         // assert that all data is available after optimize
