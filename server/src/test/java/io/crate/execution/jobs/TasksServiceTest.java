@@ -31,13 +31,18 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
+import org.elasticsearch.action.NoSuchNodeException;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.transport.Transport.Connection;
+import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
+import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.role.Role;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -49,7 +54,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
     @Before
     public void prepare() {
         JobsLogs jobsLogs = new JobsLogs(() -> true);
-        tasksService = new TasksService(clusterService, jobsLogs);
+        tasksService = new TasksService(clusterService, Mockito.mock(TransportService.class), jobsLogs);
     }
 
     @After
@@ -67,20 +72,6 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         RootTask ctx1 = tasksService.createTask(builder1);
         Task task = ctx1.getTask(1);
         assertThat(task).isEqualTo(subContext);
-    }
-
-    @Test
-    public void testGetContextsByCoordinatorNode() throws Exception {
-        RootTask.Builder builder = tasksService.newBuilder(UUID.randomUUID());
-        builder.addTask(new DummyTask(1));
-
-        RootTask ctx = tasksService.createTask(builder);
-        Iterable<UUID> contexts = tasksService.getJobIdsByCoordinatorNode("wrongNodeId").collect(Collectors.toList());
-
-        assertThat(contexts.iterator().hasNext()).isFalse();
-
-        contexts = tasksService.getJobIdsByCoordinatorNode("n1").collect(Collectors.toList());
-        assertThat(contexts).containsExactly(ctx.jobId());
     }
 
     @Test
@@ -238,5 +229,37 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testKillNonExistingJobForNormalUser() throws Exception {
         assertThat(tasksService.killJobs(List.of(UUID.randomUUID()), "Arthur", null).get(5L, TimeUnit.SECONDS)).isEqualTo(0);
+    }
+
+    @Test
+    public void test_raises_error_if_participating_node_is_missing_on_create() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        RootTask.Builder builder = tasksService.newBuilder(jobId);
+        builder.addTask(new DummyTask());
+        builder.addParticipants(List.of("missing-node"));
+
+        assertThatThrownBy(() -> tasksService.createTask(builder))
+            .isExactlyInstanceOf(NoSuchNodeException.class);
+    }
+
+    @Test
+    public void test_kills_tasks_if_participating_node_disconnects() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        RootTask.Builder builder = tasksService.newBuilder(jobId);
+        String nodeId = CrateDummyClusterServiceUnitTest.NODE_ID;
+        DiscoveryNode node = clusterService.state().nodes().resolveNode(nodeId);
+        builder.addTask(new DummyTask());
+
+        builder.addParticipants(List.of(nodeId));
+
+        RootTask task = tasksService.createTask(builder);
+        assertThat(task.completionFuture()).isNotDone();
+
+        tasksService.onNodeDisconnected(node, Mockito.mock(Connection.class));
+        assertThat(task.completionFuture()).failsWithin(1, TimeUnit.SECONDS)
+            .withThrowableThat()
+            .havingRootCause()
+            .isExactlyInstanceOf(JobKilledException.class)
+            .withMessage("Job killed. Participating node n1 disconnected");
     }
 }

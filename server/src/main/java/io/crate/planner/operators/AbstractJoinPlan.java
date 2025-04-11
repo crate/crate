@@ -152,6 +152,7 @@ public abstract class AbstractJoinPlan implements LogicalPlan {
             executionNodes,
             resultDescription.streamOutputs(),
             projections,
+            resultDescription.nodeIds(),
             DistributionInfo.DEFAULT_SAME_NODE,
             resultDescription.orderBy()
         );

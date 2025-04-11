@@ -57,6 +57,7 @@ import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.jobs.CumulativePageBucketReceiver;
 import io.crate.execution.jobs.DistResultRXTask;
 import io.crate.execution.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.kill.TransportKillJobsNodeAction;
 import io.crate.execution.support.NodeRequest;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
@@ -163,6 +164,7 @@ public class DistributingConsumerTest extends ESTestCase {
     }
 
     private DistributingConsumer createDistributingConsumer(Streamer<?>[] streamers, TransportDistributedResultAction distributedResultAction) {
+        int pageSize = 2;
         return new DistributingConsumer(
             executorService,
             UUID.randomUUID(),
@@ -172,7 +174,8 @@ public class DistributingConsumerTest extends ESTestCase {
             0,
             Collections.singletonList("n1"),
             distributedResultAction::execute,
-            2 // pageSize
+            pageSize,
+            mock(TransportKillJobsNodeAction.class)
         );
     }
 

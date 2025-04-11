@@ -38,6 +38,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
 import io.crate.analyze.OrderBy;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.Maps;
+import io.crate.common.collections.Sets;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.projection.EvalProjection;
@@ -114,6 +115,7 @@ public class Union implements LogicalPlan {
             : "Left and right must output the same types, got " +
               "lhs=" + leftResultDesc.streamOutputs() + ", rhs=" + rightResultDesc.streamOutputs();
 
+        Set<String> upstreamNodes = Sets.union(leftResultDesc.nodeIds(), rightResultDesc.nodeIds());
         MergePhase mergePhase = new MergePhase(
             plannerContext.jobId(),
             plannerContext.nextExecutionPhaseId(),
@@ -123,6 +125,7 @@ public class Union implements LogicalPlan {
             Collections.singletonList(plannerContext.handlerNode()),
             leftResultDesc.streamOutputs(),
             Collections.emptyList(),
+            upstreamNodes,
             DistributionInfo.DEFAULT_BROADCAST,
             leftResultDesc.orderBy()
         );

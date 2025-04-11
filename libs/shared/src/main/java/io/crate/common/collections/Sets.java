@@ -22,6 +22,7 @@
 package io.crate.common.collections;
 
 import java.util.AbstractSet;
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -58,7 +59,7 @@ public class Sets {
         return Collections.unmodifiableSet(result);
     }
 
-    public static <T> Set<T> union(Set<T> left, Set<T> right) {
+    public static <T> Set<T> union(Collection<T> left, Collection<T> right) {
         Objects.requireNonNull(left);
         Objects.requireNonNull(right);
         Set<T> union = new HashSet<>(left);
