@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -39,7 +40,6 @@ import org.junit.Test;
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.VersioningValidationException;
-import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
 
 public class UpdateIntegrationTest extends IntegTestCase {
@@ -77,7 +77,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(2);
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set message=null where id=1"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -94,7 +94,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set stuff['level1']=null"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -113,7 +113,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set stuff['level1']['level2']=null"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -639,7 +639,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set c = 4 where _version = 2 or _version=1"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -653,7 +653,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into test (id, c) values (1, 1)");
         execute("refresh table test");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update test set c = 4 where _version in (1,2)"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -788,7 +788,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         execute("refresh table generated_column");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update generated_column set ts=null where id=1"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)
@@ -807,7 +807,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         execute("refresh table generated_column");
 
-        Asserts.assertSQLError(() -> execute(
+        assertSQLError(() -> execute(
                         "update generated_column set gen_col=null where id=1"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(BAD_REQUEST, 4000)

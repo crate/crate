@@ -45,22 +45,25 @@ public class SessionSettings implements Writeable {
     protected boolean hashJoinsEnabled;
     protected boolean errorOnUnknownObjectKey;
     protected int memoryLimit;
+    protected boolean insertSelectFailFast;
 
     @VisibleForTesting
     public SessionSettings(String userName, SearchPath searchPath) {
-        this(userName, searchPath, true, true, 0);
+        this(userName, searchPath, true, true, 0, false);
     }
 
     public SessionSettings(String userName,
                            SearchPath searchPath,
                            boolean hashJoinsEnabled,
                            boolean errorOnUnknownObjectKey,
-                           int memoryLimit) {
+                           int memoryLimit,
+                           boolean insertSelectFailFast) {
         this.userName = userName;
         this.searchPath = searchPath;
         this.hashJoinsEnabled = hashJoinsEnabled;
         this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
         this.memoryLimit = memoryLimit;
+        this.insertSelectFailFast = insertSelectFailFast;
     }
 
 
@@ -79,6 +82,11 @@ public class SessionSettings implements Writeable {
         } else {
             this.memoryLimit = 0;
         }
+        if (version.onOrAfter(Version.V_6_0_0)) {
+            this.insertSelectFailFast = in.readBoolean();
+        } else {
+            this.insertSelectFailFast = false;
+        }
     }
 
     @Override
@@ -92,6 +100,9 @@ public class SessionSettings implements Writeable {
         }
         if (version.onOrAfter(Version.V_5_5_0)) {
             out.writeVInt(memoryLimit);
+        }
+        if (version.onOrAfter(Version.V_6_0_0)) {
+            out.writeBoolean(insertSelectFailFast);
         }
     }
 
@@ -137,6 +148,12 @@ public class SessionSettings implements Writeable {
         return memoryLimit;
     }
 
+
+    public boolean insertSelectFailFast() {
+        return insertSelectFailFast;
+    }
+
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -149,11 +166,12 @@ public class SessionSettings implements Writeable {
         return Objects.equals(userName, that.userName) &&
                Objects.equals(searchPath, that.searchPath) &&
                Objects.equals(hashJoinsEnabled, that.hashJoinsEnabled) &&
-               Objects.equals(memoryLimit, that.memoryLimit);
+               Objects.equals(memoryLimit, that.memoryLimit) &&
+               Objects.equals(insertSelectFailFast, that.insertSelectFailFast);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(userName, searchPath, hashJoinsEnabled, memoryLimit);
+        return Objects.hash(userName, searchPath, hashJoinsEnabled, memoryLimit, insertSelectFailFast);
     }
 }
