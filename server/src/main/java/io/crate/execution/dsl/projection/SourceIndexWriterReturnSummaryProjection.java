@@ -60,9 +60,10 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
                                                     InputColumn sourceUri,
                                                     InputColumn sourceUriFailure,
                                                     InputColumn sourceParsingFailure,
-                                                    InputColumn lineNumber) {
+                                                    InputColumn lineNumber,
+                                                    long fullDocEstimate) {
         super(relationName,partitionIdent, rawSourceReference, rawSourcePtr, primaryKeys, partitionedBySymbols,
-            clusteredByColumn, settings, excludes, idSymbols, clusteredBySymbol, outputs, autoCreateIndices);
+            clusteredByColumn, settings, excludes, idSymbols, clusteredBySymbol, outputs, autoCreateIndices, fullDocEstimate);
         this.sourceUri = sourceUri;
         this.sourceUriFailure = sourceUriFailure;
         this.sourceParsingFailure = sourceParsingFailure;

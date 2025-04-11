@@ -91,7 +91,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     private final NodeContext nodeCtx;
     private final TransportAddColumn addColumnAction;
 
-
     @Inject
     public TransportShardUpsertAction(Settings settings,
                                       ThreadPool threadPool,
@@ -123,6 +122,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
+        logger.info("Received shard upsert request with {} items", request.items().size());
+
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));

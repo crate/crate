@@ -58,7 +58,7 @@ public final class InsertFromSubQueryPlanner {
             throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
         }
 
-
+        long fullDocSizeEstimate = plannerContext.nodeContext().tableStats().estimatedSizePerRow(statement.tableInfo());
 
         // if fields are null default to number of rows imported
         var outputs = statement.outputs() == null ? List.of(new InputColumn(0, DataTypes.LONG)) : statement.outputs();
@@ -77,7 +77,8 @@ public final class InsertFromSubQueryPlanner {
             Settings.EMPTY,
             statement.tableInfo().isPartitioned(),
             outputs,
-            statement.outputs() == null ? List.of() : statement.outputs()
+            statement.outputs() == null ? List.of() : statement.outputs(),
+            fullDocSizeEstimate
         );
         LogicalPlan plannedSubQuery = logicalPlanner.plan(
             statement.subQueryRelation(),
@@ -89,4 +90,6 @@ public final class InsertFromSubQueryPlanner {
             Symbols.typeView(statement.columns()), plannedSubQuery.outputs());
         return new Insert(plannedSubQuery, indexWriterProjection, castOutputs);
     }
+
+
 }

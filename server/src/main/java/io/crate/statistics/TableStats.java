@@ -21,8 +21,11 @@
 
 package io.crate.statistics;
 
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.table.TableInfo;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -62,6 +65,18 @@ public class TableStats {
         return tableStats.getOrDefault(relationName, Stats.EMPTY).averageSizePerRowInBytes();
     }
 
+    public long estimatedSizePerRow(TableInfo tableInfo) {
+        Stats stats = tableStats.get(tableInfo.ident());
+        if (stats == null) {
+            // if stats are not available we fall back to estimate the size based on
+            // column types. Therefore we need to get the column information.
+            Collection<Reference> ramAccountedColumns = tableInfo.allColumns();
+            return Stats.EMPTY.estimateSizeForColumns(ramAccountedColumns);
+        } else {
+            return stats.averageSizePerRowInBytes();
+        }
+    }
+
     public Iterable<ColumnStatsEntry> statsEntries() {
         Set<Map.Entry<RelationName, Stats>> entries = tableStats.entrySet();
         return () -> entries.stream()
@@ -76,4 +91,5 @@ public class TableStats {
     public Stats getStats(RelationName relationName) {
         return tableStats.getOrDefault(relationName, Stats.EMPTY);
     }
+
 }

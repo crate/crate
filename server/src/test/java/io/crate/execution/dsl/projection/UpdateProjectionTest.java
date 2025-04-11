@@ -40,10 +40,24 @@ public class UpdateProjectionTest {
     @Test
     public void testEquals() throws Exception {
         UpdateProjection u1 = new UpdateProjection(
-            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)}, new Symbol[]{new InputColumn(0, DataTypes.STRING)}, null, null);
+            Literal.of(1),
+            new String[]{"foo"},
+            new Symbol[]{Literal.of(1)},
+            new Symbol[]{new InputColumn(0, DataTypes.STRING)},
+            null,
+            null,
+            0
+        );
 
         UpdateProjection u2 = new UpdateProjection(
-            Literal.of(1), new String[]{"foo"}, new Symbol[]{Literal.of(1)},new Symbol[]{new InputColumn(0, DataTypes.STRING)}, null, null);
+            Literal.of(1),
+            new String[]{"foo"},
+            new Symbol[]{Literal.of(1)},
+            new Symbol[]{new InputColumn(0, DataTypes.STRING)},
+            null,
+            null,
+            0
+        );
 
         assertThat(u2.equals(u1)).isTrue();
         assertThat(u1.equals(u2)).isTrue();
@@ -60,7 +74,9 @@ public class UpdateProjectionTest {
             new Symbol[]{Literal.of(1)},
             new Symbol[]{new InputColumn(0, DataTypes.STRING)},
             new Symbol[]{Literal.of(1)},
-            null);
+            null,
+            0
+        );
 
         BytesStreamOutput out = new BytesStreamOutput();
         expected.writeTo(out);
@@ -80,7 +96,9 @@ public class UpdateProjectionTest {
             new Symbol[]{Literal.of(1)},
             new Symbol[]{},
             new Symbol[]{Literal.of(1)},
-            null);
+            null,
+            0
+        );
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_0_0);

@@ -279,7 +279,8 @@ public final class CopyFromPlan implements Plan {
                 sourceUriSymbol,
                 sourceUriFailureSymbol,
                 sourceParsingFailureSymbol,
-                lineNumberSymbol
+                lineNumberSymbol,
+                0
             );
         } else {
             sourceIndexWriterProjection = new SourceIndexWriterProjection(
@@ -295,7 +296,8 @@ public final class CopyFromPlan implements Plan {
                 InputColumns.create(primaryKeyRefs, sourceSymbols),
                 clusteredByInputCol,
                 projectionOutputs,
-                table.isPartitioned() // autoCreateIndices
+                table.isPartitioned(), // autoCreateIndices,
+                0
             );
         }
 

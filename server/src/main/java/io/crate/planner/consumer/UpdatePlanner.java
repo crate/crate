@@ -78,6 +78,7 @@ import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.planner.optimizer.symbol.Optimizer;
+import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public final class UpdatePlanner {
@@ -270,13 +271,19 @@ public final class UpdatePlanner {
                 outputSymbols[i] = new InputColumn(i, returnValues.get(i).valueType());
             }
         }
+
+        TableStats tableStats = plannerCtx.nodeContext().tableStats();
+        long estimatedSizePerRow = tableStats.estimatedSizePerRow(tableInfo);
+
         UpdateProjection updateProjection = new UpdateProjection(
             new InputColumn(0, idReference.valueType()),
             assignments.targetNames(),
             assignmentSources,
             outputSymbols,
             returnValues == null ? null : returnValues.toArray(new Symbol[0]),
-            null);
+            null,
+            estimatedSizePerRow
+            );
 
         WhereClause where = detailedQuery.toBoundWhereClause(
             tableInfo, params, subQueryResults, plannerCtx.transactionContext(), plannerCtx.nodeContext(), plannerCtx.clusterState().metadata());
