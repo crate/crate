@@ -321,6 +321,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_prefix_tree_backed_geo_shape_match_with_default_match_type_on_generated_column() throws Exception {
+        Query query = convert("match(shape_copy, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
+        assertThat(query).isExactlyInstanceOf(IntersectsPrefixTreeQuery.class);
+    }
+
+    @Test
     public void test_bkd_tree_backed_geo_shape_match_with_default_match_type() {
         Query query = convert("match(bkd_shape, 'POLYGON ((30 10, 40 40, 20 40, 10 20, 30 10))')");
         assertThat(query).isExactlyInstanceOf(ConstantScoreQuery.class);
