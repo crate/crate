@@ -20,26 +20,27 @@
 package org.elasticsearch.action.admin.indices.forcemerge;
 
 import java.io.IOException;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.metadata.PartitionName;
 
 /**
  * A request to force merging the segments of one or more indices. In order to
- * run a merge on all the indices, pass an empty array or {@code null} for the
- * indices.
+ * run a merge on all the indices, pass an empty array.
  * {@link #maxNumSegments(int)} allows to control the number of segments
  * to force merge down to. Defaults to simply checking if a merge needs
  * to execute, and if so, executes it
  *
  * @see ForceMergeResponse
  */
-public class ForceMergeRequest extends BroadcastRequest<ForceMergeRequest> {
+public class ForceMergeRequest extends BroadcastRequest {
 
     public static final class Defaults {
         public static final int MAX_NUM_SEGMENTS = -1;
@@ -63,11 +64,10 @@ public class ForceMergeRequest extends BroadcastRequest<ForceMergeRequest> {
 
     /**
      * Constructs a merge request over one or more indices.
-     *
-     * @param indices The indices to merge, no indices passed means all indices will be merged.
+     * An empty list will request a force merge over all indices
      */
-    public ForceMergeRequest(String... indices) {
-        super(indices);
+    public ForceMergeRequest(List<PartitionName> partitions) {
+        super(partitions);
         forceMergeUUID = UUIDs.randomBase64UUID();
     }
 

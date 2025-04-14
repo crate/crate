@@ -34,16 +34,12 @@ import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.action.support.broadcast.BroadcastShardOperationFailedException;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
-import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.TransportService;
-
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 import io.crate.exceptions.SQLExceptions;
 
@@ -53,7 +49,7 @@ import io.crate.exceptions.SQLExceptions;
  * <p/>
  * The indices set on a BroadcastRequest should already be resolved to concrete index names
  */
-public abstract class TransportBroadcastReplicationAction<Request extends BroadcastRequest<Request>, Response extends BroadcastResponse, ShardRequest extends ReplicationRequest<ShardRequest>, ShardResponse extends ReplicationResponse>
+public abstract class TransportBroadcastReplicationAction<Request extends BroadcastRequest, Response extends BroadcastResponse, ShardRequest extends ReplicationRequest<ShardRequest>, ShardResponse extends ReplicationResponse>
         extends HandledTransportAction<Request, Response> {
 
     private final ActionType<ShardResponse> replicatedBroadcastShardAction;
@@ -126,13 +122,11 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
      */
     protected List<ShardId> shards(Request request, ClusterState clusterState) {
         List<ShardId> shardIds = new ArrayList<>();
-        for (String index : request.indices()) {
-            IndexMetadata indexMetadata = clusterState.metadata().indices().get(index);
-            if (indexMetadata != null) {
-                IndexRoutingTable indexRoutingTable = clusterState.routingTable().indicesRouting().get(index);
-                for (IntObjectCursor<IndexShardRoutingTable> shardRouting : indexRoutingTable.getShards()) {
-                    shardIds.add(shardRouting.value.shardId());
-                }
+        for (IndexRoutingTable routing : clusterState.metadata().getIndices(
+            request.partitions(), false, im -> clusterState.routingTable().indicesRouting().get(im.getIndex().getName())
+        )) {
+            for (var shardRouting : routing.getShards()) {
+                shardIds.add(shardRouting.value.shardId());
             }
         }
         return shardIds;

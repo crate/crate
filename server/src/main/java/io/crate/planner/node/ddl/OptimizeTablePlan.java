@@ -29,7 +29,6 @@ import static io.crate.analyze.OptimizeTableSettings.UPGRADE_SEGMENTS;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -39,7 +38,6 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeAction;
 import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesAction;
 import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesRequest;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
@@ -58,7 +56,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
@@ -102,16 +99,15 @@ public class OptimizeTablePlan implements Plan {
         );
 
         var settings = stmt.settings();
-        var toOptimize = stmt.indexNames();
+        var toOptimize = stmt.partitions();
 
         if (UPGRADE_SEGMENTS.get(settings)) {
             consumer.accept(InMemoryBatchIterator.of(new Row1(-1L), SentinelRow.SENTINEL), null);
         } else {
-            var request = new ForceMergeRequest(toOptimize.toArray(new String[0]));
+            var request = new ForceMergeRequest(toOptimize);
             request.maxNumSegments(MAX_NUM_SEGMENTS.get(settings));
             request.onlyExpungeDeletes(ONLY_EXPUNGE_DELETES.get(settings));
             request.flush(FLUSH.get(settings));
-            request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
 
             trySyncRetentionLeases(dependencies, toOptimize)
                 .handle((_, _) -> null)     // ignore errors, sync is a best-effort
@@ -120,19 +116,19 @@ public class OptimizeTablePlan implements Plan {
                     .whenComplete(
                         new OneRowActionListener<>(
                             consumer,
-                            _ -> new Row1(toOptimize.isEmpty() ? -1L : (long) toOptimize.size())
+                            _ -> new Row1(toOptimize.size() == 0 ? -1L : (long) toOptimize.size())
                         )
                     ));
         }
     }
 
-    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<String> indexNames) {
+    private CompletableFuture<BroadcastResponse> trySyncRetentionLeases(DependencyCarrier dependencies, List<PartitionName> partitions) {
         var minNodeVersion = dependencies.clusterService().state().nodes().getMinNodeVersion();
         if (minNodeVersion.before(SyncRetentionLeasesAction.SYNC_RETENTION_LEASES_MINIMUM_VERSION)) {
             return CompletableFuture.completedFuture(BroadcastResponse.EMPTY_RESPONSE);
         }
         return dependencies.client()
-            .execute(SyncRetentionLeasesAction.INSTANCE, new SyncRetentionLeasesRequest(indexNames.toArray(String[]::new)));
+            .execute(SyncRetentionLeasesAction.INSTANCE, new SyncRetentionLeasesRequest(partitions));
     }
 
     @VisibleForTesting
@@ -155,20 +151,17 @@ public class OptimizeTablePlan implements Plan {
         var settings = Settings.builder().put(genericProperties).build();
         validateSettings(settings, genericProperties);
 
-        ArrayList<String> toOptimize = new ArrayList<>();
+        List<PartitionName> toOptimize = new ArrayList<>();
         for (Map.Entry<Table<Symbol>, TableInfo> table : optimizeTable.tables().entrySet()) {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
-            if (tableInfo instanceof BlobTableInfo blobTableInfo) {
-                toOptimize.add(blobTableInfo.concreteIndices(metadata)[0]);
+            if (tableSymbol.partitionProperties().isEmpty()) {
+                toOptimize.add(new PartitionName(tableInfo.ident(), List.of()));
             } else {
-                var docTableInfo = (DocTableInfo) tableInfo;
-                if (tableSymbol.partitionProperties().isEmpty()) {
-                    toOptimize.addAll(Arrays.asList(docTableInfo.concreteOpenIndices(metadata)));
-                } else {
-                    var partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)), metadata);
-                    toOptimize.add(partitionName.asIndexName());
-                }
+                assert tableInfo instanceof DocTableInfo : "Only DocTableInfo cases can have partition properties";
+                DocTableInfo docTableInfo = (DocTableInfo) tableInfo;
+                var partitionName = PartitionName.ofAssignments(docTableInfo, Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)), metadata);
+                toOptimize.add(partitionName);
             }
         }
 
@@ -184,16 +177,16 @@ public class OptimizeTablePlan implements Plan {
 
     public static class BoundOptimizeTable {
 
-        private final List<String> indexNames;
+        private final List<PartitionName> partitions;
         private final Settings settings;
 
-        BoundOptimizeTable(List<String> indexNames, Settings settings) {
-            this.indexNames = indexNames;
+        BoundOptimizeTable(List<PartitionName> partitions, Settings settings) {
+            this.partitions = partitions;
             this.settings = settings;
         }
 
-        public List<String> indexNames() {
-            return indexNames;
+        public List<PartitionName> partitions() {
+            return partitions;
         }
 
         public Settings settings() {

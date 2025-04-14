@@ -71,6 +71,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+import com.carrotsearch.hppc.procedures.ObjectProcedure;
 
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
@@ -1308,6 +1309,33 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     /**
      * <p>
+     * Resolve the indices for a list of partitions and return their data either as
+     * {@link IndexMetadata} or derived from it using the {@code as} parameter.
+     * </p>
+     * <p>
+     * An empty list will resolve all indices in the cluster, open and closed
+     * </p>
+     * <p>
+     * {@code null} values returned from {@code as} are excluded from the result.
+     * This can be used to filter based on state or similar.
+     * </p>
+     * @param partitions A list of partitions to resolve
+     **/
+    public <T> List<T> getIndices(List<PartitionName> partitions, boolean strict, Function<IndexMetadata, T> as) {
+        if (partitions.isEmpty()) {
+            List<T> allIndices = new ArrayList<>();
+            indices.values().forEach((ObjectProcedure<IndexMetadata>) value -> allIndices.add(as.apply(value)));
+            return allIndices;
+        }
+        List<T> result = new ArrayList<>();
+        for (PartitionName r : partitions) {
+            result.addAll(getIndices(r.relationName(), r.values(), strict, as));
+        }
+        return result;
+    }
+
+    /**
+     * <p>
      * Resolve the indices for a relation and return their data either as
      * {@link IndexMetadata} or derived from it using the {@code as} parameter.
      * </p>
@@ -1377,6 +1405,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         } catch (IndexNotFoundException ex) {
             throw new RelationUnknown(relationName);
         }
+        return mapIndices(indices, as);
+    }
+
+    private <T> List<T> mapIndices(Index[] indices, Function<IndexMetadata, T> as) {
         ArrayList<T> result = new ArrayList<>(indices.length);
         for (int i = 0; i < indices.length; i++) {
             Index index = indices[i];

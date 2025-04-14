@@ -82,7 +82,7 @@ listing them explicitly::
     ... VALUES (1, 'foo', '1970-01-01'), (2, 'bar', '2015-10-19');
     INSERT OK, 2 rows affected (... sec)
     cr> REFRESH TABLE parted_table;
-    REFRESH OK, 2 rows affected (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 Even single partition of :ref:`partitioned-tables` can be selected for backup.
 This is especially useful if old partitions need to be deleted but it should be
