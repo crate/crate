@@ -326,7 +326,11 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
     public void testCopyFromFileWithCompression() throws Exception {
         execute("create table quotes (id int, " +
                 "quote string)");
-        execute("copy quotes from ? with (compression='gzip')", new Object[]{copyFilePath + "test_copy_from.gz"});
+        if (randomBoolean()) {
+            execute("copy quotes from ? with (compression='gzip')", new Object[]{copyFilePath + "test_copy_from.gz"});
+        } else {
+            execute("copy quotes from ? ", new Object[]{copyFilePath + "test_copy_from.gz"});
+        }
         execute("refresh table quotes");
         execute("select * from quotes order by quote");
         assertThat(response).hasRows(

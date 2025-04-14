@@ -520,10 +520,11 @@ The ``WITH`` clause supports the following options:
 **compression**
   | *Type:* ``text``
   | *Values:*  ``gzip``
-  | *Default:* By default the output is not compressed.
+  | *Default:* `gzip` if all specified URIs end in `.gz`, otherwise the input is
+  |                   not decompressed.
   | *Optional*
 
-  Define if and how the exported data should be compressed.
+  Defines if the files to import are ``gzip`` compressed.
 
 
 .. _sql-copy-from-protocol:

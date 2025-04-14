@@ -108,6 +108,9 @@ Changes
 SQL Statements
 --------------
 
+- ``COPY FROM`` now assumes that the input files are ``gzip`` compressed if all
+  of the specified files end in ``.gz``.
+
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
