@@ -87,6 +87,12 @@ Breaking Changes
   To regain existing behaviour, adjust the ``compression`` argument of the
   :ref:`percentile aggregation <aggregation-percentile>` accordingly.
 
+- Made the behavior of the ``DENY`` and ``GRANT`` statements stricter. They now
+  fail if there is a mismatch between the ``securable`` (``VIEW`` or ``TABLE``)
+  and the actual relation type of the relation addressed by ``<ident>``. Before
+  a statement like ``GRANT DQL ON TABLE actually_a_view`` would succeed but not
+  do anything.
+
 
 Deprecations
 ============
