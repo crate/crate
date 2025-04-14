@@ -154,6 +154,12 @@ public class Privilege implements Writeable {
         return Objects.hash(policy, subject);
     }
 
+
+    @Override
+    public String toString() {
+        return "Privilege{policy=" + policy + ", subject=" + subject + ", grantor=" + grantor + "}";
+    }
+
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeInt(policy.ordinal());

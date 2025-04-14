@@ -39,6 +39,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationName;
@@ -162,13 +163,11 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testRevokePrivilegesFromUsersOnViews() {
-        AnalyzedPrivileges analysis = analyzePrivilegesStatement("REVOKE DQL, DML On view doc.t2, locations FROM user1, user2");
-        assertThat(analysis.userNames()).containsExactly("user1", "user2");;
+        AnalyzedPrivileges analysis = analyzePrivilegesStatement("REVOKE DQL, DML On view my_schema.locations_view FROM user1, user2");
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.privileges()).containsExactlyInAnyOrder(
-            privilegeOf(REVOKE, DQL, VIEW, "doc.t2"),
-            privilegeOf(REVOKE, DML, VIEW, "doc.t2"),
-            privilegeOf(REVOKE, DQL, VIEW, "doc.locations"),
-            privilegeOf(REVOKE, DML, VIEW, "doc.locations")
+            privilegeOf(REVOKE, DQL, VIEW, "my_schema.locations_view"),
+            privilegeOf(REVOKE, DML, VIEW, "my_schema.locations_view")
         );
     }
 
@@ -380,6 +379,17 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analysis.rolePrivilege().grantor()).isEqualTo("test");
         assertThat(analysis.rolePrivilege().policy()).isEqualTo(GRANT);
         assertThat(analysis.rolePrivilege().roleNames()).containsExactlyInAnyOrder("role1", "role2");
+    }
+
+    @Test
+    public void test_fails_if_relation_doesnt_fit_securable() throws Exception {
+        assertThatThrownBy(() -> analyzePrivilegesStatement("GRANT DQL ON TABLE my_schema.locations_view TO user1"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("Expected my_schema.locations_view to be a TABLE securable but got a relation of type VIEW");
+
+        assertThatThrownBy(() -> analyzePrivilegesStatement("GRANT DQL ON VIEW my_schema.locations TO user1"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessage("Expected my_schema.locations to be a VIEW securable but got a relation of type BASE_TABLE");
     }
 
     private AnalyzedPrivileges analyzePrivilegesStatement(String statement) {

@@ -31,9 +31,11 @@ import java.util.Set;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.common.collections.Lists;
+import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.RelationInfo.RelationType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
@@ -63,26 +65,13 @@ class PrivilegesAnalyzer {
         this.schemas = schemas;
     }
 
-    AnalyzedPrivileges analyzeGrant(GrantPrivilege node, Role grantor, SearchPath searchPath) {
-        return buildAnalyzedPrivileges(node, grantor, searchPath);
-    }
-
-    AnalyzedPrivileges analyzeRevoke(RevokePrivilege node, Role grantor, SearchPath searchPath) {
-        return buildAnalyzedPrivileges(node, grantor, searchPath);
-    }
-
-    AnalyzedPrivileges analyzeDeny(DenyPrivilege node, Role grantor, SearchPath searchPath) {
-        return buildAnalyzedPrivileges(node, grantor, searchPath);
-    }
-
     @NotNull
-    private AnalyzedPrivileges buildAnalyzedPrivileges(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
-        Policy policy;
-        switch (node) {
-            case GrantPrivilege ignored -> policy = Policy.GRANT;
-            case RevokePrivilege ignored -> policy = Policy.REVOKE;
-            case DenyPrivilege ignored -> policy = Policy.DENY;
-        }
+    public AnalyzedPrivileges analyze(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
+        Policy policy = switch (node) {
+            case GrantPrivilege _ -> Policy.GRANT;
+            case RevokePrivilege _ -> Policy.REVOKE;
+            case DenyPrivilege _ -> Policy.DENY;
+        };
         Securable securable = Securable.valueOf(node.securable());
         List<String> idents = validatePrivilegeIdents(
             grantor,
@@ -143,13 +132,7 @@ class PrivilegesAnalyzer {
     }
 
     private static Collection<Permission> getPermissions(boolean all, List<String> permissionNames) {
-        Collection<Permission> permissions;
-        if (all) {
-            permissions = Permission.VALUES;
-        } else {
-            permissions = parsePermissions(permissionNames, true);
-        }
-        return permissions;
+        return all ? Permission.VALUES : parsePermissions(permissionNames, true);
     }
 
     private static void validateSchemaNames(List<String> schemaNames) {
@@ -176,7 +159,14 @@ class PrivilegesAnalyzer {
             validateSchemaNames(schemaNames);
             return schemaNames;
         } else {
-            return resolveAndValidateRelations(tableOrSchemaNames, sessionUser, searchPath, schemas, isRevoke);
+            return resolveAndValidateRelations(
+                tableOrSchemaNames,
+                securable,
+                sessionUser,
+                searchPath,
+                schemas,
+                isRevoke
+            );
         }
     }
 
@@ -233,6 +223,7 @@ class PrivilegesAnalyzer {
     }
 
     private static List<String> resolveAndValidateRelations(List<QualifiedName> relations,
+                                                            Securable securable,
                                                             Role sessionUser,
                                                             SearchPath searchPath,
                                                             Schemas schemas,
@@ -240,6 +231,21 @@ class PrivilegesAnalyzer {
         return Lists.map(relations, q -> {
             try {
                 RelationInfo relation = schemas.findRelation(q, Operation.READ, sessionUser, searchPath);
+                Securable actualSecurable = switch (relation.relationType()) {
+                    case RelationType.FOREIGN, RelationType.BASE_TABLE -> Securable.TABLE;
+                    case RelationType.VIEW -> Securable.VIEW;
+                };
+                if (securable != actualSecurable) {
+                    throw new OperationOnInaccessibleRelationException(
+                        relation.ident(),
+                        String.format(
+                            Locale.ENGLISH,
+                            "Expected %s to be a %s securable but got a relation of type %s",
+                            relation.ident(),
+                            securable,
+                            relation.relationType())
+                    );
+                }
                 RelationName relationName = relation.ident();
                 if (!isRevoke) {
                     validateSchemaName(relationName.schema());

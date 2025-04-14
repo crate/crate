@@ -28,8 +28,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.analysis.AnalysisRegistry;
 
-import io.crate.session.Cursor;
-import io.crate.session.Cursors;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.FieldProvider;
@@ -49,6 +47,8 @@ import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.analyze.LogicalReplicationAnalyzer;
 import io.crate.role.Role;
 import io.crate.role.Roles;
+import io.crate.session.Cursor;
+import io.crate.session.Cursors;
 import io.crate.sql.tree.AlterClusterRerouteRetryFailed;
 import io.crate.sql.tree.AlterPublication;
 import io.crate.sql.tree.AlterRoleReset;
@@ -474,7 +474,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitDenyPrivilege(DenyPrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeDeny(
+            return privilegesAnalyzer.analyze(
                 node,
                 context.sessionSettings().sessionUser(),
                 context.sessionSettings().searchPath());
@@ -532,7 +532,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitGrantPrivilege(GrantPrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeGrant(
+            return privilegesAnalyzer.analyze(
                 node,
                 context.sessionSettings().sessionUser(),
                 context.sessionSettings().searchPath());
@@ -598,7 +598,7 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitRevokePrivilege(RevokePrivilege node, Analysis context) {
-            return privilegesAnalyzer.analyzeRevoke(
+            return privilegesAnalyzer.analyze(
                 node,
                 context.sessionSettings().sessionUser(),
                 context.sessionSettings().searchPath());
