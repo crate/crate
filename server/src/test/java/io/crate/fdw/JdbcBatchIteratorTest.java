@@ -27,6 +27,7 @@ import java.util.List;
 
 import org.junit.Test;
 
+import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -71,6 +72,21 @@ public class JdbcBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
             //      space " " if identifier quoting is not supported.
             //
             .isEqualTo("SELECT x FROM doc.summits WHERE ((x > 10) AND (x < 40))");
+    }
+
+    @Test
+    public void test_does_not_generate_stmt_without_select_list_on_empty_columns() throws Exception {
+        // columns can be empty in cases like "select count(*) from tbl"
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.summits (x int)");
+        DocTableInfo table = e.resolveTableInfo("doc.summits");
+        String statement = JdbcBatchIterator.generateStatement(
+            table.ident(),
+            List.of(),
+            Literal.BOOLEAN_TRUE,
+            "\""
+        );
+        assertThat(statement).isEqualTo("SELECT 1 FROM \"doc\".\"summits\" WHERE true");
     }
 }
 
