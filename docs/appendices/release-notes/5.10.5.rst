@@ -44,6 +44,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that prevented ``MATCH (geo_shape_column, ...)`` from matching
+  any records if ``geo_shape_column`` is a generated column.
+
 - Fixed a race condition that could lead to a memory leak if nodes within the
   cluster were temporarily not reachable.
 
