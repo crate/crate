@@ -119,12 +119,15 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             .append(table.name())
             .append(qs);
 
+        String columnsStr = columns.isEmpty()
+            ? "1"
+            : String.join(", ", Lists.mapLazy(
+                columns,
+                ref -> new QuotedReference(ref, qs).toString(Style.UNQUALIFIED)));
         var stmt = String.format(
             Locale.ENGLISH,
             "SELECT %s FROM %s WHERE %s",
-            String.join(", ", Lists.mapLazy(
-                columns,
-                ref -> new QuotedReference(ref, qs).toString(Style.UNQUALIFIED))),
+            columnsStr,
             relationName.toString(),
             RefReplacer.replaceRefs(
                 query,

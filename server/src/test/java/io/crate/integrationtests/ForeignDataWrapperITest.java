@@ -153,6 +153,16 @@ public class ForeignDataWrapperITest extends IntegTestCase {
             "  └ ForeignCollect[doc.dummy | [x, y] | true] (rows=unknown)"
         );
 
+        execute("explain select count(*) from doc.dummy");
+        assertThat(response).hasLines(
+            "HashAggregate[count(*)] (rows=1)",
+            "  └ ForeignCollect[doc.dummy | [] | true] (rows=unknown)"
+        );
+        execute("select count(*) from doc.dummy");
+        assertThat(response).hasRows(
+            "3"
+        );
+
         var roles = cluster().getInstance(Roles.class);
         Role trillian = roles.getUser("trillian");
         response = sqlExecutor.executeAs("select * from doc.dummy order by x asc", trillian);
