@@ -351,7 +351,7 @@ For example, the following query will only operate on the partition for
 .. Hidden: refresh
 
     cr> REFRESH TABLE parted_table;
-    REFRESH OK, 3 rows affected (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 
@@ -410,7 +410,7 @@ minimum list of partitions from the :ref:`partition columns
 .. Hidden: refresh::
 
     cr> REFRESH TABLE computed_parted_table;
-    REFRESH OK, 2 rows affected (... sec)
+    REFRESH OK, 1 row affected (... sec)
 
 ::
 

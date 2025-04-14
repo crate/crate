@@ -24,13 +24,12 @@ package io.crate.planner.node.ddl;
 import static io.crate.data.SentinelRow.SENTINEL;
 
 import java.util.ArrayList;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
 
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefresh;
-import org.elasticsearch.action.support.IndicesOptions;
 
 import io.crate.analyze.AnalyzedRefreshTable;
 import io.crate.analyze.SymbolEvaluator;
@@ -76,20 +75,22 @@ public class RefreshTablePlan implements Plan {
             subQueryResults
         );
 
-        ArrayList<String> toRefresh = new ArrayList<>();
+        ArrayList<PartitionName> toRefresh = new ArrayList<>();
         for (Map.Entry<Table<Symbol>, DocTableInfo> table : analysis.tables().entrySet()) {
             var tableInfo = table.getValue();
             var tableSymbol = table.getKey();
             if (tableSymbol.partitionProperties().isEmpty()) {
-                toRefresh.addAll(Arrays.asList(tableInfo.concreteOpenIndices(plannerContext.clusterState().metadata())));
+                toRefresh.add(new PartitionName(tableInfo.ident(), List.of()));
             } else {
-                PartitionName partitionName = PartitionName.ofAssignments(tableInfo, Lists.map(tableSymbol.partitionProperties(), p -> p.map(eval)), plannerContext.clusterState().metadata());
-                toRefresh.add(partitionName.asIndexName());
+                var partitionName = PartitionName.ofAssignments(
+                    tableInfo,
+                    Lists.map(tableSymbol.partitionProperties(), x -> x.map(eval)),
+                    plannerContext.clusterState().metadata());
+                toRefresh.add(partitionName);
             }
         }
 
-        RefreshRequest request = new RefreshRequest(toRefresh.toArray(String[]::new));
-        request.indicesOptions(IndicesOptions.LENIENT_EXPAND_OPEN);
+        RefreshRequest request = new RefreshRequest(toRefresh);
 
         dependencies.client().execute(TransportRefresh.ACTION, request)
             .whenComplete(
