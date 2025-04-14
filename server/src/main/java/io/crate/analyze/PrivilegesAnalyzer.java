@@ -63,26 +63,13 @@ class PrivilegesAnalyzer {
         this.schemas = schemas;
     }
 
-    AnalyzedPrivileges analyzeGrant(GrantPrivilege node, Role grantor, SearchPath searchPath) {
-        return buildAnalyzedPrivileges(node, grantor, searchPath);
-    }
-
-    AnalyzedPrivileges analyzeRevoke(RevokePrivilege node, Role grantor, SearchPath searchPath) {
-        return buildAnalyzedPrivileges(node, grantor, searchPath);
-    }
-
-    AnalyzedPrivileges analyzeDeny(DenyPrivilege node, Role grantor, SearchPath searchPath) {
-        return buildAnalyzedPrivileges(node, grantor, searchPath);
-    }
-
     @NotNull
-    private AnalyzedPrivileges buildAnalyzedPrivileges(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
-        Policy policy;
-        switch (node) {
-            case GrantPrivilege ignored -> policy = Policy.GRANT;
-            case RevokePrivilege ignored -> policy = Policy.REVOKE;
-            case DenyPrivilege ignored -> policy = Policy.DENY;
-        }
+    public AnalyzedPrivileges analyze(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
+        Policy policy = switch (node) {
+            case GrantPrivilege _ -> Policy.GRANT;
+            case RevokePrivilege _ -> Policy.REVOKE;
+            case DenyPrivilege _ -> Policy.DENY;
+        };
         Securable securable = Securable.valueOf(node.securable());
         List<String> idents = validatePrivilegeIdents(
             grantor,
@@ -143,13 +130,7 @@ class PrivilegesAnalyzer {
     }
 
     private static Collection<Permission> getPermissions(boolean all, List<String> permissionNames) {
-        Collection<Permission> permissions;
-        if (all) {
-            permissions = Permission.VALUES;
-        } else {
-            permissions = parsePermissions(permissionNames, true);
-        }
-        return permissions;
+        return all ? Permission.VALUES : parsePermissions(permissionNames, true);
     }
 
     private static void validateSchemaNames(List<String> schemaNames) {
