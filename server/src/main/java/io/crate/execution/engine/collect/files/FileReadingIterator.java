@@ -49,8 +49,8 @@ import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
@@ -84,7 +84,7 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
     @VisibleForTesting
     static final int MAX_SOCKET_TIMEOUT_RETRIES = 5;
 
-    private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI input) -> true;
+    private static final Predicate<URI> MATCH_ALL_PREDICATE = (URI _) -> true;
 
     private final Map<String, FileInputFactory> fileInputFactories;
     private final Boolean shared;
@@ -183,7 +183,8 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
                                int readerNumber,
                                Settings withClauseOptions,
                                ScheduledExecutorService scheduler) {
-        this.compressed = compression != null && compression.equalsIgnoreCase("gzip");
+        this.compressed = "gzip".equalsIgnoreCase(compression)
+            || (compression == null && fileUris.stream().allMatch(uri -> uri.toString().endsWith(".gz")));
         this.fileInputFactories = fileInputFactories;
         this.cursor = new LineCursor();
         this.shared = shared;
@@ -415,14 +416,8 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
 
     @VisibleForTesting
     BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
-        BufferedReader reader;
-        if (compressed) {
-            reader = new BufferedReader(new InputStreamReader(new GZIPInputStream(inputStream),
-                StandardCharsets.UTF_8));
-        } else {
-            reader = new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8));
-        }
-        return reader;
+        InputStream in = compressed ? new GZIPInputStream(inputStream) : inputStream;
+        return new BufferedReader(new InputStreamReader(in, StandardCharsets.UTF_8));
     }
 
     @VisibleForTesting
