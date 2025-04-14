@@ -106,7 +106,7 @@ public abstract class AsyncIOProcessor<Item> {
             try {
                 write(candidates);
             } catch (Exception ex) { // if this fails we are in deep shit - fail the request
-                logger.debug("failed to write candidates", ex);
+                logger.warn("failed to write candidates", ex);
                 // this exception is passed to all listeners - we don't retry. if this doesn't work we are in deep shit
                 exception = ex;
             }
