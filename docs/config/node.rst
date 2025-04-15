@@ -120,6 +120,20 @@ General
    effect for new sessions.
 
 
+.. _statement_max_length:
+
+**statement_max_length**
+  | *Default:* ``262144``
+  | *Runtime:* ``no``
+
+  The maximum length of a SQL statement.
+
+.. WARNING::
+
+   Increasing this can lead to high memory consumption when parsing statements
+   exceeding the limit and can cause a node to crash with an ouf of memory
+   error.
+
 Networking
 ==========
 

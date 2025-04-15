@@ -155,6 +155,15 @@ Breaking Changes
        Because of this fix, users should re-create tables which have a
        ``BOOLEAN`` column in their ``PARTITIONED BY`` clause.
 
+- Added a :ref:`statement_max_length` setting to limit the length of allowed SQL
+  statements. It defaults to 262144. Statements exceeding this limit are rejected
+  because large statements consume a high amount of memory. Large statements are
+  typically caused by inline values or using a large number of ``VALUES``
+  clauses.
+  Instead, statements should be written using parameter symbols (``?``) and
+  inserting lots of values should be done using either bulk operations or a
+  ``INSERT INTO`` in combination with a ``SELECT FROM`` and ``UNNEST``.
+
 
 Deprecations
 ============

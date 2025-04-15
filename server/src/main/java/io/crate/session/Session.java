@@ -28,6 +28,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -164,9 +165,11 @@ public class Session implements AutoCloseable {
     private final boolean isReadOnly;
     private final Runnable onClose;
     private final int tempErrorRetryCount;
+    private final int statementMaxLength;
 
     private TransactionState currentTransactionState = TransactionState.IDLE;
     private volatile String lastStmt;
+
 
     /**
      * @param connectionProperties client connection details. If null this is considered a system session
@@ -180,7 +183,8 @@ public class Session implements AutoCloseable {
                    DependencyCarrier executor,
                    CoordinatorSessionSettings sessionSettings,
                    Runnable onClose,
-                   int tempErrorRetryCount) {
+                   int tempErrorRetryCount,
+                   int statementMaxLength) {
         this.id = sessionId;
         this.connectionProperties = connectionProperties;
         this.timeCreated = System.currentTimeMillis();
@@ -193,6 +197,7 @@ public class Session implements AutoCloseable {
         this.sessionSettings = sessionSettings;
         this.onClose = onClose;
         this.tempErrorRetryCount = tempErrorRetryCount;
+        this.statementMaxLength = statementMaxLength;
     }
 
     public int id() {
@@ -239,6 +244,7 @@ public class Session implements AutoCloseable {
     public void quickExec(String statement, ResultReceiver<?> resultReceiver, Row params) {
         lastStmt = statement;
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(sessionSettings);
+        validateStatementLength(statement);
         Statement parsedStmt = SqlParser.createStatement(statement);
         AnalyzedStatement analyzedStatement = analyzer.analyze(
             parsedStmt,
@@ -338,6 +344,8 @@ public class Session implements AutoCloseable {
             LOGGER.debug("method=parse stmtName={} query={} paramTypes={}", statementName, query, paramTypes);
         }
 
+        validateStatementLength(query);
+
         Statement statement;
         try {
             statement = SqlParser.createStatement(query);
@@ -352,6 +360,19 @@ public class Session implements AutoCloseable {
         timeoutToken.check();
 
         analyze(statementName, statement, paramTypes, query, timeoutToken);
+    }
+
+    private void validateStatementLength(String query) {
+        if (query.length() > statementMaxLength) {
+            String msg = String.format(
+                Locale.ENGLISH,
+                "Statement exceeds `statement_max_length` (%d allowed, %d provided). Try replacing inline values with parameter placeholders (`?`)",
+                statementMaxLength,
+                query.length()
+            );
+            jobsLogs.logPreExecutionFailure(UUIDs.dirtyUUID(), query, msg, sessionSettings.sessionUser());
+            throw new IllegalArgumentException(msg);
+        }
     }
 
     public void analyze(String statementName,
