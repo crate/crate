@@ -44,6 +44,11 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Improved the handling of ``statement_timeout`` to reduce memory consumption.
+  Before it would consume extra memory per executed query for the full
+  ``statement_duration`` even if the query finished early. Now the memory is
+  released once a query finishes.
+
 - Fixed an issue that prevented ``MATCH (geo_shape_column, ...)`` from matching
   any records if ``geo_shape_column`` is a generated column.
 
