@@ -78,6 +78,13 @@ public class Sessions {
         Setting.Property.Exposed
     );
 
+    public static final Setting<Integer> STATEMENT_MAX_LENGTH = Setting.intSetting(
+        "statement_max_length",
+        262144,
+        Setting.Property.NodeScope,
+        Setting.Property.Exposed
+    );
+
     /**
      * How often to retry on errors which might be temporary like shard/index-not-found/connection errors.
      * Currently not exposed (in sys.cluster settings) and not documented as it is for testing.
@@ -105,6 +112,7 @@ public class Sessions {
     private final AtomicInteger nextSessionId = new AtomicInteger();
     private final ConcurrentMap<Integer, Session> sessions = new ConcurrentHashMap<>();
     private final int tempErrorRetryCount;
+    private final int statementMaxLength;
 
     private volatile boolean disabled;
     private volatile TimeValue defaultStatementTimeout;
@@ -129,6 +137,7 @@ public class Sessions {
         this.defaultStatementTimeout = STATEMENT_TIMEOUT.get(settings);
         this.memoryLimit = MEMORY_LIMIT.get(settings);
         this.tempErrorRetryCount = TEMP_ERROR_RETRY_COUNT.get(settings);
+        this.statementMaxLength = STATEMENT_MAX_LENGTH.get(settings);
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
         clusterSettings.addSettingsUpdateConsumer(STATEMENT_TIMEOUT, statementTimeout -> {
             this.defaultStatementTimeout = statementTimeout;
@@ -155,7 +164,8 @@ public class Sessions {
             executorProvider.get(),
             sessionSettings,
             () -> sessions.remove(sessionId),
-            tempErrorRetryCount
+            tempErrorRetryCount,
+            statementMaxLength
         );
         sessions.put(sessionId, session);
         return session;
