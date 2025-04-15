@@ -38,9 +38,11 @@ import static org.mockito.Mockito.when;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.client.ElasticsearchClient;
@@ -55,6 +57,7 @@ import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.where.EqualityExtractorTest;
 import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.JobKilledException;
@@ -391,6 +394,55 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
 
         verify(client, times(1))
             .execute(eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
+    }
+
+    @Test
+    public void test_statement_timeout_schedule_is_removed_for_finished_jobs() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
+            .thenReturn(
+                new Plan() {
+                    @Override
+                    public StatementType type() {
+                        return StatementType.INSERT;
+                    }
+
+                    @Override
+                    public void executeOrFail(DependencyCarrier dependencies,
+                                              PlannerContext plannerContext,
+                                              RowConsumer consumer,
+                                              Row params,
+                                              SubQueryResults subQueryResults) throws Exception {
+                        consumer.accept(InMemoryBatchIterator.empty(null), null);
+                    }
+
+                    @Override
+                    public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                                       PlannerContext plannerContext,
+                                                                       List<Row> bulkParams,
+                                                                       SubQueryResults subQueryResults) {
+                        return new CompletableFuture<>();
+                    }
+                }
+            );
+
+        DependencyCarrier dependencies = sqlExecutor.dependencyMock;
+        when(dependencies.scheduler()).thenReturn(THREAD_POOL.scheduler());
+        Session session = sqlExecutor.createSession();
+        session.sessionSettings().statementTimeout(TimeValue.timeValueMinutes(30));
+
+        for (int i = 0; i < 10; i++) {
+            session.parse("S_1", "SELECT 1", List.of());
+            session.bind("P_1", "S_1", List.of(), null);
+            session.execute("P_1", 0, new BaseResultReceiver());
+            session.sync();
+        }
+
+        BlockingQueue<Runnable> queue = ((ScheduledThreadPoolExecutor) THREAD_POOL.scheduler()).getQueue();
+        assertThat(queue).isEmpty();
     }
 
     @Test

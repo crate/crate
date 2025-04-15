@@ -32,6 +32,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ThreadLocalRandom;
 import java.util.concurrent.TimeUnit;
 
@@ -654,7 +655,8 @@ public class Session implements AutoCloseable {
             executor.client().execute(KillJobsNodeAction.INSTANCE, request);
         };
         ScheduledExecutorService scheduler = executor.scheduler();
-        scheduler.schedule(kill, remainingTimeoutMs, TimeUnit.MILLISECONDS);
+        ScheduledFuture<?> schedule = scheduler.schedule(kill, remainingTimeoutMs, TimeUnit.MILLISECONDS);
+        result.whenComplete((_, _) -> schedule.cancel(false));
     }
 
     private CompletableFuture<?> triggerDeferredExecutions() {
