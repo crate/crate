@@ -28,67 +28,86 @@ import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.network.InetAddresses;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.SysColumns;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 
 public class Id {
 
-    private static final Function<List<String>, String> RANDOM_ID = ignored -> UUIDs.base64UUID();
+    private static final BiFunction<List<String>, List<DataType<?>>, String> RANDOM_ID = (_, _) -> UUIDs.base64UUID();
 
-    private static final Function<List<String>, String> ONLY_ITEM_NULL_VALIDATION = keyValues -> {
-        return ensureNonNull(getOnlyElement(keyValues));
+    private static final BiFunction<List<String>, List<DataType<?>>, String> ONLY_ITEM_NULL_VALIDATION = (strings, dataTypes) -> {
+        DataType<?> type = Lists.getOnlyElement(dataTypes);
+        String value = ensureNonNull(Lists.getOnlyElement(strings));
+        if (type.id() == DataTypes.IP.id()) {
+            return InetAddresses.forString(value).toString();
+        }
+        return value;
     };
 
-    private static final Function<List<String>, String> ONLY_ITEM = Lists::getOnlyElement;
-
+    private static final BiFunction<List<String>, List<DataType<?>>, String> ONLY_ITEM = (strings, dataTypes) -> {
+        DataType<?> type = Lists.getOnlyElement(dataTypes);
+        String value = Lists.getOnlyElement(strings);
+        if (type.id() == DataTypes.IP.id()) {
+            return InetAddresses.forString(value).toString();
+        }
+        return value;
+    };
 
     /**
      * generates a function which can be used to generate an id and apply null validation.
      * <p>
      * This variant doesn't handle the pk = _id case.
      */
-    private static Function<List<String>, String> compileWithNullValidation(final int numPks,
-                                                                            final int clusteredByPosition) {
-        return switch (numPks) {
-            case 0 -> RANDOM_ID;
-            case 1 -> ONLY_ITEM_NULL_VALIDATION;
-            default -> keyValues -> {
-                if (keyValues.size() != numPks) {
-                    throw new IllegalArgumentException("Missing primary key values");
-                }
-                return encode(keyValues, clusteredByPosition);
-            };
-        };
-    }
 
     /**
      * generates a function which can be used to generate an id.
      * <p>
      * This variant doesn't handle the pk = _id case.
      */
-    public static Function<List<String>, String> compile(final int numPks, final int clusteredByPosition) {
+    public static BiFunction<List<String>, List<DataType<?>>, String> compile(final int numPks, final int clusteredByPosition) {
         if (numPks == 1) {
             return ONLY_ITEM;
         }
-        return compileWithNullValidation(numPks, clusteredByPosition);
+        return switch (numPks) {
+            case 0 -> RANDOM_ID;
+            case 1 -> ONLY_ITEM_NULL_VALIDATION;
+            default -> (keyValues, pkDataTypes) -> {
+                if (keyValues.size() != numPks) {
+                    throw new IllegalArgumentException("Missing primary key values");
+                }
+                List<String> values = new ArrayList<>(keyValues.size());
+                for (int i = 0; i < keyValues.size(); i++) {
+                    String value = keyValues.get(i);
+                    DataType<?> type = pkDataTypes.get(i);
+                    if (type.id() == DataTypes.IP.id()) {
+                        values.add(InetAddresses.forString(value).toString());
+                    }
+                    values.add(value);
+                }
+                return encode(values, clusteredByPosition);
+            };
+        };
     }
 
     /**
      * returns a function which can be used to generate an id with null validation.
      */
-    public static Function<List<String>, String> compileWithNullValidation(final List<ColumnIdent> pkColumns, final ColumnIdent clusteredBy) {
+    public static BiFunction<List<String>, List<DataType<?>>, String> compileWithNullValidation(final List<ColumnIdent> pkColumns, final ColumnIdent clusteredBy) {
         final int numPks = pkColumns.size();
         if (numPks == 1 && getOnlyElement(pkColumns).equals(SysColumns.ID.COLUMN)) {
             return RANDOM_ID;
@@ -97,7 +116,8 @@ public class Id {
         if (clusteredBy != null) {
             idx = pkColumns.indexOf(clusteredBy);
         }
-        return compileWithNullValidation(numPks, idx);
+
+        return compile(numPks, idx);
     }
 
     @NotNull

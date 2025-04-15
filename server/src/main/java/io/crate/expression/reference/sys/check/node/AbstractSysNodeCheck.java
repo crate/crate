@@ -21,15 +21,17 @@
 
 package io.crate.expression.reference.sys.check.node;
 
+import java.util.List;
+import java.util.function.BiFunction;
+
 import io.crate.analyze.Id;
 import io.crate.expression.reference.sys.check.AbstractSysCheck;
-
-import java.util.List;
-import java.util.function.Function;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements SysNodeCheck {
 
-    private static final Function<List<String>, String> PK_FUNC = Id.compile(2, -1);
+    private static final BiFunction<List<String>, List<DataType<?>>, String> PK_FUNC = Id.compile(2, -1);
 
 
     private static final String LINK_PATTERN = "https://cr8.is/d-node-check-";
@@ -66,7 +68,7 @@ public abstract class AbstractSysNodeCheck extends AbstractSysCheck implements S
     }
 
     private String generateId(String nodeId) {
-        return PK_FUNC.apply(List.of(String.valueOf(id()), nodeId));
+        return PK_FUNC.apply(List.of(String.valueOf(id()), nodeId), List.of(DataTypes.STRING, DataTypes.STRING));
     }
 
     public void setNodeId(String nodeId) {

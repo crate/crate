@@ -63,6 +63,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 
 public class IndexWriterProjector implements Projector {
 
@@ -76,6 +77,7 @@ public class IndexWriterProjector implements Projector {
                                 Executor executor,
                                 TransactionContext txnCtx,
                                 NodeContext nodeCtx,
+                                DocTableInfo tableInfo,
                                 Settings settings,
                                 int targetTableNumShards,
                                 int targetTableNumReplicas,
@@ -104,7 +106,7 @@ public class IndexWriterProjector implements Projector {
             source = new MapInput((Input<Map<String, Object>>) sourceInput, excludes);
         }
         RowShardResolver rowShardResolver = new RowShardResolver(
-            txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+            txnCtx, nodeCtx, tableInfo, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         Reference[] missingAssignmentsColumns = new Reference[]{rawSourceReference};
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),

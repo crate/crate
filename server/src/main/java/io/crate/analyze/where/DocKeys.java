@@ -25,7 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Optional;
-import java.util.function.Function;
+import java.util.function.BiFunction;
 import java.util.stream.Collectors;
 
 import org.jetbrains.annotations.Nullable;
@@ -39,13 +39,14 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 
 public class DocKeys implements Iterable<DocKeys.DocKey> {
 
     private final int width;
-    private final Function<List<String>, String> idFunction;
+    private final BiFunction<List<String>, List<DataType<?>>, String> idFunction;
     private final boolean withSequenceVersioning;
     private final int clusteredByIdx;
     private final boolean withVersions;
@@ -65,6 +66,10 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
                 Lists.mapLazy(
                     key.subList(0, width),
                     s -> StringUtils.nullOrString(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, params, subQueryResults))
+                ),
+                Lists.mapLazy(
+                    key.subList(0, width),
+                    s -> s.valueType()
                 )
             );
         }

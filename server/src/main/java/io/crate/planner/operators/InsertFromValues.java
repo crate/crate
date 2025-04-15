@@ -229,6 +229,7 @@ public class InsertFromValues implements LogicalPlan {
 
         GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper =
             createRowsByShardGrouper(
+                tableInfo,
                 constraintsChecker,
                 onConflictAssignments,
                 insertInputs,
@@ -398,6 +399,7 @@ public class InsertFromValues implements LogicalPlan {
 
             GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item> grouper =
                 createRowsByShardGrouper(
+                    tableInfo,
                     constraintsChecker,
                     assignmentSources,
                     insertInputs,
@@ -462,7 +464,8 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     private GroupRowsByShard<ShardUpsertRequest, ShardUpsertRequest.Item>
-        createRowsByShardGrouper(BiConsumer<String, IndexItem> constraintsChecker,
+        createRowsByShardGrouper(DocTableInfo tableInfo,
+                                 BiConsumer<String, IndexItem> constraintsChecker,
                                  Symbol[] onConflictAssignments,
                                  ArrayList<Input<?>> insertInputs,
                                  Supplier<String> indexNameResolver,
@@ -483,6 +486,7 @@ public class InsertFromValues implements LogicalPlan {
         var rowShardResolver = new RowShardResolver(
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
+            tableInfo,
             writerProjection.primaryKeys(),
             writerProjection.ids(),
             writerProjection.clusteredByIdent(),

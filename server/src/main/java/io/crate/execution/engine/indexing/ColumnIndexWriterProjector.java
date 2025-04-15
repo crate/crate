@@ -54,6 +54,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 
 public class ColumnIndexWriterProjector implements Projector {
 
@@ -68,6 +70,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       Executor executor,
                                       TransactionContext txnCtx,
                                       NodeContext nodeCtx,
+                                      DocTableInfo tableInfo,
                                       Settings settings,
                                       int targetTableNumShards,
                                       int targetTableNumReplicas,
@@ -88,7 +91,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       UUID jobId
                                       ) {
         RowShardResolver rowShardResolver = new RowShardResolver(
-            txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
+            txnCtx, nodeCtx, tableInfo, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         assert columnReferences.size() == insertInputs.size()
             : "number of insert inputs must be equal to the number of columns";
 
