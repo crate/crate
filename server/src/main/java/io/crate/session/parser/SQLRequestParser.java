@@ -58,12 +58,6 @@ public final class SQLRequestParser {
     private SQLRequestParser() {
     }
 
-    private static void validate(SQLRequestParseContext parseContext) throws SQLParseSourceException {
-        if (parseContext.stmt() == null) {
-            throw new SQLParseSourceException("Field [stmt] was not defined");
-        }
-    }
-
     public static SQLRequestParseContext parseSource(BytesReference source) throws IOException {
         if (source.length() == 0) {
             throw new SQLParseException("Missing request body");
@@ -74,7 +68,9 @@ public final class SQLRequestParser {
             parser = XContentType.JSON.xContent().createParser(
                 NamedXContentRegistry.EMPTY, DeprecationHandler.THROW_UNSUPPORTED_OPERATION, source.streamInput());
             parse(parseContext, parser);
-            validate(parseContext);
+            if (parseContext.stmt() == null) {
+                throw new SQLParseSourceException("Field [stmt] was not defined");
+            }
             return parseContext;
         } catch (Exception e) {
             String sSource = "_na_";
@@ -91,7 +87,7 @@ public final class SQLRequestParser {
         }
     }
 
-    public static void parse(SQLRequestParseContext parseContext, XContentParser parser) throws Exception {
+    private static void parse(SQLRequestParseContext parseContext, XContentParser parser) throws Exception {
         XContentParser.Token token;
         while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
             if (token == XContentParser.Token.FIELD_NAME) {

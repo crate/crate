@@ -151,6 +151,15 @@ Scalar and Aggregation Functions
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Added a :ref:`statement_max_length` setting to limit the length of allowed SQL
+  statements. It defaults to 65536. Statements exceeding this limit are rejected
+  because large statements consume a high amount of memory. Large statements are
+  typically caused by inlining values or using a large number of ``VALUES``
+  clauses.
+  Instead, statements should be written using parameter symbols (``?``) and
+  inserting lots of values should be done using either bulk operations or a
+  ``INSERT INTO`` in combination with a ``SELECT FROM`` and ``UNNEST``.
+
 - Changed how scheduling and prioritization for read queries, in particular
   queries against ``sys.shards`` and ``sys.nodes`` work. This should help
   continue monitoring a cluster that is overloaded with too many concurrent

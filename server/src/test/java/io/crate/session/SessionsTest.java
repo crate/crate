@@ -23,6 +23,7 @@ package io.crate.session;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -43,6 +44,7 @@ import io.crate.analyze.Analyzer;
 import io.crate.auth.Protocol;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.transport.CancelRequest;
 import io.crate.execution.jobs.transport.TransportCancelAction;
@@ -162,6 +164,20 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             .sessionSettings().hashJoinsEnabled()).isFalse();
     }
 
+    @Test
+    public void test_rejects_large_statement() throws Exception {
+        Sessions sessions = newSessions(createNodeContext());
+        Session session = sessions.newSession(connectionProperties(), "doc", Role.CRATE_USER);
+        String longQuery = "SELECT " + "1, ".repeat(200) + "1";
+        String expectedMessage =
+            "Statement exceeds `statement_max_length` (512 allowed, 608 provided). Try replacing inline values with parameter placeholders (`?`)";
+        assertThatThrownBy(() -> session.parse("S1", longQuery, List.of()))
+            .hasMessage(expectedMessage);
+
+        assertThatThrownBy(() -> session.quickExec(longQuery, new BaseResultReceiver(), Row.EMPTY))
+            .hasMessage(expectedMessage);
+    }
+
     private Sessions newSessions(NodeContext nodeCtx) {
         Sessions sessions = new Sessions(
             nodeCtx,
@@ -169,7 +185,9 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
             mock(Planner.class),
             () -> mock(DependencyCarrier.class),
             new JobsLogs(() -> false),
-            Settings.EMPTY,
+            Settings.builder()
+                .put("statement_max_length", 512)
+                .build(),
             clusterService,
             sessionSettingRegistry
         );
