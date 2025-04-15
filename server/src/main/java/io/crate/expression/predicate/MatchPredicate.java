@@ -70,6 +70,7 @@ import io.crate.lucene.match.ParsedOptions;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
@@ -215,6 +216,9 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         String fieldName = fields.keySet().iterator().next();
 
         Reference ref = context.getRef(fieldName);
+        while (ref instanceof GeneratedReference genRef) {
+            ref = genRef.reference();
+        }
         if (ref == null || !(ref instanceof GeoReference geoRef)) {
             return Queries.newUnmappedFieldQuery(fieldName);
         }
