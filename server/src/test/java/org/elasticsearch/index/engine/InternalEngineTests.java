@@ -152,7 +152,6 @@ import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.codec.CodecService;
@@ -182,6 +181,7 @@ import org.junit.Test;
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 
 import io.crate.common.collections.Tuple;
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.doc.SysColumns;

@@ -49,7 +49,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.plugins.Plugin;
@@ -68,6 +67,7 @@ import org.elasticsearch.transport.netty4.Netty4Transport;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AlwaysOKAuthentication;
+import io.crate.common.concurrent.RejectableRunnable;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.netty.NettyBootstrap;

@@ -46,7 +46,6 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -54,6 +53,8 @@ import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import io.crate.common.concurrent.RejectableRunnable;
 
 public class InternalSnapshotsInfoService implements ClusterStateListener, SnapshotsInfoService {
 
