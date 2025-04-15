@@ -20,7 +20,6 @@
 package org.elasticsearch.action.support;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Function;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportRequest;
@@ -37,17 +36,13 @@ public abstract class TransportAction<Request extends TransportRequest, Response
     }
 
     public final CompletableFuture<Response> execute(Request request) {
-        return execute(request, x -> x);
-    }
-
-    public final <T> CompletableFuture<T> execute(Request request, Function<? super Response, ? extends T> mapper) {
         FutureActionListener<Response> listener = new FutureActionListener<>();
         try {
             doExecute(request, listener);
         } catch (Exception e) {
             listener.onFailure(e);
         }
-        return listener.thenApply(mapper);
+        return listener;
     }
 
     protected abstract void doExecute(Request request, ActionListener<Response> listener);
