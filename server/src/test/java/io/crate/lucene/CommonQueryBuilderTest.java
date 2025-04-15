@@ -884,6 +884,37 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_all_eq_on_array_ref_before_5_9_0() throws Exception {
+        var listOfNulls = new ArrayList<Integer>();
+        listOfNulls.add(null);
+        var listOfOneAndNull = new ArrayList<Integer>();
+        listOfOneAndNull.add(1);
+        listOfOneAndNull.add(null);
+        var listOfTwoAndNull = new ArrayList<Integer>();
+        listOfTwoAndNull.add(2);
+        listOfTwoAndNull.add(null);
+
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.V_5_8_0,
+            "create table tbl (a int[])");
+        builder.indexValue("a", List.of(1));
+        builder.indexValue("a", List.of(1, 1));
+        builder.indexValue("a", List.of());
+        builder.indexValue("a", listOfNulls);
+        builder.indexValue("a", null);
+        builder.indexValue("a", listOfOneAndNull);
+        builder.indexValue("a", listOfTwoAndNull);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.toQuery("1 = all(a)"))
+                .hasToString("+(+*:* -((a:[2 TO 2147483647] a:[-2147483648 TO 0])~1)) #(NOT (1 <> ANY(a)))");
+            assertThat(tester.runQuery("a", "1 = all(a)"))
+                .containsExactly(List.of(1), List.of(1, 1), List.of());
+        }
+    }
+
+    @Test
     public void test_all_eq_on_array_ref() throws Exception {
         var listOfNulls = new ArrayList<Integer>();
         listOfNulls.add(null);
@@ -907,6 +938,8 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         builder.indexValue("a", listOfOneAndNull);
         builder.indexValue("a", listOfTwoAndNull);
         try (QueryTester tester = builder.build()) {
+            assertThat(tester.toQuery("1 = all(a)"))
+                .hasToString("((+NumNullTermsPerDoc: a +(+*:* -((a:[2 TO 2147483647] a:[-2147483648 TO 0])~1))) _array_length_a:[0 TO 0])~1");
             assertThat(tester.runQuery("a", "1 = all(a)"))
                 .containsExactly(List.of(1), List.of(1, 1), List.of());
         }
