@@ -97,7 +97,7 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
 
     final void backgroundSync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases) {
         final Request request = new Request(shardId, retentionLeases);
-        transportService.sendChildRequest(
+        transportService.sendRequest(
             clusterService.localNode(),
             transportPrimaryAction,
             new ConcreteShardRequest<>(request, primaryAllocationId, primaryTerm),

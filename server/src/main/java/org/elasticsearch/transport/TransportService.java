@@ -457,7 +457,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         connectionManager.removeListener(listener);
     }
 
-    public <T extends TransportResponse> void sendRequest(final DiscoveryNode node, final String action,
+    public <T extends TransportResponse> void sendRequest(final DiscoveryNode node,
+                                                          final String action,
                                                           final TransportRequest request,
                                                           final TransportResponseHandler<T> handler) {
         final Transport.Connection connection;
@@ -555,37 +556,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         } else {
             return connectionManager.getConnection(node);
         }
-    }
-
-    public final <T extends TransportResponse> void sendChildRequest(final DiscoveryNode node,
-                                                                     final String action,
-                                                                     final TransportRequest request,
-                                                                     final TransportRequestOptions options,
-                                                                     final TransportResponseHandler<T> handler) {
-        final Transport.Connection connection;
-        try {
-            connection = getConnection(node);
-        } catch (NodeNotConnectedException ex) {
-            // the caller might not handle this so we invoke the handler
-            handler.handleException(ex);
-            return;
-        }
-        sendChildRequest(connection, action, request, options, handler);
-    }
-
-    public <T extends TransportResponse> void sendChildRequest(final Transport.Connection connection,
-                                                               final String action,
-                                                               final TransportRequest request,
-                                                               final TransportResponseHandler<T> handler) {
-        sendChildRequest(connection, action, request, TransportRequestOptions.EMPTY, handler);
-    }
-
-    public <T extends TransportResponse> void sendChildRequest(final Transport.Connection connection,
-                                                               final String action,
-                                                               final TransportRequest request,
-                                                               final TransportRequestOptions options,
-                                                               final TransportResponseHandler<T> handler) {
-        sendRequest(connection, action, request, options, handler);
     }
 
     private <T extends TransportResponse> void sendRequestInternal(final Transport.Connection connection,

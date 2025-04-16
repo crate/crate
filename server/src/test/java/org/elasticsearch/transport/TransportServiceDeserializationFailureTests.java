@@ -109,7 +109,7 @@ public class TransportServiceDeserializationFailureTests extends ESTestCase {
 
         {
 
-            transportService.sendChildRequest(otherNode, testActionName, TransportRequest.Empty.INSTANCE,
+            transportService.sendRequest(otherNode, testActionName, TransportRequest.Empty.INSTANCE,
                     TransportRequestOptions.EMPTY, new TransportResponseHandler<TransportResponse.Empty>() {
                         @Override
                         public void handleResponse(TransportResponse.Empty response) {

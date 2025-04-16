@@ -95,7 +95,7 @@ public class RetentionLeaseSyncAction extends
     final void sync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases,
                     ActionListener<ReplicationResponse> listener) {
         final Request request = new Request(shardId, retentionLeases);
-        transportService.sendChildRequest(
+        transportService.sendRequest(
             clusterService.localNode(),
             transportPrimaryAction,
             new ConcreteShardRequest<>(request, primaryAllocationId, primaryTerm),

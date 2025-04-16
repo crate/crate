@@ -137,7 +137,7 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
                      long primaryTerm,
                      ActionListener<ReplicationResponse> listener) {
         // skip reroute phase
-        transportService.sendChildRequest(
+        transportService.sendRequest(
             clusterService.localNode(),
             transportPrimaryAction,
             new ConcreteShardRequest<>(request, primaryAllocationId, primaryTerm),
