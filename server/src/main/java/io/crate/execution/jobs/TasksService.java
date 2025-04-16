@@ -186,10 +186,13 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
 
         if (LOGGER.isTraceEnabled()) {
             LOGGER.trace(
-                "RootTask created for job={} tasks={} totalTasks={}",
+                "RootTask created for job={} tasks={} totalTasks={} node={}/{} participating={}",
                 jobId,
                 builder.size(),
-                activeTasks.size()
+                activeTasks.size(),
+                nodes.getLocalNodeId(),
+                nodes.getLocalNode().getName(),
+                newRootTask.participatingNodes()
             );
         }
         return newRootTask;
