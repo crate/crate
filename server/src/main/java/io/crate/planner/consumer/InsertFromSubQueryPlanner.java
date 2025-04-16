@@ -77,7 +77,8 @@ public final class InsertFromSubQueryPlanner {
             Settings.EMPTY,
             statement.tableInfo().isPartitioned(),
             outputs,
-            statement.outputs() == null ? List.of() : statement.outputs()
+            statement.outputs() == null ? List.of() : statement.outputs(),
+            plannerContext.nodeContext().tableStats().estimatedSizePerRow(statement.tableInfo())
         );
         LogicalPlan plannedSubQuery = logicalPlanner.plan(
             statement.subQueryRelation(),
