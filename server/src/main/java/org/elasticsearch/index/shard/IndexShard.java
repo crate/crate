@@ -188,6 +188,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final IndexingOperationListener indexingOperationListeners;
     private final Runnable globalCheckpointSyncer;
     private final RetentionLeaseSyncer retentionLeaseSyncer;
+    private final AtomicBoolean pendingRetentionLeaseBackgroundSync = new AtomicBoolean();
 
     Runnable getGlobalCheckpointSyncer() {
         return globalCheckpointSyncer;
@@ -2194,8 +2195,16 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             );
         } else {
             logger.trace("background syncing retention leases [{}] after expiration check", retentionLeases.v2());
-            retentionLeaseSyncer.backgroundSync(
-                shardId, shardRouting.allocationId().getId(), getPendingPrimaryTerm(), retentionLeases.v2());
+            boolean wasntPending = pendingRetentionLeaseBackgroundSync.compareAndSet(false, true);
+            if (wasntPending) {
+                var syncFuture = retentionLeaseSyncer.backgroundSync(
+                    shardId,
+                    shardRouting.allocationId().getId(),
+                    getPendingPrimaryTerm(),
+                    retentionLeases.v2()
+                );
+                syncFuture.whenComplete((_, _) -> pendingRetentionLeaseBackgroundSync.compareAndSet(true, false));
+            }
         }
     }
 
