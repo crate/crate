@@ -63,4 +63,10 @@ public class IpTypeTest extends DataTypeTestCase<String> {
     public void test_reference_resolver_index_and_docvalues_off() throws Exception {
         assumeFalse("IpType cannot disable column store", true);
     }
+
+    @Test
+    public void test_cast_string_value_to_ip_normalized() {
+        assertThat(IpType.INSTANCE.implicitCast("::ffff:192.168.0.1"))
+            .hasToString("192.168.0.1");
+    }
 }
