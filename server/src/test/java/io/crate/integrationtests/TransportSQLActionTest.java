@@ -28,7 +28,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -2275,5 +2274,38 @@ public class TransportSQLActionTest extends IntegTestCase {
 
         execute("select x from tbl where y in ('123456789.123456789', '778941863531215726456187232788659941.79')");
         assertThat(response).hasRows("123456789.123456789");
+    }
+
+    @Test
+    @UseRandomizedOptimizerRules(0)
+    @UseRandomizedSchema(random = false)
+    public void test_ip_data_type_insert_collect_and_get() {
+        execute("CREATE TABLE tbl(a IP)");
+        execute("CREATE TABLE tbl_pk(a IP PRIMARY KEY)");
+        execute("INSERT INTO tbl(a) VALUES('::ffff:192.168.0.1'),('192.168.0.1')");
+        assertThat(response.rowCount()).isEqualTo(2);
+        execute("INSERT INTO tbl_pk(a) VALUES('::ffff:192.168.0.1'),('192.168.0.1')");
+        assertThat(response.rowCount()).isEqualTo(1); // PK: one row is inserted.
+        execute("REFRESH TABLE tbl, tbl_pk");
+
+        // Not-Primary Key -> Collect
+        execute("EXPLAIN (COSTS FALSE) SELECT * FROM tbl WHERE a = '192.168.0.1'");
+        assertThat(response).hasRows("Collect[doc.tbl | [a] | (a = '192.168.0.1')]");
+        execute("SELECT a FROM tbl WHERE a = '192.168.0.1'");
+        assertThat(response).hasRows(
+            "192.168.0.1",
+            "192.168.0.1");
+        execute("SELECT a FROM tbl WHERE a = '::ffff:192.168.0.1'");
+        assertThat(response).hasRows(
+            "192.168.0.1",
+            "192.168.0.1");
+
+        // IP as Primary Key
+        execute("EXPLAIN (COSTS FALSE) SELECT * FROM tbl_pk WHERE a = '192.168.0.1'");
+        assertThat(response).hasRows("Get[doc.tbl_pk | a | DocKeys{'192.168.0.1'} | (a = '192.168.0.1')]");
+        execute("SELECT _id, a FROM tbl_pk WHERE a = '192.168.0.1'");
+        assertThat(response).hasRows("192.168.0.1| 192.168.0.1");
+        execute("SELECT _id, a FROM tbl_pk WHERE a = '::ffff:192.168.0.1'");
+        assertThat(response).hasRows("192.168.0.1| 192.168.0.1");
     }
 }

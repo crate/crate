@@ -93,6 +93,49 @@ Breaking Changes
   a statement like ``GRANT DQL ON TABLE actually_a_view`` would succeed but not
   do anything.
 
+- Applied normalization for :ref:`IP <data-types-ip-addresses>` values so that
+  for example ``'::ffff:192.168.0.1'::IP``, becomes ``'192.168.0.1'``.
+  Previously, this normalization was already applied for all the values inserted
+  into a column of :ref:`IP <data-types-ip-addresses>`, but was not applied for
+  literal values in an SQL query, and was also **not** applied to the values
+  inserted into a column of ``IP`` data type, when this column was part of the
+  ``PRIMARY KEY`` of the table. This resulted in wrong behavior when trying to
+  filter on the table by it's ``IP`` (``PRIMARY KEY``), as the value stored
+  for the ``_id`` would have been the un-normalized one, whereas the value
+  for the table column would have been the normalized one. e.g.::
+
+    CREATE  TABLE  tbl(a IP , PRIMARY KEY(a));
+    INSERT INTO tbl(a) VALUES ('::ffff:192.168.0.1');
+    REFRESH TABLE tbl;
+    SELECT _id, a FROM tbl;
+
+  Would yield::
+
+    +--------------------+-------------+
+    | _id                | a           |
+    +--------------------+-------------+
+    | ::ffff:192.168.0.1 | 192.168.0.1 |
+    +--------------------+-------------+
+
+  So the query::
+
+    SELECT * FROM tbl WHERE a = '192.168.0.1'
+
+  would not return any results, as it will use the ``_id`` to try and match the
+  ``IP`` value in the ``WHERE`` clause. You can find more details about this
+  mechanism :ref:`here <concept-addressing-documents>`.
+
+  .. WARNING::
+
+      Because of this change, users are advised to re-create tables which have
+      an ``IP`` column as ``PRIMARY KEY`` or as part of the ``PRIMARY KEY``.
+      Since the string ``IP`` values will be automatically normalized before
+      stored as ``_id``, if for example a value: ``::ffff:192.168.0.1``
+      is already stored on the table, after upgrading to :ref:`version_6.0.0`,
+      it will be possible to re-insert the value on the table, without any
+      complaint from the ``PRIMARY KEY`` constraint check, as the value will be
+      stored, normalized, as ``192.168.0.1``.
+
 
 Deprecations
 ============

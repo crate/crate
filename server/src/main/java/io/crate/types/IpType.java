@@ -35,6 +35,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.network.InetAddresses;
+import org.elasticsearch.common.network.NetworkAddress;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists;
@@ -144,7 +145,8 @@ public class IpType extends DataType<String> implements Streamer<String> {
             return null;
         } else if (value instanceof String str) {
             validate(str);
-            return (String) value;
+            // Normalize the IP, so for example '::ffff:192.168.0.1' becomes '192.168.0.1'
+            return NetworkAddress.format(InetAddresses.forString((String) value));
         } else if (value instanceof Number number) {
             long longIp = number.longValue();
             if (longIp < 0) {
