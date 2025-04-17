@@ -26,8 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
-import org.jetbrains.annotations.Nullable;
-
 public final class StringUtils {
 
     private StringUtils() {}
@@ -48,14 +46,6 @@ public final class StringUtils {
             result.add(value.substring(lastStart));
         }
         return result;
-    }
-
-    @Nullable
-    public static String nullOrString(@Nullable Object value) {
-        if (value == null) {
-            return null;
-        }
-        return value.toString();
     }
 
     /**
