@@ -854,4 +854,23 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Column 'tags' was indexed with the 'standard' analyzer, searching with a different analyzer, 'dummy' is not supported");
     }
+
+    @Test
+    public void test_char_comparisons_involving_whitespaces() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (a char(3))");
+        builder.indexValue("a", "");
+        builder.indexValue("a", " ");
+        builder.indexValue("a", "a ");
+        builder.indexValue("a", "\na");
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("a", "a < e'\n'")).isEmpty();
+            assertThat(tester.runQuery("a", "a = 'a    '")).containsExactly("a  ");
+            assertThat(tester.runQuery("a", "a = '     '")).containsExactly("   ", "   ");
+            assertThat(tester.runQuery("a", "a = e'\na'")).containsExactly("\na ");
+        }
+    }
 }

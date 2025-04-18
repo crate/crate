@@ -68,6 +68,8 @@ public class CharacterTypeTest extends DataTypeTestCase<String> {
         assertThat(CharacterType.of(3).compare(" a  ", " a       ")).isEqualTo(0);
         assertThat(CharacterType.of(3).compare("  a", " a")).isLessThan(0);
         assertThat(CharacterType.of(3).compare(" b          ", " a  ")).isGreaterThan(0);
+        assertThat(CharacterType.of(3).compare("", " ")).isEqualTo(0);
+        assertThat(CharacterType.of(3).compare("", "\n")).isGreaterThan(0);
     }
 
     @Test
