@@ -105,11 +105,12 @@ public class ColumnIndexWriterProjector implements Projector {
         }
 
         Reference[] insertColumns = columnReferences.toArray(new Reference[columnReferences.size()]);
+        boolean continueOnError = !txnCtx.sessionSettings().insertSelectFailFast();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
             ignoreDuplicateKeys ? DuplicateKeyAction.IGNORE : DuplicateKeyAction.UPDATE_OR_FAIL,
-            true, // continueOnErrors
+            continueOnError,
             onConflictColumns,
             insertColumns,
             returnValues.isEmpty() ? null : returnValues.toArray(new Symbol[0]),

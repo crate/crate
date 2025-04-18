@@ -50,7 +50,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
@@ -346,7 +345,12 @@ public class ShardingUpsertExecutor
         public void onResponse(ShardResponse shardResponse) {
             nodeLimit.onSample(startTime, false);
             resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
-            maybeSetInterrupt(shardResponse.failure());
+            var failure = shardResponse.failure();
+            if (failure != null) {
+                // null response from a shard shouldn't overwrite non-null response from another shard.
+                // Otherwise, when countdown() reaches 0, we won't throw an error.
+                interrupt.set(failure);
+            }
             countdown();
         }
 
@@ -364,12 +368,6 @@ public class ShardingUpsertExecutor
                 } else {
                     upsertResultFuture.completeExceptionally(interruptedException);
                 }
-            }
-        }
-
-        private void maybeSetInterrupt(@Nullable Exception failure) {
-            if (failure instanceof InterruptedException) {
-                interrupt.set(failure);
             }
         }
     }
