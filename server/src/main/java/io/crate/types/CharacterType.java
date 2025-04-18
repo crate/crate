@@ -167,7 +167,7 @@ public class CharacterType extends StringType {
         }
         var string = cast(value);
         if (string.length() <= lengthLimit) {
-            return string;
+            return padEnd(string, lengthLimit, ' ');
         } else {
             return string.substring(0, lengthLimit);
         }
@@ -214,7 +214,11 @@ public class CharacterType extends StringType {
 
     @Override
     public int compare(String val1, String val2) {
-        return val1.stripTrailing().compareTo(val2.stripTrailing());
+        if (!val1.isBlank() && !val2.isBlank()) {
+            return val1.stripTrailing().compareTo(val2.stripTrailing());
+        } else {
+            return super.compare(val1, val2);
+        }
     }
 
     @Override
