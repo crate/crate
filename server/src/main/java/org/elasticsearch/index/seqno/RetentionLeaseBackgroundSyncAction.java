@@ -21,6 +21,7 @@ package org.elasticsearch.index.seqno;
 
 import java.io.IOException;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -95,8 +96,9 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
         assert false : "use RetentionLeaseBackgroundSyncAction#backgroundSync";
     }
 
-    final void backgroundSync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases) {
+    final CompletableFuture<Void> backgroundSync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases) {
         final Request request = new Request(shardId, retentionLeases);
+        CompletableFuture<Void> result = new CompletableFuture<>();
         transportService.sendRequest(
             clusterService.localNode(),
             transportPrimaryAction,
@@ -115,12 +117,14 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
 
                 @Override
                 public void handleResponse(ReplicationResponse response) {
+                    result.complete(null);
                 }
 
                 @Override
                 public void handleException(TransportException e) {
                     if (Exceptions.firstCause(e, NodeClosedException.class) != null) {
                         // node shutting down
+                        result.complete(null);
                         return;
                     }
                     Throwable cause = Exceptions.firstCause(
@@ -131,11 +135,14 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
                     );
                     if (cause != null) {
                         // the index was deleted or the shard is closed
+                        result.complete(null);
                         return;
                     }
+                    result.completeExceptionally(e);
                     getLogger().warn(new ParameterizedMessage("{} retention lease background sync failed", shardId), e);
                 }
             });
+        return result;
     }
 
     @Override
