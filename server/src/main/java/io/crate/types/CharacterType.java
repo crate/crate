@@ -63,9 +63,9 @@ public class CharacterType extends StringType {
                     return null;
                 }
                 if (value instanceof String s) {
-                    return padEnd(s.stripTrailing(), lengthLimit, ' ');
+                    return padEnd(s.stripTrailing(), lengthLimit, Character.MIN_VALUE);
                 }
-                return padEnd(((BytesRef) value).utf8ToString().stripTrailing(), lengthLimit, ' ');
+                return padEnd(((BytesRef) value).utf8ToString().stripTrailing(), lengthLimit, Character.MIN_VALUE);
             })
         ) {
             @Override
@@ -137,7 +137,7 @@ public class CharacterType extends StringType {
         if (value.length() == lengthLimit) {
             return value;
         } else if (value.length() < lengthLimit) {
-            return padEnd(value, lengthLimit, ' ');
+            return padEnd(value, lengthLimit, Character.MIN_VALUE);
         } else {
             if (isBlank(value, lengthLimit, value.length())) {
                 return value.substring(0, lengthLimit);
@@ -155,7 +155,7 @@ public class CharacterType extends StringType {
     public String implicitCast(Object value) throws IllegalArgumentException, ClassCastException {
         var s = cast(value);
         if (s != null) {
-            return padEnd(s, lengthLimit, ' ');
+            return padEnd(s, lengthLimit, Character.MIN_VALUE);
         }
         return s;
     }
