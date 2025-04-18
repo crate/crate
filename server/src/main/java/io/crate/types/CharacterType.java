@@ -57,15 +57,15 @@ public class CharacterType extends StringType {
             true,
             true,
             new StringEqQuery(value -> {
-                // strip trailing whitespaces and pad to reach the {@param lengthLimit},
-                // to match the value stored on disk.
                 if (value == null) {
                     return null;
                 }
+                // pads for values shorter than the length limit and also strips excess blank padding which should be ignored
+                // when compared.
                 if (value instanceof String s) {
-                    return padEnd(s.stripTrailing(), lengthLimit, ' ');
+                    return stripTrailingBlankPadding(padEnd(s, lengthLimit, ' '));
                 }
-                return padEnd(((BytesRef) value).utf8ToString().stripTrailing(), lengthLimit, ' ');
+                return stripTrailingBlankPadding(padEnd(((BytesRef) value).utf8ToString(), lengthLimit, ' '));
             })
         ) {
             @Override
@@ -167,7 +167,7 @@ public class CharacterType extends StringType {
         }
         var string = cast(value);
         if (string.length() <= lengthLimit) {
-            return string;
+            return padEnd(string, lengthLimit, ' ');
         } else {
             return string.substring(0, lengthLimit);
         }
@@ -214,11 +214,26 @@ public class CharacterType extends StringType {
 
     @Override
     public int compare(String val1, String val2) {
-        return val1.stripTrailing().compareTo(val2.stripTrailing());
+        // pads for values shorter than the length limit and also strips excess blank padding which should be ignored
+        // when compared.
+        return stripTrailingBlankPadding(padEnd(val1, lengthLimit, ' '))
+            .compareTo(stripTrailingBlankPadding(padEnd(val2, lengthLimit, ' ')));
     }
 
     @Override
     public StorageSupport<Object> storageSupport() {
         return storageSupport;
+    }
+
+    private String stripTrailingBlankPadding(String s) {
+        int idx = s.length();
+        for (int i = idx - 1; i >= lengthLimit; i--) {
+            if (Character.isSpaceChar(s.charAt(i))) {
+                idx = i;
+            } else {
+                break;
+            }
+        }
+        return s.substring(0, idx);
     }
 }
