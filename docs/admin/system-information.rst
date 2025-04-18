@@ -206,6 +206,7 @@ information about the currently applied cluster settings.
     | settings['replication']['logical']['recovery']                                    | object       |
     | settings['replication']['logical']['recovery']['chunk_size']                      | text         |
     | settings['replication']['logical']['recovery']['max_concurrent_file_chunks']      | integer      |
+    | settings['statement_max_length']                                                  | integer      |
     | settings['statement_timeout']                                                     | text         |
     | settings['stats']                                                                 | object       |
     | settings['stats']['breaker']                                                      | object       |
