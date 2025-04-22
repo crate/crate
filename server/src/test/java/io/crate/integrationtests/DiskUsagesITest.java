@@ -229,6 +229,11 @@ public class DiskUsagesITest extends IntegTestCase {
             clusterInfoService.refresh(); // so a subsequent reroute sees disk usage according to the current state
         });
 
+        execute("SET GLOBAL TRANSIENT" +
+                "   cluster.routing.allocation.disk.watermark.low='85%'," +
+                "   cluster.routing.allocation.disk.watermark.high='100%'," +
+                "   cluster.routing.allocation.disk.watermark.flood_stage='100%'");
+
         // shards are 1 byte large
         clusterInfoService.setShardSizeFunctionAndRefresh(shardRouting -> 1L);
         // node 2 only has space for one shard
@@ -237,11 +242,6 @@ public class DiskUsagesITest extends IntegTestCase {
             discoveryNode.getId().equals(nodeIds.get(2))
                 ? 150L - masterAppliedClusterState.get().getRoutingNodes().node(nodeIds.get(2)).numberOfOwningShards()
                 : 1000L));
-
-        execute("SET GLOBAL TRANSIENT" +
-                "   cluster.routing.allocation.disk.watermark.low='85%'," +
-                "   cluster.routing.allocation.disk.watermark.high='100%'," +
-                "   cluster.routing.allocation.disk.watermark.flood_stage='100%'");
 
         execute("CREATE TABLE t (id INT PRIMARY KEY) " +
                 "CLUSTERED INTO 6 SHARDS " +
