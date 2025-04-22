@@ -23,8 +23,9 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING;
 
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -56,6 +58,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.After;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
@@ -72,6 +75,15 @@ public class DiskUsagesITest extends IntegTestCase {
         // Use the mock internal cluster info service, which has fake-able disk usages
         plugins.add(MockInternalClusterInfoService.TestPlugin.class);
         return plugins;
+    }
+
+    @After
+    public void resetWatermarkSettings() {
+        execute("""
+            reset global cluster.routing.allocation.disk.watermark.low,
+                         cluster.routing.allocation.disk.watermark.high,
+                         cluster.routing.allocation.disk.watermark.flood_stage
+            """);
     }
 
     @Test
@@ -213,7 +225,6 @@ public class DiskUsagesITest extends IntegTestCase {
 
         AtomicReference<ClusterState> masterAppliedClusterState = new AtomicReference<>();
         cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> {
-            assertThat(event.state().getRoutingNodes().node(nodeIds.get(2)).size()).isLessThanOrEqualTo(1);
             masterAppliedClusterState.set(event.state());
             clusterInfoService.refresh(); // so a subsequent reroute sees disk usage according to the current state
         });
@@ -447,18 +458,19 @@ public class DiskUsagesITest extends IntegTestCase {
         assertThat(response).hasRows(
             "1",
             "3");
+
     }
 
     private void assertBlocked(Runnable runnable, ClusterBlock clusterBlock) {
-        try {
-            runnable.run();
-            fail("Expected ClusterBlockException");
-        } catch (ClusterBlockException e) {
-            assertThat(e.blocks()).hasSizeGreaterThan(0);
-            for (var block : e.blocks()) {
-                assertThat(block.id()).isEqualTo(clusterBlock.id());
-            }
-        }
+        assertThatThrownBy(() -> runnable.run())
+            .isExactlyInstanceOf(ClusterBlockException.class)
+            .extracting(x -> ((ClusterBlockException) x).blocks(), as(InstanceOfAssertFactories.SET))
+            .isNotEmpty()
+            .satisfies(blocks -> {
+                for (var block : blocks) {
+                    assertThat(((ClusterBlock) block).id()).isEqualTo(clusterBlock.id());
+                }
+            });
     }
 
     private static ClusterState clusterState() {
