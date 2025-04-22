@@ -435,6 +435,9 @@ public class DiskUsagesITest extends IntegTestCase {
             );
         });
 
+        // ensures there are no more pending tasks; all nodes need to have applied the block
+        ensureGreen();
+
         // Cannot add further documents
         assertBlocked(
             () -> execute("insert into test (id, foo) values (2, 'bar') on conflict (id) do nothing"),
