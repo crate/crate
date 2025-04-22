@@ -21,8 +21,6 @@
 
 package io.crate.analyze.where;
 
-import static io.crate.common.StringUtils.nullOrString;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashMap;
@@ -50,6 +48,7 @@ import io.crate.metadata.PartitionReferenceResolver;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.types.DataTypes;
 
 public class WhereClauseAnalyzer {
 
@@ -148,7 +147,7 @@ public class WhereClauseAnalyzer {
         if (queryPartitionMap.size() == 1) {
             Map.Entry<Symbol, List<Literal<?>>> entry = Iterables.getOnlyElement(queryPartitionMap.entrySet());
             return new PartitionResult(
-                entry.getKey(), Lists.map(entry.getValue(), literal -> nullOrString(literal.value())));
+                entry.getKey(), Lists.map(entry.getValue(), literal -> DataTypes.STRING.implicitCast(literal.value())));
         } else {
             PartitionResult partitionResult = tieBreakPartitionQueries(
                 normalizer, queryPartitionMap, coordinatorTxnCtx);
@@ -203,7 +202,7 @@ public class WhereClauseAnalyzer {
             Tuple<Symbol, List<Literal<?>>> symbolListTuple = canMatch.get(0);
             return new PartitionResult(
                 symbolListTuple.v1(),
-                Lists.map(symbolListTuple.v2(), literal -> nullOrString(literal.value()))
+                Lists.map(symbolListTuple.v2(), literal -> DataTypes.STRING.implicitCast(literal.value()))
             );
         }
         return null;

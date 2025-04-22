@@ -49,7 +49,7 @@ public class DocKeysTest extends ESTestCase {
     public void testClusteredIsFirstInId() {
         // if a the table is clustered and has a pk, the clustering value is put in front in the id computation
         List<List<Symbol>> pks = List.of(
-            List.<Symbol>of(Literal.of(1), Literal.of("Ford"))
+            List.of(Literal.of(1), Literal.of("Ford"))
         );
         DocKeys docKeys = new DocKeys(pks, false, false, 1, null);
         DocKeys.DocKey key = docKeys.getOnlyKey();
@@ -59,7 +59,7 @@ public class DocKeysTest extends ESTestCase {
     }
 
     @Test
-    public void testDocKeySequeceAndTerm() {
+    public void testDocKeySequenceAndTerm() {
         DocKeys docKeys = new DocKeys(List.of(List.of(Literal.of(1), Literal.of(22), Literal.of(5))),
                                       false,
                                       true,
@@ -68,11 +68,9 @@ public class DocKeysTest extends ESTestCase {
         DocKeys.DocKey key = docKeys.getOnlyKey();
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         Optional<Long> sequenceNo = key.sequenceNo(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY);
-        assertThat(sequenceNo.isPresent()).isTrue();
-        assertThat(sequenceNo.get()).isEqualTo(22L);
+        assertThat(sequenceNo).isPresent().contains(22L);
         Optional<Long> primaryTerm = key.primaryTerm(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY);
-        assertThat(primaryTerm.isPresent()).isTrue();
-        assertThat(primaryTerm.get()).isEqualTo(5L);
+        assertThat(primaryTerm).isPresent().contains(5L);
     }
 
     @Test
@@ -90,5 +88,17 @@ public class DocKeysTest extends ESTestCase {
         assertThatThrownBy(() -> key.sequenceNo(txnCtx, nodeCtx, new Row1(1), SubQueryResults.EMPTY))
             .isInstanceOf(IllegalArgumentException.class)
             .hasMessage("The query contains a parameter placeholder $2, but there are only 1 parameter values");
+    }
+
+    @Test
+    public void test_boolean_pk() {
+        List<List<Symbol>> pks = List.of(
+            List.of(Literal.of(1), Literal.of(Boolean.TRUE))
+        );
+        DocKeys docKeys = new DocKeys(pks, false, false, 1, null);
+        DocKeys.DocKey key = docKeys.getOnlyKey();
+        CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
+        assertThat(key.getRouting(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY)).isEqualTo("true");
+        assertThat(key.getId(txnCtx, nodeCtx, Row.EMPTY, SubQueryResults.EMPTY)).isEqualTo("AgF0ATE=");
     }
 }

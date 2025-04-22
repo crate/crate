@@ -43,7 +43,7 @@ Version 6.0.0 - Unreleased
 Breaking Changes
 ================
 
-- Updated Lucene from 9.12 to 10.0 which brings the following user facing changes:
+- Updated Lucene from 9.12 to 10.2.0 which brings the following user facing changes:
 
   - Tables created in 4.x can't be read anymore. If you're running CrateDB 5.x
     and have any tables created in 4.x they need to be reindexed before moving
@@ -135,6 +135,25 @@ Breaking Changes
       it will be possible to re-insert the value on the table, without any
       complaint from the ``PRIMARY KEY`` constraint check, as the value will be
       stored, normalized, as ``192.168.0.1``.
+
+ - Fixed an issue that caused queries filtering on partition(s) of a table for
+   which the ``PARTITION BY`` clause, contains a column of ``BOOLEAN`` type to
+   return no results, e.g. for a table::
+
+     CREATE TABLE tbl(id BOOLEAN, PRIMARY KEY(id)) PARTITIONED BY (id);
+     INSERT INTO tbl(id) VALUES (FALSE);
+     REFRESH TABLE tbl;
+
+   The query::
+
+     SELECT * FROM tbl WHERE id = FALSE;
+
+   would return ``0`` rows;
+
+   .. WARNING::
+
+       Because of this fix, users should re-create tables which have a
+       ``BOOLEAN`` column in their ``PARTITIONED BY`` clause.
 
 
 Deprecations

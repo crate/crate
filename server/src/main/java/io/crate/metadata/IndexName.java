@@ -21,39 +21,37 @@
 
 package io.crate.metadata;
 
-import java.io.UnsupportedEncodingException;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.function.BiFunction;
 import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.indices.InvalidIndexNameException;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import com.github.benmanes.caffeine.cache.CacheLoader;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import io.crate.blob.v2.BlobIndex;
-import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.types.DataTypes;
 
 public final class IndexName {
 
     private static final Logger LOGGER = LogManager.getLogger(IndexName.class);
     private static final DeprecationLogger DEPRECATION_LOGGER = new DeprecationLogger(LOGGER);
+    private static final String PARTITIONED_KEY_WORD = "partitioned";
 
     public static final int MAX_INDEX_NAME_BYTES = 255;
 
-    private static final String PARTITIONED_KEY_WORD = "partitioned";
+    private IndexName() {}
 
     @VisibleForTesting
     static final String PARTITIONED_TABLE_PART = "." + PARTITIONED_KEY_WORD + ".";
@@ -84,13 +82,7 @@ public final class IndexName {
         if (indexName.charAt(0) == '-' || indexName.charAt(0) == '+') {
             throw exceptionCtor.apply(indexName, "must not start with '-', or '+'");
         }
-        int byteCount = 0;
-        try {
-            byteCount = indexName.getBytes("UTF-8").length;
-        } catch (UnsupportedEncodingException e) {
-            // UTF-8 should always be supported, but rethrow this if it is not for some reason
-            throw new ElasticsearchException("Unable to determine length of index name", e);
-        }
+        int byteCount = indexName.getBytes(StandardCharsets.UTF_8).length;
         if (byteCount > MAX_INDEX_NAME_BYTES) {
             throw exceptionCtor.apply(indexName, "index name is too long, (" + byteCount + " > " + MAX_INDEX_NAME_BYTES + ")");
         }
@@ -204,15 +196,10 @@ public final class IndexName {
                 .executor(Runnable::run)
                 .initialCapacity(10)
                 .maximumSize(20)
-                .build(new CacheLoader<List<String>, String>() {
-                    @Override
-                    public String load(@NotNull List<String> key) {
-                        return IndexName.encode(relationName1, PartitionName.encodeIdent(key));
-                    }
-                });
+                .build(key -> IndexName.encode(relationName1, PartitionName.encodeIdent(key)));
             return () -> {
                 // copy because the values of the inputs are mutable
-                List<String> partitions = Lists.map(partitionedByInputs1, input -> StringUtils.nullOrString(input.value()));
+                List<String> partitions = Lists.map(partitionedByInputs1, input -> DataTypes.STRING.implicitCast(input.value()));
                 return cache.get(partitions);
             };
         }

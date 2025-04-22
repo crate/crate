@@ -336,6 +336,7 @@ public class RootTask implements CompletionListenable<Void> {
                "id=" + jobId +
                ", tasks=" + orderedTasks +
                ", closed=" + closed +
+               ", participating=" + participatedNodes +
                '}';
     }
 
@@ -354,7 +355,7 @@ public class RootTask implements CompletionListenable<Void> {
         private boolean finishIfNeeded() {
             if (traceEnabled) {
                 Task task = getTask(id);
-                logger.trace("Task completed id={} task={} error={}", id, task, failure);
+                logger.trace("Task completed jobId={} id={} task={} error={}", jobId, id, task, failure);
             }
             if (numActiveTasks.decrementAndGet() == 0) {
                 finish();

@@ -26,7 +26,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -71,30 +70,6 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void prepare() throws IOException {
         e = SQLExecutor.of(clusterService);
         registerTables(e);
-
-        RelationName docGeneratedCol = new RelationName("doc", "generated_col");
-        e.addTable(
-            "create table doc.generated_col (" +
-            "   ts timestamp with time zone ," +
-            "   x integer," +
-            "   y long," +
-            "   day as date_trunc('day', ts)," +
-            "   minus_y as y * -1," +
-            "   x_incr as x + 1" +
-            ") partitioned by (day, minus_y)",
-            new PartitionName(docGeneratedCol, List.of("1420070400000", "-1")).asIndexName(),
-            new PartitionName(docGeneratedCol, List.of("1420156800000", "-2")).asIndexName()
-        );
-        RelationName docDoubleGenParted = new RelationName(DocSchemaInfo.NAME, "double_gen_parted");
-        e.addTable(
-            "create table doc.double_gen_parted (" +
-            "   x integer," +
-            "   x1 as x + 1," +
-            "   x2 as x + 2" +
-            ") partitioned by (x1, x2)",
-                new PartitionName(docDoubleGenParted, List.of("4", "5")).toString(),
-                new PartitionName(docDoubleGenParted, List.of("5", "6")).toString()
-        );
     }
 
     private void registerTables(SQLExecutor builder) throws IOException {
@@ -116,6 +91,15 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             new PartitionName(docParted, singletonList("1395961200000")).asIndexName(),
             new PartitionName(docParted, singletonList(null)).asIndexName()
         );
+        RelationName docBooleanParted = new RelationName("doc", "bool_parted");
+        builder.addTable(
+            "create table doc.bool_parted (" +
+                "   id boolean" +
+                ") partitioned by (id)",
+            new PartitionName(docBooleanParted, singletonList("false")).asIndexName(),
+            new PartitionName(docBooleanParted, singletonList("true")).asIndexName(),
+            new PartitionName(docBooleanParted, singletonList(null)).asIndexName()
+        );
         builder.addTable(
             "create table doc.users_multi_pk (" +
             "   id long primary key," +
@@ -133,10 +117,29 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "   i4 integer primary key" +
             ")"
         );
-    }
-
-    private AnalyzedUpdateStatement analyzeUpdate(String stmt) {
-        return e.analyze(stmt);
+        RelationName docGeneratedCol = new RelationName("doc", "generated_col");
+        builder.addTable(
+            "create table doc.generated_col (" +
+                "   ts timestamp with time zone ," +
+                "   x integer," +
+                "   y long," +
+                "   day as date_trunc('day', ts)," +
+                "   minus_y as y * -1," +
+                "   x_incr as x + 1" +
+                ") partitioned by (day, minus_y)",
+            new PartitionName(docGeneratedCol, List.of("1420070400000", "-1")).asIndexName(),
+            new PartitionName(docGeneratedCol, List.of("1420156800000", "-2")).asIndexName()
+        );
+        RelationName docDoubleGenParted = new RelationName(DocSchemaInfo.NAME, "double_gen_parted");
+        builder.addTable(
+            "create table doc.double_gen_parted (" +
+                "   x integer," +
+                "   x1 as x + 1," +
+                "   x2 as x + 2" +
+                ") partitioned by (x1, x2)",
+            new PartitionName(docDoubleGenParted, List.of("4", "5")).toString(),
+            new PartitionName(docDoubleGenParted, List.of("5", "6")).toString()
+        );
     }
 
     private WhereClause analyzeWhere(String stmt) {
@@ -182,8 +185,19 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_partitioned_by_boolean_col() throws Exception {
+        var values = List.of("true", "false");
+        for (var v : values) {
+            WhereClause whereClause = analyzeWhere("select id from bool_parted where id = " + v);
+            assertThat(whereClause.queryOrFallback()).isLiteral(true);
+            assertThat(whereClause.partitions()).containsExactly(
+                new PartitionName(new RelationName("doc", "bool_parted"), List.of(v)).asIndexName());
+        }
+    }
+
+    @Test
     public void testUpdateWherePartitionedByColumn() throws Exception {
-        AnalyzedUpdateStatement update = analyzeUpdate("update parted set id = 2 where date = 1395874800000::timestamptz");
+        AnalyzedUpdateStatement update = e.analyze("update parted set id = 2 where date = 1395874800000::timestamptz");
         assertThat(update.query()).isFunction(EqOperator.NAME, isReference("date"), isLiteral(1395874800000L));
     }
 
@@ -305,7 +319,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             sb.append(i);
             sb.append(',');
         }
-        sb.append(i++);
+        sb.append(i);
         sb.append(')');
         String s = sb.toString();
 
