@@ -30,6 +30,11 @@ jobs:
           distribution: "temurin"
           cache: maven
 
+      - name: Setup tmate session
+        uses: mxschmitt/action-tmate@v3
+        with:
+          detached: true
+
       - name: Run tests on ${{ matrix.os }}
         env:
           CRATE_TESTS_SQL_REQUEST_TIMEOUT: "20"
@@ -41,6 +46,7 @@ jobs:
             -Dcheckstyle.skip \
             -Dforbiddenapis.skip=true \
             -Dmaven.javadoc.skip=true \
+            -Dtest=io.crate.protocols.postgres.PgClientTest \
             -Djacoco.skip=true
 
   forbiddenApis:
