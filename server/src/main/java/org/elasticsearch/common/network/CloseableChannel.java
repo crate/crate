@@ -25,6 +25,7 @@ import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 
@@ -133,19 +134,24 @@ public class CloseableChannel implements Closeable {
      * @param blocking indicates if we should block on channel close
      */
     public static void closeChannels(Collection<? extends CloseableChannel> channels, boolean blocking) {
+        List<CompletableFuture<Void>> futures = List.of();
+        if (blocking) {
+            futures = new ArrayList<>(channels.size());
+            for (var channel : channels) {
+                FutureActionListener<Void> closeFuture = new FutureActionListener<>();
+                channel.addCloseListener(closeFuture);
+                futures.add(closeFuture);
+            }
+        }
+
         try {
             IOUtils.close(channels);
         } catch (IOException e) {
             // The CloseableChannel#close method does not throw IOException, so this should not occur.
             throw new AssertionError(e);
         }
+
         if (blocking) {
-            ArrayList<CompletableFuture<Void>> futures = new ArrayList<>(channels.size());
-            for (var channel : channels) {
-                FutureActionListener<Void> closeFuture = new FutureActionListener<>();
-                channel.addCloseListener(closeFuture);
-                futures.add(closeFuture);
-            }
             for (var future : futures) {
                 try {
                     future.get();
