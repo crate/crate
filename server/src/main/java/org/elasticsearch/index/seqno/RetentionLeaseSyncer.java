@@ -19,12 +19,13 @@
 
 package org.elasticsearch.index.seqno;
 
+import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.index.shard.ShardId;
-
-import java.util.Objects;
 
 public class RetentionLeaseSyncer {
     private final SyncAction syncAction;
@@ -42,15 +43,18 @@ public class RetentionLeaseSyncer {
 
     public static final RetentionLeaseSyncer EMPTY = new RetentionLeaseSyncer(
         (shardId, primaryAllocationId, primaryTerm, retentionLeases, listener) -> listener.onResponse(new ReplicationResponse()),
-        (shardId, primaryAllocationId, primaryTerm, retentionLeases) -> { });
+        (shardId, primaryAllocationId, primaryTerm, retentionLeases) -> CompletableFuture.completedFuture(null));
 
-    public void sync(ShardId shardId, String primaryAllocationId, long primaryTerm,
-                     RetentionLeases retentionLeases, ActionListener<ReplicationResponse> listener) {
+    public void sync(ShardId shardId,
+                     String primaryAllocationId,
+                     long primaryTerm,
+                     RetentionLeases retentionLeases,
+                     ActionListener<ReplicationResponse> listener) {
         syncAction.sync(shardId, primaryAllocationId, primaryTerm, retentionLeases, listener);
     }
 
-    public void backgroundSync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases) {
-        backgroundSyncAction.backgroundSync(shardId, primaryAllocationId, primaryTerm, retentionLeases);
+    public CompletableFuture<Void> backgroundSync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases) {
+        return backgroundSyncAction.backgroundSync(shardId, primaryAllocationId, primaryTerm, retentionLeases);
     }
 
     /**
@@ -67,6 +71,6 @@ public class RetentionLeaseSyncer {
      * lease has been renewed or expired.
      */
     public interface BackgroundSyncAction {
-        void backgroundSync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases);
+        CompletableFuture<Void> backgroundSync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases);
     }
 }
