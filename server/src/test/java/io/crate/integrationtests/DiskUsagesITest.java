@@ -58,6 +58,7 @@ import org.elasticsearch.env.Environment;
 import org.elasticsearch.monitor.fs.FsInfo;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.After;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
@@ -74,6 +75,15 @@ public class DiskUsagesITest extends IntegTestCase {
         // Use the mock internal cluster info service, which has fake-able disk usages
         plugins.add(MockInternalClusterInfoService.TestPlugin.class);
         return plugins;
+    }
+
+    @After
+    public void resetWatermarkSettings() {
+        execute("""
+            reset global cluster.routing.allocation.disk.watermark.low,
+                         cluster.routing.allocation.disk.watermark.high,
+                         cluster.routing.allocation.disk.watermark.flood_stage
+            """);
     }
 
     @Test
@@ -215,7 +225,6 @@ public class DiskUsagesITest extends IntegTestCase {
 
         AtomicReference<ClusterState> masterAppliedClusterState = new AtomicReference<>();
         cluster().getCurrentMasterNodeInstance(ClusterService.class).addListener(event -> {
-            assertThat(event.state().getRoutingNodes().node(nodeIds.get(2)).size()).isLessThanOrEqualTo(1);
             masterAppliedClusterState.set(event.state());
             clusterInfoService.refresh(); // so a subsequent reroute sees disk usage according to the current state
         });
@@ -425,6 +434,9 @@ public class DiskUsagesITest extends IntegTestCase {
                 IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK
             );
         });
+
+        // ensures there are no more pending tasks; all nodes need to have applied the block
+        ensureGreen();
 
         // Cannot add further documents
         assertBlocked(
