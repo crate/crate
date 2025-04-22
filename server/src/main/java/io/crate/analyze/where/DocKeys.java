@@ -32,7 +32,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
-import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
@@ -64,7 +63,7 @@ public class DocKeys implements Iterable<DocKeys.DocKey> {
             return idFunction.apply(
                 Lists.mapLazy(
                     key.subList(0, width),
-                    s -> StringUtils.nullOrString(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, params, subQueryResults))
+                    s -> DataTypes.STRING.implicitCast(SymbolEvaluator.evaluate(txnCtx, nodeCtx, s, params, subQueryResults))
                 )
             );
         }
