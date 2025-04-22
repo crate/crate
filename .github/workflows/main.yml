@@ -43,6 +43,10 @@ jobs:
             -Dmaven.javadoc.skip=true \
             -Djacoco.skip=true
 
+      - name: Publish Test Report
+        if: success() || failure()
+        uses: scacap/action-surefire-report@v1
+
   forbiddenApis:
     name: forbiddenApis
     runs-on: ubuntu-latest
