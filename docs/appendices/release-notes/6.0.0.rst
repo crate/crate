@@ -136,6 +136,25 @@ Breaking Changes
       complaint from the ``PRIMARY KEY`` constraint check, as the value will be
       stored, normalized, as ``192.168.0.1``.
 
+ - Fixed an issue that caused queries filtering on partition(s) of a table for
+   which the ``PARTITION BY`` clause, contains a column of ``BOOLEAN`` type to
+   return no results, e.g. for a table::
+
+     CREATE TABLE tbl(id BOOLEAN, PRIMARY KEY(id)) PARTITIONED BY (id);
+     INSERT INTO tbl(id) VALUES (FALSE);
+     REFRESH TABLE tbl;
+
+   The query::
+
+     SELECT * FROM tbl WHERE id = FALSE;
+
+   would return ``0`` rows;
+
+   .. WARNING::
+
+       Because of this fix, users should re-create tables which have a
+       ``BOOLEAN`` column in their ``PARTITIONED BY`` clause.
+
 
 Deprecations
 ============

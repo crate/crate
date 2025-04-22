@@ -31,7 +31,6 @@ import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -2297,5 +2296,17 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("refresh table part");
         execute("select _doc from part order by id");
         assertThat(response.rows()[0][0]).isEqualTo(Map.of("id", 1, "name", "Ford", "obj", Map.of("x", "a")));
+    }
+
+    @Test
+    public void test_partitioned_by_boolean_column() {
+        execute("CREATE TABLE tbl_parted(a int, b boolean, c int) PARTITIONED BY (a, b)");
+        execute("INSERT INTO tbl_parted(a,b,c) VALUES(1, true, 11), (1, true, 111)");
+        execute("REFRESH TABLE tbl_parted");
+
+        execute("SELECT * from tbl_parted WHERE a=1 and b=true ORDER BY c");
+        assertThat(response).hasRows(
+            "1| true| 11",
+            "1| true| 111");
     }
 }
