@@ -23,8 +23,9 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.stream.Collectors.toList;
+import static org.assertj.core.api.Assertions.as;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING;
 
 import java.util.ArrayList;
@@ -37,6 +38,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -218,6 +220,11 @@ public class DiskUsagesITest extends IntegTestCase {
             clusterInfoService.refresh(); // so a subsequent reroute sees disk usage according to the current state
         });
 
+        execute("SET GLOBAL TRANSIENT" +
+                "   cluster.routing.allocation.disk.watermark.low='85%'," +
+                "   cluster.routing.allocation.disk.watermark.high='100%'," +
+                "   cluster.routing.allocation.disk.watermark.flood_stage='100%'");
+
         // shards are 1 byte large
         clusterInfoService.setShardSizeFunctionAndRefresh(shardRouting -> 1L);
         // node 2 only has space for one shard
@@ -226,11 +233,6 @@ public class DiskUsagesITest extends IntegTestCase {
             discoveryNode.getId().equals(nodeIds.get(2))
                 ? 150L - masterAppliedClusterState.get().getRoutingNodes().node(nodeIds.get(2)).numberOfOwningShards()
                 : 1000L));
-
-        execute("SET GLOBAL TRANSIENT" +
-                "   cluster.routing.allocation.disk.watermark.low='85%'," +
-                "   cluster.routing.allocation.disk.watermark.high='100%'," +
-                "   cluster.routing.allocation.disk.watermark.flood_stage='100%'");
 
         execute("CREATE TABLE t (id INT PRIMARY KEY) " +
                 "CLUSTERED INTO 6 SHARDS " +
@@ -447,18 +449,19 @@ public class DiskUsagesITest extends IntegTestCase {
         assertThat(response).hasRows(
             "1",
             "3");
+
     }
 
     private void assertBlocked(Runnable runnable, ClusterBlock clusterBlock) {
-        try {
-            runnable.run();
-            fail("Expected ClusterBlockException");
-        } catch (ClusterBlockException e) {
-            assertThat(e.blocks()).hasSizeGreaterThan(0);
-            for (var block : e.blocks()) {
-                assertThat(block.id()).isEqualTo(clusterBlock.id());
-            }
-        }
+        assertThatThrownBy(() -> runnable.run())
+            .isExactlyInstanceOf(ClusterBlockException.class)
+            .extracting(x -> ((ClusterBlockException) x).blocks(), as(InstanceOfAssertFactories.SET))
+            .isNotEmpty()
+            .satisfies(blocks -> {
+                for (var block : blocks) {
+                    assertThat(((ClusterBlock) block).id()).isEqualTo(clusterBlock.id());
+                }
+            });
     }
 
     private static ClusterState clusterState() {
