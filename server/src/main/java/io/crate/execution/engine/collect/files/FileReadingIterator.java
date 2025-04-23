@@ -21,12 +21,14 @@
 
 package io.crate.execution.engine.collect.files;
 
+import static io.crate.analyze.CopyStatementSettings.FAIL_FAST_SETTING;
 import static io.crate.common.exceptions.Exceptions.rethrowUnchecked;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.net.SocketException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
@@ -91,6 +93,7 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
     private final int numReaders;
     private final int readerNumber;
     private final boolean compressed;
+    private final boolean failFast;
     private final List<FileInput> fileInputs;
 
     private volatile Throwable killed;
@@ -187,6 +190,7 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
         this.fileInputFactories = fileInputFactories;
         this.cursor = new LineCursor();
         this.shared = shared;
+        this.failFast = FAIL_FAST_SETTING.get(withClauseOptions);
         this.numReaders = numReaders;
         this.readerNumber = readerNumber;
         this.scheduler = scheduler;
@@ -256,6 +260,11 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
         } catch (IOException e) {
             cursor.failure = e;
             closeReader();
+            if (failFast) {
+                // Treat IO error as a data error on fail_fast and stop consuming other URI-s.
+                // Bubble up to exception to the BatchIteratorBackpressureExecutor
+                throw new UncheckedIOException(e);
+            }
             // If IOError happens on file opening, let consumers collect the error
             // This is mostly for RETURN SUMMARY of COPY FROM
             if (cursor.lineNumber == 0) {
@@ -310,7 +319,8 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
         currentReader = createBufferedReader(stream);
     }
 
-    private void closeReader() {
+    @VisibleForTesting
+    void closeReader() {
         if (currentReader != null) {
             try {
                 currentReader.close();
