@@ -243,8 +243,13 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
                 advanceToNextUri(currentInput);
                 return moveNext();
             } else if (fileInputsIterator != null && fileInputsIterator.hasNext()) {
-                advanceToNextFileInput();
-                return moveNext();
+                boolean advanced = advanceToNextFileInput();
+                if (advanced) {
+                    return moveNext();
+                } else {
+                    closeReader();
+                    return false;
+                }
             } else {
                 reset();
                 return false;
@@ -266,17 +271,28 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
         createReader(fileInput, currentInputUriIterator.next());
     }
 
-    private void advanceToNextFileInput() throws IOException {
+    private boolean advanceToNextFileInput() throws IOException {
         currentInput = fileInputsIterator.next();
-        List<URI> uris = currentInput.expandUri().stream().filter(this::shouldBeReadByCurrentNode).toList();
-        if (uris.size() > 0) {
-            currentInputUriIterator = uris.iterator();
+        List<URI> allUris = currentInput.expandUri();
+        List<URI> filteredUris = allUris.stream().filter(this::shouldBeReadByCurrentNode).toList();
+        if (filteredUris.isEmpty() == false) {
+            currentInputUriIterator = filteredUris.iterator();
             advanceToNextUri(currentInput);
+            return true;
         } else if (currentInput.isGlobbed()) {
             URI uri = currentInput.uri();
             cursor.uri = uri;
-            throw new IOException("Cannot find any URI matching: " + uri.toString());
+            if (allUris.isEmpty()) {
+                // No URI-s at all, nothing to read.
+                throw new IOException("Cannot find any URI matching: " + uri.toString());
+            } else {
+                // Some URI-s exist, but they shouldn't be processed by this node.
+                // Don't throw an exception as  fail_fast (if enabled) might stop the whole operation.
+                // We want to fail fast only on legit IO errors.
+                return false;
+            }
         }
+        return false;
     }
 
     private boolean shouldBeReadByCurrentNode(URI uri) {
