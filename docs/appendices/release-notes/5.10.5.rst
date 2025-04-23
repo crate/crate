@@ -71,3 +71,7 @@ Fixes
     
   now returns ``TRUE`` because ``''`` is padded with ``' '`` which is ``32`` in
   ``ASCII`` and ``e'\n'`` is ``10`` in ``ASCII``.
+
+- Fixed behavior of ``COPY ... FROM ... with (fail_fast = true)`` to stop on
+  non-retryable IO errors as well. Before the flag used to be applied only for
+  write errors.

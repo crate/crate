@@ -26,13 +26,16 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.spy;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
 import java.io.BufferedReader;
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.net.SocketTimeoutException;
 import java.net.URI;
 import java.nio.charset.StandardCharsets;
@@ -183,6 +186,55 @@ public class FileReadingIteratorTest extends ESTestCase {
 
         var tester = new BatchIteratorTester<>(() -> batchIteratorSupplier.get().map(LineCursor::line), ResultOrder.EXACT);
         tester.verifyResultAndEdgeCaseBehaviour(lines);
+    }
+
+    @Test
+    public void test_iterator_closes_current_reader_and_throws_exception_on_fail_fast() throws Exception {
+        Path tempFile = createTempFile("tempfile1", ".csv");
+        List<String> lines = List.of("1", "2");
+        Files.write(tempFile, lines);
+        List<URI> fileUris = Stream.of(tempFile.toUri().toString())
+            .map(FileReadingIterator::toURI).toList();
+
+        var fi = spy(new FileReadingIterator(
+            fileUris,
+            null,
+            Map.of(LocalFsFileInputFactory.NAME, new LocalFsFileInputFactory()),
+            false,
+            1,
+            0,
+            Settings.builder().put("fail_fast", true).build(),
+            THREAD_POOL.scheduler()
+        ) {
+
+            @Override
+            BufferedReader createBufferedReader(InputStream inputStream) throws IOException {
+                return new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)) {
+
+                    private int currentLineNumber = 0;
+
+                    @Override
+                    public String readLine() throws IOException {
+                        var line = super.readLine();
+                        currentLineNumber++;
+                        if (currentLineNumber > 1) {
+                            throw new EOFException("dummy");
+                        }
+                        return line;
+                    }
+                };
+            }
+        });
+
+
+        assertThat(fi.moveNext()).isTrue();
+        assertThat(fi.currentElement().line()).isEqualTo("1");
+        verify(fi, times(0)).closeReader();
+
+        assertThatThrownBy(() -> fi.moveNext())
+            .isExactlyInstanceOf(UncheckedIOException.class)
+            .hasMessageContaining("dummy");
+        verify(fi, times(1)).closeReader();
     }
 
     @Test
