@@ -35,6 +35,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -52,6 +53,8 @@ import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.testing.DataTypeTesting;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -2064,5 +2067,358 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRows("{items=[42.42, foo]}");
+    }
+
+    @Test
+    public void foo() throws IOException {
+        execute("""
+            create table tbl (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
+            x int
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            ))))))))))
+            );
+            """);
+        DocTableInfo tbl = getTable("tbl");
+        var val = DataTypeTesting.getDataGenerator(tbl.getReference("o").valueType()).get();
+        execute("insert into tbl values (?)", new Object[]{val});
+        execute("refresh table tbl");
+        execute("""
+            select
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['x'] from tbl
+            """);
+        assertThat(response).hasRowCount(1);
+
+        execute("""
+            alter table tbl rename column
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['x'] to
+             o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['y']
+            """
+        );
+        execute("""
+            select
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['y'] from tbl
+            """);
+        assertThat(response).hasRowCount(1);
+
+        execute("""
+            alter table tbl add column
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['x'] int
+            """
+        );
+
+        val = DataTypeTesting.getDataGenerator(tbl.getReference("o").valueType()).get();
+        execute("insert into tbl values (?)", new Object[]{val});
+        execute("refresh table tbl");
+        execute("""
+            select
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['y'] from tbl
+            """);
+        assertThat(response).hasRowCount(2);
+
+        execute("""
+            alter table tbl drop column
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['x']
+            """
+        );
+
+        execute("show create table tbl");
+        execute("create table tbl2 as select * from tbl");
+        execute("show create table tbl2");
+
+        var s = sqlExecutor.newSession();
+        s.sessionSettings().setErrorOnUnknownObjectKey(false);
+        execute("""
+            select
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['unknown'] from tbl
+            """, s);
+
+
+        execute("""
+            alter table tbl add column
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['z'] int
+            """
+        );
+        execute("delete from tbl");
+        execute("delete from tbl2");
+
+        val = DataTypeTesting.getDataGenerator(getTable("tbl").getReference("o").valueType()).get();
+        for (int i = 0; i < 100; i++) {
+            execute("insert into tbl values (?)", new Object[]{val});
+        }
+        val = DataTypeTesting.getDataGenerator(getTable("tbl").getReference("o").valueType()).get(); // dynamic insert 'z' to 'tbl2'
+        for (int i = 0; i < 100; i++) {
+            execute("insert into tbl2 values (?)", new Object[]{val});
+        }
+
+        execute("""
+            alter table tbl add column
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['xx'] int
+            """
+        );
+        val = DataTypeTesting.getDataGenerator(getTable("tbl").getReference("o").valueType()).get();
+        for (int i = 0; i < 100; i++) {
+            execute("insert into tbl values (?)", new Object[]{val});
+        }
+
+
+        execute("refresh table tbl");
+        execute("refresh table tbl2");
+
+        execute("create table tbl3 as select * from tbl union all select * from tbl2");
+        execute("show create table tbl3");
+        execute("refresh table tbl3");
+
+        execute("""
+            select * from tbl3 where
+            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
+             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['xx'] != 0
+            """);
+        assertThat(response).hasRowCount(100);
     }
 }
