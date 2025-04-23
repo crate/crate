@@ -58,16 +58,6 @@ public interface Scheduler {
         return scheduler;
     }
 
-    static boolean terminate(ScheduledThreadPoolExecutor scheduledThreadPoolExecutor, long timeout, TimeUnit timeUnit) {
-        scheduledThreadPoolExecutor.shutdown();
-        if (awaitTermination(scheduledThreadPoolExecutor, timeout, timeUnit)) {
-            return true;
-        }
-        // last resort
-        scheduledThreadPoolExecutor.shutdownNow();
-        return awaitTermination(scheduledThreadPoolExecutor, timeout, timeUnit);
-    }
-
     static boolean awaitTermination(final ScheduledThreadPoolExecutor scheduledThreadPoolExecutor,
             final long timeout, final TimeUnit timeUnit) {
         try {
@@ -257,11 +247,6 @@ public interface Scheduler {
         @SuppressForbidden(reason = "properly rethrowing errors, see EsExecutors.rethrowErrors")
         public SafeScheduledThreadPoolExecutor(int corePoolSize, ThreadFactory threadFactory) {
             super(corePoolSize, threadFactory);
-        }
-
-        @SuppressForbidden(reason = "properly rethrowing errors, see EsExecutors.rethrowErrors")
-        public SafeScheduledThreadPoolExecutor(int corePoolSize) {
-            super(corePoolSize);
         }
 
         @Override

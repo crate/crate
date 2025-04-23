@@ -19,13 +19,12 @@
 
 package org.elasticsearch.threadpool;
 
-import static java.util.Collections.unmodifiableMap;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
@@ -113,12 +112,12 @@ public class ThreadPool implements Scheduler {
 
     private final CachedTimeThread cachedTimeThread;
 
-    private final Map<String, ExecutorBuilder> builders;
+    private final List<ExecutorBuilder> builders;
 
     private final ScheduledThreadPoolExecutor scheduler;
 
     public Collection<ExecutorBuilder> builders() {
-        return builders.values();
+        return builders;
     }
 
     public static Setting<TimeValue> ESTIMATED_TIME_INTERVAL_SETTING =
@@ -128,42 +127,41 @@ public class ThreadPool implements Scheduler {
     public ThreadPool(final Settings settings) {
         assert Node.NODE_NAME_SETTING.exists(settings);
 
-        final HashMap<String, ExecutorBuilder> builders = new HashMap<>();
         final int availableProcessors = EsExecutors.numberOfProcessors(settings);
         final int halfProcMaxAt5 = halfNumberOfProcessorsMaxFive(availableProcessors);
         final int halfProcMaxAt10 = halfNumberOfProcessorsMaxTen(availableProcessors);
         final int genericThreadPoolMax = boundedBy(4 * availableProcessors, 128, 512);
-        builders.put(Names.GENERIC, new ScalingExecutorBuilder(Names.GENERIC, 4, genericThreadPoolMax, TimeValue.timeValueSeconds(30)));
-        builders.put(Names.WRITE, new FixedExecutorBuilder(settings, Names.WRITE, availableProcessors, 200));
-        builders.put(Names.SEARCH, new PrioFixedExecutorBuilder(settings, Names.SEARCH, searchThreadPoolSize(availableProcessors), 1000));
-        builders.put(Names.MANAGEMENT, new ScalingExecutorBuilder(Names.MANAGEMENT, 1, 5, TimeValue.timeValueMinutes(5)));
-        // no queue as this means clients will need to handle rejections on listener queue even if the operation succeeded
-        // the assumption here is that the listeners should be very lightweight on the listeners side
-        builders.put(Names.LISTENER, new FixedExecutorBuilder(settings, Names.LISTENER, halfProcMaxAt10, -1));
-        builders.put(Names.FLUSH, new ScalingExecutorBuilder(Names.FLUSH, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)));
-        builders.put(Names.REFRESH, new ScalingExecutorBuilder(Names.REFRESH, 1, halfProcMaxAt10, TimeValue.timeValueMinutes(5)));
-        builders.put(Names.WARMER, new ScalingExecutorBuilder(Names.WARMER, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)));
-        builders.put(Names.SNAPSHOT, new ScalingExecutorBuilder(Names.SNAPSHOT, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)));
-        builders.put(Names.FETCH_SHARD_STARTED,
-                new ScalingExecutorBuilder(Names.FETCH_SHARD_STARTED, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)));
-        builders.put(Names.FORCE_MERGE, new FixedExecutorBuilder(settings, Names.FORCE_MERGE, 1, -1));
-        builders.put(Names.FETCH_SHARD_STORE,
-                new ScalingExecutorBuilder(Names.FETCH_SHARD_STORE, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)));
-        builders.put(Names.LOGICAL_REPLICATION, new FixedExecutorBuilder(settings, Names.LOGICAL_REPLICATION, searchThreadPoolSize(availableProcessors), 100));
-        this.builders = Collections.unmodifiableMap(builders);
 
-        final Map<String, ExecutorHolder> executors = new HashMap<>();
-        for (final Map.Entry<String, ExecutorBuilder> entry : builders.entrySet()) {
-            final ExecutorHolder executorHolder = entry.getValue().build(settings);
-            if (executors.containsKey(executorHolder.info.name())) {
+        builders = List.of(
+            new ScalingExecutorBuilder(Names.GENERIC, 4, genericThreadPoolMax, TimeValue.timeValueSeconds(30)),
+            new FixedExecutorBuilder(settings, Names.WRITE, availableProcessors, 200),
+            new PrioFixedExecutorBuilder(settings, Names.SEARCH, searchThreadPoolSize(availableProcessors), 1000),
+            new ScalingExecutorBuilder(Names.MANAGEMENT, 1, 5, TimeValue.timeValueMinutes(5)),
+            // no queue athis means clients will need to handle rejections on listener queue even if the operation succeeded
+            // the assumpon here is that the listeners should be very lightweight on the listeners side
+            new FixedExecutorBuilder(settings, Names.LISTENER, halfProcMaxAt10, -1),
+            new ScalingExecutorBuilder(Names.FLUSH, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)),
+            new ScalingExecutorBuilder(Names.REFRESH, 1, halfProcMaxAt10, TimeValue.timeValueMinutes(5)),
+            new ScalingExecutorBuilder(Names.WARMER, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)),
+            new ScalingExecutorBuilder(Names.SNAPSHOT, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)),
+            new ScalingExecutorBuilder(Names.FETCH_SHARD_STARTED, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)),
+            new FixedExecutorBuilder(settings, Names.FORCE_MERGE, 1, -1),
+            new ScalingExecutorBuilder(Names.FETCH_SHARD_STORE, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)),
+            new FixedExecutorBuilder(settings, Names.LOGICAL_REPLICATION, searchThreadPoolSize(availableProcessors), 100)
+        );
+        HashMap<String, ExecutorHolder> executors = HashMap.newHashMap(builders.size() + 1);
+        for (ExecutorBuilder builder : builders) {
+            final ExecutorHolder executorHolder = builder.build(settings);
+            if (LOGGER.isDebugEnabled()) {
+                LOGGER.debug("created thread pool: {}", builder.formatInfo(executorHolder.info));
+            }
+            ExecutorHolder previous = executors.put(executorHolder.info.name(), executorHolder);
+            if (previous != null) {
                 throw new IllegalStateException("duplicate executors with name [" + executorHolder.info.name() + "] registered");
             }
-            LOGGER.debug("created thread pool: {}", entry.getValue().formatInfo(executorHolder.info));
-            executors.put(entry.getKey(), executorHolder);
         }
-
         executors.put(Names.SAME, new ExecutorHolder(EsExecutors.directExecutor(), new Info(Names.SAME, ThreadPoolType.DIRECT)));
-        this.executors = unmodifiableMap(executors);
+        this.executors = Map.copyOf(executors);
 
         this.scheduler = Scheduler.initScheduler(settings);
         TimeValue estimatedTimeInterval = ESTIMATED_TIME_INTERVAL_SETTING.get(settings);
