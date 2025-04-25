@@ -45,19 +45,17 @@ import io.crate.metadata.RelationName;
 
 public class MetadataIndexUpgraderTest extends ESTestCase {
 
-
-
     @Test
     public void testDynamicStringTemplateIsPurged() throws IOException {
         MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
         MappingMetadata mappingMetadata = new MappingMetadata(createDynamicStringMappingTemplate());
-        MappingMetadata newMappingMetadata = metadataIndexUpgrader.createUpdatedIndexMetadata(mappingMetadata, "dummy", null);
+        MappingMetadata newMappingMetadata = metadataIndexUpgrader.createUpdatedIndexMetadata(mappingMetadata, null);
 
         Object dynamicTemplates = newMappingMetadata.sourceAsMap().get("dynamic_templates");
         assertThat(dynamicTemplates).isNull();
 
         // Check that the new metadata still has the root "default" element
-        assertThat("{\"default\":{}}").isEqualTo(newMappingMetadata.source().toString());
+        assertThat(newMappingMetadata.source()).hasToString("{\"default\":{}}");
     }
 
     @Test
@@ -186,7 +184,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
         Map<String, Object> indexMapping = Map.of("properties", Map.of("a", a));
         MetadataIndexUpgrader.populateColumnPositionsImpl(indexMapping,
             Map.of("properties", Map.of("a", Map.of("position", 10))));
-        assertThat(a.get("position")).isEqualTo(10);
+        assertThat(a).containsEntry("position", 10);
     }
 
     @Test
@@ -230,9 +228,9 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
                             "properties", Map.of(
                                 "d", Map.of("position", 3,
                                     "properties", Map.of()))))))));
-        assertThat(map2.get("position")).isEqualTo(1);
-        assertThat(map4.get("position")).isEqualTo(2);
-        assertThat(map6.get("position")).isEqualTo(3);
+        assertThat(map2).containsEntry("position", 1);
+        assertThat(map4).containsEntry("position", 2);
+        assertThat(map6).containsEntry("position", 3);
 
 
         Map<String, Object> a = new HashMap<>();
@@ -261,10 +259,10 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
                 )
             ));
 
-        assertThat(a.get("position")).isEqualTo(1);
-        assertThat(b.get("position")).isEqualTo(2);
-        assertThat(c.get("position")).isEqualTo(3);
-        assertThat(d.get("position")).isEqualTo(4);
+        assertThat(a).containsEntry("position", 1);
+        assertThat(b).containsEntry("position", 2);
+        assertThat(c).containsEntry("position", 3);
+        assertThat(d).containsEntry("position", 4);
     }
 
     @Test
@@ -283,7 +281,7 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
                 "a", Map.of("position", 3),
                 "b", Map.of("position", 4))));
 
-        assertThat(a.get("position")).isEqualTo(3);
-        assertThat(b.get("position")).isEqualTo(4);
+        assertThat(a).containsExactlyEntriesOf(Map.of("position", 3));
+        assertThat(b).containsExactlyEntriesOf(Map.of("position", 4));
     }
 }
