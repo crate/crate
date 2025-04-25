@@ -160,9 +160,7 @@ public class RawIndexer {
      */
     public ParsedDocument index() throws IOException {
         assert currentRowIndexer != null : "Must be used only after collecting schema updates.";
-
-        ParsedDocument parsedDoc = currentRowIndexer.index(currentItem);
-        return parsedDoc;
+        return currentRowIndexer.index(currentItem);
     }
 
     public boolean hasUndeterministicSynthetics() {

@@ -103,7 +103,6 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
             clusterService.localNode(),
             transportPrimaryAction,
             new ConcreteShardRequest<>(request, primaryAllocationId, primaryTerm),
-            transportOptions,
             new TransportResponseHandler<ReplicationResponse>() {
                 @Override
                 public ReplicationResponse read(StreamInput in) throws IOException {

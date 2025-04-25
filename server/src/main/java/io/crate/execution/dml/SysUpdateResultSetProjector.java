@@ -21,6 +21,11 @@
 
 package io.crate.execution.dml;
 
+import java.util.ArrayList;
+import java.util.List;
+import java.util.function.Consumer;
+import java.util.stream.Collector;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.CollectionBucket;
@@ -30,11 +35,6 @@ import io.crate.data.Row;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.sys.SysRowUpdater;
 import io.crate.expression.reference.sys.check.node.SysNodeCheck;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.function.Consumer;
-import java.util.stream.Collector;
 
 public class SysUpdateResultSetProjector implements Projector {
 
@@ -63,7 +63,7 @@ public class SysUpdateResultSetProjector implements Projector {
                                  Object[] returnValues = evaluateReturnValues(row);
                                  acc.add(returnValues);
                              },
-                             (state1, state2) -> {
+                             (_, _) -> {
                                  throw new UnsupportedOperationException(
                                      "Combine not supported");
                              },

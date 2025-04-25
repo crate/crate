@@ -114,7 +114,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     @Override
     protected WriteReplicaResult shardOperationOnReplica(Request replicaRequest, IndexShard indexShard) {
         KillableWrapper<WriteReplicaResult> callable =
-            new KillableWrapper<WriteReplicaResult>(replicaRequest.jobId()) {
+            new KillableWrapper<>(replicaRequest.jobId()) {
                 @Override
                 public WriteReplicaResult call() throws Exception {
                     return processRequestItemsOnReplica(indexShard, replicaRequest);

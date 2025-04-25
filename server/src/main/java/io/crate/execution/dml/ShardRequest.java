@@ -38,6 +38,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.NotNull;
 
 public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item>
     extends ReplicationRequest<T>
@@ -46,7 +47,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     private final UUID jobId;
     protected List<I> items;
 
-    public ShardRequest(ShardId shardId, UUID jobId) {
+    protected ShardRequest(ShardId shardId, UUID jobId) {
         setShardId(shardId);
         this.jobId = jobId;
         this.index = shardId.getIndexName();
@@ -62,6 +63,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return items;
     }
 
+    @NotNull
     @Override
     public Iterator<I> iterator() {
         return Collections.unmodifiableCollection(items).iterator();
@@ -71,7 +73,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return jobId;
     }
 
-    public ShardRequest(StreamInput in) throws IOException {
+    protected ShardRequest(StreamInput in) throws IOException {
         super(in);
         jobId = new UUID(in.readLong(), in.readLong());
     }
@@ -134,7 +136,7 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         protected long seqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
         protected long primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
 
-        public Item(String id) {
+        protected Item(String id) {
             this.id = id;
         }
 

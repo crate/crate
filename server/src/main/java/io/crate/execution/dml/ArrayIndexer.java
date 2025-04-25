@@ -122,6 +122,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     protected final String arrayLengthFieldName;
     protected final Reference reference;
 
+    @SuppressWarnings("unchecked")
     protected ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
         this.innerIndexer = innerIndexer;
         this.bytesConverter = (Streamer<List<T>>) reference.valueType().streamer();

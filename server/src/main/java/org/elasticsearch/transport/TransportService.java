@@ -19,8 +19,6 @@
 
 package org.elasticsearch.transport;
 
-import static org.elasticsearch.common.settings.Setting.timeSetting;
-
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.net.UnknownHostException;
@@ -48,9 +46,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.Loggers;
-import org.elasticsearch.common.network.NetworkService;
 import org.elasticsearch.common.settings.ClusterSettings;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -69,9 +65,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
     protected static final Logger LOGGER = LogManager.getLogger(TransportService.class);
 
-    public static final Setting<TimeValue> TCP_CONNECT_TIMEOUT =
-        timeSetting("transport.tcp.connect_timeout", NetworkService.TCP_CONNECT_TIMEOUT, Setting.Property.NodeScope);
-    public static final String DIRECT_RESPONSE_PROFILE = ".direct";
     public static final String HANDSHAKE_ACTION_NAME = "internal:transport/handshake";
 
     private final AtomicBoolean handleIncomingRequests = new AtomicBoolean();
@@ -85,7 +78,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     // An LRU (don't really care about concurrency here) that holds the latest timed out requests so if they
     // do show up, we can print more descriptive information about them
     private final Map<Long, TimeoutInfoHolder> timeoutInfoHandlers =
-        Collections.synchronizedMap(new LinkedHashMap<Long, TimeoutInfoHolder>(100, .75F, true) {
+        Collections.synchronizedMap(new LinkedHashMap<>(100, .75F, true) {
             @Override
             protected boolean removeEldestEntry(Map.Entry<Long, TimeoutInfoHolder> eldest) {
                 return size() > 100;
@@ -292,16 +285,15 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     }
 
     public ConnectionManager.ConnectionValidator connectionValidator(DiscoveryNode node) {
-        return (newConnection, actualProfile, listener) -> {
+        return (newConnection, actualProfile, listener) ->
             // We don't validate cluster names to allow for CCS connections.
-            handshake(newConnection, actualProfile.getHandshakeTimeout().millis(), cn -> true, listener.map(resp -> {
+            handshake(newConnection, actualProfile.getHandshakeTimeout().millis(), _ -> true, listener.map(resp -> {
                 final DiscoveryNode remote = resp.discoveryNode;
                 if (node.equals(remote) == false) {
                     throw new ConnectTransportException(node, "handshake failed. unexpected remote node " + remote);
                 }
                 return null;
             }));
-        };
     }
 
     /**
@@ -353,7 +345,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      * @param handshakeTimeout handshake timeout
      * @param clusterNamePredicate cluster name validation predicate
      * @param listener         action listener to notify
-     * @return the handshake response
      * @throws IllegalStateException if the handshake failed
      */
     public void handshake(final Transport.Connection connection,
@@ -505,7 +496,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                 final TransportResponseHandler<T> handler) {
         try {
 
-            final TransportResponseHandler<T> delegate = new TransportResponseHandler<T>() {
+            final TransportResponseHandler<T> delegate = new TransportResponseHandler<>() {
                 @Override
                 public T read(StreamInput in) throws IOException {
                     return handler.read(in);
@@ -537,8 +528,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         } catch (final Exception ex) {
             // the caller might not handle this so we invoke the handler
             final TransportException te;
-            if (ex instanceof TransportException) {
-                te = (TransportException) ex;
+            if (ex instanceof TransportException transportException) {
+                te = transportException;
             } else {
                 te = new TransportException("failure to send", ex);
             }
@@ -1082,8 +1073,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
 
         protected RemoteTransportException wrapInRemote(Exception e) {
-            if (e instanceof RemoteTransportException) {
-                return (RemoteTransportException) e;
+            if (e instanceof RemoteTransportException rte) {
+                return rte;
             }
             return new RemoteTransportException(localNode.getName(), localNode.getAddress(), action, e);
         }
@@ -1108,7 +1099,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             return localNode.getVersion();
         }
     }
-
 
     /**
      * Returns the internal thread pool
