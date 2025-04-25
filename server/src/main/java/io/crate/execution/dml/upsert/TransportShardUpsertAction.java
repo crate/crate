@@ -486,17 +486,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         throw lastException;
     }
 
-    static class IndexItemResponse {
-        @Nullable
-        final Translog.Location translog;
-        @Nullable
-        final Object[] returnValues;
-
-        IndexItemResponse(@Nullable Translog.Location translog, @Nullable Object[] returnValues) {
-            this.translog = translog;
-            this.returnValues = returnValues;
-        }
-    }
+    public record IndexItemResponse(@Nullable Translog.Location translog, @Nullable Object[] returnValues) {}
 
     @VisibleForTesting
     protected IndexItemResponse insert(Indexer indexer,
