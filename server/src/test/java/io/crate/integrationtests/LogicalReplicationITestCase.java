@@ -98,8 +98,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             createNodeConfigurationSource(),
             0,
             "publisher",
-            mockPlugins,
-            true
+            mockPlugins
         );
         publisherCluster.beforeTest(random());
         publisherCluster.ensureAtLeastNumDataNodes(getPublisherNumberOfNodes());
@@ -116,8 +115,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
             createNodeConfigurationSource(),
             0,
             "subscriber",
-            mockPlugins,
-            true
+            mockPlugins
         );
         subscriberCluster.beforeTest(random());
         subscriberCluster.ensureAtLeastNumDataNodes(getSubscriberNumberOfNodes());
@@ -277,7 +275,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
      * first publication with createPublication
      */
     protected void createPublicationWithoutUser(String pub, boolean isForAllTables, List<String> tables) {
-        String tablesAsString = tables.stream().collect(Collectors.joining(","));
+        String tablesAsString = String.join(",", tables);
         if (isForAllTables) {
             executeOnPublisher("CREATE PUBLICATION " + pub + " FOR ALL TABLES");
         } else {
@@ -300,7 +298,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     }
 
     protected void createSubscription(String subName, List<String> publications) throws Exception {
-        String pubsAsString = publications.stream().collect(Collectors.joining(","));
+        String pubsAsString = String.join(",", publications);
         executeOnSubscriber("CREATE SUBSCRIPTION " + subName +
             " CONNECTION '" + publisherConnectionUrl() + "' publication " + pubsAsString);
         ensureGreenOnSubscriber();

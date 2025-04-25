@@ -1070,8 +1070,7 @@ public abstract class IntegTestCase extends ESTestCase {
             nodeConfigurationSource,
             getNumClientNodes(),
             nodePrefix,
-            mockPlugins,
-            forbidPrivateIndexSettings()
+            mockPlugins
         );
     }
 
@@ -1261,10 +1260,6 @@ public abstract class IntegTestCase extends ESTestCase {
             // If it's external cluster - fall back to the standard set
             return new NamedXContentRegistry(ClusterModule.getNamedXWriteables());
         }
-    }
-
-    protected boolean forbidPrivateIndexSettings() {
-        return true;
     }
 
     /**

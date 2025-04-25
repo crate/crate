@@ -24,6 +24,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -38,13 +39,24 @@ import org.elasticsearch.transport.TransportService;
 /**
  * Transport action for create snapshot operation
  */
-public class TransportCreateSnapshotAction extends TransportMasterNodeAction<CreateSnapshotRequest, CreateSnapshotResponse> {
+public class TransportCreateSnapshot extends TransportMasterNodeAction<CreateSnapshotRequest, CreateSnapshotResponse> {
+
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<CreateSnapshotResponse> {
+        private static final String NAME = "cluster:admin/snapshot/create";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     private final SnapshotsService snapshotsService;
 
     @Inject
-    public TransportCreateSnapshotAction(TransportService transportService, ClusterService clusterService,
-                                         ThreadPool threadPool, SnapshotsService snapshotsService) {
-        super(CreateSnapshotAction.NAME, transportService, clusterService, threadPool,
+    public TransportCreateSnapshot(TransportService transportService, ClusterService clusterService,
+                                   ThreadPool threadPool, SnapshotsService snapshotsService) {
+        super(ACTION.name(), transportService, clusterService, threadPool,
             CreateSnapshotRequest::new);
         this.snapshotsService = snapshotsService;
     }
@@ -84,7 +96,7 @@ public class TransportCreateSnapshotAction extends TransportMasterNodeAction<Cre
         if (request.waitForCompletion()) {
             snapshotsService.executeSnapshot(request, listener.map(CreateSnapshotResponse::new));
         } else {
-            snapshotsService.createSnapshot(request, listener.map(snapshot -> new CreateSnapshotResponse()));
+            snapshotsService.createSnapshot(request, listener.map(_ -> new CreateSnapshotResponse()));
         }
     }
 }

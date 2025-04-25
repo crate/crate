@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
+import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepository;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
@@ -66,7 +66,7 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
                 .put("compress", randomBoolean())
                 .put("chunk_size", randomIntBetween(100, 1000), ByteSizeUnit.BYTES)
             );
-        assertAcked(client().admin().cluster().execute(PutRepositoryAction.INSTANCE, putRepositoryRequest).get());
+        assertAcked(client().admin().cluster().execute(TransportPutRepository.ACTION, putRepositoryRequest).get());
 
         final int shards = between(1, 10);
         execute("create table doc.test(x integer) clustered into ? shards with (number_of_replicas=0)", new Object[]{shards});

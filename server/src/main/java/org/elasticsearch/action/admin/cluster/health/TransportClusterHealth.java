@@ -27,6 +27,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -48,17 +49,29 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.unit.TimeValue;
 
-public class TransportClusterHealthAction extends TransportMasterNodeReadAction<ClusterHealthRequest, ClusterHealthResponse> {
+public class TransportClusterHealth extends TransportMasterNodeReadAction<ClusterHealthRequest, ClusterHealthResponse> {
 
-    private static final Logger LOGGER = LogManager.getLogger(TransportClusterHealthAction.class);
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<ClusterHealthResponse> {
+        private static final String NAME = "cluster:monitor/health";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
+    private static final Logger LOGGER = LogManager.getLogger(TransportClusterHealth.class);
 
     private final AllocationService allocationService;
 
     @Inject
-    public TransportClusterHealthAction(Settings settings, TransportService transportService, ClusterService clusterService,
-                                        ThreadPool threadPool,
-                                        AllocationService allocationService) {
-        super(settings, ClusterHealthAction.NAME, false, transportService, clusterService, threadPool,
+    public TransportClusterHealth(Settings settings,
+                                  TransportService transportService,
+                                  ClusterService clusterService,
+                                  ThreadPool threadPool,
+                                  AllocationService allocationService) {
+        super(settings, ACTION.name(), false, transportService, clusterService, threadPool,
             ClusterHealthRequest::new);
         this.allocationService = allocationService;
     }
@@ -112,7 +125,7 @@ public class TransportClusterHealthAction extends TransportMasterNodeReadAction<
                         final TimeValue newTimeout = TimeValue.timeValueMillis(timeoutInMillis);
                         request.timeout(newTimeout);
                         executeHealth(request, clusterService.state(), listener, waitCount,
-                            observedState -> waitForEventsAndExecuteHealth(request, listener, waitCount, endTimeRelativeMillis));
+                            _ -> waitForEventsAndExecuteHealth(request, listener, waitCount, endTimeRelativeMillis));
                     }
 
                     @Override

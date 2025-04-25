@@ -17,11 +17,12 @@
  * under the License.
  */
 
-package org.elasticsearch.action.admin.cluster.snapshots.delete;
+package org.elasticsearch.action.admin.cluster.repositories.delete;
 
 import java.io.IOException;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -30,23 +31,34 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.snapshots.SnapshotsService;
+import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 /**
- * Transport action for delete snapshot operation
+ * Transport action for unregister repository operation
  */
-public class TransportDeleteSnapshotAction extends TransportMasterNodeAction<DeleteSnapshotRequest, AcknowledgedResponse> {
+public class TransportDeleteRepository extends TransportMasterNodeAction<DeleteRepositoryRequest, AcknowledgedResponse> {
 
-    private final SnapshotsService snapshotsService;
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "cluster:admin/repository/delete";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
+    private final RepositoriesService repositoriesService;
 
     @Inject
-    public TransportDeleteSnapshotAction(TransportService transportService, ClusterService clusterService,
-                                         ThreadPool threadPool, SnapshotsService snapshotsService) {
-        super(DeleteSnapshotAction.NAME, transportService, clusterService, threadPool,
-            DeleteSnapshotRequest::new);
-        this.snapshotsService = snapshotsService;
+    public TransportDeleteRepository(TransportService transportService,
+                                     ClusterService clusterService,
+                                     RepositoriesService repositoriesService,
+                                     ThreadPool threadPool) {
+        super(ACTION.name(), transportService, clusterService, threadPool, DeleteRepositoryRequest::new);
+        this.repositoriesService = repositoriesService;
     }
 
     @Override
@@ -60,15 +72,16 @@ public class TransportDeleteSnapshotAction extends TransportMasterNodeAction<Del
     }
 
     @Override
-    protected ClusterBlockException checkBlock(DeleteSnapshotRequest request, ClusterState state) {
-        // Cluster is not affected but we look up repositories in metadata
-        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_READ);
+    protected ClusterBlockException checkBlock(DeleteRepositoryRequest request, ClusterState state) {
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 
     @Override
-    protected void masterOperation(final DeleteSnapshotRequest request,
+    protected void masterOperation(final DeleteRepositoryRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        snapshotsService.deleteSnapshots(request, listener.map(v -> new AcknowledgedResponse(true)));
+        repositoriesService.unregisterRepository(request)
+            .thenApply(resp -> new AcknowledgedResponse(resp.isAcknowledged()))
+            .whenComplete(listener);
     }
 }

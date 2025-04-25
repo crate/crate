@@ -28,7 +28,7 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
-import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction;
+import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusions;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.bootstrap.BootstrapSettings;
@@ -417,7 +417,7 @@ public final class ClusterSettings extends AbstractScopedSettings {
         LeaderChecker.LEADER_CHECK_INTERVAL_SETTING,
         LeaderChecker.LEADER_CHECK_RETRY_COUNT_SETTING,
         Reconfigurator.CLUSTER_AUTO_SHRINK_VOTING_CONFIGURATION,
-        TransportAddVotingConfigExclusionsAction.MAXIMUM_VOTING_CONFIG_EXCLUSIONS_SETTING,
+        TransportAddVotingConfigExclusions.MAXIMUM_VOTING_CONFIG_EXCLUSIONS_SETTING,
         ClusterBootstrapService.INITIAL_MASTER_NODES_SETTING,
         ClusterBootstrapService.UNCONFIGURED_BOOTSTRAP_TIMEOUT_SETTING,
         LagDetector.CLUSTER_FOLLOWER_LAG_TIMEOUT_SETTING,

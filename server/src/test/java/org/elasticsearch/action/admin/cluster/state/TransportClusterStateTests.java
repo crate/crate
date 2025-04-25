@@ -22,7 +22,7 @@
 package org.elasticsearch.action.admin.cluster.state;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction.buildResponse;
+import static org.elasticsearch.action.admin.cluster.state.TransportClusterState.buildResponse;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
@@ -52,7 +52,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
 
-public class TransportClusterStateActionTests extends ESTestCase {
+public class TransportClusterStateTests extends ESTestCase {
 
     private final Logger logger = LogManager.getLogger(getClass());
 
@@ -65,7 +65,6 @@ public class TransportClusterStateActionTests extends ESTestCase {
         var indexUUID1 = UUIDs.randomBase64UUID();
         var indexUUID2 = UUIDs.randomBase64UUID();
         var relationName2 = new RelationName("doc", "t2");
-        var partitionName = new PartitionName(relationName2, List.of("1"));
         clusterState = ClusterState.builder(new ClusterName("test"))
             .metadata(Metadata.builder()
                 .persistentSettings(Settings.builder().put("setting1", "bar").build())

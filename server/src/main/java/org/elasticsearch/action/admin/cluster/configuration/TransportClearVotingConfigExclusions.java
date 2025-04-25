@@ -25,6 +25,7 @@ import java.util.function.Predicate;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
@@ -45,14 +46,24 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.unit.TimeValue;
 
-public class TransportClearVotingConfigExclusionsAction
+public class TransportClearVotingConfigExclusions
     extends TransportMasterNodeAction<ClearVotingConfigExclusionsRequest, ClearVotingConfigExclusionsResponse> {
 
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<ClearVotingConfigExclusionsResponse> {
+        private static final String NAME = "cluster:admin/voting_config/clear_exclusions";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportClearVotingConfigExclusionsAction(TransportService transportService,
-                                                      ClusterService clusterService,
-                                                      ThreadPool threadPool) {
-        super(ClearVotingConfigExclusionsAction.NAME, transportService, clusterService, threadPool,
+    public TransportClearVotingConfigExclusions(TransportService transportService,
+                                                ClusterService clusterService,
+                                                ThreadPool threadPool) {
+        super(ACTION.name(), transportService, clusterService, threadPool,
             ClearVotingConfigExclusionsRequest::new);
     }
 

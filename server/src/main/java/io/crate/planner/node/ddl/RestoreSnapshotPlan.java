@@ -27,9 +27,9 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.function.Function;
 
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshot;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -124,7 +124,7 @@ public class RestoreSnapshotPlan implements Plan {
             stmt.includeGlobalSettings(),
             stmt.globalSettings()
         );
-        dependencies.client().execute(RestoreSnapshotAction.INSTANCE, request)
+        dependencies.client().execute(TransportRestoreSnapshot.ACTION, request)
             .whenComplete(new OneRowActionListener<>(consumer, r -> new Row1(r == null ? -1L : 1L)));
     }
 

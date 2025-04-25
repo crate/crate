@@ -22,6 +22,7 @@ package org.elasticsearch.action.admin.cluster.snapshots.restore;
 import java.io.IOException;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -37,15 +38,26 @@ import org.elasticsearch.transport.TransportService;
 /**
  * Transport action for restore snapshot operation
  */
-public class TransportRestoreSnapshotAction extends TransportMasterNodeAction<RestoreSnapshotRequest, RestoreSnapshotResponse> {
+public class TransportRestoreSnapshot extends TransportMasterNodeAction<RestoreSnapshotRequest, RestoreSnapshotResponse> {
+
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<RestoreSnapshotResponse> {
+        private static final String NAME = "cluster:admin/snapshot/restore";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     private final RestoreService restoreService;
 
     @Inject
-    public TransportRestoreSnapshotAction(TransportService transportService,
-                                          ClusterService clusterService,
-                                          ThreadPool threadPool,
-                                          RestoreService restoreService) {
-        super(RestoreSnapshotAction.NAME, transportService, clusterService, threadPool, RestoreSnapshotRequest::new);
+    public TransportRestoreSnapshot(TransportService transportService,
+                                    ClusterService clusterService,
+                                    ThreadPool threadPool,
+                                    RestoreService restoreService) {
+        super(ACTION.name(), transportService, clusterService, threadPool, RestoreSnapshotRequest::new);
         this.restoreService = restoreService;
     }
 

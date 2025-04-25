@@ -61,7 +61,7 @@ import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 
-public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase {
+public class TransportClearVotingConfigExclusionsTests extends ESTestCase {
 
     private static ThreadPool threadPool;
     private static ClusterService clusterService;
@@ -97,7 +97,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
             null
         );
 
-        new TransportClearVotingConfigExclusionsAction(transportService, clusterService, threadPool); // registers action
+        new TransportClearVotingConfigExclusions(transportService, clusterService, threadPool); // registers action
 
         transportService.start();
         transportService.acceptIncomingRequests();
@@ -120,7 +120,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
 
         final ClearVotingConfigExclusionsRequest clearVotingConfigExclusionsRequest = new ClearVotingConfigExclusionsRequest();
         clearVotingConfigExclusionsRequest.setWaitForRemoval(false);
-        transportService.sendRequest(localNode, ClearVotingConfigExclusionsAction.NAME,
+        transportService.sendRequest(localNode, TransportClearVotingConfigExclusions.ACTION.name(),
             clearVotingConfigExclusionsRequest,
             expectSuccess(r -> {
                 responseHolder.set(r);
@@ -140,7 +140,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
 
         final ClearVotingConfigExclusionsRequest clearVotingConfigExclusionsRequest = new ClearVotingConfigExclusionsRequest();
         clearVotingConfigExclusionsRequest.setTimeout(TimeValue.timeValueMillis(100));
-        transportService.sendRequest(localNode, ClearVotingConfigExclusionsAction.NAME,
+        transportService.sendRequest(localNode, TransportClearVotingConfigExclusions.ACTION.name(),
             clearVotingConfigExclusionsRequest,
             expectError(e -> {
                 responseHolder.set(e);
@@ -162,7 +162,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
         final CountDownLatch countDownLatch = new CountDownLatch(1);
         final SetOnce<ClearVotingConfigExclusionsResponse> responseHolder = new SetOnce<>();
 
-        transportService.sendRequest(localNode, ClearVotingConfigExclusionsAction.NAME,
+        transportService.sendRequest(localNode, TransportClearVotingConfigExclusions.ACTION.name(),
             new ClearVotingConfigExclusionsRequest(),
             expectSuccess(r -> {
                 responseHolder.set(r);
@@ -193,7 +193,7 @@ public class TransportClearVotingConfigExclusionsActionTests extends ESTestCase 
 
     private TransportResponseHandler<ClearVotingConfigExclusionsResponse> responseHandler(
         Consumer<ClearVotingConfigExclusionsResponse> onResponse, Consumer<TransportException> onException) {
-        return new TransportResponseHandler<ClearVotingConfigExclusionsResponse>() {
+        return new TransportResponseHandler<>() {
             @Override
             public void handleResponse(ClearVotingConfigExclusionsResponse response) {
                 onResponse.accept(response);

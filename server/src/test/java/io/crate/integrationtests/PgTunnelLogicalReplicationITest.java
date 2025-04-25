@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
@@ -89,8 +89,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
             nodeConfigurationSource,
             0,
             clusterName + "_node",
-            List.of(MockHttpTransport.TestPlugin.class),
-            true
+            List.of(MockHttpTransport.TestPlugin.class)
         );
         cluster.beforeTest(random());
         cluster.ensureAtLeastNumDataNodes(1);
@@ -261,7 +260,7 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
         );
         assertBusy(() -> {
             try {
-                assertThat(subscriber.exec("select * from tbl").rowCount()).isEqualTo(0L);
+                assertThat(subscriber.exec("select * from tbl")).hasRowCount(0);
             } catch (Exception e) {
                 throw new AssertionError(e);
             }
