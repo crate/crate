@@ -21,18 +21,20 @@
 
 package io.crate.cluster.gracefulstop;
 
-import io.crate.session.Sessions;
-import org.jetbrains.annotations.VisibleForTesting;
-import io.crate.common.collections.MapBuilder;
-import io.crate.common.unit.TimeValue;
-import io.crate.execution.engine.collect.stats.JobsLogs;
-import io.crate.execution.jobs.TasksService;
-import io.crate.types.DataTypes;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
+import java.util.function.IntSupplier;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealth;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsResponse;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
@@ -47,18 +49,17 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.settings.Setting.Property;
-
+import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
-import java.util.HashMap;
-import java.util.Map;
-import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executors;
-import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.TimeoutException;
-import java.util.function.IntSupplier;
+import org.jetbrains.annotations.VisibleForTesting;
+
+import io.crate.common.collections.MapBuilder;
+import io.crate.common.unit.TimeValue;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.TasksService;
+import io.crate.session.Sessions;
+import io.crate.types.DataTypes;
 
 @Singleton
 public class DecommissioningService extends AbstractLifecycleComponent implements ClusterStateListener {
@@ -91,7 +92,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
     private final ScheduledExecutorService executorService;
     private final Sessions sqlOperations;
     private final IntSupplier numActiveContexts;
-    private final TransportClusterHealthAction healthAction;
+    private final TransportClusterHealth healthAction;
     private final TransportClusterUpdateSettingsAction updateSettingsAction;
     private final Runnable safeExitAction;
 
@@ -105,7 +106,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                   JobsLogs jobsLogs,
                                   Sessions sqlOperations,
                                   TasksService tasksService,
-                                  final TransportClusterHealthAction healthAction,
+                                  final TransportClusterHealth healthAction,
                                   final TransportClusterUpdateSettingsAction updateSettingsAction) {
 
         this(
@@ -128,7 +129,7 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                                      Sessions sqlOperations,
                                      IntSupplier numActiveContexts,
                                      @Nullable Runnable safeExitAction,
-                                     final TransportClusterHealthAction healthAction,
+                                     final TransportClusterHealth healthAction,
                                      final TransportClusterUpdateSettingsAction updateSettingsAction) {
         this.clusterService = clusterService;
         this.jobsLogs = jobsLogs;
@@ -203,8 +204,8 @@ public class DecommissioningService extends AbstractLifecycleComponent implement
                 throw new IllegalStateException("Graceful shutdown failed", e);
             })
             // changing settings triggers AllocationService.reroute -> shards will be relocated
-            .thenCompose(r -> clusterHealthGet())
-            .handle((res, error) -> {
+            .thenCompose(_ -> clusterHealthGet())
+            .handle((_, error) -> {
                 if (error == null) {
                     final long startTime = System.nanoTime();
                     executorService.submit(() -> exitIfNoActiveRequests(startTime));

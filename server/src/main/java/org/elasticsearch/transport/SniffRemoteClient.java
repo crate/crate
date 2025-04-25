@@ -33,9 +33,9 @@ import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.cluster.state.TransportClusterState;
 import org.elasticsearch.client.support.AbstractClient;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -87,13 +87,9 @@ public final class SniffRemoteClient extends AbstractClient {
             .addConnections(1, TransportRequestOptions.Type.RECOVERY)
             .addConnections(1, TransportRequestOptions.Type.REG)
             .build();
-        this.allNodesShareClusterName = new Predicate<ClusterName>() {
-
-            @Override
-            public boolean test(ClusterName c) {
-                ClusterName clusterName = remoteClusterName.get();
-                return clusterName == null || c.equals(clusterName);
-            }
+        this.allNodesShareClusterName = c -> {
+            ClusterName clusterName = remoteClusterName.get();
+            return clusterName == null || c.equals(clusterName);
         };
     }
 
@@ -216,7 +212,7 @@ public final class SniffRemoteClient extends AbstractClient {
         CompletableFuture<DiscoveredNodes> result = new CompletableFuture<>();
         transportService.sendRequest(
             connection,
-            ClusterStateAction.NAME,
+            TransportClusterState.ACTION.name(),
             request,
             TransportRequestOptions.EMPTY,
             new TransportResponseHandler<ClusterStateResponse>() {

@@ -26,6 +26,7 @@ import java.util.function.Predicate;
 
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
@@ -39,6 +40,7 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -51,12 +53,26 @@ import io.crate.common.unit.TimeValue;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
-public class TransportClusterStateAction extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {
+public class TransportClusterState extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {
 
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<ClusterStateResponse> {
+        private static final String NAME = "cluster:monitor/state";
+
+        private Action() {
+            super(NAME);
+        }
+
+        @Override
+        public Writeable.Reader<ClusterStateResponse> getResponseReader() {
+            return ClusterStateResponse::new;
+        }
+    }
 
     @Inject
-    public TransportClusterStateAction(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool) {
-        super(settings, ClusterStateAction.NAME, false, transportService, clusterService, threadPool, ClusterStateRequest::new);
+    public TransportClusterState(Settings settings, TransportService transportService, ClusterService clusterService, ThreadPool threadPool) {
+        super(settings, ACTION.name(), false, transportService, clusterService, threadPool, ClusterStateRequest::new);
     }
 
     @Override
@@ -85,7 +101,7 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
                                    final ActionListener<ClusterStateResponse> listener) throws IOException {
 
         final Predicate<ClusterState> acceptableClusterStatePredicate
-            = request.waitForMetadataVersion() == null ? clusterState -> true
+            = request.waitForMetadataVersion() == null ? _ -> true
             : clusterState -> clusterState.metadata().version() >= request.waitForMetadataVersion();
 
         final Predicate<ClusterState> acceptableClusterStateOrNotMasterPredicate = request.local()
@@ -223,6 +239,4 @@ public class TransportClusterStateAction extends TransportMasterNodeReadAction<C
         }
         return new ClusterStateResponse(currentState.getClusterName(), builder.build(), false);
     }
-
-
 }

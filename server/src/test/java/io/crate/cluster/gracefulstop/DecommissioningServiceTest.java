@@ -31,7 +31,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealth;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
@@ -41,9 +41,9 @@ import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 
-import io.crate.session.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.session.Sessions;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest {
@@ -66,7 +66,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
             executorService,
             sqlOperations,
             () -> exited.set(true),
-            mock(TransportClusterHealthAction.class),
+            mock(TransportClusterHealth.class),
             mock(TransportClusterUpdateSettingsAction.class)
         );
     }
@@ -106,7 +106,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
                                        ScheduledExecutorService executorService,
                                        Sessions sqlOperations,
                                        Runnable safeExitAction,
-                                       TransportClusterHealthAction healthAction,
+                                       TransportClusterHealth healthAction,
                                        TransportClusterUpdateSettingsAction updateSettingsAction) {
             super(
                 settings,

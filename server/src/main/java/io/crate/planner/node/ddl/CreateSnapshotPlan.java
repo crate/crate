@@ -29,8 +29,8 @@ import java.util.function.Function;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshot;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.SnapshotInfo;
@@ -96,7 +96,7 @@ public class CreateSnapshotPlan implements Plan {
             dependencies.schemas(),
             plannerContext.clusterState().metadata());
 
-        dependencies.client().execute(CreateSnapshotAction.INSTANCE, request)
+        dependencies.client().execute(TransportCreateSnapshot.ACTION, request)
             .whenComplete(
                 new OneRowActionListener<>(
                     consumer,

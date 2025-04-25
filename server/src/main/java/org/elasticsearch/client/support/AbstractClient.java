@@ -22,15 +22,15 @@ package org.elasticsearch.client.support;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealth;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
 import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
+import org.elasticsearch.action.admin.cluster.node.stats.TransportNodesStats;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.cluster.state.TransportClusterState;
 import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
 import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
 import org.elasticsearch.action.admin.indices.refresh.TransportRefresh;
@@ -118,17 +118,17 @@ public abstract class AbstractClient implements Client {
 
         @Override
         public CompletableFuture<ClusterHealthResponse> health(final ClusterHealthRequest request) {
-            return execute(ClusterHealthAction.INSTANCE, request);
+            return execute(TransportClusterHealth.ACTION, request);
         }
 
         @Override
         public CompletableFuture<ClusterStateResponse> state(final ClusterStateRequest request) {
-            return execute(ClusterStateAction.INSTANCE, request);
+            return execute(TransportClusterState.ACTION, request);
         }
 
         @Override
         public CompletableFuture<NodesStatsResponse> nodesStats(final NodesStatsRequest request) {
-            return execute(NodesStatsAction.INSTANCE, request);
+            return execute(TransportNodesStats.ACTION, request);
         }
     }
 

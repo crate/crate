@@ -19,9 +19,15 @@
 
 package org.elasticsearch.action.admin.cluster.configuration;
 
+import java.io.IOException;
+import java.util.Set;
+import java.util.function.Predicate;
+import java.util.stream.Collectors;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
@@ -38,27 +44,33 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.Set;
-import java.util.function.Predicate;
-import java.util.stream.Collectors;
+import io.crate.common.unit.TimeValue;
 
-public class TransportAddVotingConfigExclusionsAction
+public class TransportAddVotingConfigExclusions
     extends TransportMasterNodeAction<AddVotingConfigExclusionsRequest, AddVotingConfigExclusionsResponse> {
 
     public static final Setting<Integer> MAXIMUM_VOTING_CONFIG_EXCLUSIONS_SETTING
         = Setting.intSetting("cluster.max_voting_config_exclusions", 10, 1, Property.Dynamic, Property.NodeScope);
 
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<AddVotingConfigExclusionsResponse> {
+        private static final String NAME = "cluster:admin/voting_config/add_exclusions";
+
+        private Action() {
+            super(NAME);
+        }
+    }
+
     @Inject
-    public TransportAddVotingConfigExclusionsAction(TransportService transportService,
-                                                    ClusterService clusterService,
-                                                    ThreadPool threadPool) {
-        super(AddVotingConfigExclusionsAction.NAME, transportService, clusterService, threadPool,
+    public TransportAddVotingConfigExclusions(TransportService transportService,
+                                              ClusterService clusterService,
+                                              ThreadPool threadPool) {
+        super(ACTION.name(), transportService, clusterService, threadPool,
             AddVotingConfigExclusionsRequest::new);
     }
 
