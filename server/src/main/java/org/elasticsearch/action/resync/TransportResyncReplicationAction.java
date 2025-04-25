@@ -94,11 +94,11 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
                                            ActionListener<PrimaryResult<ResyncReplicationRequest, ReplicationResponse>> listener) {
         ActionListener.completeWith(
             listener,
-            () -> new WritePrimaryResult<>(performOnPrimary(request, primary), new ReplicationResponse(), null, null, primary)
+            () -> new WritePrimaryResult<>(performOnPrimary(request), new ReplicationResponse(), null, null, primary)
         );
     }
 
-    public static ResyncReplicationRequest performOnPrimary(ResyncReplicationRequest request, IndexShard primary) {
+    public static ResyncReplicationRequest performOnPrimary(ResyncReplicationRequest request) {
         return request;
     }
 
@@ -141,7 +141,6 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
             clusterService.localNode(),
             transportPrimaryAction,
             new ConcreteShardRequest<>(request, primaryAllocationId, primaryTerm),
-            transportOptions,
             new TransportResponseHandler<ReplicationResponse>() {
 
                 @Override

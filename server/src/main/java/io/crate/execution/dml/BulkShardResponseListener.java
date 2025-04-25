@@ -45,7 +45,7 @@ final class BulkShardResponseListener implements ActionListener<ShardResponse> {
     /**
      * @param resultIndices a list containing one element per shardRequest-item across all shardRequests being made.
      *                      the values must contain the resultIdx;
-     *                      (See {@link BulkResponse#update(int, long, Throwable)} )
+     *                      (See {@link BulkResponse#update(int, Long, Throwable)} )
      */
     BulkShardResponseListener(int numCallbacks,
                               int numBulkParams,

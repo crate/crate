@@ -186,13 +186,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
         }
     }
 
-    private static class BkdTreeIndexableFieldsFactory implements IndexableFieldsFactory {
-
-        private final String name;
-
-        BkdTreeIndexableFieldsFactory(String name) {
-            this.name = name;
-        }
+    record BkdTreeIndexableFieldsFactory(String name) implements IndexableFieldsFactory {
 
         @Override
         public void create(Map<String, Object> value, Consumer<? super IndexableField> addField) {

@@ -75,7 +75,6 @@ import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
@@ -123,7 +122,6 @@ public abstract class TransportReplicationAction<
     protected final ClusterService clusterService;
     protected final ShardStateAction shardStateAction;
     protected final IndicesService indicesService;
-    protected final TransportRequestOptions transportOptions;
     protected final String executor;
 
     // package private for testing
@@ -196,7 +194,6 @@ public abstract class TransportReplicationAction<
             in -> new ConcreteReplicaRequest<>(in, replicaReader),
             this::handleReplicaRequest
         );
-        this.transportOptions = transportOptions();
         this.syncGlobalCheckpointAfterOperation = syncGlobalCheckpointAfterOperation;
 
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
@@ -247,10 +244,6 @@ public abstract class TransportReplicationAction<
     @Nullable
     public ClusterBlockLevel indexBlockLevel() {
         return null;
-    }
-
-    protected TransportRequestOptions transportOptions() {
-        return TransportRequestOptions.EMPTY;
     }
 
     private ClusterBlockException blockExceptions(final ClusterState state, final String indexName) {
@@ -367,7 +360,6 @@ public abstract class TransportReplicationAction<
                             primary.allocationId().getRelocationId(),
                             primaryRequest.getPrimaryTerm()
                         ),
-                        transportOptions,
                         new ActionListenerResponseHandler<>(
                             onCompletionListener,
                             TransportReplicationAction.this::newResponseInstance) {
@@ -724,7 +716,7 @@ public abstract class TransportReplicationAction<
 
         private void performAction(final DiscoveryNode node, final String action, final boolean isPrimaryAction,
                                    final TransportRequest requestToPerform) {
-            transportService.sendRequest(node, action, requestToPerform, transportOptions, new TransportResponseHandler<Response>() {
+            transportService.sendRequest(node, action, requestToPerform, new TransportResponseHandler<Response>() {
 
                 @Override
                 public Response read(StreamInput in) throws IOException {
@@ -999,7 +991,7 @@ public abstract class TransportReplicationAction<
             final ConcreteReplicaRequest<ReplicaRequest> replicaRequest = new ConcreteReplicaRequest<>(
                 request, replica.allocationId().getId(), primaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes);
             final ActionListenerResponseHandler<ReplicaResponse> handler = new ActionListenerResponseHandler<>(listener, ReplicaResponse::new);
-            transportService.sendRequest(node, transportReplicaAction, replicaRequest, transportOptions, handler);
+            transportService.sendRequest(node, transportReplicaAction, replicaRequest, handler);
         }
 
         @Override

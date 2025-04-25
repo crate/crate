@@ -44,7 +44,6 @@ public class StringIndexer implements ValueIndexer<String> {
         FIELD_TYPE.setOmitNorms(true);
         FIELD_TYPE.setIndexOptions(IndexOptions.DOCS);
         FIELD_TYPE.freeze();
-
     }
 
     private final Reference ref;

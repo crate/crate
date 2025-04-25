@@ -679,6 +679,7 @@ public class Indexer {
     /**
      * Looks for new columns in the values of the given IndexItem and returns them.
      */
+    @SuppressWarnings("unchecked")
     public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
         LinkedHashSet<Reference> newColumns = new LinkedHashSet<>();
         Consumer<? super Reference> onDynamicColumn = ref -> {
@@ -729,6 +730,7 @@ public class Indexer {
      * {@link #collectSchemaUpdates(IndexItem)}) have been added to the cluster
      * state.
      */
+    @SuppressWarnings("unchecked")
     public ParsedDocument index(IndexItem item) throws IOException {
         assert item.insertValues().length <= valueIndexers.size()
             : "Number of values must be less than or equal the number of targetColumns/valueIndexers";

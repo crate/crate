@@ -21,15 +21,15 @@
 
 package io.crate.execution.dml;
 
+import java.util.Collections;
+import java.util.function.Consumer;
+import java.util.stream.Collector;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
 import io.crate.data.Projector;
 import io.crate.data.Row;
 import io.crate.data.Row1;
-
-import java.util.Collections;
-import java.util.function.Consumer;
-import java.util.stream.Collector;
 
 public class SysUpdateProjector implements Projector {
 
@@ -48,7 +48,7 @@ public class SysUpdateProjector implements Projector {
                     state.rowWriter.accept(row.get(0));
                     state.rowCount++;
                 },
-                (state1, state2) -> {
+                (_, _) -> {
                     throw new UnsupportedOperationException("Combine not supported");
                 },
                 state -> Collections.singletonList(new Row1(state.rowCount))
