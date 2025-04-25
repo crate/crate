@@ -29,8 +29,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
@@ -48,12 +46,6 @@ import io.crate.types.ObjectType;
 
 public class MetadataIndexUpgrader {
 
-    private final Logger logger;
-
-    public MetadataIndexUpgrader() {
-        this.logger = LogManager.getLogger(MetadataIndexUpgrader.class);
-    }
-
     public IndexMetadata upgrade(IndexMetadata indexMetadata, IndexTemplateMetadata indexTemplateMetadata) {
         return createUpdatedIndexMetadata(indexMetadata, indexTemplateMetadata);
     }
@@ -67,14 +59,13 @@ public class MetadataIndexUpgrader {
             .putMapping(
                 createUpdatedIndexMetadata(
                     indexMetadata.mapping(),
-                    indexMetadata.getIndex().getName(),
                     indexTemplateMetadata
                 ))
             .build();
     }
 
     @VisibleForTesting
-    MappingMetadata createUpdatedIndexMetadata(MappingMetadata mappingMetadata, String indexName, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
+    MappingMetadata createUpdatedIndexMetadata(MappingMetadata mappingMetadata, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
         if (mappingMetadata == null) { // blobs have no mappingMetadata
             return null;
         }
@@ -82,7 +73,7 @@ public class MetadataIndexUpgrader {
         removeInvalidPropertyGeneratedByDroppingSysCols(oldMapping);
         upgradeColumnPositions(oldMapping, indexTemplateMetadata);
         upgradeIndexColumnMapping(oldMapping, indexTemplateMetadata);
-        LinkedHashMap<String, Object> newMapping = new LinkedHashMap<>(oldMapping.size());
+        LinkedHashMap<String, Object> newMapping = LinkedHashMap.newLinkedHashMap(oldMapping.size());
         for (Map.Entry<String, Object> entry : oldMapping.entrySet()) {
             String fieldName = entry.getKey();
             Object fieldNode = entry.getValue();
@@ -212,6 +203,7 @@ public class MetadataIndexUpgrader {
     }
 
     // template mappings must contain up-to-date and correct column positions that all relevant index mappings can reference.
+    @SuppressWarnings("unchecked")
     @VisibleForTesting
     static void populateColumnPositionsImpl(Map<String, Object> indexMapping, Map<String, Object> templateMapping) {
         Map<String, Object> indexProperties = Maps.get(indexMapping, "properties");
