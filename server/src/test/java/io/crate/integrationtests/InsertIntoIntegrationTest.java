@@ -50,6 +50,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.collections.MapBuilder;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.metadata.PartitionName;
@@ -2069,356 +2070,57 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("{items=[42.42, foo]}");
     }
 
+    @UseJdbc(0)
     @Test
     public void foo() throws IOException {
-        execute("""
-            create table tbl (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (o object as (
-            x int
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            ))))))))))
-            );
-            """);
+        final int depth = 200; // cannot be < 1
+        execute("create table tbl (" + "o object as (".repeat(depth) + "x int" + ")".repeat(depth) + ")");
         DocTableInfo tbl = getTable("tbl");
-        var val = DataTypeTesting.getDataGenerator(tbl.getReference("o").valueType()).get();
-        execute("insert into tbl values (?)", new Object[]{val});
+        execute("insert into tbl values (" + "{o=".repeat(depth - 1) + "{x=1}" + "}".repeat(depth - 1) + ")");
         execute("refresh table tbl");
-        execute("""
-            select
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['x'] from tbl
-            """);
+        execute("select o" + "['o']".repeat(depth - 1) + "['x'] from tbl");
+        assertThat(response).hasRows("1");
+        execute("select * from tbl");
         assertThat(response).hasRowCount(1);
 
-        execute("""
-            alter table tbl rename column
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['x'] to
-             o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['y']
-            """
-        );
-        execute("""
-            select
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['y'] from tbl
-            """);
-        assertThat(response).hasRowCount(1);
+        execute("alter table tbl rename column o" + "['o']".repeat(depth - 1) + "['x'] to o" + "['o']".repeat(depth - 1) + "['y']");
+        execute("select o" + "['o']".repeat(depth - 1) + "['y'] from tbl");
+        assertThat(response).hasRows("1");
 
-        execute("""
-            alter table tbl add column
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['x'] int
-            """
-        );
-
-        val = DataTypeTesting.getDataGenerator(tbl.getReference("o").valueType()).get();
-        execute("insert into tbl values (?)", new Object[]{val});
+        execute("alter table tbl add column o" + "['o']".repeat(depth - 1) + "['x'] int");
+        execute("insert into tbl values (" + "{o=".repeat(depth - 1) + "{x=1,y=2,z=3}" + "}".repeat(depth - 1) + ")"); // dynamic insert 'z'
         execute("refresh table tbl");
-        execute("""
-            select
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['y'] from tbl
-            """);
-        assertThat(response).hasRowCount(2);
+        execute("select o" + "['o']".repeat(depth - 1) + "['z'] from tbl where o" + "['o']".repeat(depth - 1) + "['z'] = 3");
+        assertThat(response).hasRows("3");
 
-        execute("""
-            alter table tbl drop column
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['x']
-            """
-        );
-
-        execute("show create table tbl");
-        execute("create table tbl2 as select * from tbl");
-        execute("show create table tbl2");
-
+        execute("alter table tbl drop column o" + "['o']".repeat(depth - 1) + "['x']");
+        assertThatThrownBy(() -> execute("select o" + "['o']".repeat(depth - 1) + "['x'] from tbl"))
+            .isExactlyInstanceOf(ColumnUnknownException.class)
+            .hasMessage("Column o" + "['o']".repeat(depth - 1) + "['x'] unknown");
         var s = sqlExecutor.newSession();
         s.sessionSettings().setErrorOnUnknownObjectKey(false);
-        execute("""
-            select
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['unknown'] from tbl
-            """, s);
+        execute("select o" + "['o']".repeat(depth - 1) + "['x'] from tbl", s);
 
-
-        execute("""
-            alter table tbl add column
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['z'] int
-            """
-        );
         execute("delete from tbl");
-        execute("delete from tbl2");
+        execute("refresh table tbl");
+        execute("create table tbl2 as select * from tbl");
 
-        val = DataTypeTesting.getDataGenerator(getTable("tbl").getReference("o").valueType()).get();
-        for (int i = 0; i < 100; i++) {
+        execute("alter table tbl add column o" + "['o']".repeat(depth - 1) + "['a'] int");
+        execute("alter table tbl2 add column o" + "['o']".repeat(depth - 1) + "['b'] int");
+
+
+        var val = DataTypeTesting.getDataGenerator(getTable("tbl").getReference("o").valueType()).get();
+        for (int i = 0; i < 50; i++) {
             execute("insert into tbl values (?)", new Object[]{val});
         }
-        val = DataTypeTesting.getDataGenerator(getTable("tbl").getReference("o").valueType()).get(); // dynamic insert 'z' to 'tbl2'
-        for (int i = 0; i < 100; i++) {
+        val = DataTypeTesting.getDataGenerator(getTable("tbl2").getReference("o").valueType()).get();
+        for (int i = 0; i < 50; i++) {
             execute("insert into tbl2 values (?)", new Object[]{val});
         }
 
-        execute("""
-            alter table tbl add column
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['xx'] int
-            """
-        );
-        val = DataTypeTesting.getDataGenerator(getTable("tbl").getReference("o").valueType()).get();
-        for (int i = 0; i < 100; i++) {
-            execute("insert into tbl values (?)", new Object[]{val});
-        }
-
-
-        execute("refresh table tbl");
-        execute("refresh table tbl2");
-
         execute("create table tbl3 as select * from tbl union all select * from tbl2");
-        execute("show create table tbl3");
         execute("refresh table tbl3");
-
-        execute("""
-            select * from tbl3 where
-            o['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']
-             ['o']['o']['o']['o']['o']['o']['o']['o']['o']['o']['xx'] != 0
-            """);
+        execute("select * from tbl3");
         assertThat(response).hasRowCount(100);
     }
 }
