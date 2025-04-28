@@ -40,6 +40,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
@@ -113,7 +114,16 @@ public interface Reference extends Symbol {
      * Return the identifier of this column used inside the storage engine
      */
     default String storageIdent() {
-        return oid() == COLUMN_OID_UNASSIGNED ? column().fqn() : Long.toString(oid());
+        long oid = oid();
+        if (oid == COLUMN_OID_UNASSIGNED) {
+            ColumnIdent column = column();
+            if (column.isRoot() == false && column.name().equals(SysColumns.Names.DOC)) {
+                column = column.shiftRight();
+            }
+            return column.fqn();
+        } else {
+            return Long.toString(oid);
+        }
     }
 
     /**

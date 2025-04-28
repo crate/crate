@@ -48,4 +48,6 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a bug where references to a column initially created in versions of CrateDB
+  before 5.5 would return ``NULL`` instead of their actual value when the column was
+  addressed via ``doc['column']``
