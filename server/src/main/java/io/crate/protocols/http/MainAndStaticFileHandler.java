@@ -36,9 +36,9 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.cluster.state.TransportClusterState;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -131,7 +131,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
             .metadata(false)
             .nodes(false)
             .local(true);
-        return client.execute(ClusterStateAction.INSTANCE, requestClusterState)
+        return client.execute(TransportClusterState.ACTION, requestClusterState)
             .thenApply(resp -> clusterStateRespToHttpResponse(method, resp, alloc, nodeName));
     }
 

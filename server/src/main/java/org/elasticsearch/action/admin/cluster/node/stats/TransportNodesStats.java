@@ -19,6 +19,10 @@
 
 package org.elasticsearch.action.admin.cluster.node.stats;
 
+import java.io.IOException;
+import java.util.List;
+
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
@@ -30,19 +34,26 @@ import org.elasticsearch.node.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.List;
+public class TransportNodesStats extends TransportNodesAction<NodesStatsRequest, NodesStatsResponse, TransportNodesStats.NodeStatsRequest, NodeStats> {
 
-public class TransportNodesStatsAction extends TransportNodesAction<NodesStatsRequest, NodesStatsResponse, TransportNodesStatsAction.NodeStatsRequest, NodeStats> {
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<NodesStatsResponse> {
+        private static final String NAME = "cluster:monitor/nodes/stats";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     private final NodeService nodeService;
 
     @Inject
-    public TransportNodesStatsAction(ThreadPool threadPool,
-                                     ClusterService clusterService,
-                                     TransportService transportService,
-                                     NodeService nodeService) {
-        super(NodesStatsAction.NAME,
+    public TransportNodesStats(ThreadPool threadPool,
+                               ClusterService clusterService,
+                               TransportService transportService,
+                               NodeService nodeService) {
+        super(ACTION.name(),
               threadPool,
               clusterService,
               transportService,

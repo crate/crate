@@ -32,8 +32,8 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshot;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
@@ -213,7 +213,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             // Workaround to simulate BwC situation: taking a snapshot without indices here so that we don't create any new version shard
             // generations (the existence of which would short-circuit checks for the repo containing old version snapshots)
             var createSnapshot = new CreateSnapshotRequest(repoName, snapshotPrefix + i).waitForCompletion(true);
-            var createSnapshotResponse = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
+            var createSnapshotResponse = client().admin().cluster().execute(TransportCreateSnapshot.ACTION, createSnapshot).get();
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(0);
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(createSnapshotResponse.getSnapshotInfo().totalShards());
         }
@@ -271,7 +271,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         logger.info("--> creating [{}] snapshots", snapshots);
         for (int i = 0; i < snapshots; ++i) {
             var createSnapshot = new CreateSnapshotRequest("repo1", snapshotPrefix + i).waitForCompletion(true);
-            var createSnapshotResponse = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
+            var createSnapshotResponse = client().admin().cluster().execute(TransportCreateSnapshot.ACTION, createSnapshot).get();
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(0);
             assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(createSnapshotResponse.getSnapshotInfo().totalShards());
         }
@@ -308,7 +308,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         var createSnapshot = new CreateSnapshotRequest(repoName, snapshot)
             .waitForCompletion(true)
             .relationNames(List.of(new RelationName("doc", "test1")));
-        var createSnapshotResponse = client.admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
+        var createSnapshotResponse = client.admin().cluster().execute(TransportCreateSnapshot.ACTION, createSnapshot).get();
         assertThat(createSnapshotResponse.getSnapshotInfo().successfulShards()).isEqualTo(createSnapshotResponse.getSnapshotInfo().totalShards());
 
         logger.info("--> corrupt index-N blob");
@@ -343,7 +343,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final Client client = client();
         var createSnapshot = new CreateSnapshotRequest(repoName, oldVersionSnapshot)
             .waitForCompletion(true);
-        var createSnapshotResponse = client.admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
+        var createSnapshotResponse = client.admin().cluster().execute(TransportCreateSnapshot.ACTION, createSnapshot).get();
         assertThat(createSnapshotResponse.getSnapshotInfo().totalShards()).isEqualTo(0);
 
         logger.info("--> writing downgraded RepositoryData");
@@ -397,7 +397,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         final String oldVersionSnapshot = "old-version-snapshot";
         var createSnapshot = new CreateSnapshotRequest(repoName, oldVersionSnapshot)
             .waitForCompletion(true);
-        final var createSnapshotResponse = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot).get();
+        final var createSnapshotResponse = client().admin().cluster().execute(TransportCreateSnapshot.ACTION, createSnapshot).get();
         assertThat(createSnapshotResponse.getSnapshotInfo().totalShards()).isEqualTo(0);
 
         logger.info("--> writing downgraded RepositoryData");
@@ -464,7 +464,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         logger.info("--> create another snapshot");
         var createSnapshot = new CreateSnapshotRequest(repoName, snapshotName)
             .waitForCompletion(true);
-        final SnapshotInfo snapshotInfo = client().admin().cluster().execute(CreateSnapshotAction.INSTANCE, createSnapshot)
+        final SnapshotInfo snapshotInfo = client().admin().cluster().execute(TransportCreateSnapshot.ACTION, createSnapshot)
                 .get().getSnapshotInfo();
         assertThat(snapshotInfo.state()).isEqualTo(SnapshotState.SUCCESS);
         final int successfulShards = snapshotInfo.successfulShards();

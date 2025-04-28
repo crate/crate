@@ -66,12 +66,12 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsRequest;
-import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExclusionsRequest;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
+import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusions;
+import org.elasticsearch.action.admin.cluster.configuration.TransportClearVotingConfigExclusions;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
+import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepository;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -234,8 +234,6 @@ public final class TestCluster implements Closeable {
 
     private final Collection<Class<? extends Plugin>> mockPlugins;
 
-    private final boolean forbidPrivateIndexSettings;
-
     private final int numDataPaths;
 
     /**
@@ -260,37 +258,8 @@ public final class TestCluster implements Closeable {
             final int numClientNodes,
             final String nodePrefix,
             final Collection<Class<? extends Plugin>> mockPlugins) {
-        this(
-                clusterSeed,
-                baseDir,
-                randomlyAddDedicatedMasters,
-                autoManageMasterNodes,
-                minNumDataNodes,
-                maxNumDataNodes,
-                clusterName,
-                nodeConfigurationSource,
-                numClientNodes,
-                nodePrefix,
-                mockPlugins,
-                true);
-    }
-
-    public TestCluster(
-            final long clusterSeed,
-            final Path baseDir,
-            final boolean randomlyAddDedicatedMasters,
-            final boolean autoManageMasterNodes,
-            final int minNumDataNodes,
-            final int maxNumDataNodes,
-            final String clusterName,
-            final NodeConfigurationSource nodeConfigurationSource,
-            final int numClientNodes,
-            final String nodePrefix,
-            final Collection<Class<? extends Plugin>> mockPlugins,
-            final boolean forbidPrivateIndexSettings) {
         this.seed = clusterSeed;
         this.autoManageMasterNodes = autoManageMasterNodes;
-        this.forbidPrivateIndexSettings = forbidPrivateIndexSettings;
         this.baseDir = baseDir;
         this.clusterName = clusterName;
         if (minNumDataNodes < 0 || maxNumDataNodes < 0) {
@@ -451,7 +420,7 @@ public final class TestCluster implements Closeable {
             }
             for (String repository : repositories) {
                 try {
-                    client().admin().cluster().execute(DeleteRepositoryAction.INSTANCE, new DeleteRepositoryRequest().name(repository)).get();
+                    client().admin().cluster().execute(TransportDeleteRepository.ACTION, new DeleteRepositoryRequest().name(repository)).get();
                 } catch (InterruptedException | ExecutionException | RepositoryMissingException ex) {
                     // ignore
                 }
@@ -639,7 +608,7 @@ public final class TestCluster implements Closeable {
 
     private synchronized NodeAndClient getRandomNodeAndClient(Predicate<NodeAndClient> predicate) {
         ensureOpen();
-        List<NodeAndClient> values = nodes.values().stream().filter(predicate).collect(Collectors.toList());
+        List<NodeAndClient> values = nodes.values().stream().filter(predicate).toList();
         if (values.isEmpty() == false) {
             return randomFrom(random, values);
         }
@@ -706,7 +675,7 @@ public final class TestCluster implements Closeable {
 
         if (numDataPaths > 1) {
             updatedSettings.putList(Environment.PATH_DATA_SETTING.getKey(), IntStream.range(0, numDataPaths).mapToObj(i ->
-                baseDir.resolve(name).resolve("d" + i).toString()).collect(Collectors.toList()));
+                baseDir.resolve(name).resolve("d" + i).toString()).toList());
         } else {
             updatedSettings.put(Environment.PATH_DATA_SETTING.getKey(), baseDir.resolve(name));
         }
@@ -1184,7 +1153,7 @@ public final class TestCluster implements Closeable {
                 final List<ClusterState> states = nodes.values().stream()
                     .map(node -> getInstanceFromNode(ClusterService.class, node.node()))
                     .map(ClusterService::state)
-                    .collect(Collectors.toList());
+                    .toList();
                 final String debugString = ", expected nodes: " + expectedNodes + " and actual cluster states " + states;
                 // all nodes have a master
                 assertThat(states.stream().allMatch(cs -> cs.nodes().getMasterNodeId() != null))
@@ -1197,9 +1166,9 @@ public final class TestCluster implements Closeable {
                 // all nodes know about all other nodes
                 states.forEach(cs -> {
                     DiscoveryNodes discoveryNodes = cs.nodes();
-                    assertThat(expectedNodes.size())
+                    assertThat(expectedNodes)
                         .as("Node size mismatch" + debugString)
-                        .isEqualTo(discoveryNodes.getSize());
+                        .hasSize(discoveryNodes.getSize());
                     for (DiscoveryNode expectedNode : expectedNodes) {
                         assertThat(discoveryNodes.nodeExists(expectedNode))
                             .as("Expected node to exist: " + expectedNode + debugString)
@@ -1272,7 +1241,7 @@ public final class TestCluster implements Closeable {
                 for (IndexService indexService : indexServices) {
                     for (IndexShard indexShard : indexService) {
                         List<String> operations = indexShard.getActiveOperations();
-                        if (operations.size() > 0) {
+                        if (!operations.isEmpty()) {
                             throw new AssertionError(
                                 "shard " + indexShard.shardId() + " on node [" + nodeAndClient.name + "] has pending operations:\n --> " +
                                     String.join("\n --> ", operations)
@@ -1484,7 +1453,7 @@ public final class TestCluster implements Closeable {
      * Returns an Iterable to all instances for the given class &gt;T&lt; across all nodes in the cluster.
      */
     public <T> Iterable<T> getInstances(Class<T> clazz) {
-        return nodes.values().stream().map(node -> getInstanceFromNode(clazz, node.node)).collect(Collectors.toList());
+        return nodes.values().stream().map(node -> getInstanceFromNode(clazz, node.node)).toList();
     }
 
     /**
@@ -1634,12 +1603,12 @@ public final class TestCluster implements Closeable {
     }
 
     private synchronized void startAndPublishNodesAndClients(List<NodeAndClient> nodeAndClients) {
-        if (nodeAndClients.size() > 0) {
+        if (!nodeAndClients.isEmpty()) {
             final int newMasters = (int) nodeAndClients.stream().filter(NodeAndClient::isMasterEligible)
                 .filter(nac -> nodes.containsKey(nac.name) == false) // filter out old masters
                 .count();
             rebuildUnicastHostFiles(nodeAndClients); // ensure that new nodes can find the existing nodes when they start
-            List<Future<?>> futures = nodeAndClients.stream().map(node -> executor.submit(node::startNode)).collect(Collectors.toList());
+            var futures = nodeAndClients.stream().map(node -> executor.submit(node::startNode)).toList();
 
             try {
                 for (Future<?> future : futures) {
@@ -1674,7 +1643,7 @@ public final class TestCluster implements Closeable {
                 ).filter(Objects::nonNull)
                     .map(TransportService::getLocalNode).filter(Objects::nonNull).filter(DiscoveryNode::isMasterEligibleNode)
                     .map(n -> n.getAddress().toString())
-                    .distinct().collect(Collectors.toList());
+                    .distinct().toList();
                 Set<Path> configPaths = Stream.concat(currentNodes.stream(), newNodes.stream())
                     .map(nac -> nac.node.getEnvironment().configFile()).collect(Collectors.toSet());
                 logger.debug("configuring discovery with {} at {}", discoveryFileContents, configPaths);
@@ -1788,7 +1757,7 @@ public final class TestCluster implements Closeable {
     private Set<String> excludeMasters(Collection<NodeAndClient> nodeAndClients) {
         assert Thread.holdsLock(this);
         final Set<String> excludedNodeNames = new HashSet<>();
-        if (autoManageMasterNodes && nodeAndClients.size() > 0) {
+        if (autoManageMasterNodes && !nodeAndClients.isEmpty()) {
 
             final long currentMasters = nodes.values().stream().filter(NodeAndClient::isMasterEligible).count();
             final long stoppingMasters = nodeAndClients.stream().filter(NodeAndClient::isMasterEligible).count();
@@ -1804,7 +1773,7 @@ public final class TestCluster implements Closeable {
 
                 logger.info("adding voting config exclusions {} prior to restart/shutdown", excludedNodeNames);
                 try {
-                    client().execute(AddVotingConfigExclusionsAction.INSTANCE,
+                    client().execute(TransportAddVotingConfigExclusions.ACTION,
                             new AddVotingConfigExclusionsRequest(excludedNodeNames.toArray(Strings.EMPTY_ARRAY))).get();
                 } catch (InterruptedException | ExecutionException e) {
                     throw new AssertionError("unexpected", e);
@@ -1820,7 +1789,7 @@ public final class TestCluster implements Closeable {
             logger.info("removing voting config exclusions for {} after restart/shutdown", excludedNodeIds);
             try {
                 Client client = getRandomNodeAndClient(node -> excludedNodeIds.contains(node.name) == false).client();
-                client.execute(ClearVotingConfigExclusionsAction.INSTANCE, new ClearVotingConfigExclusionsRequest()).get();
+                client.execute(TransportClearVotingConfigExclusions.ACTION, new ClearVotingConfigExclusionsRequest()).get();
             } catch (InterruptedException | ExecutionException e) {
                 throw new AssertionError("unexpected", e);
             }
@@ -2028,7 +1997,7 @@ public final class TestCluster implements Closeable {
         final List<String> initialMasterNodes = settings.stream()
                 .filter(Node.NODE_MASTER_SETTING::get)
                 .map(Node.NODE_NAME_SETTING::get)
-                .collect(Collectors.toList());
+                .toList();
 
         final List<Settings> updatedSettings = bootstrapMasterNodeWithSpecifiedIndex(settings);
 

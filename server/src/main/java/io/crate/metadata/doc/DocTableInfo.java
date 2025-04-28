@@ -22,6 +22,7 @@
 package io.crate.metadata.doc;
 
 import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
+import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -1101,22 +1102,22 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 .build();
             metadataBuilder.put(template);
         }
-        if (versionCreated.onOrAfter(Version.V_6_0_0)) {
-            metadataBuilder.setTable(
-                ident,
-                allColumns,
-                tableParameters,
-                clusteredBy,
-                columnPolicy,
-                pkConstraintName,
-                checkConstraintMap,
-                primaryKeys,
-                partitionedBy,
-                closed ? State.CLOSE : State.OPEN,
-                indexUUIDs
-            );
-        }
-        return metadataBuilder;
+        return metadataBuilder.setTable(
+            versionCreated.before(DocTableInfo.COLUMN_OID_VERSION)
+                ? NO_OID_COLUMN_OID_SUPPLIER
+                : metadataBuilder.columnOidSupplier(),
+            ident,
+            allColumns,
+            tableParameters,
+            clusteredBy,
+            columnPolicy,
+            pkConstraintName,
+            checkConstraintMap,
+            primaryKeys,
+            partitionedBy,
+            closed ? State.CLOSE : State.OPEN,
+            indexUUIDs
+        );
     }
 
     private boolean addNewReferences(LongSupplier acquireOid,

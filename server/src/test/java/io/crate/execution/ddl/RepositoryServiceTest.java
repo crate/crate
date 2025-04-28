@@ -34,12 +34,10 @@ import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepository;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepository;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterName;
@@ -101,7 +99,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
         final AtomicBoolean deleteRepoCalled = new AtomicBoolean(false);
         MockTransportService transportService = MockTransportService.createNewService(
             Settings.EMPTY, Version.CURRENT, THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings());
-        TransportDeleteRepositoryAction deleteRepositoryAction = new TransportDeleteRepositoryAction(
+        TransportDeleteRepository deleteRepositoryAction = new TransportDeleteRepository(
             transportService,
             clusterService,
             mock(RepositoriesService.class),
@@ -113,7 +111,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             }
         };
 
-        TransportPutRepositoryAction putRepo = new TransportPutRepositoryAction(
+        TransportPutRepository putRepo = new TransportPutRepository(
             transportService,
             clusterService,
             mock(RepositoriesService.class),
@@ -126,8 +124,8 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
 
         NodeClient nodeClient = new NodeClient(Settings.EMPTY, THREAD_POOL);
         nodeClient.initialize(Map.of(
-            PutRepositoryAction.INSTANCE, putRepo,
-            DeleteRepositoryAction.INSTANCE, deleteRepositoryAction
+            TransportPutRepository.ACTION, putRepo,
+            TransportDeleteRepository.ACTION, deleteRepositoryAction
         ));
 
         RepositoryService repositoryService = new RepositoryService(clusterService, nodeClient);

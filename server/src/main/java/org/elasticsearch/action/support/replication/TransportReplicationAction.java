@@ -75,7 +75,6 @@ import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequest;
-import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
@@ -123,7 +122,6 @@ public abstract class TransportReplicationAction<
     protected final ClusterService clusterService;
     protected final ShardStateAction shardStateAction;
     protected final IndicesService indicesService;
-    protected final TransportRequestOptions transportOptions;
     protected final String executor;
 
     // package private for testing
@@ -196,12 +194,11 @@ public abstract class TransportReplicationAction<
             in -> new ConcreteReplicaRequest<>(in, replicaReader),
             this::handleReplicaRequest
         );
-        this.transportOptions = transportOptions();
         this.syncGlobalCheckpointAfterOperation = syncGlobalCheckpointAfterOperation;
 
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
-        clusterSettings.addSettingsUpdateConsumer(REPLICATION_INITIAL_RETRY_BACKOFF_BOUND, (v) -> initialRetryBackoffBound = v);
-        clusterSettings.addSettingsUpdateConsumer(REPLICATION_RETRY_TIMEOUT, (v) -> retryTimeout = v);
+        clusterSettings.addSettingsUpdateConsumer(REPLICATION_INITIAL_RETRY_BACKOFF_BOUND, v -> initialRetryBackoffBound = v);
+        clusterSettings.addSettingsUpdateConsumer(REPLICATION_RETRY_TIMEOUT, v -> retryTimeout = v);
     }
 
     @Override
@@ -214,21 +211,6 @@ public abstract class TransportReplicationAction<
     }
 
     protected abstract Response newResponseInstance(StreamInput in) throws IOException;
-
-    /**
-     * Resolves derived values in the request. For example, the target shard id of the incoming request, if not set at request construction.
-     * Additional processing or validation of the request should be done here.
-     *
-     * @param indexMetadata index metadata of the concrete index this request is going to operate on
-     * @param request       the request to resolve
-     */
-    protected void resolveRequest(final IndexMetadata indexMetadata, final Request request) {
-        if (request.waitForActiveShards() == ActiveShardCount.DEFAULT) {
-            // if the wait for active shard count has not been set in the request,
-            // resolve it from the index settings
-            request.waitForActiveShards(indexMetadata.getWaitForActiveShards());
-        }
-    }
 
     /**
      * Primary operation on node with primary copy.
@@ -264,10 +246,6 @@ public abstract class TransportReplicationAction<
         return null;
     }
 
-    protected TransportRequestOptions transportOptions() {
-        return TransportRequestOptions.EMPTY;
-    }
-
     private ClusterBlockException blockExceptions(final ClusterState state, final String indexName) {
         ClusterBlockLevel globalBlockLevel = globalBlockLevel();
         if (globalBlockLevel != null) {
@@ -293,8 +271,8 @@ public abstract class TransportReplicationAction<
     }
 
     boolean isRetryableClusterBlockException(final Throwable e) {
-        if (e instanceof ClusterBlockException) {
-            return ((ClusterBlockException) e).retryable();
+        if (e instanceof ClusterBlockException cbe) {
+            return cbe.retryable();
         }
         return false;
     }
@@ -382,24 +360,12 @@ public abstract class TransportReplicationAction<
                             primary.allocationId().getRelocationId(),
                             primaryRequest.getPrimaryTerm()
                         ),
-                        transportOptions,
                         new ActionListenerResponseHandler<>(
                             onCompletionListener,
                             TransportReplicationAction.this::newResponseInstance) {
-
-                                @Override
-                                public void handleResponse(Response response) {
-                                    super.handleResponse(response);
-                                }
-
-                                @Override
-                                public void handleException(TransportException exp) {
-                                    super.handleException(exp);
-                                }
                         });
                 } else {
                     final ActionListener<Response> responseListener = ActionListener.wrap(response -> {
-                        adaptResponse(response, primaryShardReference.indexShard);
 
                         if (syncGlobalCheckpointAfterOperation) {
                             try {
@@ -441,11 +407,6 @@ public abstract class TransportReplicationAction<
         public void onFailure(Exception e) {
             onCompletionListener.onFailure(e);
         }
-    }
-
-    // allows subclasses to adapt the response
-    protected void adaptResponse(Response response, IndexShard indexShard) {
-
     }
 
     public static class PrimaryResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>,
@@ -555,7 +516,7 @@ public abstract class TransportReplicationAction<
                 assert replica.getActiveOperationsCount() != 0 : "must perform shard operation under a permit";
                 final ReplicaResult replicaResult = shardOperationOnReplica(replicaRequest.getRequest(), replica);
                 replicaResult.runPostReplicaActions(
-                    ActionListener.wrap(r -> {
+                    ActionListener.wrap(_ -> {
                         final TransportReplicationAction.ReplicaResponse response =
                             new ReplicaResponse(replica.getLocalCheckpoint(), replica.getLastSyncedGlobalCheckpoint());
                         releasable.close(); // release shard operation lock before responding to caller
@@ -614,7 +575,7 @@ public abstract class TransportReplicationAction<
             }
         }
 
-        protected void responseWithFailure(Exception e) {
+        private void responseWithFailure(Exception e) {
             onCompletionListener.onFailure(e);
         }
 
@@ -755,7 +716,7 @@ public abstract class TransportReplicationAction<
 
         private void performAction(final DiscoveryNode node, final String action, final boolean isPrimaryAction,
                                    final TransportRequest requestToPerform) {
-            transportService.sendRequest(node, action, requestToPerform, transportOptions, new TransportResponseHandler<Response>() {
+            transportService.sendRequest(node, action, requestToPerform, new TransportResponseHandler<Response>() {
 
                 @Override
                 public Response read(StreamInput in) throws IOException {
@@ -1003,7 +964,6 @@ public abstract class TransportReplicationAction<
         public long globalCheckpoint() {
             return globalCheckpoint;
         }
-
     }
 
     /**
@@ -1031,7 +991,7 @@ public abstract class TransportReplicationAction<
             final ConcreteReplicaRequest<ReplicaRequest> replicaRequest = new ConcreteReplicaRequest<>(
                 request, replica.allocationId().getId(), primaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes);
             final ActionListenerResponseHandler<ReplicaResponse> handler = new ActionListenerResponseHandler<>(listener, ReplicaResponse::new);
-            transportService.sendRequest(node, transportReplicaAction, replicaRequest, transportOptions, handler);
+            transportService.sendRequest(node, transportReplicaAction, replicaRequest, handler);
         }
 
         @Override

@@ -42,7 +42,7 @@ public class TransportDropUserMapping extends TransportMasterNodeAction<DropUser
     public static final Action ACTION = new Action();
 
     public static class Action extends ActionType<AcknowledgedResponse> {
-        public static final String NAME = "internal:crate:sql/fdw/user/drop";
+        private static final String NAME = "internal:crate:sql/fdw/user/drop";
 
         private Action() {
             super(NAME);

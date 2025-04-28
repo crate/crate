@@ -43,10 +43,10 @@ import org.assertj.core.api.Assertions;
 import org.assertj.core.api.SoftAssertions;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotAction;
+import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshot;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshot;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -120,7 +120,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
         CompletableFuture<SnapshotInfo> future = cluster().client()
             .execute(
-                CreateSnapshotAction.INSTANCE,
+                TransportCreateSnapshot.ACTION,
                 new CreateSnapshotRequest(repoName, "fast-snapshot")
                     .relationNames(List.of(new RelationName("doc", "tbl_fast")))
                     .waitForCompletion(true)
@@ -415,7 +415,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         logger.info("--> start third snapshot");
         var thirdSnapshotResponse = cluster().client()
             .execute(
-                CreateSnapshotAction.INSTANCE,
+                TransportCreateSnapshot.ACTION,
                 new CreateSnapshotRequest(repoName, "snapshot-three")
                     .relationNames(List.of(new RelationName("doc", secondTable)))
                     .waitForCompletion(true)
@@ -1269,7 +1269,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
                                                                 String... snapshotNames) {
         logger.info("--> deleting snapshots [{}] from repo [{}]", snapshotNames, repoName);
         DeleteSnapshotRequest request = new DeleteSnapshotRequest(repoName, snapshotNames);
-        return client.execute(DeleteSnapshotAction.INSTANCE, request);
+        return client.execute(TransportDeleteSnapshot.ACTION, request);
     }
 
     private CompletableFuture<SnapshotInfo> startFullSnapshot(String repoName,
@@ -1294,7 +1294,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             .partial(partial)
             .waitForCompletion(true);
         return client
-            .execute(CreateSnapshotAction.INSTANCE, createSnapshotRequest)
+            .execute(TransportCreateSnapshot.ACTION, createSnapshotRequest)
             .thenApply(x -> x.getSnapshotInfo());
     }
 

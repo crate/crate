@@ -61,3 +61,17 @@ Fixes
 - Fixed an issue that led to an ``no viable alternative at input 'SELECT FROM'``
   error when using ``SELECT count(*) FROM remote_tbl`` where ``remote_tbl`` is a
   foreign table using the JDBC foreign data wrapper.
+
+- Fixed edge cases of fixed length character comparisons involving whitespaces,
+  E.g.::
+
+    CREATE TABLE t (col CHAR(3))
+    INSERT INTO t VALUES ('')
+    SELECT col > e'\n' from t
+    
+  now returns ``TRUE`` because ``''`` is padded with ``' '`` which is ``32`` in
+  ``ASCII`` and ``e'\n'`` is ``10`` in ``ASCII``.
+
+- Fixed behavior of ``COPY ... FROM ... with (fail_fast = true)`` to stop on
+  non-retryable IO errors as well. Before the flag used to be applied only for
+  write errors.

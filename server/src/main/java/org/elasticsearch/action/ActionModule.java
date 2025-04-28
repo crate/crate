@@ -23,30 +23,20 @@ import static java.util.Collections.unmodifiableMap;
 
 import java.util.Map;
 
-import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
-import org.elasticsearch.action.admin.cluster.configuration.ClearVotingConfigExclusionsAction;
-import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusionsAction;
-import org.elasticsearch.action.admin.cluster.configuration.TransportClearVotingConfigExclusionsAction;
-import org.elasticsearch.action.admin.cluster.health.ClusterHealthAction;
-import org.elasticsearch.action.admin.cluster.health.TransportClusterHealthAction;
-import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsAction;
-import org.elasticsearch.action.admin.cluster.node.stats.TransportNodesStatsAction;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
-import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepositoryAction;
+import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusions;
+import org.elasticsearch.action.admin.cluster.configuration.TransportClearVotingConfigExclusions;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealth;
+import org.elasticsearch.action.admin.cluster.node.stats.TransportNodesStats;
+import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepository;
+import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepository;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.reroute.TransportClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.TransportClusterUpdateSettingsAction;
-import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotAction;
-import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshotAction;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotAction;
-import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshotAction;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.RestoreSnapshotAction;
-import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshotAction;
-import org.elasticsearch.action.admin.cluster.state.ClusterStateAction;
-import org.elasticsearch.action.admin.cluster.state.TransportClusterStateAction;
+import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshot;
+import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshot;
+import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshot;
+import org.elasticsearch.action.admin.cluster.state.TransportClusterState;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.TransportPendingClusterTasksAction;
 import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
@@ -204,11 +194,11 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportDropUserDefinedFunction.ACTION, TransportDropUserDefinedFunction.class);
 
         // Repository & Snapshot actions
-        actions.register(PutRepositoryAction.INSTANCE, TransportPutRepositoryAction.class);
-        actions.register(DeleteRepositoryAction.INSTANCE, TransportDeleteRepositoryAction.class);
-        actions.register(DeleteSnapshotAction.INSTANCE, TransportDeleteSnapshotAction.class);
-        actions.register(CreateSnapshotAction.INSTANCE, TransportCreateSnapshotAction.class);
-        actions.register(RestoreSnapshotAction.INSTANCE, TransportRestoreSnapshotAction.class);
+        actions.register(TransportPutRepository.ACTION, TransportPutRepository.class);
+        actions.register(TransportDeleteRepository.ACTION, TransportDeleteRepository.class);
+        actions.register(TransportDeleteSnapshot.ACTION, TransportDeleteSnapshot.class);
+        actions.register(TransportCreateSnapshot.ACTION, TransportCreateSnapshot.class);
+        actions.register(TransportRestoreSnapshot.ACTION, TransportRestoreSnapshot.class);
 
         // Roles & Privileges actions
         actions.register(TransportPrivileges.ACTION, TransportPrivileges.class);
@@ -236,16 +226,16 @@ public class ActionModule extends AbstractModule {
         actions.register(TransportDropUserMapping.ACTION, TransportDropUserMapping.class);
 
         // Cluster & internal actions
-        actions.register(ClusterStateAction.INSTANCE, TransportClusterStateAction.class);
-        actions.register(ClusterHealthAction.INSTANCE, TransportClusterHealthAction.class);
+        actions.register(TransportClusterState.ACTION, TransportClusterState.class);
+        actions.register(TransportClusterHealth.ACTION, TransportClusterHealth.class);
         actions.register(ClusterUpdateSettingsAction.INSTANCE, TransportClusterUpdateSettingsAction.class);
         actions.register(ClusterRerouteAction.INSTANCE, TransportClusterRerouteAction.class);
         actions.register(PendingClusterTasksAction.INSTANCE, TransportPendingClusterTasksAction.class);
         actions.register(ForceMergeAction.INSTANCE, TransportForceMergeAction.class);
         actions.register(SyncRetentionLeasesAction.INSTANCE, TransportSyncRetentionLeasesAction.class);
-        actions.register(AddVotingConfigExclusionsAction.INSTANCE, TransportAddVotingConfigExclusionsAction.class);
-        actions.register(ClearVotingConfigExclusionsAction.INSTANCE, TransportClearVotingConfigExclusionsAction.class);
-        actions.register(NodesStatsAction.INSTANCE, TransportNodesStatsAction.class);
+        actions.register(TransportAddVotingConfigExclusions.ACTION, TransportAddVotingConfigExclusions.class);
+        actions.register(TransportClearVotingConfigExclusions.ACTION, TransportClearVotingConfigExclusions.class);
+        actions.register(TransportNodesStats.ACTION, TransportNodesStats.class);
         actions.register(ShardDeleteAction.INSTANCE, TransportShardDeleteAction.class);
         actions.register(ShardUpsertAction.INSTANCE, TransportShardUpsertAction.class);
         actions.register(KillJobsNodeAction.INSTANCE, TransportKillJobsNodeAction.class);

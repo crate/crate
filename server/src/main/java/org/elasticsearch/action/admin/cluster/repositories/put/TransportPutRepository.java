@@ -17,11 +17,12 @@
  * under the License.
  */
 
-package org.elasticsearch.action.admin.cluster.repositories.delete;
+package org.elasticsearch.action.admin.cluster.repositories.put;
 
 import java.io.IOException;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -35,18 +36,28 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 /**
- * Transport action for unregister repository operation
+ * Transport action for register repository operation
  */
-public class TransportDeleteRepositoryAction extends TransportMasterNodeAction<DeleteRepositoryRequest, AcknowledgedResponse> {
+public class TransportPutRepository extends TransportMasterNodeAction<PutRepositoryRequest, AcknowledgedResponse> {
+
+    public static final Action ACTION = new Action();
+
+    public static class Action extends ActionType<AcknowledgedResponse> {
+        private static final String NAME = "cluster:admin/repository/put";
+
+        private Action() {
+            super(NAME);
+        }
+    }
 
     private final RepositoriesService repositoriesService;
 
     @Inject
-    public TransportDeleteRepositoryAction(TransportService transportService,
-                                           ClusterService clusterService,
-                                           RepositoriesService repositoriesService,
-                                           ThreadPool threadPool) {
-        super(DeleteRepositoryAction.NAME, transportService, clusterService, threadPool, DeleteRepositoryRequest::new);
+    public TransportPutRepository(TransportService transportService,
+                                  ClusterService clusterService,
+                                  RepositoriesService repositoriesService,
+                                  ThreadPool threadPool) {
+        super(ACTION.name(), transportService, clusterService, threadPool, PutRepositoryRequest::new);
         this.repositoriesService = repositoriesService;
     }
 
@@ -61,16 +72,17 @@ public class TransportDeleteRepositoryAction extends TransportMasterNodeAction<D
     }
 
     @Override
-    protected ClusterBlockException checkBlock(DeleteRepositoryRequest request, ClusterState state) {
+    protected ClusterBlockException checkBlock(PutRepositoryRequest request, ClusterState state) {
         return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 
     @Override
-    protected void masterOperation(final DeleteRepositoryRequest request,
+    protected void masterOperation(final PutRepositoryRequest request,
                                    final ClusterState state,
                                    final ActionListener<AcknowledgedResponse> listener) {
-        repositoriesService.unregisterRepository(request)
+        repositoriesService.registerRepository(request)
             .thenApply(resp -> new AcknowledgedResponse(resp.isAcknowledged()))
             .whenComplete(listener);
     }
 }
+

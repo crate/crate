@@ -27,8 +27,8 @@ import java.util.Set;
 import java.util.concurrent.ExecutionException;
 
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsAction;
 import org.elasticsearch.action.admin.cluster.configuration.AddVotingConfigExclusionsRequest;
+import org.elasticsearch.action.admin.cluster.configuration.TransportAddVotingConfigExclusions;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
@@ -54,7 +54,7 @@ public class VotingConfigurationIT extends IntegTestCase {
         final String originalMaster = cluster().getMasterName();
 
         logger.info("--> excluding master node {}", originalMaster);
-        client().execute(AddVotingConfigExclusionsAction.INSTANCE,
+        client().execute(TransportAddVotingConfigExclusions.ACTION,
             new AddVotingConfigExclusionsRequest(new String[]{originalMaster})).get();
         FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)));
         assertThat(cluster().getMasterName()).isNotEqualTo(originalMaster);

@@ -39,7 +39,6 @@ import io.crate.types.DataTypes;
 
 public final class TransportSettings {
 
-    public static final String DEFAULT_PROFILE = "default";
     public static final String FEATURE_PREFIX = "transport.features";
 
     public static final Setting<List<String>> HOST =

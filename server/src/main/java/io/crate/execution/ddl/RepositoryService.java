@@ -25,10 +25,10 @@ import java.util.concurrent.CompletableFuture;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryAction;
 import org.elasticsearch.action.admin.cluster.repositories.delete.DeleteRepositoryRequest;
-import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryAction;
+import org.elasticsearch.action.admin.cluster.repositories.delete.TransportDeleteRepository;
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
+import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepository;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -73,7 +73,7 @@ public class RepositoryService {
     }
 
     public CompletableFuture<Long> execute(DeleteRepositoryRequest request) {
-        return client.execute(DeleteRepositoryAction.INSTANCE, request).thenApply(response -> {
+        return client.execute(TransportDeleteRepository.ACTION, request).thenApply(response -> {
             if (!response.isAcknowledged()) {
                 LOGGER.info("delete repository '{}' not acknowledged", request.name());
             }
@@ -82,7 +82,7 @@ public class RepositoryService {
     }
 
     public CompletableFuture<Long> execute(PutRepositoryRequest request) {
-        return client.execute(PutRepositoryAction.INSTANCE, request).thenApply(r -> 1L)
+        return client.execute(TransportPutRepository.ACTION, request).thenApply(r -> 1L)
             .exceptionallyCompose(err -> {
                 final Throwable t = convertRepositoryException(err);
                 // in case the put repo action fails in the verificationPhase the repository got already created
