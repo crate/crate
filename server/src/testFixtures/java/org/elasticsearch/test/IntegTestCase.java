@@ -60,7 +60,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.function.BooleanSupplier;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -89,7 +88,6 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
@@ -646,36 +644,6 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public void ensureYellow() throws Exception {
         sqlExecutor.ensureYellowOrGreen(cluster().size());
-    }
-
-    private static final long AWAIT_BUSY_THRESHOLD = 1000L;
-
-    /**
-     * Periodically execute the supplied function until it returns true, or until the
-     * specified maximum wait time has elapsed. If at all possible, use
-     * {@link ESTestCase#assertBusy(CheckedRunnable)} instead.
-     *
-     * @param breakSupplier determines whether to return immediately or continue waiting.
-     * @param maxWaitTime the maximum amount of time to wait
-     * @param unit the unit of tie for <code>maxWaitTime</code>
-     * @return the last value returned by <code>breakSupplier</code>
-     * @throws InterruptedException if any sleep calls were interrupted.
-     */
-    public static boolean waitUntil(BooleanSupplier breakSupplier, long maxWaitTime, TimeUnit unit) throws InterruptedException {
-        long maxTimeInMillis = TimeUnit.MILLISECONDS.convert(maxWaitTime, unit);
-        long timeInMillis = 1;
-        long sum = 0;
-        while (sum + timeInMillis < maxTimeInMillis) {
-            if (breakSupplier.getAsBoolean()) {
-                return true;
-            }
-            Thread.sleep(timeInMillis);
-            sum += timeInMillis;
-            timeInMillis = Math.min(AWAIT_BUSY_THRESHOLD, timeInMillis * 2);
-        }
-        timeInMillis = maxTimeInMillis - sum;
-        Thread.sleep(Math.max(timeInMillis, 0));
-        return breakSupplier.getAsBoolean();
     }
 
     /**
