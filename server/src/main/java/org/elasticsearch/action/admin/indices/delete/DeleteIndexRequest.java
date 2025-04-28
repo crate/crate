@@ -20,45 +20,35 @@
 package org.elasticsearch.action.admin.indices.delete;
 
 import java.io.IOException;
+import java.util.List;
 
-import org.elasticsearch.action.IndicesRequest;
-import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.metadata.PartitionName;
+
 /**
  * A request to delete an index.
+ * This is only here to support backwards-compatibility, and is not used by 6.0 nodes
  */
-public class DeleteIndexRequest extends AcknowledgedRequest<DeleteIndexRequest> implements IndicesRequest {
+public class DeleteIndexRequest extends AcknowledgedRequest<DeleteIndexRequest> {
 
-    private final String[] indices;
-    // Delete index should work by default on both open and closed indices.
-    private final IndicesOptions indicesOptions;
+    private final List<PartitionName> partitions;
 
-    @Override
-    public IndicesOptions indicesOptions() {
-        return indicesOptions;
-    }
-
-    /**
-     * The index to delete.
-     */
-    @Override
-    public String[] indices() {
-        return indices;
+    public List<PartitionName> partitions() {
+        return partitions;
     }
 
     public DeleteIndexRequest(StreamInput in) throws IOException {
         super(in);
-        indices = in.readStringArray();
-        indicesOptions = IndicesOptions.readIndicesOptions(in);
+        partitions = BroadcastRequest.readPartitionNamesFromPre60(in);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeStringArray(indices);
-        indicesOptions.writeIndicesOptions(out);
+        BroadcastRequest.writePartitionNamesToPre60(out, partitions);
     }
 }
