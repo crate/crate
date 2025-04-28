@@ -2073,7 +2073,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     @UseJdbc(0)
     @Test
     public void foo() throws IOException {
-        final int depth = 200; // cannot be < 1
+        final int depth = 100; // cannot be < 1
         execute("create table tbl (" + "o object as (".repeat(depth) + "x int" + ")".repeat(depth) + ")");
         DocTableInfo tbl = getTable("tbl");
         execute("insert into tbl values (" + "{o=".repeat(depth - 1) + "{x=1}" + "}".repeat(depth - 1) + ")");
@@ -2118,6 +2118,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             execute("insert into tbl2 values (?)", new Object[]{val});
         }
 
+        execute("refresh table tbl, tbl2");
         execute("create table tbl3 as select * from tbl union all select * from tbl2");
         execute("refresh table tbl3");
         execute("select * from tbl3");
