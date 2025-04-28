@@ -69,7 +69,8 @@ public class IsNullPredicateTest extends ScalarTestCase {
                 indexEnv.indexService().indexAnalyzers(),
                 table,
                 Version.CURRENT,
-                indexEnv.queryCache()
+                indexEnv.queryCache(),
+                () -> {}
             );
             SimpleReference ref = new SimpleReference(
                 new ReferenceIdent(table.ident(), "obj"),
@@ -100,7 +101,8 @@ public class IsNullPredicateTest extends ScalarTestCase {
                 indexEnv.indexService().indexAnalyzers(),
                 table,
                 Version.CURRENT,
-                indexEnv.queryCache()
+                indexEnv.queryCache(),
+                () -> {}
             ).query();
             assertThat(query).isExactlyInstanceOf(GenericFunctionQuery.class);
             assertThat(query.toString()).isEqualTo("(_doc['obj_ignored']['x'] IS NULL)");

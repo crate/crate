@@ -216,7 +216,8 @@ public final class QueryTester implements AutoCloseable {
                     indexEnv.indexService().indexAnalyzers(),
                     table,
                     indexVersion,
-                    indexEnv.queryCache()
+                    indexEnv.queryCache(),
+                    () -> {}
                 ).query(),
                 table,
                 indexEnv

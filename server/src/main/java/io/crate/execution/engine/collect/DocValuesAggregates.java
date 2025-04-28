@@ -111,7 +111,8 @@ public final class DocValuesAggregates {
             indexService.indexAnalyzers(),
             table,
             indexShard.getVersionCreated(),
-            indexService.cache()
+            indexService.cache(),
+            collectTask::raiseIfKilled
         );
 
         AtomicReference<Throwable> killed = new AtomicReference<>();
