@@ -252,8 +252,7 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                                                  ShardId shardId,
                                                  @Nullable ActionListener<Response> listener) {
             var routingTable = state.routingTable().index(shardId.getIndexName());
-            assert routingTable != null : "routingTable must not be null";
-            if (routingTable.allPrimaryShardsActive() == false) {
+            if (routingTable != null && routingTable.allPrimaryShardsActive() == false) {
                 // Throw or fail a listener with an appropriate exception that is listed in SQLExceptions.maybeTemporary,
                 // so that ShardReplicationChangesTracker won't stop and retry later.
                 if (listener == null) {
