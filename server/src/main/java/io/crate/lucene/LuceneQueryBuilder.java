@@ -102,7 +102,8 @@ public class LuceneQueryBuilder {
                            IndexAnalyzers indexAnalyzers,
                            DocTableInfo table,
                            Version shardCreatedVersion,
-                           QueryCache queryCache) throws UnsupportedFeatureException {
+                           QueryCache queryCache,
+                           Runnable raiseIfKilled) throws UnsupportedFeatureException {
         var refResolver = new LuceneReferenceResolver(
             indexName,
             table.partitionedByColumns(),
@@ -120,7 +121,8 @@ public class LuceneQueryBuilder {
             indexAnalyzers,
             indexName,
             table.partitionedByColumns(),
-            query
+            query,
+            raiseIfKilled
         );
         ctx.query = eliminateNullsIfPossible(
             inverseSourceLookup(normalizer.normalize(query, txnCtx)),
@@ -148,6 +150,8 @@ public class LuceneQueryBuilder {
         final NodeContext nodeContext;
         private final Symbol parentQuery;
 
+        private final Runnable raiseIfKilled;
+
         Context(DocTableInfo table,
                 Version shardCreatedVersion,
                 TransactionContext txnCtx,
@@ -156,12 +160,14 @@ public class LuceneQueryBuilder {
                 IndexAnalyzers indexAnalyzers,
                 String indexName,
                 List<Reference> partitionColumns,
-                Symbol parentQuery) {
+                Symbol parentQuery,
+                Runnable raiseIfKilled) {
             this.table = table;
             this.shardCreatedVersion = shardCreatedVersion;
             this.nodeContext = nodeCtx;
             this.txnCtx = txnCtx;
             this.indexAnalyzers = indexAnalyzers;
+            this.raiseIfKilled = raiseIfKilled;
             this.docInputFactory = new DocInputFactory(
                 nodeCtx,
                 new LuceneReferenceResolver(
@@ -401,7 +407,7 @@ public class LuceneQueryBuilder {
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }
-        return new GenericFunctionQuery(function, expressions, condition);
+        return new GenericFunctionQuery(function, expressions, condition, context.raiseIfKilled);
     }
 
     private static void raiseUnsupported(Function function) {

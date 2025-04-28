@@ -146,6 +146,11 @@ public class CountOperation {
                    IndexShard indexShard,
                    TransactionContext txnCtx,
                    Symbol filter) {
+        Runnable raiseIfKilled = () -> {
+            if (Thread.interrupted()) {
+                throw JobKilledException.of("thread interrupted during count-operation");
+            }
+        };
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
             String indexName = indexShard.shardId().getIndexName();
             var relationName = RelationName.fromIndexName(indexName);
@@ -157,11 +162,10 @@ public class CountOperation {
                 indexService.indexAnalyzers(),
                 table,
                 indexShard.getVersionCreated(),
-                indexService.cache()
+                indexService.cache(),
+                raiseIfKilled
             );
-            if (Thread.interrupted()) {
-                throw JobKilledException.of("thread interrupted during count-operation");
-            }
+            raiseIfKilled.run();
             return searcher.count(queryCtx.query());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
