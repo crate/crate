@@ -21,6 +21,8 @@
 
 package io.crate.metadata;
 
+import java.util.List;
+
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -39,6 +41,14 @@ public record IndexParts(String schema, String table, @Nullable String partition
 
     public RelationName toRelationName() {
         return new RelationName(schema, table);
+    }
+
+    public PartitionName toPartitionName() {
+        if (isPartitioned()) {
+            return new PartitionName(toRelationName(), partitionIdent);
+        } else {
+            return new PartitionName(toRelationName(), List.of());
+        }
     }
 
     public String toFullyQualifiedName() {

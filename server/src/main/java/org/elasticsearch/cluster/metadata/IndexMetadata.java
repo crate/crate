@@ -989,6 +989,11 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             return this;
         }
 
+        public Builder incrementSettingsVersion() {
+            this.settingsVersion = this.settingsVersion + 1;
+            return this;
+        }
+
         /**
          * returns the primary term for the given shard.
          * See {@link IndexMetadata#primaryTerm(int)} for more information.

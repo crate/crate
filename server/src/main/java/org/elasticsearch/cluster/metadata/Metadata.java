@@ -876,6 +876,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
+        public void updateNumberOfReplicas(final int numberOfReplicas, List<IndexMetadata> indexes) {
+            for (IndexMetadata im : indexes) {
+                put(IndexMetadata.builder(im).numberOfReplicas(numberOfReplicas));
+            }
+        }
+
         public Builder coordinationMetadata(CoordinationMetadata coordinationMetadata) {
             this.coordinationMetadata = coordinationMetadata;
             return this;

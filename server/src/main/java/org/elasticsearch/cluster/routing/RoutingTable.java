@@ -450,6 +450,11 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
             indexBuilder.addShard(shardRoutingEntry);
         }
 
+        public void updateNumberOfReplicas(final int numberOfReplicas, final List<IndexMetadata> indexes) {
+            String[] indices = indexes.stream().map(im -> im.getIndex().getName()).toArray(String[]::new);
+            updateNumberOfReplicas(numberOfReplicas, indices);
+        }
+
         /**
          * Update the number of replicas for the specified indices.
          *

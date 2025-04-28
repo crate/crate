@@ -48,7 +48,6 @@ import org.elasticsearch.cluster.routing.RoutingNodes;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.allocation.decider.DiskThresholdDecider;
 import org.elasticsearch.common.Priority;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -57,6 +56,8 @@ import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Sets;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.PartitionName;
 
 /**
  * Listens for a node to go over the high watermark and kicks off an empty
@@ -359,7 +360,10 @@ public class DiskThresholdMonitor {
         Settings readOnlySettings = readOnly ? Settings.builder()
             .put(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, Boolean.TRUE.toString()).build() :
             Settings.builder().putNull(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE).build();
-        client.admin().indices().updateSettings(new UpdateSettingsRequest(readOnlySettings, indicesToUpdate.toArray(Strings.EMPTY_ARRAY)))
+        List<PartitionName> partitions = indicesToUpdate.stream()
+            .map(index -> IndexName.decode(index).toPartitionName())
+            .toList();
+        client.admin().indices().updateSettings(new UpdateSettingsRequest(readOnlySettings, partitions))
             .thenApply(response -> (Void) null)
             .whenComplete(wrappedListener);
     }

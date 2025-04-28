@@ -127,9 +127,10 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
             false,
             IndexMetadata::getIndex
         );
+        List<PartitionName> partitions = partitions(request);
         if (request.isPartitioned()) {
             if (!request.partitionValues().isEmpty()) {
-                currentState = updateSettings(currentState, settings, concreteIndices);
+                currentState = updateSettings(currentState, settings, partitions);
             } else {
                 // using settings from request with column policy still present
                 Map<String, Object> newMapping = settingsToMapping(request.settings());
@@ -153,19 +154,27 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                     // auto_expand_replicas must be explicitly added as it is hidden under NumberOfReplicasSetting
                     supportedSettings.add(AutoExpandReplicas.SETTING);
 
-                    currentState = updateSettings(currentState, filterSettings(settings, supportedSettings), concreteIndices);
+                    currentState = updateSettings(currentState, filterSettings(settings, supportedSettings), partitions);
                     currentState = updateMapping(currentState, concreteIndices, columnPolicy);
                 }
             }
         } else {
             currentState = updateMapping(currentState, concreteIndices, columnPolicy);
-            currentState = updateSettings(currentState, settings, concreteIndices);
+            currentState = updateSettings(currentState, settings, partitions);
         }
 
         // ensure the new table can still be parsed into a DocTableInfo to avoid breaking the table.
         new DocTableInfoFactory(nodeContext).create(request.tableIdent(), currentState.metadata());
 
         return currentState;
+    }
+
+    private List<PartitionName> partitions(AlterTableRequest request) {
+        if (request.isPartitioned()) {
+            return List.of(new PartitionName(request.tableIdent(), request.partitionValues()));
+        } else {
+            return List.of(new PartitionName(request.tableIdent(), List.of()));
+        }
     }
 
     private ClusterState updateMapping(ClusterState currentState,
@@ -196,7 +205,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
     /**
      * The logic is taken over from {@link MetadataUpdateSettingsService#updateSettings(UpdateSettingsRequest, ActionListener)}
      */
-    private ClusterState updateSettings(final ClusterState currentState, final Settings settings, List<Index> concreteIndices) {
+    private ClusterState updateSettings(final ClusterState currentState, final Settings settings, List<PartitionName> partitions) {
         final Settings normalizedSettings = Settings.builder()
             .put(markArchivedSettings(settings))
             .normalizePrefix(IndexMetadata.INDEX_SETTING_PREFIX)
@@ -224,7 +233,7 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
         final Settings openSettings = settingsForOpenIndices.build();
         return updateSettingsService.updateState(
             currentState,
-            concreteIndices.toArray(Index[]::new),
+            partitions,
             skippedSettings,
             closedSettings,
             openSettings
