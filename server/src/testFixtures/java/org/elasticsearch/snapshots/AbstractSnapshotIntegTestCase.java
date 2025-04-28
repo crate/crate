@@ -22,17 +22,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
-import java.nio.file.FileVisitResult;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.SimpleFileVisitor;
-import java.nio.file.attribute.BasicFileAttributes;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 
 import org.elasticsearch.cluster.ClusterState;
@@ -48,8 +42,6 @@ import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.repositories.blobstore.BlobStoreTestUtil;
 import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.IntegTestCase;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.threadpool.ThreadPoolStats;
 import org.junit.After;
 
 import io.crate.action.FutureActionListener;
@@ -126,40 +118,6 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         return FutureUtils.get(repository.getRepositoryData());
     }
 
-    public static long getFailureCount(String repository) {
-        long failureCount = 0;
-        for (RepositoriesService repositoriesService :
-            cluster().getDataOrMasterNodeInstances(RepositoriesService.class)) {
-            MockRepository mockRepository = (MockRepository) repositoriesService.repository(repository);
-            failureCount += mockRepository.getFailureCount();
-        }
-        return failureCount;
-    }
-
-    public static void assertFileCount(Path dir, int expectedCount) throws IOException {
-        final List<Path> found = new ArrayList<>();
-        Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) {
-                found.add(file);
-                return FileVisitResult.CONTINUE;
-            }
-        });
-        assertThat(found.size()).as("Unexpected file count, found: [" + found + "].").isEqualTo(expectedCount);
-    }
-
-    public static int numberOfFiles(Path dir) throws IOException {
-        final AtomicInteger count = new AtomicInteger();
-        Files.walkFileTree(dir, new SimpleFileVisitor<Path>() {
-            @Override
-            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
-                count.incrementAndGet();
-                return FileVisitResult.CONTINUE;
-            }
-        });
-        return count.get();
-    }
-
     public static void stopNode(final String node) throws IOException {
         cluster().stopRandomNode(settings -> settings.get("node.name").equals(node));
     }
@@ -180,12 +138,6 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
     public static String blockMasterFromFinalizingSnapshotOnIndexFile(final String repositoryName) {
         final String masterName = cluster().getMasterName();
         mockRepo(repositoryName, masterName).setBlockAndFailOnWriteIndexFile();
-        return masterName;
-    }
-
-    public static String blockMasterFromFinalizingSnapshotOnSnapFile(final String repositoryName) {
-        final String masterName = cluster().getMasterName();
-        mockRepo(repositoryName, masterName).setBlockAndFailOnWriteSnapFiles(true);
         return masterName;
     }
 
@@ -214,20 +166,6 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         for(RepositoriesService repositoriesService : cluster().getDataNodeInstances(RepositoriesService.class)) {
             ((MockRepository)repositoriesService.repository(repository)).unblock();
         }
-    }
-
-    public static void waitForBlockOnAnyDataNode(String repository, TimeValue timeout) throws InterruptedException {
-        final boolean blocked = waitUntil(() -> {
-            for (RepositoriesService repositoriesService : cluster().getDataNodeInstances(RepositoriesService.class)) {
-                MockRepository mockRepository = (MockRepository) repositoriesService.repository(repository);
-                if (mockRepository.blocked()) {
-                    return true;
-                }
-            }
-            return false;
-        }, timeout.millis(), TimeUnit.MILLISECONDS);
-
-        assertThat(blocked).as("No repository is blocked waiting on a data node").isTrue();
     }
 
     public static void unblockNode(final String repository, final String node) {
@@ -261,16 +199,6 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
             }, statePredicate);
             FutureUtils.get(future, 30L, TimeUnit.SECONDS);
         }
-    }
-
-    protected void awaitMasterFinishRepoOperations() throws Exception {
-        logger.info("--> waiting for master to finish all repo operations on its SNAPSHOT pool");
-        final ThreadPool masterThreadPool = cluster().getMasterNodeInstance(ThreadPool.class);
-        assertBusy(() -> {
-            ThreadPoolStats.Stats stats = masterThreadPool.stats(ThreadPool.Names.SNAPSHOT);
-            assertThat(stats).isNotNull();
-            assertThat(stats.active()).isEqualTo(0);
-        });
     }
 
     @SuppressWarnings("unchecked")
