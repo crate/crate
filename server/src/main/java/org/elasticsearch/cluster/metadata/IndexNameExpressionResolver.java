@@ -29,9 +29,7 @@ import java.util.Set;
 import java.util.SortedMap;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.action.IndicesRequest;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.regex.Regex;
 import org.elasticsearch.index.Index;
@@ -43,33 +41,10 @@ public class IndexNameExpressionResolver {
     private IndexNameExpressionResolver() {
     }
 
-
-    /**
-     * Same as {@link #concreteIndexNames(ClusterState, IndicesOptions, String...)}, but the index expressions and options
-     * are encapsulated in the specified request.
-     *
-     * @deprecated indices should be resolved via {@link Metadata#getIndices(io.crate.metadata.RelationName, List, boolean, java.util.function.Function)
-     */
-    @Deprecated
-    public static String[] concreteIndexNames(ClusterState state, IndicesRequest request) {
-        return concreteIndexNames(state.metadata(), request.indicesOptions(), request.indices());
-    }
-
-    /**
-     * Same as {@link #concreteIndices(ClusterState, IndicesOptions, String...)}, but the index expressions and options
-     * are encapsulated in the specified request.
-     *
-     * @deprecated indices should be resolved via {@link Metadata#getIndices(io.crate.metadata.RelationName, List, boolean, java.util.function.Function)
-     */
-    @Deprecated
-    public static Index[] concreteIndices(ClusterState state, IndicesRequest request) {
-        return concreteIndices(state.metadata(), request.indicesOptions(), request.indices());
-    }
-
     /**
      * Translates the provided index expression into actual concrete indices, properly deduplicated.
      *
-     * @param state             the cluster state containing all the data to resolve to expressions to concrete indices
+     * @param metadata          the cluster state metadata containing all the data to resolve to expressions to concrete indices
      * @param options           defines how the aliases or indices need to be resolved to concrete indices
      * @param indexExpressions  expressions that can be resolved to alias or index names.
      * @return the resolved concrete indices based on the cluster state, indices options and index expressions
