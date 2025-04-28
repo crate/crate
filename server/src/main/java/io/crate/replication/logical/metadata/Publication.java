@@ -27,7 +27,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -119,19 +118,6 @@ public class Publication implements Writeable {
                                                                        Role publicationOwner,
                                                                        Role subscriber,
                                                                        String publicationName) {
-        // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
-        Predicate<String> indexFilter = indexName -> {
-            var indexMetadata = state.metadata().index(indexName);
-            if (indexMetadata != null) {
-                var routingTable = state.routingTable().index(indexName);
-                assert routingTable != null : "routingTable must not be null";
-                return routingTable.allPrimaryShardsActive();
-
-            }
-            // Partitioned table case (template, no index).
-            return true;
-        };
-
         var relations = new HashSet<RelationName>();
 
         if (isForAllTables()) {
@@ -161,10 +147,9 @@ public class Publication implements Writeable {
         }
 
         return relations.stream()
-            .filter(relationName -> indexFilter.test(relationName.indexNameOrAlias()))
             .filter(relationName -> userCanPublish(roles, relationName, publicationOwner, publicationName))
             .filter(relationName -> subscriberCanRead(roles, relationName, subscriber, publicationName))
-            .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata(), indexFilter))
+            .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata()))
             .collect(Collectors.toMap(RelationMetadata::name, x -> x));
 
     }

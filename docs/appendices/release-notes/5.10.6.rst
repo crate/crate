@@ -51,3 +51,6 @@ Fixes
 - Fixed a bug where references to a column initially created in versions of CrateDB
   before 5.5 would return ``NULL`` instead of their actual value when the column was
   addressed via ``doc['column']``
+
+- Fixed a regression introduced in 5.6.0 that caused logical replication to
+  stop if a publisher cluster was restarted.

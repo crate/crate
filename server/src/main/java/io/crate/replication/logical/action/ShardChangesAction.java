@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.support.single.shard.SingleShardRequest;
 import org.elasticsearch.action.support.single.shard.TransportSingleShardAction;
 import org.elasticsearch.cluster.ClusterState;
@@ -102,6 +103,7 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
 
         @Override
         protected Response shardOperation(Request request, ShardId shardId) throws IOException {
+            ensureAllPrimariesActive(clusterService.state(), shardId, null);
             var indexService = indicesService.indexServiceSafe(shardId.getIndex());
             var indexShard = indexService.getShard(shardId.id());
             var seqNoStats = indexShard.seqNoStats();
@@ -149,6 +151,10 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
         protected void asyncShardOperation(Request request,
                                            ShardId shardId,
                                            ActionListener<Response> listener) throws IOException {
+            boolean listenerFailed = ensureAllPrimariesActive(clusterService.state(), shardId, listener);
+            if (listenerFailed) {
+                return;
+            }
             var indexShard = indicesService.indexServiceSafe(shardId.getIndex()).getShard(shardId.id());
             final SeqNoStats seqNoStats = indexShard.seqNoStats();
             if (seqNoStats.getGlobalCheckpoint() < request.fromSeqNo()) {
@@ -230,6 +236,34 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
                 request.index(),
                 request.shardId().id()
             ).activeInitializingShardsRandomIt();
+        }
+
+        /**
+         * A publisher should not send updates when a subscriber polls changes of an index
+         * where not all shards are active yet, restore will fail if primaries are not (yet) assigned.
+         * <p>
+         * We include such indices to the PublicationsStateAction.Response as otherwise subscriber
+         * can treat "not ready to replicate" index as deleted and turn a table into a regular one on its side.
+         * For example, this can happen on a publisher cluster restart.
+         *
+         * @return boolean flag indicating that listener is failed and async callee can return right away.
+         */
+        private boolean ensureAllPrimariesActive(ClusterState state,
+                                                 ShardId shardId,
+                                                 @Nullable ActionListener<Response> listener) {
+            var routingTable = state.routingTable().index(shardId.getIndexName());
+            assert routingTable != null : "routingTable must not be null";
+            if (routingTable.allPrimaryShardsActive() == false) {
+                // Throw or fail a listener with an appropriate exception that is listed in SQLExceptions.maybeTemporary,
+                // so that ShardReplicationChangesTracker won't stop and retry later.
+                if (listener == null) {
+                    throw new NoShardAvailableActionException(shardId);
+                } else {
+                    listener.onFailure(new NoShardAvailableActionException(shardId));
+                    return true;
+                }
+            }
+            return false;
         }
     }
 
