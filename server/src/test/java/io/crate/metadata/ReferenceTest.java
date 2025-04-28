@@ -21,7 +21,11 @@
 
 package io.crate.metadata;
 
+<<<<<<< HEAD
 import static org.assertj.core.api.Assertions.assertThat;
+=======
+import static io.crate.testing.Asserts.assertThat;
+>>>>>>> c86c829da6 (Fix storageIdent for pre-oid doclookup references)
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -34,7 +38,6 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
-import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.doc.DocTableInfo;
@@ -249,15 +252,27 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(columnMapping(sourceAsMap, "properties.xs")).isEqualTo(mapping);
     }
 
-    /**
-     * Rewrites OID explicitly as long (similar to logic in DocIndexMetadata) since
-     * Jackson optimizes writes of small long values as stores them as ints.
-     */
-    @SuppressWarnings("unchecked")
-    static Map<String, Object> columnMapping(Map<String, Object> sourceAsMap, String columnName) {
-        Map<String, Object> mapping = (Map<String, Object>) Maps.getByPath(sourceAsMap, columnName);
-        long oid = ((Number) mapping.getOrDefault("oid", COLUMN_OID_UNASSIGNED)).longValue();
-        mapping.put("oid", oid);
-        return mapping;
+    @Test
+    public void test_storage_ident_without_oid() {
+        RelationName relationName = new RelationName("doc", "test");
+        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "o");
+        var dataType = new ArrayType<>(ObjectType.of(ColumnPolicy.IGNORED)
+            .setInnerType("o2", ObjectType.of(ColumnPolicy.STRICT).build())
+            .build());
+        SimpleReference reference = new SimpleReference(
+            referenceIdent,
+            RowGranularity.DOC,
+            dataType,
+            IndexType.FULLTEXT,
+            false,
+            true,
+            0,
+            COLUMN_OID_UNASSIGNED,  // important! with an oid the storageIdent is the oid itself
+            false,
+            null
+        );
+
+        var docRef = DocReferences.toDocLookup(reference);
+        assertThat(docRef.storageIdent()).isEqualTo("o");
     }
 }
