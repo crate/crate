@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -61,8 +61,7 @@ public class JobLauncherWaitForCompletionTest extends CrateDummyClusterServiceUn
             null,
             null,
             List.of(),
-            false,
-            THREAD_POOL.generic()
+            false
         ) {
             @Override
             public void execute(RowConsumer consumer, TransactionContext txnCtx){

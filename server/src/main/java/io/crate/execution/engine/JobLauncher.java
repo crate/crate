@@ -32,7 +32,6 @@ import java.util.ListIterator;
 import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.service.ClusterService;
@@ -116,7 +115,6 @@ public class JobLauncher {
     private final TasksService tasksService;
     private final IndicesService indicesService;
     private final boolean enableProfiling;
-    private final Executor executor;
 
     private boolean hasDirectResponse;
 
@@ -128,8 +126,7 @@ public class JobLauncher {
                 ActionExecutor<NodeRequest<JobRequest>, JobResponse> transportJobAction,
                 ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction,
                 List<NodeOperationTree> nodeOperationTrees,
-                boolean enableProfiling,
-                Executor executor) {
+                boolean enableProfiling) {
         this.jobId = jobId;
         this.clusterService = clusterService;
         this.jobSetup = jobSetup;
@@ -139,7 +136,6 @@ public class JobLauncher {
         this.killNodeAction = killNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
         this.enableProfiling = enableProfiling;
-        this.executor = executor;
 
         for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
             for (NodeOperation nodeOperation : nodeOperationTree.nodeOperations()) {
@@ -340,7 +336,6 @@ public class JobLauncher {
                 jobId,
                 consumerIt.next(),
                 initializationTracker,
-                executor,
                 killNodeAction
             );
             handlerPhaseAndReceiver.add(new HandlerPhase(handlerPhase, interceptingBatchConsumer));

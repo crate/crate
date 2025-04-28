@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.sql.DriverManager;
@@ -186,20 +187,20 @@ public class CorrelatedSubqueryITest extends IntegTestCase {
             SELECT
                 (SELECT t1.mountain)
             FROM
-                sys.summits t1
+                (select mountain from sys.summits limit 10) t1
             UNION ALL
             SELECT
                 (SELECT t2.mountain)
-            FROM sys.summits t2
+            FROM (select mountain from sys.summits limit 10) t2
             ORDER BY 1 DESC
             LIMIT 4
             """;
         execute(stmt);
         assertThat(response).hasRows(
-            "Špik",
-            "Špik",
-            "Škrlatica",
-            "Škrlatica"
+            "Zinalrothorn",
+            "Zinalrothorn",
+            "Weisshorn",
+            "Weisshorn"
         );
     }
 
