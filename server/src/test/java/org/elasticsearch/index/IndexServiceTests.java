@@ -29,6 +29,7 @@ import static org.elasticsearch.test.InternalSettingsPlugin.TRANSLOG_RETENTION_C
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
@@ -53,6 +54,7 @@ import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.TranslogIndexer;
+import io.crate.metadata.IndexName;
 import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
@@ -380,6 +382,7 @@ public class IndexServiceTests extends IntegTestCase {
         execute ("create table test(x int) clustered into 1 shards");
         var indexService = getIndexService("test");
         var indexName = indexService.index().getName();
+        var partitionName = IndexName.decode(indexName).toPartitionName();
 
         // Setting not exposed via SQL
         client()
@@ -389,7 +392,7 @@ public class IndexServiceTests extends IntegTestCase {
                 Settings.builder()
                     .put(TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING.getKey(), "100ms")
                     .build(),
-                indexName
+                List.of(partitionName)
             )).get();
 
         Translog translog = IndexShardTestCase.getTranslog(indexService.getShard(0));

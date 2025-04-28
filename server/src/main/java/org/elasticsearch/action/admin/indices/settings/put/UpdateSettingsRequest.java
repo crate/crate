@@ -23,62 +23,49 @@ import static org.elasticsearch.common.settings.Settings.readSettingsFromStream;
 import static org.elasticsearch.common.settings.Settings.writeSettingsToStream;
 
 import java.io.IOException;
-import java.util.Arrays;
+import java.util.List;
 import java.util.Objects;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.IndicesRequest;
-import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentType;
+
+import io.crate.metadata.PartitionName;
 
 /**
  * Request for an update index settings action
  */
-public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsRequest>
-        implements IndicesRequest {
+public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsRequest> {
 
-    private String[] indices;
-    private IndicesOptions indicesOptions = IndicesOptions.fromOptions(false, false, true, true);
+    private final List<PartitionName> partitions;
     private Settings settings = Settings.EMPTY;
 
     /**
      * Constructs a new request to update settings for one or more indices
      */
-    public UpdateSettingsRequest(Settings settings, String... indices) {
-        this.indices = indices;
+    public UpdateSettingsRequest(Settings settings, List<PartitionName> partitions) {
+        this.partitions = partitions;
         this.settings = settings;
-    }
-
-    @Override
-    public String[] indices() {
-        return indices;
     }
 
     public Settings settings() {
         return settings;
     }
 
-    @Override
-    public IndicesOptions indicesOptions() {
-        return indicesOptions;
-    }
-
-    /**
-     * Sets the settings to be updated (either json or yaml format)
-     */
-    public UpdateSettingsRequest settings(String source, XContentType xContentType) {
-        this.settings = Settings.builder().loadFromSource(source, xContentType).build();
-        return this;
+    public List<PartitionName> partitions() {
+        return partitions;
     }
 
     public UpdateSettingsRequest(StreamInput in) throws IOException {
         super(in);
-        indices = in.readStringArray();
-        indicesOptions = IndicesOptions.readIndicesOptions(in);
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            partitions = BroadcastRequest.readPartitionNamesFromPre60(in);
+        } else {
+            partitions = in.readList(PartitionName::new);
+        }
         settings = readSettingsFromStream(in);
         if (in.getVersion().before(Version.V_5_10_0)) {
             in.readBoolean(); // preserve existing
@@ -88,8 +75,11 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        out.writeStringArrayNullable(indices);
-        indicesOptions.writeIndicesOptions(out);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            BroadcastRequest.writePartitionNamesToPre60(out, partitions);
+        } else {
+            out.writeCollection(partitions);
+        }
         writeSettingsToStream(out, settings);
         if (out.getVersion().before(Version.V_5_10_0)) {
             out.writeBoolean(false);
@@ -108,13 +98,12 @@ public class UpdateSettingsRequest extends AcknowledgedRequest<UpdateSettingsReq
         return masterNodeTimeout.equals(that.masterNodeTimeout)
                 && timeout.equals(that.timeout)
                 && Objects.equals(settings, that.settings)
-                && Objects.equals(indicesOptions, that.indicesOptions)
-                && Arrays.equals(indices, that.indices);
+                && Objects.equals(partitions, that.partitions);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(masterNodeTimeout, timeout, settings, indicesOptions, Arrays.hashCode(indices));
+        return Objects.hash(masterNodeTimeout, timeout, settings, partitions);
     }
 
 }

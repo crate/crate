@@ -22,7 +22,6 @@ package org.elasticsearch.action.admin.indices.settings.put;
 import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
 
 import java.io.IOException;
-import java.util.Arrays;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
@@ -34,7 +33,6 @@ import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.MetadataUpdateSettingsService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -88,7 +86,10 @@ public class TransportUpdateSettings extends TransportMasterNodeAction<UpdateSet
             || IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING.exists(settings)) {
             return null;
         }
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, IndexNameExpressionResolver.concreteIndexNames(state, request));
+        String[] indices = state.metadata()
+            .getIndices(request.partitions(), false, im -> im.getIndex().getName())
+            .toArray(String[]::new);
+        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
     }
 
     @Override
@@ -108,7 +109,7 @@ public class TransportUpdateSettings extends TransportMasterNodeAction<UpdateSet
 
             @Override
             public void onFailure(Exception t) {
-                logger.debug(() -> new ParameterizedMessage("failed to update settings on indices [{}]", Arrays.toString(request.indices())), t);
+                logger.debug(() -> new ParameterizedMessage("failed to update settings on partitions [{}]", request.partitions()), t);
                 listener.onFailure(t);
             }
         });
