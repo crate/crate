@@ -186,7 +186,6 @@ public class RootTask implements CompletionListenable<Void> {
         return participatedNodes;
     }
 
-    @Nullable
     public CompletableFuture<Void> start() {
         if (closed.get()) {
             logger.trace("job={} killed before start was called", jobId);
@@ -213,7 +212,7 @@ public class RootTask implements CompletionListenable<Void> {
                 } else if (started.isCompletedExceptionally()) {
                     return started;
                 } else {
-                    return started.thenCompose(ignored -> start(taskIndex + 1));
+                    return started.thenCompose(_ -> start(taskIndex + 1));
                 }
             } catch (Throwable t) {
                 return CompletableFuture.failedFuture(t);
