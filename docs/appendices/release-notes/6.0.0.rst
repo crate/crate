@@ -270,5 +270,9 @@ Administration and Operations
   the :ref:`sys.health <sys-health>` table which exposes health about each
   table only.
 
+- Added a :ref:`insert_select_fail_fast <conf-session-insert-select-fail-fast>`
+  session setting that allows partial failures of ``INSERT FROM SELECT``
+  statements.
+
 Client interfaces
 -----------------

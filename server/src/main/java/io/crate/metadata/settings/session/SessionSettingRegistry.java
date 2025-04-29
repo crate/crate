@@ -54,11 +54,14 @@ public class SessionSettingRegistry {
     public static final String ERROR_ON_UNKNOWN_OBJECT_KEY = "error_on_unknown_object_key";
     public static final String APPLICATION_NAME_KEY = "application_name";
     public static final String DATE_STYLE_KEY = "datestyle";
+    public static final String INSERT_SELECT_FAIL_FAST_KEY = "insert_select_fail_fast";
+
     static final String MAX_INDEX_KEYS = "max_index_keys";
     static final String MAX_IDENTIFIER_LENGTH = "max_identifier_length";
     static final String SERVER_VERSION_NUM = "server_version_num";
     static final String SERVER_VERSION = "server_version";
     static final String STANDARD_CONFORMING_STRINGS = "standard_conforming_strings";
+
     static final SessionSetting<String> APPLICATION_NAME = new SessionSetting<>(
         APPLICATION_NAME_KEY,
         inputs -> DataTypes.STRING.implicitCast(inputs[0]),
@@ -117,6 +120,16 @@ public class SessionSettingRegistry {
         () -> "0",
         "Memory limit in bytes for an individual operation. 0 by-passes the operation limit, relying entirely on the global circuit breaker limits",
         DataTypes.INTEGER
+    );
+
+    static final SessionSetting<Boolean> ALLOW_FAIL_ON_PARTIAL_WRITES = new SessionSetting<>(
+        INSERT_SELECT_FAIL_FAST_KEY,
+        inputs -> DataTypes.BOOLEAN.implicitCast(inputs[0]),
+        CoordinatorSessionSettings::insertSelectFailFast,
+        settings -> Boolean.toString(settings.insertSelectFailFast()),
+        () -> "false",
+        "Allows partial failure of 'INSERT FROM SELECT' statements",
+        DataTypes.BOOLEAN
     );
 
     private final Map<String, SessionSetting<?>> settings;
@@ -231,7 +244,8 @@ public class SessionSettingRegistry {
             .put(APPLICATION_NAME.name(), APPLICATION_NAME)
             .put(DATE_STYLE.name(), DATE_STYLE)
             .put(STATEMENT_TIMEOUT.name(), STATEMENT_TIMEOUT)
-            .put(MEMORY_LIMIT.name(), MEMORY_LIMIT);
+            .put(MEMORY_LIMIT.name(), MEMORY_LIMIT)
+            .put(ALLOW_FAIL_ON_PARTIAL_WRITES.name(), ALLOW_FAIL_ON_PARTIAL_WRITES);
 
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {

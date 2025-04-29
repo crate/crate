@@ -63,7 +63,8 @@ public class UserSessionIntegrationTest extends BaseRolesIntegrationTest {
             assertThat(response).hasRows(
                 "crate| test| localhost| http| false| {application_name=NULL, datestyle=ISO, " +
                     "disabled_optimizer_rules=optimizer_equi_join_to_lookup_join, enable_hashjoin=false, " +
-                    "error_on_unknown_object_key=true, memory.operation_limit=0, search_path=pg_catalog,doc, " +
+                    "error_on_unknown_object_key=true, insert_select_fail_fast=false, " +
+                    "memory.operation_limit=0, search_path=pg_catalog,doc, " +
                     "statement_timeout=0s}| select auth_user, session_user, client_address, " +
                     "protocol, ssl, settings, last_statement from sys.sessions");
             execute("select handler_node, time_created from sys.sessions", session);
