@@ -113,7 +113,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         try {
             cluster().startDataOnlyNode();
             recoveryStarted.await();
-            nodeWithReplica = cluster().startDataOnlyNode(nodeWithReplicaSettings);
+            String newNodeWithReplica = cluster().startDataOnlyNode(nodeWithReplicaSettings);
             // AllocationService only calls GatewayAllocator if there're unassigned shards
             execute("""
                 create table doc.dummy (x int)
@@ -122,8 +122,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             assertBusy(() -> {
                 execute("select health from sys.health where table_name = 'test'");
                 assertThat(response).hasRows("GREEN");
+                assertThat(cluster().nodesInclude(indexName)).contains(newNodeWithReplica);
             });
-            assertThat(cluster().nodesInclude(indexName)).contains(nodeWithReplica);
             assertNoOpRecoveries(indexName);
             blockRecovery.countDown();
         } finally {
@@ -225,8 +225,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             assertBusy(() -> {
                 execute("select health from sys.health where table_name = 'test'");
                 assertThat(response).hasRows("GREEN");
+                assertThat(cluster().nodesInclude(indexName)).contains(newNode);
             });
-            assertThat(cluster().nodesInclude(indexName)).contains(newNode);
 
             execute("select recovery['files'] from sys.shards where table_name = 'test'");
             for (var row : response.rows()) {

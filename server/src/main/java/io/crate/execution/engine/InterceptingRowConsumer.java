@@ -24,7 +24,6 @@ package io.crate.execution.engine;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -39,7 +38,6 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.support.ActionExecutor;
-import io.crate.execution.support.ThreadPools;
 import io.crate.role.Role;
 
 class InterceptingRowConsumer implements RowConsumer {
@@ -49,7 +47,6 @@ class InterceptingRowConsumer implements RowConsumer {
     private final AtomicInteger consumerInvokedAndJobInitialized = new AtomicInteger(2);
     private final UUID jobId;
     private final RowConsumer consumer;
-    private final Executor executor;
     private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
     private final AtomicBoolean consumerAccepted = new AtomicBoolean(false);
 
@@ -59,11 +56,9 @@ class InterceptingRowConsumer implements RowConsumer {
     InterceptingRowConsumer(UUID jobId,
                             RowConsumer consumer,
                             InitializationTracker jobsInitialized,
-                            Executor executor,
                             ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction) {
         this.jobId = jobId;
         this.consumer = consumer;
-        this.executor = executor;
         this.killNodeAction = killNodeAction;
         jobsInitialized.future.whenComplete((o, f) -> tryForwardResult(f));
     }
@@ -90,7 +85,7 @@ class InterceptingRowConsumer implements RowConsumer {
         }
         if (failure == null) {
             assert iterator != null : "iterator must be present";
-            ThreadPools.forceExecute(executor, () -> consumer.accept(iterator, null));
+            consumer.accept(iterator, null);
         } else {
             consumer.accept(null, failure);
             KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
@@ -99,24 +94,22 @@ class InterceptingRowConsumer implements RowConsumer {
                 Role.CRATE_USER.name(),
                 "An error was encountered: " + failure
             );
-            killNodeAction
-                .execute(killRequest)
-                .whenComplete(
-                    (resp, t) -> {
-                        if (LOGGER.isTraceEnabled()) {
-                            if (t == null) {
-                                LOGGER.trace("Killed {} contexts for jobId={} forwarding the failure={}",
-                                             resp.numKilled(),
-                                             jobId,
-                                             failure);
-                            } else {
-                                LOGGER.trace("Failed to kill jobId={}, forwarding failure={} anyway",
-                                             jobId,
-                                             failure);
-                            }
-                        }
+            killNodeAction.execute(killRequest).whenComplete((resp, t) -> {
+                if (LOGGER.isTraceEnabled()) {
+                    if (t == null) {
+                        LOGGER.trace(
+                            "Killed {} contexts for jobId={} forwarding the failure={}",
+                            resp.numKilled(),
+                            jobId,
+                            failure);
+                    } else {
+                        LOGGER.trace(
+                            "Failed to kill jobId={}, forwarding failure={} anyway",
+                            jobId,
+                            failure);
                     }
-                );
+                }
+            });
         }
     }
 

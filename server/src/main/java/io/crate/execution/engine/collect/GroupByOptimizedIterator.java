@@ -175,7 +175,8 @@ final class GroupByOptimizedIterator {
             indexService.indexAnalyzers(),
             table,
             shardCreatedVersion,
-            indexService.cache()
+            indexService.cache(),
+            collectTask::raiseIfKilled
         );
 
         return getIterator(

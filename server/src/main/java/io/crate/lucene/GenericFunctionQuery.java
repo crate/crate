@@ -58,14 +58,17 @@ public class GenericFunctionQuery extends Query {
     private final Function function;
     private final LuceneCollectorExpression<?>[] expressions;
     private final Input<Boolean> condition;
+    private final Runnable raiseIfKilled;
 
     GenericFunctionQuery(Function function,
                          Collection<? extends LuceneCollectorExpression<?>> expressions,
-                         Input<Boolean> condition) {
+                         Input<Boolean> condition,
+                         Runnable raiseIfKilled) {
         this.function = function;
         // inner loop iterates over expressions - call toArray to avoid iterator allocations
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         this.condition = condition;
+        this.raiseIfKilled = raiseIfKilled;
     }
 
     @Override
@@ -114,7 +117,16 @@ public class GenericFunctionQuery extends Query {
                 return new ScorerSupplier() {
                     @Override
                     public Scorer get(long leadCost) throws IOException {
-                        return new ConstantScoreScorer(0f, scoreMode, getTwoPhaseIterator(context));
+                        for (LuceneCollectorExpression<?> expression : expressions) {
+                            expression.setNextReader(new ReaderContext(context));
+                        }
+                        var twoPhaseIterator = new FilteredTwoPhaseIterator(
+                            context.reader(),
+                            condition,
+                            expressions,
+                            raiseIfKilled
+                        );
+                        return new ConstantScoreScorer(0f, scoreMode, twoPhaseIterator);
                     }
 
                     @Override
@@ -130,13 +142,6 @@ public class GenericFunctionQuery extends Query {
     public void visit(QueryVisitor visitor) {
     }
 
-    private FilteredTwoPhaseIterator getTwoPhaseIterator(final LeafReaderContext context) throws IOException {
-        for (LuceneCollectorExpression<?> expression : expressions) {
-            expression.setNextReader(new ReaderContext(context));
-        }
-        return new FilteredTwoPhaseIterator(context.reader(), condition, expressions);
-    }
-
     @Override
     public String toString(String field) {
         return function.toString();
@@ -147,16 +152,19 @@ public class GenericFunctionQuery extends Query {
         private final Input<Boolean> condition;
         private final LuceneCollectorExpression<?>[] expressions;
         private final Bits liveDocs;
+        private final Runnable raiseIfKilled;
 
         FilteredTwoPhaseIterator(LeafReader reader,
                                  Input<Boolean> condition,
-                                 LuceneCollectorExpression<?>[] expressions) {
+                                 LuceneCollectorExpression<?>[] expressions,
+                                 Runnable raiseIfKilled) {
             super(DocIdSetIterator.all(reader.maxDoc()));
             this.liveDocs = reader.getLiveDocs() == null
                                 ? new Bits.MatchAllBits(reader.maxDoc())
                                 : reader.getLiveDocs();
             this.condition = condition;
             this.expressions = expressions;
+            this.raiseIfKilled = raiseIfKilled;
         }
 
         @Override
@@ -165,6 +173,7 @@ public class GenericFunctionQuery extends Query {
             if (!liveDocs.get(doc)) {
                 return false;
             }
+            raiseIfKilled.run();
             for (LuceneCollectorExpression<?> expression : expressions) {
                 expression.setNextDocId(doc);
             }

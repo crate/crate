@@ -21,6 +21,15 @@
 
 package io.crate.execution.engine;
 
+import java.util.List;
+import java.util.UUID;
+
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.node.Node;
+
 import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.jobs.JobSetup;
 import io.crate.execution.jobs.TasksService;
@@ -33,17 +42,6 @@ import io.crate.execution.jobs.transport.JobResponse;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
 
-import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
-import org.elasticsearch.common.inject.Singleton;
-import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.node.Node;
-import org.elasticsearch.threadpool.ThreadPool;
-
-import java.util.List;
-import java.util.UUID;
-import java.util.concurrent.Executor;
-
 @Singleton
 public final class PhasesTaskFactory {
 
@@ -53,11 +51,9 @@ public final class PhasesTaskFactory {
     private final IndicesService indicesService;
     private final ActionExecutor<NodeRequest<JobRequest>, JobResponse> jobAction;
     private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
-    private final Executor searchExecutor;
 
     @Inject
     public PhasesTaskFactory(ClusterService clusterService,
-                             ThreadPool threadPool,
                              JobSetup jobSetup,
                              TasksService tasksService,
                              IndicesService indicesService,
@@ -68,7 +64,6 @@ public final class PhasesTaskFactory {
         this.indicesService = indicesService;
         this.jobAction = req -> node.client().execute(JobAction.INSTANCE, req);
         this.killNodeAction = req -> node.client().execute(KillJobsNodeAction.INSTANCE, req);
-        this.searchExecutor = threadPool.executor(ThreadPool.Names.SEARCH);
     }
 
     public JobLauncher create(UUID jobId, List<NodeOperationTree> nodeOperationTreeList) {
@@ -85,8 +80,7 @@ public final class PhasesTaskFactory {
             jobAction,
             killNodeAction,
             nodeOperationTreeList,
-            enableProfiling,
-            searchExecutor
+            enableProfiling
         );
     }
 }

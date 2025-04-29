@@ -78,7 +78,7 @@ class JmxClient:
 
     def query_jmx(self, bean, attribute):
         env = os.environ.copy()
-        env.setdefault('JAVA_HOME', '/usr/lib/jvm/java-11-openjdk')
+        env.setdefault('JAVA_HOME', '/usr/lib/jvm/java-17-openjdk')
         with Popen(
             [
                 'java',
@@ -193,8 +193,8 @@ class JmxIntegrationTest(unittest.TestCase):
         jmx_client = JmxClient(JMX_PORT)
         stdout, stderr = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo', 'ClusterStateVersion')
-        self.assertGreater(int(stdout), 0)
         self.assertEqual(stderr, '')
+        self.assertGreater(int(stdout), 0)
 
     def test_number_of_open_connections(self):
         jmx_client = JmxClient(JMX_PORT)
@@ -211,10 +211,10 @@ class JmxIntegrationTest(unittest.TestCase):
         lines = [line.strip() for line in stdout.split('\n')]
         expected = [
             'active:          0',
-            'completed:       1',
-            'largestPoolSize: 1',
+            'completed:       0',
+            'largestPoolSize: 0',
             'name:            search',
-            'poolSize:        1',
+            'poolSize:        0',
             'queueSize:       0',
             'rejected:        0',
         ]

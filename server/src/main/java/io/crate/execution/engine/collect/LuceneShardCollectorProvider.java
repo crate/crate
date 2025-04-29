@@ -139,7 +139,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexService.indexAnalyzers(),
             table,
             shardCreatedVersion,
-            indexService.cache()
+            indexService.cache(),
+            collectTask::raiseIfKilled
         );
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx =
             docInputFactory.extractImplementations(collectTask.txnCtx(), collectPhase);
@@ -215,7 +216,8 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             indexService.indexAnalyzers(),
             table,
             shardCreatedVersion,
-            indexService.cache()
+            indexService.cache(),
+            collectTask::raiseIfKilled
         );
         ctx = docInputFactory.extractImplementations(collectTask.txnCtx(), phase);
         collectorContext = new CollectorContext(
