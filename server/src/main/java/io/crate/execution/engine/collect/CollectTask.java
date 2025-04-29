@@ -80,6 +80,7 @@ public class CollectTask implements Task {
     private boolean releasedResources = false;
 
     private long totalBytes = -1;
+    private volatile Throwable killed;
 
     public CollectTask(CollectPhase collectPhase,
                        TransactionContext txnCtx,
@@ -152,6 +153,7 @@ public class CollectTask implements Task {
 
     @Override
     public void kill(Throwable throwable) {
+        killed = throwable;
         if (started.compareAndSet(false, true)) {
             consumer.accept(null, throwable);
         } else {
@@ -160,6 +162,13 @@ public class CollectTask implements Task {
                     it.kill(throwable);
                 } // else: Consumer must have received a failure already
             });
+        }
+    }
+
+    public void raiseIfKilled() {
+        Throwable t = killed;
+        if (t != null) {
+            throw Exceptions.toRuntimeException(t);
         }
     }
 
