@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.Locale;
 import java.util.Map;
 
@@ -163,24 +162,16 @@ public class Setup {
                                                              " details_ignored object(ignored)" +
                                                              ")", numericType));
         transportExecutor.ensureYellowOrGreen();
-
-        Map<String, String> details = new HashMap<>();
-        details.put("job", "Sandwitch Maker");
-        transportExecutor.exec("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
-            new Object[]{"Human", "male", 34, "1975-10-01", "Arthur Dent", details});
-
-        details = new HashMap<>();
-        details.put("job", "Mathematician");
-        transportExecutor.exec("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
-            new Object[]{"Human", "female", 32, "1978-10-11", "Trillian", details});
-        transportExecutor.exec("insert into characters (race, gender, age, birthdate, name, details) values (?, ?, ?, ?, ?, ?)",
-            new Object[]{"Human", "female", 43, "1970-01-01", "Anjie", null});
-        transportExecutor.exec("insert into characters (race, gender, age, name) values (?, ?, ?, ?)",
-            new Object[]{"Human", "male", 112, "Ford Perfect"});
-
-        transportExecutor.exec("insert into characters (race, gender, name) values ('Android', 'male', 'Marving')");
-        transportExecutor.exec("insert into characters (race, gender, name) values ('Vogon', 'male', 'Jeltz')");
-        transportExecutor.exec("insert into characters (race, gender, name) values ('Vogon', 'male', 'Kwaltz')");
+        transportExecutor.execBulk(
+            "insert into characters (race, gender, name, age, birthdate, details) values (?, ?, ?, ?, ?, ?)", new Object[][] {
+                new Object[]{"Human", "male", "Arthur Dent", 34, "1975-10-01", Map.of("job", "Sandwitch Maker")},
+                new Object[]{"Human", "female", "Trillian", 32, "1978-10-11", Map.of("job", "Mathematician")},
+                new Object[]{"Human", "female", "Anjie", 43, "1970-01-01", null},
+                new Object[]{"Human", "male", "Ford Perfect", 112, null, null},
+                new Object[]{"Android", "male", "Marvin", null, null, null},
+                new Object[]{"Vogon", "male", "Jeltz", null, null, null},
+                new Object[]{"Vogon", "male", "Kwaltz", null, null, null},
+            });
         transportExecutor.exec("refresh table characters");
     }
 
@@ -194,19 +185,17 @@ public class Setup {
                                " good boolean" +
                                ") with (number_of_replicas=0)");
         transportExecutor.ensureGreen();
-        transportExecutor.exec("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-            new Object[]{"dilbert", "engineering", "1985-01-01", 47, 4000.0, true});
-        transportExecutor.exec("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-            new Object[]{"wally", "engineering", "2000-01-01", 54, 6000.0, true});
-        transportExecutor.exec("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-            new Object[]{"pointy haired boss", "management", "2010-10-10", 45, Double.MAX_VALUE, false});
-
-        transportExecutor.exec("insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
-            new Object[]{"catbert", "HR", "1990-01-01", 12, 999999999.99, false});
-        transportExecutor.exec("insert into employees (name, department, income) values (?, ?, ?)",
-            new Object[]{"ratbert", "HR", 0.50});
-        transportExecutor.exec("insert into employees (name, department, age) values (?, ?, ?)",
-            new Object[]{"asok", "internship", 28});
+        transportExecutor.execBulk(
+            "insert into employees (name, department, hired, age, income, good) values (?, ?, ?, ?, ?, ?)",
+            new Object[][] {
+                new Object[]{"dilbert", "engineering", "1985-01-01", 47, 4000.0, true},
+                new Object[]{"wally", "engineering", "2000-01-01", 54, 6000.0, true},
+                new Object[]{"pointy haired boss", "management", "2010-10-10", 45, Double.MAX_VALUE, false},
+                new Object[]{"catbert", "HR", "1990-01-01", 12, 999999999.99, false},
+                new Object[]{"ratbert", "HR", null, null, 0.50, null},
+                new Object[]{"asok", "internship", null, 28, null, null}
+            }
+        );
         transportExecutor.exec("refresh table employees");
     }
 
@@ -275,10 +264,15 @@ public class Setup {
         stmt += "partitioned by (date) with (number_of_replicas=0)";
         transportExecutor.exec(stmt);
         transportExecutor.ensureGreen();
-        transportExecutor.exec("insert into parted (id, date) values (1, '2014-01-01')");
-        transportExecutor.exec("insert into parted (id, date) values (2, '2014-01-01')");
-        transportExecutor.exec("insert into parted (id, date) values (3, '2014-02-01')");
-        transportExecutor.exec("insert into parted (id, date) values (4, '2014-02-01')");
+        transportExecutor.execBulk(
+            "insert into parted (id, date) values (?, ?)",
+            new Object[][] {
+                new Object[] { 1, "2014-01-01" },
+                new Object[] { 2, "2014-01-01" },
+                new Object[] { 3, "2014-02-01" },
+                new Object[] { 4, "2014-02-01" }
+            }
+        );
         transportExecutor.exec("refresh table parted");
     }
 

@@ -299,7 +299,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("select max(name), gender from characters group by gender order by gender");
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][0]).isEqualTo("Trillian");
-        assertThat(response.rows()[1][0]).isEqualTo("Marving");
+        assertThat(response.rows()[1][0]).isEqualTo("Marvin");
     }
 
     @Test
@@ -309,7 +309,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         execute("select max(NAME), GENDER from characters group by gender order by gender");
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][0]).isEqualTo("Trillian");
-        assertThat(response.rows()[1][0]).isEqualTo("Marving");
+        assertThat(response.rows()[1][0]).isEqualTo("Marvin");
     }
 
     @Test
