@@ -199,7 +199,9 @@ public class JobSetup {
             LOGGER,
             distributingConsumerFactory,
             nodeOperations,
-            sharedShardContexts);
+            sharedShardContexts,
+            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY)
+        );
         registerContextPhases(nodeOperations, context);
         LOGGER.trace(
             "prepareOnRemote: job={} nodeOperations={} targetSourceMap={}",
@@ -227,7 +229,9 @@ public class JobSetup {
             LOGGER,
             distributingConsumerFactory,
             nodeOperations,
-            sharedShardContexts);
+            sharedShardContexts,
+            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY)
+        );
         for (var handlerPhase : handlerPhases) {
             context.registerLeaf(handlerPhase.phase(), handlerPhase.consumer());
         }
@@ -285,7 +289,7 @@ public class JobSetup {
             }
             if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
                 var executionPhase = nodeOperation.executionPhase();
-                CircuitBreaker breaker = breaker();
+                CircuitBreaker breaker = context.circuitBreaker;
                 int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
                 var ramAccounting = new BlockBasedRamAccounting(
                     b -> breaker.addEstimateBytesAndMaybeBreak(b, executionPhase.label()),
@@ -464,6 +468,7 @@ public class JobSetup {
         private final Logger logger;
         private final List<ExecutionPhase> leafs = new ArrayList<>();
         private final TransactionContext transactionContext;
+        private final CircuitBreaker circuitBreaker;
 
         Context(String localNodeId,
                 SessionSettings sessionInfo,
@@ -471,9 +476,11 @@ public class JobSetup {
                 Logger logger,
                 DistributingConsumerFactory distributingConsumerFactory,
                 Collection<? extends NodeOperation> nodeOperations,
-                SharedShardContexts sharedShardContexts) {
+                SharedShardContexts sharedShardContexts,
+                CircuitBreaker circuitBreaker) {
             this.taskBuilder = taskBuilder;
             this.logger = logger;
+            this.circuitBreaker = circuitBreaker;
             this.opCtx = new NodeOperationCtx(localNodeId, nodeOperations);
             this.distributingConsumerFactory = distributingConsumerFactory;
             this.sharedShardContexts = sharedShardContexts;
@@ -572,7 +579,7 @@ public class JobSetup {
             if (indexShardMap == null) {
                 throw new IllegalArgumentException("The routing of the countPhase doesn't contain the current nodeId");
             }
-            CircuitBreaker breaker = breaker();
+            CircuitBreaker breaker = context.circuitBreaker;
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
             var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker, context.operationMemoryLimitInBytes());
             RowConsumer consumer = context.getRowConsumer(
@@ -598,7 +605,7 @@ public class JobSetup {
             Map<ShardId, SequencedSet<PKAndVersion>> idsByShardId =
                 pkLookupPhase.getIdsByShardId(clusterService.localNode().getId());
 
-            CircuitBreaker breaker = breaker();
+            CircuitBreaker breaker = context.circuitBreaker;
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytesPerShard(
                 breaker.getLimit(),
                 idsByShardId.size()
@@ -653,7 +660,7 @@ public class JobSetup {
             boolean upstreamOnSameNode = context.opCtx.upstreamsAreOnSameNode(phase.phaseId());
             int pageSize = Paging.getWeightedPageSize(Paging.PAGE_SIZE, 1.0d / phase.nodeIds().size());
 
-            CircuitBreaker breaker = breaker();
+            CircuitBreaker breaker = context.circuitBreaker;
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
             var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker, context.operationMemoryLimitInBytes());
             var ramAccountingForMerge = new BlockBasedRamAccounting(
@@ -756,7 +763,7 @@ public class JobSetup {
 
         @Override
         public Void visitRoutedCollectPhase(final RoutedCollectPhase phase, final Context context) {
-            CircuitBreaker breaker = breaker();
+            CircuitBreaker breaker = context.circuitBreaker;
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytesPerShard(
                 breaker.getLimit(),
                 phase.routing().numShards(clusterService.localNode().getId())
@@ -784,7 +791,7 @@ public class JobSetup {
 
         @Override
         public Void visitCollectPhase(CollectPhase phase, Context context) {
-            CircuitBreaker breaker = breaker();
+            CircuitBreaker breaker = context.circuitBreaker;
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
             RamAccounting ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker, context.operationMemoryLimitInBytes());
             RowConsumer consumer = context.getRowConsumer(
@@ -840,7 +847,7 @@ public class JobSetup {
 
         @Override
         public Void visitNestedLoopPhase(NestedLoopPhase phase, Context context) {
-            CircuitBreaker breaker = breaker();
+            CircuitBreaker breaker = context.circuitBreaker;
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
             var concurrentRamAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker, context.operationMemoryLimitInBytes());
             var ramAccountingOfOperation = new BlockBasedRamAccounting(
@@ -870,7 +877,7 @@ public class JobSetup {
                 firstConsumer,
                 joinCondition,
                 phase.joinType(),
-                breaker(),
+                breaker,
                 ramAccountingOfOperation,
                 phase.leftSideColumnTypes,
                 phase.estimatedRowsSizeLeft,
@@ -914,7 +921,7 @@ public class JobSetup {
 
         @Override
         public Void visitHashJoinPhase(HashJoinPhase phase, Context context) {
-            CircuitBreaker breaker = breaker();
+            CircuitBreaker breaker = context.circuitBreaker;
             int ramAccountingBlockSizeInBytes = BlockBasedRamAccounting.blockSizeInBytes(breaker.getLimit());
             var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(phase.label(), breaker, context.operationMemoryLimitInBytes());
             var ramAccountingOfOperation = new BlockBasedRamAccounting(
@@ -951,7 +958,7 @@ public class JobSetup {
                 new TypedCellsAccounting(phase.leftOutputTypes(), ramAccountingOfOperation, 110),
                 context.transactionContext,
                 inputFactory,
-                breaker(),
+                breaker,
                 phase.estimatedRowSizeForLeft(),
                 phase.joinType() == JoinType.LEFT
             );
@@ -1040,10 +1047,6 @@ public class JobSetup {
                 mergePhase.numUpstreams()
             );
         }
-    }
-
-    private CircuitBreaker breaker() {
-        return circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
     }
 
     private static long toKey(int phaseId, byte inputId) {
