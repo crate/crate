@@ -553,7 +553,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         for (Object[] objects : resp.rows()) {
             names.add((String) objects[0]);
         }
-        assertThat(names).containsExactly("Anjie", "Ford Perfect", "Jeltz", "Kwaltz", "Marving");
+        assertThat(names).containsExactly("Anjie", "Ford Perfect", "Jeltz", "Kwaltz", "Marvin");
 
         resp = execute("select count(*) from characters where details is not null");
         assertThat((Long) resp.rows()[0][0]).isEqualTo(2L);
