@@ -42,6 +42,7 @@ public final class TestingRowConsumer implements RowConsumer {
     private final ArrayList<Object[]> rows = new ArrayList<>();
     private final CompletableFuture<List<Object[]>> result = new CompletableFuture<>();
     private final boolean autoClose;
+    private final boolean requiresScroll;
 
     static CompletionStage<?> moveToEnd(BatchIterator<Row> it) {
         CompletableFuture<Object> future = new CompletableFuture<>();
@@ -57,10 +58,17 @@ public final class TestingRowConsumer implements RowConsumer {
 
     public TestingRowConsumer() {
         this.autoClose = true;
+        this.requiresScroll = false;
     }
 
-    public TestingRowConsumer(boolean autoClose) {
+    public TestingRowConsumer(boolean autoClose, boolean requiresScroll) {
         this.autoClose = autoClose;
+        this.requiresScroll = requiresScroll;
+    }
+
+    @Override
+    public boolean requiresScroll() {
+        return requiresScroll;
     }
 
     @Override

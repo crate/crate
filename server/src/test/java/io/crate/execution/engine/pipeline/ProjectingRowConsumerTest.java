@@ -33,7 +33,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.client.ElasticsearchClient;
@@ -41,13 +40,10 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
-import org.jetbrains.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
-import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
@@ -108,29 +104,6 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
         );
     }
 
-    private static class DummyRowConsumer implements RowConsumer {
-
-        private final boolean requiresScroll;
-
-        DummyRowConsumer(boolean requiresScroll) {
-            this.requiresScroll = requiresScroll;
-        }
-
-        @Override
-        public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-        }
-
-        @Override
-        public CompletableFuture<?> completionFuture() {
-            return CompletableFuture.completedFuture(null);
-        }
-
-        @Override
-        public boolean requiresScroll() {
-            return requiresScroll;
-        }
-    }
-
     @Test
     public void testConsumerRequiresScrollAndProjectorsDontSupportScrolling() {
         List<Symbol> arguments = Arrays.asList(Literal.of(2), new InputColumn(1, DataTypes.INTEGER));
@@ -140,7 +113,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
         FilterProjection filterProjection = new FilterProjection(function,
             Arrays.asList(new InputColumn(0), new InputColumn(1)));
 
-        RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(true);
+        RowConsumer delegateConsumerRequiresScroll = new TestingRowConsumer(false, true);
 
         RowConsumer projectingConsumer = ProjectingRowConsumer.create(
             delegateConsumerRequiresScroll,
@@ -160,7 +133,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
         GroupProjection groupProjection = new GroupProjection(
             new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.SHARD);
 
-        RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(true);
+        RowConsumer delegateConsumerRequiresScroll = new TestingRowConsumer(false, true);
 
         RowConsumer projectingConsumer = ProjectingRowConsumer.create(
             delegateConsumerRequiresScroll,
@@ -179,7 +152,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
     public void testConsumerDoesNotRequireScrollYieldsProjectingConsumerWithoutScrollRequirements() {
         GroupProjection groupProjection = new GroupProjection(
             new ArrayList<>(), new ArrayList<>(), AggregateMode.ITER_FINAL, RowGranularity.DOC);
-        RowConsumer delegateConsumerRequiresScroll = new DummyRowConsumer(false);
+        RowConsumer delegateConsumerRequiresScroll = new TestingRowConsumer(false, false);
 
         RowConsumer projectingConsumer = ProjectingRowConsumer.create(
             delegateConsumerRequiresScroll,
