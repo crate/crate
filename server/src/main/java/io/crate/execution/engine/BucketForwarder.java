@@ -21,89 +21,48 @@
 
 package io.crate.execution.engine;
 
-import io.crate.Streamer;
-import io.crate.data.Bucket;
-import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.jobs.PageBucketReceiver;
-import io.crate.execution.jobs.transport.JobResponse;
+import java.util.List;
+
 import org.elasticsearch.action.ActionListener;
 
-import org.jetbrains.annotations.NotNull;
-import java.util.List;
-import java.util.function.BiConsumer;
+import io.crate.data.Bucket;
+import io.crate.execution.engine.distribution.StreamBucket;
+import io.crate.execution.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.transport.JobResponse;
 
 /**
  * Forwards buckets to {@link PageBucketReceiver}s
  */
-final class BucketForwarder {
+final class BucketForwarder implements ActionListener<JobResponse> {
 
-    private final List<PageBucketReceiver> pageBucketReceivers;
+    private final List<PageBucketReceiver> bucketReceivers;
     private final int bucketIdx;
     private final InitializationTracker initializationTracker;
 
-    static BiConsumer<List<? extends Bucket>, Throwable> asConsumer(List<PageBucketReceiver> pageBucketReceivers,
-                                                                    int bucketIdx,
-                                                                    InitializationTracker initializationTracker) {
-        BucketForwarder forwarder = new BucketForwarder(pageBucketReceivers, bucketIdx, initializationTracker);
-        return (buckets, failure) -> {
-            if (failure == null) {
-                forwarder.setBuckets(buckets);
-            } else {
-                forwarder.failed(SQLExceptions.unwrap(failure));
-            }
-        };
-    }
-
-    static ActionListener<JobResponse> asActionListener(List<PageBucketReceiver> pageBucketReceivers,
-                                                        int bucketIdx,
-                                                        InitializationTracker initializationTracker) {
-        BucketForwarder forwarder = new BucketForwarder(pageBucketReceivers, bucketIdx, initializationTracker);
-        return new BucketForwardingActionListener(pageBucketReceivers.get(0).streamers(), forwarder);
-    }
-
-    private BucketForwarder(List<PageBucketReceiver> pageBucketReceivers,
-                            int bucketIdx,
-                            InitializationTracker initializationTracker) {
-        assert !pageBucketReceivers.isEmpty() : "pageBucketReceivers must not be empty";
-        this.pageBucketReceivers = pageBucketReceivers;
+    BucketForwarder(List<PageBucketReceiver> bucketReceivers, int bucketIdx, InitializationTracker initializationTracker) {
+        assert !bucketReceivers.isEmpty() : "bucketReceivers must not be empty";
+        this.bucketReceivers = bucketReceivers;
         this.bucketIdx = bucketIdx;
         this.initializationTracker = initializationTracker;
     }
 
-    protected void setBuckets(List<? extends Bucket> buckets) {
+    @Override
+    public void onResponse(JobResponse jobResponse) {
         initializationTracker.jobInitialized();
-        for (int i = 0; i < pageBucketReceivers.size(); i++) {
-            PageBucketReceiver pageBucketReceiver = pageBucketReceivers.get(i);
-            Bucket bucket = buckets.get(i);
+        List<StreamBucket> directResponses = jobResponse.getDirectResponses(bucketReceivers.getFirst().streamers());
+        for (int i = 0; i < bucketReceivers.size(); i++) {
+            PageBucketReceiver pageBucketReceiver = bucketReceivers.get(i);
+            Bucket bucket = directResponses.get(i);
             assert bucket != null : "buckets must contain a non-null bucket at idx=" + i;
             pageBucketReceiver.setBucket(bucketIdx, bucket, true, PagingUnsupportedResultListener.INSTANCE);
         }
     }
 
-    protected void failed(@NotNull Throwable t) {
-        initializationTracker.jobInitializationFailed(t);
-        for (PageBucketReceiver pageBucketReceiver : pageBucketReceivers) {
-            pageBucketReceiver.kill(t);
-        }
-    }
-
-    private static class BucketForwardingActionListener implements ActionListener<JobResponse> {
-        private final Streamer<?>[] responseDeserializer;
-        private final BucketForwarder forwarder;
-
-        BucketForwardingActionListener(Streamer<?>[] responseDeserializer, BucketForwarder forwarder) {
-            this.responseDeserializer = responseDeserializer;
-            this.forwarder = forwarder;
-        }
-
-        @Override
-        public void onResponse(JobResponse jobResponse) {
-            forwarder.setBuckets(jobResponse.getDirectResponses(responseDeserializer));
-        }
-
-        @Override
-        public void onFailure(Exception e) {
-            forwarder.failed(e);
+    @Override
+    public void onFailure(Exception e) {
+        initializationTracker.jobInitializationFailed(e);
+        for (PageBucketReceiver pageBucketReceiver : bucketReceivers) {
+            pageBucketReceiver.kill(e);
         }
     }
 }

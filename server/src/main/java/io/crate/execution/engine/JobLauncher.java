@@ -34,19 +34,21 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.search.profile.query.QueryProfiler;
 
 import io.crate.common.concurrent.CompletableFutures;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.CollectingRowConsumer;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dsl.phases.ExecutionPhase;
-import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.NodeOperationGrouper;
 import io.crate.execution.dsl.phases.NodeOperationTree;
@@ -116,8 +118,6 @@ public class JobLauncher {
     private final IndicesService indicesService;
     private final boolean enableProfiling;
 
-    private boolean hasDirectResponse;
-
     JobLauncher(UUID jobId,
                 ClusterService clusterService,
                 JobSetup jobSetup,
@@ -136,15 +136,6 @@ public class JobLauncher {
         this.killNodeAction = killNodeAction;
         this.nodeOperationTrees = nodeOperationTrees;
         this.enableProfiling = enableProfiling;
-
-        for (NodeOperationTree nodeOperationTree : nodeOperationTrees) {
-            for (NodeOperation nodeOperation : nodeOperationTree.nodeOperations()) {
-                if (ExecutionPhases.hasDirectResponseDownstream(nodeOperation.downstreamNodes())) {
-                    hasDirectResponse = true;
-                    break;
-                }
-            }
-        }
     }
 
     public record HandlerPhase(ExecutionPhase phase, RowConsumer consumer) {}
@@ -194,7 +185,7 @@ public class JobLauncher {
             results.add(consumer.completionFuture().whenComplete((rowCount, t) -> bulkResponse.update(idx, rowCount, t)));
             handlerPhases.add(nodeOperationTree.leaf());
         }
-        CompletableFutures.allSuccessfulAsList(results).whenComplete((ignored, t) -> {
+        CompletableFutures.allSuccessfulAsList(results).whenComplete((_, t) -> {
             if (t == null) {
                 result.complete(bulkResponse);
             } else {
@@ -242,54 +233,81 @@ public class JobLauncher {
         RootTask localTask = tasksService.createTask(builder);
 
         List<PageBucketReceiver> pageBucketReceivers = getHandlerBucketReceivers(localTask, handlerPhaseAndReceiver);
+
+        // Two response modes:
+        //  - Direct:        Result inlined in the JobResponse
+        //  - Indirect/push: Result is pushed to a downstream node (TransportDistributedResultAction, received via DownstreamRXTask)
+        //
+        // Difference:
+        //  - Direct response has lower overhead (no separate requests)
+        //  - Push support paging and re-distribution (e.g. GROUP BY is distributed hashed by group keys)
+        //
+        //
+        // There is always a MergePhase on the handler with a corresponding DownstreamRXTask
+        // In direct mode we forward the inlined JobResponse result to it
+
         int bucketIdx = 0;
+        if (!directResponseFutures.isEmpty()) {
+            assert directResponseFutures.size() == pageBucketReceivers.size()
+                : "directResponses size must match pageBucketReceivers";
 
-        /*
-         * If you touch anything here make sure the following tests pass with > 1k iterations:
-         *
-         * Seed: 112E1807417E925A - testInvalidPatternSyntax
-         * Seed: Any              - testRegularSelectWithFewAvailableThreadsShouldNeverGetStuck
-         * Seed: CC456FF5004F35D3 - testFailureOfJoinDownstream
-         */
-        if (!localNodeOperations.isEmpty() && !directResponseFutures.isEmpty()) {
-            assert directResponseFutures.size() == pageBucketReceivers.size() : "directResponses size must match pageBucketReceivers";
-            CompletableFutures.allAsList(directResponseFutures)
-                .whenComplete(BucketForwarder.asConsumer(pageBucketReceivers, bucketIdx, initializationTracker));
+            // direct responses here are only for the operations running on the handler
+            // The others are forwarded within sendJobRequests further below
+            forwardDirectResponseToPageBucketRX(
+                initializationTracker,
+                directResponseFutures,
+                pageBucketReceivers,
+                bucketIdx
+            );
             bucketIdx++;
-
-            final int currentBucket = bucketIdx;
-            // initializationTracker for localNodeOperations is triggered via SetBucketCallback
-            localTask.start().whenComplete((result, err) -> {
-                if (err == null) {
-                    sendJobRequests(
-                        txnCtx,
-                        localNodeId,
-                        operationByServer,
+        }
+        final int nextBucket = bucketIdx;
+        CompletableFuture<Void> start = localTask.start();
+        start.whenComplete((_, err) -> {
+            if (err == null) {
+                initializationTracker.jobInitialized();
+                sendJobRequests(
+                    txnCtx,
+                    localNodeId,
+                    operationByServer,
+                    pageBucketReceivers,
+                    handlerPhaseAndReceiver,
+                    nextBucket,
+                    initializationTracker
+                );
+            } else {
+                initializationTracker.jobInitializationFailed(err); // for localTask
+                int bucket = nextBucket;
+                Exception e = Exceptions.toException(err);
+                for (int i = 0; i < operationByServer.size(); i++) {
+                    ActionListener<JobResponse> listener = new BucketForwarder(
                         pageBucketReceivers,
-                        handlerPhaseAndReceiver,
-                        currentBucket,
+                        bucket,
                         initializationTracker
                     );
-                } else {
-                    accountFailureForRemoteOperations(operationByServer, initializationTracker, handlerPhaseAndReceiver, err);
+                    listener.onFailure(e);
+                    bucket++;
                 }
-            });
-        } else {
-            localTask.start().whenComplete((result, err) -> {
+            }
+        });
+    }
+
+    private void forwardDirectResponseToPageBucketRX(InitializationTracker initializationTracker,
+                                                     List<CompletableFuture<StreamBucket>> directResponseFutures,
+                                                     List<PageBucketReceiver> pageBucketReceivers,
+                                                     int bucketIdx) {
+        final int bucket = bucketIdx;
+        for (int i = 0; i < directResponseFutures.size(); i++) {
+            var directResponse = directResponseFutures.get(i);
+            var pageBucketReceiver = pageBucketReceivers.get(i);
+            directResponse.whenComplete((res, err) -> {
                 if (err == null) {
                     initializationTracker.jobInitialized();
-                    sendJobRequests(
-                        txnCtx,
-                        localNodeId,
-                        operationByServer,
-                        pageBucketReceivers,
-                        handlerPhaseAndReceiver,
-                        0,
-                        initializationTracker
-                    );
+                    pageBucketReceiver.setBucket(bucket, res, true, PagingUnsupportedResultListener.INSTANCE);
                 } else {
+                    err = SQLExceptions.unwrap(err);
                     initializationTracker.jobInitializationFailed(err);
-                    accountFailureForRemoteOperations(operationByServer, initializationTracker, handlerPhaseAndReceiver, err);
+                    pageBucketReceiver.kill(err);
                 }
             });
         }
@@ -309,19 +327,7 @@ public class JobLauncher {
                 }
             );
         } else {
-            return new SharedShardContexts(indicesService, (ignored, indexSearcher) -> indexSearcher);
-        }
-    }
-
-    private void accountFailureForRemoteOperations(Map<String, Collection<NodeOperation>> operationByServer,
-                                                   InitializationTracker initializationTracker,
-                                                   List<HandlerPhase> handlerPhaseAndReceiver,
-                                                   Throwable t) {
-        for (HandlerPhase handlerPhase : handlerPhaseAndReceiver) {
-            handlerPhase.consumer().accept(null, t);
-        }
-        for (int i = 0; i < operationByServer.size() + 1; i++) {
-            initializationTracker.jobInitializationFailed(t);
+            return new SharedShardContexts(indicesService, (_, indexSearcher) -> indexSearcher);
         }
     }
 
@@ -346,7 +352,7 @@ public class JobLauncher {
     private void sendJobRequests(TransactionContext txnCtx,
                                  String localNodeId,
                                  Map<String, Collection<NodeOperation>> operationByServer,
-                                 List<PageBucketReceiver> pageBucketReceivers,
+                                 List<PageBucketReceiver> bucketReceivers,
                                  List<HandlerPhase> handlerPhases,
                                  int bucketIdx,
                                  InitializationTracker initializationTracker) {
@@ -359,19 +365,13 @@ public class JobLauncher {
                 localNodeId,
                 entry.getValue(),
                 enableProfiling);
-            if (hasDirectResponse) {
-                transportJobAction
-                    .execute(request)
-                    .whenComplete(
-                        BucketForwarder.asActionListener(pageBucketReceivers, bucketIdx, initializationTracker)
-                    );
-            } else {
-                transportJobAction
-                    .execute(request)
-                    .whenComplete(
-                        new FailureOnlyResponseListener(handlerPhases, initializationTracker)
-                    );
-            }
+
+            ActionListener<JobResponse> listener = new BucketForwarder(
+                bucketReceivers,
+                bucketIdx,
+                initializationTracker
+            );
+            transportJobAction.execute(request).whenComplete(listener);
             bucketIdx++;
         }
     }
@@ -381,8 +381,8 @@ public class JobLauncher {
         final List<PageBucketReceiver> pageBucketReceivers = new ArrayList<>(handlerPhases.size());
         for (var handlerPhase : handlerPhases) {
             Task ctx = rootTask.getTaskOrNull(handlerPhase.phase().phaseId());
-            if (ctx instanceof DownstreamRXTask) {
-                PageBucketReceiver pageBucketReceiver = ((DownstreamRXTask) ctx).getBucketReceiver((byte) 0);
+            if (ctx instanceof DownstreamRXTask rxTask) {
+                PageBucketReceiver pageBucketReceiver = rxTask.getBucketReceiver((byte) 0);
                 pageBucketReceivers.add(pageBucketReceiver);
             }
         }

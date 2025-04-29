@@ -101,7 +101,7 @@ public class FetchTask implements Task {
         this.sharedShardContexts = sharedShardContexts;
         this.metadata = metadata;
         this.routings = routings;
-        this.toFetch = new HashMap<>(phase.tableIndices().size());
+        this.toFetch = HashMap.newHashMap(phase.tableIndices().size());
         this.getTableInfo = getTableInfo;
     }
 
