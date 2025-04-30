@@ -38,8 +38,8 @@ public class MapFunctionTest extends ScalarTestCase {
     public void testMapWithWrongNumOfArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("_map('foo', 1, 'bar')"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: {foo = 1}, " +
-                                    "no overload found for matching argument types: (text, integer, text).");
+            .hasMessage(
+                "Invalid arguments in: {foo = 1} with (text, integer, text). Valid types: (text, V)");
     }
 
     @Test

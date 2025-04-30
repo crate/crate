@@ -70,8 +70,6 @@ public class ConcatWsFunctionTest extends ScalarTestCase {
     public void testInvalidArrayArgument() {
         assertThatThrownBy(() -> assertNormalize("concat_ws(',' , 'foo', [])", isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Unknown function: concat_ws(',', 'foo', []), " +
-                        "no overload found for matching argument types: (text, text, undefined_array). " +
-                        "Possible candidates: concat_ws(text):text");
+            .hasMessage("Invalid arguments in: concat_ws(',', 'foo', []) with (text, text, undefined_array). Valid types: (text)");
     }
 }

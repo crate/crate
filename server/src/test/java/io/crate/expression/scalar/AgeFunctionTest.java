@@ -127,8 +127,8 @@ public class AgeFunctionTest extends ScalarTestCase {
         assertThatThrownBy(
             () -> assertEvaluate("pg_catalog.age(null, null, null)", null))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Unknown function: pg_catalog.age(NULL, NULL, NULL), no overload found for matching argument types: (undefined, undefined, undefined). " +
-                "Possible candidates: pg_catalog.age(timestamp without time zone):interval, " +
-                "pg_catalog.age(timestamp without time zone, timestamp without time zone):interval");
+            .hasMessage(
+                "Invalid arguments in: pg_catalog.age(NULL, NULL, NULL) with (undefined, undefined, undefined). "
+                + "Valid types: (timestamp without time zone), (timestamp without time zone, timestamp without time zone)");
     }
 }

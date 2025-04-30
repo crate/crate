@@ -85,7 +85,7 @@ public class ArrayMaxFunctionTest extends ScalarTestCase {
         Assertions.assertThatThrownBy(() -> assertEvaluate("array_max([])", null))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageContaining(
-                    "Unknown function: array_max([]), no overload found for matching argument types: (undefined_array).");
+                "Invalid arguments in: array_max([]) with (undefined_array). Valid types: ");
     }
 
 }

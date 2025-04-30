@@ -58,24 +58,21 @@ public class ArrayCatFunctionTest extends ScalarTestCase {
     public void testZeroArguments() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("array_cat()"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_cat(). " +
-                                    "Possible candidates: array_cat(array(E), array(E)):array(E)");
+            .hasMessage("Invalid arguments in: array_cat(). Valid types: (array(E), array(E))");
     }
 
     @Test
     public void testOneArgument() {
         assertThatThrownBy(() -> assertEvaluateNull("array_cat([1])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_cat([1]), " +
-                                    "no overload found for matching argument types: (integer_array).");
+            .hasMessage("Invalid arguments in: array_cat([1]) with (integer_array). Valid types: (array(E), array(E))");
     }
 
     @Test
     public void testThreeArguments() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("array_cat([1], [2], [3])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_cat([1], [2], [3]), " +
-                    "no overload found for matching argument types: (integer_array, integer_array, integer_array).");
+            .hasMessageStartingWith("Invalid arguments in: array_cat([1], [2], [3]) with (integer_array, integer_array, integer_array).");
     }
 
     @Test

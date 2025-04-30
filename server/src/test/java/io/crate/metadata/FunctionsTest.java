@@ -342,7 +342,7 @@ public class FunctionsTest extends ESTestCase {
                             .returnType(DataTypes.STRING.getTypeSignature())
                             .features(Scalar.Feature.DETERMINISTIC)
                             .build(),
-                        ((signature, dataTypes) -> null)
+                        ((_, _) -> null)
                     ),
                     new FunctionProvider(
                         Signature.builder(new FunctionName("foo", "bar"), FunctionType.SCALAR)
@@ -350,13 +350,12 @@ public class FunctionsTest extends ESTestCase {
                             .returnType(DataTypes.DOUBLE.getTypeSignature())
                             .features(Scalar.Feature.DETERMINISTIC)
                             .build(),
-                        ((signature, dataTypes) -> null)
+                        ((_, _) -> null)
                     )
                 )
             )
         ).hasMessage(
-            "Unknown function: foo.bar()." +
-            " Possible candidates: foo.bar(text):text, foo.bar(double precision):double precision");
+            "Invalid arguments in: foo.bar(). Valid types: (text), (double precision)");
     }
 
     @Test
@@ -373,7 +372,7 @@ public class FunctionsTest extends ESTestCase {
                             .returnType(DataTypes.STRING.getTypeSignature())
                             .features(Scalar.Feature.DETERMINISTIC)
                             .build(),
-                        ((signature, dataTypes) -> null)
+                        ((_, _) -> null)
                     ),
                     new FunctionProvider(
                         Signature.builder(new FunctionName("foo", "bar"), FunctionType.SCALAR)
@@ -381,13 +380,11 @@ public class FunctionsTest extends ESTestCase {
                             .returnType(DataTypes.DOUBLE.getTypeSignature())
                             .features(Scalar.Feature.DETERMINISTIC)
                             .build(),
-                        ((signature, dataTypes) -> null)
+                        ((_, _) -> null)
                     )
                 )
             )
         ).hasMessage(
-            "Unknown function: foo.bar(1, 2)," +
-            " no overload found for matching argument types: (integer, integer)." +
-            " Possible candidates: foo.bar(text):text, foo.bar(double precision):double precision");
+            "Invalid arguments in: foo.bar(1, 2) with (integer, integer). Valid types: (text), (double precision)");
     }
 }

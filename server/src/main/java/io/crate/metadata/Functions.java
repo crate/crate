@@ -26,6 +26,7 @@ import static io.crate.common.collections.Lists.getOnlyElement;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -345,29 +346,40 @@ public class Functions {
             DataTypes.UNDEFINED
         );
 
-        var message = "Unknown function: " + function.toString(Style.QUALIFIED);
-        if (candidates.isEmpty() == false) {
-            if (arguments.isEmpty() == false) {
-                message = message + ", no overload found for matching argument types: "
-                          + "(" + Lists.joinOn(", ", argumentTypes, DataType::toString) + ").";
+        StringBuilder sb = new StringBuilder();
+        if (candidates.isEmpty()) {
+            sb.append("Unknown function: ");
+            sb.append(function.toString(Style.QUALIFIED));
+        } else {
+            sb.append("Invalid arguments in: ");
+            sb.append(function.toString(Style.QUALIFIED));
+            if (arguments.isEmpty()) {
+                sb.append(".");
             } else {
-                message = message + ".";
+                sb.append(" with (");
+                Iterator<DataType<?>> argTypesIt = argumentTypes.iterator();
+                while (argTypesIt.hasNext()) {
+                    sb.append(argTypesIt.next().toString());
+                    if (argTypesIt.hasNext()) {
+                        sb.append(", ");
+                    }
+                }
+                sb.append(").");
             }
-            message = message + " Possible candidates: "
-                      + Lists.joinOn(
-                          ", ",
-                          candidates,
-                          c -> c.signature().getName().displayName()
-                               + "("
-                               + Lists.joinOn(
-                              ", ",
-                              c.signature().getArgumentTypes(),
-                              TypeSignature::toString)
-                               + "):" + c.signature().getReturnType().toString())
-                      ;
+            sb.append(" Valid types: ");
+            Iterator<FunctionProvider> candidatesIt = candidates.iterator();
+            while (candidatesIt.hasNext()) {
+                FunctionProvider candidate = candidatesIt.next();
+                Signature signature = candidate.signature();
+                sb.append("(");
+                sb.append(Lists.joinOn(", ", signature.getArgumentTypes(), TypeSignature::toString));
+                sb.append(")");
+                if (candidatesIt.hasNext()) {
+                    sb.append(", ");
+                }
+            }
         }
-
-        throw new UnsupportedFunctionException(message, suppliedSchema);
+        throw new UnsupportedFunctionException(sb.toString(), suppliedSchema);
     }
 
     private static List<ApplicableFunction> selectMostSpecificFunctions(List<ApplicableFunction> applicableFunctions,

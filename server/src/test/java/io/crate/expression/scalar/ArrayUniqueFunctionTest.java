@@ -84,7 +84,7 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
     public void testZeroArguments() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("array_unique()"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_unique().");
+            .hasMessage("Invalid arguments in: array_unique(). Valid types: (array(E)), (array(E), array(E))");
     }
 
     @Test
@@ -115,8 +115,7 @@ public class ArrayUniqueFunctionTest extends ScalarTestCase {
     public void testDifferentUnconvertableInnerTypes() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("array_unique([geopoint], [true])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_unique([doc.users.geopoint], [true]), " +
-                    "no overload found for matching argument types: (geo_point_array, boolean_array).");
+            .hasMessage("Invalid arguments in: array_unique([doc.users.geopoint], [true]) with (geo_point_array, boolean_array). Valid types: (array(E)), (array(E), array(E))");
     }
 
     @Test

@@ -76,8 +76,7 @@ public class CIDROperatorTest extends ScalarTestCase {
     public void test_both_operands_are_of_wrong_type() {
         assertThatThrownBy(() -> assertEvaluate("1.2 << { cidr = '192.168.0.0/24'}", false))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (1.2 << {cidr = '192.168.0.0/24'}), " +
-                "no overload found for matching argument types: (double precision, object).");
+            .hasMessage("Invalid arguments in: (1.2 << {cidr = '192.168.0.0/24'}) with (double precision, object). Valid types: (ip, text)");
     }
 
     @Test

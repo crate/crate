@@ -203,8 +203,7 @@ public class SumAggregationTest extends AggregationTestCase {
         assertThatThrownBy(() -> getSum(DataTypes.GEO_POINT))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith(
-                "Unknown function: sum(NULL)," +
-                " no overload found for matching argument types: (geo_point).");
+                "Invalid arguments in: sum(NULL) with (geo_point). Valid types: ");
     }
 
     @Test

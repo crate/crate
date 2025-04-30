@@ -42,8 +42,8 @@ public class DistanceFunctionTest extends ScalarTestCase {
         assertThatThrownBy(() ->
                 assertNormalize("distance('POINT (10 20)', 'POINT (11 21)', 'foo')", s -> assertThat(s).isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: distance('POINT (10 20)', 'POINT (11 21)', 'foo'), " +
-                                    "no overload found for matching argument types: (text, text, text).");
+            .hasMessage(
+                "Invalid arguments in: distance('POINT (10 20)', 'POINT (11 21)', 'foo') with (text, text, text). Valid types: (geo_point, geo_point)");
     }
 
     @Test
@@ -51,8 +51,8 @@ public class DistanceFunctionTest extends ScalarTestCase {
         assertThatThrownBy(() ->
                 assertNormalize("distance(1, 'POINT (11 21)')", s -> assertThat(s).isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: distance(1, 'POINT (11 21)'), " +
-                                    "no overload found for matching argument types: (integer, text).");
+            .hasMessage(
+                "Invalid arguments in: distance(1, 'POINT (11 21)') with (integer, text). Valid types: (geo_point, geo_point)");
     }
 
     @Test

@@ -160,8 +160,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
                                  new Object[] {3, 2},
                                  new Object[] {2, 3}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Unknown function: first_value(doc.t1.x, NULL), no overload found for matching argument types: " +
-                        "(integer, undefined). Possible candidates: first_value(E):E");
+            .hasMessage("Invalid arguments in: first_value(doc.t1.x, NULL) with (integer, undefined). Valid types: (E)");
     }
 
     @Test
@@ -175,8 +174,7 @@ public class NthValueFunctionsTest extends AbstractWindowFunctionTest {
                                  new Object[] {3, 2},
                                  new Object[] {2, 3}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Unknown function: last_value(doc.t1.x, NULL), no overload found for matching argument types: " +
-                        "(integer, undefined). Possible candidates: last_value(E):E");
+            .hasMessage("Invalid arguments in: last_value(doc.t1.x, NULL) with (integer, undefined). Valid types: (E)");
     }
 
     @Test

@@ -33,6 +33,7 @@ import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -770,8 +771,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         assertThatThrownBy(() -> executor.analyze("select id, name from parted where not date"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (NOT doc.parted.date), " +
-                                    "no overload found for matching argument types: (timestamp with time zone).");
+            .hasMessage("Invalid arguments in: (NOT doc.parted.date) with (timestamp with time zone). Valid types: (boolean)");
     }
 
     @Test
@@ -949,8 +949,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         assertThatThrownBy(() -> executor.analyze("select * from users where 'George' = ANY (name)"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: ('George' = ANY(doc.users.name)), " +
-                                    "no overload found for matching argument types: (text, text).");
+            .hasMessage("Invalid arguments in: ('George' = ANY(doc.users.name)) with (text, text). Valid types: (E, array(E))");
     }
 
     @Test
@@ -1003,8 +1002,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         // ergo simple comparison does not work here
         assertThatThrownBy(() -> executor.analyze("select * from users where 5 = friends['id']"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (doc.users.friends['id'] = 5), " +
-                                    "no overload found for matching argument types: (bigint_array, integer).");
+            .hasMessage("Invalid arguments in: (doc.users.friends['id'] = 5) with (bigint_array, integer). Valid types: (E, E)");
     }
 
     @Test
@@ -1186,8 +1184,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         assertThatThrownBy(() -> executor.analyze("select * from users where 'awesome' LIKE ANY (name)"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: ('awesome' LIKE ANY(doc.users.name)), " +
-                                    "no overload found for matching argument types: (text, text).");
+            .hasMessage("Invalid arguments in: ('awesome' LIKE ANY(doc.users.name)) with (text, text). Valid types: (text, array(text))");
     }
 
     @Test
@@ -2047,8 +2044,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.of(clusterService);
         assertThatThrownBy(() -> executor.analyze("select * from unnest(1, 'foo')"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: unnest(1, 'foo'), " +
-                                    "no overload found for matching argument types: (integer, text).");
+            .hasMessage("Invalid arguments in: unnest(1, 'foo') with (integer, text). Valid types: (array(N)), ()");
     }
 
     @Test

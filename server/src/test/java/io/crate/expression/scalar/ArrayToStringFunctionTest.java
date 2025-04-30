@@ -33,15 +33,14 @@ public class ArrayToStringFunctionTest extends ScalarTestCase {
     public void testZeroArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("array_to_string()"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_to_string()");
+            .hasMessage("Invalid arguments in: array_to_string(). Valid types: (array(E), text), (array(E), text, text)");
     }
 
     @Test
     public void testOneArgument() {
         assertThatThrownBy(() -> assertEvaluateNull("array_to_string([1, 2])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_to_string([1, 2]), " +
-                                    "no overload found for matching argument types: (integer_array).");
+            .hasMessage("Invalid arguments in: array_to_string([1, 2]) with (integer_array). Valid types: (array(E), text), (array(E), text, text)");
     }
 
     @Test

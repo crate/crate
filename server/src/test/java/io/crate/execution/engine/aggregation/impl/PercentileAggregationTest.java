@@ -190,8 +190,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.GEO_POINT, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: percentile(INPUT(0), INPUT(0)), " +
-                                    "no overload found for matching argument types: (geo_point, double precision).");
+            .hasMessageStartingWith("Invalid arguments in: percentile(INPUT(0), INPUT(0)) with (geo_point, double precision). Valid types: ");
     }
 
     @Test

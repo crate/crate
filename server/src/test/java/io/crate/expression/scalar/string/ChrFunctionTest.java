@@ -60,7 +60,7 @@ public class ChrFunctionTest extends ScalarTestCase {
     public void test_empty_value_throws_exception() throws Exception {
         assertThatThrownBy(() -> assertEvaluate("chr()", ""))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Unknown function: chr(). Possible candidates: chr(integer):text");
+            .hasMessage("Invalid arguments in: chr(). Valid types: (integer)");
     }
 
     @Test

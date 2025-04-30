@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -123,7 +123,6 @@ public class GeometricMeanAggregationTest extends AggregationTestCase {
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> executeAggregation(DataTypes.BOOLEAN, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: geometric_mean(INPUT(0))," +
-                                     " no overload found for matching argument types: (boolean).");
+            .hasMessageStartingWith("Invalid arguments in: geometric_mean(INPUT(0)) with (boolean). Valid types: ");
     }
 }

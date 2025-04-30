@@ -37,21 +37,24 @@ import io.crate.types.DataTypes;
 
 public class ArrayMinFunctionTest extends ScalarTestCase {
 
+    private <T> void assertArrayMin(DataType<T> type) {
+        var valuesToTest = TestingHelpers.getRandomsOfType(2, 10, type);
+        var optional = valuesToTest.stream()
+            .filter(o -> o != null)
+            .min((o1, o2) -> type.compare(o1, o2));
+        var expected = optional.orElse(null);
+
+        String expression = String.format(Locale.ENGLISH, "array_min(?::%s[])", type.getName());
+        assertEvaluate(expression, expected, Literal.of(valuesToTest, new ArrayType<>(type)));
+    }
+
     @Test
     public void test_array_returns_min_element() {
-        List<DataType> typesToTest = new ArrayList(DataTypes.PRIMITIVE_TYPES);
+        List<DataType<?>> typesToTest = new ArrayList<>(DataTypes.PRIMITIVE_TYPES);
         typesToTest.add(DataTypes.NUMERIC);
 
-        for (DataType type : typesToTest) {
-            var valuesToTest = TestingHelpers.getRandomsOfType(2, 10, type);
-
-            var optional = valuesToTest.stream()
-                .filter(o -> o != null)
-                .min((o1, o2) -> type.compare(o1, o2));
-            var expected = optional.orElse(null);
-
-            String expression = String.format(Locale.ENGLISH, "array_min(?::%s[])", type.getName());
-            assertEvaluate(expression, expected, Literal.of(valuesToTest, new ArrayType<>(type)));
+        for (DataType<?> type : typesToTest) {
+            assertArrayMin(type);
         }
     }
 
@@ -85,6 +88,6 @@ public class ArrayMinFunctionTest extends ScalarTestCase {
         Assertions.assertThatThrownBy(() -> assertEvaluate("array_min([])", null))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageContaining(
-                    "Unknown function: array_min([]), no overload found for matching argument types: (undefined_array).");
+                "Invalid arguments in: array_min([]) with (undefined_array). Valid types: ");
     }
 }

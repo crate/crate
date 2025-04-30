@@ -142,16 +142,16 @@ public class WithinFunctionTest extends ScalarTestCase {
     public void testFirstArgumentWithInvalidType() throws Exception {
         assertThatThrownBy(() -> getFunction(FNAME, List.of(DataTypes.LONG, DataTypes.GEO_POINT)))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: within(INPUT(0), INPUT(0)), " +
-                                    "no overload found for matching argument types: (bigint, geo_point).");
+            .hasMessageStartingWith(
+                "Invalid arguments in: within(INPUT(0), INPUT(0)) with (bigint, geo_point).");
     }
 
     @Test
     public void testSecondArgumentWithInvalidType() throws Exception {
         assertThatThrownBy(() -> getFunction(FNAME, List.of(DataTypes.GEO_POINT, DataTypes.LONG)))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: within(INPUT(0), INPUT(0)), " +
-                                    "no overload found for matching argument types: (geo_point, bigint).");
+            .hasMessageStartingWith(
+                "Invalid arguments in: within(INPUT(0), INPUT(0)) with (geo_point, bigint).");
     }
 
     @Test
