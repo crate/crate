@@ -414,7 +414,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThatThrownBy(() -> convert("_doc > {\"name\"='foo'}"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith(
-                "Unknown function: (doc.users._doc > _map('name', 'foo'))," +
+                "Unknown function: (doc.users._doc > {name = 'foo'})," +
                 " no overload found for matching argument types: (object, object).");
 
     }
