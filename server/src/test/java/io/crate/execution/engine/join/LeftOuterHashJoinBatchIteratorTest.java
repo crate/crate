@@ -33,6 +33,7 @@ import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -115,6 +116,7 @@ public class LeftOuterHashJoinBatchIteratorTest {
     @Test
     public void test_left_outer_join() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -132,6 +134,7 @@ public class LeftOuterHashJoinBatchIteratorTest {
     @Test
     public void test_left_outer_join_with_blocksize_smaller_than_dataset() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -149,6 +152,7 @@ public class LeftOuterHashJoinBatchIteratorTest {
     @Test
     public void test_left_outer_join_with_blocksize_bigger_than_tterator_batchsize() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -166,6 +170,7 @@ public class LeftOuterHashJoinBatchIteratorTest {
     @Test
     public void test_left_outer_join_with_collisions() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),

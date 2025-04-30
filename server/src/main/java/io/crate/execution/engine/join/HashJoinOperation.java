@@ -29,7 +29,6 @@ import java.util.function.ToIntFunction;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import io.crate.concurrent.CompletionListenable;
-import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -63,35 +62,38 @@ public class HashJoinOperation implements CompletionListenable {
         this.resultConsumer = nlResultConsumer;
         this.leftConsumer = new CapturingRowConsumer(nlResultConsumer.requiresScroll(), nlResultConsumer.completionFuture());
         this.rightConsumer = new CapturingRowConsumer(true, nlResultConsumer.completionFuture());
-        CompletableFuture.allOf(leftConsumer.capturedBatchIterator(), rightConsumer.capturedBatchIterator())
-            .whenComplete((result, failure) -> {
-                if (failure == null) {
-                    BatchIterator<Row> joinIterator;
-                    try {
-                        joinIterator = createHashJoinIterator(
-                            leftConsumer.capturedBatchIterator().join(),
-                            numLeftCols,
-                            rightConsumer.capturedBatchIterator().join(),
-                            numRightCols,
-                            joinPredicate,
-                            getHashBuilderFromSymbols(txnCtx, inputFactory, joinLeftInputs),
-                            getHashBuilderFromSymbols(txnCtx, inputFactory, joinRightInputs),
-                            rowAccounting,
-                            new RamBlockSizeCalculator(
-                                Paging.PAGE_SIZE,
-                                circuitBreaker,
-                                estimatedRowSizeForLeft
-                            ),
-                            emitNullValues
-                        );
-                        nlResultConsumer.accept(joinIterator, null);
-                    } catch (Exception e) {
-                        nlResultConsumer.accept(null, e);
-                    }
-                } else {
-                    nlResultConsumer.accept(null, failure);
-                }
-            });
+        CompletableFuture<Void> allIterators = CompletableFuture.allOf(
+            leftConsumer.capturedBatchIterator(),
+            rightConsumer.capturedBatchIterator()
+        );
+        allIterators.whenComplete((_, failure) -> {
+            if (failure != null) {
+                nlResultConsumer.accept(null, failure);
+                return;
+            }
+            try {
+                CombinedRow combiner = new CombinedRow(numLeftCols, numRightCols);
+                var joinIterator = new HashJoinBatchIterator(
+                    circuitBreaker,
+                    leftConsumer.capturedBatchIterator().join(),
+                    rightConsumer.capturedBatchIterator().join(),
+                    rowAccounting,
+                    combiner,
+                    joinPredicate,
+                    getHashBuilderFromSymbols(txnCtx, inputFactory, joinLeftInputs),
+                    getHashBuilderFromSymbols(txnCtx, inputFactory, joinRightInputs),
+                    new RamBlockSizeCalculator(
+                        Paging.PAGE_SIZE,
+                        circuitBreaker,
+                        estimatedRowSizeForLeft
+                    ),
+                    emitNullValues
+                );
+                nlResultConsumer.accept(joinIterator, null);
+            } catch (Exception e) {
+                nlResultConsumer.accept(null, e);
+            }
+        });
     }
 
     @Override
@@ -124,28 +126,5 @@ public class HashJoinOperation implements CompletionListenable {
             }
             return hash;
         };
-    }
-
-    private static BatchIterator<Row> createHashJoinIterator(BatchIterator<Row> left,
-                                                             int leftNumCols,
-                                                             BatchIterator<Row> right,
-                                                             int rightNumCols,
-                                                             Predicate<Row> joinCondition,
-                                                             ToIntFunction<Row> hashBuilderForLeft,
-                                                             ToIntFunction<Row> hashBuilderForRight,
-                                                             RowAccounting<Object[]> rowAccounting,
-                                                             RamBlockSizeCalculator blockSizeCalculator,
-                                                             boolean emitNullValues) {
-        CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
-        return new HashJoinBatchIterator(
-            left,
-            right,
-            rowAccounting,
-            combiner,
-            joinCondition,
-            hashBuilderForLeft,
-            hashBuilderForRight,
-            blockSizeCalculator,
-            emitNullValues);
     }
 }

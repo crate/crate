@@ -33,6 +33,7 @@ import java.util.function.Supplier;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -130,6 +131,7 @@ public class HashInnerJoinBatchIteratorTest {
     @Test
     public void testInnerHashJoin() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -147,6 +149,7 @@ public class HashInnerJoinBatchIteratorTest {
     @Test
     public void testInnerHashJoinWithHashCollisions() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -164,6 +167,7 @@ public class HashInnerJoinBatchIteratorTest {
     @Test
     public void testInnerHashJoinWithBlockSizeSmallerThanDataSet() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),
@@ -181,6 +185,7 @@ public class HashInnerJoinBatchIteratorTest {
     @Test
     public void testInnerHashJoinWithBlockSizeBiggerThanIteratorBatchSize() throws Exception {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator.get(),
             rightIterator.get(),
             mock(RowAccounting.class),

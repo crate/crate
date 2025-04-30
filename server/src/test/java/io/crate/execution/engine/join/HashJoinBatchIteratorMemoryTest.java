@@ -31,6 +31,7 @@ import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -73,6 +74,7 @@ public class HashJoinBatchIteratorMemoryTest {
 
         RowAccounting<Object[]> rowAccounting = mock(RowAccounting.class);
         BatchIterator<Row> it = new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator,
             rightIterator,
             rowAccounting,
@@ -105,6 +107,7 @@ public class HashJoinBatchIteratorMemoryTest {
 
         RowAccounting<Object[]> rowAccounting = mock(RowAccounting.class);
         BatchIterator<Row> it = new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator,
             rightIterator,
             rowAccounting,
