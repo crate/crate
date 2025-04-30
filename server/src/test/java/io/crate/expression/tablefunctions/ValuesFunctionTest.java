@@ -107,8 +107,8 @@ public class ValuesFunctionTest extends AbstractTableFunctionsTest {
     public void test_function_arguments_must_have_array_types() {
         assertThatThrownBy(() -> assertExecute("_values(200)", ""))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: _values(200), " +
-                                    "no overload found for matching argument types: (integer).");
+            .hasMessageStartingWith(
+                "Invalid arguments in: _values(200) with (integer). Valid types: (array(E))");
     }
 
     @Test

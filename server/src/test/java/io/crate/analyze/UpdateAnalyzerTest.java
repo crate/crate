@@ -384,8 +384,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testWhereClauseObjectArrayField() throws Exception {
         assertThatThrownBy(() -> analyze("update users set awesome=true where friends['id'] = 5"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (doc.users.friends['id'] = 5), " +
-                                    "no overload found for matching argument types: (bigint_array, integer).");
+            .hasMessage("Invalid arguments in: (doc.users.friends['id'] = 5) with (bigint_array, integer). Valid types: (E, E)");
     }
 
     @Test

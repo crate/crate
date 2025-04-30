@@ -81,16 +81,15 @@ public class AreaFunctionTest extends ScalarTestCase {
     public void testWithTooManyArguments() {
         assertThatThrownBy(() -> assertNormalize("area(geoShape, 'foo')", isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Unknown function: area(doc.users.geoshape, 'foo'), no overload found for matching argument " +
-                        "types: (geo_shape, text). Possible candidates: area(geo_shape):double precision");
+            .hasMessage(
+                "Invalid arguments in: area(doc.users.geoshape, 'foo') with (geo_shape, text). Valid types: (geo_shape)");
     }
 
     @Test
     public void testResolveWithInvalidType() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("area(1)"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Unknown function: area(1), no overload found for matching argument types: (integer). " +
-                        "Possible candidates: area(geo_shape):double precision");
+            .hasMessage("Invalid arguments in: area(1) with (integer). Valid types: (geo_shape)");
     }
 
     @Test

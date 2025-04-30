@@ -93,32 +93,28 @@ public class ArrayUpperFunctionTest extends ScalarTestCase {
     public void testZeroArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("array_upper()"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_upper(). " +
-                                    "Possible candidates: array_upper(array(E), integer):integer");
+            .hasMessage("Invalid arguments in: array_upper(). Valid types: (array(E), integer)");
     }
 
     @Test
     public void testOneArgument() {
         assertThatThrownBy(() -> assertEvaluateNull("array_upper([1])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_upper([1]), " +
-                                    "no overload found for matching argument types: (integer_array).");
+            .hasMessage("Invalid arguments in: array_upper([1]) with (integer_array). Valid types: (array(E), integer)");
     }
 
     @Test
     public void testThreeArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("array_upper([1], 2, [3])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_upper([1], 2, [3]), " +
-                "no overload found for matching argument types: (integer_array, integer, integer_array).");
+            .hasMessage("Invalid arguments in: array_upper([1], 2, [3]) with (integer_array, integer, integer_array). Valid types: (array(E), integer)");
     }
 
     @Test
     public void testSecondArgumentNotANumber() {
         assertThatThrownBy(() -> assertEvaluateNull("array_upper([1], [2])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_upper([1], [2]), " +
-                "no overload found for matching argument types: (integer_array, integer_array).");
+            .hasMessage("Invalid arguments in: array_upper([1], [2]) with (integer_array, integer_array). Valid types: (array(E), integer)");
     }
 
     @Test

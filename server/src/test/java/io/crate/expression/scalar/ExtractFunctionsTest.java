@@ -47,7 +47,7 @@ public class ExtractFunctionsTest extends ScalarTestCase {
     private void assertEvaluateIntervalException(String timeUnit) {
         assertThatThrownBy(() -> assertEvaluate("extract(" + timeUnit + " from INTERVAL '10 days')", -1))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: extract(" + timeUnit.toUpperCase(Locale.ENGLISH) + " FROM");
+            .hasMessageStartingWith("Invalid arguments in: extract(" + timeUnit.toUpperCase(Locale.ENGLISH) + " FROM");
     }
 
     @Test

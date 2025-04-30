@@ -181,7 +181,7 @@ public class AverageAggregationTest extends AggregationTestCase {
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> executeAvgAgg(DataTypes.GEO_POINT, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: avg(INPUT(0)), no overload found for matching argument types: (geo_point).");
+            .hasMessageStartingWith("Invalid arguments in: avg(INPUT(0)) with (geo_point). Valid types: ");
     }
 
     @Test

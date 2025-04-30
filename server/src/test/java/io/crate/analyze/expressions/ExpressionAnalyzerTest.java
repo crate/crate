@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -329,8 +330,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testAnyWithArrayOnBothSidesResultsInNiceErrorMessage() {
         assertThatThrownBy(() -> executor.analyze("select * from tarr where xs = ANY([10, 20])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: (doc.tarr.xs = ANY([10, 20]))," +
-                        " no overload found for matching argument types: (integer_array, integer_array).");
+            .hasMessage("Invalid arguments in: (doc.tarr.xs = ANY([10, 20])) with (integer_array, integer_array). Valid types: (E, array(E))");
     }
 
     @Test

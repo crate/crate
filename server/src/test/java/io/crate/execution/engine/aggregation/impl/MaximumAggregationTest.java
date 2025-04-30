@@ -159,6 +159,6 @@ public class MaximumAggregationTest extends AggregationTestCase {
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> executeAggregation(DataTypes.UNTYPED_OBJECT, new Object[][]{{new Object()}}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: max(INPUT(0)), no overload found for matching argument types: (object).");
+            .hasMessageStartingWith("Invalid arguments in: max(INPUT(0)) with (object). Valid types: ");
     }
 }

@@ -94,16 +94,14 @@ public class ArrayDifferenceFunctionTest extends ScalarTestCase {
     public void testZeroArguments() throws Exception {
         assertThatThrownBy(() -> assertNormalize("array_difference()", isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Unknown function: array_difference(). " +
-                        "Possible candidates: array_difference(array(E), array(E)):array(E)");
+            .hasMessage("Invalid arguments in: array_difference(). Valid types: (array(E), array(E))");
     }
 
     @Test
     public void testOneArgument() {
         assertThatThrownBy(() -> assertNormalize("array_difference([1])", isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_difference([1]), " +
-                                    "no overload found for matching argument types: (integer_array).");
+            .hasMessage("Invalid arguments in: array_difference([1]) with (integer_array). Valid types: (array(E), array(E))");
     }
 
     @Test

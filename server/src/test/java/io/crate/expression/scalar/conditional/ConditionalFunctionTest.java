@@ -68,8 +68,8 @@ public class ConditionalFunctionTest extends ScalarTestCase {
     public void testNullIfInvalidArgsLength() throws Exception {
         assertThatThrownBy(() -> assertEvaluateNull("nullif(1, 2, 3)"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: nullif(1, 2, 3)," +
-                                    " no overload found for matching argument types: (integer, integer, integer).");
+            .hasMessage(
+                "Invalid arguments in: nullif(1, 2, 3) with (integer, integer, integer). Valid types: (E, E)");
     }
 
     @Test

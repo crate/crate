@@ -125,8 +125,8 @@ public class ArraySliceFunctionTest extends ScalarTestCase {
     public void testBaseIsNotAnArray() {
         assertThatThrownBy(() -> assertEvaluateNull("'not an array'[1:3]"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith(
-                "Unknown function: array_slice('not an array', 1, 3), no overload found for matching argument types");
+            .hasMessage(
+                "Invalid arguments in: array_slice('not an array', 1, 3) with (text, integer, integer). Valid types: (array(E), integer, integer)");
     }
 
     @Test

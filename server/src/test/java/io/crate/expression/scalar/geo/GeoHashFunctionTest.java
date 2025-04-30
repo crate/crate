@@ -60,8 +60,8 @@ public class GeoHashFunctionTest extends ScalarTestCase {
     public void testWithTooManyArguments() {
         assertThatThrownBy(() -> assertNormalize("geohash('POINT (10 20)', 'foo')", s -> assertThat(s).isNull()))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: geohash('POINT (10 20)', 'foo'), " +
-                                    "no overload found for matching argument types: (text, text).");
+            .hasMessageStartingWith(
+                "Invalid arguments in: geohash('POINT (10 20)', 'foo') with (text, text). Valid types: (geo_point)");
     }
 
     @Test
@@ -69,7 +69,7 @@ public class GeoHashFunctionTest extends ScalarTestCase {
         assertThatThrownBy(() -> assertEvaluateNull("geohash(1)"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith(
-                "Unknown function: geohash(1), no overload found for matching argument types: (integer)");
+                "Invalid arguments in: geohash(1) with (integer). Valid types: (geo_point)");
     }
 
     @Test

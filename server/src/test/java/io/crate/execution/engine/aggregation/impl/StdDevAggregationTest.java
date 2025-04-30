@@ -29,7 +29,6 @@ import java.util.stream.Stream;
 
 import org.junit.Test;
 
-import io.crate.execution.engine.aggregation.impl.StandardDeviationAggregation;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionImplementation;
@@ -124,7 +123,6 @@ public class StdDevAggregationTest extends AggregationTestCase {
     public void testUnsupportedType() {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: stddev_pop(INPUT(0))," +
-                " no overload found for matching argument types: (geo_point).");
+            .hasMessageStartingWith("Invalid arguments in: stddev_pop(INPUT(0)) with (geo_point). Valid types: ");
     }
 }

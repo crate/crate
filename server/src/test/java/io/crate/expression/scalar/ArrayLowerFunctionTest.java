@@ -92,32 +92,28 @@ public class ArrayLowerFunctionTest extends ScalarTestCase {
     public void testZeroArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower()"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower(). " +
-                                    "Possible candidates: array_lower(array(E), integer):integer");
+            .hasMessage("Invalid arguments in: array_lower(). Valid types: (array(E), integer)");
     }
 
     @Test
     public void testOneArgument() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower([1])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower([1]), " +
-                                    "no overload found for matching argument types: (integer_array).");
+            .hasMessage("Invalid arguments in: array_lower([1]) with (integer_array). Valid types: (array(E), integer)");
     }
 
     @Test
     public void testThreeArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower([1], 2, [3])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower([1], 2, [3]), " +
-                    "no overload found for matching argument types: (integer_array, integer, integer_array).");
+            .hasMessage("Invalid arguments in: array_lower([1], 2, [3]) with (integer_array, integer, integer_array). Valid types: (array(E), integer)");
     }
 
     @Test
     public void testSecondArgumentNotANumber() {
         assertThatThrownBy(() -> assertEvaluateNull("array_lower([1], [2])"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: array_lower([1], [2]), " +
-                    "no overload found for matching argument types: (integer_array, integer_array).");
+            .hasMessage("Invalid arguments in: array_lower([1], [2]) with (integer_array, integer_array). Valid types: (array(E), integer)");
     }
 
     @Test

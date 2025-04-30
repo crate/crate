@@ -1724,7 +1724,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void test_generated_column_arguments_are_detected_as_array_and_validation_fails_with_missing_overload() throws Exception {
         assertThatThrownBy(() -> analyze("CREATE TABLE tbl (xs int[], x as max(xs))"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Unknown function: max(doc.tbl.xs), no overload found for matching argument types: (integer_array)");
+            .hasMessageStartingWith("Invalid arguments in: max(doc.tbl.xs) with (integer_array). Valid types: ");
     }
 
     @Test
