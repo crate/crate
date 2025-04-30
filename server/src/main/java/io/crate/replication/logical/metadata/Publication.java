@@ -161,7 +161,6 @@ public class Publication implements Writeable {
         }
 
         return relations.stream()
-            .filter(relationName -> indexFilter.test(relationName.indexNameOrAlias()))
             .filter(relationName -> userCanPublish(roles, relationName, publicationOwner, publicationName))
             .filter(relationName -> subscriberCanRead(roles, relationName, subscriber, publicationName))
             .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata(), indexFilter))

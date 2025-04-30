@@ -113,15 +113,18 @@ public class TransportCreateSubscriptionTest {
         RelationMetadata relationMetadata = new RelationMetadata(
             relationName,
             List.of(
-                IndexMetadata.builder("t1")
-                .settings(
-                    // Not necessary to set a valid version, only fact that version is higher than CURRENT is important for this test.
-                    Settings.builder()
-                        .put(IndexMetadata.SETTING_VERSION_CREATED, internalVersionId)
-                        .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2) // must be supplied
-                        .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0) // must be supplied
+                new RelationMetadata.ReplicatedIndex(
+                    IndexMetadata.builder("t1")
+                    .settings(
+                        // Not necessary to set a valid version, only fact that version is higher than CURRENT is important for this test.
+                        Settings.builder()
+                            .put(IndexMetadata.SETTING_VERSION_CREATED, internalVersionId)
+                            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2) // must be supplied
+                            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0) // must be supplied
+                    )
+                    .build(),
+                    true
                 )
-                .build()
             ),
             null
         );

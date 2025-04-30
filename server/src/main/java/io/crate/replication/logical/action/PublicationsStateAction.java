@@ -221,7 +221,15 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         public List<String> concreteIndices() {
             return relationsInPublications.values().stream()
                 .flatMap(x -> x.indices().stream())
-                .map(x -> x.getIndex().getName())
+                .map(x -> x.indexMetadata().getIndex().getName())
+                .toList();
+        }
+
+        public List<String> restorableIndices() {
+            return relationsInPublications.values().stream()
+                .flatMap(x -> x.indices().stream())
+                .filter(replicatedIndex -> replicatedIndex.allPrimaryShardsActive())
+                .map(x -> x.indexMetadata().getIndex().getName())
                 .toList();
         }
 
