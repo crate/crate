@@ -26,9 +26,9 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Predicate;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.breaker.TypedCellsAccounting;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.BatchIterator;
 import io.crate.data.CapturingRowConsumer;

@@ -28,6 +28,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -63,16 +64,17 @@ public class HashJoinBatchIteratorBehaviouralTest {
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
         BatchIterator<Row> batchIterator = new HashJoinBatchIterator(
-                leftIterator,
-                rightIterator,
-                mock(RowAccounting.class),
-                new CombinedRow(1, 1),
-                row -> Objects.equals(row.get(0), row.get(1)),
-                row -> Objects.hash(row.get(0)),
-                row -> Objects.hash(row.get(0)),
-                ignored -> 2,
-                false
-            );
+            new NoopCircuitBreaker("dummy"),
+            leftIterator,
+            rightIterator,
+            mock(RowAccounting.class),
+            new CombinedRow(1, 1),
+            row -> Objects.equals(row.get(0), row.get(1)),
+            row -> Objects.hash(row.get(0)),
+            row -> Objects.hash(row.get(0)),
+            ignored -> 2,
+            false
+        );
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
@@ -94,6 +96,7 @@ public class HashJoinBatchIteratorBehaviouralTest {
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
         BatchIterator<Row> batchIterator = new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator,
             rightIterator,
             mock(RowAccounting.class),
@@ -119,6 +122,7 @@ public class HashJoinBatchIteratorBehaviouralTest {
             TestingBatchIterators.ofValues(Arrays.asList(2, 0, 4, 5)), 2, 1, null);
 
         BatchIterator<Row> batchIterator = new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator,
             rightIterator,
             mock(RowAccounting.class),
@@ -150,6 +154,7 @@ public class HashJoinBatchIteratorBehaviouralTest {
             TestingBatchIterators.ofValues(List.of(2, 0, 4, 5)), 2, 1, null);
 
         BatchIterator<Row> batchIterator = new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             leftIterator,
             rightIterator,
             mock(RowAccounting.class),

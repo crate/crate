@@ -32,6 +32,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
+import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.openjdk.jmh.annotations.Benchmark;
 import org.openjdk.jmh.annotations.BenchmarkMode;
@@ -157,6 +158,7 @@ public class RowsBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeHashInnerJoin(Blackhole blackhole) {
         BatchIterator<Row> leftJoin = new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             rowAccounting,
@@ -175,6 +177,7 @@ public class RowsBatchIteratorBenchmark {
     @Benchmark
     public void measureConsumeHashInnerJoinWithHashCollisions(Blackhole blackhole) {
         BatchIterator<Row> leftJoin = new HashJoinBatchIterator(
+            new NoopCircuitBreaker("dummy"),
             InMemoryBatchIterator.of(oneThousandRows, SENTINEL, true),
             InMemoryBatchIterator.of(tenThousandRows, SENTINEL, true),
             rowAccounting,

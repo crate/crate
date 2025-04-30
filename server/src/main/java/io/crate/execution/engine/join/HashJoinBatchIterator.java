@@ -28,6 +28,8 @@ import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
+import org.elasticsearch.common.breaker.CircuitBreaker;
+
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.data.BatchIterator;
@@ -96,6 +98,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
      * Used to avoid instantiating multiple times RowN in {@link #findMatchingRows()}
      */
     private final UnsafeArrayRow leftRow = new UnsafeArrayRow();
+    private final CircuitBreaker circuitBreaker;
     private final ToIntFunction<Row> hashBuilderForLeft;
     private final ToIntFunction<Row> hashBuilderForRight;
     private final LongToIntFunction calculateBlockSize;
@@ -115,8 +118,10 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private int nonMatchingKeysIdx = 0;
     private Iterator<Object[]> nonMatchValuesIterator;
     private Values leftMatchingRows;
+    private boolean blockFull = false;
 
-    public HashJoinBatchIterator(BatchIterator<Row> left,
+    public HashJoinBatchIterator(CircuitBreaker circuitBreaker,
+                                 BatchIterator<Row> left,
                                  BatchIterator<Row> right,
                                  RowAccounting<Object[]> leftRowAccounting,
                                  CombinedRow combiner,
@@ -126,6 +131,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                                  LongToIntFunction calculateBlockSize,
                                  boolean emitNullValues) {
         super(left, right, combiner);
+        this.circuitBreaker = circuitBreaker;
         this.leftRowAccounting = leftRowAccounting;
         this.joinCondition = joinCondition;
         this.hashBuilderForLeft = hashBuilderForLeft;
@@ -155,6 +161,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         nonMatchingKeysIdx = 0;
         nonMatchValuesIterator = null;
         leftMatchingRows = null;
+        blockFull = false;
     }
 
     @Override
@@ -241,6 +248,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         buffer.clear();
         numberOfRowsInBuffer = 0;
         leftRowAccounting.release();
+        blockFull = false;
 
         // A batch is not guaranteed to deliver PAGE_SIZE number of rows. It could be more or less.
         // So we cannot rely on that to decide if processing 1 block is done, we must also know and track how much
@@ -260,7 +268,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 numItems++;
                 int hash = hashBuilderForLeft.applyAsInt(unsafeArrayRow.cells(leftRow));
                 addToBuffer(leftRow, hash);
-                if (numberOfRowsInBuffer == blockSize) {
+                if (numberOfRowsInBuffer == blockSize || circuitBreaker.getFree() < 512 * 1024) {
+                    blockFull = true;
                     break;
                 }
             }
@@ -335,14 +344,14 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private boolean mustSwitchToRight() {
         return left.allLoaded()
-               || numberOfRowsInBuffer == blockSize
+               || blockFull
                || (leftBatchHasItems == false && numberOfLeftBatchesLoadedForBlock == numberOfLeftBatchesForBlock);
     }
 
     private boolean mustLoadLeftNextBatch() {
         return leftBatchHasItems == false
                && left.allLoaded() == false
-               && numberOfRowsInBuffer < blockSize
+               && !blockFull
                && numberOfLeftBatchesLoadedForBlock < numberOfLeftBatchesForBlock;
     }
 
