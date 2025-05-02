@@ -27,10 +27,13 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.function.Supplier;
+import org.apache.logging.log4j.LogManager;
 
 import io.crate.common.SuppressForbidden;
 
 public final class CompletableFutures {
+
+    private static final org.apache.logging.log4j.Logger LOGGER = LogManager.getLogger(CompletableFutures.class);
 
     private CompletableFutures() {
     }
@@ -43,7 +46,10 @@ public final class CompletableFutures {
      */
     public static <T> CompletableFuture<List<T>> allSuccessfulAsList(Collection<? extends CompletableFuture<? extends T>> futures) {
         return CompletableFuture.allOf(futures.toArray(new CompletableFuture[0]))
-            .handle((ignored, ignoredErr) -> {
+            .handle((ignored, err) -> {
+                if (err != null) {
+                    LOGGER.warn("Some of the futures in the list completed exceptionally", err);
+                }
                 ArrayList<T> results = new ArrayList<>(futures.size());
                 for (CompletableFuture<? extends T> future : futures) {
                     if (future.isCompletedExceptionally()) {
