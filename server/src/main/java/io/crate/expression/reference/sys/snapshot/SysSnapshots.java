@@ -96,10 +96,10 @@ public class SysSnapshots {
             .thenCombine(repository.getSnapshotInfo(snapshotId), (metadata, info) -> SysSnapshot.of(metadata, repoName, info))
             .exceptionally(t -> {
                 var err = SQLExceptions.unwrap(t);
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Couldn't retrieve snapshotId={} error={}", snapshotId, err);
+                }
                 if (err instanceof SnapshotException) {
-                    if (LOGGER.isDebugEnabled()) {
-                        LOGGER.debug("Couldn't retrieve snapshotId={} error={}", snapshotId, err);
-                    }
                     return SysSnapshot.ofMissingInfo(repository.getMetadata().name(), snapshotId);
                 }
                 throw Exceptions.toRuntimeException(err);
