@@ -35,13 +35,17 @@ public class RamBlockSizeCalculator implements LongToIntFunction {
     private final int defaultBlockSize;
     private final CircuitBreaker circuitBreaker;
     private final long estimatedRowSizeForLeft;
+    private final int numConcurrentJoins;
 
     public RamBlockSizeCalculator(int defaultBlockSize,
                                   CircuitBreaker circuitBreaker,
-                                  long estimatedRowSizeForLeft) {
+                                  long estimatedRowSizeForLeft,
+                                  int numConcurrentJoins) {
+        assert numConcurrentJoins >= 1 : "Must count _this_ operation for numConcurrentJoins";
         this.defaultBlockSize = defaultBlockSize;
         this.circuitBreaker = circuitBreaker;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
+        this.numConcurrentJoins = numConcurrentJoins;
     }
 
     @Override
@@ -53,7 +57,7 @@ public class RamBlockSizeCalculator implements LongToIntFunction {
         if (circuitBreaker.getLimit() == -1) {
             return FALLBACK_SIZE;
         }
-        long availableMemory = circuitBreaker.getLimit() - circuitBreaker.getUsed();
+        long availableMemory = circuitBreaker.getFree() / numConcurrentJoins;
         long numRowsFittingIntoAvailableMemory = availableMemory / leftRowSize;
 
         // Restrict the number of rows per block by whatever is lowest:

@@ -65,7 +65,8 @@ public class NestedLoopOperation implements CompletionListenable {
                                List<DataType<?>> leftSideColumnTypes,
                                long estimatedRowsSizeLeft,
                                long estimatedNumberOfRowsLeft,
-                               boolean blockNestedLoop) {
+                               boolean blockNestedLoop,
+                               int numConcurrentJoins) {
         this.resultConsumer = nlResultConsumer;
         this.leftConsumer = new CapturingRowConsumer(nlResultConsumer.requiresScroll(), nlResultConsumer.completionFuture());
         this.rightConsumer = new CapturingRowConsumer(true, nlResultConsumer.completionFuture());
@@ -84,7 +85,8 @@ public class NestedLoopOperation implements CompletionListenable {
                         leftSideColumnTypes,
                         estimatedRowsSizeLeft,
                         estimatedNumberOfRowsLeft,
-                        blockNestedLoop
+                        blockNestedLoop,
+                        numConcurrentJoins
                     );
                     nlResultConsumer.accept(nlIterator, null);
                 } else {
@@ -118,7 +120,8 @@ public class NestedLoopOperation implements CompletionListenable {
                                                        List<DataType<?>> leftSideColumnTypes,
                                                        long estimatedRowsSizeLeft,
                                                        long estimatedNumberOfRowsLeft,
-                                                       boolean blockNestedLoop) {
+                                                       boolean blockNestedLoop,
+                                                       int numConcurrentJoins) {
         final CombinedRow combiner = new CombinedRow(leftNumCols, rightNumCols);
         switch (joinType) {
             case CROSS:
@@ -130,7 +133,8 @@ public class NestedLoopOperation implements CompletionListenable {
                     ramAccounting,
                     leftSideColumnTypes,
                     estimatedRowsSizeLeft,
-                    blockNestedLoop
+                    blockNestedLoop,
+                    numConcurrentJoins
                 );
 
             case INNER:
@@ -143,8 +147,11 @@ public class NestedLoopOperation implements CompletionListenable {
                         ramAccounting,
                         leftSideColumnTypes,
                         estimatedRowsSizeLeft,
-                        blockNestedLoop),
-                        joinCondition);
+                        blockNestedLoop,
+                        numConcurrentJoins
+                    ),
+                    joinCondition
+                );
 
             case LEFT:
                 return new LeftJoinNLBatchIterator<>(left, right, combiner, joinCondition);
@@ -173,12 +180,14 @@ public class NestedLoopOperation implements CompletionListenable {
                                                                   RamAccounting ramAccounting,
                                                                   List<DataType<?>> leftSideColumnTypes,
                                                                   long estimatedRowsSizeLeft,
-                                                                  boolean blockNestedLoop) {
+                                                                  boolean blockNestedLoop,
+                                                                  int numConcurrentJoins) {
         if (blockNestedLoop) {
             var blockSizeCalculator = new RamBlockSizeCalculator(
                 Paging.PAGE_SIZE,
                 circuitBreaker,
-                estimatedRowsSizeLeft
+                estimatedRowsSizeLeft,
+                numConcurrentJoins
             );
             var rowAccounting = new TypedCellsAccounting(leftSideColumnTypes, ramAccounting, 0);
             return new CrossJoinBlockNLBatchIterator(left, right, combiner, blockSizeCalculator, rowAccounting);

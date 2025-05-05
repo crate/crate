@@ -1013,7 +1013,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         RamBlockSizeCalculator ramBlockSizeCalculator = new RamBlockSizeCalculator(
             500_000,
             circuitBreaker,
-            rowSizeBytes
+            rowSizeBytes,
+            1
         );
         logger.info("\n\tThe block size for relation {}, total size {} bytes, with row count {} and row size {} bytes, " +
                     "if it would be used in a block join algorithm, would be {}",

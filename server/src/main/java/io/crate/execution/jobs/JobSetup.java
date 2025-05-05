@@ -35,6 +35,7 @@ import java.util.SequencedSet;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Predicate;
 import java.util.stream.Collector;
 
@@ -144,6 +145,8 @@ public class JobSetup {
     private final Executor searchTp;
     private final String nodeName;
     private final Schemas schemas;
+
+    private final AtomicInteger runningJoinOperations = new AtomicInteger();
 
     @Inject
     public JobSetup(Settings settings,
@@ -869,6 +872,8 @@ public class JobSetup {
                 memoryManager,
                 projectorFactory
             );
+            int numConcurrentJoins = runningJoinOperations.incrementAndGet();
+            firstConsumer.completionFuture().whenComplete((_, _) -> runningJoinOperations.decrementAndGet());
             Predicate<Row> joinCondition = RowFilter.create(context.transactionContext, inputFactory, phase.joinCondition());
 
             NestedLoopOperation joinOperation = new NestedLoopOperation(
@@ -882,7 +887,9 @@ public class JobSetup {
                 phase.leftSideColumnTypes,
                 phase.estimatedRowsSizeLeft,
                 phase.estimatedNumberOfRowsLeft,
-                phase.blockNestedLoop);
+                phase.blockNestedLoop,
+                numConcurrentJoins
+            );
 
             DistResultRXTask left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),
@@ -943,6 +950,8 @@ public class JobSetup {
                 memoryManager,
                 projectorFactory
             );
+            int numConcurrentJoins = runningJoinOperations.incrementAndGet();
+            firstConsumer.completionFuture().whenComplete((_, _) -> runningJoinOperations.decrementAndGet());
             Predicate<Row> joinCondition = RowFilter.create(context.transactionContext, inputFactory, phase.joinCondition());
             HashJoinOperation joinOperation = new HashJoinOperation(
                 phase.numLeftOutputs(),
@@ -960,7 +969,8 @@ public class JobSetup {
                 inputFactory,
                 breaker,
                 phase.estimatedRowSizeForLeft(),
-                phase.joinType() == JoinType.LEFT
+                phase.joinType() == JoinType.LEFT,
+                numConcurrentJoins
             );
             DistResultRXTask left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),

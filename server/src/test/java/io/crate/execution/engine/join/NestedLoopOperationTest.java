@@ -64,7 +64,8 @@ public class NestedLoopOperationTest {
             Collections.emptyList(),
             64L,
             9L,
-            blockNlPossible);
+            blockNlPossible,
+            1);
     }
 
 }

@@ -40,13 +40,15 @@ public class RamBlockSizeCalculatorTest {
         RamBlockSizeCalculator blockCalculator100leftRows = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
-            5
+            5,
+            1
         );
         assertThat(blockCalculator100leftRows.applyAsInt(-1)).isEqualTo(20);
         RamBlockSizeCalculator blockCalculator10LeftRows = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
-            5
+            5,
+            1
         );
         assertThat(blockCalculator10LeftRows.applyAsInt(-1)).isEqualTo(20);
         assertThat(blockCalculator10LeftRows.applyAsInt(50)).isEqualTo(2);
@@ -58,7 +60,8 @@ public class RamBlockSizeCalculatorTest {
         RamBlockSizeCalculator blockSizeCalculator = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
-            10
+            10,
+            1
         );
         assertThat(blockSizeCalculator.applyAsInt(-1)).isEqualTo(RamBlockSizeCalculator.FALLBACK_SIZE);
 
@@ -67,14 +70,16 @@ public class RamBlockSizeCalculatorTest {
         RamBlockSizeCalculator blockCalculatorNoNumberOrRowsStats = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
-            10
+            10,
+            1
         );
         assertThat(blockCalculatorNoNumberOrRowsStats.applyAsInt(-1)).isEqualTo(10);
 
         RamBlockSizeCalculator blockCalculatorNoRowSizeStats = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
-            -1
+            -1,
+            1
         );
         assertThat(blockCalculatorNoRowSizeStats.applyAsInt(-1)).isEqualTo(RamBlockSizeCalculator.FALLBACK_SIZE);
     }
@@ -86,7 +91,8 @@ public class RamBlockSizeCalculatorTest {
         RamBlockSizeCalculator blockSizeCalculator = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
-            10
+            10,
+            1
         );
         assertThat(blockSizeCalculator.applyAsInt(-1)).isEqualTo(10);
     }
@@ -98,6 +104,7 @@ public class RamBlockSizeCalculatorTest {
         RamBlockSizeCalculator blockSizeCalculator = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
+            1,
             1
         );
         assertThat(blockSizeCalculator.applyAsInt(-1)).isEqualTo(500_000);
@@ -110,6 +117,7 @@ public class RamBlockSizeCalculatorTest {
         RamBlockSizeCalculator blockSizeCalculator = new RamBlockSizeCalculator(
             defaultBlockSize,
             circuitBreaker,
+            1,
             1
         );
         assertThat(blockSizeCalculator.applyAsInt(-1)).isEqualTo(defaultBlockSize);
