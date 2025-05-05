@@ -24,8 +24,6 @@ package io.crate.execution.engine;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -44,31 +42,54 @@ class InterceptingRowConsumer implements RowConsumer {
 
     private static final Logger LOGGER = LogManager.getLogger(InterceptingRowConsumer.class);
 
-    private final AtomicInteger consumerInvokedAndJobInitialized = new AtomicInteger(2);
     private final UUID jobId;
     private final RowConsumer consumer;
     private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
-    private final AtomicBoolean consumerAccepted = new AtomicBoolean(false);
 
-    private Throwable failure = null;
-    private BatchIterator<Row> iterator = null;
+    private final InitializationTracker initTracker;
 
     InterceptingRowConsumer(UUID jobId,
                             RowConsumer consumer,
-                            InitializationTracker jobsInitialized,
+                            InitializationTracker initTracker,
                             ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction) {
         this.jobId = jobId;
         this.consumer = consumer;
+        this.initTracker = initTracker;
         this.killNodeAction = killNodeAction;
-        jobsInitialized.future.whenComplete((o, f) -> tryForwardResult(f));
     }
 
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-        if (consumerAccepted.compareAndSet(false, true)) {
-            this.iterator = iterator;
-            tryForwardResult(failure);
-        }
+        consumer.accept(iterator, failure);
+        initTracker.future.whenComplete((_, err) -> {
+            Throwable t = SQLExceptions.unwrap(failure == null ? err : failure);
+            if (t == null) {
+                return;
+            }
+            if (iterator != null) {
+                iterator.kill(t);
+            }
+            KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
+                List.of(),
+                List.of(jobId),
+                Role.CRATE_USER.name(),
+                "An error was encountered: " + t
+            );
+            killNodeAction.execute(killRequest).whenComplete((resp, killErr) -> {
+                if (killErr == null) {
+                    LOGGER.trace(
+                        "Killed {} contexts for jobId={} due to failure={}",
+                        resp.numKilled(),
+                        jobId,
+                        t);
+                } else {
+                    LOGGER.trace(
+                        "Failed to kill jobId={} due to failure={}",
+                        jobId,
+                        t);
+                }
+            });
+        });
     }
 
     @Override
@@ -76,51 +97,13 @@ class InterceptingRowConsumer implements RowConsumer {
         return consumer.completionFuture();
     }
 
-    private void tryForwardResult(Throwable throwable) {
-        if (throwable != null && (failure == null || failure instanceof InterruptedException)) {
-            failure = SQLExceptions.unwrap(throwable);
-        }
-        if (consumerInvokedAndJobInitialized.decrementAndGet() > 0) {
-            return;
-        }
-        if (failure == null) {
-            assert iterator != null : "iterator must be present";
-            consumer.accept(iterator, null);
-        } else {
-            consumer.accept(null, failure);
-            KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
-                List.of(),
-                List.of(jobId),
-                Role.CRATE_USER.name(),
-                "An error was encountered: " + failure
-            );
-            killNodeAction.execute(killRequest).whenComplete((resp, t) -> {
-                if (LOGGER.isTraceEnabled()) {
-                    if (t == null) {
-                        LOGGER.trace(
-                            "Killed {} contexts for jobId={} forwarding the failure={}",
-                            resp.numKilled(),
-                            jobId,
-                            failure);
-                    } else {
-                        LOGGER.trace(
-                            "Failed to kill jobId={}, forwarding failure={} anyway",
-                            jobId,
-                            failure);
-                    }
-                }
-            });
-        }
-    }
 
     @Override
     public String toString() {
-        return "InterceptingBatchConsumer{" +
-               "consumerInvokedAndJobInitialized=" + consumerInvokedAndJobInitialized +
+        return "InterceptingRowConsumer{" +
+               "initTracker=" + initTracker +
                ", jobId=" + jobId +
                ", consumer=" + consumer +
-               ", rowReceiverDone=" + consumerAccepted +
-               ", failure=" + failure +
                '}';
     }
 }
