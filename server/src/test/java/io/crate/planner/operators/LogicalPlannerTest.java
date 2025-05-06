@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -351,7 +352,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         LogicalPlan plan = plan("SELECT array(SELECT {a = x} FROM t1)");
         assertThat(plan.dependencies().entrySet()).hasSize(1);
         LogicalPlan subPlan = plan.dependencies().keySet().iterator().next();
-        assertThat(subPlan).isEqualTo("Collect[doc.t1 | [_map('a', x)] | true]");
+        assertThat(subPlan).isEqualTo("Collect[doc.t1 | [{a = x}] | true]");
     }
 
     @Test

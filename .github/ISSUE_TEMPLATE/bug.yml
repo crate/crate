@@ -3,7 +3,7 @@ description: Tell us about something that's not working the way you think it sho
 labels:
   - triage
 projects:
-  - 59
+  - crate/59
 body:
   - type: input
     id: cratedb_version

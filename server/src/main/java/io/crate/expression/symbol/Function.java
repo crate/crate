@@ -50,6 +50,7 @@ import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.scalar.SubscriptRecordFunction;
 import io.crate.expression.scalar.arithmetic.ArithmeticFunctions;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.scalar.arithmetic.NegateFunctions;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
@@ -65,6 +66,7 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.functions.Signature;
+import io.crate.sql.Identifiers;
 import io.crate.sql.SqlFormatter;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -377,6 +379,10 @@ public class Function implements Symbol, Cloneable {
                 printArray(builder, style);
                 break;
 
+            case MapFunction.NAME:
+                printMap(builder, style);
+                break;
+
             case CaseFunction.NAME:
                 builder.append("CASE");
                 for (int i = 2; i < arguments.size(); i += 2) {
@@ -423,6 +429,26 @@ public class Function implements Symbol, Cloneable {
         builder.append(arguments.get(0).toString(style));
         builder.append(").");
         builder.append(arguments.get(1).toString(style));
+    }
+
+    private void printMap(StringBuilder builder, Style style) {
+        builder.append("{");
+        int size = arguments.size();
+        for (int i = 0; i + 1 < size; i += 2) {
+            Symbol key = arguments.get(i);
+            Symbol val = arguments.get(i + 1);
+            String keyStr = key instanceof Literal<?> literal
+                ? literal.value().toString()
+                : key.toString(style);
+
+            builder.append(Identifiers.quoteIfNeeded(keyStr));
+            builder.append(" = ");
+            builder.append(val.toString(style));
+            if (i + 3 < size) {
+                builder.append(", ");
+            }
+        }
+        builder.append("}");
     }
 
     private void printArray(StringBuilder builder, Style style) {
