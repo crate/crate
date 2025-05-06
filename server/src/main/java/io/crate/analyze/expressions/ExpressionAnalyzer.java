@@ -848,11 +848,15 @@ public class ExpressionAnalyzer {
             if (node.getEscape() != null) {
                 throw new UnsupportedOperationException("ESCAPE is not supported.");
             }
-            Symbol arraySymbol = node.getValue().accept(this, context);
-            Symbol leftSymbol = node.getPattern().accept(this, context);
+            Symbol value = node.getValue().accept(this, context);
+            Symbol pattern = node.getPattern().accept(this, context);
+            int valueDimensions = ArrayType.dimensions(value.valueType());
+            int patternDimensions = ArrayType.dimensions(pattern.valueType());
+            int diff = valueDimensions - patternDimensions;
+            value = ArrayUnnestFunction.unnest(value, diff - 1);
             return allocateFunction(
                 LikeOperators.arrayOperatorName(node.quantifier(), node.inverse(), node.ignoreCase()),
-                List.of(leftSymbol, arraySymbol),
+                List.of(pattern, value),
                 context);
         }
 
