@@ -526,6 +526,12 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
+    public void test_like_any_on_nested_array() throws Exception {
+        assertThat(convert("'Hello' LIKE ANY(o_array['xs'])"))
+            .hasToString("('Hello' LIKE ANY(array_unnest(o_array['xs'])))");
+    }
+
+    @Test
     public void testGtAnyOnNestedArrayIsNotSupported() {
         assertThatThrownBy(() -> convert("[1, 2] > any(o_array['xs'])"))
             .hasMessage("Cannot use `> ANY` if left side is an array");
