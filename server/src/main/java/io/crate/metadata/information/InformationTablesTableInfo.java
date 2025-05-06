@@ -208,6 +208,9 @@ public class InformationTablesTableInfo {
                 .startObject("total_fields")
                     .add("limit", INTEGER, fromSetting(DocTableInfo.TOTAL_COLUMNS_LIMIT, INTEGER::sanitizeValue))
                 .endObject()
+                .startObject("depth")
+                    .add("limit", INTEGER, fromSetting(DocTableInfo.DEPTH_LIMIT_SETTING, INTEGER::sanitizeValue))
+                .endObject()
             .endObject()
 
             .startObject("merge")

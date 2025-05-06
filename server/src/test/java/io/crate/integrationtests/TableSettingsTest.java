@@ -139,6 +139,25 @@ public class TableSettingsTest extends IntegTestCase {
     }
 
     @Test
+    public void test_object_depth_limit() {
+        int depth = 1;
+        execute("create table test (o object) with (\"mapping.depth.limit\" = ?)", new Object[]{depth});
+        var msg = String.format(Locale.ENGLISH,
+            "Limit of max column depth [%d] in table [%s.test] exceeded", depth, sqlExecutor.getCurrentSchema());
+        Asserts.assertSQLError(() -> execute("alter table test add column o['o2']['x'] int"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining(msg);
+        Asserts.assertSQLError(() -> execute("insert into test values ({o2={x=1}})"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining(msg);
+        execute("alter table test reset (\"mapping.depth.limit\")");
+        execute("alter table test add column o['o2']['x'] int");
+        execute("insert into test values ({o2={y=1}})");
+    }
+
+    @Test
     public void testFilterOnByteSizeValue() throws Exception {
         execute("select * from information_schema.tables " +
                 "where settings['translog']['flush_threshold_size'] < 2000000");
