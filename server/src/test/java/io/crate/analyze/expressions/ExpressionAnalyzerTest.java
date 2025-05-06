@@ -521,6 +521,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void test_any_automatically_levels_array_dimensions() throws Exception {
         assertThat(executor.asSymbol("1 = ANY([1, 2])")).isLiteral(true);
         assertThat(executor.asSymbol("3 = ANY([1, 2])")).isLiteral(false);
+        assertThat(executor.asSymbol("'Hello' LIKE ANY(['Hell%', 'No'])")).isLiteral(true);
+        assertThat(executor.asSymbol("'Hello' LIKE ANY([['Hell', 'No'], ['Hell_']])")).isLiteral(true);
 
         assertThat(executor.asSymbol("[1, 2] = ANY([[3, 4], [1, 2]])")).isLiteral(true);
         assertThat(executor.asSymbol("[1, 3] = ANY([[3, 4], [1, 2]])")).isLiteral(false);
