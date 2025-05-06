@@ -589,6 +589,13 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 }
             }
 
+            // Ensure detected type is storable and indexable if applicable
+            StorageSupport<?> storageSupport = builder.type.storageSupportSafe();
+            if (builder.indexType.equals(IndexType.NONE) == false && storageSupport.canBeIndexed() == false) {
+                throw new UnsupportedOperationException(
+                    "Type `" + builder.type.getName().toUpperCase(Locale.ROOT) + "` does not support storage using an index");
+            }
+
             return null;
         }
 
