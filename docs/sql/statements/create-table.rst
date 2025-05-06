@@ -728,6 +728,21 @@ Sets the maximum number of columns that is allowed for a table. Default is
   user facing mapping (columns) and internal fields.
 
 
+.. _sql-create-table-mapping-depth-limit:
+
+``mapping.depth.limit``
+-----------------------
+
+Sets the maximum allowed nesting depth for object columns when adding new
+columns to a table. Default is ``100``.
+
+.. CAUTION::
+
+    Increasing this limit may lead to significantly longer execution times or
+    stack overflow errors, as certain queries recurse through the deeply nested
+    object structures.
+
+
 .. _sql-create-table-translog:
 
 .. _sql-create-table-translog-flush-threshold-size:

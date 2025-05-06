@@ -109,6 +109,7 @@ public class TableParameters {
             IndexSettings.INDEX_TRANSLOG_DURABILITY_SETTING,
             ShardsLimitAllocationDecider.INDEX_TOTAL_SHARDS_PER_NODE_SETTING,
             DocTableInfo.TOTAL_COLUMNS_LIMIT,
+            DocTableInfo.DEPTH_LIMIT_SETTING,
             UnassignedInfo.INDEX_DELAYED_NODE_LEFT_TIMEOUT_SETTING,
             IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS,
             MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY,
