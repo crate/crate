@@ -40,17 +40,20 @@ public final class CreateViewStmt implements AnalyzedStatement {
     private final boolean replaceExisting;
     @Nullable
     private final Role owner;
+    private final boolean errorOnUnknownObjectKey;
 
     CreateViewStmt(RelationName name,
                    AnalyzedRelation analyzedQuery,
                    Query query,
                    boolean replaceExisting,
-                   @Nullable Role owner) {
+                   @Nullable Role owner,
+                   boolean errorOnUnknownObjectKey) {
         this.name = name;
         this.analyzedQuery = analyzedQuery;
         this.query = query;
         this.replaceExisting = replaceExisting;
         this.owner = owner;
+        this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
     }
 
     public Query query() {
@@ -88,5 +91,9 @@ public final class CreateViewStmt implements AnalyzedStatement {
     @Override
     public boolean isWriteOperation() {
         return true;
+    }
+
+    public boolean errorOnUnknownObjectKey() {
+        return errorOnUnknownObjectKey;
     }
 }

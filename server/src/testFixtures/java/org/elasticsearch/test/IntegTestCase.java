@@ -1520,6 +1520,23 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     /**
+     * Execute an SQL Statement as an authenticated user
+     *
+     * @param stmt the SQL Statement
+     * @param userName The name of the authenticated user
+     * @return the SQLResponse
+     */
+    public SQLResponse executeAs(String stmt, String userName) {
+        Sessions sqlOperations = cluster().getInstance(Sessions.class);
+        Roles roles = cluster().getInstance(Roles.class);
+        Role user = roles.getUser(userName);
+        try (Session session = sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null), null, user)) {
+            return execute(stmt, null, session);
+        }
+    }
+
+    /**
      * Execute an SQL Statement on a random node of the cluster
      *
      * @param stmt    the SQL Statement

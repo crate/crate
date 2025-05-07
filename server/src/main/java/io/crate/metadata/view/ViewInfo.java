@@ -48,9 +48,15 @@ public class ViewInfo implements RelationInfo {
     private final List<Reference> references;
     private final String owner;
     private final SearchPath searchPath;
+    private final boolean errorOnUnknownObjectKey;
 
     @VisibleForTesting
-    public ViewInfo(RelationName ident, String definition, List<Reference> references, @Nullable String owner, SearchPath searchPath) {
+    public ViewInfo(RelationName ident,
+                    String definition,
+                    List<Reference> references,
+                    @Nullable String owner,
+                    SearchPath searchPath,
+                    boolean errorOnUnknownObjectKey) {
         this.ident = ident;
         this.definition = definition;
         this.references = references
@@ -62,6 +68,7 @@ public class ViewInfo implements RelationInfo {
             .toList();
         this.owner = owner;
         this.searchPath = searchPath;
+        this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
     }
 
     @Override
@@ -120,5 +127,9 @@ public class ViewInfo implements RelationInfo {
 
     public SearchPath searchPath() {
         return searchPath;
+    }
+
+    public boolean errorOnUnknownObjectKey() {
+        return errorOnUnknownObjectKey;
     }
 }
