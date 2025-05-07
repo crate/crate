@@ -868,7 +868,8 @@ public class SQLExecutor {
             name,
             query,
             user == null ? null : user.name(),
-            SearchPath.createSearchPathFrom(searchPath)
+            SearchPath.createSearchPathFrom(searchPath),
+            coordinatorTxnCtx.sessionSettings().errorOnUnknownObjectKey()
         );
 
         Metadata newMetadata = Metadata.builder(prevState.metadata()).putCustom(ViewsMetadata.TYPE, newViews).build();

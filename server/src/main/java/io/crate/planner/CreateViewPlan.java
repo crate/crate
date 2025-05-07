@@ -40,6 +40,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.parser.SqlParser;
@@ -80,12 +81,14 @@ public final class CreateViewPlan implements Plan {
             formattedQuery,
             createViewStmt.replaceExisting()
         );
+        CoordinatorSessionSettings coordinatorSessionSettings = plannerContext.transactionContext().sessionSettings();
         CreateViewRequest request = new CreateViewRequest(
             createViewStmt.name(),
             formattedQuery,
             createViewStmt.replaceExisting(),
-            plannerContext.transactionContext().sessionSettings().searchPath(),
-            owner == null ? null : owner.name()
+            coordinatorSessionSettings.searchPath(),
+            owner == null ? null : owner.name(),
+            coordinatorSessionSettings.errorOnUnknownObjectKey()
         );
         dependencies.createViewAction().execute(request).whenComplete(new OneRowActionListener<>(consumer, resp -> {
             if (resp.alreadyExistsFailure()) {

@@ -44,17 +44,20 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
     private final SearchPath searchPath;
     @Nullable
     private final String owner;
+    private final boolean errorOnUnknownObjectKey;
 
     public CreateViewRequest(RelationName name,
                              String query,
                              boolean replaceExisting,
                              SearchPath searchPath,
-                             @Nullable String owner) {
+                             @Nullable String owner,
+                             boolean errorOnUnknownObjectKey) {
         this.name = name;
         this.query = query;
         this.replaceExisting = replaceExisting;
         this.searchPath = searchPath;
         this.owner = owner;
+        this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
     }
 
     public RelationName name() {
@@ -71,6 +74,10 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
 
     public SearchPath searchPath() {
         return searchPath;
+    }
+
+    public boolean errorOnUnknownObjectKey() {
+        return errorOnUnknownObjectKey;
     }
 
     @Nullable
@@ -95,6 +102,11 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         } else {
             searchPath = SearchPath.pathWithPGCatalogAndDoc();
         }
+        if (version.after(Version.V_5_10_6)) {
+            errorOnUnknownObjectKey = in.readBoolean();
+        } else {
+            errorOnUnknownObjectKey = true;
+        }
     }
 
     @Override
@@ -107,6 +119,9 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         Version version = out.getVersion();
         if (version.after(Version.V_5_3_4) && !version.equals(Version.V_5_4_0)) {
             searchPath.writeTo(out);
+        }
+        if (version.after(Version.V_5_10_6)) {
+            out.writeBoolean(errorOnUnknownObjectKey);
         }
     }
 }
