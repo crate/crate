@@ -136,7 +136,7 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                         }
                         if (!relationMetadata.indices().isEmpty()) {
                             // All indices belong to the same table and has same metadata.
-                            IndexMetadata indexMetadata = relationMetadata.indices().get(0);
+                            IndexMetadata indexMetadata = relationMetadata.indices().get(0).indexMetadata();
                             checkVersionCompatibility(
                                 relationMetadata.name().fqn(),
                                 state.nodes().getMinNodeVersion(),
