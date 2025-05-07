@@ -69,7 +69,7 @@ public class PgClientTest extends CrateDummyClusterServiceUnitTest {
 
     @After
     public void stop() throws Exception {
-        for (var lifecycleComponent : toClose) {
+        for (var lifecycleComponent : toClose.reversed()) {
             lifecycleComponent.close();
         }
         assertBusy(() -> {
