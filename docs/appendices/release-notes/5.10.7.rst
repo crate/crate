@@ -47,4 +47,7 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a bug where the session setting
+  :ref:`conf-session-error_on_unknown_object_key` was not persisted into a view,
+  and such not taken into account when executing the view. Previously created
+  views need to be recreated to apply the setting successfully.

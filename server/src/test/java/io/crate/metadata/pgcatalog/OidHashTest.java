@@ -46,7 +46,7 @@ import io.crate.types.TypeSignature;
 
 public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationInfo VIEW_INFO = new ViewInfo(T1, "", Collections.emptyList(), null, SearchPath.pathWithPGCatalogAndDoc());
+    private static final RelationInfo VIEW_INFO = new ViewInfo(T1, "", Collections.emptyList(), null, SearchPath.pathWithPGCatalogAndDoc(), true);
     private RelationInfo t1Info;
 
     @Before

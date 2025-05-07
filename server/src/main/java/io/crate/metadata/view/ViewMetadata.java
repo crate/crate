@@ -34,7 +34,8 @@ import io.crate.metadata.SearchPath;
 public record ViewMetadata(
         String stmt,
         @Nullable String owner,
-        SearchPath searchPath) implements Writeable {
+        SearchPath searchPath,
+        boolean errorOnUnknownObjectKey) implements Writeable {
 
     public static ViewMetadata of(StreamInput in) throws IOException {
         String stmt = in.readString();
@@ -46,7 +47,13 @@ public record ViewMetadata(
         } else {
             searchPath = SearchPath.pathWithPGCatalogAndDoc();
         }
-        return new ViewMetadata(stmt, owner, searchPath);
+        boolean errorOnUnknownObjectKey;
+        if (version.after(Version.V_5_10_5)) {
+            errorOnUnknownObjectKey = in.readBoolean();
+        } else {
+            errorOnUnknownObjectKey = true;
+        }
+        return new ViewMetadata(stmt, owner, searchPath, errorOnUnknownObjectKey);
     }
 
     @Override
@@ -56,6 +63,9 @@ public record ViewMetadata(
         Version version = out.getVersion();
         if (version.onOrAfter(Version.V_5_3_5) && !version.equals(Version.V_5_4_0)) {
             searchPath.writeTo(out);
+        }
+        if (version.after(Version.V_5_10_5)) {
+            out.writeBoolean(errorOnUnknownObjectKey);
         }
     }
 }

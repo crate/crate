@@ -303,4 +303,26 @@ public class ViewsITest extends IntegTestCase {
             "o['value_2']| integer"
         );
     }
+
+    /*
+     * https://github.com/crate/crate/issues/17836
+     */
+    @Test
+    public void test_error_on_unknown_object_key_is_persisted() {
+        try (var session = sqlExecutor.newSession()) {
+            execute("SET error_on_unknown_object_key=false", session);
+            execute("CREATE TABLE doc.tbl1 (obj OBJECT(DYNAMIC))", session);
+            execute("CREATE VIEW vw1 AS SELECT obj['not_existing'] FROM doc.tbl1;", session);
+            execute("SET error_on_unknown_object_key=true", session);
+
+            execute("select view_definition from information_schema.views where table_name='vw1';", session);
+            assertThat(response).hasRows(
+                "SELECT \"obj\"['not_existing']\n" +
+                    "FROM \"doc\".\"tbl1\"\n"
+            );
+
+            // Ensure view can be executed
+            execute("SELECT * FROM vw1", session);
+        }
+    }
 }
