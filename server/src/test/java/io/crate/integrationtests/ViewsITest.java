@@ -40,9 +40,17 @@ import org.junit.Test;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
+import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.PGErrorStatus;
+import io.crate.role.Role;
+import io.crate.role.Roles;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.crate.testing.Asserts;
+import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.crate.auth.Protocol;
 
 public class ViewsITest extends IntegTestCase {
 
@@ -302,5 +310,33 @@ public class ViewsITest extends IntegTestCase {
             "o['value_1']| boolean",
             "o['value_2']| integer"
         );
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_error_on_unknown_object_key_on_authenticated_user() {
+        try (var session = sqlExecutor.newSession()) {
+            execute("CREATE TABLE doc.tbl1 (obj OBJECT(DYNAMIC))", session);
+            execute("CREATE USER user1", session);
+            execute("ALTER USER user1 SET (\"error_on_unknown_object_key\"=false)", session);
+            execute("GRANT ALL TO user1", session);
+            execute("SET SESSION AUTHORIZATION user1", session);
+            executeAs("CREATE VIEW vw1 AS SELECT obj['not_existing'] FROM doc.tbl1;",  "user1");
+            executeAs("select view_definition from information_schema.views where table_name='vw1';", "user1");
+            assertThat(response).hasRows(
+                "SELECT \"obj\"['not_existing']\n" +
+                "FROM \"doc\".\"tbl1\"\n"
+            );
+        }
+    }
+
+    public SQLResponse executeAs(String stmt, String userName) {
+        Sessions sqlOperations = cluster().getInstance(Sessions.class);
+        Roles roles = cluster().getInstance(Roles.class);
+        Role user = roles.getUser(userName);
+        try (Session session = sqlOperations.newSession(
+            new ConnectionProperties(null, null, Protocol.HTTP, null), null, user)) {
+            return execute(stmt, null, session);
+        }
     }
 }

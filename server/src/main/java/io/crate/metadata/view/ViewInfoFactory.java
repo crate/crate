@@ -65,6 +65,7 @@ public class ViewInfoFactory {
         try {
             CoordinatorTxnCtx transactionContext = CoordinatorTxnCtx.systemTransactionContext();
             transactionContext.sessionSettings().setSearchPath(view.searchPath());
+            transactionContext.sessionSettings().setErrorOnUnknownObjectKey(false);
             AnalyzedRelation relation = analyzerProvider.analyze(
                 (Query) SqlParser.createStatement(view.stmt()),
                 transactionContext,
