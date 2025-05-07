@@ -47,7 +47,7 @@ public class ViewInfoFactoryTest {
 
         String statement = "SELECT * FROM users";
         RelationName ident = new RelationName(null, "test");
-        ViewMetadata viewMetadata = new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc());
+        ViewMetadata viewMetadata = new ViewMetadata(statement, null, SearchPath.pathWithPGCatalogAndDoc(), false);
         ViewsMetadata views = new ViewsMetadata(Map.of(ident.fqn(), viewMetadata));
 
         ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)

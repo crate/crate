@@ -28,7 +28,6 @@ import java.util.function.Function;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 
@@ -105,21 +104,11 @@ public class StatementAnalysisContext {
         return parentOutputColumns;
     }
 
-    public <T> T withSearchPath(SearchPath searchPath, Function<StatementAnalysisContext, T> fn) {
-        CoordinatorSessionSettings sessionSettings = coordinatorTxnCtx.sessionSettings();
+    public <T> T withSessionSettings(CoordinatorSessionSettings sessionSettings, Function<StatementAnalysisContext, T> fn) {
         StatementAnalysisContext newContext = new StatementAnalysisContext(
             paramTypeHints,
             currentOperation,
-            new CoordinatorTxnCtx(
-                new CoordinatorSessionSettings(
-                    sessionSettings.authenticatedUser(),
-                    sessionSettings.sessionUser(),
-                    searchPath,
-                    sessionSettings.hashJoinsEnabled(),
-                    sessionSettings.excludedOptimizerRules(),
-                    sessionSettings.errorOnUnknownObjectKey(),
-                    sessionSettings.memoryLimitInBytes()
-                )),
+            new CoordinatorTxnCtx(sessionSettings),
             parentOutputColumns
         );
         return fn.apply(newContext);

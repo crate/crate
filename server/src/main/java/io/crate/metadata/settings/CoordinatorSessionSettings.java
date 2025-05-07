@@ -97,10 +97,6 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.excludedOptimizerRules = new HashSet<>(excludedOptimizerRules);
         this.dateStyle = DEFAULT_DATE_STYLE;
         this.statementTimeout = TimeValue.ZERO;
-<<<<<<< HEAD
-        this.memoryLimit = memoryLimit;
-=======
->>>>>>> 951dbd9b1f (Remove duplicated vars at CoordinatorSessionSettings)
     }
 
     /**
@@ -177,13 +173,6 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.statementTimeout = statementTimeout;
     }
 
-<<<<<<< HEAD
-    public void memoryLimit(int memoryLimit) {
-        this.memoryLimit = memoryLimit;
-    }
-
-=======
->>>>>>> 951dbd9b1f (Remove duplicated vars at CoordinatorSessionSettings)
     public Map<String, Object> toMap() {
         Map<String, Object> map = new TreeMap<>();
         map.put(SessionSettingRegistry.HASH_JOIN_KEY, hashJoinsEnabled);

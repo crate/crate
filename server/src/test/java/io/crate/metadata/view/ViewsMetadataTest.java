@@ -43,9 +43,9 @@ public class ViewsMetadataTest extends ESTestCase {
         SearchPath searchPath1 = SearchPath.createSearchPathFrom("foo", "bar", "doc");
         Map<String, ViewMetadata> map = Map.of(
             "doc.my_view",
-            new ViewMetadata("SELECT x, y FROM t1 WHERE z = 'a'", "user_a", searchPath1),
+            new ViewMetadata("SELECT x, y FROM t1 WHERE z = 'a'", "user_a", searchPath1, true),
             "my_schema.other_view",
-            new ViewMetadata("SELECT a, b FROM t2 WHERE c = 1", "user_b", searchPath1));
+            new ViewMetadata("SELECT a, b FROM t2 WHERE c = 1", "user_b", searchPath1, true));
         return new ViewsMetadata(map);
     }
 

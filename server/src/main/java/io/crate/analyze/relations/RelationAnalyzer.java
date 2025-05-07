@@ -77,6 +77,7 @@ import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
@@ -723,8 +724,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                 case TableInfo table -> relation = new TableRelation(table);
                 case ViewInfo viewInfo -> {
                     Statement viewQuery = SqlParser.createStatement(viewInfo.definition());
-                    AnalyzedRelation resolvedView = context.withSearchPath(
+                    CoordinatorSessionSettings viewSessionSettings = new CoordinatorSessionSettings(
+                        context.sessionSettings().authenticatedUser(),
+                        context.sessionSettings().sessionUser(),
                         viewInfo.searchPath(),
+                        context.sessionSettings().hashJoinsEnabled(),
+                        context.sessionSettings().excludedOptimizerRules(),
+                        viewInfo.errorOnUnknownObjectKey(),
+                        context.sessionSettings().memoryLimitInBytes()
+                    );
+                    AnalyzedRelation resolvedView = context.withSessionSettings(
+                        viewSessionSettings,
                         newContext -> viewQuery.accept(this, newContext)
                     );
                     Role owner = nodeCtx.roles().findRole(viewInfo.owner());
