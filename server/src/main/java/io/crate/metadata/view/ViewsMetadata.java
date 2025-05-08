@@ -186,14 +186,15 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
                                              RelationName name,
                                              String query,
                                              @Nullable String owner,
-                                             SearchPath searchPath) {
+                                             SearchPath searchPath,
+                                             boolean errorOnUnknownObjectKey) {
         HashMap<String, ViewMetadata> queryByName;
         if (prevViews == null) {
             queryByName = new HashMap<>();
         } else {
             queryByName = new HashMap<>(prevViews.viewByName);
         }
-        queryByName.put(name.fqn(), new ViewMetadata(query, owner, searchPath, false));
+        queryByName.put(name.fqn(), new ViewMetadata(query, owner, searchPath, errorOnUnknownObjectKey));
         return new ViewsMetadata(queryByName);
     }
 
