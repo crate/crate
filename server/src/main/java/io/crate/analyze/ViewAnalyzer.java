@@ -83,8 +83,9 @@ public final class ViewAnalyzer {
             query,
             createView.query(),
             createView.replaceExisting(),
-            txnCtx.sessionSettings().sessionUser()
-        );
+            txnCtx.sessionSettings().sessionUser(),
+            txnCtx.sessionSettings().errorOnUnknownObjectKey()
+            );
     }
 
     public AnalyzedDropView analyze(DropView dropView, CoordinatorTxnCtx txnCtx) {

@@ -61,11 +61,12 @@ public class ViewInfoFactory {
             return null;
         }
         List<Reference> columns;
+        CoordinatorTxnCtx transactionContext = CoordinatorTxnCtx.systemTransactionContext();
+        transactionContext.sessionSettings().setSearchPath(view.searchPath());
+        transactionContext.sessionSettings().setErrorOnUnknownObjectKey(view.errorOnUnknownObjectKey());
         boolean analyzeError = false;
         try {
-            CoordinatorTxnCtx transactionContext = CoordinatorTxnCtx.systemTransactionContext();
-            transactionContext.sessionSettings().setSearchPath(view.searchPath());
-            transactionContext.sessionSettings().setErrorOnUnknownObjectKey(false);
+
             AnalyzedRelation relation = analyzerProvider.analyze(
                 (Query) SqlParser.createStatement(view.stmt()),
                 transactionContext,
@@ -102,7 +103,7 @@ public class ViewInfoFactory {
             analyzeError = true;
         }
         String viewDefinition = analyzeError ? String.format(Locale.ENGLISH, "/* Corrupted view, needs fix */\n%s", view.stmt()) : view.stmt();
-        return new ViewInfo(ident, viewDefinition, columns, view.owner(), view.searchPath());
+        return new ViewInfo(ident, viewDefinition, columns, view.owner(), view.searchPath(), transactionContext.sessionSettings().errorOnUnknownObjectKey());
     }
 
     private static int addSubColumns(List<Reference> subColumns,

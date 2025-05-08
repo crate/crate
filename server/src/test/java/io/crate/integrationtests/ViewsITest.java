@@ -316,6 +316,7 @@ public class ViewsITest extends IntegTestCase {
     @Test
     public void test_error_on_unknown_object_key_on_authenticated_user() {
         try (var session = sqlExecutor.newSession()) {
+            execute("SET error_on_unknown_object_key=false", session);
             execute("CREATE TABLE doc.tbl1 (obj OBJECT(DYNAMIC))", session);
             execute("CREATE USER user1", session);
             execute("ALTER USER user1 SET (\"error_on_unknown_object_key\"=false)", session);

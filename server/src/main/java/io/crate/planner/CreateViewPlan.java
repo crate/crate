@@ -86,8 +86,9 @@ public final class CreateViewPlan implements Plan {
             formattedQuery,
             createViewStmt.replaceExisting(),
             plannerContext.transactionContext().sessionSettings().searchPath(),
-            owner == null ? null : owner.name()
-        );
+            owner == null ? null : owner.name(),
+            plannerContext.transactionContext().sessionSettings().errorOnUnknownObjectKey()
+            );
         dependencies.client().execute(TransportCreateView.ACTION, request).whenComplete(
             new OneRowActionListener<>(consumer, resp -> {
                 if (resp.alreadyExistsFailure()) {

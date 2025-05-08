@@ -40,7 +40,8 @@ public class CreateViewRequestTest {
             "select * from t1",
             true,
             SearchPath.createSearchPathFrom("custom"),
-            null
+            null,
+            false
         );
         try (BytesStreamOutput out = new BytesStreamOutput()) {
             out.setVersion(Version.V_5_4_0);

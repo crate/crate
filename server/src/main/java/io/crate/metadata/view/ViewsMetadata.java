@@ -140,7 +140,8 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
                         ViewMetadata viewMetadata = new ViewMetadata(
                             stmt,
                             owner,
-                            searchPath == null ? SearchPath.pathWithPGCatalogAndDoc() : searchPath
+                            searchPath == null ? SearchPath.pathWithPGCatalogAndDoc() : searchPath,
+                            false
                         );
                         views.put(viewName, viewMetadata);
                     }
@@ -192,7 +193,7 @@ public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         } else {
             queryByName = new HashMap<>(prevViews.viewByName);
         }
-        queryByName.put(name.fqn(), new ViewMetadata(query, owner, searchPath));
+        queryByName.put(name.fqn(), new ViewMetadata(query, owner, searchPath, false));
         return new ViewsMetadata(queryByName);
     }
 
