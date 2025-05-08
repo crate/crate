@@ -47,7 +47,12 @@ public record ViewMetadata(
         } else {
             searchPath = SearchPath.pathWithPGCatalogAndDoc();
         }
-        boolean errorOnUnknownObjectKey = in.readBoolean();
+        boolean errorOnUnknownObjectKey;
+        if (version.after(Version.V_5_10_5)) {
+            errorOnUnknownObjectKey = in.readBoolean();
+        } else {
+            errorOnUnknownObjectKey = true;
+        }
         return new ViewMetadata(stmt, owner, searchPath, errorOnUnknownObjectKey);
     }
 
