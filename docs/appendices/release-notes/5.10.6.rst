@@ -48,6 +48,10 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a bug where the session setting ``SET error_on_unknown_object_key = FALSE``
+  was ignored on views. Previously created views need to recreated to apply the
+  setting successfully.
+
 - ``LIKE ANY`` now behaves the same as any other operators used with ``ANY`` and
   automatically levels the dimensions by wrapping the right side in an
   ``array_unnest`` as necessary - as documented.
