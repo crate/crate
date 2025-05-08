@@ -468,7 +468,7 @@ public class Session implements AutoCloseable {
                 var analyzedStmt = portal.analyzedStatement();
                 return new DescribeResult(
                     portal.preparedStmt().parameterTypes(),
-                    analyzedStmt.outputs(),
+                    analyzedStmt.outputColumns(),
                     resolveTableFromSelect(analyzedStmt)
                 );
             case 'S':
@@ -497,7 +497,7 @@ public class Session implements AutoCloseable {
                 AnalyzedStatement analyzedStatement = preparedStmt.analyzedStatement();
                 return new DescribeResult(
                     preparedStmt.parameterTypes(),
-                    analyzedStatement.outputs(),
+                    analyzedStatement.outputColumns(),
                     resolveTableFromSelect(analyzedStatement)
                 );
             default:

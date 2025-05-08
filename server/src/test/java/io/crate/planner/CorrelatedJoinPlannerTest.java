@@ -113,6 +113,7 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
             false,
             List.of(tableRelation),
             List.of(new OuterColumn(tableRelation, b)),
+            List.of(new OuterColumn(tableRelation, b)),
             Literal.BOOLEAN_TRUE,
             List.of(),
             null,

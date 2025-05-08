@@ -24,14 +24,15 @@ package io.crate.analyze.relations.select;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.Expression;
 
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -51,7 +52,7 @@ public class SelectAnalysis {
         this.sources = sources;
         this.expressionAnalyzer = expressionAnalyzer;
         this.expressionAnalysisContext = expressionAnalysisContext;
-        outputMap = new HashMap<>();
+        outputMap = new LinkedHashMap<>();
         outputSymbols = new ArrayList<>(expectedItems);
     }
 
@@ -74,6 +75,14 @@ public class SelectAnalysis {
      */
     public Map<String, Set<Symbol>> outputMultiMap() {
         return outputMap;
+    }
+
+    public List<Symbol> outputColumnNames() {
+        ArrayList<Symbol> outputColumnNames = new ArrayList<>(outputMap.size());
+        for (var entry: outputMap.entrySet()) {
+            outputColumnNames.add(new AliasSymbol(entry.getKey(), entry.getValue().iterator().next()));
+        }
+        return outputColumnNames;
     }
 
     public void add(ColumnIdent path, Symbol symbol) {

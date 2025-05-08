@@ -60,4 +60,9 @@ public interface AnalyzedStatement {
     default List<Symbol> outputs() {
         return null;
     }
+
+    @Nullable
+    default List<Symbol> outputColumns() {
+        return null;
+    }
 }

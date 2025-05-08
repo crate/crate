@@ -36,6 +36,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SingleColumn;
@@ -64,7 +65,13 @@ public class SelectAnalyzer {
             if (alias != null) {
                 context.add(ColumnIdent.of(alias), new AliasSymbol(alias, symbol));
             } else {
-                context.add(ColumnIdent.of(OutputNameFormatter.format(node.getExpression())), symbol);
+                if (node.getExpression() instanceof FunctionCall) {
+                    String functionCall = OutputNameFormatter.format(node.getExpression());
+                    String functionName = functionCall.substring(0, functionCall.indexOf("("));
+                    context.add(ColumnIdent.of(functionName), symbol);
+                } else {
+                    context.add(ColumnIdent.of(OutputNameFormatter.format(node.getExpression())), symbol);
+                }
             }
             return null;
         }

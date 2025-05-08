@@ -98,4 +98,3 @@ public class SymbolVisitor<C, R> {
         return visitSymbol(outerColumn, context);
     }
 }
-
