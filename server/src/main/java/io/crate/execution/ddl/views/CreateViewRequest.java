@@ -102,7 +102,7 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         } else {
             searchPath = SearchPath.pathWithPGCatalogAndDoc();
         }
-        if (version.after(Version.V_5_10_4)) {
+        if (version.after(Version.V_5_10_5)) {
             errorOnUnknownObjectKey = in.readBoolean();
         } else {
             errorOnUnknownObjectKey = false;
@@ -120,7 +120,7 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         if (version.after(Version.V_5_3_4) && !version.equals(Version.V_5_4_0)) {
             searchPath.writeTo(out);
         }
-        if (version.after(Version.V_5_10_4)) {
+        if (version.after(Version.V_5_10_5)) {
             out.writeBoolean(errorOnUnknownObjectKey);
         }
     }

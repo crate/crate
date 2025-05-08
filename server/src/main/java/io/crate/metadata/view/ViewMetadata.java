@@ -59,6 +59,8 @@ public record ViewMetadata(
         if (version.onOrAfter(Version.V_5_3_5) && !version.equals(Version.V_5_4_0)) {
             searchPath.writeTo(out);
         }
-        out.writeBoolean(errorOnUnknownObjectKey);
+        if (version.after(Version.V_5_10_5)) {
+            out.writeBoolean(errorOnUnknownObjectKey);
+        }
     }
 }
