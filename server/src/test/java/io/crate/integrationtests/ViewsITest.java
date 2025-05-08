@@ -309,15 +309,15 @@ public class ViewsITest extends IntegTestCase {
      */
     @Test
     public void test_error_on_unknown_object_key_on_authenticated_user() {
-        execute("CREATE TABLE doc.tbl1 (obj OBJECT(DYNAMIC))");
-        execute("CREATE USER user1");
-        execute("ALTER USER user1 SET (\"error_on_unknown_object_key\"=false)");
-        execute("GRANT ALL TO user1");
-        executeAs("CREATE VIEW vw1 AS SELECT obj['not_existing'] FROM doc.tbl1;", "user1");
-        executeAs("select view_definition from information_schema.views where table_name='vw1';", "user1");
-        assertThat(response).hasRows(
-            "SELECT \"obj\"['not_existing']\n" +
-                "FROM \"doc\".\"tbl1\"\n"
-        );
+        try (var session = sqlExecutor.newSession()) {
+            execute("SET error_on_unknown_object_key=false", session);
+            execute("CREATE TABLE doc.tbl1 (obj OBJECT(DYNAMIC))", session);
+            execute("CREATE VIEW vw1 AS SELECT obj['not_existing'] FROM doc.tbl1;", session);
+            execute("select view_definition from information_schema.views where table_name='vw1';", session);
+            assertThat(response).hasRows(
+                "SELECT \"obj\"['not_existing']\n" +
+                    "FROM \"doc\".\"tbl1\"\n"
+            );
+        }
     }
 }
