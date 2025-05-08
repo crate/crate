@@ -105,7 +105,7 @@ public final class CreateViewRequest extends MasterNodeRequest<CreateViewRequest
         if (version.after(Version.V_5_10_5)) {
             errorOnUnknownObjectKey = in.readBoolean();
         } else {
-            errorOnUnknownObjectKey = false;
+            errorOnUnknownObjectKey = true;
         }
     }
 

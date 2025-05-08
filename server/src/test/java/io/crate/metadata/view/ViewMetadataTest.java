@@ -38,7 +38,7 @@ public class ViewMetadataTest {
             "select 1",
             "me",
             SearchPath.createSearchPathFrom("foo", "bar"),
-            false
+            true
         );
         try (BytesStreamOutput out = new BytesStreamOutput()) {
             out.setVersion(Version.V_5_4_0);

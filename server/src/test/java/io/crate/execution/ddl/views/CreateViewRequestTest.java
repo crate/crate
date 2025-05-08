@@ -50,6 +50,7 @@ public class CreateViewRequestTest {
             in.setVersion(Version.V_5_4_0);
             CreateViewRequest fromStream = new CreateViewRequest(in);
             assertThat(fromStream.searchPath()).isEqualTo(SearchPath.pathWithPGCatalogAndDoc());
+            assertThat(fromStream.errorOnUnknownObjectKey()).isEqualTo(true);
         }
 
         try (BytesStreamOutput out = new BytesStreamOutput()) {
@@ -59,6 +60,7 @@ public class CreateViewRequestTest {
             in.setVersion(Version.V_5_4_1);
             CreateViewRequest fromStream = new CreateViewRequest(in);
             assertThat(fromStream.searchPath()).isEqualTo(createView.searchPath());
+            assertThat(fromStream.errorOnUnknownObjectKey()).isEqualTo(true);
         }
 
         try (BytesStreamOutput out = new BytesStreamOutput()) {
@@ -68,6 +70,15 @@ public class CreateViewRequestTest {
             in.setVersion(Version.V_5_3_5);
             CreateViewRequest fromStream = new CreateViewRequest(in);
             assertThat(fromStream.searchPath()).isEqualTo(createView.searchPath());
+            assertThat(fromStream.errorOnUnknownObjectKey()).isEqualTo(true);
+        }
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            createView.writeTo(out);
+            StreamInput in = out.bytes().streamInput();
+            CreateViewRequest fromStream = new CreateViewRequest(in);
+            assertThat(fromStream.searchPath()).isEqualTo(createView.searchPath());
+            assertThat(fromStream.errorOnUnknownObjectKey()).isEqualTo(false);
         }
     }
 }
