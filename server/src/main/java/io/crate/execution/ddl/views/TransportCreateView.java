@@ -108,7 +108,8 @@ public final class TransportCreateView extends TransportMasterNodeAction<CreateV
                                             request.name(),
                                             request.query(),
                                             request.owner(),
-                                            request.searchPath()))
+                                            request.searchPath(),
+                                            request.errorOnUnknownObjectKey()))
                                     .build()
                             ).build();
                     }
