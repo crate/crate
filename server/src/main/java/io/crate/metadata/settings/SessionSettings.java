@@ -148,11 +148,18 @@ public class SessionSettings implements Writeable {
         return memoryLimit;
     }
 
+    public void memoryLimit(int memoryLimit) {
+        this.memoryLimit = memoryLimit;
+    }
+
 
     public boolean insertSelectFailFast() {
         return insertSelectFailFast;
     }
 
+    public void insertSelectFailFast(boolean insertSelectFailFast) {
+        this.insertSelectFailFast = insertSelectFailFast;
+    }
 
     @Override
     public boolean equals(Object o) {
