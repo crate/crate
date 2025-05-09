@@ -137,6 +137,22 @@ public class SessionSettings implements Writeable {
         return memoryLimit;
     }
 
+<<<<<<< HEAD
+=======
+    public void memoryLimit(int memoryLimit) {
+        this.memoryLimit = memoryLimit;
+    }
+
+
+    public boolean insertSelectFailFast() {
+        return insertSelectFailFast;
+    }
+
+    public void insertSelectFailFast(boolean insertSelectFailFast) {
+        this.insertSelectFailFast = insertSelectFailFast;
+    }
+
+>>>>>>> 951dbd9b1f (Remove duplicated vars at CoordinatorSessionSettings)
     @Override
     public boolean equals(Object o) {
         if (this == o) {
