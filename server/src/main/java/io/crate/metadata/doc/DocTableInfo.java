@@ -173,7 +173,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public static final Setting<Long> TOTAL_COLUMNS_LIMIT =
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
     public static final Setting<Long> DEPTH_LIMIT_SETTING =
-        Setting.longSetting("index.mapping.depth.limit", 20L, 1, Property.Dynamic, Property.IndexScope);
+        Setting.longSetting("index.mapping.depth.limit", 100L, 1, Property.Dynamic, Property.IndexScope);
 
     private final List<Reference> rootColumns;
     private final Set<Reference> droppedColumns;
@@ -1018,6 +1018,30 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         );
     }
 
+    /**
+     * Checks column limits based on the table-version-created setting.
+     * @param name table name
+     * @param indexSettings index settings containing table-version-created and column limits
+     * @param allColumns all columns in the given table
+     */
+    public static void checkColumnLimits(RelationName name,
+                                         Settings indexSettings,
+                                         List<Reference> allColumns) {
+        Version tableCreatedVersion = indexSettings.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
+        long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexSettings);
+        if (allColumns.size() > allowedTotalColumns) {
+            throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + name + "] exceeded");
+        }
+        int maxDepth = allColumns.stream()
+            .mapToInt(ref -> ref.column().path().size())
+            .max()
+            .orElse(0);
+        long allowedMaxDepth = DEPTH_LIMIT_SETTING.get(indexSettings);
+        if (tableCreatedVersion.onOrAfter(Version.V_6_0_0) && maxDepth > allowedMaxDepth) {
+            throw new IllegalArgumentException("Limit of max column depth [" + allowedMaxDepth + "] in table [" + name + "] exceeded");
+        }
+    }
+
     public Metadata.Builder writeTo(Metadata metadata,
                                     Metadata.Builder metadataBuilder) throws IOException {
         List<Reference> allColumns = Stream.concat(
@@ -1054,10 +1078,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
             indexUUIDs.add(indexMetadata.getIndexUUID());
 
-            long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexMetadata.getSettings());
-            if (allColumns.size() > allowedTotalColumns) {
-                throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
-            }
+            final Settings indexSettings = indexMetadata.getSettings();
+            checkColumnLimits(ident, indexSettings, allColumns);
             var indexNumberOfShards = numberOfShards;
             if (isPartitioned && IndexName.isPartitioned(indexName)) {
                 // if the index is a part of a partitioned table,
@@ -1066,12 +1088,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
 
             Settings settings = Settings.builder()
-                .put(indexMetadata.getSettings())
+                .put(indexSettings)
                 // Override only the settings that might have changed
-                .put(tableParameters.filter(s -> !indexMetadata.getSettings().hasValue(s)))
+                .put(tableParameters.filter(s -> !indexSettings.hasValue(s)))
                 .build();
             long newSettingsVersion = indexMetadata.getSettingsVersion();
-            if (settings.equals(indexMetadata.getSettings()) == false) {
+            if (settings.equals(indexSettings) == false) {
                 newSettingsVersion++;
             }
             metadataBuilder.put(

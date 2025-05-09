@@ -164,6 +164,9 @@ Breaking Changes
   inserting lots of values should be done using either bulk operations or a
   ``INSERT INTO`` in combination with a ``SELECT FROM`` and ``UNNEST``.
 
+- Set object type's depth limit to ``100`` which does not affect the tables 
+  created before :ref:`version_6.0.0`.
+
 
 Deprecations
 ============

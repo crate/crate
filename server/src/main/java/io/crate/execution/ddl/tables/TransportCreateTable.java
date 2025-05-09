@@ -150,6 +150,16 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
         Settings normalizedSettings = settingsBuilder.build();
 
         indexScopedSettings.validate(normalizedSettings, true);
+        try {
+            DocTableInfo.checkColumnLimits(
+                relationName,
+                normalizedSettings,
+                request.references()
+            );
+        } catch (Exception e) {
+            listener.onFailure(e);
+            return;
+        }
 
         boolean isPartitioned = !request.partitionedBy().isEmpty();
         ActionListener<ClusterStateUpdateResponse> stateUpdateListener;
