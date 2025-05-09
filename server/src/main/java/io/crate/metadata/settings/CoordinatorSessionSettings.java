@@ -51,7 +51,7 @@ public class CoordinatorSessionSettings extends SessionSettings {
 
     private final Role authenticatedUser;
     private Role sessionUser;
-    private Set<Class<? extends Rule<?>>> excludedOptimizerRules;
+    private final Set<Class<? extends Rule<?>>> excludedOptimizerRules;
     private String applicationName;
     private String dateStyle;
     private TimeValue statementTimeout;
@@ -99,8 +99,6 @@ public class CoordinatorSessionSettings extends SessionSettings {
         this.excludedOptimizerRules = new HashSet<>(excludedOptimizerRules);
         this.dateStyle = DEFAULT_DATE_STYLE;
         this.statementTimeout = TimeValue.ZERO;
-        this.memoryLimit = memoryLimit;
-        this.insertSelectFailFast = insertSelectFailFast;
     }
 
     /**
@@ -175,14 +173,6 @@ public class CoordinatorSessionSettings extends SessionSettings {
 
     public void statementTimeout(TimeValue statementTimeout) {
         this.statementTimeout = statementTimeout;
-    }
-
-    public void memoryLimit(int memoryLimit) {
-        this.memoryLimit = memoryLimit;
-    }
-
-    public void insertSelectFailFast(boolean insertSelectFailFast) {
-        this.insertSelectFailFast = insertSelectFailFast;
     }
 
     public Map<String, Object> toMap() {
