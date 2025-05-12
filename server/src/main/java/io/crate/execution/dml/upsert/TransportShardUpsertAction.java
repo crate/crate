@@ -61,7 +61,6 @@ import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumn;
-import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.RawIndexer;
 import io.crate.execution.dml.ShardResponse;
@@ -443,9 +442,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         item.primaryTerm(),
                         actualTable);
                     version = doc.getVersion();
-                    IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
-                    item.pkValues(indexItem.pkValues());
-                    item.insertValues(indexItem.insertValues());
+                    UpdateToInsert.Update update = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
+                    item.pkValues(update.pkValues());
+                    item.insertValues(update.insertValues());
                     request.insertColumns(updatingIndexer.insertColumns(updatingIndexer.columns()));
                 }
                 return insert(

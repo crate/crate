@@ -34,7 +34,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.Id;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
-import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.BaseImplementationSymbolVisitor;
@@ -118,6 +117,7 @@ public final class UpdateToInsert {
     private final List<Reference> updateColumns;
     private final ArrayList<Reference> columns;
 
+    public record Update(List<String> pkValues, Object[] insertValues) {}
 
     record Values(Doc doc, Object[] excludedValues) {
     }
@@ -200,7 +200,7 @@ public final class UpdateToInsert {
     }
 
     @SuppressWarnings("unchecked")
-    public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
+    public Update convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
         Values values = new Values(doc, excludedValues);
         Object[] insertValues = new Object[columns.size()];
         Iterator<Reference> it = columns.iterator();
@@ -237,13 +237,7 @@ public final class UpdateToInsert {
             }
             Maps.mergeInto(source, targetPath.name(), targetPath.path(), value);
         }
-        return new IndexItem.StaticItem(
-            doc.getId(),
-            Id.decode(table.primaryKey(), doc.getId()),
-            insertValues,
-            doc.getSeqNo(),
-            doc.getPrimaryTerm()
-        );
+        return new Update(Id.decode(table.primaryKey(), doc.getId()), insertValues);
     }
 
     public List<Reference> columns() {
