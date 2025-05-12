@@ -124,11 +124,11 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             LOGGER.trace("parent circuit breaker with settings {}", this.parentSettings);
         }
 
-        registerBreaker(this.requestSettings);
-        registerBreaker(this.inFlightRequestsSettings);
-        registerBreaker(this.queryBreakerSettings);
-        registerBreaker(this.logJobsBreakerSettings);
-        registerBreaker(this.logOperationsBreakerSettings);
+        setBreaker(this.requestSettings);
+        setBreaker(this.inFlightRequestsSettings);
+        setBreaker(this.queryBreakerSettings);
+        setBreaker(this.logJobsBreakerSettings);
+        setBreaker(this.logOperationsBreakerSettings);
 
         clusterSettings.addSettingsUpdateConsumer(TOTAL_CIRCUIT_BREAKER_LIMIT_SETTING, this::setTotalCircuitBreakerLimit);
         clusterSettings.addSettingsUpdateConsumer(IN_FLIGHT_REQUESTS_CIRCUIT_BREAKER_LIMIT_SETTING, this::setInFlightRequestsBreakerLimit);
@@ -160,7 +160,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             CircuitBreaker.REQUEST,
             newRequestMax.getBytes()
         );
-        registerBreaker(newRequestSettings);
+        setBreaker(newRequestSettings);
         HierarchyCircuitBreakerService.this.requestSettings = newRequestSettings;
         LOGGER.info("Updated breaker settings request: {}", newRequestSettings);
     }
@@ -170,7 +170,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             CircuitBreaker.IN_FLIGHT_REQUESTS,
             newInFlightRequestsMax.getBytes()
         );
-        registerBreaker(newInFlightRequestsSettings);
+        setBreaker(newInFlightRequestsSettings);
         HierarchyCircuitBreakerService.this.inFlightRequestsSettings = newInFlightRequestsSettings;
         LOGGER.info("Updated breaker settings for in-flight requests: {}", newInFlightRequestsSettings);
     }
@@ -186,7 +186,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                                  ByteSizeValue newLimit) {
         long newLimitBytes = newLimit == null ? oldSettings.bytesLimit() : newLimit.getBytes();
         BreakerSettings newSettings = new BreakerSettings(breakerName, newLimitBytes);
-        registerBreaker(newSettings);
+        setBreaker(newSettings);
         settingsConsumer.accept(newSettings);
         LOGGER.info("[{}] Updated breaker settings: {}", breakerName, newSettings);
     }
@@ -255,12 +255,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
         }
     }
 
-    /**
-     * Allows to register a custom circuit breaker.
-     * Warning: Will overwrite any existing custom breaker with the same name.
-     */
-    @Override
-    public void registerBreaker(BreakerSettings breakerSettings) {
+    private void setBreaker(BreakerSettings breakerSettings) {
         breakers.compute(
             breakerSettings.name(),
             (_, oldBreaker) -> new ChildMemoryCircuitBreaker(breakerSettings, oldBreaker, this));
