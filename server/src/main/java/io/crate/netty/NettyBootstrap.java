@@ -52,6 +52,10 @@ import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.ServerSocketChannel;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
+import io.netty.channel.uring.IoUring;
+import io.netty.channel.uring.IoUringIoHandler;
+import io.netty.channel.uring.IoUringServerSocketChannel;
+import io.netty.channel.uring.IoUringSocketChannel;
 import io.netty.util.concurrent.Future;
 
 @Singleton
@@ -86,7 +90,9 @@ public class NettyBootstrap extends AbstractLifecycleComponent {
         ThreadFactory workerThreads = daemonThreadFactory(settings, WORKER_THREAD_PREFIX);
         int workerCount = Netty4Transport.WORKER_COUNT.get(settings);
         IoHandlerFactory ioHandlerFactory;
-        if (Epoll.isAvailable()) {
+        if (IoUring.isAvailable()) {
+            ioHandlerFactory = IoUringIoHandler.newFactory();
+        } else if (Epoll.isAvailable()) {
             ioHandlerFactory = EpollIoHandler.newFactory();
         } else {
             ioHandlerFactory = NioIoHandler.newFactory();
@@ -95,6 +101,9 @@ public class NettyBootstrap extends AbstractLifecycleComponent {
     }
 
     public static Class<? extends Channel> clientChannel() {
+        if (IoUring.isAvailable()) {
+            return IoUringSocketChannel.class;
+        }
         if (Epoll.isAvailable()) {
             return EpollSocketChannel.class;
         } else {
@@ -103,6 +112,9 @@ public class NettyBootstrap extends AbstractLifecycleComponent {
     }
 
     public static Class<? extends ServerSocketChannel> serverChannel() {
+        if (IoUring.isAvailable()) {
+            return IoUringServerSocketChannel.class;
+        }
         if (Epoll.isAvailable()) {
             return EpollServerSocketChannel.class;
         } else {
