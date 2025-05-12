@@ -1,17 +1,10 @@
 .. _version_5.10.6:
 
-===========================
-Version 5.10.6 - Unreleased
-===========================
+==============
+Version 5.10.6
+==============
 
-
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 5.10.6 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2025-05-12.
 
 .. NOTE::
 
@@ -47,6 +40,16 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 
 Fixes
 =====
+
+- Fixed an issue that could lead to ``null`` values getting returned on
+  subscript expressions on ``array(object)`` columns - for example when used as
+  expression inside a ``INDEX`` definition::
+
+      create table t (
+        obj object as (details array(object as (names text[]))),
+        index ft using fulltext (obj['details']['names'])
+      )
+
 
 - ``LIKE ANY`` now behaves the same as any other operators used with ``ANY`` and
   automatically levels the dimensions by wrapping the right side in an
