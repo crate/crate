@@ -24,7 +24,6 @@ package io.crate.execution.dml.delete;
 import java.io.IOException;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -42,6 +41,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.Constants;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
@@ -119,8 +119,8 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                     );
                 }
             } catch (Exception e) {
-                if (!TransportActions.isShardNotAvailableException(e)) {
-                    throw e;
+                if (retryPrimaryException(e)) {
+                    throw Exceptions.toRuntimeException(e);
                 } else {
                     if (debugEnabled) {
                         logger.debug("shardId={} failed to execute delete for id={}: {}",
