@@ -27,22 +27,19 @@ import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.security.cert.Certificate;
-import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 import javax.net.ssl.SSLSession;
 
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.pkitesting.CertificateBuilder;
 
 public class ClientCertAuthTest extends ESTestCase {
 
@@ -51,24 +48,15 @@ public class ClientCertAuthTest extends ESTestCase {
     private Role exampleUser = RolesHelper.userOf("example.com");
     private SSLSession sslSession;
 
-    @BeforeClass
-    public static void ensureEnglishLocale() {
-        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
-        // This fails for certain locales, e.g. 'ks'.
-        // Until this is fixed, we force the english locale.
-        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
-        Locale.setDefault(Locale.ENGLISH);
-    }
-
     @Before
     public void setUpSsl() throws Exception {
-        var notBefore = new Date(System.currentTimeMillis() - 86400000L * 365);
-        var notAfter = new Date(253402300799000L);
-        SelfSignedCertificate ssc = new SelfSignedCertificate(
-            "example.com", notBefore, notAfter, "RSA", 2048
-        );
+        var cert = new CertificateBuilder()
+            .subject("CN=example.com")
+            .rsa2048()
+            .setIsCertificateAuthority(true)
+            .buildSelfSigned();
         sslSession = mock(SSLSession.class);
-        when(sslSession.getPeerCertificates()).thenReturn(new Certificate[] { ssc.cert() });
+        when(sslSession.getPeerCertificates()).thenReturn(new Certificate[] { cert.getCertificate() });
 
         sslConnWithCert = new ConnectionProperties(
             new Credentials("crate", null),
