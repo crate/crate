@@ -78,7 +78,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
-import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
 import io.crate.planner.Planner;
@@ -511,8 +510,8 @@ public class Session implements AutoCloseable {
         // It is only populated if it is a SELECT on a single table
         if (stmt instanceof QueriedSelectRelation qsr) {
             List<AnalyzedRelation> from = qsr.from();
-            if (from.size() == 1 && from.get(0) instanceof AbstractTableRelation) {
-                return ((AbstractTableRelation<? extends TableInfo>) from.get(0)).tableInfo();
+            if (from.size() == 1 && from.get(0) instanceof AbstractTableRelation<?> tableRelation) {
+                return tableRelation.tableInfo();
             }
         }
         return null;
@@ -576,7 +575,7 @@ public class Session implements AutoCloseable {
              *      conn.commit()
              */
             deferredExecutionsByStmt.compute(
-                portal.preparedStmt().parsedStatement(), (key, oldValue) -> {
+                portal.preparedStmt().parsedStatement(), (_, oldValue) -> {
                     DeferredExecution deferredExecution = new DeferredExecution(portal, maxRows, resultReceiver);
                     if (oldValue == null) {
                         ArrayList<DeferredExecution> deferredExecutions = new ArrayList<>();
@@ -607,7 +606,7 @@ public class Session implements AutoCloseable {
                 activeExecution = singleExec(portal, resultReceiver, maxRows);
             } else {
                 activeExecution = activeExecution
-                    .thenCompose(ignored -> singleExec(portal, resultReceiver, maxRows));
+                    .thenCompose(_ -> singleExec(portal, resultReceiver, maxRows));
             }
             return activeExecution;
         }
@@ -700,8 +699,8 @@ public class Session implements AutoCloseable {
                     } else {
                         allCompleted = allCompleted
                             // individual rowReceiver will receive failure; must not break execution chain due to failures.
-                            .exceptionally(swallowException -> null)
-                            .thenCompose(ignored -> exec(deferredExecutions));
+                            .exceptionally(_ -> null)
+                            .thenCompose(_ -> exec(deferredExecutions));
                     }
                 }
                 deferredExecutionsByStmt.clear();
@@ -975,7 +974,7 @@ public class Session implements AutoCloseable {
         }
         portals.clear();
         preparedStatements.clear();
-        cursors.close(c -> true);
+        cursors.close(_ -> true);
         onClose.run();
     }
 
@@ -1060,7 +1059,7 @@ public class Session implements AutoCloseable {
         /**
          * Disables the token.
          * This should be called on `execute` to prevent the token from running into timeouts
-         * if it is re-used when a prepared statement/portal is executed again.
+         * if it is reused when a prepared statement/portal is executed again.
          **/
         public long disable() {
             enabled = false;
