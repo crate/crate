@@ -132,6 +132,10 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                         e,
                         (e instanceof VersionConflictEngineException)
                     );
+
+                    // Skip remaining items on replica.
+                    request.skipFromLocation(location);
+                    break;
                 }
             }
         }

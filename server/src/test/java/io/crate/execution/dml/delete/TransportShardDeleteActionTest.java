@@ -158,4 +158,20 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         assertThatThrownBy(() -> transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(false)))
             .isExactlyInstanceOf(ShardNotFoundException.class);
     }
+
+    @Test
+    public void test_deletion_failed_with_non_retryable_error_must_skip_remaining_items_on_replica() throws IOException {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), indexUUID, 0);
+        final ShardDeleteRequest request = new ShardDeleteRequest(shardId, UUID.randomUUID());
+        request.add(1, new ShardDeleteRequest.Item("1"));
+        request.add(2, new ShardDeleteRequest.Item("2"));
+        assertThat(request.skipFromLocation()).isEqualTo(-1);
+
+        // Mocks are not set. so shardDeleteOperationOnPrimary fails with NPE.
+        // test verifies that exception is not thrown and remaining items are not processed on replica.
+        TransportReplicationAction.PrimaryResult<ShardDeleteRequest, ShardResponse> result
+            = transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
+
+        assertThat(request.skipFromLocation()).isEqualTo(1);
+    }
 }
