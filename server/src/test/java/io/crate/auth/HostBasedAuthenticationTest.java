@@ -36,7 +36,6 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
@@ -48,7 +47,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.InternalSettingsPreparer;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.crate.auth.HostBasedAuthentication.HBAConf;
@@ -58,7 +56,7 @@ import io.netty.buffer.UnpooledByteBufAllocator;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.pkitesting.CertificateBuilder;
 
 
 public class HostBasedAuthenticationTest extends ESTestCase {
@@ -126,20 +124,14 @@ public class HostBasedAuthenticationTest extends ESTestCase {
 
     private SSLSession sslSession;
 
-    @BeforeClass
-    public static void ensureEnglishLocale() {
-        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
-        // This fails for certain locales, e.g. 'ks'.
-        // Until this is fixed, we force the english locale.
-        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
-        Locale.setDefault(Locale.ENGLISH);
-    }
-
     @Before
     private void setUpTest() throws Exception {
-        SelfSignedCertificate ssc = new SelfSignedCertificate();
+        var cert = new CertificateBuilder()
+            .subject("CN=localhost")
+            .setIsCertificateAuthority(true)
+            .buildSelfSigned();
         SslHandler sslHandler = SslContextBuilder
-            .forServer(ssc.certificate(), ssc.privateKey())
+            .forServer(cert.getKeyPair().getPrivate(), cert.getCertificate())
             .trustManager(InsecureTrustManagerFactory.INSTANCE)
             .startTls(false)
             .build().newHandler(UnpooledByteBufAllocator.DEFAULT);

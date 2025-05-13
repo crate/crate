@@ -29,7 +29,6 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.security.KeyStore;
 import java.security.cert.Certificate;
-import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.common.CheckedConsumer;
@@ -41,7 +40,8 @@ import org.junit.Test;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.pkitesting.CertificateBuilder;
+import io.netty.pkitesting.X509Bundle;
 
 
 @UseJdbc(value = 1)
@@ -50,37 +50,33 @@ public class SslReqHandlerIntegrationTest extends IntegTestCase {
 
     private static final char[] EMPTY_PASS = new char[]{};
 
-    private static SelfSignedCertificate trustedCert;
+    private static X509Bundle trustedCert;
     private static File keyStoreFile;
 
     public SslReqHandlerIntegrationTest() {
         super(true);
     }
 
-    public static void forceEnglishLocale() {
-        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
-        // This fails for certain locales, e.g. 'ks'.
-        // Until this is fixed, we force the english locale.
-        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
-        Locale.setDefault(Locale.ENGLISH);
-    }
-
     @BeforeClass
     public static void beforeTest() throws Exception {
-        forceEnglishLocale();
-
-        trustedCert = new SelfSignedCertificate();
+        trustedCert = new CertificateBuilder()
+            .subject("CN=localhost")
+            .setIsCertificateAuthority(true)
+            .buildSelfSigned();
         keyStoreFile = createTempFile().toFile();
 
         updateKeyStore(
             keyStoreFile,
             store -> {
-                SelfSignedCertificate fakeCert = new SelfSignedCertificate();
+                var fakeCert = new CertificateBuilder()
+                    .subject("CN=localhost")
+                    .setIsCertificateAuthority(true)
+                    .buildSelfSigned();
                 store.setKeyEntry(
                     "key",
-                    trustedCert.key(),
+                    trustedCert.getKeyPair().getPrivate(),
                     EMPTY_PASS,
-                    new Certificate[]{fakeCert.cert()});
+                    new Certificate[]{fakeCert.getCertificate()});
             });
     }
 
@@ -120,9 +116,9 @@ public class SslReqHandlerIntegrationTest extends IntegTestCase {
             keyStoreFile,
             keyStore -> keyStore.setKeyEntry(
                 "key",
-                trustedCert.key(),
+                trustedCert.getKeyPair().getPrivate(),
                 EMPTY_PASS,
-                new Certificate[]{trustedCert.cert()}));
+                new Certificate[]{trustedCert.getCertificate()}));
 
         assertBusy(() -> {
             try {

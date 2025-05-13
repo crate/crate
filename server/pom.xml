@@ -410,7 +410,12 @@
       <groupId>com.auth0</groupId>
       <artifactId>jwks-rsa</artifactId>
       <version>${versions.jwks-rsa}</version>
-
+    </dependency>
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-pkitesting</artifactId>
+      <version>${versions.netty}</version>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>

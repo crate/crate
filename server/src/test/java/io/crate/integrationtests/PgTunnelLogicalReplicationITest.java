@@ -22,12 +22,12 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.security.KeyStore;
-import java.security.cert.Certificate;
 import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.TimeUnit;
@@ -51,7 +51,7 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.TestingHelpers;
 import io.netty.handler.codec.http.HttpResponseStatus;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.pkitesting.CertificateBuilder;
 
 public class PgTunnelLogicalReplicationITest extends ESTestCase {
 
@@ -206,19 +206,16 @@ public class PgTunnelLogicalReplicationITest extends ESTestCase {
 
     @Test
     public void test_can_use_ssl_in_pg_tunnel_subscription() throws Exception {
-        // self signed certificate doesn't work with randomized locales
-        Locale.setDefault(Locale.ENGLISH);
-
         Path keystorePath = createTempFile();
-        var certificate = new SelfSignedCertificate();
+        var certificate = new CertificateBuilder()
+            .subject("CN=localhost")
+            .setIsCertificateAuthority(true)
+            .buildSelfSigned();
         char[] emptyPassword = new char[0];
-        var keyStore = KeyStore.getInstance(KeyStore.getDefaultType());
-        keyStore.load(null);
-        keyStore.setKeyEntry("key", certificate.key(), emptyPassword, new Certificate[] { certificate.cert() });
+        KeyStore keyStore = certificate.toKeyStore(emptyPassword);
         try (var out = Files.newOutputStream(keystorePath)) {
             keyStore.store(out, emptyPassword);
         }
-
         publisherCluster = newCluster("publisher", Settings.builder()
             .put("auth.host_based.enabled", true)
             .put("auth.host_based.config.0.user", "marvin")

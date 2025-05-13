@@ -34,25 +34,25 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.nio.charset.StandardCharsets;
+import java.security.KeyPair;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicReference;
+import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
@@ -80,25 +80,17 @@ import io.netty.buffer.Unpooled;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.embedded.EmbeddedChannel;
+import io.netty.handler.ssl.SslContext;
 import io.netty.handler.ssl.SslContextBuilder;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.ssl.util.InsecureTrustManagerFactory;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.pkitesting.CertificateBuilder;
 
 public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     private Sessions sqlOperations;
     private EmbeddedChannel channel;
     private SQLExecutor executor;
-
-    @BeforeClass
-    public static void forceEnglishLocale() {
-        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
-        // This fails for certain locales, e.g. 'ks'.
-        // Until this is fixed, we force the english locale.
-        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
-        Locale.setDefault(Locale.ENGLISH);
-    }
 
     @Before
     public void prepare() throws Exception {
@@ -452,24 +444,29 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_ssl_accepted() {
+        Supplier<SslContext> getSslContext = () -> {
+            try {
+                var cert = new CertificateBuilder()
+                    .subject("CN=localhost")
+                    .setIsCertificateAuthority(true)
+                    .buildSelfSigned();
+                KeyPair keyPair = cert.getKeyPair();
+                return SslContextBuilder
+                    .forServer(keyPair.getPrivate(), cert.getCertificate())
+                    .trustManager(InsecureTrustManagerFactory.INSTANCE)
+                    .startTls(false)
+                    .build();
+            } catch (Exception e) {
+                return null;
+            }
+        };
         PostgresWireProtocol ctx = new PostgresWireProtocol(
             sqlOperations,
             new SessionSettingRegistry(Set.of()),
-            sessionSettings -> AccessControl.DISABLED,
-            chPipeline -> {},
+            _ -> AccessControl.DISABLED,
+            _ -> {},
             new AlwaysOKAuthentication(() -> List.of()),
-            () -> {
-                try {
-                    var cert = new SelfSignedCertificate();
-                    return SslContextBuilder
-                        .forServer(cert.certificate(), cert.privateKey())
-                        .trustManager(InsecureTrustManagerFactory.INSTANCE)
-                        .startTls(false)
-                        .build();
-                } catch (Exception e) {
-                    return null;
-                }
-            }
+            getSslContext
         );
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);

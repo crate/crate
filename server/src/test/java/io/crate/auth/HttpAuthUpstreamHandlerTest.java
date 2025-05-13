@@ -35,14 +35,12 @@ import static org.mockito.Mockito.when;
 import java.nio.charset.StandardCharsets;
 import java.security.cert.Certificate;
 import java.util.List;
-import java.util.Locale;
 
 import javax.net.ssl.SSLSession;
 
 import org.elasticsearch.common.network.DnsResolver;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
-import org.junit.BeforeClass;
 import org.junit.Test;
 
 import io.crate.protocols.postgres.ConnectionProperties;
@@ -60,7 +58,7 @@ import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpVersion;
-import io.netty.handler.ssl.util.SelfSignedCertificate;
+import io.netty.pkitesting.CertificateBuilder;
 
 public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
@@ -82,15 +80,6 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         assertThat(resp.status()).isEqualTo(HttpResponseStatus.UNAUTHORIZED);
         assertThat(resp.content().toString(StandardCharsets.UTF_8)).isEqualTo(expectedBody);
         assertThat(resp.headers().get(HttpHeaderNames.WWW_AUTHENTICATE)).isEqualTo(WWW_AUTHENTICATE_REALM_MESSAGE);
-    }
-
-    @BeforeClass
-    public static void forceEnglishLocale() {
-        // BouncyCastle is parsing date objects with the system locale while creating self-signed SSL certs
-        // This fails for certain locales, e.g. 'ks'.
-        // Until this is fixed, we force the english locale.
-        // See also https://github.com/bcgit/bc-java/issues/405 (different topic, but same root cause)
-        Locale.setDefault(Locale.ENGLISH);
     }
 
     @Test
@@ -244,9 +233,12 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
 
     @Test
     public void testClientCertUserHasPreferenceOverTrustAuthDefault() throws Exception {
-        SelfSignedCertificate ssc = new SelfSignedCertificate();
+        var ssc = new CertificateBuilder()
+            .subject("CN=localhost")
+            .setIsCertificateAuthority(true)
+            .buildSelfSigned();
         SSLSession session = mock(SSLSession.class);
-        when(session.getPeerCertificates()).thenReturn(new Certificate[] { ssc.cert() });
+        when(session.getPeerCertificates()).thenReturn(new Certificate[] { ssc.getCertificate() });
 
         HttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
         String userName = HttpAuthUpstreamHandler.credentialsFromRequest(request, session, Settings.EMPTY).username();
