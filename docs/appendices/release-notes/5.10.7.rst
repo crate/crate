@@ -51,3 +51,7 @@ Fixes
   :ref:`conf-session-error_on_unknown_object_key` was not persisted into a view,
   and such not taken into account when executing the view. Previously created
   views need to be recreated to apply the setting successfully.
+
+- Fixed an issue that caused ``DELETE`` statements to not be retried on
+  temporal errors (for instance, a shard being unavailable) and instead
+  being retried on permanent errors. Now it's an other way around.
