@@ -164,6 +164,9 @@ JAVA_OPTS="$JAVA_OPTS -Dio.netty.recycler.maxCapacityPerThread=0"
 # Netty uses Unsafe, disable warning, continue to allow it (See also https://github.com/netty/netty/pull/14975)
 JAVA_OPTS="$JAVA_OPTS --sun-misc-unsafe-memory-access=allow"
 
+# Netty 4.2.1 runs into leaks with the adaptive allocator, likely due to https://github.com/netty/netty/commit/1e228de839e083482138df8298a9ceb6c464cf0c
+JAVA_OPTS="$JAVA_OPTS -Dio.netty.allocator.type=pooled"
+
 # Lucene uses native access and vector module
 JAVA_OPTS="$JAVA_OPTS --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector"
 
