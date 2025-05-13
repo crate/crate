@@ -577,7 +577,7 @@ public class ExpressionAnalyzer {
                 returnType = DataTypes.merge(valueType, returnType, returnType.columnPolicy());
             }
             if (node.isIntegerOnly() && !returnType.isConvertableTo(DataTypes.INTEGER, false)) {
-                throw new IllegalArgumentException("Cannot cast to a datatype that is not convertable to `integer`");
+                throw new IllegalArgumentException("Cannot cast to a datatype that is not convertible to `integer`");
             }
             return expression
                 .cast(
@@ -590,7 +590,7 @@ public class ExpressionAnalyzer {
         protected Symbol visitTryCast(TryCast node, ExpressionAnalysisContext context) {
             DataType<?> returnType = DataTypeAnalyzer.convert(node.getType());
             if (node.isIntegerOnly() && !returnType.isConvertableTo(DataTypes.INTEGER, false)) {
-                throw new IllegalArgumentException("Cannot cast to a datatype that is not convertable to `integer`");
+                throw new IllegalArgumentException("Cannot cast to a datatype that is not convertible to `integer`");
             }
             try {
                 return node.getExpression()
