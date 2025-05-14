@@ -63,6 +63,33 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_two_window_functions_with_same_window_definition_results_in_one_operator() {
+        LogicalPlan plan = plan("SELECT avg(x) OVER (PARTITION BY x), avg(x) OVER (PARTITION BY x) FROM t1");
+        var expectedPlan =
+            """
+            Eval[avg(x) OVER (PARTITION BY x), avg(x) OVER (PARTITION BY x)]
+              └ WindowAgg[x, avg(x) OVER (PARTITION BY x)]
+                └ Collect[doc.t1 | [x] | true]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
+    }
+
+    @Test
+    public void test_two_window_functions_with_same_window_definition_with_param_results_in_one_operator() {
+        LogicalPlan plan = plan("SELECT min(x) OVER (PARTITION BY x * $1::int), avg(x) OVER (PARTITION BY x * $1::int) FROM t1");
+        var expectedPlan =
+            """
+            Eval[min(x) OVER (PARTITION BY (x * $1)), avg(x) OVER (PARTITION BY (x * $1))]
+              └ WindowAgg[x, (x * $1), min(x) OVER (PARTITION BY (x * $1)), avg(x) OVER (PARTITION BY (x * $1))]
+                └ Collect[doc.t1 | [x, (x * $1)] | true]
+            """;
+        assertThat(plan).isEqualTo(expectedPlan);
+
+        plan = plan("SELECT min(x) OVER (w), avg(x) OVER (w) FROM t1 WINDOW w AS (PARTITION BY (x * ?::int))");
+        assertThat(plan).isEqualTo(expectedPlan);
+    }
+
+    @Test
     public void testTwoWindowFunctionsWithDifferentWindowDefinitionResultsInTwoOperators() {
         LogicalPlan plan = plan("SELECT avg(x) OVER (PARTITION BY x), avg(x) OVER (PARTITION BY y) FROM t1");
         var expectedPlan =
