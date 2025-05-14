@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -96,7 +95,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[avg(x) OVER ()]
-              └ WindowAgg[x, avg(x) OVER ()]
+              └ WindowAgg[x] | [avg(x) OVER ()]
                 └ Collect[doc.t1 | [x] | true]
             """
         );
@@ -636,7 +635,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).hasOperators(
             "Rename[i, avgx] AS vt",
             "  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]",
-            "    └ WindowAgg[i, x, avg(x) OVER (ORDER BY i ASC)]",
+            "    └ WindowAgg[i, x] | [avg(x) OVER (ORDER BY i ASC)]",
             "      └ Collect[doc.t1 | [i, x] | true]"
         );
     }

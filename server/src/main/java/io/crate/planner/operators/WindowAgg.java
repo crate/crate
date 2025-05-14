@@ -267,4 +267,18 @@ public class WindowAgg extends ForwardingLogicalPlan {
             "windowFunctions=[" + Lists.joinOn(", ", windowFunctions, WindowFunction::toString) + "]" +
             "}";
     }
+
+    @Override
+    public void print(PrintContext printContext) {
+        printContext
+            .text(getClass().getSimpleName())
+            .text("[")
+            .text(Lists.joinOn(", ", standalone, Symbol::toString))
+            .text("]")
+            .text(" | [")
+            .text(Lists.joinOn(", ", windowFunctions, Symbol::toString))
+            .text("]");
+        printStats(printContext);
+        printContext.nest(Lists.map(sources(), x -> x::print));
+    }
 }
