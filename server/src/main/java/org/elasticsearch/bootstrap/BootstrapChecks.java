@@ -47,6 +47,7 @@ import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.node.NodeValidationException;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.ffi.Natives;
 
 /**
  * We enforce bootstrap checks once a node has the transport protocol bound to a non-loopback interface or if the system property {@code
@@ -301,7 +302,7 @@ final class BootstrapChecks {
 
         // visible for testing
         boolean isMemoryLocked() {
-            return Natives.isMemoryLocked();
+            return false;
         }
 
     }
@@ -313,11 +314,12 @@ final class BootstrapChecks {
 
         @Override
         public BootstrapCheckResult check(Settings settings) {
-            if (getMaxNumberOfThreads() != -1 && getMaxNumberOfThreads() < MAX_NUMBER_OF_THREADS_THRESHOLD) {
+            long maxNumberOfThreads = Natives.getMaxNumberOfThreads();
+            if (maxNumberOfThreads != -1 && maxNumberOfThreads < MAX_NUMBER_OF_THREADS_THRESHOLD) {
                 final String message = String.format(
                         Locale.ROOT,
                         "max number of threads [%d] for user [%s] is too low, increase to at least [%d]",
-                        getMaxNumberOfThreads(),
+                        maxNumberOfThreads,
                         BootstrapInfo.getSystemProperties().get("user.name"),
                         MAX_NUMBER_OF_THREADS_THRESHOLD);
                 return BootstrapCheckResult.failure(message);
@@ -325,12 +327,6 @@ final class BootstrapChecks {
                 return BootstrapCheckResult.success();
             }
         }
-
-        // visible for testing
-        long getMaxNumberOfThreads() {
-            return JNANatives.MAX_NUMBER_OF_THREADS;
-        }
-
     }
 
     static class MaxSizeVirtualMemoryCheck implements BootstrapCheck {
@@ -351,12 +347,12 @@ final class BootstrapChecks {
 
         // visible for testing
         long getRlimInfinity() {
-            return JNACLibrary.RLIM_INFINITY;
+            return -1; // TODO JNACLibrary.RLIM_INFINITY;
         }
 
         // visible for testing
         long getMaxSizeVirtualMemory() {
-            return JNANatives.MAX_SIZE_VIRTUAL_MEMORY;
+            return -1; // TODO JNANatives.MAX_SIZE_VIRTUAL_MEMORY;
         }
 
     }
@@ -382,11 +378,11 @@ final class BootstrapChecks {
         }
 
         long getRlimInfinity() {
-            return JNACLibrary.RLIM_INFINITY;
+            return -1; // TODO JNACLibrary.RLIM_INFINITY;
         }
 
         long getMaxFileSize() {
-            return JNANatives.MAX_FILE_SIZE;
+            return -1; // TODO JNANatives.MAX_FILE_SIZE;
         }
 
     }

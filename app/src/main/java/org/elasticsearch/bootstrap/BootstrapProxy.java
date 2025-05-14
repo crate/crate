@@ -62,6 +62,8 @@ import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 
 import io.crate.bootstrap.BootstrapException;
 import io.crate.common.SuppressForbidden;
+import io.crate.ffi.Natives;
+import io.crate.ffi.Natives;
 import io.crate.plugin.SrvPlugin;
 
 /**
@@ -140,14 +142,6 @@ public class BootstrapProxy {
             });
         }
 
-        // force remainder of JNA to be loaded (if available).
-        try {
-            JNAKernel32Library.getInstance();
-        } catch (Exception ignored) {
-            // we've already logged this.
-        }
-
-        Natives.trySetMaxNumberOfThreads();
         Natives.trySetMaxSizeVirtualMemory();
         Natives.trySetMaxFileSize();
 
