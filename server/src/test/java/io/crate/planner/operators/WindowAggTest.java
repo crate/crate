@@ -68,7 +68,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Eval[avg(x) OVER (PARTITION BY x), avg(x) OVER (PARTITION BY x)]
-              └ WindowAgg[x, avg(x) OVER (PARTITION BY x)]
+              └ WindowAgg[x] | [avg(x) OVER (PARTITION BY x)]
                 └ Collect[doc.t1 | [x] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
@@ -80,7 +80,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Eval[min(x) OVER (PARTITION BY (x * $1)), avg(x) OVER (PARTITION BY (x * $1))]
-              └ WindowAgg[x, (x * $1), min(x) OVER (PARTITION BY (x * $1)), avg(x) OVER (PARTITION BY (x * $1))]
+              └ WindowAgg[x, (x * $1)] | [min(x) OVER (PARTITION BY (x * $1)), avg(x) OVER (PARTITION BY (x * $1))]
                 └ Collect[doc.t1 | [x, (x * $1)] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
@@ -95,8 +95,8 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Eval[avg(x) OVER (PARTITION BY x), avg(x) OVER (PARTITION BY y)]
-              └ WindowAgg[x, y, avg(x) OVER (PARTITION BY x), avg(x) OVER (PARTITION BY y)]
-                └ WindowAgg[x, y, avg(x) OVER (PARTITION BY x)]
+              └ WindowAgg[x, y, avg(x) OVER (PARTITION BY x)] | [avg(x) OVER (PARTITION BY y)]
+                └ WindowAgg[x, y] | [avg(x) OVER (PARTITION BY x)]
                   └ Collect[doc.t1 | [x, y] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
@@ -108,7 +108,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Eval[y, avg(x) FILTER (WHERE (x > 1)) OVER ()]
-              └ WindowAgg[x, (x > 1), y, avg(x) FILTER (WHERE (x > 1)) OVER ()]
+              └ WindowAgg[x, (x > 1), y] | [avg(x) FILTER (WHERE (x > 1)) OVER ()]
                 └ Collect[doc.t1 | [x, (x > 1), y] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
@@ -120,7 +120,7 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Eval[x, count(*) FILTER (WHERE (y > 1)) OVER ()]
-              └ WindowAgg[(y > 1), x, count(*) FILTER (WHERE (y > 1)) OVER ()]
+              └ WindowAgg[(y > 1), x] | [count(*) FILTER (WHERE (y > 1)) OVER ()]
                 └ Collect[doc.t1 | [(y > 1), x] | true]
             """;
         assertThat(plan).isEqualTo(expectedPlan);
