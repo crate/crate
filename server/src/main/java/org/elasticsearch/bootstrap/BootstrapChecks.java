@@ -47,6 +47,7 @@ import org.elasticsearch.monitor.process.ProcessProbe;
 import org.elasticsearch.node.NodeValidationException;
 
 import io.crate.common.SuppressForbidden;
+import io.crate.ffi.Natives;
 
 /**
  * We enforce bootstrap checks once a node has the transport protocol bound to a non-loopback interface or if the system property {@code
@@ -281,7 +282,6 @@ final class BootstrapChecks {
             }
         }
 
-        // visible for testing
         long getMaxFileDescriptorCount() {
             return ProcessProbe.getInstance().getMaxFileDescriptorCount();
         }
@@ -299,11 +299,9 @@ final class BootstrapChecks {
             }
         }
 
-        // visible for testing
         boolean isMemoryLocked() {
             return Natives.isMemoryLocked();
         }
-
     }
 
     static class MaxNumberOfThreadsCheck implements BootstrapCheck {
@@ -313,52 +311,38 @@ final class BootstrapChecks {
 
         @Override
         public BootstrapCheckResult check(Settings settings) {
-            if (getMaxNumberOfThreads() != -1 && getMaxNumberOfThreads() < MAX_NUMBER_OF_THREADS_THRESHOLD) {
+            long maxNumberOfThreads = Natives.getMaxNumberOfThreads();
+            if (maxNumberOfThreads != -1 && maxNumberOfThreads < MAX_NUMBER_OF_THREADS_THRESHOLD) {
                 final String message = String.format(
                         Locale.ROOT,
                         "max number of threads [%d] for user [%s] is too low, increase to at least [%d]",
-                        getMaxNumberOfThreads(),
-                        BootstrapInfo.getSystemProperties().get("user.name"),
+                        maxNumberOfThreads,
+                        System.getProperty("user.name"),
                         MAX_NUMBER_OF_THREADS_THRESHOLD);
                 return BootstrapCheckResult.failure(message);
             } else {
                 return BootstrapCheckResult.success();
             }
         }
-
-        // visible for testing
-        long getMaxNumberOfThreads() {
-            return JNANatives.MAX_NUMBER_OF_THREADS;
-        }
-
     }
 
     static class MaxSizeVirtualMemoryCheck implements BootstrapCheck {
 
         @Override
         public BootstrapCheckResult check(Settings settings) {
-            if (getMaxSizeVirtualMemory() != Long.MIN_VALUE && getMaxSizeVirtualMemory() != getRlimInfinity()) {
+            long maxSizeVirtualMemory = Natives.getMaxSizeVirtualMemory();
+            if (maxSizeVirtualMemory != Long.MIN_VALUE && maxSizeVirtualMemory != Natives.Rlimits.INFINITY) {
                 final String message = String.format(
-                        Locale.ROOT,
-                        "max size virtual memory [%d] for user [%s] is too low, increase to [unlimited]",
-                        getMaxSizeVirtualMemory(),
-                        BootstrapInfo.getSystemProperties().get("user.name"));
+                    Locale.ROOT,
+                    "max size virtual memory [%d] for user [%s] is too low, increase to [unlimited]",
+                    maxSizeVirtualMemory,
+                    System.getProperty("user.name")
+                );
                 return BootstrapCheckResult.failure(message);
             } else {
                 return BootstrapCheckResult.success();
             }
         }
-
-        // visible for testing
-        long getRlimInfinity() {
-            return JNACLibrary.RLIM_INFINITY;
-        }
-
-        // visible for testing
-        long getMaxSizeVirtualMemory() {
-            return JNANatives.MAX_SIZE_VIRTUAL_MEMORY;
-        }
-
     }
 
     /**
@@ -368,27 +352,19 @@ final class BootstrapChecks {
 
         @Override
         public BootstrapCheckResult check(Settings settings) {
-            final long maxFileSize = getMaxFileSize();
-            if (maxFileSize != Long.MIN_VALUE && maxFileSize != getRlimInfinity()) {
+            final long maxFileSize = Natives.getMaxFileSize();
+            if (maxFileSize != Long.MIN_VALUE && maxFileSize != Natives.Rlimits.INFINITY) {
                 final String message = String.format(
-                        Locale.ROOT,
-                        "max file size [%d] for user [%s] is too low, increase to [unlimited]",
-                        getMaxFileSize(),
-                        BootstrapInfo.getSystemProperties().get("user.name"));
+                    Locale.ROOT,
+                    "max file size [%d] for user [%s] is too low, increase to [unlimited]",
+                    maxFileSize,
+                    System.getProperty("user.name")
+                );
                 return BootstrapCheckResult.failure(message);
             } else {
                 return BootstrapCheckResult.success();
             }
         }
-
-        long getRlimInfinity() {
-            return JNACLibrary.RLIM_INFINITY;
-        }
-
-        long getMaxFileSize() {
-            return JNANatives.MAX_FILE_SIZE;
-        }
-
     }
 
     static class MaxMapCountCheck implements BootstrapCheck {

@@ -62,6 +62,7 @@ import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 
 import io.crate.bootstrap.BootstrapException;
 import io.crate.common.SuppressForbidden;
+import io.crate.ffi.Natives;
 import io.crate.plugin.SrvPlugin;
 
 /**
@@ -107,49 +108,16 @@ public class BootstrapProxy {
     /**
      * initialize native resources
      */
-    static void initializeNatives(boolean mlockAll, boolean ctrlHandler) {
-        final Logger logger = LogManager.getLogger(BootstrapProxy.class);
-
+    static void initializeNatives(boolean mlockAll) {
         // check if the user is running as root, and bail
         if (Natives.definitelyRunningAsRoot()) {
             throw new RuntimeException("can not run crate as root");
         }
 
         // mlockall if requested
-        if (mlockAll) {
-            if (Constants.WINDOWS) {
-                Natives.tryVirtualLock();
-            } else {
-                Natives.tryMlockall();
-            }
+        if (mlockAll && !Constants.WINDOWS) {
+            Natives.tryMlockall();
         }
-
-        // listener for windows close event
-        if (ctrlHandler) {
-            Natives.addConsoleCtrlHandler(code -> {
-                if (ConsoleCtrlHandler.CTRL_CLOSE_EVENT == code) {
-                    logger.info("running graceful exit on windows");
-                    try {
-                        BootstrapProxy.stop();
-                    } catch (IOException e) {
-                        throw new ElasticsearchException("failed to stop node", e);
-                    }
-                    return true;
-                }
-                return false;
-            });
-        }
-
-        // force remainder of JNA to be loaded (if available).
-        try {
-            JNAKernel32Library.getInstance();
-        } catch (Exception ignored) {
-            // we've already logged this.
-        }
-
-        Natives.trySetMaxNumberOfThreads();
-        Natives.trySetMaxSizeVirtualMemory();
-        Natives.trySetMaxFileSize();
 
         // init lucene random seed. it will use /dev/urandom where available:
         StringHelper.randomId();
@@ -164,9 +132,7 @@ public class BootstrapProxy {
 
     private void setup(boolean addShutdownHook, Environment environment) throws BootstrapException {
         Settings settings = environment.settings();
-        initializeNatives(
-            BootstrapSettings.MEMORY_LOCK_SETTING.get(settings),
-            BootstrapSettings.CTRLHANDLER_SETTING.get(settings));
+        initializeNatives(BootstrapSettings.MEMORY_LOCK_SETTING.get(settings));
 
         // initialize probes before the security manager is installed
         initializeProbes();
@@ -235,10 +201,6 @@ public class BootstrapProxy {
      * This method is invoked by {@link io.crate.bootstrap.CrateDB#main(String[])} to start CrateDB.
      */
     public static void init(Environment environment) throws BootstrapException, NodeValidationException, UserException {
-        // force the class initializer for BootstrapInfo to run before
-        // the security manager is installed
-        BootstrapInfo.init();
-
         INSTANCE = new BootstrapProxy();
         LogConfigurator.setNodeName(Node.NODE_NAME_SETTING.get(environment.settings()));
         try {
