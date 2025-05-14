@@ -47,6 +47,14 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause :ref:`window functions <window-functions>` to
+  use inefficient execution plans, resulting in poor performance, when the
+  :ref:`window definition <window-definition>` is using query parameters. e.g::
+
+    SELECT min(x) OVER (w), max(x) OVER(w), avg(x) OVER (w)
+    FROM tbl
+    WINDOW w AS (PARTITION BY (x / ?))
+
 - Fixed a bug where the session setting
   :ref:`conf-session-error_on_unknown_object_key` was not persisted into a view,
   and such not taken into account when executing the view. Previously created
