@@ -21,6 +21,13 @@
 
 package io.crate.expression.symbol;
 
+import java.io.IOException;
+import java.util.Locale;
+import java.util.Objects;
+
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+
 import io.crate.data.Row;
 import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.format.Style;
@@ -28,11 +35,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.IntegerType;
 import io.crate.types.UndefinedType;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
-import java.util.Locale;
 
 public class ParameterSymbol implements Symbol {
 
@@ -125,5 +127,20 @@ public class ParameterSymbol implements Symbol {
                 params.numColumns()
             ));
         }
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        ParameterSymbol that = (ParameterSymbol) o;
+        return Objects.equals(index, that.index) &&
+            Objects.equals(boundType, that.boundType) &&
+            Objects.equals(internalType, that.internalType);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(index, boundType, internalType);
     }
 }
