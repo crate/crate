@@ -414,7 +414,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         var expectedPlan =
             """
             Rename[x, "sum(x) OVER (PARTITION BY x)"] AS sums
-              └ WindowAgg[x, sum(x) OVER (PARTITION BY x)]
+              └ WindowAgg[x] | [sum(x) OVER (PARTITION BY x)]
                 └ Collect[doc.t1 | [x] | (x = 10)]
             """;
         assertThat(plan).isEqualTo(expectedPlan);

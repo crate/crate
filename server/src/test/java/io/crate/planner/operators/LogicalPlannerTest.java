@@ -95,7 +95,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).isEqualTo(
             """
             Eval[avg(x) OVER ()]
-              └ WindowAgg[x, avg(x) OVER ()]
+              └ WindowAgg[x] | [avg(x) OVER ()]
                 └ Collect[doc.t1 | [x] | true]
             """
         );
@@ -635,7 +635,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(plan).hasOperators(
             "Rename[i, avgx] AS vt",
             "  └ Eval[i, avg(x) OVER (ORDER BY i ASC) AS avgx]",
-            "    └ WindowAgg[i, x, avg(x) OVER (ORDER BY i ASC)]",
+            "    └ WindowAgg[i, x] | [avg(x) OVER (ORDER BY i ASC)]",
             "      └ Collect[doc.t1 | [i, x] | true]"
         );
     }

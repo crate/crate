@@ -123,7 +123,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         );
         var expectedPlan =
             """
-            WindowAgg[id, row_number() OVER (PARTITION BY id)]
+            WindowAgg[id] | [row_number() OVER (PARTITION BY id)]
               └ Filter[(id = 10)]
                 └ Collect[doc.t1 | [id] | true]
             """;
@@ -155,7 +155,7 @@ public class MoveFilterBeneathWindowAggTest extends CrateDummyClusterServiceUnit
         var expectedPlan =
             """
             Filter[((row_number() OVER (PARTITION BY id) = 2) AND (x = 1))]
-              └ WindowAgg[id, row_number() OVER (PARTITION BY id)]
+              └ WindowAgg[id] | [row_number() OVER (PARTITION BY id)]
                 └ Filter[(id = 10)]
                   └ Collect[doc.t1 | [id] | true]
             """;
