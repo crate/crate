@@ -213,10 +213,6 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
                                 mdBuilder.put(indexMetadata, false);
                             }
                         }
-                        if (!table.partitionedBy().isEmpty()) {
-                            String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-                            mdBuilder.put(currentState.metadata().templates().get(templateName));
-                        }
                     }
                 }
             }

@@ -166,7 +166,7 @@ public class ShardingUpsertExecutor
         createPartitionsRequestOngoing = true;
         return elasticsearchClient.execute(
             TransportCreatePartitions.ACTION,
-            CreatePartitionsRequest.of(requests.itemsByMissingPartition.keySet()))
+            CreatePartitionsRequest.of(requests.itemsByMissingPartition.keySet().stream().toList()))
             .thenCompose(resp -> {
                 grouper.reResolveShardLocations(requests);
                 createPartitionsRequestOngoing = false;

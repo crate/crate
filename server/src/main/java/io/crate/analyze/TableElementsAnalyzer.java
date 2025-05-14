@@ -398,7 +398,9 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 throw new ColumnUnknownException(partitionColumnIdent, tableName);
             }
             ensureValidPartitionColumn(clusteredBy, partitionColumnIdent, column);
-            column.indexType = IndexType.NONE;
+            // Partition column values are never stored, so index type is ignored. Set it to PLAIN, so the
+            // string representation won't add it. E.g. SHOW CREATE TABLE
+            column.indexType = IndexType.PLAIN;
             column.rowGranularity = RowGranularity.PARTITION;
         }));
 
@@ -587,7 +589,41 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 for (ColumnDefinition<Expression> nestedColumn : objectColumnType.nestedColumns()) {
                     nestedColumn.accept(this, columnName);
                 }
+                // The real types of the nested columns are only available after the nested columns have been processed.
+                // We need to set the type of the parent column to ObjectType with the correct inner types.
+                // E.g. when declaring a generated column without a concrete data type
+                //          -> type is detected once the generated expression is analyzed.
+                int arrayNesting = 0;
+                DataType<?> builderType = builder.type;
+                while (builderType instanceof ArrayType<?>) {
+                    arrayNesting++;
+                    builderType = ((ArrayType<?>) builderType).innerType();
+                }
+                assert builderType instanceof ObjectType : "Expecting an ObjectType here";
+                ObjectType objectType = (ObjectType) builderType;
+                ObjectType.Builder objectTypeBuilder = ObjectType.of(objectType.columnPolicy());
+                for (var entry : objectType.innerTypes().entrySet()) {
+                    String childName = entry.getKey();
+                    ColumnIdent childColumn = ColumnIdent.getChildSafe(columnName, childName);
+                    RefBuilder childBuilder = columns.get(childColumn);
+                    DataType<?> childType = entry.getValue();
+                    if (childBuilder != null) {
+                        childType = childBuilder.type;
+                    }
+                    objectTypeBuilder.setInnerType(childName, childType);
+                }
+                DataType<?> newType = objectTypeBuilder.build();
+                // only update if changed
+                if (!objectType.equals(newType)) {
+                    for (int i = 0; i < arrayNesting; i++) {
+                        newType = new ArrayType<>(newType);
+                    }
+                    builder.type = newType;
+                }
             }
+
+            // Ensure detected type is storable
+            StorageSupport<?> storageSupport = builder.type.storageSupportSafe();
 
             return null;
         }

@@ -25,7 +25,6 @@ import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLIC
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -82,6 +81,7 @@ import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.Subscription.RelationState;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.sql.tree.CheckConstraint;
 
 public final class MetadataTracker implements Closeable {
 
@@ -382,17 +382,27 @@ public final class MetadataTracker implements Closeable {
                     updatedMetadataBuilder.put(indexMetadata, true);
 
                     // Update the table relation with the new index metadata
-                    if (subscriberClusterState.metadata().getRelation(followedTable) != null) {
-                        Metadata tempMetadata = Metadata.builder(subscriberClusterState.metadata())
-                            .put(indexMetadata, true)
-                            .dropRelation(followedTable)
-                            .build();
-                        DocTableInfo newTable = docTableInfoFactory.create(followedTable, tempMetadata);
-                        try {
-                            newTable.writeTo(subscriberClusterState.metadata(), updatedMetadataBuilder);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                    org.elasticsearch.cluster.metadata.RelationMetadata.Table table = subscriberClusterState.metadata().getRelation(followedTable);
+                    if (table != null) {
+                        DocTableInfo newTableInfo = docTableInfoFactory.create(indexMetadata);
+                        if (newTableInfo == null) {
+                            throw new IllegalStateException("Cannot create a DocTableInfo out of the indexMetadata for  " + indexMetadata.getIndex().getName());
                         }
+                        updatedMetadataBuilder
+                            .dropRelation(followedTable)
+                            .setTable(
+                                newTableInfo.ident(),
+                                newTableInfo.allReferences(),
+                                newTableInfo.parameters(),
+                                newTableInfo.clusteredBy(),
+                                newTableInfo.columnPolicy(),
+                                newTableInfo.pkConstraintName(),
+                                newTableInfo.checkConstraints().stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
+                                newTableInfo.primaryKey(),
+                                newTableInfo.partitionedBy(),
+                                newTableInfo.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
+                                table.indexUUIDs()
+                            );
                     }
 
                     updateClusterState = true;
@@ -497,6 +507,10 @@ public final class MetadataTracker implements Closeable {
         for (var relationName : subscription.relations().keySet()) {
             var publisherRelationMetadata = relationsInPublications.get(relationName);
             boolean relationDisappeared = publisherRelationMetadata == null;
+            var subscriberRelationMetadata = subscriberMetadata.getRelation(relationName);
+            if (subscriberRelationMetadata == null) {
+                continue;
+            }
             if (relationDisappeared) {
                 changedRelations.add(relationName);
                 continue;

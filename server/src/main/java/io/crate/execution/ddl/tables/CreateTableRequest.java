@@ -90,7 +90,6 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         this.partitionedBy = partitionedBy;
     }
 
-    @NotNull
     public RelationName getTableName() {
         return relationName;
     }
