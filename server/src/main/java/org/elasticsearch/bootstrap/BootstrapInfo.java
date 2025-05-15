@@ -19,10 +19,11 @@
 
 package org.elasticsearch.bootstrap;
 
-import io.crate.common.SuppressForbidden;
-
 import java.util.Dictionary;
 import java.util.Enumeration;
+
+import io.crate.common.SuppressForbidden;
+import io.crate.ffi.Natives;
 
 /**
  * Exposes system startup information
