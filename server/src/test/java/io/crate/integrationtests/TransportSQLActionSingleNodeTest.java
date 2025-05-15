@@ -53,8 +53,9 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         ensureYellow();
 
         execute("select count(*) from sys.shards where table_name = 'locations' and state = 'UNASSIGNED'");
-        assertThat(response).hasColumns("count(*)");
-        assertThat(response).hasRows(new Object[] { expectedUnassignedShards });
+        assertThat(response)
+            .hasColumns("count")
+            .hasRows(new Object[] { expectedUnassignedShards });
     }
 
     @Test

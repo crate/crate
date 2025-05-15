@@ -440,11 +440,11 @@ does always return ``NULL`` when comparing ``NULL``.
 ::
 
     cr> select count(*) from locations where name is null;
-    +----------+
-    | count(*) |
-    +----------+
-    |        1 |
-    +----------+
+    +-------+
+    | count |
+    +-------+
+    |     1 |
+    +-------+
     SELECT 1 row in set (... sec)
 
 
@@ -493,11 +493,11 @@ does always return ``NULL`` when comparing ``NULL``.
 ::
 
     cr> select count(*) from locations where name is not null;
-    +----------+
-    | count(*) |
-    +----------+
-    |       12 |
-    +----------+
+    +-------+
+    | count |
+    +-------+
+    |    12 |
+    +-------+
     SELECT 1 row in set (... sec)
 
 .. NOTE::
@@ -659,11 +659,11 @@ This query selects any locations with at least one (i.e., :ref:`ANY
 dimensions required::
 
     cr> SELECT 1 = ANY([[1, 2], [3, 4]]);
-    +------+
-    | true |
-    +------+
-    | TRUE |
-    +------+
+     +---------------------------+
+    | 1 = ANY([[1, 2], [3, 4]]) |
+    +---------------------------+
+    | TRUE                      |
+    +---------------------------+
     SELECT 1 row in set (... sec)
 
 
@@ -840,7 +840,7 @@ with ``landmarks[from:to]``, where ``from`` and ``to`` are the integer array ind
     cr> select name, landmarks[1:2] from locations
     ... where name = 'Frogstar';
     +----------+-------------------------------------------+
-    | name     | array_slice(landmarks, 1, 2)              |
+    | name     | "landmarks"[1:2]                          |
     +----------+-------------------------------------------+
     | Frogstar | ["Total Perspective Vortex", "Milliways"] |
     +----------+-------------------------------------------+
@@ -851,7 +851,7 @@ When the ``from`` index is omitted, then the slice starts from the first element
     cr> select name, landmarks[:2] from locations
     ... where name = 'Frogstar';
     +----------+-------------------------------------------+
-    | name     | array_slice(landmarks, NULL, 2)           |
+    | name     | "landmarks"[:2]                           |
     +----------+-------------------------------------------+
     | Frogstar | ["Total Perspective Vortex", "Milliways"] |
     +----------+-------------------------------------------+
@@ -863,7 +863,7 @@ an upper-bound::
     cr> select name, landmarks[1:] from locations
     ... where name = 'Frogstar';
     +----------+-------------------------------------------+
-    | name     | array_slice(landmarks, 1, NULL)           |
+    | name     | "landmarks"[1:]                           |
     +----------+-------------------------------------------+
     | Frogstar | ["Total Perspective Vortex", "Milliways"] |
     +----------+-------------------------------------------+
@@ -1126,11 +1126,11 @@ CrateDB provides built-in :ref:`aggregation functions <aggregation>` that allow
 you to calculate a single summary value for one or more columns::
 
     cr> select count(*) from locations;
-    +----------+
-    | count(*) |
-    +----------+
-    |       16 |
-    +----------+
+    +-------+
+    | count |
+    +-------+
+    |    16 |
+    +-------+
     SELECT 1 row in set (... sec)
 
 
@@ -1178,13 +1178,13 @@ This is useful if used in conjunction with :ref:`aggregation functions
 
     cr> select count(*), kind from locations
     ... group by kind order by count(*) desc, kind asc;
-    +----------+-------------+
-    | count(*) | kind        |
-    +----------+-------------+
-    |        7 | Star System |
-    |        5 | Planet      |
-    |        4 | Galaxy      |
-    +----------+-------------+
+    +-------+-------------+
+    | count | kind        |
+    +-------+-------------+
+    |     7 | Star System |
+    |     5 | Planet      |
+    |     4 | Galaxy      |
+    +-------+-------------+
     SELECT 3 rows in set (... sec)
 
 .. NOTE::
@@ -1212,11 +1212,11 @@ A simple ``HAVING`` clause example using an equality :ref:`operator
 
     cr> select count(*), kind from locations
     ... group by kind having count(*) = 4 order by kind;
-    +----------+--------+
-    | count(*) | kind   |
-    +----------+--------+
-    |        4 | Galaxy |
-    +----------+--------+
+    +-------+--------+
+    | count | kind   |
+    +-------+--------+
+    |     4 | Galaxy |
+    +-------+--------+
     SELECT 1 row in set (... sec)
 
 The condition of the ``HAVING`` clause can refer to the resulting columns of
@@ -1227,22 +1227,22 @@ in the ``HAVING`` clause, like in the result columns::
 
     cr> select count(*), kind from locations
     ... group by kind having min(name) = 'Aldebaran';
-    +----------+-------------+
-    | count(*) | kind        |
-    +----------+-------------+
-    |        7 | Star System |
-    +----------+-------------+
+    +-------+-------------+
+    | count | kind        |
+    +-------+-------------+
+    |     7 | Star System |
+    +-------+-------------+
     SELECT 1 row in set (... sec)
 
 ::
 
     cr> select count(*), kind from locations
     ... group by kind having count(*) = 4 and kind like 'Gal%';
-    +----------+--------+
-    | count(*) | kind   |
-    +----------+--------+
-    |        4 | Galaxy |
-    +----------+--------+
+    +-------+--------+
+    | count | kind   |
+    +-------+--------+
+    |     4 | Galaxy |
+    +-------+--------+
     SELECT 1 row in set (... sec)
 
 .. NOTE::

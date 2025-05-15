@@ -12,11 +12,11 @@ columns.
 For example::
 
    cr> SELECT count(*) FROM locations;
-   +----------+
-   | count(*) |
-   +----------+
-   |       13 |
-   +----------+
+   +-------+
+   | count |
+   +-------+
+   |    13 |
+   +-------+
    SELECT 1 row in set (... sec)
 
 Here, the :ref:`count(*) <aggregation-count-star>` function computes the result
@@ -29,13 +29,13 @@ returns a single summary value for each grouped collection of column values.
 For example::
 
    cr> SELECT kind, count(*) FROM locations GROUP BY kind;
-   +-------------+----------+
-   | kind        | count(*) |
-   +-------------+----------+
-   | Galaxy      |        4 |
-   | Star System |        4 |
-   | Planet      |        5 |
-   +-------------+----------+
+   +-------------+-------+
+   | kind        | count |
+   +-------------+-------+
+   | Galaxy      |     4 |
+   | Star System |     4 |
+   | Planet      |     5 |
+   +-------------+-------+
    SELECT 3 rows in set (... sec)
 
 
@@ -102,11 +102,11 @@ column contains ``NULL`` values.
 Example::
 
     cr> select arbitrary(position) from locations;
-    +---------------------+
-    | arbitrary(position) |
-    +---------------------+
-    | ...                 |
-    +---------------------+
+    +-----------+
+    | arbitrary |
+    +-----------+
+    |       ... |
+    +-----------+
     SELECT 1 row in set (... sec)
 
 ::
@@ -114,13 +114,13 @@ Example::
     cr> select arbitrary(name), kind from locations
     ... where name != ''
     ... group by kind order by kind desc;
-    +-...-------------+-------------+
-    | arbitrary(name) | kind        |
-    +-...-------------+-------------+
-    | ...             | Star System |
-    | ...             | Planet      |
-    | ...             | Galaxy      |
-    +-...-------------+-------------+
+    +-...-------+-------------+
+    | arbitrary | kind        |
+    +-...-------+-------------+
+    | ...       | Star System |
+    | ...       | Planet      |
+    | ...       | Galaxy      |
+    +-...-------+-------------+
     SELECT 3 rows in set (... sec)
 
 An example use case is to group a table with many rows per user by ``user_id``
@@ -143,11 +143,11 @@ do.
 Example::
 
     cr> select any_value(x) from unnest([1, 1]) t (x);
-    +--------------+
-    | any_value(x) |
-    +--------------+
-    | 1            |
-    +--------------+
+    +-----------+
+    | any_value |
+    +-----------+
+    |         1 |
+    +-----------+
     SELECT 1 row in set (... sec)
 
 
@@ -163,7 +163,7 @@ array.
 
     cr> SELECT array_agg(x) FROM (VALUES (42), (832), (null), (17)) as t (x);
     +---------------------+
-    | array_agg(x)        |
+    | array_agg           |
     +---------------------+
     | [42, 832, null, 17] |
     +---------------------+
@@ -190,13 +190,13 @@ Example::
 
     cr> select avg(position), kind from locations
     ... group by kind order by kind;
-    +---------------+-------------+
-    | avg(position) | kind        |
-    +---------------+-------------+
-    | 3.25          | Galaxy      |
-    | 3.0           | Planet      |
-    | 2.5           | Star System |
-    +---------------+-------------+
+    +------+-------------+
+    |  avg | kind        |
+    +------+-------------+
+    | 3.25 | Galaxy      |
+    | 3.0  | Planet      |
+    | 2.5  | Star System |
+    +------+-------------+
     SELECT 3 rows in set (... sec)
 
 The ``avg`` aggregation on the ``bigint`` column might result in a precision
@@ -205,7 +205,7 @@ error if sum of elements exceeds 2^53::
     cr> select avg(t.val) from
     ... (select unnest([9223372036854775807, 9223372036854775807]) as val) t;
     +-----------------------+
-    |              avg(val) |
+    |                   avg |
     +-----------------------+
     | 9.223372036854776e+18 |
     +-----------------------+
@@ -216,11 +216,11 @@ column to the ``numeric`` data type::
 
     cr> select avg(t.val :: numeric) from
     ... (select unnest([9223372036854775807, 9223372036854775807]) as val) t;
-    +---------------------------+
-    | avg(cast(val AS NUMERIC)) |
-    +---------------------------+
-    |       9223372036854775807 |
-    +---------------------------+
+    +---------------------+
+    |                 avg |
+    +---------------------+
+    | 9223372036854775807 |
+    +---------------------+
     SELECT 1 row in set (... sec)
 
 .. _aggregation-avg-distinct:
@@ -238,13 +238,13 @@ number of distinct values in this column that are not ``NULL``::
     ...   date
     ... from locations group by date
     ... order by 1 desc, count(*) desc;
-    +---------+----------+---------------+
-    | avg_pos | count(*) |          date |
-    +---------+----------+---------------+
-    |     4.0 |        1 | 1367366400000 |
-    |     3.6 |        8 | 1373932800000 |
-    |     2.0 |        4 |  308534400000 |
-    +---------+----------+---------------+
+    +---------+-------+---------------+
+    | avg_pos | count |          date |
+    +---------+-------+---------------+
+    |     4.0 |     1 | 1367366400000 |
+    |     3.6 |     8 | 1373932800000 |
+    |     2.0 |     4 |  308534400000 |
+    +---------+-------+---------------+
     SELECT 3 rows in set (... sec)
 
 ::
@@ -271,13 +271,13 @@ Example::
 
     cr> select count(name), count(*), date from locations group by date
     ... order by count(name) desc, count(*) desc;
-    +-------------+----------+---------------+
-    | count(name) | count(*) | date          |
-    +-------------+----------+---------------+
-    | 7           | 8        | 1373932800000 |
-    | 4           | 4        | 308534400000  |
-    | 1           | 1        | 1367366400000 |
-    +-------------+----------+---------------+
+    +-------+-------+---------------+
+    | count | count |          date |
+    +-------+-------+---------------+
+    |     7 |     8 | 1373932800000 |
+    |     4 |     4 |  308534400000 |
+    |     1 |     1 | 1367366400000 |
+    +-------+-------+---------------+
     SELECT 3 rows in set (... sec)
 
 
@@ -296,13 +296,13 @@ number of distinct values in this column that are not ``NULL``::
     ...   date
     ... from locations group by date
     ... order by num_kind, count(*) desc;
-    +----------+----------+---------------+
-    | num_kind | count(*) |          date |
-    +----------+----------+---------------+
-    |        1 |        1 | 1367366400000 |
-    |        3 |        8 | 1373932800000 |
-    |        3 |        4 |  308534400000 |
-    +----------+----------+---------------+
+    +----------+-------+---------------+
+    | num_kind | count |          date |
+    +----------+-------+---------------+
+    |        1 |     1 | 1367366400000 |
+    |        3 |     8 | 1373932800000 |
+    |        3 |     4 |  308534400000 |
+    +----------+-------+---------------+
     SELECT 3 rows in set (... sec)
 
 ::
@@ -336,23 +336,23 @@ The return value is always of type ``bigint``.
 ::
 
     cr> select count(*) from locations;
-    +----------+
-    | count(*) |
-    +----------+
-    | 13       |
-    +----------+
+    +-------+
+    | count |
+    +-------+
+    |    13 |
+    +-------+
     SELECT 1 row in set (... sec)
 
 ``count(*)`` can also be used on group by queries::
 
     cr> select count(*), kind from locations group by kind order by kind asc;
-    +----------+-------------+
-    | count(*) | kind        |
-    +----------+-------------+
-    | 4        | Galaxy      |
-    | 5        | Planet      |
-    | 4        | Star System |
-    +----------+-------------+
+    +-------+-------------+
+    | count | kind        |
+    +-------+-------------+
+    | 4     | Galaxy      |
+    | 5     | Planet      |
+    | 4     | Star System |
+    +-------+-------------+
     SELECT 3 rows in set (... sec)
 
 
@@ -379,13 +379,13 @@ Example::
 
     cr> select geometric_mean(position), kind from locations
     ... group by kind order by kind;
-    +--------------------------+-------------+
-    | geometric_mean(position) | kind        |
-    +--------------------------+-------------+
-    |       2.6321480259049848 | Galaxy      |
-    |       2.6051710846973517 | Planet      |
-    |       2.213363839400643  | Star System |
-    +--------------------------+-------------+
+    +--------------------+-------------+
+    |     geometric_mean | kind        |
+    +--------------------+-------------+
+    | 2.6321480259049848 | Galaxy      |
+    | 2.6051710846973517 | Planet      |
+    | 2.213363839400643  | Star System |
+    +--------------------+-------------+
     SELECT 3 rows in set (... sec)
 
 
@@ -417,21 +417,21 @@ left out is ``14``.
 Examples::
 
     cr> select hyperloglog_distinct(position) from locations;
-    +--------------------------------+
-    | hyperloglog_distinct(position) |
-    +--------------------------------+
-    | 6                              |
-    +--------------------------------+
+    +----------------------+
+    | hyperloglog_distinct |
+    +----------------------+
+    | 6                    |
+    +----------------------+
     SELECT 1 row in set (... sec)
 
 ::
 
     cr> select hyperloglog_distinct(position, 4) from locations;
-    +-----------------------------------+
-    | hyperloglog_distinct(position, 4) |
-    +-----------------------------------+
-    | 6                                 |
-    +-----------------------------------+
+    +----------------------+
+    | hyperloglog_distinct |
+    +----------------------+
+    | 6                    |
+    +----------------------+
     SELECT 1 row in set (... sec)
 
 
@@ -458,20 +458,20 @@ Example::
     ... from locations
     ... where name not like 'North %'
     ... group by kind order by min(position) asc, kind asc;
-    +---------------+-------------+
-    | min(position) | kind        |
-    +---------------+-------------+
-    | 1             | Planet      |
-    | 1             | Star System |
-    | 2             | Galaxy      |
-    +---------------+-------------+
+    +-----+-------------+
+    | min | kind        |
+    +-----+-------------+
+    | 1   | Planet      |
+    | 1   | Star System |
+    | 2   | Galaxy      |
+    +-----+-------------+
     SELECT 3 rows in set (... sec)
 
 ::
 
     cr> select min(date) from locations;
     +--------------+
-    | min(date)    |
+    | min          |
     +--------------+
     | 308534400000 |
     +--------------+
@@ -486,7 +486,7 @@ return the lexicographically smallest.
     cr> select min(name), kind from locations
     ... group by kind order by kind asc;
     +------------------------------------+-------------+
-    | min(name)                          | kind        |
+    | min                                | kind        |
     +------------------------------------+-------------+
     | Galactic Sector QQ7 Active J Gamma | Galaxy      |
     |                                    | Planet      |
@@ -507,23 +507,23 @@ Some Examples::
 
     cr> select max(position), kind from locations
     ... group by kind order by kind desc;
-    +---------------+-------------+
-    | max(position) | kind        |
-    +---------------+-------------+
-    | 4             | Star System |
-    | 5             | Planet      |
-    | 6             | Galaxy      |
-    +---------------+-------------+
+    +-----+-------------+
+    | max | kind        |
+    +-----+-------------+
+    |   4 | Star System |
+    |   5 | Planet      |
+    |   6 | Galaxy      |
+    +-----+-------------+
     SELECT 3 rows in set (... sec)
 
 ::
 
     cr> select max(position) from locations;
-    +---------------+
-    | max(position) |
-    +---------------+
-    | 6             |
-    +---------------+
+    +-----+
+    | max |
+    +-----+
+    |   6 |
+    +-----+
     SELECT 1 row in set (... sec)
 
 ::
@@ -531,7 +531,7 @@ Some Examples::
     cr> select max(name), kind from locations
     ... group by kind order by max(name) desc;
     +-------------------+-------------+
-    | max(name)         | kind        |
+    | max               | kind        |
     +-------------------+-------------+
     | Outer Eastern Rim | Galaxy      |
     | Bartledan         | Planet      |
@@ -557,11 +557,11 @@ any of the ``returnField`` values of the ties.
 An Example::
 
     cr> SELECT max_by(mountain, height) FROM sys.summits;
-    +--------------------------+
-    | max_by(mountain, height) |
-    +--------------------------+
-    | Mont Blanc               |
-    +--------------------------+
+    +------------+
+    | max_by     |
+    +------------+
+    | Mont Blanc |
+    +------------+
     SELECT 1 row in set (... sec)
 
 
@@ -582,11 +582,11 @@ any of the ``returnField`` values of the ties.
 An Example::
 
     cr> SELECT min_by(mountain, height) FROM sys.summits;
-    +--------------------------+
-    | min_by(mountain, height) |
-    +--------------------------+
-    | Puy de Rent              |
-    +--------------------------+
+    +-------------+
+    | min_by      |
+    +-------------+
+    | Puy de Rent |
+    +-------------+
     SELECT 1 row in set (... sec)
 
 
@@ -616,13 +616,13 @@ Example::
 
     cr> select stddev_pop(position), kind from locations
     ... group by kind order by kind;
-    +----------------------+-------------+
-    | stddev_pop(position) | kind        |
-    +----------------------+-------------+
-    |   1.920286436967152  | Galaxy      |
-    |   1.4142135623730951 | Planet      |
-    |   1.118033988749895  | Star System |
-    +----------------------+-------------+
+    +--------------------+-------------+
+    |         stddev_pop | kind        |
+    +--------------------+-------------+
+    | 1.920286436967152  | Galaxy      |
+    | 1.4142135623730951 | Planet      |
+    | 1.118033988749895  | Star System |
+    +--------------------+-------------+
     SELECT 3 rows in set (... sec)
 
 .. CAUTION::
@@ -645,11 +645,11 @@ If all input values are null, null is returned as a result.
 ::
 
    cr> select string_agg(col1, ', ') from (values('a'), ('b'), ('c')) as t;
-   +------------------------+
-   | string_agg(col1, ', ') |
-   +------------------------+
-   | a, b, c                |
-   +------------------------+
+   +------------+
+   | string_agg |
+   +------------+
+   | a, b, c    |
+   +------------+
    SELECT 1 row in set (... sec)
 
 .. SEEALSO::
@@ -681,13 +681,13 @@ fraction::
 
     cr> select percentile(position, 0.95), kind from locations
     ... group by kind order by kind;
-    +----------------------------+-------------+
-    | percentile(position, 0.95) | kind        |
-    +----------------------------+-------------+
-    |                        6.0 | Galaxy      |
-    |                        5.0 | Planet      |
-    |                        4.0 | Star System |
-    +----------------------------+-------------+
+    +------------+-------------+
+    | percentile | kind        |
+    +------------+-------------+
+    |        6.0 | Galaxy      |
+    |        5.0 | Planet      |
+    |        4.0 | Star System |
+    +------------+-------------+
     SELECT 3 rows in set (... sec)
 
 When supplied an array of fractions, the function will return an array of
@@ -738,13 +738,13 @@ exceeded an ``ArithmeticException`` will be raised.
 
     cr> select sum(position), kind from locations
     ... group by kind order by sum(position) asc;
-    +---------------+-------------+
-    | sum(position) | kind        |
-    +---------------+-------------+
-    | 10            | Star System |
-    | 13            | Galaxy      |
-    | 15            | Planet      |
-    +---------------+-------------+
+    +-----+-------------+
+    | sum | kind        |
+    +-----+-------------+
+    |  10 | Star System |
+    |  13 | Galaxy      |
+    |  15 | Planet      |
+    +-----+-------------+
     SELECT 3 rows in set (... sec)
 
 ::
@@ -796,11 +796,11 @@ the aggregation column to the ``numeric`` data type::
 
     cr> SELECT sum(count::numeric)
     ... FROM uservisits;
-    +-----------------------------+
-    | sum(cast(count AS NUMERIC)) |
-    +-----------------------------+
-    |         9223372036854775816 |
-    +-----------------------------+
+    +---------------------+
+    |                 sum |
+    +---------------------+
+    | 9223372036854775816 |
+    +---------------------+
     SELECT 1 row in set (... sec)
 
 .. Hidden: refresh uservisits table
@@ -826,13 +826,13 @@ Example::
 
     cr> select variance(position), kind from locations
     ... group by kind order by kind desc;
-    +--------------------+-------------+
-    | variance(position) | kind        |
-    +--------------------+-------------+
-    |             1.25   | Star System |
-    |             2.0    | Planet      |
-    |             3.6875 | Galaxy      |
-    +--------------------+-------------+
+    +----------+-------------+
+    | variance | kind        |
+    +----------+-------------+
+    |   1.25   | Star System |
+    |   2.0    | Planet      |
+    |   3.6875 | Galaxy      |
+    +----------+-------------+
     SELECT 3 rows in set (... sec)
 
 .. CAUTION::
@@ -874,7 +874,7 @@ Example::
 
     cr> select topk(country, 3) from sys.summits;
     +------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
-    | topk(country, 3)                                                                                                                                                                                                                                                 |
+    | topk                                                                                                                                                                                                                                                             |
     +------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+
     | {"frequencies": [{"estimate": 436, "item": "IT", "lower_bound": 436, "upper_bound": 436}, {"estimate": 401, "item": "AT", "lower_bound": 401, "upper_bound": 401}, {"estimate": 320, "item": "CH", "lower_bound": 320, "upper_bound": 320}], "maximum_error": 0} |
     +------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------+

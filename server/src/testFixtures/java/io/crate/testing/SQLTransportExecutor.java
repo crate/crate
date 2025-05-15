@@ -79,6 +79,7 @@ import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
 import io.crate.session.BaseResultReceiver;
+import io.crate.session.DescribeResult;
 import io.crate.session.ResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
@@ -291,12 +292,13 @@ public class SQLTransportExecutor {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
             session.bind(UNNAMED, UNNAMED, argsList, null);
-            List<Symbol> outputFields = session.describe('P', UNNAMED).getFields();
-            if (outputFields == null) {
+            DescribeResult describeResult = session.describe('P', UNNAMED);
+            if (describeResult.getFields() == null) {
                 ResultReceiver<?> resultReceiver = new RowCountReceiver(listener);
                 session.execute(UNNAMED, 0, resultReceiver);
             } else {
-                ResultReceiver<?> resultReceiver = new ResultSetReceiver(listener, outputFields);
+                ResultReceiver<?> resultReceiver = new ResultSetReceiver(
+                    listener, describeResult.getFields(), describeResult.getFieldNames());
                 session.execute(UNNAMED, 0, resultReceiver);
             }
             session.sync();
@@ -610,10 +612,12 @@ public class SQLTransportExecutor {
         private final List<Object[]> rows = new ArrayList<>();
         private final ActionListener<SQLResponse> listener;
         private final List<Symbol> outputFields;
+        private final List<String> outputFieldNames;
 
-        ResultSetReceiver(ActionListener<SQLResponse> listener, List<Symbol> outputFields) {
+        ResultSetReceiver(ActionListener<SQLResponse> listener, List<Symbol> outputFields, List<String> outputFieldNames) {
             this.listener = listener;
             this.outputFields = outputFields;
+            this.outputFieldNames = outputFieldNames;
         }
 
         @Override
@@ -645,9 +649,8 @@ public class SQLTransportExecutor {
             DataType<?>[] outputTypes = new DataType[outputFields.size()];
 
             for (int i = 0, outputFieldsSize = outputFields.size(); i < outputFieldsSize; i++) {
-                Symbol field = outputFields.get(i);
-                outputNames[i] = field.toColumn().sqlFqn();
-                outputTypes[i] = field.valueType();
+                outputNames[i] = outputFieldNames.get(i);
+                outputTypes[i] = outputFields.get(i).valueType();
             }
 
             Object[][] rowsArr = rows.toArray(new Object[0][]);

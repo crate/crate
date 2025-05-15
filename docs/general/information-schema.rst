@@ -703,14 +703,14 @@ Or get an overview of how many routines and routine types are available::
     ... from information_schema.routines
     ... group by routine_type
     ... order by routine_type;
-    +----------+--------------+
-    | count(*) | routine_type |
-    +----------+--------------+
-    |       45 | ANALYZER     |
-    |        3 | CHAR_FILTER  |
-    |       16 | TOKENIZER    |
-    |       61 | TOKEN_FILTER |
-    +----------+--------------+
+    +-------+--------------+
+    | count | routine_type |
+    +-------+--------------+
+    |    45 | ANALYZER     |
+    |     3 | CHAR_FILTER  |
+    |    16 | TOKENIZER    |
+    |    61 | TOKEN_FILTER |
+    +-------+--------------+
     SELECT 4 rows in set (... sec)
 
 .. rubric:: Schema

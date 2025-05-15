@@ -272,7 +272,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             ByteBuf response = channel.readOutbound();
             try {
                 assertThat(response.readByte()).isEqualTo((byte) 'T');
-                assertThat(response.readInt()).isEqualTo(46);
+                assertThat(response.readInt()).isEqualTo(42);
                 assertThat(response.readShort()).isEqualTo((short) 1);
                 assertThat(PostgresWireProtocol.readCString(response)).isEqualTo("($1 IN (1, 2, 3))");
 
@@ -336,7 +336,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             response = channel.readOutbound();
             try {
                 assertThat(response.readByte()).isEqualTo((byte) 'T');
-                assertThat(response.readInt()).isEqualTo(46);
+                assertThat(response.readInt()).isEqualTo(42);
                 assertThat(response.readShort()).isEqualTo((short) 1);
                 assertThat(PostgresWireProtocol.readCString(response)).isEqualTo("($1 IN (1, 2, 3))");
 

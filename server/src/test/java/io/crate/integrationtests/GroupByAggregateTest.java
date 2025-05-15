@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Arrays;
@@ -137,7 +136,7 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         String expected = "32.0| female\n34.0| male\n";
 
-        assertThat(response.cols()[0]).isEqualTo("min(age)");
+        assertThat(response.cols()[0]).isEqualTo("min");
         assertThat(printedTable(response.rows())).isEqualTo(expected);
     }
 
@@ -347,7 +346,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         this.setup.groupBySetup("integer");
 
         execute("select max(age), gender from characters group by gender order by gender");
-        assertThat(response.cols()).isEqualTo(new String[]{"max(age)", "gender"});
+        assertThat(response.cols()).isEqualTo(new String[]{"max", "gender"});
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][1]).isEqualTo("female");
         assertThat(response.rows()[0][0]).isEqualTo(43);
@@ -362,7 +361,7 @@ public class GroupByAggregateTest extends IntegTestCase {
 
         execute("select max(age), gender from characters group by gender order by gender");
         assertThat(response.rowCount()).isEqualTo(2L);
-        assertThat(response.cols()[0]).isEqualTo("max(age)");
+        assertThat(response.cols()[0]).isEqualTo("max");
         assertThat(response.rows()[0][0]).isEqualTo(43.0f);
         assertThat(response.rows()[1][0]).isEqualTo(112.0f);
     }
@@ -674,7 +673,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         waitNoPendingTasksOnAll();
         execute("select race, count(details['job']) from characters group by race order by count(details['job']) desc limit 1");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.cols()).isEqualTo(new String[]{"race", "count(details['job'])"});
+        assertThat(response.cols()).isEqualTo(new String[]{"race", "count"});
         assertThat(response.rows()[0][0]).isEqualTo("Human");
         assertThat(response.rows()[0][1]).isEqualTo(2L);
     }
