@@ -26,6 +26,7 @@ import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
+import java.util.Comparator;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
@@ -180,7 +181,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void test_resolve_relation_names_for_all_tables_ignores_table_with_non_active_primary_shards() throws Exception {
+    public void test_resolve_relation_names_for_all_tables_contains_all_tables_with_different_flags() throws Exception {
         var user = userOf("dummy");
         Roles roles = new Roles() {
             @Override
@@ -208,11 +209,25 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             "dummy"
         );
 
-        assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
+        List<RelationMetadata.ReplicatedIndex> indices = resolvedRelations.values().stream()
+            .flatMap(x -> x.indices().stream())
+            .sorted(Comparator.comparing(ri -> ri.indexMetadata().getIndex().getName()))
+            .toList();
+
+        assertThat(indices).satisfiesExactly(
+            ri -> {
+                assertThat(ri.indexMetadata().getIndex().getName()).isEqualTo("t1");
+                assertThat(ri.allPrimaryShardsActive()).isTrue();
+            },
+            ri -> {
+                assertThat(ri.indexMetadata().getIndex().getName()).isEqualTo("t2");
+                assertThat(ri.allPrimaryShardsActive()).isFalse();
+            }
+        );
     }
 
     @Test
-    public void test_resolve_relation_names_for_concrete_tables_ignores_table_with_non_active_primary_shards() throws Exception {
+    public void test_resolve_relation_names_for_concrete_tables_contains_all_tables_with_different_flags() throws Exception {
         var user = userOf("dummy");
         Roles roles = new Roles() {
             @Override
@@ -244,11 +259,25 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             "dummy"
         );
 
-        assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
+        List<RelationMetadata.ReplicatedIndex> indices = resolvedRelations.values().stream()
+            .flatMap(x -> x.indices().stream())
+            .sorted(Comparator.comparing(ri -> ri.indexMetadata().getIndex().getName()))
+            .toList();
+
+        assertThat(indices).satisfiesExactly(
+            ri -> {
+                assertThat(ri.indexMetadata().getIndex().getName()).isEqualTo("t1");
+                assertThat(ri.allPrimaryShardsActive()).isTrue();
+            },
+            ri -> {
+                assertThat(ri.indexMetadata().getIndex().getName()).isEqualTo("t2");
+                assertThat(ri.allPrimaryShardsActive()).isFalse();
+            }
+        );
     }
 
     @Test
-    public void test_resolve_relation_names_for_all_tables_ignores_partition_with_non_active_primary_shards() throws Exception {
+    public void test_resolve_relation_names_for_all_tables_contains_partition_with_non_active_primary_shards_with_false_flag() throws Exception {
         var user = userOf("dummy");
         Roles roles = new Roles() {
             @Override
@@ -276,12 +305,18 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             user,
             "dummy"
         );
-        RelationMetadata relationMetadata = resolvedRelations.get(new RelationName("doc", "p1"));
-        assertThat(relationMetadata.indices()).isEmpty();
+
+        List<RelationMetadata.ReplicatedIndex> indices = resolvedRelations.values().stream()
+            .flatMap(x -> x.indices().stream())
+            .toList();
+
+        assertThat(indices).hasSize(1);
+        assertThat(indices.getFirst().indexMetadata().getIndex().getName()).isEqualTo(".partitioned.p1.04132");
+        assertThat(indices.getFirst().allPrimaryShardsActive()).isFalse();
     }
 
     @Test
-    public void test_resolve_relation_names_for_concrete_tables_ignores_partition_with_non_active_primary_shards() throws Exception {
+    public void test_resolve_relation_names_for_concrete_tables_contains_partition_with_non_active_primary_shards_with_false_flag() throws Exception {
         var user = userOf("dummy");
         Roles roles = new Roles() {
             @Override
@@ -313,7 +348,13 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             user,
             "dummy"
         );
-        RelationMetadata relationMetadata = resolvedRelations.get(new RelationName("doc", "p1"));
-        assertThat(relationMetadata.indices()).isEmpty();
+
+        List<RelationMetadata.ReplicatedIndex> indices = resolvedRelations.values().stream()
+            .flatMap(x -> x.indices().stream())
+            .toList();
+
+        assertThat(indices).hasSize(1);
+        assertThat(indices.getFirst().indexMetadata().getIndex().getName()).isEqualTo(".partitioned.p1.04132");
+        assertThat(indices.getFirst().allPrimaryShardsActive()).isFalse();
     }
 }

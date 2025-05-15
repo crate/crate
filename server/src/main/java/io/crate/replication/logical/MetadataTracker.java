@@ -360,7 +360,7 @@ public final class MetadataTracker implements Closeable {
                 ? Map.of()
                 : relationMetadata.indices()
                     .stream()
-                    .collect(Collectors.toMap(x -> x.getIndex().getName(), x -> x));
+                    .collect(Collectors.toMap(x -> x.indexMetadata().getIndex().getName(), x -> x.indexMetadata()));
             var publisherIndexMetadata = publisherIndices.get(followedTable.indexNameOrAlias());
             var subscriberIndexMetadata = subscriberClusterState.metadata().index(followedTable.indexNameOrAlias());
             if (publisherIndexMetadata != null && subscriberIndexMetadata != null) {
@@ -457,7 +457,7 @@ public final class MetadataTracker implements Closeable {
         HashSet<RelationName> relationNamesForStateUpdate = new HashSet<>();
         ArrayList<TableOrPartition> toRestore = new ArrayList<>();
         Metadata subscriberMetadata = subscriberState.metadata();
-        for (var indexName : stateResponse.concreteIndices()) {
+        for (var indexName : stateResponse.restorableIndices()) {
             IndexParts indexParts = IndexName.decode(indexName);
             RelationName relationName = indexParts.toRelationName();
             if (!subscriberMetadata.hasIndex(indexName)) {
@@ -505,7 +505,10 @@ public final class MetadataTracker implements Closeable {
             List<IndexMetadata> concreteIndices = subscriberMetadata.getIndices(relationName, List.of(), false, x -> x);
             for (IndexMetadata concreteIndex : concreteIndices) {
                 String indexUUID = PUBLISHER_INDEX_UUID.get(concreteIndex.getSettings());
-                boolean publisherContainsIndex = publisherRelationMetadata.indices().stream().anyMatch(x -> x.getIndexUUID().equals(indexUUID));
+                boolean publisherContainsIndex = publisherRelationMetadata
+                    .indices()
+                    .stream()
+                    .anyMatch(x -> x.indexMetadata().getIndexUUID().equals(indexUUID));
                 if (!publisherContainsIndex) {
                     partitionsToRemove.add(concreteIndex.getIndex());
                 }
