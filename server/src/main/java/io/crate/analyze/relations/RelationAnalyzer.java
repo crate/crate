@@ -89,9 +89,9 @@ import io.crate.sql.tree.DefaultTraversalVisitor;
 import io.crate.sql.tree.Except;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
+import io.crate.sql.tree.GroupBy;
 import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.Intersect;
-import io.crate.sql.tree.GroupBy;
 import io.crate.sql.tree.Join;
 import io.crate.sql.tree.JoinCriteria;
 import io.crate.sql.tree.JoinOn;
@@ -184,7 +184,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             expressionAnalyzer,
             expressionAnalysisContext);
         for (Symbol field : childRelationFields) {
-            selectAnalysis.add(field.toColumn(), field);
+            selectAnalysis.add(field.toColumn(), field, null);
         }
 
         var normalizer = EvaluatingNormalizer.functionOnlyNormalizer(
@@ -196,6 +196,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             false,
             List.of(childRelation),
             selectAnalysis.outputSymbols(),
+            selectAnalysis.outputColumnNames(),
             Literal.BOOLEAN_TRUE,
             List.of(),
             null,
@@ -414,6 +415,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             isDistinct,
             relations,
             selectAnalysis.outputSymbols(),
+            selectAnalysis.outputColumnNames(),
             where,
             groupBy,
             analyzeHaving(

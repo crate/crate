@@ -60,6 +60,7 @@ public class RestActionReceiversTest extends ESTestCase {
         new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_b"), DataTypes.INTEGER),
         new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_c"), DataTypes.BOOLEAN)
     );
+    private final List<String> fieldNames = List.of("col_a", "col_b", "col_c");
     private final Row row = new Row1(1L);
 
     private static void assertXContentBuilder(XContentBuilder expected, XContentBuilder actual) throws IOException {
@@ -79,7 +80,7 @@ public class RestActionReceiversTest extends ESTestCase {
         XContentBuilder actualBuilder = receiver.finishBuilder();
 
         ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder());
-        builder.cols(Collections.<ScopedSymbol>emptyList());
+        builder.cols(Collections.emptyList());
         builder.colTypes(Collections.<ScopedSymbol>emptyList());
         builder.startRows();
         builder.addRow(row, 0);
@@ -94,6 +95,7 @@ public class RestActionReceiversTest extends ESTestCase {
         RestResultSetReceiver receiver = new RestResultSetReceiver(
             JsonXContent.builder(),
             fields,
+            fieldNames,
             0L,
             new TypedRowAccounting(Symbols.typeView(fields), RamAccounting.NO_ACCOUNTING),
             true
@@ -104,7 +106,7 @@ public class RestActionReceiversTest extends ESTestCase {
         XContentBuilder actualBuilder = receiver.finishBuilder();
 
         ResultToXContentBuilder builder = ResultToXContentBuilder.builder(JsonXContent.builder());
-        builder.cols(fields);
+        builder.cols(fieldNames);
         builder.colTypes(fields);
         builder.startRows();
         for (Row row : rows) {

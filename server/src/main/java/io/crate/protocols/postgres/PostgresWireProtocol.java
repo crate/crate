@@ -671,7 +671,13 @@ public class PostgresWireProtocol {
             Messages.sendNoData(channel);
         } else {
             var resultFormatCodes = type == 'P' ? session.getResultFormatCodes(portalOrStatement) : null;
-            Messages.sendRowDescription(channel, fields, resultFormatCodes, describeResult.relation());
+            Messages.sendRowDescription(
+                channel,
+                fields,
+                describeResult.getFieldNames(),
+                resultFormatCodes,
+                describeResult.relation()
+            );
         }
     }
 
@@ -834,7 +840,13 @@ public class PostgresWireProtocol {
                 );
                 session.execute("", 0, rowCountReceiver);
             } else {
-                Messages.sendRowDescription(channel, fields, null, describeResult.relation());
+                Messages.sendRowDescription(
+                    channel,
+                    fields,
+                    describeResult.getFieldNames(),
+                    null,
+                    describeResult.relation()
+                );
                 DelayedWrites delayedWrites = channel.delayWrites();
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
