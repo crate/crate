@@ -818,11 +818,11 @@ Returns: ``integer``
 ::
 
     cr> SELECT strpos('crate' , 'ate');
-    +---+
-    | 3 |
-    +---+
-    | 3 |
-    +---+
+    +--------+
+    | strpos |
+    +--------+
+    |      3 |
+    +--------+
     SELECT 1 row in set (... sec)
 
 

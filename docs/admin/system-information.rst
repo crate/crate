@@ -1762,11 +1762,11 @@ How to reindex
 5. Confirm the new ``your_table`` contains all data and has the new version::
 
     cr> SELECT count(*) FROM rx.metrics;
-    +----------+
-    | count(*) |
-    +----------+
-    |        2 |
-    +----------+
+    +-------+
+    | count |
+    +-------+
+    |     2 |
+    +-------+
     SELECT 1 row in set (... sec)
 
     cr> SELECT version['created'] FROM information_schema.tables

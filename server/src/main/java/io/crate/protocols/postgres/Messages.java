@@ -425,8 +425,11 @@ public final class Messages {
      */
     static void sendRowDescription(Channel channel,
                                    Collection<Symbol> columns,
+                                   List<String> columnNames,
                                    @Nullable FormatCodes.FormatCode[] formatCodes,
                                    @Nullable RelationInfo relation) {
+        assert columns.size() == columnNames.size()
+            : "Size of columns must match size of columnNames";
         int length = 4 + 2;
         int columnSize = 4 + 2 + 4 + 2 + 4 + 2;
         ByteBuf buffer = channel.alloc().buffer(
@@ -442,7 +445,8 @@ public final class Messages {
         }
         int idx = 0;
         for (Symbol column : columns) {
-            byte[] nameBytes = column.toColumn().sqlFqn().getBytes(StandardCharsets.UTF_8);
+            String name = columnNames.get(idx);
+            byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
             length += nameBytes.length + 1;
             length += columnSize;
 

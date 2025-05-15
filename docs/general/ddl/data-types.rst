@@ -778,32 +778,32 @@ The following type casts are example of supported usage of the ``JSON`` data typ
 Casting from ``STRING`` to ``JSON``::
 
     cr> SELECT '{"x": 10}'::json;
-    +-------------+
-    | '{"x": 10}' |
-    +-------------+
-    | {"x": 10}   |
-    +-------------+
+    +---------------------------+
+    | CAST('{"x": 10}' AS json) |
+    +---------------------------+
+    | {"x": 10}                 |
+    +---------------------------+
     SELECT 1 row in set (... sec)
 
 Casting from ``JSON`` to ``OBJECT``::
 
     cr> SELECT ('{"x": 10}'::json)::object;
-    +-----------+
-    | {"x"=10}  |
-    +-----------+
-    | {"x": 10} |
-    +-----------+
+    +-------------------------------------------+
+    | CAST(CAST('{"x": 10}' AS json) AS object) |
+    +-------------------------------------------+
+    | {"x": 10}                                 |
+    +-------------------------------------------+
     SELECT 1 row in set (... sec)
 
 
 Casting from ``OBJECT`` to ``JSON``::
 
     cr> SELECT {x=10}::json;
-    +------------+
-    | '{"x":10}' |
-    +------------+
-    | {"x":10}   |
-    +------------+
+    +-------------------------+
+    | CAST({"x"= 10} AS json) |
+    +-------------------------+
+    | {"x":10}                |
+    +-------------------------+
     SELECT 1 row in set (... sec)
 
 
@@ -3016,12 +3016,12 @@ if the table function returns more than one column.
 ::
 
     cr> SELECT unnest([1, 2], ['Arthur', 'Trillian']);
-    +----------------------------------------+
-    | unnest([1, 2], ['Arthur', 'Trillian']) |
-    +----------------------------------------+
-    | [1, "Arthur"]                          |
-    | [2, "Trillian"]                        |
-    +----------------------------------------+
+    +-----------------+
+    | unnest          |
+    +-----------------+
+    | [1, "Arthur"]   |
+    | [2, "Trillian"] |
+    +-----------------+
     SELECT 2 rows in set (... sec)
 
 .. _type-float_vector:

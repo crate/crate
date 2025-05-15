@@ -45,6 +45,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
 
     RestResultSetReceiver(XContentBuilder builder,
                           List<Symbol> outputFields,
+                          List<String> outputFieldNames,
                           long startTimeNs,
                           RowAccounting<Row> rowAccounting,
                           boolean includeTypesOnResponse) throws IOException {
@@ -52,7 +53,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
         this.startTimeNs = startTimeNs;
         this.rowAccounting = rowAccounting;
         this.builder = ResultToXContentBuilder.builder(builder);
-        this.builder.cols(outputFields);
+        this.builder.cols(outputFieldNames);
         if (includeTypesOnResponse) {
             this.builder.colTypes(outputFields);
         }
