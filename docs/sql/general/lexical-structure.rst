@@ -37,11 +37,11 @@ zero or more characters in length.
 ::
 
     cr> select 'I''m a string' = $tag1$I'm a string$tag1$;
-    +------+
-    | true |
-    +------+
-    | TRUE |
-    +------+
+    +-------------------------------------+
+    | ('I''m a string' = 'I''m a string') |
+    +-------------------------------------+
+    | TRUE                                |
+    +-------------------------------------+
     SELECT 1 row in set (... sec)
 
 .. NOTE::

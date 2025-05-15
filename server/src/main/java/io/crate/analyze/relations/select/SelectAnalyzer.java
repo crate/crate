@@ -36,13 +36,17 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.AllColumns;
 import io.crate.sql.tree.DefaultTraversalVisitor;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.SelectItem;
 import io.crate.sql.tree.SingleColumn;
 
-public class SelectAnalyzer {
+public final class SelectAnalyzer {
 
-    public static final InnerVisitor INSTANCE = new InnerVisitor();
+    private SelectAnalyzer() {}
+
+    private static final InnerVisitor INSTANCE = new InnerVisitor();
 
     public static SelectAnalysis analyzeSelectItems(List<SelectItem> selectItems,
                                                     Map<RelationName, AnalyzedRelation> sources,
@@ -59,12 +63,14 @@ public class SelectAnalyzer {
 
         @Override
         protected Void visitSingleColumn(SingleColumn node, SelectAnalysis context) {
-            Symbol symbol = context.toSymbol(node.getExpression());
+            Expression expression = node.getExpression();
+            Symbol symbol = context.toSymbol(expression);
             String alias = node.getAlias();
-            if (alias != null) {
-                context.add(ColumnIdent.of(alias), new AliasSymbol(alias, symbol));
+            if (alias == null) {
+                String name = expression instanceof FunctionCall fn ? fn.getName().getSuffix() : null;
+                context.add(ColumnIdent.of(OutputNameFormatter.format(expression)), symbol, name);
             } else {
-                context.add(ColumnIdent.of(OutputNameFormatter.format(node.getExpression())), symbol);
+                context.add(ColumnIdent.of(alias), new AliasSymbol(alias, symbol), alias);
             }
             return null;
         }
@@ -116,7 +122,7 @@ public class SelectAnalyzer {
             for (Symbol field : relation.outputs()) {
                 var columnIdent = field.toColumn();
                 if (!columnIdent.isSystemColumn()) {
-                    context.add(field.toColumn(), field);
+                    context.add(field.toColumn(), field, null);
                 }
             }
         }

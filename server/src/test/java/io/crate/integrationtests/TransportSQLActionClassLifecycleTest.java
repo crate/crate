@@ -147,13 +147,13 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
         SQLResponse response = execute("select max(age) from characters");
 
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.cols()[0]).isEqualTo("max(age)");
+        assertThat(response.cols()[0]).isEqualTo("max");
         assertThat(response.rows()[0][0]).isEqualTo(112);
 
         response = execute("select min(name) from characters");
 
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.cols()[0]).isEqualTo("min(name)");
+        assertThat(response.cols()[0]).isEqualTo("min");
         assertThat(response.rows()[0][0]).isEqualTo("Anjie");
 
         response = execute("select avg(age) as median_age from characters");
@@ -404,7 +404,7 @@ public class TransportSQLActionClassLifecycleTest extends IntegTestCase {
     @Test
     public void testArithmeticFunctions() throws Exception {
         execute("select ((2 * 4 - 2 + 1) / 2) % 3 from sys.cluster");
-        assertThat(response.cols()[0]).isEqualTo("0");
+        assertThat(response.cols()[0]).isEqualTo("(((((2 * 4) - 2) + 1) / 2) % 3)");
         assertThat(response.rows()[0][0]).isEqualTo(0);
 
         execute("select ((2 * 4.0 - 2 + 1) / 2) % 3 from sys.cluster");

@@ -114,8 +114,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );
@@ -163,8 +163,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null);
         AtomicBoolean flushed = new AtomicBoolean(false);
@@ -207,8 +207,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 mockedSqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null);
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -234,8 +234,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null);
 
@@ -272,9 +272,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             ByteBuf response = channel.readOutbound();
             try {
                 assertThat(response.readByte()).isEqualTo((byte) 'T');
-                assertThat(response.readInt()).isEqualTo(46);
+                assertThat(response.readInt()).isEqualTo(42);
                 assertThat(response.readShort()).isEqualTo((short) 1);
-                assertThat(PostgresWireProtocol.readCString(response)).isEqualTo("($1 = ANY([1, 2, 3]))");
+                assertThat(PostgresWireProtocol.readCString(response)).isEqualTo("($1 IN (1, 2, 3))");
 
                 assertThat(response.readInt()).isEqualTo(0);
                 assertThat(response.readShort()).isEqualTo((short) 0);
@@ -294,8 +294,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null);
 
@@ -336,9 +336,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             response = channel.readOutbound();
             try {
                 assertThat(response.readByte()).isEqualTo((byte) 'T');
-                assertThat(response.readInt()).isEqualTo(46);
+                assertThat(response.readInt()).isEqualTo(42);
                 assertThat(response.readShort()).isEqualTo((short) 1);
-                assertThat(PostgresWireProtocol.readCString(response)).isEqualTo("($1 = ANY([1, 2, 3]))");
+                assertThat(PostgresWireProtocol.readCString(response)).isEqualTo("($1 IN (1, 2, 3))");
 
                 assertThat(response.readInt()).isEqualTo(0);
                 assertThat(response.readShort()).isEqualTo((short) 0);
@@ -358,8 +358,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null);
 
@@ -416,9 +416,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
-                new AlwaysOKAuthentication(() -> List.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                new AlwaysOKAuthentication(List::of),
                 () -> null);
 
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
@@ -431,7 +431,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf responseBuffer = channel.readOutbound();
         try {
             byte response = responseBuffer.readByte();
-            assertThat('N').isEqualTo((char) response);
+            assertThat((char) response).isEqualTo('N');
         } finally {
             responseBuffer.release();
         }
@@ -465,7 +465,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new SessionSettingRegistry(Set.of()),
             _ -> AccessControl.DISABLED,
             _ -> {},
-            new AlwaysOKAuthentication(() -> List.of()),
+            new AlwaysOKAuthentication(List::of),
             getSslContext
         );
 
@@ -478,7 +478,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         ByteBuf responseBuffer = channel.readOutbound();
         try {
             byte response = responseBuffer.readByte();
-            assertThat('S').isEqualTo((char) response);
+            assertThat((char) response).isEqualTo('S');
         } finally {
             responseBuffer.release();
         }
@@ -491,8 +491,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         PostgresWireProtocol ctx = new PostgresWireProtocol(
             sqlOperations,
             new SessionSettingRegistry(Set.of()),
-            sessionSettings -> AccessControl.DISABLED,
-            chPipeline -> {},
+            _ -> AccessControl.DISABLED,
+            _ -> {},
             new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
             () -> null
         );
@@ -544,9 +544,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
-                (user, connectionProperties) -> new AuthenticationMethod() {
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                (_, _) -> new AuthenticationMethod() {
                     @Override
                     public Role authenticate(Credentials credentials, ConnectionProperties connProperties) {
                         return RolesHelper.userOf("dummy");
@@ -598,8 +598,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );
@@ -654,8 +654,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );
@@ -675,8 +675,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                context -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );
@@ -684,8 +684,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                context -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );
@@ -728,8 +728,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );
@@ -751,8 +751,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );
@@ -774,8 +774,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionSettings -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );
@@ -816,7 +816,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     private void submitQueriesThroughSimpleQueryMode(String statements,
                                                      @Nullable Throwable failure,
-                                                     @Nullable CompletableFuture future) {
+                                                     @Nullable CompletableFuture<?> future) {
         Sessions sqlOperations = Mockito.mock(Sessions.class);
         Session session = spy(this.sqlOperations.newSystemSession());
         doReturn(future).when(session).execute(any(String.class), any(int.class), any(RowCountReceiver.class));
@@ -839,8 +839,8 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             new PostgresWireProtocol(
                 sqlOperations,
                 new SessionSettingRegistry(Set.of()),
-                sessionCtx -> AccessControl.DISABLED,
-                chPipeline -> {},
+                _ -> AccessControl.DISABLED,
+                _ -> {},
                 new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
                 () -> null
             );

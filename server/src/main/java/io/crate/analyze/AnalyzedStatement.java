@@ -26,6 +26,7 @@ import java.util.function.Consumer;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Symbol;
 
 public interface AnalyzedStatement {
@@ -59,5 +60,16 @@ public interface AnalyzedStatement {
     @Nullable
     default List<Symbol> outputs() {
         return null;
+    }
+
+    /**
+     * Names for the {@link #outputs()}.
+     * Can match the string representation of {@link Symbol#toColumn()}, or
+     * for statements like `SELECT foo()` it can be the function name.
+     */
+    @Nullable
+    default List<String> outputNames() {
+        List<Symbol> outputs = outputs();
+        return outputs == null ? null : Lists.map(outputs, x -> x.toColumn().sqlFqn());
     }
 }

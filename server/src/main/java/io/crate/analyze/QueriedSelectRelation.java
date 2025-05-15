@@ -44,6 +44,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     private final List<AnalyzedRelation> from;
     private final boolean isDistinct;
     private final List<Symbol> outputs;
+    private final List<String> outputNames;
     private final Symbol whereClause;
     private final List<Symbol> groupBy;
     @Nullable
@@ -58,6 +59,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     public QueriedSelectRelation(boolean isDistinct,
                                  List<AnalyzedRelation> from,
                                  List<Symbol> outputs,
+                                 List<String> outputNames,
                                  Symbol whereClause,
                                  List<Symbol> groupBy,
                                  @Nullable Symbol having,
@@ -65,6 +67,7 @@ public class QueriedSelectRelation implements AnalyzedRelation {
                                  @Nullable Symbol limit,
                                  @Nullable Symbol offset) {
         this.outputs = outputs;
+        this.outputNames = outputNames;
         this.whereClause = whereClause;
         this.groupBy = groupBy;
         this.having = having;
@@ -150,6 +153,11 @@ public class QueriedSelectRelation implements AnalyzedRelation {
     @Override
     public List<Symbol> outputs() {
         return outputs;
+    }
+
+    @Override
+    public List<String> outputNames() {
+        return outputNames;
     }
 
     public Symbol where() {

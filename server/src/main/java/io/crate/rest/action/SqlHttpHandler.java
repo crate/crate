@@ -261,6 +261,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resultReceiver = new RestResultSetReceiver(
                 JsonXContent.builder(),
                 resultFields,
+                description.getFieldNames(),
                 startTimeInNs,
                 new TypedRowAccounting(
                     Lists.map(resultFields, Symbol::valueType),
