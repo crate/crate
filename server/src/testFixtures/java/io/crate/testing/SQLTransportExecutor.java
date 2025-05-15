@@ -213,7 +213,7 @@ public class SQLTransportExecutor {
         }
         try {
             try (Session session = newSession()) {
-                sessionList.forEach((setting) -> exec(setting, session));
+                sessionList.forEach(setting -> exec(setting, session));
                 return FutureUtils.get(execute(stmt, args, session), timeout.millis(), TimeUnit.MILLISECONDS);
             }
         } catch (ElasticsearchTimeoutException ex) {
@@ -228,8 +228,7 @@ public class SQLTransportExecutor {
             //
             // Wrapping the exception can hide parts of the stacktrace that are interesting
             // to figure out the root cause of an error, so we prefer the cause here
-            t = SQLExceptions.unwrap(t);
-            Exceptions.rethrowUnchecked(t);
+            Exceptions.rethrowUnchecked(SQLExceptions.unwrap(t));
 
             // unreachable
             return null;
@@ -243,7 +242,7 @@ public class SQLTransportExecutor {
     public CompletableFuture<SQLResponse> execute(String stmt, @Nullable Object[] args) {
         Session session = newSession();
         CompletableFuture<SQLResponse> result = execute(stmt, args, session);
-        return result.whenComplete((res, err) -> session.close());
+        return result.whenComplete((_, _) -> session.close());
     }
 
     public Session newSession() {
@@ -480,14 +479,13 @@ public class SQLTransportExecutor {
      * This roughly follows {@link PGTypes}
      */
     private static DataType<?> getDataType(String pgTypeName) {
-        DataType<?> dataType = switch (pgTypeName) {
+        return switch (pgTypeName) {
             case "int2" -> DataTypes.SHORT;
             case "int4" -> DataTypes.INTEGER;
             case "int8" -> DataTypes.LONG;
             case "json" -> JsonType.INSTANCE;
             default -> DataTypes.UNDEFINED;
         };
-        return dataType;
     }
 
     /**

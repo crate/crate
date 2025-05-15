@@ -612,8 +612,8 @@ public class PostgresWireProtocol {
             if (valueLength == -1) {
                 params.add(null);
             } else {
-                DataType paramType = session.getParamType(statementName, i);
-                PGType pgType = PGTypes.get(paramType);
+                DataType<?> paramType = session.getParamType(statementName, i);
+                PGType<?> pgType = PGTypes.get(paramType);
                 FormatCodes.FormatCode formatCode = getFormatCode(formatCodes, i);
                 switch (formatCode) {
                     case TEXT:
@@ -646,7 +646,7 @@ public class PostgresWireProtocol {
     }
 
     private <T> List<T> createList(short size) {
-        return size == 0 ? Collections.<T>emptyList() : new ArrayList<T>(size);
+        return size == 0 ? Collections.emptyList() : new ArrayList<>(size);
     }
 
 
@@ -799,7 +799,7 @@ public class PostgresWireProtocol {
         timeoutToken.check();
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
         for (var statement : statements) {
-            composedFuture = composedFuture.thenCompose(result -> handleSingleQuery(statement, queryString, channel, timeoutToken));
+            composedFuture = composedFuture.thenCompose(_ -> handleSingleQuery(statement, queryString, channel, timeoutToken));
         }
         composedFuture.whenComplete(new ReadyForQueryCallback(channel, TransactionState.IDLE));
     }
