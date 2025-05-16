@@ -118,10 +118,14 @@ final class IndexShardOperationPermits implements Closeable {
      * @param onAcquired {@link ActionListener} that is invoked once acquisition is successful or failed
      * @param timeout    the maximum time to wait for the in-flight operations block
      * @param timeUnit   the time unit of the {@code timeout} argument
+     * @param executor   executor on which to wait for in-flight operations to finish and acquire all permits
      */
-    public void asyncBlockOperations(final ActionListener<Releasable> onAcquired, final long timeout, final TimeUnit timeUnit) {
+    public void asyncBlockOperations(final ActionListener<Releasable> onAcquired,
+                                     final long timeout,
+                                     final TimeUnit timeUnit,
+                                     String executor) {
         delayOperations();
-        threadPool.executor(ThreadPool.Names.GENERIC).execute(new RejectableRunnable() {
+        threadPool.executor(executor).execute(new RejectableRunnable() {
 
             final AtomicBoolean released = new AtomicBoolean(false);
 
