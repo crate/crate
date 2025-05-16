@@ -2111,4 +2111,48 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             assertThat((long) response.rows()[0][0]).isLessThan(57000);
         }
     }
+
+    @UseRandomizedSchema(random = false)
+    @Repeat(iterations = 100)
+    public void test_interrupt_remaining_items_with_unassigned_seq_should_not_be_replicated_but_current_must_be_replicated() throws Exception {
+        execute("create table t (a int)");
+        execute("insert into t select * from generate_series(1, 100000)");
+
+        Thread insert = new Thread(() -> {
+            try {
+                execute("insert into t select * from generate_series(1, 100000)");
+            } catch (Exception ex) {
+                // JobKilledException but can be also InterruptedException or CancellationException
+                // Ignore, let the test run further
+            }
+        });
+
+        Thread kill = new Thread(() -> {
+            execute("select id from sys.jobs where stmt = 'insert into t select * from generate_series(1, 100000)'");
+            String uuid = (String) response.rows()[0][0];
+            execute("kill ?", new Object[]{uuid});
+        });
+
+
+        insert.start();
+        kill.start();
+
+        assertBusy(() -> {
+            execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 't'");
+            // Before 5.9.13/5.10.4 used to fail
+            // and logs had an assertion error
+            // "recovery or replica ops should have an assigned seq no.; origin: REPLICA"
+            assertThat(response).hasRows("0");
+        });
+
+
+//        execute("SELECT max(a) FROM t");
+//        int max = (int) response.rows()[0][0];
+//        // Some iterations to ensure it hits both primary and replica
+//        // Ensure that if a record is on primary, then we have it on replica as well
+//        for (int i = 0; i < 100; i++) {
+//            execute("SELECT max(a) FROM t");
+//            assertThat(response.rows()[0][0]).isEqualTo(max);
+//        }
+    }
 }
