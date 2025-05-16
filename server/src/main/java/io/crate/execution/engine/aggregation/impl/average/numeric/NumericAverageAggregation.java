@@ -72,12 +72,13 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     public static void register(Functions.Builder builder) {
         for (var functionName : NAMES) {
             builder.add(
-                    Signature.builder(functionName, FunctionType.AGGREGATE)
-                            .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
-                            .returnType(DataTypes.NUMERIC.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                    NumericAverageAggregation::new
+                Signature.builder(functionName, FunctionType.AGGREGATE)
+                    .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                    .returnType(DataTypes.NUMERIC.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
+                NumericAverageAggregation::new
             );
         }
     }

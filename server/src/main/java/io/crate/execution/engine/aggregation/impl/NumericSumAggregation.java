@@ -64,10 +64,11 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
 
     public static final String NAME = "sum";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.AGGREGATE)
-            .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
-            .returnType(DataTypes.NUMERIC.getTypeSignature())
-            .features(Scalar.Feature.DETERMINISTIC)
-            .build();
+        .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+        .returnType(DataTypes.NUMERIC.getTypeSignature())
+        .features(Scalar.Feature.DETERMINISTIC)
+        .forbidCoercion()
+        .build();
     private static final long INIT_BIG_DECIMAL_SIZE = NumericType.size(BigDecimal.ZERO);
 
     public static void register(Functions.Builder builder) {

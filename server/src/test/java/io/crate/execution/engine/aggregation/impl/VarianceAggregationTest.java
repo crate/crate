@@ -125,6 +125,6 @@ public class VarianceAggregationTest extends AggregationTestCase {
     public void testUnsupportedType() throws Exception {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][] {}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessage("Invalid arguments in: variance(INPUT(0)) with (geo_point). Valid types: (double precision), (real), (byte), (smallint), (integer), (bigint), (timestamp with time zone)");
+            .hasMessageStartingWith("Invalid arguments in: variance(INPUT(0)) with (geo_point). Valid types: ");
     }
 }

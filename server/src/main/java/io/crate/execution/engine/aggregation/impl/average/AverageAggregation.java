@@ -71,7 +71,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     }
 
     static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
-        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
+        DataTypes.NUMERIC_PRIMITIVE_TYPES, List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ));
 
     /**
      * register as "avg" and "mean"
@@ -80,14 +80,15 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         for (var functionName : NAMES) {
             for (var supportedType : SUPPORTED_TYPES) {
                 builder.add(
-                        Signature.builder(functionName, FunctionType.AGGREGATE)
-                                .argumentTypes(supportedType.getTypeSignature())
-                                .returnType(DataTypes.DOUBLE.getTypeSignature())
-                                .features(Scalar.Feature.DETERMINISTIC)
-                                .build(),
-                        (signature, boundSignature) ->
-                                new AverageAggregation(signature, boundSignature,
-                                        supportedType.id() != DataTypes.FLOAT.id() && supportedType.id() != DataTypes.DOUBLE.id())
+                    Signature.builder(functionName, FunctionType.AGGREGATE)
+                        .argumentTypes(supportedType.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .forbidCoercion()
+                        .build(),
+                    (signature, boundSignature) ->
+                        new AverageAggregation(signature, boundSignature,
+                                supportedType.id() != DataTypes.FLOAT.id() && supportedType.id() != DataTypes.DOUBLE.id())
                 );
             }
         }

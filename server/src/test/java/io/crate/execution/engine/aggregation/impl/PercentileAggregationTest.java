@@ -333,4 +333,11 @@ public class PercentileAggregationTest extends AggregationTestCase {
         // Let's assert a concrete value to get failures if the implementation changes and reveals a different result
         assertThat((double) resultCustom).isEqualTo(113.066, within(0.01));
     }
+
+    @Test
+    public void test_numeric_type_is_unsupported() throws Exception {
+        assertThatThrownBy(() -> execSingleFractionPercentile(DataTypes.NUMERIC, new Object[][]{{new Object()}}))
+            .isExactlyInstanceOf(UnsupportedFunctionException.class)
+            .hasMessageStartingWith("Invalid arguments in: percentile(INPUT(0), INPUT(0)) with (numeric, double precision). Valid types:");
+    }
 }

@@ -59,6 +59,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                     )
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
                     .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
                     .build(),
                 PercentileAggregation::new
             );
@@ -70,6 +71,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                     )
                     .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
                     .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
                     .build(),
                 PercentileAggregation::new
             );
@@ -84,6 +86,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                     )
                     .returnType(DataTypes.DOUBLE.getTypeSignature())
                     .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
                     .build(),
                 PercentileAggregation::new
             );
@@ -96,6 +99,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                     )
                     .returnType(DataTypes.DOUBLE_ARRAY.getTypeSignature())
                     .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
                     .build(),
                 PercentileAggregation::new
             );

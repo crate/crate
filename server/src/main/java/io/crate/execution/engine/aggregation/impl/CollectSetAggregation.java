@@ -59,12 +59,13 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         for (DataType<?> supportedType : DataTypes.PRIMITIVE_TYPES) {
             var returnType = new ArrayType<>(supportedType);
             builder.add(
-                    Signature.builder(NAME, FunctionType.AGGREGATE)
-                            .argumentTypes(supportedType.getTypeSignature())
-                            .returnType(returnType.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                    CollectSetAggregation::new
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(supportedType.getTypeSignature())
+                    .returnType(returnType.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
+                CollectSetAggregation::new
             );
         }
     }

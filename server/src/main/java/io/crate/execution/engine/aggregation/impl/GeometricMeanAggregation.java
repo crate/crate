@@ -72,17 +72,18 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     }
 
     static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
-        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
+        DataTypes.NUMERIC_PRIMITIVE_TYPES, List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ));
 
     public static void register(Functions.Builder builder) {
         for (var supportedType : SUPPORTED_TYPES) {
             builder.add(
-                    Signature.builder(NAME, FunctionType.AGGREGATE)
-                            .argumentTypes(supportedType.getTypeSignature())
-                            .returnType(DataTypes.DOUBLE.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                    GeometricMeanAggregation::new
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(supportedType.getTypeSignature())
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
+                GeometricMeanAggregation::new
             );
         }
     }

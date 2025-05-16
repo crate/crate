@@ -75,21 +75,21 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     public static void register(Functions.Builder builder) {
         TypeSignature T = TypeSignature.parse("T");
         builder.add(
-                Signature.builder(NAME, FunctionType.AGGREGATE)
-                        .argumentTypes(T)
-                        .returnType(T)
-                        .features(Scalar.Feature.DETERMINISTIC)
-                        .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T"))
-                        .build(),
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(T)
+                .returnType(T)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T"))
+                .build(),
             ArbitraryAggregation::new
         );
         builder.add(
-                Signature.builder(ALIAS, FunctionType.AGGREGATE)
-                        .argumentTypes(T)
-                        .returnType(T)
-                        .features(Scalar.Feature.DETERMINISTIC)
-                        .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T"))
-                        .build(),
+            Signature.builder(ALIAS, FunctionType.AGGREGATE)
+                .argumentTypes(T)
+                .returnType(T)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("T"))
+                .build(),
             ArbitraryAggregation::new
         );
     }

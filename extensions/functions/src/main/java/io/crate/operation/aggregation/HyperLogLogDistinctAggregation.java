@@ -90,6 +90,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     .argumentTypes(supportedType.getTypeSignature())
                     .returnType(DataTypes.LONG.getTypeSignature())
                     .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
                     .build(),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)
@@ -100,6 +101,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         DataTypes.INTEGER.getTypeSignature())
                     .returnType(DataTypes.LONG.getTypeSignature())
                     .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
                     .build(),
                 (signature, boundSignature) ->
                     new HyperLogLogDistinctAggregation(signature, boundSignature, supportedType)

@@ -26,7 +26,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Arrays;
@@ -737,7 +736,7 @@ public class GroupByAggregateTest extends IntegTestCase {
     @Test
     public void testAggregateNonExistingColumn() throws Exception {
         this.setup.groupBySetup();
-        execute("select max(details_ignored['lol']), race from characters group by race order by race");
+        execute("select arbitrary(details_ignored['lol']), race from characters group by race order by race");
         assertThat(response).hasRows(
             "NULL| Android",
             "NULL| Human",
