@@ -134,7 +134,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     }
 
     @Override
-    public void handoffPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext) {
+    public void handoffPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext, ActionListener<Void> listener) {
         FutureActionListener<TransportResponse.Empty> future = new FutureActionListener<>();
         ActionListenerResponseHandler<TransportResponse.Empty> handler = new ActionListenerResponseHandler<>(
             future,
