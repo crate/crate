@@ -134,7 +134,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     }
 
     @Override
-    public void handoffPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext) {
+    public void handoffPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext, ActionListener<Void> listener) {
         FutureActionListener<TransportResponse.Empty> future = new FutureActionListener<>();
         ActionListenerResponseHandler<TransportResponse.Empty> handler = new ActionListenerResponseHandler<>(
             PeerRecoveryTargetService.Actions.HANDOFF_PRIMARY_CONTEXT,
@@ -153,10 +153,13 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
         );
         try {
             future.get();
+            listener.accept(null, null);
         } catch (InterruptedException ex) {
+            listener.accept(null, ex);
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Future got interrupted", ex);
         } catch (ExecutionException ex) {
+            listener.accept(null, ex);
             if (ex.getCause() instanceof ElasticsearchException esEx) {
                 throw esEx;
             } else {
