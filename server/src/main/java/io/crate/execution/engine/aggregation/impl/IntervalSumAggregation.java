@@ -45,12 +45,13 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
 
     public static void register(Functions.Builder builder) {
         builder.add(
-                Signature.builder(NAME, FunctionType.AGGREGATE)
-                        .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
-                        .returnType(DataTypes.INTERVAL.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
-                        .build(),
-                IntervalSumAggregation::new
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
+                .returnType(DataTypes.INTERVAL.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .forbidCoercion()
+                .build(),
+            IntervalSumAggregation::new
         );
     }
 

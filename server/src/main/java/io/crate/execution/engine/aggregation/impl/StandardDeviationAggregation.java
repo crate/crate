@@ -69,18 +69,19 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     private static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
-        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
+        DataTypes.NUMERIC_PRIMITIVE_TYPES, List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ));
 
     public static void register(Functions.Builder builder) {
         for (var name: NAMES) {
             for (var supportedType : SUPPORTED_TYPES) {
                 builder.add(
-                        Signature.builder(name, FunctionType.AGGREGATE)
-                            .argumentTypes(supportedType.getTypeSignature())
-                            .returnType(DataTypes.DOUBLE.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                        StandardDeviationAggregation::new
+                    Signature.builder(name, FunctionType.AGGREGATE)
+                        .argumentTypes(supportedType.getTypeSignature())
+                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .features(Scalar.Feature.DETERMINISTIC)
+                        .forbidCoercion()
+                        .build(),
+                    StandardDeviationAggregation::new
                 );
             }
         }

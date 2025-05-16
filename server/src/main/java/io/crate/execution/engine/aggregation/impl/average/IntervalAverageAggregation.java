@@ -69,12 +69,13 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
     public static void register(Functions.Builder builder) {
         for (var functionName : NAMES) {
             builder.add(
-                    Signature.builder(functionName, FunctionType.AGGREGATE)
-                            .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
-                            .returnType(DataTypes.INTERVAL.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                    IntervalAverageAggregation::new
+                Signature.builder(functionName, FunctionType.AGGREGATE)
+                    .returnType(DataTypes.INTERVAL.getTypeSignature())
+                    .argumentTypes(DataTypes.INTERVAL.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
+                IntervalAverageAggregation::new
             );
         }
     }

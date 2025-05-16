@@ -67,21 +67,23 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
         .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
         .returnType(DataTypes.NUMERIC.getTypeSignature())
         .features(Scalar.Feature.DETERMINISTIC)
+        .forbidCoercion()
         .build();
 
     public static void register(Functions.Builder builder) {
         for (var supportedType : DataTypes.PRIMITIVE_TYPES) {
             var fixedWidthType = supportedType instanceof FixedWidthType;
             builder.add(
-                    Signature.builder(NAME, FunctionType.AGGREGATE)
-                            .argumentTypes(supportedType.getTypeSignature())
-                            .returnType(supportedType.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                    (signature, boundSignature) ->
-                            fixedWidthType
-                                    ? new FixedMaximumAggregation(signature, boundSignature)
-                                    : new VariableMaximumAggregation(signature, boundSignature)
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(supportedType.getTypeSignature())
+                    .returnType(supportedType.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
+                (signature, boundSignature) ->
+                    fixedWidthType
+                        ? new FixedMaximumAggregation(signature, boundSignature)
+                        : new VariableMaximumAggregation(signature, boundSignature)
             );
         }
         builder.add(NUMERIC_SIG, VariableMaximumAggregation::new);

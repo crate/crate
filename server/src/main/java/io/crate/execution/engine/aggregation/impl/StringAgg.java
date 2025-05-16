@@ -54,11 +54,13 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     private static final String NAME = "string_agg";
     public static final Signature SIGNATURE =
             Signature.builder(NAME, FunctionType.AGGREGATE)
-                    .argumentTypes(DataTypes.STRING.getTypeSignature(),
-                            DataTypes.STRING.getTypeSignature())
-                    .returnType(DataTypes.STRING.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
-                    .build();
+                .argumentTypes(
+                    DataTypes.STRING.getTypeSignature(),
+                    DataTypes.STRING.getTypeSignature())
+                .returnType(DataTypes.STRING.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .forbidCoercion()
+                .build();
 
 
     private static final int LIST_ENTRY_OVERHEAD = 32;

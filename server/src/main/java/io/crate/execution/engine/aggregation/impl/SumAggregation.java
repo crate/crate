@@ -73,30 +73,33 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
 
         builder.add(
                 Signature.builder(NAME, FunctionType.AGGREGATE)
-                        .argumentTypes(DataTypes.FLOAT.getTypeSignature())
-                        .returnType(DataTypes.FLOAT.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
-                        .build(),
+                    .argumentTypes(DataTypes.FLOAT.getTypeSignature())
+                    .returnType(DataTypes.FLOAT.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
                 getSumAggregationForFloatFactory()
         );
         builder.add(
                 Signature.builder(NAME, FunctionType.AGGREGATE)
-                        .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
-                        .returnType(DataTypes.DOUBLE.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
-                        .build(),
+                    .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
                 getSumAggregationForDoubleFactory()
         );
 
         for (var supportedType : List.of(DataTypes.BYTE, DataTypes.SHORT, DataTypes.INTEGER, DataTypes.LONG)) {
             builder.add(
-                    Signature.builder(NAME, FunctionType.AGGREGATE)
-                            .argumentTypes(supportedType.getTypeSignature())
-                            .returnType(DataTypes.LONG.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                    (signature, boundSignature) ->
-                            new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(supportedType.getTypeSignature())
+                    .returnType(DataTypes.LONG.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .forbidCoercion()
+                    .build(),
+                (signature, boundSignature) ->
+                    new SumAggregation<>(DataTypes.LONG, add, sub, signature, boundSignature)
             );
         }
     }
