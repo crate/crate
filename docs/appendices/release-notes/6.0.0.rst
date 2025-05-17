@@ -239,6 +239,9 @@ SQL Statements
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Added the :ref:`starts_with <scalar-starts_with>` scalar function, which
+  returns true if a string starts with a given prefix.
+
 - Added support for lower case format patterns to the
   :ref:`to_char <scalar-to_char>` scalar function.
 

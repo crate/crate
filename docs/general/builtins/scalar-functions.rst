@@ -679,6 +679,39 @@ Examples::
     SELECT 1 row in set (... sec)
 
 
+.. _scalar-starts_with:
+
+``starts_with(text, prefix)``
+-----------------------------
+
+Returns ``true`` if the string ``text`` starts with the string ``prefix``,
+otherwise ``false``. Returns ``NULL`` if any argument is ``NULL``.
+
+Returns: ``boolean``
+
+Synopsis::
+
+    starts_with(text, prefix)
+
+Examples::
+
+    cr> select starts_with('crate.io', 'crate') AS col;
+    +------+
+    | col  |
+    +------+
+    | TRUE |
+    +------+
+    SELECT 1 row in set (... sec)
+
+    cr> select starts_with('crate.io', 'io') AS col;
+    +-------+
+    | col   |
+    +-------+
+    | FALSE |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+
 .. _scalar-lpad:
 
 ``lpad('string1', len[, 'string2'])``
