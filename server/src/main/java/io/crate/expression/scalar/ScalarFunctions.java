@@ -84,6 +84,7 @@ import io.crate.expression.scalar.string.StringPaddingFunction;
 import io.crate.expression.scalar.string.StringPositionFunction;
 import io.crate.expression.scalar.string.StringRepeatFunction;
 import io.crate.expression.scalar.string.StringSplitPartFunction;
+import io.crate.expression.scalar.string.StartsWithFunction;
 import io.crate.expression.scalar.string.TranslateFunction;
 import io.crate.expression.scalar.string.TrimFunctions;
 import io.crate.expression.scalar.systeminformation.ColDescriptionFunction;
@@ -179,6 +180,7 @@ public class ScalarFunctions implements FunctionsProvider {
         StringPositionFunction.register(builder);
         StringRepeatFunction.register(builder);
         StringSplitPartFunction.register(builder);
+        StartsWithFunction.register(builder);
         ChrFunction.register(builder);
         GenRandomTextUUIDFunction.register(builder);
         ReverseFunction.register(builder);
