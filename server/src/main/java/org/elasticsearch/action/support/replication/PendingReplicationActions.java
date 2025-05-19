@@ -25,10 +25,12 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.shard.IndexShardClosedException;
+import org.elasticsearch.index.shard.PrimaryShardClosedException;
 import org.elasticsearch.index.shard.ReplicationGroup;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -97,7 +99,7 @@ public class PendingReplicationActions implements Consumer<ReplicationGroup>, Re
             }
         }
 
-        cancelActions(toCancel, "Replica left ReplicationGroup");
+        cancelActions(toCancel, () -> new IndexShardClosedException(shardId, "Replica left ReplicationGroup"));
     }
 
     @Override
@@ -105,12 +107,13 @@ public class PendingReplicationActions implements Consumer<ReplicationGroup>, Re
         ArrayList<Set<RetryableAction<?>>> toCancel = new ArrayList<>(onGoingReplicationActions.values());
         onGoingReplicationActions.clear();
 
-        cancelActions(toCancel, "Primary closed.");
+        cancelActions(toCancel, () -> new PrimaryShardClosedException(shardId));
     }
 
-    private void cancelActions(ArrayList<Set<RetryableAction<?>>> toCancel, String message) {
-        threadPool.executor(ThreadPool.Names.GENERIC).execute(() -> toCancel.stream()
+    private void cancelActions(ArrayList<Set<RetryableAction<?>>> toCancel, Supplier<IndexShardClosedException> exceptionSupplier) {
+        threadPool.executor(ThreadPool.Names.GENERIC)
+            .execute(() -> toCancel.stream()
             .flatMap(Collection::stream)
-            .forEach(action -> action.cancel(new IndexShardClosedException(shardId, message))));
+            .forEach(action -> action.cancel(exceptionSupplier.get())));
     }
 }
