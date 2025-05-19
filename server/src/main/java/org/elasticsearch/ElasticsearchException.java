@@ -38,6 +38,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.LoggerMessageFormat;
 import org.elasticsearch.index.Index;
+import org.elasticsearch.index.shard.PrimaryShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TcpTransport;
@@ -747,6 +748,12 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
             RoleUnknownException::new,
             181,
             Version.V_5_7_0
+        ),
+        PRIMARY_SHARD_CLOSED_EXCEPTION(
+            PrimaryShardClosedException.class,
+            PrimaryShardClosedException::new,
+            182,
+            Version.V_6_0_0
         );
 
         final Class<? extends ElasticsearchException> exceptionClass;

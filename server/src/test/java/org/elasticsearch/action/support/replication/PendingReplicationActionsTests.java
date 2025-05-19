@@ -28,6 +28,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.shard.IndexShardClosedException;
+import org.elasticsearch.index.shard.PrimaryShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
@@ -98,7 +99,7 @@ public class PendingReplicationActionsTests extends ESTestCase {
         pendingReplication.addPendingAction(allocationId, action);
         action.run();
         pendingReplication.close();
-        assertThatThrownBy(future::get).hasCauseExactlyInstanceOf(IndexShardClosedException.class);
+        assertThatThrownBy(future::get).hasCauseExactlyInstanceOf(PrimaryShardClosedException.class);
     }
 
     private class TestAction extends RetryableAction<Void> {
