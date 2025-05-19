@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Optional;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -1570,44 +1569,35 @@ public class InternalEngine extends Engine {
         final long seqNo = noOp.seqNo();
         try (Releasable ignored = noOpKeyedLock.acquire(seqNo)) {
             NoOpResult noOpResult;
-            final Optional<Exception> preFlightError = preFlightCheckForNoOp(noOp);
-            if (preFlightError.isPresent()) {
-                noOpResult = new NoOpResult(
-                    SequenceNumbers.UNASSIGNED_PRIMARY_TERM,
-                    SequenceNumbers.UNASSIGNED_SEQ_NO,
-                    preFlightError.get()
-                );
-            } else {
-                markSeqNoAsSeen(noOp.seqNo());
-                if (hasBeenProcessedBefore(noOp) == false) {
-                    try {
-                        final ParsedDocument tombstone = engineConfig.getTombstoneDocSupplier().newNoopTombstoneDoc(noOp.reason());
-                        tombstone.updateSeqID(noOp.seqNo(), noOp.primaryTerm());
-                        // A noop tombstone does not require a _version but it's added to have a fully dense docvalues for the version field.
-                        // 1L is selected to optimize the compression because it might probably be the most common value in version field.
-                        tombstone.version().setLongValue(1L);
-                        final Document doc = tombstone.doc();
-                        assert doc.getField(SysColumns.Names.TOMBSTONE) != null
-                            : "Noop tombstone document but _tombstone field is not set [" + doc + " ]";
-                        doc.add(softDeletesField);
-                        indexWriter.addDocument(doc);
-                    } catch (final Exception ex) {
-                        /*
-                         * Document level failures when adding a no-op are unexpected, we likely hit something fatal such as the Lucene
-                         * index being corrupt, or the Lucene document limit. We have already issued a sequence number here so this is
-                         * fatal, fail the engine.
-                         */
-                        if (ex instanceof AlreadyClosedException == false && indexWriter.getTragicException() == null) {
-                            failEngine("no-op origin[" + noOp.origin() + "] seq#[" + noOp.seqNo() + "] failed at document level", ex);
-                        }
-                        throw ex;
+            markSeqNoAsSeen(noOp.seqNo());
+            if (hasBeenProcessedBefore(noOp) == false) {
+                try {
+                    final ParsedDocument tombstone = engineConfig.getTombstoneDocSupplier().newNoopTombstoneDoc(noOp.reason());
+                    tombstone.updateSeqID(noOp.seqNo(), noOp.primaryTerm());
+                    // A noop tombstone does not require a _version but it's added to have a fully dense docvalues for the version field.
+                    // 1L is selected to optimize the compression because it might probably be the most common value in version field.
+                    tombstone.version().setLongValue(1L);
+                    final Document doc = tombstone.doc();
+                    assert doc.getField(SysColumns.Names.TOMBSTONE) != null
+                        : "Noop tombstone document but _tombstone field is not set [" + doc + " ]";
+                    doc.add(softDeletesField);
+                    indexWriter.addDocument(doc);
+                } catch (final Exception ex) {
+                    /*
+                     * Document level failures when adding a no-op are unexpected, we likely hit something fatal such as the Lucene
+                     * index being corrupt, or the Lucene document limit. We have already issued a sequence number here so this is
+                     * fatal, fail the engine.
+                     */
+                    if (ex instanceof AlreadyClosedException == false && indexWriter.getTragicException() == null) {
+                        failEngine("no-op origin[" + noOp.origin() + "] seq#[" + noOp.seqNo() + "] failed at document level", ex);
                     }
+                    throw ex;
                 }
-                noOpResult = new NoOpResult(noOp.primaryTerm(), noOp.seqNo());
-                if (noOp.origin().isFromTranslog() == false && noOpResult.getResultType() == Result.Type.SUCCESS) {
-                    final Translog.Location location = translog.add(new Translog.NoOp(noOp.seqNo(), noOp.primaryTerm(), noOp.reason()));
-                    noOpResult.setTranslogLocation(location);
-                }
+            }
+            noOpResult = new NoOpResult(noOp.primaryTerm(), noOp.seqNo());
+            if (noOp.origin().isFromTranslog() == false && noOpResult.getResultType() == Result.Type.SUCCESS) {
+                final Translog.Location location = translog.add(new Translog.NoOp(noOp.seqNo(), noOp.primaryTerm(), noOp.reason()));
+                noOpResult.setTranslogLocation(location);
             }
             localCheckpointTracker.markSeqNoAsProcessed(noOpResult.getSeqNo());
             if (noOpResult.getTranslogLocation() == null) {
@@ -1618,14 +1608,6 @@ public class InternalEngine extends Engine {
             noOpResult.freeze();
             return noOpResult;
         }
-    }
-
-    /**
-     * Executes a pre-flight check for a given NoOp.
-     * If this method returns a non-empty result, the engine won't process this NoOp and returns a failure.
-     */
-    protected Optional<Exception> preFlightCheckForNoOp(final NoOp noOp) throws IOException {
-        return Optional.empty();
     }
 
     @Override
