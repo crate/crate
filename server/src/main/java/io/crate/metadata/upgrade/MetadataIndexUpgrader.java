@@ -46,7 +46,7 @@ import io.crate.types.ObjectType;
 
 public class MetadataIndexUpgrader {
 
-    public IndexMetadata upgrade(IndexMetadata indexMetadata, IndexTemplateMetadata indexTemplateMetadata) {
+    public IndexMetadata upgrade(IndexMetadata indexMetadata, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
         return createUpdatedIndexMetadata(indexMetadata, indexTemplateMetadata);
     }
 
