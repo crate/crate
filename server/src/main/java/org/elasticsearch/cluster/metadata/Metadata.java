@@ -344,6 +344,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return this.indices;
     }
 
+    @Deprecated
     public ImmutableOpenMap<String, IndexTemplateMetadata> templates() {
         return this.templates;
     }
@@ -758,10 +759,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        public Builder put(IndexTemplateMetadata.Builder template) {
-            return put(template.build());
-        }
-
+        // Still required for BWC, can be removed once rolling upgrade from 5.x isn't supported anymore
+        @Deprecated
         public Builder put(IndexTemplateMetadata template) {
             templates.put(template.name(), template);
             return this;
@@ -834,15 +833,18 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             schemas.put(schema, new SchemaMetadata(relations));
         }
 
+        @Deprecated
         public IndexTemplateMetadata getTemplate(String templateName) {
             return templates.get(templateName);
         }
 
+        @Deprecated
         public Builder removeTemplate(String templateName) {
             templates.remove(templateName);
             return this;
         }
 
+        @Deprecated
         public Builder templates(ImmutableOpenMap<String, IndexTemplateMetadata> templates) {
             this.templates.putAll(templates);
             return this;

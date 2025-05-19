@@ -37,7 +37,6 @@ import java.util.stream.StreamSupport;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -180,14 +179,8 @@ public class DocSchemaInfo implements SchemaInfo {
         if (relation instanceof RelationMetadata.Table table) {
             return table.tableVersion();
         }
-        String templateName = PartitionName.templateName(name.schema(), name.name());
-        IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-        if (indexTemplateMetadata == null) {
-            IndexMetadata index = metadata.index(name.indexNameOrAlias());
-            return index == null ? 0 : index.getVersion();
-        } else {
-            return indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
-        }
+        // Should never be reached
+        throw new UnsupportedOperationException("Table version not available for " + name + " of type " + relation);
     }
 
     private Collection<String> tableNames() {

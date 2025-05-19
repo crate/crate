@@ -87,7 +87,7 @@ public class MetadataUpgradeService {
      * cannot be updated the method throws an exception.
      */
     public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
-                                              IndexTemplateMetadata indexTemplateMetadata,
+                                              @Nullable IndexTemplateMetadata indexTemplateMetadata,
                                               Version minimumIndexCompatibilityVersion,
                                               @Nullable UserDefinedFunctionsMetadata userDefinedFunctionsMetadata) {
         // Throws an exception if there are too-old segments:
