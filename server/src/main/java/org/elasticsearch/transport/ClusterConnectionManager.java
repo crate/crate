@@ -19,10 +19,8 @@
 
 package org.elasticsearch.transport;
 
-import java.util.Collections;
 import java.util.Iterator;
 import java.util.Map;
-import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -222,31 +220,15 @@ public class ClusterConnectionManager implements ConnectionManager {
     }
 
     @Override
-    public Set<DiscoveryNode> getAllConnectedNodes() {
-        return Collections.unmodifiableSet(connectedNodes.keySet());
-    }
-
-    @Override
     public void close() {
-        internalClose(true);
-    }
-
-    @Override
-    public void closeNoBlock() {
-        internalClose(false);
-    }
-
-    private void internalClose(boolean waitForPendingConnections) {
         assert Transports.assertNotTransportThread("Closing ConnectionManager");
         if (closing.compareAndSet(false, true)) {
             connectingRefCounter.decRef();
-            if (waitForPendingConnections) {
-                try {
-                    closeLatch.await();
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    throw new IllegalStateException(e);
-                }
+            try {
+                closeLatch.await();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                throw new IllegalStateException(e);
             }
         }
     }
@@ -275,10 +257,4 @@ public class ClusterConnectionManager implements ConnectionManager {
             future.completeExceptionally(e);
         }
     }
-
-    @Override
-    public ConnectionProfile getConnectionProfile() {
-        return defaultProfile;
-    }
-
 }
