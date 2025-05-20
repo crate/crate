@@ -35,9 +35,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.transport.MockTransport;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.Test;
 
 public class TransportServiceDeserializationFailureTests extends ESTestCase {
 
+    @Test
     public void testDeserializationFailureLogIdentifiesListener() {
         final DiscoveryNode localNode = new DiscoveryNode("local", buildNewFakeTransportAddress(), Version.CURRENT);
         final DiscoveryNode otherNode = new DiscoveryNode("other", buildNewFakeTransportAddress(), Version.CURRENT);
@@ -141,7 +143,7 @@ public class TransportServiceDeserializationFailureTests extends ESTestCase {
                     = transport.getResponseHandlers().prune(ignored -> true);
             assertThat(responseContexts).hasSize(1);
             final TransportResponseHandler<? extends TransportResponse> handler = responseContexts.get(0).handler();
-            assertThat(handler.toString()).contains("test handler with parent", testActionName);
+            assertThat(handler.toString()).endsWith("test handler with parent");
         }
     }
 

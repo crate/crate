@@ -100,7 +100,7 @@ public class LocalAllocateDangledIndices {
             masterNode,
             ACTION_NAME,
             request,
-            new ActionListenerResponseHandler<>(listener, AllocateDangledResponse::new, ThreadPool.Names.SAME)
+            new ActionListenerResponseHandler<>(ACTION_NAME, listener, AllocateDangledResponse::new, ThreadPool.Names.SAME)
         );
     }
 

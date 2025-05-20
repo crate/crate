@@ -176,7 +176,7 @@ public class JoinHelperTests extends ESTestCase {
         final PlainFuture<TransportResponse.Empty> future = new PlainFuture<>();
         transportService.sendRequest(localNode, actionName,
             new ValidateJoinRequest(otherClusterState),
-            new ActionListenerResponseHandler<>(future, in -> TransportResponse.Empty.INSTANCE));
+            new ActionListenerResponseHandler<>(actionName, future, in -> TransportResponse.Empty.INSTANCE));
         deterministicTaskQueue.runAllTasks();
 
         assertThatThrownBy(future::get)

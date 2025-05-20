@@ -115,7 +115,11 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             BlobRecoveryTarget.Actions.START_PREFIX,
             new BlobStartPrefixSyncRequest(request.recoveryId(), request.shardId(), prefix),
             TransportRequestOptions.EMPTY,
-            new ActionListenerResponseHandler<>(listener, BlobStartPrefixResponse::new)
+            new ActionListenerResponseHandler<>(
+                BlobRecoveryTarget.Actions.START_PREFIX,
+                listener,
+                BlobStartPrefixResponse::new
+            )
         );
         BlobStartPrefixResponse response = FutureUtils.get(listener);
 
@@ -217,7 +221,11 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             BlobRecoveryTarget.Actions.DELETE_FILE,
             new BlobRecoveryDeleteRequest(request.recoveryId(), digests),
             TransportRequestOptions.EMPTY,
-            new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+            new ActionListenerResponseHandler<>(
+                BlobRecoveryTarget.Actions.DELETE_FILE,
+                listener,
+                _ -> TransportResponse.Empty.INSTANCE
+            )
         );
         FutureUtils.get(listener);
     }
@@ -229,7 +237,11 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             BlobRecoveryTarget.Actions.FINALIZE_RECOVERY,
             new BlobFinalizeRecoveryRequest(request.recoveryId()),
             TransportRequestOptions.EMPTY,
-            new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+            new ActionListenerResponseHandler<>(
+                BlobRecoveryTarget.Actions.FINALIZE_RECOVERY,
+                listener,
+                _ -> TransportResponse.Empty.INSTANCE
+            )
         );
         FutureUtils.get(listener);
     }
@@ -241,7 +253,11 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             BlobRecoveryTarget.Actions.START_RECOVERY,
             new BlobStartRecoveryRequest(request.recoveryId(), request.shardId()),
             TransportRequestOptions.EMPTY,
-            new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+            new ActionListenerResponseHandler<>(
+                BlobRecoveryTarget.Actions.START_RECOVERY,
+                listener,
+                _ -> TransportResponse.Empty.INSTANCE
+            )
         );
         FutureUtils.get(listener);
     }
@@ -300,7 +316,11 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                             BlobRecoveryTarget.Actions.START_TRANSFER,
                             startTransferRequest,
                             TransportRequestOptions.EMPTY,
-                            new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+                            new ActionListenerResponseHandler<>(
+                                BlobRecoveryTarget.Actions.START_TRANSFER,
+                                listener,
+                                _ -> TransportResponse.Empty.INSTANCE
+                            )
                         );
                         FutureUtils.get(listener);
 
@@ -326,7 +346,11 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                 new BlobRecoveryChunkRequest(request.recoveryId(),
                                     startTransferRequest.transferId(), content, isLast),
                                 TransportRequestOptions.EMPTY,
-                                new ActionListenerResponseHandler<>(transferChunkListener, in -> TransportResponse.Empty.INSTANCE)
+                                new ActionListenerResponseHandler<>(
+                                    BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
+                                    transferChunkListener,
+                                    _ -> TransportResponse.Empty.INSTANCE
+                                )
                             );
                             FutureUtils.get(transferChunkListener);
                         }
@@ -340,7 +364,11 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                 new BlobRecoveryChunkRequest(request.recoveryId(),
                                     startTransferRequest.transferId(), BytesArray.EMPTY, true),
                                 TransportRequestOptions.EMPTY,
-                                new ActionListenerResponseHandler<>(transferMissingChunkListener, in -> TransportResponse.Empty.INSTANCE)
+                                new ActionListenerResponseHandler<>(
+                                    BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
+                                    transferMissingChunkListener,
+                                    _ -> TransportResponse.Empty.INSTANCE
+                                )
                             );
                             FutureUtils.get(transferMissingChunkListener);
                         }

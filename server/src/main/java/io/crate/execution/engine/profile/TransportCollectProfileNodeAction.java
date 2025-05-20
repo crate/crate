@@ -21,11 +21,10 @@
 
 package io.crate.execution.engine.profile;
 
-import io.crate.execution.jobs.RootTask;
-import io.crate.execution.jobs.TasksService;
-import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.execution.support.NodeRequest;
-import io.crate.execution.support.Transports;
+import java.util.Collections;
+import java.util.Map;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
@@ -35,10 +34,11 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.Collections;
-import java.util.Map;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
+import io.crate.execution.jobs.RootTask;
+import io.crate.execution.jobs.TasksService;
+import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.execution.support.NodeRequest;
+import io.crate.execution.support.Transports;
 
 /**
  * Transport action to collect profiling results from the {@link RootTask}.
@@ -98,7 +98,7 @@ public class TransportCollectProfileNodeAction extends TransportAction<NodeReque
             request.nodeId(),
             request.innerRequest(),
             listener,
-            new ActionListenerResponseHandler<>(listener, NodeCollectProfileResponse::new)
+            new ActionListenerResponseHandler<>(CollectProfileNodeAction.NAME, listener, NodeCollectProfileResponse::new)
         );
     }
 }

@@ -82,7 +82,7 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
             request.nodeId(),
             request.innerRequest(),
             listener,
-            new ActionListenerResponseHandler<>(listener, JobResponse::new)
+            new ActionListenerResponseHandler<>(JobAction.NAME, listener, JobResponse::new)
         );
     }
 

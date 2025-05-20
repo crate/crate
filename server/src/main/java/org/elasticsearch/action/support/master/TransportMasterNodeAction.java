@@ -183,8 +183,11 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                     } else {
                         DiscoveryNode masterNode = nodes.getMasterNode();
                         final String actionName = getMasterActionName(masterNode);
-                        transportService.sendRequest(masterNode, actionName, request, new ActionListenerResponseHandler<Response>(listener,
-                            TransportMasterNodeAction.this::read) {
+                        ActionListenerResponseHandler<Response> handler = new ActionListenerResponseHandler<Response>(
+                                actionName,
+                                listener,
+                                TransportMasterNodeAction.this::read) {
+
                             @Override
                             public void handleException(final TransportException exp) {
                                 Throwable cause = exp.unwrapCause();
@@ -199,7 +202,8 @@ public abstract class TransportMasterNodeAction<Request extends MasterNodeReques
                                     listener.onFailure(exp);
                                 }
                             }
-                        });
+                        };
+                        transportService.sendRequest(masterNode, actionName, request, handler);
                     }
                 }
             } catch (Exception e) {

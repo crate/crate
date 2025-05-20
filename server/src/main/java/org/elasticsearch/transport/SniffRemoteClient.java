@@ -309,7 +309,7 @@ public final class SniffRemoteClient extends AbstractClient {
                 action.name(),
                 request,
                 TransportRequestOptions.EMPTY,
-                new ActionListenerResponseHandler<>(future, action.getResponseReader())
+                new ActionListenerResponseHandler<>(action.name(), future, action.getResponseReader())
             );
             return future;
         });

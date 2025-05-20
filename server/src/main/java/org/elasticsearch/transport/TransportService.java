@@ -358,6 +358,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             HandshakeRequest.INSTANCE,
             TransportRequestOptions.builder().withTimeout(handshakeTimeout).build(),
             new ActionListenerResponseHandler<>(
+                HANDSHAKE_ACTION_NAME,
                 new ActionListener<>() {
 
                     @Override
@@ -495,45 +496,14 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                 final TransportRequestOptions options,
                                                                 final TransportResponseHandler<T> handler) {
         try {
-
-            final TransportResponseHandler<T> delegate = new TransportResponseHandler<>() {
-                @Override
-                public T read(StreamInput in) throws IOException {
-                    return handler.read(in);
-                }
-
-                @Override
-                public void handleResponse(T response) {
-                    handler.handleResponse(response);
-
-                }
-
-                @Override
-                public void handleException(TransportException exp) {
-                    handler.handleException(exp);
-                }
-
-                @Override
-                public String executor() {
-                    return handler.executor();
-                }
-
-                @Override
-                public String toString() {
-                    return getClass().getName() + "/[" + action + "]:" + handler.toString();
-                }
-            };
-
-            sendRequestInternal(connection, action, request, options, delegate);
+            sendRequestInternal(connection, action, request, options, handler);
         } catch (final Exception ex) {
             // the caller might not handle this so we invoke the handler
-            final TransportException te;
             if (ex instanceof TransportException transportException) {
-                te = transportException;
+                handler.handleException(transportException);
             } else {
-                te = new TransportException("failure to send", ex);
+                handler.handleException(new TransportException("failed to send", ex));
             }
-            handler.handleException(te);
         }
     }
 
@@ -707,7 +677,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      *
      * @see #VALID_ACTION_PREFIXES
      */
-    public static boolean isValidActionName(String actionName) {
+    private static boolean isValidActionName(String actionName) {
         for (String prefix : VALID_ACTION_PREFIXES) {
             if (actionName.startsWith(prefix)) {
                 return true;
