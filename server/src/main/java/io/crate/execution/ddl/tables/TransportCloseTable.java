@@ -190,7 +190,8 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 table.primaryKeys(),
                 table.partitionedBy(),
                 State.CLOSE,
-                table.indexUUIDs()
+                table.indexUUIDs(),
+                table.tableVersion() + 1
             );
         } else {
             PartitionName partitionName = new PartitionName(target.table(), partitionValues);

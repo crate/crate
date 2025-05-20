@@ -86,7 +86,8 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
                 table.primaryKeys(),
                 table.partitionedBy(),
                 State.OPEN,
-                table.indexUUIDs()
+                table.indexUUIDs(),
+                table.tableVersion() + 1
             );
         } else if (closedIndices.isEmpty() && templateMetadata == null) {
             return currentState;

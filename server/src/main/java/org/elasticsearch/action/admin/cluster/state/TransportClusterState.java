@@ -205,7 +205,8 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
                             table.primaryKeys(),
                             table.partitionedBy(),
                             table.state(),
-                            table.indexUUIDs()
+                            table.indexUUIDs(),
+                            table.tableVersion()
                         );
                         for (String indexUUID : table.indexUUIDs()) {
                             IndexMetadata indexMetadata = currentState.metadata().indexByUUID(indexUUID);

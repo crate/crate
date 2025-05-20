@@ -172,7 +172,9 @@ public class GatewayMetaStateTests extends ESTestCase {
                     List.of(),
                     List.of(),
                     IndexMetadata.State.OPEN,
-                    List.of());
+                    List.of(),
+                    0
+                );
             }
         }
         return builder.build();

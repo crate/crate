@@ -1111,7 +1111,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
          * </p>
          *
          * oidSupplier is only parameterized for testing.
-         * For production code use {@link #setTable(RelationName, List, Settings, ColumnIdent, ColumnPolicy, String, Map, List, List, State, List)
+         * For production code use {@link #setTable(RelationName, List, Settings, ColumnIdent, ColumnPolicy, String, Map, List, List, State, List, long)
          **/
         @VisibleForTesting
         public Builder setTable(LongSupplier oidSupplier,
@@ -1125,7 +1125,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                                 List<ColumnIdent> primaryKeys,
                                 List<ColumnIdent> partitionedBy,
                                 State state,
-                                List<String> indexUUIDs) {
+                                List<String> indexUUIDs,
+                                long tableVersion) {
             AtomicInteger positions = new AtomicInteger(0);
             Map<ColumnIdent, Reference> columnMap = columns.stream()
                 .filter(ref -> !ref.isDropped())
@@ -1164,7 +1165,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 primaryKeys,
                 partitionedBy,
                 state,
-                indexUUIDs
+                indexUUIDs,
+                tableVersion
             );
             setRelation(table);
             return this;
@@ -1183,7 +1185,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                                 List<ColumnIdent> primaryKeys,
                                 List<ColumnIdent> partitionedBy,
                                 State state,
-                                List<String> indexUUIDs) {
+                                List<String> indexUUIDs,
+                                long tableVersion) {
             return setTable(
                 columnOidSupplier,
                 relationName,
@@ -1196,7 +1199,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 primaryKeys,
                 partitionedBy,
                 state,
-                indexUUIDs
+                indexUUIDs,
+                tableVersion
             );
         }
     }

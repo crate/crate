@@ -111,7 +111,8 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                     table.primaryKeys(),
                     table.partitionedBy(),
                     table.state(),
-                    table.indexUUIDs()
+                    table.indexUUIDs(),
+                    table.tableVersion() + 1
                 );
             }
         }

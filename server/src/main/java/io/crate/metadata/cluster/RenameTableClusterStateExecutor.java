@@ -157,7 +157,8 @@ public class RenameTableClusterStateExecutor {
                     table.primaryKeys(),
                     table.partitionedBy(),
                     table.state(),
-                    table.indexUUIDs()
+                    table.indexUUIDs(),
+                    table.tableVersion() + 1
                 );
         }
         ClusterState clusterStateAfterRename = ClusterState.builder(currentState)

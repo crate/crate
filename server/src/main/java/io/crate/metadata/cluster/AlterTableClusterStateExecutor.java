@@ -106,7 +106,9 @@ public class AlterTableClusterStateExecutor extends DDLClusterStateTaskExecutor<
                 table.primaryKeys(),
                 table.partitionedBy(),
                 table.state(),
-                table.indexUUIDs());
+                table.indexUUIDs(),
+                table.tableVersion() + 1
+            );
             currentState = ClusterState.builder(currentState)
                 .metadata(newMetadata)
                 .build();

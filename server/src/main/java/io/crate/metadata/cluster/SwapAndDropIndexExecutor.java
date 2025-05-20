@@ -100,7 +100,8 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
                 table.primaryKeys(),
                 table.partitionedBy(),
                 table.state(),
-                newUUIDs
+                newUUIDs,
+                table.tableVersion() + 1
             );
         }
 
