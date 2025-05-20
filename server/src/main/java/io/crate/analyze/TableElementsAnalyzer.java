@@ -516,7 +516,13 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     parentBuilder.builtReference = parentRef;
                     columns.put(parent, parentBuilder);
                 } else {
-                    columns.put(parent, new RefBuilder(parent, ObjectType.UNTYPED));
+                    /*
+                      Parent can be missing in the table, but present in the same statement, e.g.:
+                      ALTER TABLE tbl
+                        ADD COLUMN obj['arr'] array(object(dynamic)),
+                        ADD COLUMN obj['arr']['id'] integer
+                     */
+                    columns.computeIfAbsent(parent, _ -> new RefBuilder(parent, ObjectType.UNTYPED));
                 }
             }
             Reference reference = table.getReference(columnName);
