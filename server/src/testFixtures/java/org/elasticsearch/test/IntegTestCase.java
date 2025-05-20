@@ -1421,7 +1421,9 @@ public abstract class IntegTestCase extends ESTestCase {
                     throw new RuntimeException(ex);
                 }
             }
-            throw new AssertionError(errorMessageBuilder.toString(), e);
+            String errMsg = errorMessageBuilder.toString();
+            LOGGER.error("Open jobs={}", errMsg);
+            throw new AssertionError(errMsg, e);
         }
     }
 

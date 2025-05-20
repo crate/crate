@@ -573,7 +573,8 @@ public class RestoreService implements ClusterStateApplier {
                         table.primaryKeys(),
                         table.partitionedBy(),
                         table.state(),
-                        Lists.concatUnique(existingTable.indexUUIDs(), indexUUIDs)
+                        Lists.concatUnique(existingTable.indexUUIDs(), indexUUIDs),
+                        table.tableVersion()
                     );
                 } else if (existingRelation == null) {
                     if (snapshotRelation instanceof RelationMetadata.Table table) {
@@ -588,7 +589,8 @@ public class RestoreService implements ClusterStateApplier {
                             table.primaryKeys(),
                             table.partitionedBy(),
                             table.state(),
-                            indexUUIDs
+                            indexUUIDs,
+                            table.tableVersion()
                         );
                     }
                 } else {

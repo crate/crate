@@ -28,13 +28,17 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.ConnectTransportException;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -66,6 +70,7 @@ public class DistributingConsumer implements RowConsumer {
     private final List<Downstream> downstreams;
     private final boolean traceEnabled;
     private final CompletableFuture<Void> completionFuture;
+    private final ThreadPool threadPool;
 
     @VisibleForTesting
     final long maxBytes;
@@ -83,7 +88,9 @@ public class DistributingConsumer implements RowConsumer {
                                 int bucketIdx,
                                 Collection<String> downstreamNodeIds,
                                 ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction,
-                                int pageSize) {
+                                int pageSize,
+                                ThreadPool threadPool) {
+        this.threadPool = threadPool;
         this.traceEnabled = LOGGER.isTraceEnabled();
         this.responseExecutor = responseExecutor;
         this.jobId = jobId;
@@ -130,7 +137,7 @@ public class DistributingConsumer implements RowConsumer {
             if (it.allLoaded()) {
                 forwardResults(it, true);
             } else {
-                it.loadNextBatch().whenComplete((r, t) -> {
+                it.loadNextBatch().whenComplete((_, t) -> {
                     if (t == null) {
                         consumeIt(it);
                     } else {
@@ -143,7 +150,7 @@ public class DistributingConsumer implements RowConsumer {
         }
     }
 
-    private void forwardFailure(@Nullable final BatchIterator<?> it, final Throwable f) {
+    private void forwardFailure(@Nullable final BatchIterator<Row> it, final Throwable f) {
         Throwable failure = SQLExceptions.unwrap(f); // make sure it's streamable
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         var builder = new DistributedResultRequest.Builder(jobId, targetPhaseId, inputId, bucketIdx, failure, false);
@@ -156,32 +163,19 @@ public class DistributingConsumer implements RowConsumer {
                     LOGGER.trace("forwardFailure targetNode={} jobId={} targetPhase={}/{} bucket={} failure={}",
                                  downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, failure);
                 }
-                distributedResultAction
-                    .execute(builder.build(downstream.nodeId))
-                    .whenComplete(
-                        (resp, t) -> {
-                            if (t == null) {
-                                downstream.needsMoreData = false;
-                                countdownAndMaybeCloseIt(numActiveRequests, it);
-                            } else {
-                                if (traceEnabled) {
-                                    LOGGER.trace(
-                                        "Error sending failure to downstream={} jobId={} targetPhase={}/{} bucket={} failure={}",
-                                        downstream.nodeId,
-                                        jobId,
-                                        targetPhaseId,
-                                        inputId,
-                                        bucketIdx,
-                                        t
-                                    );
-                                }
-                                countdownAndMaybeCloseIt(numActiveRequests, it);
-                            }
-                        }
-                    );
+                NodeRequest<DistributedResultRequest> request = builder.build(downstream.nodeId);
+                var responseHandler = new ResponseHandler(
+                    downstream,
+                    request,
+                    it,
+                    numActiveRequests,
+                    true
+                );
+                distributedResultAction.execute(request).whenComplete(responseHandler);
             }
         }
     }
+
 
     private void countdownAndMaybeCloseIt(AtomicInteger numActiveRequests, @Nullable BatchIterator<?> it) {
         if (numActiveRequests.decrementAndGet() == 0) {
@@ -205,35 +199,87 @@ public class DistributingConsumer implements RowConsumer {
                 LOGGER.trace("forwardResults targetNode={} jobId={} targetPhase={}/{} bucket={} isLast={}",
                              downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, isLast);
             }
-            distributedResultAction
-                .execute(
-                    DistributedResultRequest.of(
-                        downstream.nodeId,
-                        jobId,
-                        targetPhaseId,
-                        inputId,
-                        bucketIdx,
-                        buckets[i],
-                        isLast))
-                .whenComplete(
-                    (resp, t) -> {
-                        if (t == null) {
-                            downstream.needsMoreData = resp.needMore();
-                            countdownAndMaybeContinue(it, numActiveRequests, false);
-                        } else {
-                            LOGGER.trace(
-                                "Failure from downstream while sending result. job={} targetNode={} failure={}",
-                                jobId,
-                                downstream.nodeId,
-                                t
-                            );
-                            failure = t;
-                            downstream.needsMoreData = false;
-                            // continue because it's necessary to send something to downstreams still waiting for data
-                            countdownAndMaybeContinue(it, numActiveRequests, false);
-                        }
-                    }
-                );
+            NodeRequest<DistributedResultRequest> request = DistributedResultRequest.of(
+                downstream.nodeId,
+                jobId,
+                targetPhaseId,
+                inputId,
+                bucketIdx,
+                buckets[i],
+                isLast
+            );
+            var responseHandler = new ResponseHandler(
+                downstream,
+                request,
+                it,
+                numActiveRequests,
+                false
+            );
+            distributedResultAction.execute(request).whenComplete(responseHandler);
+        }
+    }
+
+    class ResponseHandler implements BiConsumer<DistributedResultResponse, Throwable> {
+
+        private final Downstream downstream;
+        private final NodeRequest<DistributedResultRequest> request;
+        private final BatchIterator<Row> it;
+        private final AtomicInteger numActiveRequests;
+        private int retry = 0;
+        private final boolean isFailureReq;
+
+        public ResponseHandler(Downstream downstream,
+                               NodeRequest<DistributedResultRequest> request,
+                               BatchIterator<Row> it,
+                               AtomicInteger numActiveRequests,
+                               boolean isFailureReq) {
+            this.downstream = downstream;
+            this.request = request;
+            this.it = it;
+            this.numActiveRequests = numActiveRequests;
+            this.isFailureReq = isFailureReq;
+        }
+
+        @Override
+        public void accept(DistributedResultResponse resp, Throwable err) {
+            if (err == null) {
+                if (isFailureReq) {
+                    downstream.needsMoreData = false;
+                    countdownAndMaybeCloseIt(numActiveRequests, it);
+                } else {
+                    downstream.needsMoreData = resp.needMore();
+                    countdownAndMaybeContinue(it, numActiveRequests, false);
+                }
+                return;
+            }
+            err = SQLExceptions.unwrap(err);
+            LOGGER.trace(
+                "Failure from downstream while sending result. job={} targetNode={} failure={}",
+                jobId,
+                downstream.nodeId,
+                err
+            );
+            if (err instanceof ConnectTransportException) {
+                if (retry < 10) {
+                    LOGGER.trace("Retry={} sending result due to {}", retry, err);
+                    retry++;
+
+                    threadPool.scheduleUnlessShuttingDown(
+                        TimeValue.timeValueMillis(retry * 200),
+                        ThreadPool.Names.SEARCH,
+                        () -> distributedResultAction.execute(request).whenComplete(this)
+                    );
+                    return;
+                }
+            }
+            failure = err;
+            downstream.needsMoreData = false;
+            // continue because it's necessary to send something to the other downstreams still waiting for data
+            if (isFailureReq) {
+                countdownAndMaybeCloseIt(numActiveRequests, it);
+            } else {
+                countdownAndMaybeContinue(it, numActiveRequests, false);
+            }
         }
     }
 
@@ -262,7 +308,7 @@ public class DistributingConsumer implements RowConsumer {
                 // or were able to send results to all downstreams. In either case, *this* operation succeeded and the
                 // downstreams need to deal with failures.
 
-                // The NodeDisconnectJobMonitorService takes care of node disconnects, so we don't have to manage
+                // The TasksService takes care of node disconnects, so we don't have to manage
                 // that scenario.
                 it.close();
                 completionFuture.complete(null);

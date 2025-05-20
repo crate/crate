@@ -213,7 +213,8 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                         request.primaryKeys(),
                         request.partitionedBy(),
                         State.OPEN,
-                        indexUUIDs
+                        indexUUIDs,
+                        0
                     );
                 return ClusterState.builder(newState).metadata(newMetadata).build();
             }

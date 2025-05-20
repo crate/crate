@@ -76,7 +76,6 @@ import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
 import io.crate.common.collections.Lists;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
@@ -324,7 +323,8 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                     table.primaryKeys(),
                     table.partitionedBy(),
                     table.state(),
-                    Lists.concatUnique(table.indexUUIDs(), indexUUIDs)
+                    Lists.concatUnique(table.indexUUIDs(), indexUUIDs),
+                    table.tableVersion() + 1
                 );
             }
 
@@ -381,18 +381,15 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
     }
 
     private static List<PartitionName> getPartitionsToCreate(ClusterState state, CreatePartitionsRequest request) {
+        Metadata metadata = state.metadata();
         ArrayList<PartitionName> partitions = new ArrayList<>(request.partitionValuesList().size());
         for (List<String> partitionValues : request.partitionValuesList()) {
-            PartitionName partition = new PartitionName(request.relationName(), partitionValues);
-            String indexName = partition.asIndexName();
-            if (state.metadata().hasIndex(indexName)) {
-                continue;
+            List<IndexMetadata> indices = metadata.getIndices(request.relationName(), partitionValues, true, imd -> imd);
+            if (indices.isEmpty()) {
+                PartitionName partition = new PartitionName(request.relationName(), partitionValues);
+                partitions.add(partition);
             }
-            if (state.routingTable().hasIndex(indexName)) {
-                continue;
-            }
-            IndexName.validate(indexName);
-            partitions.add(partition);
+            // else: exists already
         }
         return partitions;
     }
