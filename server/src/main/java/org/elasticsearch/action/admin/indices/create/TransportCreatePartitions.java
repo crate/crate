@@ -324,7 +324,8 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                     table.primaryKeys(),
                     table.partitionedBy(),
                     table.state(),
-                    Lists.concatUnique(table.indexUUIDs(), indexUUIDs)
+                    Lists.concatUnique(table.indexUUIDs(), indexUUIDs),
+                    table.tableVersion() + 1
                 );
             }
 

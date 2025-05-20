@@ -184,7 +184,8 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                         table.primaryKeys(),
                         table.partitionedBy(),
                         table.state(),
-                        table.indexUUIDs()
+                        table.indexUUIDs(),
+                        table.tableVersion()
                     );
                 }
                 return metadataBuilder.build();

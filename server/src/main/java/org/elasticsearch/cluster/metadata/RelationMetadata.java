@@ -100,7 +100,8 @@ public sealed interface RelationMetadata extends Writeable permits
                  List<ColumnIdent> primaryKeys,
                  List<ColumnIdent> partitionedBy,
                  IndexMetadata.State state,
-                 List<String> indexUUIDs) implements RelationMetadata {
+                 List<String> indexUUIDs,
+                 long tableVersion) implements RelationMetadata {
 
         private static final short ORD = 1;
 
@@ -122,6 +123,7 @@ public sealed interface RelationMetadata extends Writeable permits
             List<ColumnIdent> partitionedBy = in.readList(ColumnIdent::of);
             State state = in.readEnum(State.class);
             List<String> indexUUIDs = in.readStringList();
+            long tableVersion = in.readLong();
             return new Table(
                 name,
                 columns,
@@ -133,7 +135,8 @@ public sealed interface RelationMetadata extends Writeable permits
                 primaryKeys,
                 partitionedBy,
                 state,
-                indexUUIDs
+                indexUUIDs,
+                tableVersion
             );
         }
 
@@ -150,6 +153,7 @@ public sealed interface RelationMetadata extends Writeable permits
             out.writeList(partitionedBy);
             out.writeEnum(state);
             out.writeStringCollection(indexUUIDs);
+            out.writeLong(tableVersion);
         }
     }
 }

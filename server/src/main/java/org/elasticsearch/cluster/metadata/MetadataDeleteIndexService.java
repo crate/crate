@@ -137,7 +137,8 @@ public class MetadataDeleteIndexService {
                     table.primaryKeys(),
                     table.partitionedBy(),
                     table.state(),
-                    newIndexUUIDs
+                    newIndexUUIDs,
+                    table.tableVersion() + 1
                 );
             }
         }
