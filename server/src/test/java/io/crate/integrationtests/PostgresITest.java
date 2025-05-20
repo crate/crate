@@ -1026,7 +1026,7 @@ public class PostgresITest extends IntegTestCase {
     @Test
     public void test_getProcedureColumns() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
-            var results = conn.getMetaData().getProcedureColumns("", "", "", "");
+            var results = conn.getMetaData().getProcedureColumns(null, null, null, null);
             assertThat(results.next()).isTrue();
             assertThat(results.getString(3)).isEqualTo("_pg_expandarray");
         }
