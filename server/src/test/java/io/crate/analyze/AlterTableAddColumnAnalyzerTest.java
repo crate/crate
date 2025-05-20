@@ -22,7 +22,6 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -43,6 +42,7 @@ import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
 
 public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUnitTest {
@@ -238,5 +238,21 @@ public class AlterTableAddColumnAnalyzerTest extends CrateDummyClusterServiceUni
             .isExactlyInstanceOf(UnsupportedOperationException.class)
             .hasMessage("CHECK constraint on column `o1['o2']['b']` cannot refer to column `b`. Use full path to " +
                         "refer to a sub-column or a table check constraint instead");
+    }
+
+    // Tracks a bug: https://github.com/crate/crate/issues/17875
+    @Test
+    public void test_add_parent_and_child_columns_within_one_statement() throws Exception {
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl(obj object(dynamic))");
+
+        var addColumnRequest = analyze("alter table tbl " +
+                                       "add column obj['arr'] array(object(dynamic)), " +
+                                       "add column obj['arr']['id'] integer");
+        assertThat(addColumnRequest.references()).satisfiesExactly(
+            o1 -> assertThat(o1).hasName("obj"),
+            o1 -> assertThat(o1).hasName("obj['arr']").hasType(new ArrayType<>(DataTypes.UNTYPED_OBJECT)),
+            o1 -> assertThat(o1).hasName("obj['arr']['id']").hasType(DataTypes.INTEGER)
+        );
     }
 }
