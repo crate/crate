@@ -219,12 +219,6 @@ Breaking Changes
         | TRUE          |
         +---------------+
 
-- Re-enabled :ref:`mapping.depth.limit <sql-create-table-mapping-depth-limit>`
-  with a default value of ``100``. Adding a new column that exceeds this
-  nesting depth will now result in an ``IllegalArgumentException``. The limit
-  can be increased to avoid the exception, but this should be done with caution,
-  as deeply nested structures can impact performance or cause stack overflows.
-
 
 Deprecations
 ============

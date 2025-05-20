@@ -151,7 +151,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
 
         indexScopedSettings.validate(normalizedSettings, true);
         try {
-            DocTableInfo.checkTotalColumnsLimit(relationName, normalizedSettings, request.references());
+            DocTableInfo.checkTotalColumnsLimit(relationName, normalizedSettings, request.references().stream());
             DocTableInfo.checkObjectDepthLimit(relationName, normalizedSettings, request.references());
         } catch (Exception e) {
             listener.onFailure(e);
