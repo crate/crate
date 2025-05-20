@@ -137,6 +137,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
     public void handoffPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext) {
         FutureActionListener<TransportResponse.Empty> future = new FutureActionListener<>();
         ActionListenerResponseHandler<TransportResponse.Empty> handler = new ActionListenerResponseHandler<>(
+            PeerRecoveryTargetService.Actions.HANDOFF_PRIMARY_CONTEXT,
             future,
             in -> TransportResponse.Empty.INSTANCE,
             ThreadPool.Names.SAME
@@ -289,7 +290,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             @Override
             public void tryAction(ActionListener<T> listener) {
                 transportService.sendRequest(targetNode, action, request, options,
-                    new ActionListenerResponseHandler<>(listener, reader, ThreadPool.Names.GENERIC));
+                    new ActionListenerResponseHandler<>(action, listener, reader, ThreadPool.Names.GENERIC));
             }
 
             @Override

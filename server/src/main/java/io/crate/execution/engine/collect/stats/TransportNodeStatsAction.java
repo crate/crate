@@ -21,10 +21,8 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.execution.support.Transports;
-import io.crate.expression.reference.sys.node.NodeStatsContext;
-import io.crate.expression.reference.sys.node.NodeStatsContextFieldResolver;
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.TransportAction;
@@ -34,7 +32,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.concurrent.CompletableFuture;
+import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.execution.support.Transports;
+import io.crate.expression.reference.sys.node.NodeStatsContext;
+import io.crate.expression.reference.sys.node.NodeStatsContextFieldResolver;
 
 @Singleton
 public class TransportNodeStatsAction extends TransportAction<NodeStatsRequest, NodeStatsResponse> {
@@ -68,7 +69,7 @@ public class TransportNodeStatsAction extends TransportAction<NodeStatsRequest, 
             request.nodeId(),
             request.innerRequest(),
             listener,
-            new ActionListenerResponseHandler<>(listener, NodeStatsResponse::new),
+            new ActionListenerResponseHandler<>(NodeStatsAction.NAME, listener, NodeStatsResponse::new),
             options
         );
     }

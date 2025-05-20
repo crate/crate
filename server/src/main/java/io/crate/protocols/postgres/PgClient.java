@@ -626,7 +626,7 @@ public class PgClient extends AbstractClient {
                     action.name(),
                     request,
                     TransportRequestOptions.EMPTY,
-                    new ActionListenerResponseHandler<>(future, action.getResponseReader())
+                    new ActionListenerResponseHandler<>(action.name(), future, action.getResponseReader())
                 );
             } else {
                 transportService.sendRequest(
@@ -634,7 +634,7 @@ public class PgClient extends AbstractClient {
                     action.name(),
                     request,
                     TransportRequestOptions.EMPTY,
-                    new ActionListenerResponseHandler<>(future, action.getResponseReader())
+                    new ActionListenerResponseHandler<>(action.name(), future, action.getResponseReader())
                 );
             }
             return future;

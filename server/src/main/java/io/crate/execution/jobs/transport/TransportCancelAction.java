@@ -35,10 +35,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.session.Sessions;
 import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.NodeAction;
 import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.session.Sessions;
 
 /**
  * Action that broadcasts a cancel to all *other* nodes.
@@ -87,7 +87,7 @@ public class TransportCancelAction extends TransportAction<CancelRequest, Acknow
                 node,
                 NAME,
                 request,
-                new ActionListenerResponseHandler<>(multiActionListener, AcknowledgedResponse::new)
+                new ActionListenerResponseHandler<>(NAME, multiActionListener, AcknowledgedResponse::new)
             );
         }
     }

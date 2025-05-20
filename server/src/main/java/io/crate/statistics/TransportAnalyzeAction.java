@@ -158,6 +158,7 @@ public final class TransportAnalyzeAction {
             listener
         );
         var responseHandler = new ActionListenerResponseHandler<>(
+            RECEIVE_TABLE_STATS,
             multiListener,
             AcknowledgedResponse::new,
             ThreadPool.Names.SAME
@@ -180,6 +181,7 @@ public final class TransportAnalyzeAction {
             listener
         );
         ActionListenerResponseHandler<FetchSampleResponse> responseHandler = new ActionListenerResponseHandler<>(
+            FETCH_SAMPLES,
             multiListener,
             in -> new FetchSampleResponse(columns, in),
             ThreadPool.Names.SAME
