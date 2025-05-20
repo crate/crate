@@ -33,6 +33,7 @@ import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.jetbrains.annotations.Nullable;
@@ -259,19 +260,29 @@ public class DistributingConsumer implements RowConsumer {
                 downstream.nodeId,
                 err
             );
-            if (err instanceof ConnectTransportException) {
-                if (retry < 10) {
-                    LOGGER.trace("Retry={} sending result due to {}", retry, err);
-                    retry++;
-
-                    threadPool.scheduleUnlessShuttingDown(
+            if (err instanceof ConnectTransportException && retry < 10) {
+                LOGGER.trace("Retry={} sending result due to {}", retry, err);
+                retry++;
+                try {
+                    var cancellable = threadPool.scheduleUnlessShuttingDown(
                         TimeValue.timeValueMillis(retry * 200),
                         ThreadPool.Names.SEARCH,
                         () -> distributedResultAction.execute(request).whenComplete(this)
                     );
-                    return;
+
+                    // shutting down; no retry
+                    if (cancellable == Cancellable.CANCELLED_NOOP) {
+                        handleFailure(err);
+                    }
+                } catch (EsRejectedExecutionException ex) {
+                    handleFailure(err);
                 }
+                return;
             }
+            handleFailure(err);
+        }
+
+        private void handleFailure(Throwable err) {
             failure = err;
             downstream.needsMoreData = false;
             // continue because it's necessary to send something to the other downstreams still waiting for data
