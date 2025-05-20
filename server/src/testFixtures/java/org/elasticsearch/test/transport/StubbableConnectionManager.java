@@ -18,6 +18,9 @@
  */
 package org.elasticsearch.test.transport;
 
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.ConcurrentMap;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.transport.TransportAddress;
@@ -26,10 +29,6 @@ import org.elasticsearch.transport.ConnectionManager;
 import org.elasticsearch.transport.ConnectionProfile;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportConnectionListener;
-
-import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.ConcurrentMap;
 
 public class StubbableConnectionManager implements ConnectionManager {
 
@@ -113,23 +112,8 @@ public class StubbableConnectionManager implements ConnectionManager {
     }
 
     @Override
-    public Set<DiscoveryNode> getAllConnectedNodes() {
-        return delegate.getAllConnectedNodes();
-    }
-
-    @Override
     public void close() {
         delegate.close();
-    }
-
-    @Override
-    public void closeNoBlock() {
-        delegate.closeNoBlock();
-    }
-
-    @Override
-    public ConnectionProfile getConnectionProfile() {
-        return delegate.getConnectionProfile();
     }
 
     @FunctionalInterface
