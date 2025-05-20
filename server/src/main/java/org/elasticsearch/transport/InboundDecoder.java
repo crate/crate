@@ -37,15 +37,13 @@ public class InboundDecoder implements Releasable {
     static final Object PING = new Object();
     static final Object END_CONTENT = new Object();
 
-    private final Version version;
     private final PageCacheRecycler recycler;
     private TransportDecompressor decompressor;
     private int totalNetworkSize = -1;
     private int bytesConsumed = 0;
     private boolean isClosed = false;
 
-    public InboundDecoder(Version version, PageCacheRecycler recycler) {
-        this.version = version;
+    public InboundDecoder(PageCacheRecycler recycler) {
         this.recycler = recycler;
     }
 
