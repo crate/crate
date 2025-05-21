@@ -58,19 +58,17 @@ public class StdDevPopAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_functions_return_type_is_always_double_for_any_argument_type() {
-        for (var name: StandardDeviationPopAggregation.NAMES) {
-            for (DataType<?> type : Stream.concat(
-                DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
-                Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
+        for (DataType<?> type : Stream.concat(
+            DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
+            Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
 
-                FunctionImplementation stddev = nodeCtx.functions().get(
-                    null,
-                    name,
-                    List.of(Literal.of(type, null)),
-                    SearchPath.pathWithPGCatalogAndDoc()
-                );
-                assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
-            }
+            FunctionImplementation stddev = nodeCtx.functions().get(
+                null,
+                StandardDeviationPopAggregation.NAME,
+                List.of(Literal.of(type, null)),
+                SearchPath.pathWithPGCatalogAndDoc()
+            );
+            assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
         }
     }
 

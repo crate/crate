@@ -597,7 +597,7 @@ An Example::
 ``stddev(column)``
 ------------------
 
-``stddev`` is an alias for :ref:`aggregation-stddev-pop`.
+``stddev`` is an alias for :ref:`aggregation-stddev-samp`.
 
 
 .. _aggregation-stddev-pop:

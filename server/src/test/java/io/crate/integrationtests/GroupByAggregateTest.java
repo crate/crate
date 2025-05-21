@@ -1073,10 +1073,10 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
-    public void groupByAggregateStdDevByte() throws Exception {
+    public void groupByAggregateStdDevPopByte() throws Exception {
         this.setup.groupBySetup("byte");
 
-        execute("select stddev(age), gender from characters group by gender order by gender");
+        execute("select stddev_pop(age), gender from characters group by gender order by gender");
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][0]).isEqualTo(5.5d);
         assertThat(response.rows()[1][0]).isEqualTo(39.0d);
@@ -1093,10 +1093,10 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
-    public void groupByAggregateStdDevDouble() throws Exception {
+    public void groupByAggregateStdDevPopDouble() throws Exception {
         this.setup.groupBySetup("double");
 
-        execute("select stddev(age), gender from characters group by gender order by gender");
+        execute("select stddev_pop(age), gender from characters group by gender order by gender");
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][0]).isEqualTo(5.5d);
         assertThat(response.rows()[1][0]).isEqualTo(39.0d);
@@ -1113,7 +1113,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         assertThat((double) row[2]).isCloseTo(47.84415001097868d, Percentage.withPercentage(0.01));
         assertThat(row[3]).isEqualTo((short) 112);
         assertThat(row[4]).isEqualTo(1090.6875d);
-        assertThat(row[5]).isEqualTo(33.025558284456d);
+        assertThat(row[5]).isEqualTo(38.13462993133669d);
     }
 
     @Test

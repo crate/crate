@@ -46,7 +46,7 @@ public class StdDevSampAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-                Signature.builder("stddev_samp", FunctionType.AGGREGATE)
+                Signature.builder(randomFrom("stddev_samp", "stddev"), FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
                         .returnType(argumentType.getTypeSignature())
                         .features(Scalar.Feature.DETERMINISTIC)
@@ -58,17 +58,19 @@ public class StdDevSampAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_functions_return_type_is_always_double_for_any_argument_type() {
-        for (DataType<?> type : Stream.concat(
-            DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
-            Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
+        for (var name: StandardDeviationSampAggregation.NAMES) {
+            for (DataType<?> type : Stream.concat(
+                DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
+                Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
 
-            FunctionImplementation stddev = nodeCtx.functions().get(
-                null,
-                StandardDeviationSampAggregation.NAME,
-                List.of(Literal.of(type, null)),
-                SearchPath.pathWithPGCatalogAndDoc()
-            );
-            assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
+                FunctionImplementation stddev = nodeCtx.functions().get(
+                    null,
+                    name,
+                    List.of(Literal.of(type, null)),
+                    SearchPath.pathWithPGCatalogAndDoc()
+                );
+                assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
+            }
         }
     }
 
@@ -141,6 +143,6 @@ public class StdDevSampAggregationTest extends AggregationTestCase {
     public void testUnsupportedType() {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Invalid arguments in: stddev_samp(INPUT(0)) with (geo_point). Valid types: ");
+            .hasMessageStartingWith("Invalid arguments in: stddev");
     }
 }

@@ -219,6 +219,11 @@ Breaking Changes
         | TRUE          |
         +---------------+
 
+ - :ref:`aggregation-stddev` changed and is now an alias for
+   :ref:`aggregation-stddev-samp`, to match PostgreSQL behavior. In order to
+   calculate the population standard deviation, :ref:`aggregation-stddev-pop`
+   must be used.
+
 Deprecations
 ============
 

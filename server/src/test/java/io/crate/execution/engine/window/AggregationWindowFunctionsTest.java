@@ -102,10 +102,10 @@ public class AggregationWindowFunctionsTest extends AbstractWindowFunctionTest {
     }
 
     @Test
-    public void testStdDevOverUnboundedFollowingFrames() throws Throwable {
+    public void testStdDevPopOverUnboundedFollowingFrames() throws Throwable {
         Object[] expected = new Object[]{0.47140452079103146, 0.0, 0.0, 0.816496580927726, 0.5, 0.0, null};
         assertEvaluate(
-            "stddev(x) OVER(" +
+            "stddev_pop(x) OVER(" +
             "   PARTITION BY x>2 ORDER BY x RANGE BETWEEN CURRENT ROW and UNBOUNDED FOLLOWING" +
             ")",
             expected,
