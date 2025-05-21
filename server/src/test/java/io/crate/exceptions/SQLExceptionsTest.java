@@ -40,7 +40,7 @@ public class SQLExceptionsTest {
     public void test_unavailable_shard_exception_is_shard_failure() throws Exception {
         ShardId shardId = new ShardId("idx1", UUIDs.randomBase64UUID(), 0);
         UnavailableShardsException ex = new UnavailableShardsException(shardId);
-        assertThat(SQLExceptions.isShardFailure(ex)).isTrue();
+        assertThat(SQLExceptions.isShardNotAvailable(ex)).isTrue();
         assertThat(SQLExceptions.maybeTemporary(ex)).isTrue();
     }
 

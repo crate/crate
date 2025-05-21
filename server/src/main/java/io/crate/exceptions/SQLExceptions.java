@@ -174,11 +174,14 @@ public class SQLExceptions {
         }
     }
 
-    public static boolean isShardFailure(Throwable e) {
-        e = SQLExceptions.unwrap(e);
-        return e instanceof ShardNotFoundException
-            || e instanceof IllegalIndexShardStateException
-            || e instanceof UnavailableShardsException;
+    public static boolean isShardNotAvailable(final Throwable e) {
+        final Throwable actual = SQLExceptions.unwrap(e);
+        return (actual instanceof ShardNotFoundException ||
+                actual instanceof IndexNotFoundException ||
+                actual instanceof IllegalIndexShardStateException ||
+                actual instanceof NoShardAvailableActionException ||
+                actual instanceof UnavailableShardsException ||
+                actual instanceof AlreadyClosedException);
     }
 
     /***

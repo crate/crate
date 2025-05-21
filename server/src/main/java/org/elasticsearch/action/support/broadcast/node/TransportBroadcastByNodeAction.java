@@ -34,7 +34,6 @@ import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.support.DefaultShardOperationFailedException;
 import org.elasticsearch.action.support.HandledTransportAction;
-import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.action.support.broadcast.BroadcastRequest;
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.action.support.broadcast.BroadcastShardOperationFailedException;
@@ -57,6 +56,8 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Abstraction for transporting aggregated shard-level operations in a single request (NodeRequest) per-node
@@ -124,7 +125,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
                 totalShards += response.getTotalShards();
                 successfulShards += response.getSuccessfulShards();
                 for (BroadcastShardOperationFailedException throwable : response.getExceptions()) {
-                    if (!TransportActions.isShardNotAvailableException(throwable)) {
+                    if (!SQLExceptions.isShardNotAvailable(throwable)) {
                         exceptions.add(new DefaultShardOperationFailedException(throwable.getShardId().getIndexName(), throwable.getShardId().id(), throwable));
                     }
                 }
@@ -439,7 +440,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
                 }
             } catch (Exception e) {
                 wrappedListener.onFailure(e);
-                if (TransportActions.isShardNotAvailableException(e)) {
+                if (SQLExceptions.isShardNotAvailable(e)) {
                     if (logger.isTraceEnabled()) {
                         logger.trace(new ParameterizedMessage(
                             "[{}] failed to execute operation for shard [{}]", actionName, shardRouting.shortSummary()), e);
