@@ -53,6 +53,10 @@ public class Variance implements Writeable, Comparable<Variance> {
         out.writeVLong(count);
     }
 
+    protected long count() {
+        return count;
+    }
+
     public void increment(double value) {
         sumOfSqrs += (value * value);
         sum += value;
