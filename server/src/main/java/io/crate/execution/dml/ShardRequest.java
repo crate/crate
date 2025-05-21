@@ -48,9 +48,8 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
     protected List<I> items;
 
     protected ShardRequest(ShardId shardId, UUID jobId) {
-        setShardId(shardId);
+        super(shardId);
         this.jobId = jobId;
-        this.index = shardId.getIndexName();
         this.items = new ArrayList<>();
     }
 

@@ -45,10 +45,10 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
      * shard id gets resolved by the transport action before performing request operation
      * and at request creation time for shard-level bulk, refresh and flush requests.
      */
-    protected ShardId shardId;
+    protected final ShardId shardId;
+    protected final String index;
 
     protected TimeValue timeout = DEFAULT_TIMEOUT;
-    protected String index;
 
     /**
      * The number of shard copies that must be active before proceeding with the replication action.
@@ -56,9 +56,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
     protected ActiveShardCount waitForActiveShards = ActiveShardCount.DEFAULT;
 
     private long routedBasedOnClusterVersion = 0;
-
-    public ReplicationRequest() {
-    }
 
     /**
      * Creates a new request with resolved shard id
@@ -77,25 +74,12 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
         return (Request) this;
     }
 
-    /**
-     * A timeout to wait if the index operation can't be performed immediately. Defaults to {@code 1m}.
-     */
-    public final Request timeout(String timeout) {
-        return timeout(TimeValue.parseTimeValue(timeout, null, getClass().getSimpleName() + ".timeout"));
-    }
-
     public TimeValue timeout() {
         return timeout;
     }
 
     public String index() {
         return this.index;
-    }
-
-    @SuppressWarnings("unchecked")
-    public final Request index(String index) {
-        this.index = index;
-        return (Request) this;
     }
 
     public ActiveShardCount waitForActiveShards() {
@@ -123,15 +107,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
     public final Request waitForActiveShards(ActiveShardCount waitForActiveShards) {
         this.waitForActiveShards = waitForActiveShards;
         return (Request) this;
-    }
-
-    /**
-     * A shortcut for {@link #waitForActiveShards(ActiveShardCount)} where the numerical
-     * shard count is passed in, instead of having to first call {@link ActiveShardCount#from(int)}
-     * to get the ActiveShardCount.
-     */
-    public final Request waitForActiveShards(final int waitForActiveShards) {
-        return waitForActiveShards(ActiveShardCount.from(waitForActiveShards));
     }
 
     /**
@@ -174,17 +149,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
         out.writeTimeValue(timeout);
         out.writeString(index);
         out.writeVLong(routedBasedOnClusterVersion);
-    }
-
-
-    /**
-     * Sets the target shard id for the request. The shard id is set when a
-     * index/delete request is resolved by the transport action
-     */
-    @SuppressWarnings("unchecked")
-    public Request setShardId(ShardId shardId) {
-        this.shardId = shardId;
-        return (Request) this;
     }
 
     @Override

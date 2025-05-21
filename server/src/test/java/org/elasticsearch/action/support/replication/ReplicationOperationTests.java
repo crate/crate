@@ -570,8 +570,7 @@ public class ReplicationOperationTests extends ESTestCase {
         public Set<ShardRouting> processedOnReplicas = Sets.newConcurrentHashSet();
 
         Request(ShardId shardId) {
-            this.shardId = shardId;
-            this.index = shardId.getIndexName();
+            super(shardId);
             this.waitForActiveShards = ActiveShardCount.NONE;
             // keep things simple
         }
