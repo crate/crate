@@ -603,7 +603,7 @@ An Example::
 ``stddev_pop(column)``
 ----------------------
 
-The ``stddev_pop`` aggregate function computes the population  `Standard Deviation`_
+The ``stddev_pop`` aggregate function computes the `Population Standard Deviation`_
 of the set of non-null values in a column. It is a measure of the variation
 of data values. A low standard deviation indicates that the values tend to be
 near the mean.
@@ -622,6 +622,39 @@ Example::
     | 1.920286436967152  | Galaxy      |
     | 1.4142135623730951 | Planet      |
     | 1.118033988749895  | Star System |
+    +--------------------+-------------+
+    SELECT 3 rows in set (... sec)
+
+.. CAUTION::
+
+    Due to Java double precision arithmetic it is possible that any two
+    executions of the aggregate function on the same data produce slightly
+    differing results.
+
+.. _aggregation-stddev-samp:
+
+``stddev_samp(column)``
+-----------------------
+
+The ``stddev_samp`` aggregate function computes the `Sample Standard Deviation`_
+of the set of non-null values in a column. It is a measure of the variation
+of data values. A low standard deviation indicates that the values tend to be
+near the mean.
+
+``stddev_samp`` is defined on all numeric types and on timestamp. It always returns
+``double precision`` values. If all values were null or we got no value at all,
+or we got just one value ``NULL`` is returned.
+
+Example::
+
+    cr> select stddev_samp(position), kind from locations
+    ... group by kind order by kind;
+    +--------------------+-------------+
+    |        stddev_samp | kind        |
+    +--------------------+-------------+
+    | 2.217355782608345  | Galaxy      |
+    | 1.5811388300841898 | Planet      |
+    | 1.2909944487358056 | Star System |
     +--------------------+-------------+
     SELECT 3 rows in set (... sec)
 
@@ -986,7 +1019,8 @@ Limitations
 .. _Geometric Mean: https://en.wikipedia.org/wiki/Geometric_mean
 .. _HyperLogLog++: https://static.googleusercontent.com/media/research.google.com/en//pubs/archive/40671.pdf
 .. _Percentile: https://en.wikipedia.org/wiki/Percentile
-.. _Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
+.. _Population Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation
+.. _Sample Standard Deviation: https://en.wikipedia.org/wiki/Standard_deviation#Corrected_sample_standard_deviation
 .. _TDigest: https://github.com/tdunning/t-digest/blob/master/docs/t-digest-paper/histo.pdf
 .. _Variance: https://en.wikipedia.org/wiki/Variance
 .. _Frequency Sketch: https://datasketches.apache.org/docs/Frequency/FrequencySketches.html

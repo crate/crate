@@ -40,11 +40,11 @@ import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public class StdDevAggregationTest extends AggregationTestCase {
+public class StdDevSampAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
-                Signature.builder("stddev_pop", FunctionType.AGGREGATE)
+                Signature.builder("stddev_samp", FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
                         .returnType(DataTypes.DOUBLE.getTypeSignature())
                         .features(Scalar.Feature.DETERMINISTIC)
@@ -56,19 +56,17 @@ public class StdDevAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_functions_return_type_is_always_double_for_any_argument_type() {
-        for (var name: StandardDeviationAggregation.NAMES) {
-            for (DataType<?> type : Stream.concat(
-                DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
-                Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
+        for (DataType<?> type : Stream.concat(
+            DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
+            Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
 
-                FunctionImplementation stddev = nodeCtx.functions().get(
-                    null,
-                    name,
-                    List.of(Literal.of(type, null)),
-                    SearchPath.pathWithPGCatalogAndDoc()
-                );
-                assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
-            }
+            FunctionImplementation stddev = nodeCtx.functions().get(
+                null,
+                StandardDeviationSampAggregation.NAME,
+                List.of(Literal.of(type, null)),
+                SearchPath.pathWithPGCatalogAndDoc()
+            );
+            assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
         }
     }
 
@@ -80,37 +78,37 @@ public class StdDevAggregationTest extends AggregationTestCase {
     @Test
     public void withSomeNullArgs() throws Exception {
         assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}))
-            .isEqualTo(18.13455878212156);
+            .isEqualTo(22.210207863352682d);
     }
 
     @Test
     public void testDouble() throws Exception {
         assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}))
-            .isEqualTo(18.13455878212156);
+            .isEqualTo(22.210207863352682d);
     }
 
     @Test
     public void testFloat() throws Exception {
         assertThat(executeAggregation(DataTypes.FLOAT, new Object[][]{{1.5f}, {1.25f}, {1.75f}}))
-            .isEqualTo(0.2041241452319315);
+            .isEqualTo(0.25);
     }
 
     @Test
     public void testInteger() throws Exception {
         assertThat(executeAggregation(DataTypes.INTEGER, new Object[][]{{7}, {3}}))
-            .isEqualTo(2d);
+            .isEqualTo(2.8284271247461903);
     }
 
     @Test
     public void testLong() throws Exception {
         assertThat(executeAggregation(DataTypes.LONG, new Object[][]{{7L}, {3L}}))
-            .isEqualTo(2d);
+            .isEqualTo(2.8284271247461903);
     }
 
     @Test
     public void testShort() throws Exception {
         assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 7}, {(short) 3}}))
-            .isEqualTo(2d);
+            .isEqualTo(2.8284271247461903);
     }
 
     @Test
@@ -120,9 +118,14 @@ public class StdDevAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void testTooFewNumbers() throws Exception {
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}})).isNull();
+    }
+
+    @Test
     public void testUnsupportedType() {
         assertThatThrownBy(() -> executeAggregation(DataTypes.GEO_POINT, new Object[][]{}))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
-            .hasMessageStartingWith("Invalid arguments in: stddev_pop(INPUT(0)) with (geo_point). Valid types: ");
+            .hasMessageStartingWith("Invalid arguments in: stddev_samp(INPUT(0)) with (geo_point). Valid types: ");
     }
 }
