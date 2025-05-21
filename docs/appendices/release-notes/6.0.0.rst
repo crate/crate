@@ -219,6 +219,7 @@ Breaking Changes
         | TRUE          |
         +---------------+
 
+
 Deprecations
 ============
 
@@ -330,6 +331,12 @@ Administration and Operations
 - Added a :ref:`insert_select_fail_fast <conf-session-insert-select-fail-fast>`
   session setting that allows partial failures of ``INSERT FROM SELECT``
   statements.
+
+- Re-enabled :ref:`mapping.depth.limit <sql-create-table-mapping-depth-limit>`
+  setting to enforce a maximum nesting depth for object columns when adding new
+  columns to a table. The default value is ``100``. The limit can be increased
+  if necessary, but use caution;deeply nested structures may lead to long
+  execution times or stack overflow errors.
 
 Client interfaces
 -----------------
