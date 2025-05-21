@@ -147,7 +147,7 @@ public abstract class AbstractDisruptionTestCase extends IntegTestCase {
     }
 
     ClusterState getNodeClusterState(String node) {
-        return FutureUtils.get(client(node).admin().cluster().state(new ClusterStateRequest().local(true))).getState();
+        return FutureUtils.get(client(node).state(new ClusterStateRequest().local(true))).getState();
     }
 
     void assertNoMaster(final String node) throws Exception {

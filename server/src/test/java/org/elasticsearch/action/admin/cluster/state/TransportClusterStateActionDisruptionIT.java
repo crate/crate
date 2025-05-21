@@ -65,7 +65,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
                 .masterNodeTimeout(TimeValue.timeValueMillis(100));
             final ClusterStateResponse clusterStateResponse;
             try {
-                clusterStateResponse = FutureUtils.get(client().admin().cluster().state(request));
+                clusterStateResponse = FutureUtils.get(client().state(request));
             } catch (MasterNotDiscoveredException e) {
                 return; // ok, we hit the disconnected node
             }
@@ -80,7 +80,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
         runRepeatedlyWhileChangingMaster(() -> {
             final String node = randomFrom(cluster().getNodeNames());
             var discoveryNodes = FutureUtils.get(
-                client(node).admin().cluster().state(
+                client(node).state(
                     new ClusterStateRequest()
                         .clear()
                         .local(true)
@@ -112,7 +112,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
                 .waitForMetadataVersion(waitForMetadataVersion);
             final ClusterStateResponse clusterStateResponse;
             try {
-                clusterStateResponse = FutureUtils.get(client().admin().cluster().state(clusterStateRequest));
+                clusterStateResponse = FutureUtils.get(client().state(clusterStateRequest));
             } catch (MasterNotDiscoveredException e) {
                 return; // ok, we hit the disconnected node
             }
@@ -135,7 +135,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
             final long metadataVersion
                 = cluster().getInstance(ClusterService.class, node).getClusterApplierService().state().metadata().version();
             final long waitForMetadataVersion = randomLongBetween(Math.max(1, metadataVersion - 3), metadataVersion + 5);
-            final ClusterStateResponse clusterStateResponse = FutureUtils.get(client(node).admin().cluster()
+            final ClusterStateResponse clusterStateResponse = FutureUtils.get(client(node)
                 .state(
                     new ClusterStateRequest()
                         .clear()
@@ -157,7 +157,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
 
         assertBusy(() -> {
             var request = new ClusterStateRequest().clear().metadata(true);
-            var stateResponse = client().admin().cluster().state(request).get();
+            var stateResponse = client().state(request).get();
             var nodes = stateResponse
                 .getState()
                 .getLastCommittedConfiguration()
@@ -183,7 +183,7 @@ public class TransportClusterStateActionDisruptionIT extends IntegTestCase {
                 value = "none".equals(value) ? "all" : "none";
                 final String nonMasterNode = randomValueOtherThan(masterName, () -> randomFrom(cluster().getNodeNames()));
 
-                var response = FutureUtils.get(client(nonMasterNode).admin().cluster().execute(
+                var response = FutureUtils.get(client(nonMasterNode).execute(
                     ClusterUpdateSettingsAction.INSTANCE,
                     new ClusterUpdateSettingsRequest().persistentSettings(Settings.builder()
                         .put(CLUSTER_ROUTING_REBALANCE_ENABLE_SETTING.getKey(), value)

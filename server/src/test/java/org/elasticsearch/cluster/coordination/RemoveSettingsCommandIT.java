@@ -65,7 +65,7 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
         cluster().setBootstrapMasterNodeIndex(0);
         String node = cluster().startNode();
         execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet())
+        assertThat(client().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet())
             .containsExactly(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey());
         Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
@@ -84,7 +84,7 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
             DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey() + ": "  + false);
 
         cluster().startNode(dataPathSettings);
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet())
+        assertThat(client().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet())
             .doesNotContain(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey());
     }
 
@@ -93,7 +93,7 @@ public class RemoveSettingsCommandIT extends IntegTestCase {
         cluster().setBootstrapMasterNodeIndex(0);
         String node = cluster().startNode();
         execute("set global persistent cluster.routing.allocation.disk.threshold_enabled = false");
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet())
+        assertThat(client().state(new ClusterStateRequest()).get().getState().metadata().persistentSettings().keySet())
             .contains(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey());
         Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);

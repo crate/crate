@@ -23,7 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.randomAsciiLettersOfLength;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -137,7 +137,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
 
         Thread relocatingThread = new Thread(() -> {
             while (relocations.getCount() > 0) {
-                ClusterStateResponse clusterStateResponse = FutureUtils.get(admin().cluster().state(new ClusterStateRequest().relationNames(List.of(partitionName.relationName()))));
+                ClusterStateResponse clusterStateResponse = FutureUtils.get(client().state(new ClusterStateRequest().relationNames(List.of(partitionName.relationName()))));
                 List<ShardRouting> shardRoutings = clusterStateResponse.getState().routingTable().allShards(indexName);
 
                 int numMoves = 0;
@@ -159,7 +159,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
                 }
 
                 if (numMoves > 0) {
-                    FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest()
+                    FutureUtils.get(client().health(new ClusterHealthRequest()
                         .waitForEvents(Priority.LANGUID)
                         .waitForNoRelocatingShards(false)
                         .timeout(ACCEPTABLE_RELOCATION_TIME)
@@ -317,7 +317,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
             boolean deleted = false;
             while (!deleted) {
                 try {
-                    Metadata metadata = client().admin().cluster().state(new ClusterStateRequest()).get()
+                    Metadata metadata = client().state(new ClusterStateRequest()).get()
                         .getState().metadata();
                     if (metadata.indices().get(partitionName) != null) {
                         execute("delete from parted where id = ?", deleteArgs);

@@ -386,8 +386,6 @@ public class IndexServiceTests extends IntegTestCase {
 
         // Setting not exposed via SQL
         client()
-            .admin()
-            .indices()
             .updateSettings(new UpdateSettingsRequest(
                 Settings.builder()
                     .put(TRANSLOG_RETENTION_CHECK_INTERVAL_SETTING.getKey(), "100ms")
@@ -452,14 +450,14 @@ public class IndexServiceTests extends IntegTestCase {
         assertThat(indexService.getFsyncTask()).isNotNull();
         assertThat(indexService.getFsyncTask().mustReschedule()).isTrue();
 
-        IndexMetadata indexMetadata = client().admin().cluster()
+        IndexMetadata indexMetadata = client()
             .state(new ClusterStateRequest())
             .get().getState().metadata().index(indexName);
         assertThat(indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey())).isEqualTo("5s");
 
         execute("alter table test close");
         execute("alter table test set (\"translog.sync_interval\" = '20s')");
-        indexMetadata = client().admin().cluster()
+        indexMetadata = client()
             .state(new ClusterStateRequest())
             .get().getState().metadata().index(indexName);
         assertThat(indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey())).isEqualTo("20s");

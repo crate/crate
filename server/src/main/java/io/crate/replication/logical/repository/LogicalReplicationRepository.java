@@ -460,7 +460,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .nodes(includeNodes)
             .routingTable(includeRouting)
             .waitForTimeout(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC));
-        return remoteClient.admin().cluster().state(clusterStateRequest);
+        return remoteClient.state(clusterStateRequest);
     }
 
     private CompletableFuture<Response> getPublicationsState() {

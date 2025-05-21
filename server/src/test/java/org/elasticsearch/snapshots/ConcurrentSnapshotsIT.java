@@ -22,6 +22,7 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
@@ -1131,7 +1132,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
         final int limitToTest = randomIntBetween(1, 3);
         // Setting not exposed via SQL
-        client().admin().cluster()
+        client()
                 .execute(ClusterUpdateSettingsAction.INSTANCE, new ClusterUpdateSettingsRequest().persistentSettings(
                         Settings.builder()
                                 .put(MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING.getKey(), limitToTest)

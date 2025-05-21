@@ -74,7 +74,6 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksAction;
 import org.elasticsearch.action.admin.cluster.tasks.PendingClusterTasksRequest;
 import org.elasticsearch.action.support.ActiveShardCount;
-import org.elasticsearch.client.AdminClient;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
@@ -455,7 +454,7 @@ public abstract class IntegTestCase extends ESTestCase {
             TestCluster cluster = cluster();
             if (cluster != null) {
                 if (currentClusterScope != Scope.TEST) {
-                    Metadata metadata = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState().metadata();
+                    Metadata metadata = FutureUtils.get(client().state(new ClusterStateRequest())).getState().metadata();
                     Set<String> persistent = metadata.persistentSettings().keySet();
                     assertThat(persistent)
                         .as("test does not leave persistent settings behind")
@@ -593,19 +592,19 @@ public abstract class IntegTestCase extends ESTestCase {
      * Waits until all nodes have no pending tasks.
      */
     public void waitNoPendingTasksOnAll() throws Exception {
-        assertNoTimeout(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)).get());
+        assertNoTimeout(client().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)).get());
         assertBusy(() -> {
             for (Client client : clients()) {
-                ClusterHealthResponse clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
+                ClusterHealthResponse clusterHealth = client.health(new ClusterHealthRequest().local(true)).get();
                 assertThat(clusterHealth.getNumberOfInFlightFetch()).as("client " + client + " still has in flight fetch").isEqualTo(0);
                 var pendingTasks = FutureUtils.get(
-                    client.admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest().local(true)));
+                    client.execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest().local(true)));
                 assertThat(pendingTasks).as("client " + client + " still has pending tasks " + pendingTasks).isEmpty();
-                clusterHealth = client.admin().cluster().health(new ClusterHealthRequest().local(true)).get();
+                clusterHealth = client.health(new ClusterHealthRequest().local(true)).get();
                 assertThat(clusterHealth.getNumberOfInFlightFetch()).as("client " + client + " still has in flight fetch").isEqualTo(0);
             }
         });
-        assertNoTimeout(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)).get());
+        assertNoTimeout(client().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)).get());
     }
 
     /**
@@ -662,11 +661,11 @@ public abstract class IntegTestCase extends ESTestCase {
         if (status != null) {
             request.waitForStatus(status);
         }
-        ClusterHealthResponse actionGet = FutureUtils.get(client().admin().cluster().health(request));
+        ClusterHealthResponse actionGet = FutureUtils.get(client().health(request));
         if (actionGet.isTimedOut()) {
-            var clusterStateResponse = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest()));
+            var clusterStateResponse = FutureUtils.get(client().state(new ClusterStateRequest()));
             var pendingClusterTasks = FutureUtils.get(
-                client().admin().cluster().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
+                client().execute(PendingClusterTasksAction.INSTANCE, new PendingClusterTasksRequest()));
             logger.info(
                 "waitForRelocation timed out (status={}), cluster state:\n{}\n{}",
                 status,
@@ -732,7 +731,7 @@ public abstract class IntegTestCase extends ESTestCase {
         if (cluster() != null && cluster().size() > 0) { // if static init fails the cluster can be null
             logger.trace("Check consistency for [{}] nodes", cluster().size());
             assertNoTimeout(FutureUtils.get(
-                client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(Integer.toString(cluster().size())))
+                client().health(new ClusterHealthRequest().waitForNodes(Integer.toString(cluster().size())))
             ));
         }
     }
@@ -747,12 +746,12 @@ public abstract class IntegTestCase extends ESTestCase {
         }
         Client masterClient = client();
         ClusterState masterState = FutureUtils
-            .get(masterClient.admin().cluster().state(new ClusterStateRequest().all()))
+            .get(masterClient.state(new ClusterStateRequest().all()))
             .getState();
         String masterId = masterState.nodes().getMasterNodeId();
         for (Client client : cluster.getClients()) {
             ClusterState localState = FutureUtils
-                .get(client.admin().cluster().state(new ClusterStateRequest().all().local(true)))
+                .get(client.state(new ClusterStateRequest().all().local(true)))
                 .getState();
             // State must only match if they have the same version
             if (masterState.version() == localState.version()
@@ -806,7 +805,7 @@ public abstract class IntegTestCase extends ESTestCase {
         if (logger != null) {
             logger.debug("ensuring cluster is stable with [{}] nodes. access node: [{}]. timeout: [{}]", nodeCount, viaNode, timeValue);
         }
-        ClusterHealthResponse clusterHealthResponse = FutureUtils.get(cluster.client(viaNode).admin().cluster().health(
+        ClusterHealthResponse clusterHealthResponse = FutureUtils.get(cluster.client(viaNode).health(
             new ClusterHealthRequest()
                 .waitForEvents(Priority.LANGUID)
                 .waitForNodes(Integer.toString(nodeCount))
@@ -816,7 +815,7 @@ public abstract class IntegTestCase extends ESTestCase {
             ));
         if (clusterHealthResponse.isTimedOut()) {
             ClusterStateResponse stateResponse = FutureUtils
-                .get(cluster.client(viaNode).admin().cluster().state(new ClusterStateRequest()));
+                .get(cluster.client(viaNode).state(new ClusterStateRequest()));
             fail("failed to reach a stable cluster of [" + nodeCount + "] nodes. Tried via [" + viaNode + "]. last cluster state:\n"
                  + stateResponse.getState());
         }
@@ -833,13 +832,6 @@ public abstract class IntegTestCase extends ESTestCase {
 
     protected static void ensureFullyConnectedCluster(TestCluster cluster) {
         NetworkDisruption.ensureFullyConnectedCluster(cluster);
-    }
-
-    /**
-     * Returns a random admin client. This client can be pointing to any of the nodes in the cluster.
-     */
-    protected AdminClient admin() {
-        return client().admin();
     }
 
 
@@ -1131,7 +1123,7 @@ public abstract class IntegTestCase extends ESTestCase {
     public Set<String> assertAllShardsOnNodes(String index, String... pattern) {
         Set<String> nodes = new HashSet<>();
         ClusterState clusterState = FutureUtils
-            .get(client().admin().cluster().state(new ClusterStateRequest()))
+            .get(client().state(new ClusterStateRequest()))
             .getState();
         for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {

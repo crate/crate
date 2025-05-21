@@ -211,13 +211,13 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo(true);
 
-        IndexMetadata indexMetadata = client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata()
+        IndexMetadata indexMetadata = client().state(new ClusterStateRequest()).get().getState().metadata()
             .indices().get(getFqn("t"));
         assertThat(indexMetadata.getState()).isEqualTo(IndexMetadata.State.CLOSE);
 
         execute("alter table t open");
 
-        indexMetadata = client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata()
+        indexMetadata = client().state(new ClusterStateRequest()).get().getState().metadata()
             .indices().get(getFqn("t"));
 
         execute("select closed from information_schema.tables where table_name = 't'");
