@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
@@ -67,7 +67,7 @@ public abstract class ShardCollectorProvider {
                            NodeContext nodeCtx,
                            ThreadPool threadPool,
                            Settings settings,
-                           ElasticsearchClient elasticsearchClient,
+                           Client elasticsearchClient,
                            IndexShard indexShard,
                            ShardRowContext shardRowContext,
                            Map<String, FileOutputFactory> fileOutputFactoryMap) {

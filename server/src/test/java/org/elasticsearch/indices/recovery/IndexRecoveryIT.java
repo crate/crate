@@ -24,6 +24,7 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
 
 import java.io.IOException;
@@ -182,7 +183,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
     private void slowDownRecovery(long shardSizeBytes) {
         long chunkSize = Math.max(1, shardSizeBytes / 10);
-        var response = FutureUtils.get(client().admin().cluster().execute(
+        var response = FutureUtils.get(client().execute(
             ClusterUpdateSettingsAction.INSTANCE,
             new ClusterUpdateSettingsRequest()
                 .transientSettings(Settings.builder()
@@ -196,7 +197,7 @@ public class IndexRecoveryIT extends IntegTestCase {
     }
 
     private void restoreRecoverySpeed() {
-        var response = FutureUtils.get(client().admin().cluster().execute(
+        var response = FutureUtils.get(client().execute(
             ClusterUpdateSettingsAction.INSTANCE,
             new ClusterUpdateSettingsRequest()
                 .transientSettings(Settings.builder()
@@ -372,7 +373,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         // do sync flush to gen sync id
         execute("OPTIMIZE TABLE " + INDEX_NAME);
-        //assertThat(client().admin().indices().prepareSyncedFlush(INDEX_NAME).get().failedShards()).isEqualTo(0));
+        //assertThat(client().prepareSyncedFlush(INDEX_NAME).get().failedShards()).isEqualTo(0));
 
         final Index index = resolveIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
 
@@ -417,7 +418,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         transportService.clearAllRules();
 
         // make sure nodeA has primary and nodeB has replica
-        ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        ClusterState state = client().state(new ClusterStateRequest()).get().getState();
         List<ShardRouting> startedShards = state.routingTable().shardsWithState(ShardRoutingState.STARTED);
         assertThat(startedShards).hasSize(2);
         for (ShardRouting shardRouting : startedShards) {
@@ -525,7 +526,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         logger.info("--> start node C");
         String nodeC = cluster().startNode();
-        assertThat(client().admin().cluster().health(new ClusterHealthRequest().waitForNodes("3")).get().isTimedOut()).isFalse();
+        assertThat(client().health(new ClusterHealthRequest().waitForNodes("3")).get().isTimedOut()).isFalse();
 
         logger.info("--> slowing down recoveries");
         slowDownRecovery(shardSize);
@@ -634,7 +635,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final String redNodeName = cluster()
             .startNode(Settings.builder().put("node.attr.color", "red").put(nodeSettings).build());
 
-        ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
+        ClusterHealthResponse response = client().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
         assertThat(response.isTimedOut()).isFalse();
 
         execute("CREATE TABLE doc." + indexName + " (id int) CLUSTERED INTO 1 SHARDS " +
@@ -661,7 +662,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc." + indexName + " (id) VALUES (?)", args);
         ensureGreen();
 
-        ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
+        ClusterStateResponse stateResponse = client().state(new ClusterStateRequest()).get();
         final String blueNodeId = cluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
 
         assertThat(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty()).isFalse();
@@ -768,7 +769,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final String redNodeName = cluster()
             .startNode(Settings.builder().put("node.attr.color", "red").put(nodeSettings).build());
 
-        ClusterHealthResponse response = client().admin().cluster().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
+        ClusterHealthResponse response = client().health(new ClusterHealthRequest().waitForNodes(">=3")).get();
         assertThat(response.isTimedOut()).isFalse();
 
         execute("CREATE TABLE doc.test (id int) CLUSTERED INTO 1 SHARDS " +
@@ -785,7 +786,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (id) VALUES (?)", args);
         ensureGreen();
 
-        ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
+        ClusterStateResponse stateResponse = client().state(new ClusterStateRequest()).get();
         final String blueNodeId = cluster().getInstance(ClusterService.class, blueNodeName).localNode().getId();
 
         assertThat(stateResponse.getState().getRoutingNodes().node(blueNodeId).isEmpty()).isFalse();
@@ -941,7 +942,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                     try {
                         assertBusy(() -> {
                             ClusterStateRequest stateRequest = new ClusterStateRequest().local(true);
-                            List<ShardRouting> initializingShards = client(blueNodeName).admin().cluster().state(stateRequest).get()
+                            List<ShardRouting> initializingShards = client(blueNodeName).state(stateRequest).get()
                                 .getState()
                                 .routingTable()
                                 .index(indexName)
@@ -1285,7 +1286,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
                                               assertThat(
-                                                    client().admin().cluster().health(
+                                                    client().health(
                                                         new ClusterHealthRequest()
                                                             .waitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
                                                             .waitForEvents(Priority.LANGUID)
@@ -1338,7 +1339,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 @Override
                 public Settings onNodeStopped(String nodeName) throws Exception {
                     assertThat(
-                        client().admin().cluster().health(
+                        client().health(
                             new ClusterHealthRequest()
                                 .waitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
                                 .waitForEvents(Priority.LANGUID)
@@ -1402,7 +1403,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("OPTIMIZE TABLE doc.test");
         // wait for all history to be discarded
         assertBusy(() -> {
-            var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
+            var indicesStats = client().stats(new IndicesStatsRequest(indexName)).get();
             for (ShardStats shardStats : indicesStats.getShards()) {
                 final long maxSeqNo = shardStats.getSeqNoStats().getMaxSeqNo();
                 assertThat(shardStats.getRetentionLeaseStats().leases().leases().stream().allMatch(
@@ -1411,7 +1412,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         });
         execute("OPTIMIZE TABLE doc.test"); // ensure that all operations are in the safe commit
 
-        var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
+        var indicesStats = client().stats(new IndicesStatsRequest(indexName)).get();
         final ShardStats shardStats = indicesStats.getShards()[0];
         final long docCount = shardStats.getStats().docs.getCount();
         assertThat(shardStats.getStats().docs.getDeleted()).isEqualTo(0L);
@@ -1422,7 +1423,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
-        indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
+        indicesStats = client().stats(new IndicesStatsRequest(indexName)).get();
         assertThat(indicesStats.getShards()[0].getRetentionLeaseStats()
                        .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as("should have lease for " + replicaShardRouting).isTrue();
         cluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
@@ -1430,7 +1431,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                           @Override
                                           public Settings onNodeStopped(String nodeName) throws Exception {
                                               assertThat(
-                                                    client().admin().cluster().health(
+                                                    client().health(
                                                         new ClusterHealthRequest()
                                                             .waitForNodes(Integer.toString(discoveryNodes.getSize() - 1))
                                                             .waitForEvents(Priority.LANGUID)
@@ -1467,7 +1468,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                               execute("OPTIMIZE TABLE doc.test");
 
                                               assertBusy(() -> {
-                                                  var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName)).get();
+                                                  var indicesStats = client().stats(new IndicesStatsRequest(indexName)).get();
                                                   assertThat(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
                                                             ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as(
                                                         "should no longer have lease for " + replicaShardRouting).isFalse();

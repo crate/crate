@@ -23,7 +23,7 @@ package io.crate.planner;
 
 import java.util.concurrent.ScheduledExecutorService;
 
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
@@ -68,7 +68,7 @@ public class DependencyCarrier {
     private final RepositoryParamValidator repositoryParamValidator;
     private final NodeLimits nodeLimits;
     private final LogicalReplicationService logicalReplicationService;
-    private final ElasticsearchClient client;
+    private final Client client;
     private final CircuitBreakerService circuitBreakerService;
 
     @Inject
@@ -174,7 +174,7 @@ public class DependencyCarrier {
         return logicalReplicationService;
     }
 
-    public ElasticsearchClient client() {
+    public Client client() {
         return client;
     }
 

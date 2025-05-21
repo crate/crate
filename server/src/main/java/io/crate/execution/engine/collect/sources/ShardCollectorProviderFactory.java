@@ -21,16 +21,11 @@
 
 package io.crate.execution.engine.collect.sources;
 
-import io.crate.blob.v2.BlobIndicesService;
-import io.crate.blob.v2.BlobShard;
-import io.crate.execution.engine.collect.BlobShardCollectorProvider;
-import io.crate.execution.engine.collect.LuceneShardCollectorProvider;
-import io.crate.execution.engine.collect.ShardCollectorProvider;
-import io.crate.execution.engine.export.FileOutputFactory;
-import io.crate.execution.jobs.NodeLimits;
-import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.NodeContext;
-import org.elasticsearch.client.ElasticsearchClient;
+import static io.crate.blob.v2.BlobIndex.isBlobIndex;
+
+import java.util.Map;
+
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -43,16 +38,22 @@ import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Map;
-
-import static io.crate.blob.v2.BlobIndex.isBlobIndex;
+import io.crate.blob.v2.BlobIndicesService;
+import io.crate.blob.v2.BlobShard;
+import io.crate.execution.engine.collect.BlobShardCollectorProvider;
+import io.crate.execution.engine.collect.LuceneShardCollectorProvider;
+import io.crate.execution.engine.collect.ShardCollectorProvider;
+import io.crate.execution.engine.export.FileOutputFactory;
+import io.crate.execution.jobs.NodeLimits;
+import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.NodeContext;
 
 @Singleton
 public class ShardCollectorProviderFactory {
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
-    private final ElasticsearchClient elasticsearchClient;
+    private final Client elasticsearchClient;
     private final BlobIndicesService blobIndicesService;
 
     private final NodeContext nodeCtx;

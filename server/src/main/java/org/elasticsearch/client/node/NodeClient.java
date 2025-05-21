@@ -24,22 +24,19 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.client.support.AbstractClient;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
 /**
  * Client that executes actions on the local node.
  */
-public class NodeClient extends AbstractClient {
+public class NodeClient implements Client {
 
     @SuppressWarnings("rawtypes")
     private Map<ActionType, TransportAction> actions;
 
-    public NodeClient(Settings settings, ThreadPool threadPool) {
-        super(settings, threadPool);
+    public NodeClient() {
     }
 
     @SuppressWarnings("rawtypes")
@@ -53,23 +50,15 @@ public class NodeClient extends AbstractClient {
     }
 
     @Override
-    public <Req extends TransportRequest, Resp extends TransportResponse> CompletableFuture<Resp> execute(ActionType<Resp> action, Req request) {
-        return transportAction(action).execute(request);
-    }
-
-    /**
-     * Get the {@link TransportAction} for an {@link ActionType}, throwing exceptions if the action isn't available.
-     */
     @SuppressWarnings("unchecked")
-    private <Request extends TransportRequest,
-             Response extends TransportResponse> TransportAction<Request, Response> transportAction(ActionType<Response> action) {
+    public <Req extends TransportRequest, Resp extends TransportResponse> CompletableFuture<Resp> execute(ActionType<Resp> action, Req request) {
         if (actions == null) {
             throw new IllegalStateException("NodeClient has not been initialized");
         }
-        TransportAction<Request, Response> transportAction = actions.get(action);
+        TransportAction<Req, Resp> transportAction = actions.get(action);
         if (transportAction == null) {
             throw new IllegalStateException("failed to find action [" + action + "] to execute");
         }
-        return transportAction;
+        return transportAction.execute(request);
     }
 }

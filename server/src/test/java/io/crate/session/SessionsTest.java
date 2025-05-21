@@ -33,7 +33,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -71,7 +71,7 @@ public class SessionsTest extends CrateDummyClusterServiceUnitTest {
     public void test_sessions_broadcasts_cancel_if_no_local_match() throws Exception {
         NodeContext nodeCtx = createNodeContext();
         DependencyCarrier dependencies = mock(DependencyCarrier.class);
-        ElasticsearchClient client = mock(ElasticsearchClient.class, Answers.RETURNS_MOCKS);
+        Client client = mock(Client.class, Answers.RETURNS_MOCKS);
         when(dependencies.client()).thenReturn(client);
         Sessions sessions = new Sessions(
             nodeCtx,

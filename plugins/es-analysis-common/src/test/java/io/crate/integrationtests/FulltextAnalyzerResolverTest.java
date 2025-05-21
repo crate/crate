@@ -28,6 +28,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -86,7 +87,7 @@ public class FulltextAnalyzerResolverTest extends IntegTestCase {
             .filter(s -> s.startsWith("crate"))
             .forEach(s -> settingsToRemove.put(s, null));
         if (!settingsToRemove.isEmpty()) {
-            client().admin().cluster().execute(
+            client().execute(
                 ClusterUpdateSettingsAction.INSTANCE,
                 new ClusterUpdateSettingsRequest()
                     .transientSettings(settingsToRemove)
@@ -97,7 +98,7 @@ public class FulltextAnalyzerResolverTest extends IntegTestCase {
     }
 
     public Settings getPersistentClusterSettings() {
-        ClusterStateResponse response = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest()));
+        ClusterStateResponse response = FutureUtils.get(client().state(new ClusterStateRequest()));
         return response.getState().metadata().persistentSettings();
     }
 
