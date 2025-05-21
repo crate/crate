@@ -45,7 +45,6 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
         RetryOnFailureResultReceiver<?> retryOnFailureResultReceiver = new RetryOnFailureResultReceiver<>(
             3,
             clusterService,
-            indexName -> true,
             baseResultReceiver,
             UUID.randomUUID(),
             (newJobId, receiver) -> numRetries.incrementAndGet());
@@ -68,7 +67,6 @@ public class RetryOnFailureResultReceiverTest extends CrateDummyClusterServiceUn
         RetryOnFailureResultReceiver<?> retryOnFailureResultReceiver = new RetryOnFailureResultReceiver<>(
             3,
             clusterService,
-            indexName -> true,
             resultReceiver,
             UUID.randomUUID(),
             (newJobId, receiver) -> numRetries.incrementAndGet());

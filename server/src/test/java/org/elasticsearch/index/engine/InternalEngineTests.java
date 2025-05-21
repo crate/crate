@@ -129,7 +129,6 @@ import org.apache.lucene.util.FixedBitSet;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -184,6 +183,7 @@ import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.doc.SysColumns;
 
 public class InternalEngineTests extends EngineTestCase {
@@ -3068,7 +3068,7 @@ public class InternalEngineTests extends EngineTestCase {
         engine.close();
         mergeThread.join();
         logger.info("exception caught: ", exception.get());
-        assertThat(TransportActions.isShardNotAvailableException(exception.get())).as("expected an Exception that signals shard is not available").isTrue();
+        assertThat(SQLExceptions.isShardNotAvailable(exception.get())).as("expected an Exception that signals shard is not available").isTrue();
     }
 
     /**

@@ -24,13 +24,11 @@ package io.crate.session;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
-import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.jetbrains.annotations.Nullable;
@@ -43,7 +41,6 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     private static final Logger LOGGER = LogManager.getLogger(RetryOnFailureResultReceiver.class);
 
     private final ClusterService clusterService;
-    private final Predicate<String> hasIndex;
     private final ResultReceiver<T> delegate;
     private final UUID jobId;
     private final BiConsumer<UUID, ResultReceiver<T>> retryAction;
@@ -52,13 +49,11 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
 
     public RetryOnFailureResultReceiver(int maxRetryCount,
                                         ClusterService clusterService,
-                                        Predicate<String> hasIndex,
                                         ResultReceiver<T> delegate,
                                         UUID jobId,
                                         BiConsumer<UUID, ResultReceiver<T>> retryAction) {
         this.maxRetryCount = maxRetryCount;
         this.clusterService = clusterService;
-        this.hasIndex = hasIndex;
         this.delegate = delegate;
         this.jobId = jobId;
         this.retryAction = retryAction;
@@ -84,7 +79,7 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     public void fail(Throwable wrappedError) {
         final Throwable error = SQLExceptions.unwrap(wrappedError);
         if (attempt <= maxRetryCount &&
-            (SQLExceptions.isShardFailure(error) || error instanceof ConnectTransportException || indexWasTemporaryUnavailable(error))) {
+            (SQLExceptions.isShardNotAvailable(error) || error instanceof ConnectTransportException)) {
 
             if (clusterService.state().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)) {
                 delegate.fail(error);
@@ -99,10 +94,6 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
         } else {
             delegate.fail(error);
         }
-    }
-
-    private boolean indexWasTemporaryUnavailable(Throwable t) {
-        return t instanceof IndexNotFoundException inf && hasIndex.test(inf.getIndex().getName());
     }
 
     @Override

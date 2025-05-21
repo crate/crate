@@ -37,7 +37,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.UnavailableShardsException;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.RetryableAction;
-import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -221,7 +220,7 @@ public class ReplicationOperation<
                     "[{}] failure while performing [{}] on replica {}, request [{}]",
                     shard.shardId(), opType, shard, replicaRequest), replicaException);
                 // Only report "critical" exceptions - TODO: Reach out to the master node to get the latest shard state then report.
-                if (TransportActions.isShardNotAvailableException(replicaException) == false) {
+                if (SQLExceptions.isShardNotAvailable(replicaException) == false) {
                     RestStatus restStatus = SQLExceptions.status(replicaException);
                     shardReplicaFailures.add(new ReplicationResponse.ShardInfo.Failure(
                         shard.shardId(), shard.currentNodeId(), replicaException, restStatus, false));

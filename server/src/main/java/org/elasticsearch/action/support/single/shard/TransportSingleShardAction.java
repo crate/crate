@@ -19,8 +19,6 @@
 
 package org.elasticsearch.action.support.single.shard;
 
-import static org.elasticsearch.action.support.TransportActions.isShardNotAvailableException;
-
 import java.io.IOException;
 
 import org.apache.logging.log4j.LogManager;
@@ -31,7 +29,6 @@ import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.support.ChannelActionListener;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
@@ -53,6 +50,8 @@ import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
+
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * A base class for operations that need to perform a read operation on a single shard copy. If the operation fails,
@@ -202,14 +201,14 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
 
         private void perform(@Nullable final Exception currentFailure) {
             Exception lastFailure = this.lastFailure;
-            if (lastFailure == null || TransportActions.isReadOverrideException(currentFailure)) {
+            if (lastFailure == null || !SQLExceptions.isShardNotAvailable(currentFailure)) {
                 lastFailure = currentFailure;
                 this.lastFailure = currentFailure;
             }
             final ShardRouting shardRouting = shardIt.nextOrNull();
             if (shardRouting == null) {
                 Exception failure = lastFailure;
-                if (failure == null || isShardNotAvailableException(failure)) {
+                if (failure == null || SQLExceptions.isShardNotAvailable(failure)) {
                     failure = new NoShardAvailableActionException(
                         null,
                         LoggerMessageFormat.format("No shard available for [{}]", request),
