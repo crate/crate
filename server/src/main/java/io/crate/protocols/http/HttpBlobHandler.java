@@ -225,7 +225,7 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     private void maybeSetConnectionCloseHeader(HttpResponse response) {
-        if (currentMessage == null || !HttpUtil.isKeepAlive(currentMessage)) {
+        if (currentMessage != null && !HttpUtil.isKeepAlive(currentMessage)) {
             response.headers().set(HttpHeaderNames.CONNECTION, "close");
         }
     }
@@ -237,8 +237,8 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
         ChannelFuture cf = ctx.channel().writeAndFlush(response);
         if (currentMessage != null && !HttpUtil.isKeepAlive(currentMessage)) {
             cf.addListener(ChannelFutureListener.CLOSE);
+            reset();
         }
-        reset();
     }
 
     @Override
