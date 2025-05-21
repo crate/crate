@@ -35,7 +35,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.lucene.util.BytesRef;
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -110,7 +110,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             Settings.EMPTY,
             5,
             1,
-            mock(ElasticsearchClient.class),
+            mock(Client.class),
             IndexName.createResolver(BULK_IMPORT_IDENT),
             RAW_SOURCE_REFERENCE,
             Collections.singletonList(ID_IDENT),

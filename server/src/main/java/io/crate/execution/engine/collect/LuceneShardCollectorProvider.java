@@ -27,7 +27,7 @@ import java.util.function.Supplier;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
@@ -84,7 +84,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
-                                        ElasticsearchClient elasticsearchClient,
+                                        Client elasticsearchClient,
                                         IndexShard indexShard,
                                         BigArrays bigArrays,
                                         Map<String, FileOutputFactory> fileOutputFactoryMap) {

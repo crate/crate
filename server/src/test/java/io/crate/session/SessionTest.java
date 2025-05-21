@@ -24,6 +24,7 @@ package io.crate.session;
 import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -44,7 +45,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -378,7 +379,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         };
         when(scheduler.schedule(any(Runnable.class), Mockito.anyLong(), any(TimeUnit.class)))
             .thenAnswer(triggerRunnable);
-        ElasticsearchClient client = mock(ElasticsearchClient.class);
+        Client client = mock(Client.class);
         when(dependencies.client()).thenReturn(client);
 
         Session session = sqlExecutor.createSession();

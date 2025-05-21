@@ -43,7 +43,7 @@ import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitions;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Setting;
@@ -92,7 +92,7 @@ public class ShardingUpsertExecutor
     private final UUID jobId;
     private final Function<ShardId, ShardUpsertRequest> requestFactory;
     private final BulkRequestExecutor<ShardUpsertRequest> requestExecutor;
-    private final ElasticsearchClient elasticsearchClient;
+    private final Client elasticsearchClient;
     private final BulkShardCreationLimiter bulkShardCreationLimiter;
     private final UpsertResultCollector resultCollector;
     private final boolean isDebugEnabled;
@@ -118,7 +118,7 @@ public class ShardingUpsertExecutor
                            List<? extends CollectExpression<Row, ?>> expressions,
                            Supplier<String> indexNameResolver,
                            boolean autoCreateIndices,
-                           ElasticsearchClient elasticsearchClient,
+                           Client elasticsearchClient,
                            int targetTableNumShards,
                            int targetTableNumReplicas,
                            UpsertResultContext upsertResultContext,

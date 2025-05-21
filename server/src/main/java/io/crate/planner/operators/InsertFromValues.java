@@ -48,7 +48,7 @@ import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitions;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockException;
@@ -636,7 +636,7 @@ public class InsertFromValues implements LogicalPlan {
     private CompletableFuture<ShardResponse.CompressedResult> execute(NodeLimits nodeLimits,
                                                                       ClusterState state,
                                                                       Collection<ShardUpsertRequest> shardUpsertRequests,
-                                                                      ElasticsearchClient elasticsearchClient,
+                                                                      Client elasticsearchClient,
                                                                       ScheduledExecutorService scheduler) {
         ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
         if (shardUpsertRequests.isEmpty()) {
@@ -747,7 +747,7 @@ public class InsertFromValues implements LogicalPlan {
         return false;
     }
 
-    private static CompletableFuture<AcknowledgedResponse> createPartitions(ElasticsearchClient client,
+    private static CompletableFuture<AcknowledgedResponse> createPartitions(Client client,
                                                                             Set<PartitionName> partitions,
                                                                             ClusterService clusterService) {
         Metadata metadata = clusterService.state().metadata();

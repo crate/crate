@@ -31,7 +31,7 @@ import java.util.Map;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.CheckedRunnable;
@@ -118,7 +118,7 @@ public class BlobShardCollectorProviderTest extends SQLHttpIntegrationTest {
                     mock(NodeContext.class),
                     null,
                     Settings.EMPTY,
-                    mock(ElasticsearchClient.class),
+                    mock(Client.class),
                     Map.of()
                 );
                 assertThat(collectorProvider).isNotNull();
