@@ -293,11 +293,6 @@ public class PrimaryReplicaSyncer {
         }
 
         @Override
-        public String getDescription() {
-            return toString();
-        }
-
-        @Override
         public String toString() {
             return "ResyncRequest{ " + shardId + ", " + allocationId + " }";
         }

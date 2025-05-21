@@ -154,11 +154,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
     @Override
     public abstract String toString(); // force a proper to string to ease debugging
 
-    @Override
-    public String getDescription() {
-        return toString();
-    }
-
     /**
      * This method is called before this replication request is retried
      * the first time.
