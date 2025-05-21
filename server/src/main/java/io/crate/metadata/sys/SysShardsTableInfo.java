@@ -98,6 +98,7 @@ public class SysShardsTableInfo {
         static final ColumnIdent TRANSLOG_STATS = ColumnIdent.of("translog_stats");
         static final ColumnIdent RETENTION_LEASES = ColumnIdent.of("retention_leases");
         static final ColumnIdent FLUSH_STATS = ColumnIdent.of("flush_stats");
+        static final ColumnIdent LAST_WRITE_BEFORE = ColumnIdent.of("last_write_before");
     }
 
     public static Map<ColumnIdent, RowCollectExpressionFactory<UnassignedShard>> unassignedShardsExpressions() {
@@ -123,7 +124,8 @@ public class SysShardsTableInfo {
             entry(Columns.SEQ_NO_STATS, NestedNullObjectExpression::new),
             entry(Columns.TRANSLOG_STATS, NestedNullObjectExpression::new),
             entry(Columns.RETENTION_LEASES, NestedNullObjectExpression::new),
-            entry(Columns.FLUSH_STATS, NestedNullObjectExpression::new)
+            entry(Columns.FLUSH_STATS, NestedNullObjectExpression::new),
+            entry(Columns.LAST_WRITE_BEFORE, () -> constant(null))
         );
     }
 
@@ -197,6 +199,7 @@ public class SysShardsTableInfo {
                 .add("periodic_count", LONG, ShardRowContext::flushPeriodicCount)
                 .add("total_time_ns", LONG, ShardRowContext::flushTotalTimeNs)
             .endObject()
+            .add(Columns.LAST_WRITE_BEFORE.name(), DataTypes.TIMESTAMPZ, r -> r.indexShard().lastWriteTimestamp())
             .setPrimaryKeys(
                 Columns.SCHEMA_NAME,
                 Columns.TABLE_NAME,

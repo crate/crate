@@ -122,8 +122,14 @@ public abstract class Engine implements Closeable {
      *    and suddenly merges kick in.
      *  NOTE: don't use this value for anything accurate it's a best effort for freeing up diskspace after merges and on a shard level to reduce index buffer sizes on
      *  inactive shards.
+     *
+     *  We also store the startTimeMillis to have the initial real timestamp of the engine start and
+     *  startTimeNanos to be able to calculate elapsed time in nanos
      */
-    protected volatile long lastWriteNanos = System.nanoTime();
+    private long startTimeMillis = System.currentTimeMillis();
+    private long startTimeNanos = System.nanoTime();
+    protected volatile long lastWriteNanos = startTimeNanos;
+
 
     protected Engine(EngineConfig engineConfig) {
         Objects.requireNonNull(engineConfig.getStore(), "Store must be provided to the engine");
@@ -1578,6 +1584,13 @@ public abstract class Engine implements Closeable {
      */
     public long getLastWriteNanos() {
         return this.lastWriteNanos;
+    }
+
+    /**
+     * Returns the real timestamp of the last write in milliseconds.
+     */
+    public long lastWriteTimestamp() {
+        return this.startTimeMillis + ((lastWriteNanos - startTimeNanos) / 1_000_000);
     }
 
 
