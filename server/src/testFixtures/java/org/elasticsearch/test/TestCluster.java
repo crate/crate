@@ -420,7 +420,7 @@ public final class TestCluster implements Closeable {
             }
             for (String repository : repositories) {
                 try {
-                    client().admin().cluster().execute(TransportDeleteRepository.ACTION, new DeleteRepositoryRequest().name(repository)).get();
+                    client().execute(TransportDeleteRepository.ACTION, new DeleteRepositoryRequest().name(repository)).get();
                 } catch (InterruptedException | ExecutionException | RepositoryMissingException ex) {
                     // ignore
                 }
@@ -1372,7 +1372,7 @@ public final class TestCluster implements Closeable {
      */
     public void assertSameDocIdsOnShards() throws Exception {
         assertBusy(() -> {
-            ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+            ClusterState state = client().state(new ClusterStateRequest()).get().getState();
             for (ObjectObjectCursor<String, IndexRoutingTable> indexRoutingTable : state.routingTable().indicesRouting()) {
                 for (IntObjectCursor<IndexShardRoutingTable> indexShardRoutingTable : indexRoutingTable.value.shards()) {
                     ShardRouting primaryShardRouting = indexShardRoutingTable.value.primaryShard();
@@ -1846,7 +1846,7 @@ public final class TestCluster implements Closeable {
     public String getMasterName(@Nullable String viaNode) {
         try {
             Client client = viaNode != null ? client(viaNode) : client();
-            return client.admin().cluster().state(new ClusterStateRequest()).get().getState().nodes().getMasterNode().getName();
+            return client.state(new ClusterStateRequest()).get().getState().nodes().getMasterNode().getName();
         } catch (Exception e) {
             logger.warn("Can't fetch cluster state", e);
             throw new RuntimeException("Can't get master node " + e.getMessage(), e);

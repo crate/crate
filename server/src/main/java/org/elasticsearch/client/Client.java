@@ -36,11 +36,6 @@ import org.elasticsearch.common.settings.Settings;
 public interface Client extends ElasticsearchClient, Releasable {
 
     /**
-     * The admin client that can be used to perform administrative operations.
-     */
-    AdminClient admin();
-
-    /**
      * Returns this clients settings
      */
     Settings settings();

@@ -165,7 +165,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
                 .put(Node.INITIAL_STATE_TIMEOUT_SETTING.getKey(), "0s") // to ensure quick node startup
                 .build());
         assertBusy(() -> {
-            ClusterState state = client().admin().cluster().state(new ClusterStateRequest().local(true))
+            ClusterState state = client().state(new ClusterStateRequest().local(true))
                 .get().getState();
             assertThat(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID)).isTrue();
         });
@@ -278,7 +278,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 
         logger.info("--> ensure NO_MASTER_BLOCK on data-only node");
         assertBusy(() -> {
-            ClusterState state = cluster().client(dataNode).admin().cluster().state(new ClusterStateRequest().local(true))
+            ClusterState state = cluster().client(dataNode).state(new ClusterStateRequest().local(true))
                     .get().getState();
             assertThat(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID)).isTrue();
         });
@@ -316,7 +316,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 
         logger.info("--> ensure there is no NO_MASTER_BLOCK and unsafe-bootstrap is reflected in cluster state");
         assertBusy(() -> {
-            ClusterState state = cluster().client(dataNode2).admin().cluster().state(new ClusterStateRequest().local(true))
+            ClusterState state = cluster().client(dataNode2).state(new ClusterStateRequest().local(true))
                     .get().getState();
             assertThat(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID)).isFalse();
             assertThat(state.metadata().persistentSettings().getAsBoolean(UnsafeBootstrapMasterCommand.UNSAFE_BOOTSTRAP.getKey(), false))
@@ -429,7 +429,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
                                                                 .put(masterNodeDataPathSettings)
                                                                 .build());
 
-        ClusterState state = cluster().client().admin().cluster().state(new ClusterStateRequest().local(true))
+        ClusterState state = cluster().client().state(new ClusterStateRequest().local(true))
             .get().getState();
         assertThat(state.blocks().hasGlobalBlockWithId(NoMasterBlockService.NO_MASTER_BLOCK_ID)).isTrue();
 
@@ -444,7 +444,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 
         execute("SET GLOBAL PERSISTENT indices.recovery.max_bytes_per_sec = '1234kb'");
 
-        ClusterState state = cluster().client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        ClusterState state = cluster().client().state(new ClusterStateRequest()).get().getState();
         assertThat(
             state.metadata().persistentSettings().get(INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey())
         ).isEqualTo("1234kb");
@@ -459,7 +459,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
         cluster().startMasterOnlyNode(masterNodeDataPathSettings);
         ensureGreen();
 
-        state = cluster().client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        state = cluster().client().state(new ClusterStateRequest()).get().getState();
         assertThat(
             state.metadata().settings().get(INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING.getKey())
         ).isEqualTo("1234kb");

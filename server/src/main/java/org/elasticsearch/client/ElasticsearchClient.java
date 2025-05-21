@@ -23,6 +23,24 @@ package org.elasticsearch.client;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.ActionType;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
+import org.elasticsearch.action.admin.cluster.health.ClusterHealthResponse;
+import org.elasticsearch.action.admin.cluster.health.TransportClusterHealth;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsRequest;
+import org.elasticsearch.action.admin.cluster.node.stats.NodesStatsResponse;
+import org.elasticsearch.action.admin.cluster.node.stats.TransportNodesStats;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
+import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.action.admin.cluster.state.TransportClusterState;
+import org.elasticsearch.action.admin.indices.refresh.RefreshRequest;
+import org.elasticsearch.action.admin.indices.refresh.RefreshResponse;
+import org.elasticsearch.action.admin.indices.refresh.TransportRefresh;
+import org.elasticsearch.action.admin.indices.settings.put.TransportUpdateSettings;
+import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
+import org.elasticsearch.action.admin.indices.stats.IndicesStatsResponse;
+import org.elasticsearch.action.admin.indices.stats.TransportIndicesStats;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
@@ -44,4 +62,28 @@ public interface ElasticsearchClient {
      */
     ThreadPool threadPool();
 
+
+    default CompletableFuture<ClusterHealthResponse> health(final ClusterHealthRequest request) {
+        return execute(TransportClusterHealth.ACTION, request);
+    }
+
+    default CompletableFuture<ClusterStateResponse> state(final ClusterStateRequest request) {
+        return execute(TransportClusterState.ACTION, request);
+    }
+
+    default CompletableFuture<NodesStatsResponse> nodesStats(final NodesStatsRequest request) {
+        return execute(TransportNodesStats.ACTION, request);
+    }
+
+    default CompletableFuture<RefreshResponse> refresh(final RefreshRequest request) {
+        return execute(TransportRefresh.ACTION, request);
+    }
+
+    default CompletableFuture<IndicesStatsResponse> stats(final IndicesStatsRequest request) {
+        return execute(TransportIndicesStats.ACTION, request);
+    }
+
+    default CompletableFuture<AcknowledgedResponse> updateSettings(UpdateSettingsRequest request) {
+        return execute(TransportUpdateSettings.ACTION, request);
+    }
 }

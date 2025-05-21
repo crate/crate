@@ -367,7 +367,7 @@ public class DiskUsagesITest extends IntegTestCase {
             cluster().startNode(Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), createTempDir()));
         }
 
-        ClusterStateResponse clusterStateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
+        ClusterStateResponse clusterStateResponse = client().state(new ClusterStateRequest()).get();
         final List<String> nodeIds = StreamSupport.stream(clusterStateResponse.getState()
             .getRoutingNodes().spliterator(), false).map(RoutingNode::nodeId).collect(Collectors.toList());
 
@@ -400,7 +400,7 @@ public class DiskUsagesITest extends IntegTestCase {
             .transientSettings(Settings.builder()
                 .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING.getKey(), "150ms")
             );
-        client().admin().cluster().execute(ClusterUpdateSettingsAction.INSTANCE, updateSettingsRequest).get();
+        client().execute(ClusterUpdateSettingsAction.INSTANCE, updateSettingsRequest).get();
 
 
         // Create an index with 6 shards so we can check allocation for it
@@ -477,7 +477,7 @@ public class DiskUsagesITest extends IntegTestCase {
     }
 
     private static ClusterState clusterState() {
-        return FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest())).getState();
+        return FutureUtils.get(client().state(new ClusterStateRequest())).getState();
     }
 
     private static FsInfo.Path setDiskUsage(FsInfo.Path original, long totalBytes, long freeBytes) {

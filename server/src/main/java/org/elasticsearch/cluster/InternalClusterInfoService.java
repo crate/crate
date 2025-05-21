@@ -190,7 +190,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         ObjectContainer<DiscoveryNode> allDataNodes = clusterService.state().nodes().getDataNodes().values();
         final NodesStatsRequest nodesStatsRequest = new NodesStatsRequest(allDataNodes.toArray(DiscoveryNode.class));
         nodesStatsRequest.timeout(fetchTimeout);
-        return client.admin().cluster().nodesStats(nodesStatsRequest);
+        return client.nodesStats(nodesStatsRequest);
     }
 
     /**
@@ -202,7 +202,7 @@ public class InternalClusterInfoService implements ClusterInfoService, ClusterSt
         indicesStatsRequest.clear();
         indicesStatsRequest.store(true);
 
-        return client.admin().indices().stats(indicesStatsRequest);
+        return client.stats(indicesStatsRequest);
     }
 
     // allow tests to adjust the node stats on receipt

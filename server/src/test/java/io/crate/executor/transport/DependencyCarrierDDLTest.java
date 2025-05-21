@@ -100,7 +100,7 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
         Bucket objects = executePlan(node, plannerContext);
 
         assertThat(objects).containsExactly(new Row1(1L));
-        var stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
+        var stateResponse = client().state(new ClusterStateRequest()).get();
         assertThat(stateResponse.getState().metadata()
             .persistentSettings().get(persistentSetting)
         ).isEqualTo("false");
@@ -113,7 +113,7 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
         objects = executePlan(node, plannerContext);
 
         assertThat(objects).containsExactly(new Row1(1L));
-        stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
+        stateResponse = client().state(new ClusterStateRequest()).get();
         assertThat(stateResponse.getState().metadata()
             .transientSettings().get(transientSetting)
         ).isEqualTo("123s");
