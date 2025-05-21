@@ -42,7 +42,7 @@ import io.crate.types.DataTypes;
 
 public class StandardDeviationPopAggregation extends StandardDeviationAggregation<StandardDeviationPop> {
 
-    public static final List<String> NAMES = List.of("stddev", "stddev_pop");
+    public static final String NAME = "stddev_pop";
 
     static {
         DataTypes.register(StdDevPopStateType.ID, _ -> StdDevPopStateType.INSTANCE);
@@ -52,17 +52,15 @@ public class StandardDeviationPopAggregation extends StandardDeviationAggregatio
         DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
     public static void register(Functions.Builder builder) {
-        for (var name: NAMES) {
-            for (var supportedType : SUPPORTED_TYPES) {
-                builder.add(
-                    Signature.builder(name, FunctionType.AGGREGATE)
-                        .argumentTypes(supportedType.getTypeSignature())
-                        .returnType(DataTypes.DOUBLE.getTypeSignature())
-                        .features(Scalar.Feature.DETERMINISTIC)
-                        .build(),
-                     StandardDeviationPopAggregation::new
-                );
-            }
+        for (var supportedType : SUPPORTED_TYPES) {
+            builder.add(
+                Signature.builder(NAME, FunctionType.AGGREGATE)
+                    .argumentTypes(supportedType.getTypeSignature())
+                    .returnType(DataTypes.DOUBLE.getTypeSignature())
+                    .features(Scalar.Feature.DETERMINISTIC)
+                    .build(),
+                 StandardDeviationPopAggregation::new
+            );
         }
     }
 
