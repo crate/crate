@@ -1073,10 +1073,10 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
-    public void groupByAggregateStdDevByte() throws Exception {
+    public void groupByAggregateStdDevPopByte() throws Exception {
         this.setup.groupBySetup("byte");
 
-        execute("select stddev(age), gender from characters group by gender order by gender");
+        execute("select stddev_pop(age), gender from characters group by gender order by gender");
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][0]).isEqualTo(5.5d);
         assertThat(response.rows()[1][0]).isEqualTo(39.0d);
@@ -1093,10 +1093,10 @@ public class GroupByAggregateTest extends IntegTestCase {
     }
 
     @Test
-    public void groupByAggregateStdDevDouble() throws Exception {
+    public void groupByAggregateStdDevPopDouble() throws Exception {
         this.setup.groupBySetup("double");
 
-        execute("select stddev(age), gender from characters group by gender order by gender");
+        execute("select stddev_pop(age), gender from characters group by gender order by gender");
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(response.rows()[0][0]).isEqualTo(5.5d);
         assertThat(response.rows()[1][0]).isEqualTo(39.0d);
@@ -1105,7 +1105,7 @@ public class GroupByAggregateTest extends IntegTestCase {
     @Test
     public void groupByStatsAggregatesGlobal() throws Exception {
         this.setup.groupBySetup("short");
-        execute("select min(age), mean(age), geometric_mean(age), max(age), variance(age), stddev(age) from characters");
+        execute("select min(age), mean(age), geometric_mean(age), max(age), variance(age), stddev_pop(age) from characters");
         Object[] row = response.rows()[0];
         assertThat(row[0]).isEqualTo((short) 32);
         assertThat(row[1]).isEqualTo(55.25d);

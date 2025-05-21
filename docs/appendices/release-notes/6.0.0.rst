@@ -219,6 +219,10 @@ Breaking Changes
         | TRUE          |
         +---------------+
 
+ - :ref:`stddev` changed and is now an alias for :ref:`aggregation-stddev-samp`,
+   to match PostgreSQL behavior. In order to calculate the population standard
+   deviation, :ref:`aggregation-stddev-pop` should be used.
+
 Deprecations
 ============
 
@@ -268,9 +272,6 @@ Scalar and Aggregation Functions
 
 - Added support for the :ref:`array_overlap<scalar-array_overlap>` scalar
   function and the associated :ref:`&&<array_overlap_operator>` operator.
-
-- Added support for the :ref:`aggregation-stddev-pop` function to compute
-  the population standard deviation.
 
 - Added support for the :ref:`aggregation-stddev-samp` function to compute
   the sample standard deviation.
