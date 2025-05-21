@@ -280,9 +280,6 @@ public class Session implements AutoCloseable {
             resultReceiver = new RetryOnFailureResultReceiver<>(
                 tempErrorRetryCount,
                 executor.clusterService(),
-                // not using planner.currentClusterState().metadata()::hasIndex to make sure the *current*
-                // clusterState at the time of the index check is used
-                indexName -> clusterState.metadata().hasIndex(indexName),
                 resultReceiver,
                 jobId,
                 (newJobId, retryResultReceiver) -> retryQuery(
@@ -855,7 +852,6 @@ public class Session implements AutoCloseable {
             resultReceiver = new RetryOnFailureResultReceiver<>(
                 tempErrorRetryCount,
                 executor.clusterService(),
-                indexName -> executor.clusterService().state().metadata().hasIndex(indexName),
                 resultReceiver,
                 jobId,
                 (newJobId, resultRec) -> retryQuery(

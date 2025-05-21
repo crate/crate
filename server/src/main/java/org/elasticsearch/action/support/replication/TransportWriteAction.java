@@ -23,12 +23,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
-import org.elasticsearch.index.shard.PrimaryShardClosedException;
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.TransportActions;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -38,12 +34,16 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.PrimaryShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.Translog.Location;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * Base class for transport actions that modify data in some shard like index, delete, and shardBulk.
@@ -303,7 +303,7 @@ public abstract class TransportWriteAction<
         @Override
         public void failShardIfNeeded(ShardRouting replica, long primaryTerm, String message, Exception exception,
                                       ActionListener<Void> listener) {
-            if (TransportActions.isShardNotAvailableException(exception) == false) {
+            if (SQLExceptions.isShardNotAvailable(exception) == false) {
                 logger.warn(new ParameterizedMessage("[{}] {}", replica.shardId(), message), exception);
             }
             // If a write action fails due to the closure of the primary shard
