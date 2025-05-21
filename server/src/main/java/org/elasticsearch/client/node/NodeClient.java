@@ -50,23 +50,15 @@ public class NodeClient implements Client {
     }
 
     @Override
-    public <Req extends TransportRequest, Resp extends TransportResponse> CompletableFuture<Resp> execute(ActionType<Resp> action, Req request) {
-        return transportAction(action).execute(request);
-    }
-
-    /**
-     * Get the {@link TransportAction} for an {@link ActionType}, throwing exceptions if the action isn't available.
-     */
     @SuppressWarnings("unchecked")
-    private <Request extends TransportRequest,
-             Response extends TransportResponse> TransportAction<Request, Response> transportAction(ActionType<Response> action) {
+    public <Req extends TransportRequest, Resp extends TransportResponse> CompletableFuture<Resp> execute(ActionType<Resp> action, Req request) {
         if (actions == null) {
             throw new IllegalStateException("NodeClient has not been initialized");
         }
-        TransportAction<Request, Response> transportAction = actions.get(action);
+        TransportAction<Req, Resp> transportAction = actions.get(action);
         if (transportAction == null) {
             throw new IllegalStateException("failed to find action [" + action + "] to execute");
         }
-        return transportAction;
+        return transportAction.execute(request);
     }
 }
