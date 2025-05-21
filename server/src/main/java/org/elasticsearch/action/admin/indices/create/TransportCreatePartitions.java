@@ -384,7 +384,8 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
         Metadata metadata = state.metadata();
         ArrayList<PartitionName> partitions = new ArrayList<>(request.partitionValuesList().size());
         for (List<String> partitionValues : request.partitionValuesList()) {
-            List<IndexMetadata> indices = metadata.getIndices(request.relationName(), partitionValues, true, imd -> imd);
+            // Don't be strict, it should not fail if the partition already exists
+            List<IndexMetadata> indices = metadata.getIndices(request.relationName(), partitionValues, false, imd -> imd);
             if (indices.isEmpty()) {
                 PartitionName partition = new PartitionName(request.relationName(), partitionValues);
                 partitions.add(partition);
