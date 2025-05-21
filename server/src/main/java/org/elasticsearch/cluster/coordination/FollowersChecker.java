@@ -299,8 +299,11 @@ public class FollowersChecker {
             final FollowerCheckRequest request = new FollowerCheckRequest(fastResponseState.term, transportService.getLocalNode());
             LOGGER.trace("handleWakeUp: checking {} with {}", discoveryNode, request);
 
-            transportService.sendRequest(discoveryNode, FOLLOWER_CHECK_ACTION_NAME, request,
-                TransportRequestOptions.builder().withTimeout(followerCheckTimeout).withType(Type.PING).build(),
+            transportService.sendRequest(
+                discoveryNode,
+                FOLLOWER_CHECK_ACTION_NAME,
+                request,
+                new TransportRequestOptions(followerCheckTimeout, Type.PING),
                 new TransportResponseHandler<Empty>() {
                     @Override
                     public Empty read(StreamInput in) {

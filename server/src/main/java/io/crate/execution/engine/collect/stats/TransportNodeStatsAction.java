@@ -60,10 +60,7 @@ public class TransportNodeStatsAction extends TransportAction<NodeStatsRequest, 
 
     @Override
     public void doExecute(NodeStatsRequest request, ActionListener<NodeStatsResponse> listener) {
-        TransportRequestOptions options = TransportRequestOptions.builder()
-            .withTimeout(request.timeout())
-            .build();
-
+        TransportRequestOptions options = new TransportRequestOptions(request.timeout());
         transports.sendRequest(
             NodeStatsAction.NAME,
             request.nodeId(),

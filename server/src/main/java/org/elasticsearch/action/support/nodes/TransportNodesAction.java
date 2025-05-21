@@ -19,6 +19,13 @@
 
 package org.elasticsearch.action.support.nodes;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReferenceArray;
+
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.FailedNodeException;
@@ -36,13 +43,6 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.concurrent.atomic.AtomicReferenceArray;
 
 public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest<NodesRequest>,
                                            NodesResponse extends BaseNodesResponse,
@@ -145,10 +145,7 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
                 threadPool.generic().execute(() -> listener.onResponse(newResponse(request, responses)));
                 return;
             }
-            TransportRequestOptions.Builder builder = TransportRequestOptions.builder();
-            if (request.timeout() != null) {
-                builder.withTimeout(request.timeout());
-            }
+            TransportRequestOptions requestOptions = new TransportRequestOptions(request.timeout());
             for (int i = 0; i < nodes.length; i++) {
                 final int idx = i;
                 final DiscoveryNode node = nodes[i];
@@ -159,7 +156,7 @@ public abstract class TransportNodesAction<NodesRequest extends BaseNodesRequest
                         node,
                         transportNodeAction,
                         nodeRequest,
-                        builder.build(),
+                        requestOptions,
                         new TransportResponseHandler<NodeResponse>() {
 
                             @Override

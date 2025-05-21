@@ -269,8 +269,11 @@ public class JoinHelper {
         final Tuple<DiscoveryNode, JoinRequest> dedupKey = new Tuple<>(destination, joinRequest);
         if (pendingOutgoingJoins.add(dedupKey)) {
             LOGGER.debug("attempting to join {} with {}", destination, joinRequest);
-            transportService.sendRequest(destination, JOIN_ACTION_NAME, joinRequest,
-                TransportRequestOptions.builder().withTimeout(joinTimeout).build(),
+            transportService.sendRequest(
+                destination,
+                JOIN_ACTION_NAME,
+                joinRequest,
+                new TransportRequestOptions(joinTimeout),
                 new TransportResponseHandler<Empty>() {
                     @Override
                     public Empty read(StreamInput in) {
@@ -332,7 +335,7 @@ public class JoinHelper {
     void sendValidateJoinRequest(DiscoveryNode node, ClusterState state, ActionListener<TransportResponse.Empty> listener) {
         transportService.sendRequest(node, VALIDATE_JOIN_ACTION_NAME,
             new ValidateJoinRequest(state),
-            TransportRequestOptions.builder().withTimeout(joinTimeout).build(),
+            new TransportRequestOptions(joinTimeout),
             new ActionListenerResponseHandler<>(VALIDATE_JOIN_ACTION_NAME, listener, i -> Empty.INSTANCE, ThreadPool.Names.GENERIC));
     }
 
