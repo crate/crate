@@ -372,14 +372,14 @@ public class SQLExecutor {
                 clusterService,
                 mock(RemoteClusters.class),
                 threadPool,
-                new NodeClient(settings, threadPool),
+                new NodeClient(threadPool),
                 allocationService,
                 logicalReplicationSettings,
                 nodeCtx
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
             var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeCtx);
-            var client = new NodeClient(settings, threadPool);
+            var client = new NodeClient(threadPool);
 
             publishInitialClusterState(clusterService);
             return new SQLExecutor(

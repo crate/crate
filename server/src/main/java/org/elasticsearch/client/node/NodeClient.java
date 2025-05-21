@@ -25,7 +25,6 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.client.support.AbstractClient;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
@@ -38,8 +37,8 @@ public class NodeClient extends AbstractClient {
     @SuppressWarnings("rawtypes")
     private Map<ActionType, TransportAction> actions;
 
-    public NodeClient(Settings settings, ThreadPool threadPool) {
-        super(settings, threadPool);
+    public NodeClient(ThreadPool threadPool) {
+        super(threadPool);
     }
 
     @SuppressWarnings("rawtypes")

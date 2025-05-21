@@ -23,10 +23,14 @@ package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
 import io.crate.session.Sessions;
@@ -41,12 +45,11 @@ public class BulkInsertOnClientNodeTest extends IntegTestCase {
 
                 private String nodeName;
 
+
                 @Override
                 public Client client() {
                     // make sure we use a client node (started with client=true)
-                    Client client = cluster().client();
-                    nodeName = client.settings().get("node.name");
-                    return client;
+                    return cluster().client(nodeName());
                 }
 
                 @Override
@@ -61,8 +64,17 @@ public class BulkInsertOnClientNodeTest extends IntegTestCase {
 
                 private String nodeName() {
                     if (nodeName == null) {
-                        Client client = client();
-                        nodeName = client.settings().get("name");
+                        TestCluster cluster = cluster();
+                        List<String> names = Arrays.asList(cluster.getNodeNames());
+                        Collections.shuffle(names, random());
+                        for (String name : names) {
+                            try {
+                                cluster.client(name);
+                                nodeName = name;
+                                break;
+                            } catch (AssertionError ignored) {
+                            }
+                        }
                     }
                     return nodeName;
                 }

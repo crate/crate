@@ -69,7 +69,7 @@ public final class SniffRemoteClient extends AbstractClient {
                              ConnectionInfo connectionInfo,
                              String clusterAlias,
                              TransportService transportService) {
-        super(nodeSettings, threadPool);
+        super(threadPool);
         this.clusterAlias = clusterAlias;
         this.transportService = transportService;
         this.seedNodes = Lists.map(
@@ -77,10 +77,10 @@ public final class SniffRemoteClient extends AbstractClient {
             seedNode -> () -> resolveSeedNode(clusterAlias, seedNode)
         );
         this.profile = new ConnectionProfile.Builder()
-            .setConnectTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
-            .setHandshakeTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
-            .setPingInterval(TransportSettings.PING_SCHEDULE.get(settings))
-            .setCompressionEnabled(TransportSettings.TRANSPORT_COMPRESS.get(settings))
+            .setConnectTimeout(TransportSettings.CONNECT_TIMEOUT.get(nodeSettings))
+            .setHandshakeTimeout(TransportSettings.CONNECT_TIMEOUT.get(nodeSettings))
+            .setPingInterval(TransportSettings.PING_SCHEDULE.get(nodeSettings))
+            .setCompressionEnabled(TransportSettings.TRANSPORT_COMPRESS.get(nodeSettings))
             .addConnections(1, TransportRequestOptions.Type.BULK)
             .addConnections(0, TransportRequestOptions.Type.PING)
             .addConnections(1, TransportRequestOptions.Type.STATE)

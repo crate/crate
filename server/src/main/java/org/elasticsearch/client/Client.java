@@ -22,7 +22,6 @@ package org.elasticsearch.client;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.lease.Releasable;
-import org.elasticsearch.common.settings.Settings;
 
 /**
  * A client provides a one stop interface for performing actions/operations against the cluster.
@@ -35,8 +34,4 @@ import org.elasticsearch.common.settings.Settings;
  */
 public interface Client extends ElasticsearchClient, Releasable {
 
-    /**
-     * Returns this clients settings
-     */
-    Settings settings();
 }

@@ -20,22 +20,14 @@
 package org.elasticsearch.client.support;
 
 import org.elasticsearch.client.Client;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
 public abstract class AbstractClient implements Client {
 
     private final ThreadPool threadPool;
-    protected final Settings settings;
 
-    protected AbstractClient(Settings settings, ThreadPool threadPool) {
-        this.settings = settings;
+    protected AbstractClient(ThreadPool threadPool) {
         this.threadPool = threadPool;
-    }
-
-    @Override
-    public final Settings settings() {
-        return this.settings;
     }
 
     @Override
