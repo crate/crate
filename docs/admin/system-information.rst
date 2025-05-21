@@ -7,7 +7,15 @@ System information
 
 CrateDB provides the ``sys`` schema which contains virtual tables. These tables
 are read-only and can be queried to get statistical real-time information about
-the cluster, its nodes and their shards:
+the cluster, its nodes and their shards.
+
+.. NOTE::
+
+    During a rolling upgrade of the cluster to a newer version, while the
+    cluster is in a mixed state with nodes on the older and on the new version,
+    avoid querying the ``sys`` tables using ``SELECT *``, as new columns could
+    have been added, removed or modified between versions. Instead, use a
+    defined list of the columns that you need to return from the query.
 
 .. rubric:: Table of contents
 
