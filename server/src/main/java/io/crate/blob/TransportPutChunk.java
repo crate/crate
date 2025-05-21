@@ -92,7 +92,6 @@ public class TransportPutChunk extends TransportReplicationAction<PutChunkReques
                 request.content(),
                 request.isLast()
             );
-            replicaRequest.index(request.index());
             return new PrimaryResult<>(replicaRequest, response);
         });
     }
