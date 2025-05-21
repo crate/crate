@@ -28,6 +28,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.ReleasableBytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -126,7 +127,7 @@ public class InboundDecoderTests extends ESTestCase {
         String action = "test-request";
         long requestId = randomNonNegativeLong();
         OutboundMessage message;
-        TransportMessage transportMessage;
+        Writeable transportMessage;
         if (isRequest) {
             transportMessage = new TestRequest(randomAlphaOfLength(100));
             message = new OutboundMessage.Request(transportMessage, Version.CURRENT, action, requestId,

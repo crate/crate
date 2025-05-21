@@ -19,14 +19,16 @@
 
 package org.elasticsearch.transport;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.tasks.TaskAwareRequest;
 import org.elasticsearch.tasks.TaskId;
 
-import java.io.IOException;
+public abstract class TransportRequest implements Writeable, TaskAwareRequest {
 
-public abstract class TransportRequest extends TransportMessage implements TaskAwareRequest {
     public static class Empty extends TransportRequest {
         public static final Empty INSTANCE = new Empty();
     }
