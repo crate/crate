@@ -21,7 +21,9 @@
 
 package io.crate.expression;
 
+import static io.crate.testing.TestingHelpers.refInfo;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -47,7 +49,9 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.Scalar.Feature;
 import io.crate.metadata.TransactionContext;
@@ -184,10 +188,10 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCompiled() throws Exception {
         Function function = (Function) expressions.normalize(expressions.asSymbol("a like 'f%'"));
-        InputFactory.Context<Input<?>> ctx = factory.ctxForRefs(txnCtx, i -> Literal.of("foo"));
+        InputFactory.Context<Input<?>> ctx = factory.ctxForRefs(txnCtx, _ -> Literal.of("foo"));
         Input<?> input = ctx.add(function);
 
-        FunctionExpression expression = (FunctionExpression) input;
+        FunctionExpression<?, ?> expression = (FunctionExpression<?, ?>) input;
         java.lang.reflect.Field f = FunctionExpression.class.getDeclaredField("scalar");
         f.setAccessible(true);
         FunctionImplementation impl = (FunctionImplementation) f.get(expression);
@@ -205,5 +209,20 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
         Input<?> input2 = ctx.add(symbol);
 
         assertThat(input1).isSameAs(input2);
+    }
+
+    @Test
+    public void test_missing_reference() throws Exception {
+        InputFactory.Context<Input<?>> ctx = factory.ctxForRefs(txnCtx, _ -> null);
+
+        Reference refInfo = refInfo("doc.tbl.id", DataTypes.INTEGER, RowGranularity.SHARD);
+        assertThatThrownBy(() -> ctx.add(refInfo))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column implementation not found for: id");
+
+        Reference sysRefInfo = refInfo("sys.shards.id", DataTypes.INTEGER, RowGranularity.SHARD);
+        assertThatThrownBy(() -> ctx.add(sysRefInfo))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column implementation not found for: id. This can happen in mixed clusters when using `SELECT *`; Declare the column list explicitly instead");
     }
 }
