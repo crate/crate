@@ -99,8 +99,10 @@ public class PgClient extends AbstractClient {
     final ConnectionInfo connectionInfo;
     final ConnectionProfile profile;
     final SslContextProvider sslContextProvider;
+    final Settings settings;
 
     private CompletableFuture<Transport.Connection> connectionFuture;
+
 
     public PgClient(String name,
                     Settings nodeSettings,
@@ -110,8 +112,9 @@ public class PgClient extends AbstractClient {
                     SslContextProvider sslContextProvider,
                     PageCacheRecycler pageCacheRecycler,
                     ConnectionInfo connectionInfo) {
-        super(nodeSettings, transport.getThreadPool());
+        super(transport.getThreadPool());
         this.name = name;
+        this.settings = nodeSettings;
         this.transportService = transportService;
         this.nettyBootstrap = nettyBootstrap;
         this.transport = transport;
@@ -120,16 +123,20 @@ public class PgClient extends AbstractClient {
         this.host = toDiscoveryNode(connectionInfo.hosts());
         this.connectionInfo = connectionInfo;
         this.profile = new ConnectionProfile.Builder()
-            .setConnectTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
-            .setHandshakeTimeout(TransportSettings.CONNECT_TIMEOUT.get(settings))
-            .setPingInterval(TransportSettings.PING_SCHEDULE.get(settings))
-            .setCompressionEnabled(TransportSettings.TRANSPORT_COMPRESS.get(settings))
+            .setConnectTimeout(TransportSettings.CONNECT_TIMEOUT.get(nodeSettings))
+            .setHandshakeTimeout(TransportSettings.CONNECT_TIMEOUT.get(nodeSettings))
+            .setPingInterval(TransportSettings.PING_SCHEDULE.get(nodeSettings))
+            .setCompressionEnabled(TransportSettings.TRANSPORT_COMPRESS.get(nodeSettings))
             .addConnections(1, TransportRequestOptions.Type.BULK)
             .addConnections(1, TransportRequestOptions.Type.PING)
             .addConnections(1, TransportRequestOptions.Type.STATE)
             .addConnections(1, TransportRequestOptions.Type.RECOVERY)
             .addConnections(1, TransportRequestOptions.Type.REG)
             .build();
+    }
+
+    Settings settings() {
+        return settings;
     }
 
     private DiscoveryNode toDiscoveryNode(List<String> hosts) {

@@ -33,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Random;
@@ -41,7 +40,6 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.tests.util.LuceneTestCase;
-import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -216,12 +214,6 @@ public class InternalTestClusterTests extends ESTestCase {
                 cluster1.beforeTest(random);
             }
             assertThat(cluster1.getNodeNames()).isEqualTo(cluster0.getNodeNames());
-            Iterator<Client> iterator1 = cluster1.getClients().iterator();
-            for (Client client : cluster0.getClients()) {
-                assertThat(iterator1.hasNext()).isTrue();
-                Client other = iterator1.next();
-                assertSettings(client.settings(), other.settings(), false);
-            }
             cluster0.afterTest();
             cluster1.afterTest();
         } finally {
