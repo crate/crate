@@ -47,6 +47,11 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Improved error message thrown when using a ``SELECT *``` on
+  :ref:`system tables <system-information>`, during a rolling upgrade, when
+  columns on the ``sys`` table queried differ between the old and the new
+  cluster nodes.
+
 - Fixed an issue that would cause wrong column data type to be used when adding
   parent and child object sub-columns in one
   :ref:`ALTER TABLE <alter-table-add-column>` statement, e.g.::
