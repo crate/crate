@@ -26,12 +26,12 @@ import org.elasticsearch.common.io.stream.StreamInput;
 
 import java.io.IOException;
 
-public class StandardDeviation extends Variance {
+public class StandardDeviationPop extends Variance {
 
-    public StandardDeviation() {
+    public StandardDeviationPop() {
     }
 
-    public StandardDeviation(StreamInput in) throws IOException {
+    public StandardDeviationPop(StreamInput in) throws IOException {
         super(in);
     }
 

@@ -27,32 +27,25 @@ import java.util.List;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
-import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
-import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
 import io.crate.execution.engine.aggregation.statistics.Variance;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.FunctionType;
-import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FixedWidthType;
 import io.crate.types.FloatType;
@@ -61,41 +54,9 @@ import io.crate.types.LongType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
 
-public class StandardDeviationAggregation extends AggregationFunction<StandardDeviation, Double> {
+public abstract class StandardDeviationAggregation<V extends Variance> extends AggregationFunction<V, Double> {
 
-    public static final List<String> NAMES = List.of("stddev", "stddev_pop");
-
-    static {
-        DataTypes.register(StdDevStateType.ID, in -> StdDevStateType.INSTANCE);
-    }
-
-    private static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
-        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
-
-    public static void register(Functions.Builder builder) {
-        for (var name: NAMES) {
-            for (var supportedType : SUPPORTED_TYPES) {
-                builder.add(
-                        Signature.builder(name, FunctionType.AGGREGATE)
-                            .argumentTypes(supportedType.getTypeSignature())
-                            .returnType(DataTypes.DOUBLE.getTypeSignature())
-                            .features(Scalar.Feature.DETERMINISTIC)
-                            .build(),
-                        StandardDeviationAggregation::new
-                );
-            }
-        }
-    }
-
-    public static class StdDevStateType extends DataType<StandardDeviation> implements Streamer<StandardDeviation>, FixedWidthType {
-
-        public static final StdDevStateType INSTANCE = new StdDevStateType();
-        public static final int ID = 8192;
-
-        @Override
-        public int id() {
-            return ID;
-        }
+    public abstract static class StdDevStateType<V extends Variance> extends DataType<V> implements Streamer<V>, FixedWidthType {
 
         @Override
         public Precedence precedence() {
@@ -103,22 +64,18 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public String getName() {
-            return "stddev_state";
-        }
-
-        @Override
-        public Streamer<StandardDeviation> streamer() {
+        public Streamer<V> streamer() {
             return this;
         }
 
+        @SuppressWarnings("unchecked")
         @Override
-        public StandardDeviation sanitizeValue(Object value) {
-            return (StandardDeviation) value;
+        public V sanitizeValue(Object value) {
+            return (V) value;
         }
 
         @Override
-        public int compare(StandardDeviation val1, StandardDeviation val2) {
+        public int compare(V val1, V val2) {
             return val1.compareTo(val2);
         }
 
@@ -128,17 +85,12 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         }
 
         @Override
-        public StandardDeviation readValueFrom(StreamInput in) throws IOException {
-            return new StandardDeviation(in);
-        }
-
-        @Override
-        public void writeValueTo(StreamOutput out, StandardDeviation v) throws IOException {
+        public void writeValueTo(StreamOutput out, V v) throws IOException {
             v.writeTo(out);
         }
 
         @Override
-        public long valueBytes(StandardDeviation value) {
+        public long valueBytes(V value) {
             return fixedSize();
         }
     }
@@ -151,6 +103,8 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         this.boundSignature = boundSignature;
     }
 
+    protected abstract V newVariance();
+
     @Override
     public Signature signature() {
         return signature;
@@ -161,20 +115,11 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         return boundSignature;
     }
 
-    @Nullable
     @Override
-    public StandardDeviation newState(RamAccounting ramAccounting,
-                                      Version minNodeInCluster,
-                                      MemoryManager memoryManager) {
-        ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
-        return new StandardDeviation();
-    }
-
-    @Override
-    public StandardDeviation iterate(RamAccounting ramAccounting,
-                                     MemoryManager memoryManager,
-                                     StandardDeviation state,
-                                     Input<?>... args) throws CircuitBreakingException {
+    public V iterate(RamAccounting ramAccounting,
+                     MemoryManager memoryManager,
+                     V state,
+                     Input<?>... args) throws CircuitBreakingException {
         if (state != null) {
             Number value = (Number) args[0].value();
             if (value != null) {
@@ -185,7 +130,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     @Override
-    public StandardDeviation reduce(RamAccounting ramAccounting, StandardDeviation state1, StandardDeviation state2) {
+    public V reduce(RamAccounting ramAccounting, V state1, V state2) {
         if (state1 == null) {
             return state2;
         }
@@ -202,9 +147,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     @Override
-    public StandardDeviation removeFromAggregatedState(RamAccounting ramAccounting,
-                                                       StandardDeviation previousAggState,
-                                                       Input<?>[]stateToRemove) {
+    public V removeFromAggregatedState(RamAccounting ramAccounting, V previousAggState, Input<?>[]stateToRemove) {
         if (previousAggState != null) {
             Number value = (Number) stateToRemove[0].value();
             if (value != null) {
@@ -215,14 +158,9 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     }
 
     @Override
-    public Double terminatePartial(RamAccounting ramAccounting, StandardDeviation state) {
+    public Double terminatePartial(RamAccounting ramAccounting, V state) {
         double result = state.result();
         return Double.isNaN(result) ? null : result;
-    }
-
-    @Override
-    public DataType<?> partialType() {
-        return StdDevStateType.INSTANCE;
     }
 
     @Nullable
@@ -239,47 +177,39 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
         if (!reference.hasDocValues()) {
             return null;
         }
-        switch (reference.valueType().id()) {
-            case ByteType.ID:
-            case ShortType.ID:
-            case IntegerType.ID:
-            case LongType.ID:
-            case TimestampType.ID_WITH_TZ:
-            case TimestampType.ID_WITHOUT_TZ:
-                return new SortedNumericDocValueAggregator<>(
-                    reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
-                        ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
-                        return new StandardDeviation();
-                    },
-                    (values, state) -> state.increment(values.nextValue())
-                );
-            case FloatType.ID:
-                return new SortedNumericDocValueAggregator<>(
-                    reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
-                        ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
-                        return new StandardDeviation();
-                    },
-                    (values, state) -> {
-                        var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                        state.increment(value);
-                    }
-                );
-            case DoubleType.ID:
-                return new SortedNumericDocValueAggregator<>(
-                    reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
-                        ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());
-                        return new StandardDeviation();
-                    },
-                    (values, state) -> {
-                        var value = NumericUtils.sortableLongToDouble((values.nextValue()));
-                        state.increment(value);
-                    }
-                );
-            default:
-                return null;
-        }
+        return switch (reference.valueType().id()) {
+            case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID, TimestampType.ID_WITH_TZ,
+                 TimestampType.ID_WITHOUT_TZ -> new SortedNumericDocValueAggregator<>(
+                     reference.storageIdent(),
+                     (ramAccounting, _, _) -> {
+                         ramAccounting.addBytes(V.fixedSize());
+                         return newVariance();
+                     },
+                     (values, state) -> state.increment(values.nextValue())
+            );
+            case FloatType.ID -> new SortedNumericDocValueAggregator<>(
+                reference.storageIdent(),
+                (ramAccounting, _, _) -> {
+                    ramAccounting.addBytes(V.fixedSize());
+                    return newVariance();
+                },
+                (values, state) -> {
+                    var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                    state.increment(value);
+                }
+            );
+            case DoubleType.ID -> new SortedNumericDocValueAggregator<>(
+                reference.storageIdent(),
+                (ramAccounting, _, _) -> {
+                    ramAccounting.addBytes(V.fixedSize());
+                    return newVariance();
+                },
+                (values, state) -> {
+                    var value = NumericUtils.sortableLongToDouble((values.nextValue()));
+                    state.increment(value);
+                }
+            );
+            default -> null;
+        };
     }
 }
