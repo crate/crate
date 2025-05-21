@@ -265,11 +265,6 @@ public class RestoreSnapshotRequest extends MasterNodeRequest<RestoreSnapshotReq
     }
 
     @Override
-    public String getDescription() {
-        return "snapshot [" + repository + ":" + snapshot + "]";
-    }
-
-    @Override
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;

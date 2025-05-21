@@ -21,7 +21,7 @@
 
 package io.crate;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
 
@@ -50,7 +50,6 @@ public class SerializationTests extends ESTestCase {
             new BytesArray(new byte[]{0x65, 0x66}),
             false
         );
-        requestOut.index("foo");
         BytesStreamOutput outputStream = new BytesStreamOutput();
         requestOut.writeTo(outputStream);
         StreamInput inputStream = outputStream.bytes().streamInput();
