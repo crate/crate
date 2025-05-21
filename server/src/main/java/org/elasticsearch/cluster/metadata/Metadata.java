@@ -75,6 +75,7 @@ import com.carrotsearch.hppc.procedures.ObjectProcedure;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.execution.ddl.Templates;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
@@ -575,9 +576,14 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         for (int i = 0; i < size; i++) {
             builder.put(IndexMetadata.readFrom(in), false);
         }
-        size = in.readVInt();
-        for (int i = 0; i < size; i++) {
-            builder.put(IndexTemplateMetadata.readFrom(in));
+        // Only read templates if we are not on 6.0.0 or later, templates aren't used anymore. But old ones must still
+        // be read to maintain backwards compatibility. They will be converted to schemas/relations and removed
+        // afterward in the PublicationTransportHandler
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            int templatesSize = in.readVInt();
+            for (int i = 0; i < templatesSize; i++) {
+                builder.put(IndexTemplateMetadata.readFrom(in));
+            }
         }
         int customSize = in.readVInt();
         for (int i = 0; i < customSize; i++) {
@@ -611,9 +617,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         for (IndexMetadata indexMetadata : this) {
             indexMetadata.writeTo(out);
         }
-        out.writeVInt(templates.size());
-        for (ObjectCursor<IndexTemplateMetadata> cursor : templates.values()) {
-            cursor.value.writeTo(out);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            List<RelationMetadata.Table> partitionedRelations = relations(RelationMetadata.Table.class).stream()
+                .filter(table -> table.partitionedBy().isEmpty() == false)
+                .toList();
+            out.writeVInt(partitionedRelations.size());
+            for (RelationMetadata.Table table : partitionedRelations) {
+                IndexTemplateMetadata templateMetadata = Templates.of(table);
+                templateMetadata.writeTo(out);
+            }
         }
         // filter out custom states not supported by the other node
         int numberOfCustoms = 0;

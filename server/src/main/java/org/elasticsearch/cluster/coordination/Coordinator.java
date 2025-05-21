@@ -64,6 +64,7 @@ import org.elasticsearch.cluster.coordination.JoinHelper.InitialJoinAccumulator;
 import org.elasticsearch.cluster.coordination.JoinHelper.JoinAccumulator;
 import org.elasticsearch.cluster.coordination.JoinHelper.JoinCallback;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RerouteService;
@@ -156,11 +157,22 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
      * @param nodeName The name of the node, used to name the {@link java.util.concurrent.ExecutorService} of the {@link SeedHostsResolver}.
      * @param onJoinValidators A collection of join validators to restrict which nodes may join the cluster.
      */
-    public Coordinator(String nodeName, Settings settings, ClusterSettings clusterSettings, TransportService transportService,
-                       NamedWriteableRegistry namedWriteableRegistry, AllocationService allocationService, MasterService masterService,
-                       Supplier<CoordinationState.PersistedState> persistedStateSupplier, SeedHostsProvider seedHostsProvider,
-                       ClusterApplier clusterApplier, Collection<BiConsumer<DiscoveryNode, ClusterState>> onJoinValidators, Random random,
-                       RerouteService rerouteService, ElectionStrategy electionStrategy, NodeHealthService nodeHealthService) {
+    public Coordinator(String nodeName,
+                       Settings settings,
+                       ClusterSettings clusterSettings,
+                       TransportService transportService,
+                       NamedWriteableRegistry namedWriteableRegistry,
+                       AllocationService allocationService,
+                       MasterService masterService,
+                       Supplier<CoordinationState.PersistedState> persistedStateSupplier,
+                       SeedHostsProvider seedHostsProvider,
+                       ClusterApplier clusterApplier,
+                       Collection<BiConsumer<DiscoveryNode, ClusterState>> onJoinValidators,
+                       Random random,
+                       RerouteService rerouteService,
+                       ElectionStrategy electionStrategy,
+                       NodeHealthService nodeHealthService,
+                       MetadataUpgradeService metadataUpgradeService) {
         this.settings = settings;
         this.transportService = transportService;
         this.masterService = masterService;
@@ -186,7 +198,7 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
         this.peerFinder = new CoordinatorPeerFinder(settings, transportService,
             new HandshakingTransportAddressConnector(settings, transportService), configuredHostsResolver);
         this.publicationHandler = new PublicationTransportHandler(transportService, namedWriteableRegistry,
-            this::handlePublishRequest, this::handleApplyCommit);
+            metadataUpgradeService, this::handlePublishRequest, this::handleApplyCommit);
         this.leaderChecker = new LeaderChecker(settings, transportService, this::onLeaderFailure, nodeHealthService);
         this.followersChecker = new FollowersChecker(settings, transportService, this::onFollowerCheckRequest, this::removeNode,
             nodeHealthService);
