@@ -28,14 +28,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
+import io.crate.action.FutureActionListener;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -46,6 +48,7 @@ import io.crate.execution.engine.collect.RowsTransformer;
 import io.crate.execution.engine.collect.stats.NodeStatsRequest;
 import io.crate.execution.engine.collect.stats.NodeStatsResponse;
 import io.crate.execution.support.ActionExecutor;
+import io.crate.execution.support.MultiActionListener;
 import io.crate.expression.InputFactory;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.node.NodeStatsContext;
@@ -130,41 +133,25 @@ public final class NodeStats {
         }
 
         private CompletableFuture<List<NodeStatsContext>> getStatsFromRemote(Set<ColumnIdent> toCollect) {
-            final CompletableFuture<List<NodeStatsContext>> nodeStatsContextsFuture = new CompletableFuture<>();
-            final List<NodeStatsContext> rows = new ArrayList<>(nodes.size());
-            final AtomicInteger remainingNodesToCollect = new AtomicInteger(nodes.size());
+            FutureActionListener<List<NodeStatsContext>> listener = new FutureActionListener<>();
+            MultiActionListener<NodeStatsContext, Object, List<NodeStatsContext>> multiListener
+                = new MultiActionListener<>(nodes.size(), Collectors.toList(), listener);
             for (final DiscoveryNode node : nodes) {
                 final String nodeId = node.getId();
                 NodeStatsRequest request = new NodeStatsRequest(nodeId, REQUEST_TIMEOUT, toCollect);
                 nodeStatsAction
                     .execute(request)
-                    .whenComplete(
-                        (resp, t) -> {
-                            if (t == null) {
-                                synchronized (rows) {
-                                    rows.add(resp.nodeStatsContext());
-                                }
-                                if (remainingNodesToCollect.decrementAndGet() == 0) {
-                                    nodeStatsContextsFuture.complete(rows);
-                                }
-                            } else {
-                                Throwable ut = SQLExceptions.unwrap(t);
-                                if (isTimeoutOrNodeNotReachable(ut)) {
-                                    NodeStatsContext statsContext = new NodeStatsContext(nodeId, node.getName());
-                                    synchronized (rows) {
-                                        rows.add(statsContext);
-                                    }
-                                    if (remainingNodesToCollect.decrementAndGet() == 0) {
-                                        nodeStatsContextsFuture.complete(rows);
-                                    }
-                                } else {
-                                    nodeStatsContextsFuture.completeExceptionally(ut);
-                                }
-                            }
+                    .thenApply(NodeStatsResponse::nodeStatsContext)
+                    .exceptionally(err -> {
+                        Throwable t = SQLExceptions.unwrap(err);
+                        if (isTimeoutOrNodeNotReachable(t)) {
+                            return new NodeStatsContext(nodeId, node.getName());
                         }
-                    );
+                        throw Exceptions.toRuntimeException(t);
+                    })
+                    .whenComplete(multiListener);
             }
-            return nodeStatsContextsFuture;
+            return listener;
         }
     }
 
