@@ -66,7 +66,7 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
                 .put("compress", randomBoolean())
                 .put("chunk_size", randomIntBetween(100, 1000), ByteSizeUnit.BYTES)
             );
-        assertAcked(client().admin().cluster().execute(TransportPutRepository.ACTION, putRepositoryRequest).get());
+        assertAcked(client().execute(TransportPutRepository.ACTION, putRepositoryRequest).get());
 
         final int shards = between(1, 10);
         execute("create table doc.test(x integer) clustered into ? shards with (number_of_replicas=0)", new Object[]{shards});

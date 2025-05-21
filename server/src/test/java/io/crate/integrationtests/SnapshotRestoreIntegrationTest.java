@@ -251,7 +251,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             );
             if (response.rowCount() > 0 && response.rows()[0][0] == "SUCCESS") {
                 // Make sure that snapshot clean up operations are finished
-                ClusterStateResponse stateResponse = client().admin().cluster().state(new ClusterStateRequest()).get();
+                ClusterStateResponse stateResponse = client().state(new ClusterStateRequest()).get();
                 SnapshotsInProgress snapshotsInProgress = stateResponse.getState().custom(SnapshotsInProgress.TYPE);
                 if (snapshotsInProgress == null || snapshotsInProgress.snapshot(snapshot) == null) {
                     return;

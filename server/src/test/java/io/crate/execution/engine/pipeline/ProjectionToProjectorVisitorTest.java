@@ -37,7 +37,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.stream.StreamSupport;
 
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
@@ -105,7 +105,7 @@ public class ProjectionToProjectorVisitorTest extends CrateDummyClusterServiceUn
             nodeCtx,
             THREAD_POOL,
             Settings.EMPTY,
-            mock(ElasticsearchClient.class),
+            mock(Client.class),
             new InputFactory(nodeCtx),
             EvaluatingNormalizer.functionOnlyNormalizer(nodeCtx),
             t -> null,

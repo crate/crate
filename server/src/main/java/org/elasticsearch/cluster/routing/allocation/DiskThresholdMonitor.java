@@ -363,7 +363,7 @@ public class DiskThresholdMonitor {
         List<PartitionName> partitions = indicesToUpdate.stream()
             .map(index -> IndexName.decode(index).toPartitionName())
             .toList();
-        client.admin().indices().updateSettings(new UpdateSettingsRequest(readOnlySettings, partitions))
+        client.updateSettings(new UpdateSettingsRequest(readOnlySettings, partitions))
             .thenApply(response -> (Void) null)
             .whenComplete(wrappedListener);
     }

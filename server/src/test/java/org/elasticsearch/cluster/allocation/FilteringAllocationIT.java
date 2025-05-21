@@ -91,7 +91,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         ensureGreen();
 
         logger.info("--> verify all are allocated on node1 now");
-        ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        ClusterState clusterState = client().state(new ClusterStateRequest()).get().getState();
         for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
                 for (ShardRouting shardRouting : indexShardRoutingTable) {
@@ -123,7 +123,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         String tableName = getFqn("test");
 
-        ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        ClusterState clusterState = client().state(new ClusterStateRequest()).get().getState();
         assertThat(clusterState.metadata().index(tableName).getNumberOfReplicas()).isEqualTo(1);
         ensureGreen();
 
@@ -136,7 +136,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         ensureGreen();
 
         logger.info("--> verify all are allocated on node1 now");
-        final var cs = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        final var cs = client().state(new ClusterStateRequest()).get().getState();
         assertThat(cs.metadata().index(tableName).getNumberOfReplicas()).isEqualTo(0);
         for (IndexRoutingTable indexRoutingTable : cs.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
@@ -177,7 +177,7 @@ public class FilteringAllocationIT extends IntegTestCase {
             ensureGreen();
         }
 
-        ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        ClusterState clusterState = client().state(new ClusterStateRequest()).get().getState();
         IndexRoutingTable indexRoutingTable = clusterState.routingTable().index(tableName);
         int numShardsOnNode1 = 0;
         for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
@@ -202,7 +202,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         ensureGreen();
 
         logger.info("--> verify all shards are allocated on node_1 now");
-        var state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        var state = client().state(new ClusterStateRequest()).get().getState();
         for (IndexShardRoutingTable indexShardRoutingTable : state.routingTable().index(tableName)) {
             for (ShardRouting shardRouting : indexShardRoutingTable) {
                 assertThat(state.nodes().get(shardRouting.currentNodeId()).getName()).isEqualTo(node_1);
@@ -215,7 +215,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         ensureGreen();
 
         logger.info("--> verify that there are shards allocated on both nodes now");
-        state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        state = client().state(new ClusterStateRequest()).get().getState();
         assertThat(state.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn()).isEqualTo(2);
     }
 
@@ -225,7 +225,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         Setting<String> filterSetting = randomFrom(FilterAllocationDecider.CLUSTER_ROUTING_REQUIRE_GROUP_SETTING,
                                                    FilterAllocationDecider.CLUSTER_ROUTING_INCLUDE_GROUP_SETTING, FilterAllocationDecider.CLUSTER_ROUTING_EXCLUDE_GROUP_SETTING);
         assertThatThrownBy(() -> FutureUtils.get(
-                client().admin().cluster().execute(ClusterUpdateSettingsAction.INSTANCE, new ClusterUpdateSettingsRequest()
+                client().execute(ClusterUpdateSettingsAction.INSTANCE, new ClusterUpdateSettingsRequest()
                     .transientSettings(Settings.builder().put(filterSetting.getKey() + ipKey, "192.168.1.1."))
                 )))
             .isExactlyInstanceOf(IllegalArgumentException.class)
@@ -260,7 +260,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         logger.info("--> waiting for relocation");
         waitForRelocation(ClusterHealthStatus.GREEN);
 
-        ClusterState state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        ClusterState state = client().state(new ClusterStateRequest()).get().getState();
 
         for (ShardRouting shard : state.routingTable().shardsWithState(ShardRoutingState.STARTED)) {
             String node = state.getRoutingNodes().node(shard.currentNodeId()).node().getName();
@@ -277,7 +277,7 @@ public class FilteringAllocationIT extends IntegTestCase {
         logger.info("--> waiting for relocation");
         waitForRelocation(ClusterHealthStatus.GREEN);
 
-        state = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        state = client().state(new ClusterStateRequest()).get().getState();
 
         // The transient settings still exist in the state
         assertThat(state.metadata().transientSettings()).isEqualTo(Settings.builder().put("cluster.routing.allocation.exclude._name",

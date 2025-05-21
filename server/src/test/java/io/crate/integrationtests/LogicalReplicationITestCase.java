@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_READ_POLL_DURATION;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.discovery.DiscoveryModule.DISCOVERY_SEED_PROVIDERS_SETTING;
 import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVERY_SEED_HOSTS_SETTING;
 
@@ -152,7 +153,7 @@ public abstract class LogicalReplicationITestCase extends ESTestCase {
     }
 
     private void dropSubscriptions() throws Exception {
-        var state = subscriberCluster.client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        var state = subscriberCluster.client().state(new ClusterStateRequest()).get().getState();
         SubscriptionsMetadata subscriptionsMetadata = SubscriptionsMetadata.get(state.metadata());
         for (var subscriptionName : subscriptionsMetadata.subscription().keySet()) {
             subscriberSqlExecutor.exec("DROP SUBSCRIPTION " + subscriptionName);

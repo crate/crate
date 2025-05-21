@@ -122,7 +122,7 @@ public class RepositoryServiceTest extends CrateDummyClusterServiceUnitTest {
             }
         };
 
-        NodeClient nodeClient = new NodeClient(Settings.EMPTY, THREAD_POOL);
+        NodeClient nodeClient = new NodeClient();
         nodeClient.initialize(Map.of(
             TransportPutRepository.ACTION, putRepo,
             TransportDeleteRepository.ACTION, deleteRepositoryAction

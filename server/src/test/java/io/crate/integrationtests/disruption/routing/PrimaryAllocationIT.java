@@ -84,7 +84,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         execute("insert into t values ('value1')");
         execute("refresh table t");
 
-        ClusterState state = client().admin().cluster().state(new ClusterStateRequest().all()).get().getState();
+        ClusterState state = client().state(new ClusterStateRequest().all()).get().getState();
         List<ShardRouting> shards = state.routingTable().allShards(indexName);
         assertThat(shards).hasSize(2);
 
@@ -123,11 +123,11 @@ public class PrimaryAllocationIT extends IntegTestCase {
 
         logger.info("--> check that old primary shard does not get promoted to primary again");
         // kick reroute and wait for all shard states to be fetched
-        client(master).admin().cluster().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
+        client(master).execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
         assertBusy(() ->
             assertThat(cluster().getInstance(AllocationService.class, master).getNumberOfInFlightFetches()).isEqualTo(0));
         // kick reroute a second time and check that all shards are unassigned
-        var clusterRerouteResponse = client(master).admin().cluster().execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
+        var clusterRerouteResponse = client(master).execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
         assertThat(clusterRerouteResponse.getState().getRoutingNodes().unassigned()).hasSize(2);
         return inSyncDataPathSettings;
     }
@@ -162,7 +162,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         final Settings inSyncDataPathSettings = cluster().dataPathSettings(replicaNode);
         cluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
         ensureYellow();
-        assertThat(client().admin().cluster()
+        assertThat(client()
             .state(new ClusterStateRequest())
             .get().getState().metadata().index(indexName).inSyncAllocationIds(0)
         ).hasSize(2);
@@ -173,9 +173,9 @@ public class PrimaryAllocationIT extends IntegTestCase {
             }
         });
         logger.info("--> wait until shard is failed and becomes unassigned again");
-        assertBusy(() -> assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
+        assertBusy(() -> assertThat(client().state(new ClusterStateRequest()).get().getState()
             .routingTable().index(indexName).allPrimaryShardsUnassigned()).isTrue());
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
+        assertThat(client().state(new ClusterStateRequest()).get().getState()
                             .metadata().index(indexName).inSyncAllocationIds(0)).hasSize(2);
 
         logger.info("--> starting node that reuses data folder with the up-to-date shard");
@@ -194,11 +194,11 @@ public class PrimaryAllocationIT extends IntegTestCase {
         ensureGreen();
         cluster().stopRandomNode(TestCluster.nameFilter(replicaNode));
         ensureYellow();
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
+        assertThat(client().state(new ClusterStateRequest()).get().getState()
                             .metadata().index(indexName).inSyncAllocationIds(0)).hasSize(2);
         logger.info("--> inserting row...");
         execute("insert into t values ('value1')");
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
+        assertThat(client().state(new ClusterStateRequest()).get().getState()
                             .metadata().index(indexName).inSyncAllocationIds(0)).hasSize(1);
         cluster().restartRandomDataNode(new TestCluster.RestartCallback() {
             @Override
@@ -207,14 +207,14 @@ public class PrimaryAllocationIT extends IntegTestCase {
             }
         });
         logger.info("--> wait until shard is failed and becomes unassigned again");
-        assertBusy(() -> assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
+        assertBusy(() -> assertThat(client().state(new ClusterStateRequest()).get().getState()
             .routingTable().index(indexName).allPrimaryShardsUnassigned()).isTrue());
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
+        assertThat(client().state(new ClusterStateRequest()).get().getState()
                             .metadata().index(indexName).inSyncAllocationIds(0)).hasSize(1);
 
         logger.info("--> starting node that reuses data folder with the up-to-date shard");
         cluster().startDataOnlyNode(inSyncDataPathSettings);
-        assertBusy(() -> assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState()
+        assertBusy(() -> assertThat(client().state(new ClusterStateRequest()).get().getState()
             .routingTable().index(indexName).allPrimaryShardsUnassigned()).isTrue());
     }
 
@@ -255,7 +255,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         cluster().fullRestart();
         logger.info("--> checking that the primary shard is force allocated to the data node despite being blocked by the exclude filter");
         ensureGreen();
-        assertThat(client().admin().cluster()
+        assertThat(client()
             .state(new ClusterStateRequest())
             .get()
             .getState()
@@ -301,7 +301,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         cluster().stopRandomNode(TestCluster.nameFilter(oldPrimary));
         // Checks that we fail replicas in one side but not mark them as stale.
         assertBusy(() -> {
-            ClusterState state = client(master).admin().cluster().state(new ClusterStateRequest()).get().getState();
+            ClusterState state = client(master).state(new ClusterStateRequest()).get().getState();
             final IndexShardRoutingTable shardRoutingTable = state.routingTable().shardRoutingTable(shardId);
             final String newPrimaryNode = state.getRoutingNodes().node(shardRoutingTable.primaryShard().currentNodeId()).node().getName();
             assertThat(newPrimaryNode).isNotEqualTo(oldPrimary);
@@ -317,7 +317,7 @@ public class PrimaryAllocationIT extends IntegTestCase {
         partition.ensureHealthy(cluster());
         logger.info("--> stop disrupting network and re-enable allocation");
         assertBusy(() -> {
-            ClusterState state = client(master).admin().cluster().state(new ClusterStateRequest()).get().getState();
+            ClusterState state = client(master).state(new ClusterStateRequest()).get().getState();
             assertThat(state.routingTable().shardRoutingTable(shardId).activeShards()).hasSize(numberOfReplicas);
             assertThat(state.metadata().index(indexName).inSyncAllocationIds(shardId.id())).hasSize(numberOfReplicas + 1);
             for (String node : replicaNodes) {

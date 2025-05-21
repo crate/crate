@@ -72,7 +72,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         // otherwise the replica might not be ready to be promoted to primary due to "primary failed while replica initializing"
         execute("alter table registers set (\"write.wait_for_active_shards\" = 1)");
 
-        ClusterState clusterState = client().admin().cluster().state(new ClusterStateRequest()).get().getState();
+        ClusterState clusterState = client().state(new ClusterStateRequest()).get().getState();
         String firstDataNodeId = clusterState.nodes().resolveNode(firstDataNodeName).getId();
         String secondDataNodeId = clusterState.nodes().resolveNode(secondDataNodeName).getId();
 
@@ -103,7 +103,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         logger.info("wait for replica on the partition with the master to be promoted to primary");
         assertBusy(() -> {
             String index = IndexName.encode(schema, "registers", null);
-            ShardRouting primaryShard = client(masterNodeName).admin().cluster().state(new ClusterStateRequest()).get().getState().routingTable()
+            ShardRouting primaryShard = client(masterNodeName).state(new ClusterStateRequest()).get().getState().routingTable()
                 .index(index).shard(0).primaryShard();
             // the node that's part of the same partition as master is now the primary for the table shard
             assertThat(primaryShard.currentNodeId()).isEqualTo(nonIsolatedDataNodeId);
