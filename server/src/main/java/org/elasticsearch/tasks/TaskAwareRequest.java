@@ -41,11 +41,4 @@ public interface TaskAwareRequest {
      * {@link TaskId#EMPTY_TASK_ID}, meaning "there is no parent".
      */
     TaskId getParentTask();
-
-    /**
-     * Returns optional description of the request to be displayed by the task manager
-     */
-    default String getDescription() {
-        return "";
-    }
 }

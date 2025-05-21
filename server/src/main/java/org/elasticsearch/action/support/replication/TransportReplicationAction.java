@@ -1051,11 +1051,6 @@ public abstract class TransportReplicationAction<
             return request.getParentTask();
         }
 
-        @Override
-        public String getDescription() {
-            return "[" + request.getDescription() + "] for aID [" + targetAllocationID + "] and term [" + primaryTerm + "]";
-        }
-
         public ConcreteShardRequest(StreamInput in, Reader<R> reader) throws IOException {
             targetAllocationID = in.readString();
             primaryTerm = in.readVLong();
