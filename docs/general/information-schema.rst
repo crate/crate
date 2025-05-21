@@ -31,6 +31,14 @@ but no privilege at all on ``doc.locations``, when ``john`` issues a ``SELECT *
 FROM information_schema.tables`` statement, the tables information related to
 the ``doc.locations`` table will not be returned.
 
+.. NOTE::
+
+    During a rolling upgrade of the cluster to a newer version, while the
+    cluster is in a mixed state with nodes on the older and on the new version,
+    avoid querying the ``sys`` tables using ``SELECT *``, as new columns could
+    have been added, removed or modified between versions. Instead, use a
+    defined list of the columns that you need to return from the query.
+
 Virtual tables
 ==============
 
