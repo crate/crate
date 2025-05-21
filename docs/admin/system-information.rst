@@ -1107,6 +1107,13 @@ Table schema
     * - ``flush_stats['total_time_ns']``
       - The total time spent on flush operations on the shard.
       - ``BIGINT``
+    * - ``last_write_before``
+      - A timestamp showing the latest time that a write operation could have
+        executed against this shard.  The value is held in memory and not
+        persisted through node restarts, so it may only indicate the point at
+        which the node holding the shard started, but the last write is
+        guaranteed to have happened before this timestamp.
+      - ``TIMESTAMP WITH TIME ZONE``
 
 
 .. NOTE::

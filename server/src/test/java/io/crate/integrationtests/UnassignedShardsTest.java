@@ -37,5 +37,7 @@ public class UnassignedShardsTest extends IntegTestCase {
         execute("select state, id, table_name from sys.shards where schema_name = ? AND table_name='t' order by state", new Object[]{sqlExecutor.getCurrentSchema()});
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("STARTED| 0| t\n" +
                "UNASSIGNED| 0| t\n");
+        execute("select state, last_write_before from sys.shards where state = 'UNASSIGNED'");
+        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("UNASSIGNED| NULL\n");
     }
 }
