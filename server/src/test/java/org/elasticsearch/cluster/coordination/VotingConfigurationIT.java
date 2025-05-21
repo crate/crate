@@ -56,7 +56,7 @@ public class VotingConfigurationIT extends IntegTestCase {
         logger.info("--> excluding master node {}", originalMaster);
         client().execute(TransportAddVotingConfigExclusions.ACTION,
             new AddVotingConfigExclusionsRequest(new String[]{originalMaster})).get();
-        FutureUtils.get(client().admin().cluster().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)));
+        FutureUtils.get(client().health(new ClusterHealthRequest().waitForEvents(Priority.LANGUID)));
         assertThat(cluster().getMasterName()).isNotEqualTo(originalMaster);
     }
 
@@ -68,7 +68,7 @@ public class VotingConfigurationIT extends IntegTestCase {
         // by failing at the pre-voting stage, so that the extra node must be elected instead when the master shuts down. This extra node
         // should then add itself into the voting configuration.
 
-        var clusterHealthResponse = FutureUtils.get(cluster().client().admin().cluster().health(
+        var clusterHealthResponse = FutureUtils.get(cluster().client().health(
             new ClusterHealthRequest()
                 .waitForNodes("4")
                 .waitForEvents(Priority.LANGUID)
@@ -76,7 +76,7 @@ public class VotingConfigurationIT extends IntegTestCase {
         assertThat(clusterHealthResponse.isTimedOut()).isFalse();
 
         String excludedNodeName = null;
-        final ClusterState clusterState = cluster().client().admin().cluster().state(
+        final ClusterState clusterState = cluster().client().state(
             new ClusterStateRequest()
                 .clear()
                 .nodes(true)
@@ -111,14 +111,14 @@ public class VotingConfigurationIT extends IntegTestCase {
         }
 
         cluster().stopCurrentMasterNode();
-        clusterHealthResponse = FutureUtils.get(cluster().client().admin().cluster().health(
+        clusterHealthResponse = FutureUtils.get(cluster().client().health(
             new ClusterHealthRequest()
                 .waitForNodes("3")
                 .waitForEvents(Priority.LANGUID)
             ));
         assertThat(clusterHealthResponse.isTimedOut()).isFalse();
 
-        final ClusterState newClusterState = cluster().client().admin().cluster().state(
+        final ClusterState newClusterState = cluster().client().state(
             new ClusterStateRequest()
                 .clear()
                 .nodes(true)

@@ -111,7 +111,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
 
         // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
         final String resizedIndex = AlterTableClient.RESIZE_PREFIX + sourceIndex;
-        client.admin().indices().stats(new IndicesStatsRequest(new PartitionName(request.table(), request.partitionValues()))
+        client.stats(new IndicesStatsRequest(new PartitionName(request.table(), request.partitionValues()))
             .clear()
             .docs(true))
             .thenCompose(statsResponse -> createIndexService.resizeIndex(request, statsResponse))

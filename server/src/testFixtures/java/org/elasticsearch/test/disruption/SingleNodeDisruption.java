@@ -86,7 +86,7 @@ public abstract class SingleNodeDisruption implements ServiceDisruptionScheme {
     }
 
     protected void ensureNodeCount(TestCluster cluster) {
-        boolean timedOut = FutureUtils.get(cluster.client().admin().cluster().health(
+        boolean timedOut = FutureUtils.get(cluster.client().health(
             new ClusterHealthRequest()
                 .waitForNodes(String.valueOf(cluster.size()))
                 .waitForNoRelocatingShards(true)

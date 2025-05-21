@@ -223,7 +223,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
 
     private Set<ShardRouting> getShardRoutings(String nodeId, String indexName) {
         final Set<ShardRouting> shardRoutings = new HashSet<>();
-        ClusterStateResponse clusterStateResponse = FutureUtils.get(client().admin().cluster().state(new ClusterStateRequest().routingTable(true)));
+        ClusterStateResponse clusterStateResponse = FutureUtils.get(client().state(new ClusterStateRequest().routingTable(true)));
         for (IndexShardRoutingTable indexShardRoutingTable : clusterStateResponse.getState().routingTable().index(indexName)) {
             for (ShardRouting shard : indexShardRoutingTable.shards()) {
                 assertThat(shard.state()).isEqualTo(ShardRoutingState.STARTED);
@@ -250,7 +250,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
 
             execute("refresh table " + tableName);
 
-            var indicesStats = client().admin().indices().stats(new IndicesStatsRequest(indexName).store(true)).get();
+            var indicesStats = client().stats(new IndicesStatsRequest(indexName).store(true)).get();
             final List<ShardStats> shardStatses = indicesStats.getIndex(indexName).getShards();
 
             final long[] shardSizes = new long[shardStatses.size()];
@@ -273,7 +273,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
         if (StreamSupport.stream(clusterInfo.getNodeMostAvailableDiskUsages().values().spliterator(), false)
             .allMatch(cur -> cur.value.getFreeBytes() > WATERMARK_BYTES)) {
 
-            var clusterRerouteResponse = client().admin().cluster()
+            var clusterRerouteResponse = client()
                 .execute(ClusterRerouteAction.INSTANCE, new ClusterRerouteRequest()).get();
             assertThat(clusterRerouteResponse.isAcknowledged()).isTrue();
         }
@@ -282,7 +282,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
             .waitForEvents(Priority.LANGUID)
             .waitForNoRelocatingShards(true)
             .waitForNoInitializingShards(true);
-        ClusterHealthResponse response = FutureUtils.get(client().admin().cluster().health(clusterHealthRequest), REQUEST_TIMEOUT);
+        ClusterHealthResponse response = FutureUtils.get(client().health(clusterHealthRequest), REQUEST_TIMEOUT);
         assertThat(response.isTimedOut()).isFalse();
     }
 

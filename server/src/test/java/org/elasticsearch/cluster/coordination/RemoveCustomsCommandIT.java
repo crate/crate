@@ -58,7 +58,7 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
         String node = cluster().startNode();
         execute("create table tbl (x int)");
         execute("drop table tbl");
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
+        assertThat(client().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
             .hasSize(1);
         Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);
@@ -76,7 +76,7 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
         assertThat(terminal.getOutput()).contains("index-graveyard");
 
         cluster().startNode(dataPathSettings);
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
+        assertThat(client().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
             .isEmpty();
     }
 
@@ -86,7 +86,7 @@ public class RemoveCustomsCommandIT extends IntegTestCase {
         String node = cluster().startNode();
         execute("create table tbl (x int)");
         execute("drop table tbl");
-        assertThat(client().admin().cluster().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
+        assertThat(client().state(new ClusterStateRequest()).get().getState().metadata().indexGraveyard().getTombstones())
             .hasSize(1);
         Settings dataPathSettings = cluster().dataPathSettings(node);
         ensureStableCluster(1);

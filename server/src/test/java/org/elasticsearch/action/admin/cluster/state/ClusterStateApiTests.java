@@ -34,7 +34,7 @@ public class ClusterStateApiTests extends IntegTestCase {
     public void testWaitForMetadataVersion() throws Exception {
         ClusterStateRequest clusterStateRequest = new ClusterStateRequest();
         clusterStateRequest.waitForTimeout(TimeValue.timeValueHours(1));
-        CompletableFuture<ClusterStateResponse> future1 = client().admin().cluster().state(clusterStateRequest);
+        CompletableFuture<ClusterStateResponse> future1 = client().state(clusterStateRequest);
         assertBusy(() -> {
             assertThat(future1.isDone()).isTrue();
         });
@@ -45,7 +45,7 @@ public class ClusterStateApiTests extends IntegTestCase {
         clusterStateRequest = new ClusterStateRequest();
         clusterStateRequest.waitForMetadataVersion(metadataVersion + 1);
 
-        CompletableFuture<ClusterStateResponse> future2 = client().admin().cluster().state(clusterStateRequest);
+        CompletableFuture<ClusterStateResponse> future2 = client().state(clusterStateRequest);
         assertThat(future2.isDone()).isFalse();
 
         // Pick an arbitrary dynamic cluster setting and change it. Just to get metadata version incremented:
@@ -62,7 +62,7 @@ public class ClusterStateApiTests extends IntegTestCase {
         metadataVersion = response.getState().metadata().version();
         clusterStateRequest.waitForMetadataVersion(metadataVersion + 1);
         clusterStateRequest.waitForTimeout(TimeValue.timeValueSeconds(1)); // Fail fast
-        CompletableFuture<ClusterStateResponse> future3 = client().admin().cluster().state(clusterStateRequest);
+        CompletableFuture<ClusterStateResponse> future3 = client().state(clusterStateRequest);
         assertBusy(() -> {
             assertThat(future3.isDone()).isTrue();
         });

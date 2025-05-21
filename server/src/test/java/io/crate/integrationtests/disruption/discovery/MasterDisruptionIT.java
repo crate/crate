@@ -187,7 +187,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
         ensureStableCluster(3, new TimeValue(DISRUPTION_HEALING_OVERHEAD.millis() + networkDisruption.expectedTimeToHeal().millis()));
 
         logger.info("Verify no master block with {} set to {}", NoMasterBlockService.NO_MASTER_BLOCK_SETTING.getKey(), "all");
-        client().admin().cluster()
+        client()
             .execute(
                 ClusterUpdateSettingsAction.INSTANCE,
                 new ClusterUpdateSettingsRequest()
@@ -242,7 +242,7 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
         String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
         assertBusy(() -> {
-            IndicesStatsResponse stats = FutureUtils.get(client().admin().indices().stats(new IndicesStatsRequest(indexName).clear()));
+            IndicesStatsResponse stats = FutureUtils.get(client().stats(new IndicesStatsRequest(indexName).clear()));
             for (ShardStats shardStats : stats.getShards()) {
                 assertThat(shardStats.getSeqNoStats().getGlobalCheckpoint()).as(shardStats.getShardRouting().toString()).isEqualTo(shardStats.getSeqNoStats().getLocalCheckpoint());
             }

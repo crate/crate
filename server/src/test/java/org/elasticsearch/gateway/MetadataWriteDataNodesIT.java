@@ -72,7 +72,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
 
         logger.debug("relocating index...");
         execute("alter table doc.test set(\"routing.allocation.include._name\" = ?)", new Object[] {node2});
-        client().admin().cluster().health(new ClusterHealthRequest().waitForNoRelocatingShards(true)).get();
+        client().health(new ClusterHealthRequest().waitForNoRelocatingShards(true)).get();
         ensureGreen();
         assertIndexDirectoryDeleted(node1, resolveIndex);
         assertIndexInMetaState(node2, "test");
