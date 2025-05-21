@@ -24,7 +24,7 @@ package io.crate.execution.engine.collect;
 import java.io.File;
 import java.util.Map;
 
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
@@ -61,7 +61,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
                                       NodeContext nodeCtx,
                                       ThreadPool threadPool,
                                       Settings settings,
-                                      ElasticsearchClient elasticsearchClient,
+                                      Client elasticsearchClient,
                                       Map<String, FileOutputFactory> fileOutputFactoryMap) {
         super(
             clusterService,

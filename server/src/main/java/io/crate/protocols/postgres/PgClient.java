@@ -36,7 +36,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.client.support.AbstractClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.settings.Settings;
@@ -85,7 +85,7 @@ import io.netty.handler.ssl.SslHandler;
  * A client that uses the PostgreSQL wire protocol to initiate a connection,
  * but then switches over to use the transport protocol
  **/
-public class PgClient extends AbstractClient {
+public class PgClient implements Client {
 
     private static final Logger LOGGER = LogManager.getLogger(PgClient.class);
 
@@ -112,7 +112,6 @@ public class PgClient extends AbstractClient {
                     SslContextProvider sslContextProvider,
                     PageCacheRecycler pageCacheRecycler,
                     ConnectionInfo connectionInfo) {
-        super(transport.getThreadPool());
         this.name = name;
         this.settings = nodeSettings;
         this.transportService = transportService;

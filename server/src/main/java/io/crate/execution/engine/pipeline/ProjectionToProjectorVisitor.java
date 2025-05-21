@@ -40,7 +40,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -163,7 +163,7 @@ public class ProjectionToProjectorVisitor
     private final NodeContext nodeCtx;
     private final ThreadPool threadPool;
     private final Settings settings;
-    private final ElasticsearchClient elasticsearchClient;
+    private final Client elasticsearchClient;
     private final InputFactory inputFactory;
     private final EvaluatingNormalizer normalizer;
     private final Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter;
@@ -181,7 +181,7 @@ public class ProjectionToProjectorVisitor
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
-                                        ElasticsearchClient elasticsearchClient,
+                                        Client elasticsearchClient,
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
@@ -212,7 +212,7 @@ public class ProjectionToProjectorVisitor
                                         NodeContext nodeCtx,
                                         ThreadPool threadPool,
                                         Settings settings,
-                                        ElasticsearchClient elasticsearchClient,
+                                        Client elasticsearchClient,
                                         InputFactory inputFactory,
                                         EvaluatingNormalizer normalizer,
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,

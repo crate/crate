@@ -125,7 +125,6 @@ public class RemoteCluster implements Closeable {
     private CompletableFuture<Client> connectSniff() {
         var sniffClient = new SniffRemoteClient(
             settings,
-            threadPool,
             connectionInfo,
             clusterName,
             transportService

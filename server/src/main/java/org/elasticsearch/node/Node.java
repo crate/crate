@@ -357,7 +357,7 @@ public class Node implements Closeable {
             for (final ExecutorBuilder builder : threadPool.builders()) {
                 additionalSettings.addAll(builder.getRegisteredSettings());
             }
-            client = new NodeClient(threadPool);
+            client = new NodeClient();
             final AnalysisModule analysisModule = new AnalysisModule(
                 this.environment,
                 pluginsService.filterPlugins(AnalysisPlugin.class)

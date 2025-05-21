@@ -29,7 +29,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
@@ -72,7 +72,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       int targetTableNumShards,
                                       int targetTableNumReplicas,
                                       Supplier<String> indexNameResolver,
-                                      ElasticsearchClient elasticsearchClient,
+                                      Client elasticsearchClient,
                                       List<ColumnIdent> primaryKeyIdents,
                                       List<? extends Symbol> primaryKeySymbols,
                                       @Nullable Symbol routingSymbol,
