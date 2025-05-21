@@ -36,7 +36,7 @@ import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.state.TransportClusterState;
-import org.elasticsearch.client.support.AbstractClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -53,7 +53,7 @@ import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 
-public final class SniffRemoteClient extends AbstractClient {
+public final class SniffRemoteClient implements Client {
 
     private final TransportService transportService;
     private final ConnectionProfile profile;
@@ -65,11 +65,9 @@ public final class SniffRemoteClient extends AbstractClient {
     private CompletableFuture<DiscoveredNodes> discoveredNodes = null;
 
     public SniffRemoteClient(Settings nodeSettings,
-                             ThreadPool threadPool,
                              ConnectionInfo connectionInfo,
                              String clusterAlias,
                              TransportService transportService) {
-        super(threadPool);
         this.clusterAlias = clusterAlias;
         this.transportService = transportService;
         this.seedNodes = Lists.map(

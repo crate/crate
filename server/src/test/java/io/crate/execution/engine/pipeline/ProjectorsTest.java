@@ -31,7 +31,7 @@ import java.util.Collections;
 import java.util.UUID;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
@@ -72,7 +72,7 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
             nodeCtx,
             THREAD_POOL,
             Settings.EMPTY,
-            mock(ElasticsearchClient.class),
+            mock(Client.class),
             new InputFactory(nodeCtx),
             new EvaluatingNormalizer(
                 nodeCtx,

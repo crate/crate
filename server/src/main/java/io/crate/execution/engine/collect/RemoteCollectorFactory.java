@@ -28,7 +28,7 @@ import java.util.concurrent.Executor;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.client.ElasticsearchClient;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
@@ -68,7 +68,7 @@ public class RemoteCollectorFactory {
 
     private final ClusterService clusterService;
     private final TasksService tasksService;
-    private final ElasticsearchClient elasticsearchClient;
+    private final Client elasticsearchClient;
     private final IndicesService indicesService;
     private final Executor searchTp;
 

@@ -366,20 +366,20 @@ public class SQLExecutor {
             );
             var threadPool = mock(ThreadPool.class);
             var logicalReplicationSettings = new LogicalReplicationSettings(settings, clusterService);
+            NodeClient client = new NodeClient();
             var logicalReplicationService = new LogicalReplicationService(
                 settings,
                 IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
                 clusterService,
                 mock(RemoteClusters.class),
                 threadPool,
-                new NodeClient(threadPool),
+                client,
                 allocationService,
                 logicalReplicationSettings,
                 nodeCtx
             );
             logicalReplicationService.repositoriesService(mock(RepositoriesService.class));
             var foreignDataWrappers = new ForeignDataWrappers(settings, clusterService, nodeCtx);
-            var client = new NodeClient(threadPool);
 
             publishInitialClusterState(clusterService);
             return new SQLExecutor(

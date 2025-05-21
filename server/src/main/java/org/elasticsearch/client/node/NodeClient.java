@@ -24,21 +24,19 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.TransportAction;
-import org.elasticsearch.client.support.AbstractClient;
-import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.client.Client;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
 /**
  * Client that executes actions on the local node.
  */
-public class NodeClient extends AbstractClient {
+public class NodeClient implements Client {
 
     @SuppressWarnings("rawtypes")
     private Map<ActionType, TransportAction> actions;
 
-    public NodeClient(ThreadPool threadPool) {
-        super(threadPool);
+    public NodeClient() {
     }
 
     @SuppressWarnings("rawtypes")
