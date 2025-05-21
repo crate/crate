@@ -20,27 +20,21 @@
 package org.elasticsearch.transport;
 
 
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.common.unit.TimeValue;
 
-public class TransportRequestOptions {
+public record TransportRequestOptions(@Nullable TimeValue timeout, Type type) {
 
-    private final TimeValue timeout;
-    private final Type type;
+    public static final TransportRequestOptions EMPTY = new TransportRequestOptions(null, Type.REG);
 
-    private TransportRequestOptions(TimeValue timeout, Type type) {
-        this.timeout = timeout;
-        this.type = type;
+    public TransportRequestOptions(@Nullable long timeoutInMs) {
+        this(TimeValue.timeValueMillis(timeoutInMs), Type.REG);
     }
 
-    public TimeValue timeout() {
-        return this.timeout;
+    public TransportRequestOptions(@Nullable TimeValue timeout) {
+        this(timeout, Type.REG);
     }
-
-    public Type type() {
-        return this.type;
-    }
-
-    public static final TransportRequestOptions EMPTY = new TransportRequestOptions.Builder().build();
 
     public enum Type {
         RECOVERY,
@@ -48,39 +42,5 @@ public class TransportRequestOptions {
         REG,
         STATE,
         PING
-    }
-
-    public static Builder builder() {
-        return new Builder();
-    }
-
-    public static Builder builder(TransportRequestOptions options) {
-        return new Builder().withTimeout(options.timeout).withType(options.type());
-    }
-
-    public static class Builder {
-        private TimeValue timeout;
-        private Type type = Type.REG;
-
-        private Builder() {
-        }
-
-        public Builder withTimeout(long timeout) {
-            return withTimeout(TimeValue.timeValueMillis(timeout));
-        }
-
-        public Builder withTimeout(TimeValue timeout) {
-            this.timeout = timeout;
-            return this;
-        }
-
-        public Builder withType(Type type) {
-            this.type = type;
-            return this;
-        }
-
-        public TransportRequestOptions build() {
-            return new TransportRequestOptions(timeout, type);
-        }
     }
 }

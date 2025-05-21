@@ -55,6 +55,7 @@ import org.elasticsearch.transport.BytesTransportRequest;
 import org.elasticsearch.transport.TransportChannel;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequestOptions;
+import org.elasticsearch.transport.TransportRequestOptions.Type;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
@@ -86,8 +87,7 @@ public class PublicationTransportHandler {
     private final AtomicLong compatibleClusterStateDiffReceivedCount = new AtomicLong();
     // -> no need to put a timeout on the options here, because we want the response to eventually be received
     //  and not log an error if it arrives after the timeout
-    private final TransportRequestOptions stateRequestOptions = TransportRequestOptions.builder()
-        .withType(TransportRequestOptions.Type.STATE).build();
+    private final TransportRequestOptions stateRequestOptions = new TransportRequestOptions(null, Type.STATE);
 
     public PublicationTransportHandler(TransportService transportService, NamedWriteableRegistry namedWriteableRegistry,
                                        Function<PublishRequest, PublishWithJoinResponse> handlePublishRequest,

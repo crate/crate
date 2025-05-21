@@ -356,7 +356,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             connection,
             HANDSHAKE_ACTION_NAME,
             HandshakeRequest.INSTANCE,
-            TransportRequestOptions.builder().withTimeout(handshakeTimeout).build(),
+            new TransportRequestOptions(handshakeTimeout),
             new ActionListenerResponseHandler<>(
                 HANDSHAKE_ACTION_NAME,
                 new ActionListener<>() {
