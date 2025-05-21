@@ -331,5 +331,8 @@ Administration and Operations
   session setting that allows partial failures of ``INSERT FROM SELECT``
   statements.
 
+- Added ``last_write_before`` column to the sys.shards table, reporting a
+  timestamp before which the last write operation to the shard has taken place.
+
 Client interfaces
 -----------------

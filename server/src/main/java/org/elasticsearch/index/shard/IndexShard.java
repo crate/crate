@@ -3142,6 +3142,11 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         return lastSearcherAccess.get();
     }
 
+    public Long lastWriteTimestamp() {
+        Engine engine = getEngineOrNull();
+        return engine == null ? null : engine.lastWriteTimestamp();
+    }
+
     /**
      * Returns true if this shard has some scheduled refresh that is pending because of search-idle.
      */

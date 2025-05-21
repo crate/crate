@@ -68,11 +68,11 @@ public class SysShardsTest extends IntegTestCase {
         execute("create table t1 (x int) clustered into 1 shards with (number_of_replicas = 0)");
         execute("create blob table b1 clustered into 1 shards with (number_of_replicas = 0)");
         execute("create blob table b2 " +
-                "clustered into 1 shards with (number_of_replicas = 0, blobs_path = '" + blobs.toString() + "')");
+            "clustered into 1 shards with (number_of_replicas = 0, blobs_path = '" + blobs.toString() + "')");
         ensureYellow();
 
         execute("select path, blob_path from sys.shards where table_name in ('t1', 'b1', 'b2') " +
-                "order by table_name asc");
+            "order by table_name asc");
         // b1
         // path + /blobs == blob_path without custom blob path
         assertThat(response.rows()[0][0] + resolveCanonicalString("/blobs")).isEqualTo(response.rows()[0][1]);
@@ -100,14 +100,14 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectGroupByWhereTable() throws Exception {
         SQLResponse response = execute(
             "select count(*), num_docs from sys.shards where table_name = 'characters' " +
-                 "group by num_docs order by count(*)");
+                "group by num_docs order by count(*)");
         assertThat(response.rowCount()).isGreaterThan(0L);
     }
 
     @Test
     public void testSelectGroupByAllTables() throws Exception {
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
-                                       "group by table_name order by table_name");
+            "group by table_name order by table_name");
         assertThat(response.rowCount()).isEqualTo(3L);
         assertThat(response.rows()[0][0]).isEqualTo(10L);
         assertThat(response.rows()[0][1]).isEqualTo("blobs");
@@ -135,7 +135,7 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testSelectGroupByWhereNotLike() throws Exception {
         SQLResponse response = execute("select count(*), table_name from sys.shards " +
-                                       "where table_name not like 'my_table%' group by table_name order by table_name");
+            "where table_name not like 'my_table%' group by table_name order by table_name");
         assertThat(response.rowCount()).isEqualTo(3L);
         assertThat(response.rows()[0][0]).isEqualTo(10L);
         assertThat(response.rows()[0][1]).isEqualTo("blobs");
@@ -149,7 +149,7 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectWhereTable() throws Exception {
         SQLResponse response = execute(
             "select id, size from sys.shards " +
-            "where table_name = 'characters'");
+                "where table_name = 'characters'");
         assertThat(response.rowCount()).isEqualTo(8L);
     }
 
@@ -169,6 +169,7 @@ public class SysShardsTest extends IntegTestCase {
             "closed",
             "flush_stats",
             "id",
+            "last_write_before",
             "min_lucene_version",
             "node",
             "num_docs",
@@ -214,7 +215,7 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void test_translog_stats_can_be_retrieved() {
         execute("SELECT translog_stats, translog_stats['size'] FROM sys.shards " +
-                "WHERE id = 0 AND \"primary\" = true AND table_name = 'characters'");
+            "WHERE id = 0 AND \"primary\" = true AND table_name = 'characters'");
         Object[] resultRow = response.rows()[0];
         Map<String, Object> translogStats = (Map<String, Object>) resultRow[0];
         assertThat(((Number) translogStats.get("size")).longValue()).isEqualTo(resultRow[1]);
@@ -234,7 +235,7 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testSelectOrderBy() throws Exception {
         SQLResponse response = execute("select table_name, min_lucene_version, * " +
-                                       "from sys.shards order by table_name");
+            "from sys.shards order by table_name");
         assertThat(response.rowCount()).isEqualTo(26L);
         List<String> tableNames = Arrays.asList("blobs", "characters", "quotes");
         for (Object[] row : response.rows()) {
@@ -301,7 +302,7 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testGroupByUnknownOrderBy() throws Exception {
         Asserts.assertSQLError(() -> execute(
-            "select sum(num_docs), table_name from sys.shards group by table_name order by lol"))
+                "select sum(num_docs), table_name from sys.shards group by table_name order by lol"))
             .hasPGError(UNDEFINED_COLUMN)
             .hasHTTPError(NOT_FOUND, 4043)
             .hasMessageContaining("Column lol unknown");
@@ -310,7 +311,7 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testGroupByUnknownWhere() throws Exception {
         Asserts.assertSQLError(() -> execute(
-            "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name"))
+                "select sum(num_docs), table_name from sys.shards where lol='funky' group by table_name"))
             .hasPGError(UNDEFINED_COLUMN)
             .hasHTTPError(NOT_FOUND, 4043)
             .hasMessageContaining("Column lol unknown");
@@ -319,7 +320,7 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testGlobalAggregateUnknownWhere() throws Exception {
         Asserts.assertSQLError(() -> execute(
-            "select sum(num_docs) from sys.shards where lol='funky'"))
+                "select sum(num_docs) from sys.shards where lol='funky'"))
             .hasPGError(UNDEFINED_COLUMN)
             .hasHTTPError(NOT_FOUND, 4043)
             .hasMessageContaining("Column lol unknown");
@@ -328,7 +329,7 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testSelectShardIdFromSysNodes() throws Exception {
         Asserts.assertSQLError(() -> execute(
-            "select sys.shards.id from sys.nodes"))
+                "select sys.shards.id from sys.nodes"))
             .hasPGError(UNDEFINED_TABLE)
             .hasHTTPError(NOT_FOUND, 4041)
             .hasMessageContaining("Relation 'sys.shards' unknown");
@@ -345,9 +346,9 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testSelectGroupByHaving() throws Exception {
         SQLResponse response = execute("select count(*) " +
-                                       "from sys.shards " +
-                                       "group by table_name " +
-                                       "having table_name = 'quotes'");
+            "from sys.shards " +
+            "group by table_name " +
+            "having table_name = 'quotes'");
         assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("8\n");
     }
 
@@ -367,7 +368,7 @@ public class SysShardsTest extends IntegTestCase {
     public void testSelectNodeSysExpressionWithUnassignedShards() throws Exception {
         try {
             execute("create table users (id integer primary key, name string) " +
-                    "clustered into 5 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
+                "clustered into 5 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
             ensureYellow();
             SQLResponse response = execute(
                 "select node['name'], id from sys.shards where table_name = 'users' order by node['name'] nulls last"
@@ -384,9 +385,9 @@ public class SysShardsTest extends IntegTestCase {
     @Test
     public void testSelectRecoveryExpression() throws Exception {
         SQLResponse response = execute("select recovery, " +
-                                       "recovery['files'], recovery['files']['used'], recovery['files']['reused'], recovery['files']['recovered'], " +
-                                       "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
-                                       "from sys.shards");
+            "recovery['files'], recovery['files']['used'], recovery['files']['reused'], recovery['files']['recovered'], " +
+            "recovery['size'], recovery['size']['used'], recovery['size']['reused'], recovery['size']['recovered'] " +
+            "from sys.shards");
         for (Object[] row : response.rows()) {
             Map<String, Object> recovery = (Map<String, Object>) row[0];
             Map<String, Integer> files = (Map<String, Integer>) row[1];
@@ -402,7 +403,7 @@ public class SysShardsTest extends IntegTestCase {
         execute("create table t1 (id integer) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
         Asserts.assertSQLError(() -> execute(
-            "select 1/0 from sys.shards"))
+                "select 1/0 from sys.shards"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("/ by zero");
@@ -428,7 +429,7 @@ public class SysShardsTest extends IntegTestCase {
         int numberOfReplicas = numberOfReplicas();
         execute(
             "create table doc.tbl (x int) with (number_of_replicas = ?)",
-            new Object[] { numberOfReplicas }
+            new Object[]{numberOfReplicas}
         );
         execute("insert into doc.tbl values(1)");
         ensureGreen(); // All shards must be available before close; otherwise they're skipped
@@ -461,5 +462,23 @@ public class SysShardsTest extends IntegTestCase {
                 e -> Asserts.assertThat(e)
                     .isExactlyInstanceOf(ClusterBlockException.class)
                     .hasMessageContaining("Table or partition preparing to close."));
+    }
+
+    @Test
+    public void test_last_write_before() {
+        long startTime = System.currentTimeMillis();
+        execute("create table doc.tbl (x int) clustered into 1 shards with(number_of_replicas=0)");
+        execute("insert into doc.tbl values(1)");
+        execute("refresh table doc.tbl");
+
+        execute("select last_write_before from sys.shards where table_name = 'tbl'");
+        long lastTimeBefore1 = (long) response.rows()[0][0];
+        assertThat(lastTimeBefore1).isGreaterThan(startTime);
+
+        execute("update doc.tbl set x = x + 1");
+        execute("refresh table doc.tbl");
+        execute("select last_write_before from sys.shards where table_name = 'tbl'");
+        long lastTimeBefore2 = (long) response.rows()[0][0];
+        assertThat(lastTimeBefore2).isGreaterThan(lastTimeBefore1);
     }
 }
