@@ -39,17 +39,27 @@ public class DescribeResult {
     private final DataType<?>[] parameters;
     private final RelationInfo relation;
 
+    @Nullable
+    private final List<String> fieldNames;
+
     DescribeResult(DataType<?>[] parameters,
                    @Nullable List<Symbol> fields,
+                   @Nullable List<String> fieldNames,
                    @Nullable RelationInfo relation) {
         this.fields = fields;
         this.parameters = parameters;
+        this.fieldNames = fieldNames;
         this.relation = relation;
     }
 
     @Nullable
     public List<Symbol> getFields() {
         return fields;
+    }
+
+    @Nullable
+    public List<String> getFieldNames() {
+        return fieldNames;
     }
 
     /**

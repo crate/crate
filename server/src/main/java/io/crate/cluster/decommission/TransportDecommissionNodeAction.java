@@ -21,10 +21,8 @@
 
 package io.crate.cluster.decommission;
 
-import io.crate.cluster.gracefulstop.DecommissioningService;
-import io.crate.execution.support.NodeActionRequestHandler;
-import io.crate.execution.support.NodeRequest;
-import io.crate.execution.support.Transports;
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.TransportAction;
@@ -34,7 +32,10 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import java.util.concurrent.CompletableFuture;
+import io.crate.cluster.gracefulstop.DecommissioningService;
+import io.crate.execution.support.NodeActionRequestHandler;
+import io.crate.execution.support.NodeRequest;
+import io.crate.execution.support.Transports;
 
 @Singleton
 public class TransportDecommissionNodeAction extends TransportAction<NodeRequest<DecommissionRequest>, AcknowledgedResponse> {
@@ -64,13 +65,13 @@ public class TransportDecommissionNodeAction extends TransportAction<NodeRequest
             request.nodeId(),
             request.innerRequest(),
             listener,
-            new ActionListenerResponseHandler<>(listener, AcknowledgedResponse::new)
+            new ActionListenerResponseHandler<>(DecommissionNodeAction.NAME, listener, AcknowledgedResponse::new)
         );
     }
 
     private CompletableFuture<AcknowledgedResponse> nodeOperation(DecommissionRequest request) {
         try {
-            return decommissioningService.decommission().thenApply(aVoid -> new AcknowledgedResponse(true));
+            return decommissioningService.decommission().thenApply(_ -> new AcknowledgedResponse(true));
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
         }

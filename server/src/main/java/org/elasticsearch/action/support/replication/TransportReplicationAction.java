@@ -361,6 +361,7 @@ public abstract class TransportReplicationAction<
                             primaryRequest.getPrimaryTerm()
                         ),
                         new ActionListenerResponseHandler<>(
+                            transportPrimaryAction,
                             onCompletionListener,
                             TransportReplicationAction.this::newResponseInstance) {
                         });
@@ -555,9 +556,11 @@ public abstract class TransportReplicationAction<
                     public void onNewClusterState(ClusterState state) {
                         // Forking a thread on local node via transport service so that custom transport service have an
                         // opportunity to execute custom logic before the replica operation begins
-                        transportService.sendRequest(clusterService.localNode(), transportReplicaAction,
+                        transportService.sendRequest(
+                            clusterService.localNode(),
+                            transportReplicaAction,
                             replicaRequest,
-                            new ActionListenerResponseHandler<>(onCompletionListener, ReplicaResponse::new));
+                            new ActionListenerResponseHandler<>(transportReplicaAction, onCompletionListener, ReplicaResponse::new));
                     }
 
                     @Override
@@ -990,7 +993,7 @@ public abstract class TransportReplicationAction<
             }
             final ConcreteReplicaRequest<ReplicaRequest> replicaRequest = new ConcreteReplicaRequest<>(
                 request, replica.allocationId().getId(), primaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes);
-            final ActionListenerResponseHandler<ReplicaResponse> handler = new ActionListenerResponseHandler<>(listener, ReplicaResponse::new);
+            var handler = new ActionListenerResponseHandler<>(transportReplicaAction, listener, ReplicaResponse::new);
             transportService.sendRequest(node, transportReplicaAction, replicaRequest, handler);
         }
 

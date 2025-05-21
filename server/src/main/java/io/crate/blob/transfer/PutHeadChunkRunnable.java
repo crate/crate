@@ -119,7 +119,10 @@ public class PutHeadChunkRunnable implements Runnable {
                     BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
                     new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
                     TransportRequestOptions.EMPTY,
-                    new ActionListenerResponseHandler<>(listener, in -> TransportResponse.Empty.INSTANCE)
+                    new ActionListenerResponseHandler<>(
+                        BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
+                        listener,
+                        _ -> TransportResponse.Empty.INSTANCE)
                 );
                 FutureUtils.get(listener);
             }

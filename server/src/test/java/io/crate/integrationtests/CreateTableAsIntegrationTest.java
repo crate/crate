@@ -162,7 +162,7 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
         // IGNORED (error while using an undefined column as it cannot be stored)
         assertThatThrownBy(() -> execute("CREATE TABLE test_ignored AS \n" +
             "SELECT '{\"field1\":123}'::OBJECT (IGNORED) AS (field1 BIGINT) ['field2']"))
-            .hasMessageContaining("Type `NOT SUPPORTED` does not support storage");
+            .hasMessageContaining("Type `UNDEFINED` does not support storage");
 
         try (Session session = sqlExecutor.newSession()) {
             execute("SET SESSION error_on_unknown_object_key=false", session);
@@ -170,7 +170,7 @@ public class CreateTableAsIntegrationTest extends IntegTestCase {
             // DYNAMIC (same as IGNORED, error while using an undefined column as it cannot be stored)
             assertThatThrownBy(() -> execute("CREATE TABLE test_dynamic AS \n" +
                 "SELECT '{\"field1\":123}'::OBJECT (DYNAMIC) AS (field1 BIGINT) ['field2']", session))
-                .hasMessageContaining("Type `NOT SUPPORTED` does not support storage");
+                .hasMessageContaining("Type `UNDEFINED` does not support storage");
         }
     }
 }

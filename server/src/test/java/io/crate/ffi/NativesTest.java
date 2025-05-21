@@ -19,38 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.table;
+package io.crate.ffi;
 
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.jetbrains.annotations.Nullable;
+import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeTrue;
+import static org.assertj.core.api.Assertions.assertThat;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewInfo;
+import org.apache.lucene.util.Constants;
+import org.junit.Test;
 
-public interface SchemaInfo extends AutoCloseable {
+import io.crate.ffi.Natives.Rlimits;
 
-    @Nullable
-    TableInfo getTableInfo(String name);
+public class NativesTest {
 
-    @Nullable
-    default ViewInfo getViewInfo(String name) {
-        return null;
+    @Test
+    public void test_getMaxNumberOfThreads() throws Exception {
+        assumeTrue(Constants.LINUX);
+        assertThat(Natives.getMaxNumberOfThreads()).isGreaterThan(0);
     }
 
-    String name();
+    @Test
+    public void test_getMaxFileSize() throws Exception {
+        assumeTrue(Constants.LINUX);
+        assertThat(Natives.getMaxFileSize()).satisfiesAnyOf(
+            x -> assertThat(x).isGreaterThan(0),
+            x -> assertThat(x).isEqualTo(Rlimits.INFINITY));
+    }
 
-    /**
-     * Called when cluster state and so the table definitions changes.
-     */
-    void update(ClusterChangedEvent event);
-
-    Iterable<TableInfo> getTables();
-
-    Iterable<ViewInfo> getViews();
-
-    @Nullable
-    default TableInfo create(RelationName relationName, Metadata metadata) {
-        throw new UnsupportedOperationException("create() not supported on " + getClass().getName());
+    @Test
+    public void test_runningAsRoot() throws Exception {
+        assumeTrue(Constants.LINUX);
+        assertThat(Natives.definitelyRunningAsRoot()).isFalse();
     }
 }

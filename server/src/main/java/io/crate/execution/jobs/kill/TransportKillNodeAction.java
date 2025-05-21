@@ -59,7 +59,7 @@ public final class TransportKillNodeAction {
                                       listener);
 
         TransportResponseHandler<KillResponse> responseHandler =
-            new ActionListenerResponseHandler<>(multiListener, KillResponse::new);
+            new ActionListenerResponseHandler<>(actionName, multiListener, KillResponse::new);
         for (DiscoveryNode node : filteredNodes) {
             transportService.sendRequest(node, actionName, request, responseHandler);
         }

@@ -61,10 +61,10 @@ class ResultToXContentBuilder {
         return new ResultToXContentBuilder(builder);
     }
 
-    ResultToXContentBuilder cols(List<? extends Symbol> fields) throws IOException {
+    ResultToXContentBuilder cols(List<String> fieldNames) throws IOException {
         builder.startArray(FIELDS.COLS);
-        for (Symbol field : fields) {
-            builder.value(field.toColumn().sqlFqn());
+        for (String field : fieldNames) {
+            builder.value(field);
         }
         builder.endArray();
         return this;
@@ -79,11 +79,11 @@ class ResultToXContentBuilder {
         return this;
     }
 
-    private void toXContentNestedDataType(XContentBuilder builder, DataType dataType) throws IOException {
-        if (dataType instanceof ArrayType) {
+    private void toXContentNestedDataType(XContentBuilder builder, DataType<?> dataType) throws IOException {
+        if (dataType instanceof ArrayType<?>) {
             builder.startArray();
             builder.value(dataType.id());
-            toXContentNestedDataType(builder, ((ArrayType) dataType).innerType());
+            toXContentNestedDataType(builder, ((ArrayType<?>) dataType).innerType());
             builder.endArray();
         } else {
             builder.value(dataType.id());

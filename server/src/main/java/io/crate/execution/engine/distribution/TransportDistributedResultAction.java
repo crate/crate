@@ -41,8 +41,8 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.TaskMissing;
@@ -125,7 +125,7 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
             request.nodeId(),
             request.innerRequest(),
             listener,
-            new ActionListenerResponseHandler<>(listener, DistributedResultResponse::new)
+            new ActionListenerResponseHandler<>(DistributedResultAction.NAME, listener, DistributedResultResponse::new)
         );
     }
 

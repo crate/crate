@@ -172,7 +172,10 @@ public class BlobTransferTarget {
             BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
             new BlobInfoRequest(senderNodeId, request.transferId),
             TransportRequestOptions.EMPTY,
-            new ActionListenerResponseHandler<>(listener, BlobTransferInfoResponse::new)
+            new ActionListenerResponseHandler<>(
+                BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
+                listener,
+                BlobTransferInfoResponse::new)
         );
         BlobTransferInfoResponse transferInfoResponse = FutureUtils.get(listener);
 
@@ -197,7 +200,11 @@ public class BlobTransferTarget {
             BlobHeadRequestHandler.Actions.GET_BLOB_HEAD,
             new GetBlobHeadRequest(senderNodeId, request.transferId(), request.currentPos),
             TransportRequestOptions.EMPTY,
-            new ActionListenerResponseHandler<>(getBlobHeadListener, in -> TransportResponse.Empty.INSTANCE)
+            new ActionListenerResponseHandler<>(
+                BlobHeadRequestHandler.Actions.GET_BLOB_HEAD,
+                getBlobHeadListener,
+                _ -> TransportResponse.Empty.INSTANCE
+            )
         );
         FutureUtils.get(getBlobHeadListener);
         return status;

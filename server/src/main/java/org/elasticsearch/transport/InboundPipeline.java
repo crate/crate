@@ -23,18 +23,13 @@ import java.io.IOException;
 import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.function.BiConsumer;
-import java.util.function.Function;
 import java.util.function.LongSupplier;
-import java.util.function.Supplier;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.CompositeBytesReference;
 import org.elasticsearch.common.bytes.ReleasableBytesReference;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.network.CloseableChannel;
-import org.elasticsearch.common.util.PageCacheRecycler;
 
 public class InboundPipeline implements Releasable {
 
@@ -50,16 +45,11 @@ public class InboundPipeline implements Releasable {
     private final ArrayDeque<ReleasableBytesReference> pending = new ArrayDeque<>(2);
     private boolean isClosed = false;
 
-    public InboundPipeline(Version version, StatsTracker statsTracker, PageCacheRecycler recycler, LongSupplier relativeTimeInMillis,
-                           Supplier<CircuitBreaker> circuitBreaker,
-                           Function<String, RequestHandlerRegistry<TransportRequest>> registryFunction,
+    public InboundPipeline(StatsTracker statsTracker,
+                           LongSupplier relativeTimeInMillis,
+                           InboundDecoder decoder,
+                           InboundAggregator aggregator,
                            BiConsumer<CloseableChannel, InboundMessage> messageHandler) {
-        this(statsTracker, relativeTimeInMillis, new InboundDecoder(version, recycler),
-            new InboundAggregator(circuitBreaker, registryFunction), messageHandler);
-    }
-
-    public InboundPipeline(StatsTracker statsTracker, LongSupplier relativeTimeInMillis, InboundDecoder decoder,
-                           InboundAggregator aggregator, BiConsumer<CloseableChannel, InboundMessage> messageHandler) {
         this.relativeTimeInMillis = relativeTimeInMillis;
         this.statsTracker = statsTracker;
         this.decoder = decoder;

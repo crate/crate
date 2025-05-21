@@ -37,7 +37,6 @@ import org.junit.Test;
 
 import io.crate.execution.dml.BulkResponse;
 import io.crate.testing.SQLResponse;
-import io.crate.testing.TestingHelpers;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, numClientNodes = 0, supportsDedicatedMasters = false)
 public class TransportSQLActionSingleNodeTest extends IntegTestCase {
@@ -54,8 +53,9 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
         ensureYellow();
 
         execute("select count(*) from sys.shards where table_name = 'locations' and state = 'UNASSIGNED'");
-        assertThat(response).hasColumns("count(*)");
-        assertThat(response).hasRows(new Object[] { expectedUnassignedShards });
+        assertThat(response)
+            .hasColumns("count")
+            .hasRows(new Object[] { expectedUnassignedShards });
     }
 
     @Test
@@ -117,14 +117,11 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
 
         execute("select table_name, partition_ident, state from sys.shards where table_name = 'locations' " +
                 "group by table_name, partition_ident, state order by partition_ident, state");
-        assertThat(response).hasRowCount(4L);
-
-        String expected = "locations| 04132| STARTED\n" +
-                          "locations| 04132| UNASSIGNED\n" +
-                          "locations| 04134| STARTED\n" +
-                          "locations| 04134| UNASSIGNED\n";
-
-        assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo(expected);
+        assertThat(response).hasRows(
+            "locations| 04132| STARTED",
+            "locations| 04132| UNASSIGNED",
+            "locations| 04134| STARTED",
+            "locations| 04134| UNASSIGNED");
     }
 
     @Test
@@ -256,15 +253,12 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
             bulkArgs[i] = new Object[]{"event1", "item1"};
         }
         final CompletableFuture<BulkResponse> res = new CompletableFuture<>();
-        Thread insertThread = new Thread(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    res.complete(execute(stmt, bulkArgs));
-                } catch (Exception e) {
-                    // that's what we want
-                    res.completeExceptionally(e);
-                }
+        Thread insertThread = new Thread(() -> {
+            try {
+                res.complete(execute(stmt, bulkArgs));
+            } catch (Exception e) {
+                // that's what we want
+                res.completeExceptionally(e);
             }
         });
         insertThread.start();

@@ -538,7 +538,13 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     parentBuilder.builtReference = parentRef;
                     columns.put(parent, parentBuilder);
                 } else {
-                    columns.put(parent, new RefBuilder(parent, ObjectType.UNTYPED));
+                    /*
+                      Parent can be missing in the table, but present in the same statement, e.g.:
+                      ALTER TABLE tbl
+                        ADD COLUMN obj['arr'] array(object(dynamic)),
+                        ADD COLUMN obj['arr']['id'] integer
+                     */
+                    columns.computeIfAbsent(parent, _ -> new RefBuilder(parent, ObjectType.UNTYPED));
                 }
             }
             Reference reference = table.getReference(columnName);
@@ -587,6 +593,13 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 for (ColumnDefinition<Expression> nestedColumn : objectColumnType.nestedColumns()) {
                     nestedColumn.accept(this, columnName);
                 }
+            }
+
+            // Ensure detected type is storable and indexable if applicable
+            StorageSupport<?> storageSupport = builder.type.storageSupportSafe();
+            if (builder.indexType.equals(IndexType.NONE) == false && storageSupport.canBeIndexed() == false) {
+                throw new UnsupportedOperationException(
+                    "Type `" + builder.type.getName().toUpperCase(Locale.ROOT) + "` does not support storage using an index");
             }
 
             return null;

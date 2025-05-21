@@ -358,11 +358,11 @@ For example, the following query will only operate on the partition for
     cr> SELECT count(*) FROM parted_table
     ... WHERE day='1970-01-01'
     ... ORDER by 1;
-    +----------+
-    | count(*) |
-    +----------+
-    | 2        |
-    +----------+
+    +-------+
+    | count |
+    +-------+
+    |     2 |
+    +-------+
     SELECT 1 row in set (... sec)
 
 Any combination of conditions that can be :ref:`evaluated <gloss-evaluation>`

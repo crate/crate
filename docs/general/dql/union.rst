@@ -111,9 +111,9 @@ precedence and try to implicitly cast the values with lower precedence.
 ::
 
     cr> SELECT pg_typeof(c) FROM (SELECT 1 AS c UNION SELECT '1' AS c UNION SELECT 1 AS c) AS t;
-    +-------------------------+
-    | pg_catalog.pg_typeof(c) |
-    +-------------------------+
-    | integer                 |
-    +-------------------------+
+    +-----------+
+    | pg_typeof |
+    +-----------+
+    | integer   |
+    +-----------+
     SELECT 1 row in set (... sec)

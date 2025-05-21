@@ -164,6 +164,60 @@ Breaking Changes
   inserting lots of values should be done using either bulk operations or a
   ``INSERT INTO`` in combination with a ``SELECT FROM`` and ``UNNEST``.
 
+- Changed the output column names of a query result, which correspond to
+  function calls to return the function name. Previously, for a function call
+  that can be pre-evaluated, without using any data from the underlying tables,
+  the column name would be the evaluated value, e.g.::
+
+    cr> SELECT ((1+2)*3);
+    +---+
+    | 9 |
+    +---+
+    | 9 |
+    +---+
+
+  With this change::
+
+    cr> SELECT ((1+2)*3);
+    +---------------+
+    | ((1 + 2) * 3) |
+    +---------------+
+    |             9 |
+    +---------------+
+
+  Additionally, previously, function calls which are using table columns as
+  arguments, would be returned as column names, using the complete function
+  call, but with this change only the function name is used, so that it matches
+  the behavior of PostgreSQL. e.g. Previously::
+
+    cr> SELECT avg(a) FROM tbl;
+    +--------+
+    | avg(a) |
+    +--------+
+    |    3.0 |
+    +--------+
+
+  With this change::
+
+    cr> SELECT avg(a) FROM tbl;
+    +-----+
+    | avg |
+    +-----+
+    | 3.0 |
+    +-----+
+
+  .. NOTE::
+
+      When a function call which uses table columns as arguments is nested
+      in an comparison or arithmetic expression, the output name of the column
+      continues to expose the complete function call. e.g.::
+
+        cr> SELECT sqrt(a) > 1 FROM tbl;
+        +---------------+
+        | (sqrt(a) > 1) |
+        +---------------+
+        | TRUE          |
+        +---------------+
 
 Deprecations
 ============

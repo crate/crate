@@ -126,6 +126,11 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
                     }
                 };
             }
+
+            @Override
+            public boolean canBeIndexed() {
+                return false;
+            }
         };
     }
 }

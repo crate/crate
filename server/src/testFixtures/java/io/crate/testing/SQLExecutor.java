@@ -803,7 +803,8 @@ public class SQLExecutor {
                 Lists.map(boundCreateTable.primaryKeys(), Reference::column),
                 Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
                 State.OPEN,
-                indexUUIDs
+                indexUUIDs,
+                0
             );
         }
         ClusterState newState = ClusterState.builder(prevState)
@@ -865,7 +866,8 @@ public class SQLExecutor {
                 table.primaryKeys(),
                 table.partitionedBy(),
                 State.CLOSE,
-                table.indexUUIDs()
+                table.indexUUIDs(),
+                table.tableVersion()
             );
         }
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
@@ -969,7 +971,7 @@ public class SQLExecutor {
         ).build();
 
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata())
-            .setBlobTable(relationName, indexMetadata.getIndexUUID())
+            .setBlobTable(relationName, indexMetadata.getIndexUUID(), settings, State.OPEN)
             .put(indexMetadata, true);
         ClusterState state = ClusterState.builder(prevState)
             .metadata(mdBuilder)

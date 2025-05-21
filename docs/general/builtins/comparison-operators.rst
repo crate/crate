@@ -84,9 +84,9 @@ Geometry collections, containing only linestrings, points or polygons are
 normalized to MultiLineString, MultiPoint and MultiPolygon. Hence, geometry
 collection of points is equal to a MultiPoint with the same points set::
 
-    cr> select 'MULTIPOINT ((10 40), (40 30), (20 20))'::GEO_SHAPE = 'GEOMETRYCOLLECTION (POINT (10 40), POINT(40 30), POINT(20 20))'::GEO_SHAPE;
+    cr> select 'MULTIPOINT ((10 40), (40 30), (20 20))'::GEO_SHAPE = 'GEOMETRYCOLLECTION (POINT (10 40), POINT(40 30), POINT(20 20))'::GEO_SHAPE as res;
     +------+
-    | true |
+    | res  |
     +------+
     | TRUE |
     +------+

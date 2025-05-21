@@ -24,8 +24,6 @@ package io.crate.execution.engine.fetch;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadPoolExecutor;
 
-import com.carrotsearch.hppc.IntObjectMap;
-
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.TransportAction;
@@ -37,6 +35,8 @@ import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+
+import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.StreamBucket;
@@ -89,7 +89,7 @@ public class TransportFetchNodeAction extends TransportAction<NodeFetchRequest, 
             nodeFetchRequest.nodeId(),
             nodeFetchRequest.innerRequest(),
             listener,
-            new ActionListenerResponseHandler<>(listener, nodeFetchRequest.createResponseReader())
+            new ActionListenerResponseHandler<>(FetchNodeAction.NAME, listener, nodeFetchRequest.createResponseReader())
         );
     }
 

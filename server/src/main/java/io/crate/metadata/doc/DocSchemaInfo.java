@@ -168,11 +168,15 @@ public class DocSchemaInfo implements SchemaInfo {
         }
     }
 
+    @Override
+    public DocTableInfo create(RelationName relationName, Metadata metadata) {
+        return docTableInfoFactory.create(relationName, metadata);
+    }
+
     private static long getTableVersion(Metadata metadata, RelationName name) {
         RelationMetadata relation = metadata.getRelation(name);
-        if (relation instanceof RelationMetadata.Table) {
-            // TODO: add versioning to table (tracked in https://github.com/crate/crate/issues/17518)
-            return 0;
+        if (relation instanceof RelationMetadata.Table table) {
+            return table.tableVersion();
         }
         String templateName = PartitionName.templateName(name.schema(), name.name());
         IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);

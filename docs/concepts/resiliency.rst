@@ -45,7 +45,7 @@ due to a network failure or the failure of a node in the cluster.
 
 The status is updated every few seconds (variable on your cluster `ping
 configuration
-<https://www.elastic.co/guide/en/elasticsearch/reference/current/modules-discovery-zen.html>`_).
+<https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/discovery-cluster-formation-settings>`_).
 
 
 .. _concept-resiliency-consistency:

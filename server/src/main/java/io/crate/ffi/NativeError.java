@@ -19,38 +19,18 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.table;
+package io.crate.ffi;
 
-import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.jetbrains.annotations.Nullable;
+public class NativeError extends RuntimeException {
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.view.ViewInfo;
+    private final int errno;
 
-public interface SchemaInfo extends AutoCloseable {
-
-    @Nullable
-    TableInfo getTableInfo(String name);
-
-    @Nullable
-    default ViewInfo getViewInfo(String name) {
-        return null;
+    public NativeError(int errno, String message) {
+        super(message);
+        this.errno = errno;
     }
 
-    String name();
-
-    /**
-     * Called when cluster state and so the table definitions changes.
-     */
-    void update(ClusterChangedEvent event);
-
-    Iterable<TableInfo> getTables();
-
-    Iterable<ViewInfo> getViews();
-
-    @Nullable
-    default TableInfo create(RelationName relationName, Metadata metadata) {
-        throw new UnsupportedOperationException("create() not supported on " + getClass().getName());
+    public int errno() {
+        return errno;
     }
 }

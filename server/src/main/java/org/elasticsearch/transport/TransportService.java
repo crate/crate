@@ -358,6 +358,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             HandshakeRequest.INSTANCE,
             TransportRequestOptions.builder().withTimeout(handshakeTimeout).build(),
             new ActionListenerResponseHandler<>(
+                HANDSHAKE_ACTION_NAME,
                 new ActionListener<>() {
 
                     @Override
@@ -495,45 +496,14 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                 final TransportRequestOptions options,
                                                                 final TransportResponseHandler<T> handler) {
         try {
-
-            final TransportResponseHandler<T> delegate = new TransportResponseHandler<>() {
-                @Override
-                public T read(StreamInput in) throws IOException {
-                    return handler.read(in);
-                }
-
-                @Override
-                public void handleResponse(T response) {
-                    handler.handleResponse(response);
-
-                }
-
-                @Override
-                public void handleException(TransportException exp) {
-                    handler.handleException(exp);
-                }
-
-                @Override
-                public String executor() {
-                    return handler.executor();
-                }
-
-                @Override
-                public String toString() {
-                    return getClass().getName() + "/[" + action + "]:" + handler.toString();
-                }
-            };
-
-            sendRequestInternal(connection, action, request, options, delegate);
+            sendRequestInternal(connection, action, request, options, handler);
         } catch (final Exception ex) {
             // the caller might not handle this so we invoke the handler
-            final TransportException te;
             if (ex instanceof TransportException transportException) {
-                te = transportException;
+                handler.handleException(transportException);
             } else {
-                te = new TransportException("failure to send", ex);
+                handler.handleException(new TransportException("failed to send", ex));
             }
-            handler.handleException(te);
         }
     }
 
@@ -563,14 +533,21 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             return;
         }
         final long requestId = responseHandlers.newRequestId();
-        final TimeoutHandler timeoutHandler;
-        if (options.timeout() != null) {
-            timeoutHandler = new TimeoutHandler(requestId, connection.getNode(), action, options.timeout());
+        final TimeoutResponseHandler<T> timeoutHandler;
+        TimeValue timeout = options.timeout();
+        if (timeout != null) {
+            timeoutHandler = new TimeoutResponseHandler<>(
+                handler,
+                requestId,
+                connection.getNode(),
+                action,
+                timeout
+            );
+            handler = timeoutHandler;
         } else {
             timeoutHandler = null;
         }
-        TimeoutResponseHandler<T> responseHandler = new TimeoutResponseHandler<>(handler, timeoutHandler);
-        responseHandlers.add(requestId, new Transport.ResponseContext<>(responseHandler, connection, action));
+        responseHandlers.add(requestId, new Transport.ResponseContext<>(handler, connection, action));
         if (timeoutHandler != null) {
             timeoutHandler.schedule();
         }
@@ -707,7 +684,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
      *
      * @see #VALID_ACTION_PREFIXES
      */
-    public static boolean isValidActionName(String actionName) {
+    private static boolean isValidActionName(String actionName) {
         for (String prefix : VALID_ACTION_PREFIXES) {
             if (actionName.startsWith(prefix)) {
                 return true;
@@ -857,8 +834,17 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
     }
 
-    final class TimeoutHandler implements Runnable {
+    record TimeoutInfoHolder(DiscoveryNode node, String action, long sentTime, long timeoutTime) {
+    }
 
+    /**
+     * This handler wrapper ensures that the response thread executes with the correct thread context. Before any of the handle methods
+     * are invoked we restore the context.
+     */
+    public final class TimeoutResponseHandler<T extends TransportResponse>
+            implements TransportResponseHandler<T>, Runnable {
+
+        private final TransportResponseHandler<T> delegate;
         private final long requestId;
         private final long sentTime = threadPool.relativeTimeInMillis();
         private final String action;
@@ -866,11 +852,28 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         private final TimeValue timeout;
         private Scheduler.Cancellable cancellable;
 
-        TimeoutHandler(long requestId, DiscoveryNode node, String action, TimeValue timeout) {
+        public TimeoutResponseHandler(TransportResponseHandler<T> delegate,
+                                      long requestId,
+                                      DiscoveryNode node,
+                                      String action,
+                                      TimeValue timeout) {
+            this.delegate = delegate;
             this.requestId = requestId;
             this.node = node;
             this.action = action;
             this.timeout = timeout;
+        }
+
+        /**
+         * cancels timeout handling. this is a best effort only to avoid running it. remove the requestId from {@link #responseHandlers}
+         * to make sure this doesn't run.
+         */
+        private void cancel() {
+            assert responseHandlers.contains(requestId) == false :
+                "cancel must be called after the requestId [" + requestId + "] has been removed from clientHandlers";
+            if (cancellable != null) {
+                cancellable.cancel();
+            }
         }
 
         void schedule() {
@@ -897,70 +900,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             }
         }
 
-        /**
-         * cancels timeout handling. this is a best effort only to avoid running it. remove the requestId from {@link #responseHandlers}
-         * to make sure this doesn't run.
-         */
-        public void cancel() {
-            assert responseHandlers.contains(requestId) == false :
-                "cancel must be called after the requestId [" + requestId + "] has been removed from clientHandlers";
-            if (cancellable != null) {
-                cancellable.cancel();
-            }
-        }
-
-        @Override
-        public String toString() {
-            return "timeout handler for [" + requestId + "][" + action + "]";
-        }
-    }
-
-    static class TimeoutInfoHolder {
-
-        private final DiscoveryNode node;
-        private final String action;
-        private final long sentTime;
-        private final long timeoutTime;
-
-        TimeoutInfoHolder(DiscoveryNode node, String action, long sentTime, long timeoutTime) {
-            this.node = node;
-            this.action = action;
-            this.sentTime = sentTime;
-            this.timeoutTime = timeoutTime;
-        }
-
-        public DiscoveryNode node() {
-            return node;
-        }
-
-        public String action() {
-            return action;
-        }
-
-        public long sentTime() {
-            return sentTime;
-        }
-
-        public long timeoutTime() {
-            return timeoutTime;
-        }
-    }
-
-    /**
-     * This handler wrapper ensures that the response thread executes with the correct thread context. Before any of the handle methods
-     * are invoked we restore the context.
-     */
-    public static final class TimeoutResponseHandler<T extends TransportResponse> implements TransportResponseHandler<T> {
-
-        private final TransportResponseHandler<T> delegate;
-        @Nullable
-        private final TimeoutHandler handler;
-
-        public TimeoutResponseHandler(TransportResponseHandler<T> delegate, @Nullable TimeoutHandler handler) {
-            this.delegate = delegate;
-            this.handler = handler;
-        }
-
         @Override
         public T read(StreamInput in) throws IOException {
             return delegate.read(in);
@@ -968,17 +907,13 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
 
         @Override
         public void handleResponse(T response) {
-            if (handler != null) {
-                handler.cancel();
-            }
+            cancel();
             delegate.handleResponse(response);
         }
 
         @Override
         public void handleException(TransportException exp) {
-            if (handler != null) {
-                handler.cancel();
-            }
+            cancel();
             delegate.handleException(exp);
         }
 

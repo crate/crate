@@ -838,7 +838,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             versionUpgraded,
             closed,
             supportedOperations,
-            tableVersion
+            tableVersion + 1
         );
     }
 
@@ -910,7 +910,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             versionUpgraded,
             closed,
             supportedOperations,
-            tableVersion
+            tableVersion + 1
         );
     }
 
@@ -1116,7 +1116,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             primaryKeys,
             partitionedBy,
             closed ? State.CLOSE : State.OPEN,
-            indexUUIDs
+            indexUUIDs,
+            tableVersion
         );
     }
 
@@ -1272,7 +1273,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             versionUpgraded,
             closed,
             supportedOperations,
-            tableVersion
+            tableVersion + 1    // increment version
         );
     }
 

@@ -154,7 +154,8 @@ public class SwapRelationsOperation {
                     sourceRelation.primaryKeys(),
                     sourceRelation.partitionedBy(),
                     sourceRelation.state(),
-                    sourceRelation.indexUUIDs()
+                    sourceRelation.indexUUIDs(),
+                    sourceRelation.tableVersion() + 1
                 )
                 .setTable(
                     source,
@@ -170,7 +171,8 @@ public class SwapRelationsOperation {
                     targetRelation.primaryKeys(),
                     targetRelation.partitionedBy(),
                     targetRelation.state(),
-                    targetRelation.indexUUIDs()
+                    targetRelation.indexUUIDs(),
+                    targetRelation.tableVersion() + 1
                 );
         }
 

@@ -95,6 +95,10 @@ public abstract class StorageSupport<T> {
         return false;
     }
 
+    public boolean canBeIndexed() {
+        return true;
+    }
+
     public boolean docValuesDefault() {
         return docValuesDefault;
     }

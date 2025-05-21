@@ -47,6 +47,14 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause wrong column data type to be used when adding
+  parent and child object sub-columns in one
+  :ref:`ALTER TABLE <alter-table-add-column>` statement, e.g.::
+
+    ALTER TABLE tbl
+      ADD COLUMN obj['arr'] array(object(dynamic)),
+      ADD COLUMN obj['arr']['id'] integer;
+
 - Fixed an issue that would cause :ref:`window functions <window-functions>` to
   use inefficient execution plans, resulting in poor performance, when the
   :ref:`window definition <window-definition>` is using query parameters. e.g::

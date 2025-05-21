@@ -54,14 +54,15 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
         String statement = "SELECT (SELECT mountain) FROM sys.summits ORDER BY 1 ASC LIMIT 5";
         LogicalPlan result = e.logicalPlan(statement);
         assertThat(result).isEqualTo(
-            "Eval[(SELECT mountain FROM (empty_row))]\n" +
-            "  └ Limit[5::bigint;0]\n" +
-            "    └ OrderBy[(SELECT mountain FROM (empty_row)) ASC]\n" +
-            "      └ CorrelatedJoin[mountain, (SELECT mountain FROM (empty_row))]\n" +
-            "        └ Collect[sys.summits | [mountain] | true]\n" +
-            "        └ SubPlan\n" +
-            "          └ Limit[2::bigint;0::bigint]\n" +
-            "            └ TableFunction[empty_row | [mountain] | true]"
+            """
+                Eval[(SELECT mountain FROM (empty_row))]
+                  └ Limit[5::bigint;0]
+                    └ OrderBy[(SELECT mountain FROM (empty_row)) ASC]
+                      └ CorrelatedJoin[mountain, (SELECT mountain FROM (empty_row))]
+                        └ Collect[sys.summits | [mountain] | true]
+                        └ SubPlan
+                          └ Limit[2::bigint;0::bigint]
+                            └ TableFunction[empty_row | [mountain] | true]"""
         );
     }
 
@@ -71,13 +72,14 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
         String statement = "SELECT 'Mountain-' || (SELECT t.mountain) FROM sys.summits t";
         LogicalPlan logicalPlan = e.logicalPlan(statement);
         assertThat(logicalPlan).isEqualTo(
-            "Eval[('Mountain-' || (SELECT mountain FROM (empty_row)))]\n" +
-            "  └ CorrelatedJoin[mountain, (SELECT mountain FROM (empty_row))]\n" +
-            "    └ Rename[mountain] AS t\n" +
-            "      └ Collect[sys.summits | [mountain] | true]\n" +
-            "    └ SubPlan\n" +
-            "      └ Limit[2::bigint;0::bigint]\n" +
-            "        └ TableFunction[empty_row | [mountain] | true]"
+            """
+                Eval[('Mountain-' || (SELECT mountain FROM (empty_row)))]
+                  └ CorrelatedJoin[mountain, (SELECT mountain FROM (empty_row))]
+                    └ Rename[mountain] AS t
+                      └ Collect[sys.summits | [mountain] | true]
+                    └ SubPlan
+                      └ Limit[2::bigint;0::bigint]
+                        └ TableFunction[empty_row | [mountain] | true]"""
         );
     }
 
@@ -113,6 +115,7 @@ public class CorrelatedJoinPlannerTest extends CrateDummyClusterServiceUnitTest 
             false,
             List.of(tableRelation),
             List.of(new OuterColumn(tableRelation, b)),
+            List.of("b"),
             Literal.BOOLEAN_TRUE,
             List.of(),
             null,

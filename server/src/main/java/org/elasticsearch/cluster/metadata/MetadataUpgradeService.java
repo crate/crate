@@ -141,7 +141,8 @@ public class MetadataUpgradeService {
                     docTable.primaryKey(),
                     docTable.partitionedBy(),
                     indexMetadata.getState(),
-                    indexUUIDs
+                    indexUUIDs,
+                    docTable.tableVersion()
                 );
             }
         }
@@ -179,7 +180,8 @@ public class MetadataUpgradeService {
                 docTable.primaryKey(),
                 docTable.partitionedBy(),
                 docTable.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
-                indexUUIDs
+                indexUUIDs,
+                docTable.tableVersion()
             );
         }
         return newMetadata.build();

@@ -99,15 +99,6 @@ public interface Repository extends LifecycleComponent {
     CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId);
 
     /**
-     * Returns the index metadata associated with the snapshot.
-     *
-     * @param snapshotId the snapshot id to load the index metadata from
-     * @param indexId    the {@link IndexId} to load the metadata from
-     */
-    CompletableFuture<IndexMetadata> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, IndexId indexId);
-
-
-    /**
      * Returns index metadata associated with the snapshot.
      *
      * @param snapshotId the snapshot id to load the index metadata from

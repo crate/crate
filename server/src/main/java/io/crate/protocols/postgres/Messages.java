@@ -44,7 +44,6 @@ import io.crate.types.DataType;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
-import io.netty.channel.ChannelFutureListener;
 
 /**
  * Regular data packet is in the following format:
@@ -59,7 +58,9 @@ import io.netty.channel.ChannelFutureListener;
  * <p>
  * See https://www.postgresql.org/docs/9.2/static/protocol-message-formats.html
  */
-public class Messages {
+public final class Messages {
+
+    private Messages() {}
 
     private static final Logger LOGGER = LogManager.getLogger(Messages.class);
 
@@ -72,7 +73,7 @@ public class Messages {
         buffer.writeInt(0);
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentAuthenticationOK"));
+            channelFuture.addListener(_ -> LOGGER.trace("sentAuthenticationOK"));
         }
         return channelFuture;
     }
@@ -107,7 +108,7 @@ public class Messages {
         writeCString(buffer, commandTagBytes);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentCommandComplete"));
+            channelFuture.addListener(_ -> LOGGER.trace("sentCommandComplete"));
         }
         return channelFuture;
     }
@@ -135,7 +136,7 @@ public class Messages {
         buffer.writeByte(transactionState.code());
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentReadyForQuery"));
+            channelFuture.addListener(_ -> LOGGER.trace("sentReadyForQuery"));
         }
         return channelFuture;
     }
@@ -171,7 +172,7 @@ public class Messages {
         writeCString(buffer, valueBytes);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentParameterStatus {}={}", name, value));
+            channelFuture.addListener(_ -> LOGGER.trace("sentParameterStatus {}={}", name, value));
         }
     }
 
@@ -242,7 +243,7 @@ public class Messages {
         buffer.setInt(1, buffer.writerIndex() - 1); // exclude msg type from length
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener(f -> LOGGER.trace("sentErrorResponse msg={}", error.message()));
+            channelFuture.addListener(_ -> LOGGER.trace("sentErrorResponse msg={}", error.message()));
         }
         return channelFuture;
     }
@@ -295,7 +296,7 @@ public class Messages {
         buffer.writeByte(0);
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentErrorResponse msg={}", message));
+            channelFuture.addListener(_ -> LOGGER.trace("sentErrorResponse msg={}", message));
         }
         return channelFuture;
     }
@@ -424,8 +425,11 @@ public class Messages {
      */
     static void sendRowDescription(Channel channel,
                                    Collection<Symbol> columns,
+                                   List<String> columnNames,
                                    @Nullable FormatCodes.FormatCode[] formatCodes,
                                    @Nullable RelationInfo relation) {
+        assert columns.size() == columnNames.size()
+            : "Size of columns must match size of columnNames";
         int length = 4 + 2;
         int columnSize = 4 + 2 + 4 + 2 + 4 + 2;
         ByteBuf buffer = channel.alloc().buffer(
@@ -441,7 +445,8 @@ public class Messages {
         }
         int idx = 0;
         for (Symbol column : columns) {
-            byte[] nameBytes = column.toColumn().sqlFqn().getBytes(StandardCharsets.UTF_8);
+            String name = columnNames.get(idx);
+            byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
             length += nameBytes.length + 1;
             length += columnSize;
 
@@ -467,7 +472,7 @@ public class Messages {
         buffer.setInt(1, length);
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentRowDescription"));
+            channelFuture.addListener(_ -> LOGGER.trace("sentRowDescription"));
         }
     }
 
@@ -505,7 +510,6 @@ public class Messages {
 
     /**
      * Send a message that just contains the msgType and the msg length
-     * @return
      */
     private static ChannelFuture sendShortMsg(Channel channel, char msgType, final String traceLogMsg) {
         ByteBuf buffer = channel.alloc().buffer(5);
@@ -514,7 +518,7 @@ public class Messages {
 
         ChannelFuture channelFuture = channel.write(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace(traceLogMsg));
+            channelFuture.addListener(_ -> LOGGER.trace(traceLogMsg));
         }
         return channelFuture;
     }
@@ -552,7 +556,7 @@ public class Messages {
         buffer.writeInt(3);
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentAuthenticationCleartextPassword"));
+            channelFuture.addListener(_ -> LOGGER.trace("sentAuthenticationCleartextPassword"));
         }
     }
 
@@ -568,7 +572,7 @@ public class Messages {
         buffer.writeInt(secretKey);
         ChannelFuture channelFuture = channel.writeAndFlush(buffer);
         if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace("sentKeyData"));
+            channelFuture.addListener(_ -> LOGGER.trace("sentKeyData"));
         }
     }
 }

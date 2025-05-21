@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -395,6 +394,48 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             x -> assertThat(x).hasName("x"),
             x -> assertThat(x).hasName("y")
         );
+    }
+
+    @Test
+    public void test_add_column_increments_table_version() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int)");
+        DocTableInfo table1 = e.resolveTableInfo("tbl");
+        SimpleReference newReference = new SimpleReference(
+            new ReferenceIdent(table1.ident(), "y"),
+            RowGranularity.DOC,
+            DataTypes.LONG,
+            -1,
+            null
+        );
+        AtomicLong oidSupplier = new AtomicLong(1);
+        DocTableInfo table2 = table1.addColumns(
+            e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
+            oidSupplier::incrementAndGet,
+            List.of(newReference),
+            new IntArrayList(),
+            Map.of());
+        assertThat(table2.tableVersion()).isGreaterThan(table1.tableVersion());
+    }
+
+    @Test
+    public void test_drop_column_increments_table_version() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, y int, z int)");
+        DocTableInfo table1 = e.resolveTableInfo("tbl");
+        Reference xref = table1.getReference(ColumnIdent.of("x"));
+        DocTableInfo table2 = table1.dropColumns(List.of(new DropColumn(xref, true)));
+        assertThat(table2.tableVersion()).isGreaterThan(table1.tableVersion());
+    }
+
+    @Test
+    public void test_drop_constraint_increments_table_version() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (x int, constraint my_check check (x > 0))");
+        DocTableInfo table1 = e.resolveTableInfo("tbl");
+        DocTableInfo table2 = table1.dropConstraint("my_check");
+        assertThat(table2.tableVersion()).isGreaterThan(table1.tableVersion());
     }
 
     @Test
