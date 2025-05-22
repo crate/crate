@@ -51,11 +51,11 @@ public class RemoteCluster implements Closeable {
         "mode",
         ConnectionStrategy.SNIFF.name(),
         value -> switch (value.toLowerCase(Locale.ENGLISH)) {
-            case "sniff" -> ConnectionStrategy.SNIFF;
-            case "pg_tunnel" -> ConnectionStrategy.PG_TUNNEL;
-            default -> throw new IllegalArgumentException(
-                "Invalid connection mode `" + value + "`, supported modes are: `sniff`, `pg_tunnel`");
-        },
+                case "sniff" -> ConnectionStrategy.SNIFF;
+                case "pg_tunnel" -> ConnectionStrategy.PG_TUNNEL;
+                default -> throw new IllegalArgumentException(
+                    "Invalid connection mode `" + value + "`, supported modes are: `sniff`, `pg_tunnel`");
+            },
         DataTypes.STRING,
         Setting.Property.Dynamic
     );

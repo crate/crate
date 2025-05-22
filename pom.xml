@@ -122,7 +122,7 @@
           <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm</artifactId>
-            <version>9.7.1</version>
+            <version>9.8</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -317,8 +317,8 @@
     <versions.junit5>5.12.0</versions.junit5>
     <versions.junit-platform-commons>1.12.0</versions.junit-platform-commons>
     <versions.junit>4.13.2</versions.junit>
-    <versions.randomizedrunner>2.8.2</versions.randomizedrunner>
-    <versions.jackson>2.18.3</versions.jackson>
+    <versions.randomizedrunner>2.8.3</versions.randomizedrunner>
+    <versions.jackson>2.19.0</versions.jackson>
     <versions.fastdoubleparser>2.0.1</versions.fastdoubleparser>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.2</versions.antlr>
@@ -331,15 +331,15 @@
     <versions.tdigest>3.3</versions.tdigest>
     <versions.datasketches>5.0.2</versions.datasketches>
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
-    <versions.caffeine>3.1.8</versions.caffeine>
+    <versions.caffeine>3.2.0</versions.caffeine>
     <versions.jodatime>2.12.7</versions.jodatime>
-    <versions.aws>1.12.782</versions.aws>
+    <versions.aws>1.12.783</versions.aws>
     <versions.opendal>0.47.6</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.commonscodec>1.18.0</versions.commonscodec>
     <versions.bigmath>2.3.2</versions.bigmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>24.2.0</versions.graalvm>
+    <versions.graalvm>24.2.1</versions.graalvm>
     <versions.jwt>4.5.0</versions.jwt>
     <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
 
@@ -350,19 +350,19 @@
     <versions.google.cloud.core>2.30.0</versions.google.cloud.core>
     <versions.google.cloud.core.http>2.23.0</versions.google.cloud.core.http>
 
-    <versions.guava>32.0.1-jre</versions.guava>
+    <versions.guava>33.4.8-jre</versions.guava>
     <versions.google.gson>1.43.1</versions.google.gson>
-    <versions.google.errorprone>2.19.1</versions.google.errorprone>
-    <versions.google.j2objc>2.8</versions.google.j2objc>
-    <versions.checkerframework>3.49.1</versions.checkerframework>
-    <versions.grpc>1.71.0</versions.grpc>
+    <versions.google.errorprone>2.38.0</versions.google.errorprone>
+    <versions.google.j2objc>3.0.0</versions.google.j2objc>
+    <versions.checkerframework>3.49.3</versions.checkerframework>
+    <versions.grpc>1.72.0</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>5.16.0</versions.mockito>
+    <versions.mockito>5.18.0</versions.mockito>
     <versions.jdbc>42.7.5</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
-    <versions.azure_keyvault>1.2.4</versions.azure_keyvault>
+    <versions.azure_keyvault>1.2.6</versions.azure_keyvault>
 
     <versions.jmh>1.37</versions.jmh>
 
@@ -378,7 +378,7 @@
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
     <versions.plugin.surefire>3.5.3</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
-    <versions.plugin.puppycrawl>10.21.4</versions.plugin.puppycrawl>
+    <versions.plugin.puppycrawl>10.24.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.13</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.9</versions.plugin.forbiddenapis>

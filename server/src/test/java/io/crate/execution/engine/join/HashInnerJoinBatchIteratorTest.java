@@ -105,19 +105,19 @@ public class HashInnerJoinBatchIteratorTest {
               resultForUniqueValues),
             $("UniqueValues-batchedSource",
               (Supplier<BatchIterator<Row>>) () ->
-                  new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
+                    new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 5), 2, 2, null),
               (Supplier<BatchIterator<Row>>) () ->
-                  new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
+                    new BatchSimulatingIterator<>(TestingBatchIterators.range(2, 6), 2, 2, null),
               resultForUniqueValues),
             $("DuplicateValues-plain",
               (Supplier<BatchIterator<Row>>) () -> TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)),
               (Supplier<BatchIterator<Row>>) () ->
-                  TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)),
+                   TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)),
               resultForDuplicateValues),
             $("DuplicateValues-batchedSource",
               (Supplier<BatchIterator<Row>>) () ->
-                  new BatchSimulatingIterator<>(
-                      TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 2, 4, null),
+                    new BatchSimulatingIterator<>(
+                        TestingBatchIterators.ofValues(Arrays.asList(0, 0, 1, 2, 2, 3, 4, 4)), 2, 4, null),
               (Supplier<BatchIterator<Row>>) () -> new BatchSimulatingIterator<>(
                 TestingBatchIterators.ofValues(Arrays.asList(1, 1, 2, 3, 4, 4, 5, 5, 6)), 2, 4, null),
               resultForDuplicateValues),
