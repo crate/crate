@@ -46,6 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.blob.v2.BlobIndex;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
@@ -175,12 +176,11 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private static long getTableVersion(Metadata metadata, RelationName name) {
-        RelationMetadata relation = metadata.getRelation(name);
-        if (relation instanceof RelationMetadata.Table table) {
-            return table.tableVersion();
+        RelationMetadata.Table table = metadata.getRelation(name);
+        if (table == null) {
+            throw new RelationUnknown(name);
         }
-        // Should never be reached
-        throw new UnsupportedOperationException("Table version not available for " + name + " of type " + relation);
+        return table.tableVersion();
     }
 
     private Collection<String> tableNames() {

@@ -46,15 +46,12 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.views.TransportCreateView;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -77,16 +74,12 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
     }
 
     private final MetadataCreateIndexService createIndexService;
-    private final IndicesService indicesService;
     private final IndexScopedSettings indexScopedSettings;
-    private final DocTableInfoFactory docTableInfoFactory;
 
     @Inject
     public TransportCreateTable(TransportService transportService,
                                 ClusterService clusterService,
-                                NodeContext nodeContext,
                                 ThreadPool threadPool,
-                                IndicesService indicesService,
                                 IndexScopedSettings indexScopedSettings,
                                 MetadataCreateIndexService createIndexService) {
         super(
@@ -96,9 +89,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
             CreateTableRequest::new
         );
         this.createIndexService = createIndexService;
-        this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
-        this.docTableInfoFactory = new DocTableInfoFactory(nodeContext);
     }
 
     @Override
@@ -168,6 +159,9 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
 
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
+                String indexName = relationName.indexNameOrAlias();
+                MetadataCreateIndexService.validateIndexName(indexName, currentState);
+
                 ClusterState newState = ClusterState.builder(currentState).build();
                 Metadata newMetadata = Metadata.builder(newState.metadata())
                     .setTable(
@@ -193,7 +187,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                     String newIndexUUID = UUIDs.randomBase64UUID();
                     newState = createIndexService.add(newState, table, newIndexUUID, List.of(), Settings.EMPTY);
                     Metadata.Builder mdBuilder = Metadata.builder(newState.metadata());
-                    newMetadata = mdBuilder.addIndexUUIDs(table, mdBuilder.columnOidSupplier(), List.of(newIndexUUID)).build();
+                    newMetadata = mdBuilder.addIndexUUIDs(table, List.of(newIndexUUID)).build();
                     newState = ClusterState.builder(newState).metadata(newMetadata).build();
                 }
 

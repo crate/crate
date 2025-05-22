@@ -189,7 +189,7 @@ public class MetadataUpgradeService {
                         .build();
                     newMetadata.put(indexMetadata, false);
                 }
-                newMetadata.addIndexUUIDs(table, columnOidSupplier, List.of(indexMetadata.getIndexUUID()));
+                newMetadata.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
             }
 
         }

@@ -142,7 +142,7 @@ public class MetadataTrackerTest extends ESTestCase {
 
             Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata());
             mdBuilder.put(indexMetadata, true);
-            mdBuilder.addIndexUUIDs(table, mdBuilder.columnOidSupplier(), List.of(indexMetadata.getIndexUUID()));
+            mdBuilder.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
 
             clusterState = ClusterState.builder(clusterState)
                 .metadata(mdBuilder)

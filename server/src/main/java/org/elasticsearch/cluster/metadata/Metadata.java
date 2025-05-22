@@ -28,7 +28,6 @@ import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -800,23 +799,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         @Nullable
-        @SuppressWarnings("unchecked")
         public <T extends RelationMetadata> T getRelation(RelationName relation) {
-            SchemaMetadata schemaMetadata = schemas.get(relation.schema());
-            if (schemaMetadata == null) {
-                return null;
-            }
-            RelationMetadata relationMetadata = schemaMetadata.get(relation);
-            if (relationMetadata == null) {
-                return null;
-            }
-            try {
-                return (T) relationMetadata;
-            } catch (ClassCastException e) {
-                throw new OperationOnInaccessibleRelationException(
-                    relation,
-                    "The relation " + relation.sqlFqn() + " doesn't support the operation");
-            }
+            return Metadata.getRelation(relation, schemas::get);
         }
 
         public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state) {
@@ -1237,13 +1221,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             );
         }
 
-        public Builder addIndexUUIDs(RelationMetadata.Table table,
-                                     LongSupplier oidSupplier,
-                                     List<String> indexUUIDs) {
-            LinkedHashSet<String> newIndexUUIDs = new LinkedHashSet<>(table.indexUUIDs());
-            newIndexUUIDs.addAll(indexUUIDs);
-            setTable(
-                oidSupplier,
+        public Builder addIndexUUIDs(RelationMetadata.Table table, List<String> indexUUIDs) {
+            RelationMetadata.Table updatedTable = new RelationMetadata.Table(
                 table.name(),
                 table.columns(),
                 table.settings(),
@@ -1254,9 +1233,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 table.primaryKeys(),
                 table.partitionedBy(),
                 table.state(),
-                newIndexUUIDs.stream().toList(),
+                Lists.concat(table.indexUUIDs(), indexUUIDs),
                 table.tableVersion() + 1
             );
+            setRelation(updatedTable);
             return this;
         }
     }
@@ -1341,23 +1321,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     @Nullable
-    @SuppressWarnings("unchecked")
     public <T extends RelationMetadata> T getRelation(RelationName relation) {
-        SchemaMetadata schemaMetadata = schemas.get(relation.schema());
-        if (schemaMetadata == null) {
-            return null;
-        }
-        RelationMetadata relationMetadata = schemaMetadata.get(relation);
-        if (relationMetadata == null) {
-            return null;
-        }
-        try {
-            return (T) relationMetadata;
-        } catch (ClassCastException e) {
-            throw new OperationOnInaccessibleRelationException(
-                relation,
-                "The relation " + relation.sqlFqn() + " doesn't support the operation");
-        }
+        return getRelation(relation, schemas::get);
     }
 
     public <T extends RelationMetadata> List<T> relations(Class<T> clazz) {
@@ -1475,5 +1440,24 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
         // should be never reached
         throw new UnsupportedOperationException("Unsupported relation type: " + relation.getClass().getName());
+    }
+
+    @SuppressWarnings("unchecked")
+    private static <T extends RelationMetadata> T getRelation(RelationName relation, Function<String, SchemaMetadata> schemaResolver) {
+        SchemaMetadata schemaMetadata = schemaResolver.apply(relation.schema());
+        if (schemaMetadata == null) {
+            return null;
+        }
+        RelationMetadata relationMetadata = schemaMetadata.get(relation);
+        if (relationMetadata == null) {
+            return null;
+        }
+        try {
+            return (T) relationMetadata;
+        } catch (ClassCastException e) {
+            throw new OperationOnInaccessibleRelationException(
+                relation,
+                "The relation " + relation.sqlFqn() + " doesn't support the operation");
+        }
     }
 }

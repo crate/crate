@@ -1636,6 +1636,17 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void testCreateTableWithIllegalCustomSchemaCheckedByES() {
+        Asserts.assertSQLError(() -> execute("create table \"AA A\".t (" +
+                "   name string," +
+                "   d timestamp with time zone" +
+                ") partitioned by (d) with (number_of_replicas=0)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4002)
+            .hasMessageContaining("Relation name \"AA A.t\" is invalid.");
+    }
+
+    @Test
     public void testAlterNumberOfShards() throws Exception {
         execute("create table tbl (x int, p int) partitioned by (p) " +
                 "clustered into 1 shards with (number_of_replicas = '0-all')");

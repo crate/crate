@@ -29,8 +29,10 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.function.ToIntFunction;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
@@ -71,6 +73,21 @@ public final class MappingUtil {
                     return -1;
                 }
                 return reference.position();
+            });
+        }
+
+        public static AllocPosition forTable(RelationMetadata.Table table) {
+            int maxPosition = 0;
+            HashMap<ColumnIdent, Integer> colPositions = new HashMap<>();
+            for (Reference reference : table.columns()) {
+                colPositions.put(reference.column(), reference.position());
+                if (reference.position() > maxPosition) {
+                    maxPosition = reference.position();
+                }
+            }
+            return new AllocPosition(maxPosition, column -> {
+                var position = colPositions.get(column);
+                return Objects.requireNonNullElse(position, -1);
             });
         }
 
