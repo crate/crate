@@ -37,7 +37,6 @@ import java.util.stream.StreamSupport;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -47,6 +46,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.blob.v2.BlobIndex;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
@@ -176,18 +176,11 @@ public class DocSchemaInfo implements SchemaInfo {
     }
 
     private static long getTableVersion(Metadata metadata, RelationName name) {
-        RelationMetadata relation = metadata.getRelation(name);
-        if (relation instanceof RelationMetadata.Table table) {
-            return table.tableVersion();
+        RelationMetadata.Table table = metadata.getRelation(name);
+        if (table == null) {
+            throw new RelationUnknown(name);
         }
-        String templateName = PartitionName.templateName(name.schema(), name.name());
-        IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-        if (indexTemplateMetadata == null) {
-            IndexMetadata index = metadata.index(name.indexNameOrAlias());
-            return index == null ? 0 : index.getVersion();
-        } else {
-            return indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
-        }
+        return table.tableVersion();
     }
 
     private Collection<String> tableNames() {

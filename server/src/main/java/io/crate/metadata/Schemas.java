@@ -41,7 +41,6 @@ import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.jetbrains.annotations.NotNull;
@@ -396,13 +395,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         // 'doc' schema is always available and has the special property that its indices
         // don't have to be prefixed with the schema name
         schemas.add(DOC_SCHEMA_NAME);
-
-        for (RelationMetadata relationMetadata : metadata.relations(RelationMetadata.Table.class)) {
-            String schema = relationMetadata.name().schema();
-            if (schema != null) {
-                schemas.add(schema);
-            }
-        }
 
         UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
         if (udfMetadata != null) {

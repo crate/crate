@@ -637,21 +637,6 @@ public class MetadataCreateIndexService {
         return indicesService.withTempIndexService(tmpImd, indexService -> {
             IndexAnalyzers indexAnalyzers = indexService.indexAnalyzers();
             ensureUsedAnalyzersExist(indexAnalyzers, table.columns());
-            metadataBuilder.setTable(
-                table.name(),
-                table.columns(),
-                table.settings(),
-                table.routingColumn(),
-                table.columnPolicy(),
-                table.pkConstraintName(),
-                table.checkConstraints(),
-                table.primaryKeys(),
-                table.partitionedBy(),
-                table.state(),
-                List.of(),
-                table.tableVersion()
-            );
-
             ClusterState updatedState = addIndex(
                 allocationService,
                 indexService,

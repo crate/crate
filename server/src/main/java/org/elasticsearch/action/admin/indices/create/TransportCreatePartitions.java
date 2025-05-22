@@ -278,7 +278,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                 indexUUIDs.add(indexMetadata.getIndexUUID());
                 routingTableBuilder.addAsNew(indexMetadata);
             }
-            newMetadataBuilder.addIndexUUIDs(table, newMetadataBuilder.columnOidSupplier(), indexUUIDs);
+            newMetadataBuilder.addIndexUUIDs(table, indexUUIDs);
             Metadata newMetadata = newMetadataBuilder.build();
 
             ClusterState updatedState = ClusterState.builder(currentState)

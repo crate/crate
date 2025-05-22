@@ -47,6 +47,7 @@ import com.carrotsearch.hppc.ObjectContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.common.collections.Lists;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
@@ -168,9 +169,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             indices = in.readList(IndexId::new);
             if (in.getVersion().before(Version.V_6_0_0)) {
                 List<String> templates = List.of(in.readStringArray());
-                relationNames = templates.stream()
-                    .map(t -> PartitionName.fromIndexOrTemplate(t).relationName())
-                    .collect(Collectors.toList());
+                relationNames = Lists.map(templates, t -> PartitionName.fromIndexOrTemplate(t).relationName());
             } else {
                 relationNames = in.readList(RelationName::new);
             }
