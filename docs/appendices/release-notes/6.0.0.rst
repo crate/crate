@@ -43,7 +43,7 @@ Version 6.0.0 - Unreleased
 Breaking Changes
 ================
 
-- Updated Lucene from 9.12 to 10.2.0 which brings the following user facing changes:
+- Updated Lucene from 9.12 to 10.2.1 which brings the following user facing changes:
 
   - Tables created in 4.x can't be read anymore. If you're running CrateDB 5.x
     and have any tables created in 4.x they need to be reindexed before moving
