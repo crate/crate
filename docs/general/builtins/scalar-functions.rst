@@ -2142,9 +2142,11 @@ This is an alias for :ref:`ceil <scalar-ceil>`.
 ``degrees(double precision)``
 -----------------------------
 
-Convert the given ``radians`` value to ``degrees``.
+Returns: ``numeric`` or ``double precision``
 
-Returns: ``double precision``
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` if the
+input is of ``double precision`` type.
 
 ::
 
@@ -2320,11 +2322,13 @@ This is an alias for :ref:`modulus <scalar-modulus>`.
 
 Returns the given argument ``a`` raised to the power of argument ``b``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
 
-The return type of the power function is always ``double precision``, even when
-both the inputs are integral types, in order to be consistent across positive
-and negative exponents (which will yield decimal types).
+Return value will be of type ``numeric`` with unspecified precision and scale
+if any of the input values is of ``numeric`` type, and ``double precision`` for
+any other arithmetic type, even when both the inputs are integral types, in
+order to be consistent across positive and negative exponents (which will yield
+decimal types).
 
 See below for an example::
 
@@ -2344,7 +2348,11 @@ See below for an example::
 
 Convert the given ``degrees`` value to ``radians``.
 
-Returns: ``double precision``
+Returns: ``numeric`` or ``double precision``
+
+Return value will be of type ``numeric`` with unspecified precision and scale
+if the input value is of ``numeric`` type, and ``double precision`` if the
+input is of ``double precision`` type.
 
 ::
 

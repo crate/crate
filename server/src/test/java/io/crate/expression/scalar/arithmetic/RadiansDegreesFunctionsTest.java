@@ -23,6 +23,8 @@ package io.crate.expression.scalar.arithmetic;
 
 import static io.crate.testing.Asserts.isLiteral;
 
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -32,10 +34,14 @@ public class RadiansDegreesFunctionsTest extends ScalarTestCase {
     @Test
     public void test_radians_scalar() {
         assertNormalize("radians(45.0)", isLiteral(0.7853981633974483));
+        assertNormalize("radians(12.345::NUMERIC)",
+            isLiteral(new BigDecimal("0.2154608961586999862712296253699192")));
     }
 
     @Test
     public void test_degrees_scalar() {
         assertNormalize("degrees(0.5)", isLiteral(28.64788975654116));
+        assertNormalize("degrees(12.345::NUMERIC)",
+            isLiteral(new BigDecimal("707.3163980890012512240732211801283")));
     }
 }
