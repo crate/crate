@@ -2253,7 +2253,7 @@ When the second argument (``b``) is provided it returns a value of type
 casted to ``double precision`` (thus, possibly loosing precision). When it's not
 provided, then the return value will be of type ``numeric`` with unspecified
 precision and scale, if the input value is of ``numeric`` type and of
-`double precision`` for any other arithmetic type.
+``double precision`` for any other arithmetic type.
 
 Examples::
 
