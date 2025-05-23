@@ -48,7 +48,7 @@ public class StdDevSampAggregationTest extends AggregationTestCase {
         return executeAggregation(
                 Signature.builder("stddev_samp", FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
-                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .returnType(argumentType.getTypeSignature())
                         .features(Scalar.Feature.DETERMINISTIC)
                         .build(),
                 data,
@@ -85,7 +85,12 @@ public class StdDevSampAggregationTest extends AggregationTestCase {
 
     @Test
     public void testNumeric() throws Exception {
+        // with compact doc values
         assertThat(executeAggregation(new NumericType(4, 2), new Object[][]{
+            {new BigDecimal("10.7")}, {new BigDecimal("42.9")}, {new BigDecimal("0.3")}}))
+            .isEqualTo(new BigDecimal("22.21020786335268257417589186151252"));
+        // with large doc values
+        assertThat(executeAggregation(new NumericType(20, 18), new Object[][]{
             {new BigDecimal("10.7")}, {new BigDecimal("42.9")}, {new BigDecimal("0.3")}}))
             .isEqualTo(new BigDecimal("22.21020786335268257417589186151252"));
     }

@@ -23,19 +23,34 @@ package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.List;
 
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.execution.engine.aggregation.statistics.NumericVariance;
+import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
+import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.Reference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
+import io.crate.types.NumericStorage;
+import io.crate.types.NumericType;
 
 public abstract class NumericStandardDeviationAggregation<V extends NumericVariance>
     extends AggregationFunction<V, BigDecimal> {
@@ -144,5 +159,51 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
     @Override
     public BigDecimal terminatePartial(RamAccounting ramAccounting, V state) {
         return state.result();
+    }
+
+    @Nullable
+    @Override
+    public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
+                                                       List<Reference> aggregationReferences,
+                                                       DocTableInfo table,
+                                                       Version shardCreatedVersion,
+                                                       List<Literal<?>> optionalParams) {
+        Reference reference = aggregationReferences.get(0);
+        if (reference == null) {
+            return null;
+        }
+        if (!reference.hasDocValues()) {
+            return null;
+        }
+
+        NumericType numericType = (NumericType) reference.valueType();
+        Integer precision = numericType.numericPrecision();
+        Integer scale = numericType.scale();
+        if (precision == null || scale == null) {
+            throw new UnsupportedOperationException(
+                    "NUMERIC type requires precision and scale to support aggregation");
+        }
+        if (precision <= NumericStorage.COMPACT_PRECISION) {
+            return new SortedNumericDocValueAggregator<>(
+                    reference.storageIdent(),
+                    (ramAccounting, memoryManager, version) ->
+                        newState(ramAccounting, version, memoryManager),
+                    (values, state) -> {
+                        long docValue = values.nextValue();
+                        state.increment(BigDecimal.valueOf(docValue, scale));
+                    }
+            );
+        } else {
+            return new BinaryDocValueAggregator<>(
+                    reference.storageIdent(),
+                    (ramAccounting, memoryManager, version) ->
+                        newState(ramAccounting, version, memoryManager),
+                    (values, state) -> {
+                        BytesRef bytesRef = values.lookupOrd(values.nextOrd());
+                        BigInteger bigInteger = NumericUtils.sortableBytesToBigInt(bytesRef.bytes, bytesRef.offset, bytesRef.length);
+                        state.increment(new BigDecimal(bigInteger, scale));
+                    }
+            );
+        }
     }
 }

@@ -104,8 +104,6 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
         this.boundSignature = boundSignature;
     }
 
-    protected abstract V newVariance();
-
     @Override
     public Signature signature() {
         return signature;
@@ -182,17 +180,17 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
             case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID, TimestampType.ID_WITH_TZ,
                  TimestampType.ID_WITHOUT_TZ -> new SortedNumericDocValueAggregator<>(
                      reference.storageIdent(),
-                     (ramAccounting, _, _) -> {
+                     (ramAccounting, memoryManager, version) -> {
                          ramAccounting.addBytes(V.fixedSize());
-                         return newVariance();
+                         return newState(ramAccounting, version, memoryManager);
                      },
                      (values, state) -> state.increment(values.nextValue())
             );
             case FloatType.ID -> new SortedNumericDocValueAggregator<>(
                 reference.storageIdent(),
-                (ramAccounting, _, _) -> {
+                (ramAccounting, memoryManager, version) -> {
                     ramAccounting.addBytes(V.fixedSize());
-                    return newVariance();
+                    return newState(ramAccounting, version, memoryManager);
                 },
                 (values, state) -> {
                     var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
@@ -201,9 +199,9 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
             );
             case DoubleType.ID -> new SortedNumericDocValueAggregator<>(
                 reference.storageIdent(),
-                (ramAccounting, _, _) -> {
+                (ramAccounting, memoryManager, version) -> {
                     ramAccounting.addBytes(V.fixedSize());
-                    return newVariance();
+                    return newState(ramAccounting, version, memoryManager);
                 },
                 (values, state) -> {
                     var value = NumericUtils.sortableLongToDouble((values.nextValue()));
