@@ -318,8 +318,8 @@
     <versions.annotations>26.0.2</versions.annotations>
     <versions.log4j>2.24.3</versions.log4j>
     <versions.assertj>3.27.3</versions.assertj>
-    <versions.junit5>5.12.0</versions.junit5>
-    <versions.junit-platform-commons>1.12.0</versions.junit-platform-commons>
+    <versions.junit5>5.12.2</versions.junit5>
+    <versions.junit-platform-commons>1.12.2</versions.junit-platform-commons>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.3</versions.randomizedrunner>
     <versions.jackson>2.19.0</versions.jackson>
