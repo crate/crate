@@ -132,7 +132,7 @@
         <version>${versions.plugin.versions}</version>
         <configuration>
           <ruleSet>
-            <!-- ignore alpha, beta and M versions -->
+            <!-- ignore alpha, beta, M and RC versions -->
             <ignoreVersions>
               <ignoreVersion>
                 <type>regex</type>
@@ -145,6 +145,10 @@
               <ignoreVersion>
                 <type>regex</type>
                 <version>.+[\.|-]M.+</version>
+              </ignoreVersion>
+              <ignoreVersion>
+                <type>regex</type>
+                <version>.+[\.|-]RC.+</version>
               </ignoreVersion>
             </ignoreVersions>
             <rules>
