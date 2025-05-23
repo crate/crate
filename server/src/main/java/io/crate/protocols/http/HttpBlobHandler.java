@@ -28,7 +28,6 @@ import static io.netty.handler.codec.http.HttpVersion.HTTP_1_1;
 
 import java.io.IOException;
 import java.io.RandomAccessFile;
-import java.nio.channels.ClosedChannelException;
 import java.util.Locale;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -70,7 +69,6 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.LastHttpContent;
-import io.netty.handler.ssl.NotSslRecordException;
 import io.netty.handler.ssl.SslHandler;
 import io.netty.handler.stream.ChunkedFile;
 
@@ -244,46 +242,26 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     @Override
-    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
-        if (cause instanceof ClosedChannelException) {
-            if (LOGGER.isTraceEnabled()) {
-                LOGGER.trace("channel closed: {}", cause.toString());
-            }
-            return;
-        } else if (cause instanceof IOException) {
-            String message = cause.getMessage();
-            if (message != null && message.contains("Connection reset by peer")) {
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
+        // TODO IllegalArgumentException and EsRejectedExecutionException aren't blob-specific,
+        // maybe they should be handled elsewhere?
+        switch (cause) {
+            case DigestMismatchException _, BlobsDisabledException _, IllegalArgumentException _ -> {
+                String message = String.format(Locale.ENGLISH, "Invalid request sent: %s", cause.getMessage());
                 LOGGER.debug(message);
-            } else if (cause instanceof NotSslRecordException) {
-                // Raised when clients try to send unencrypted data over an encrypted channel
-                // This can happen when old instances of the Admin UI are running because the
-                // ports of HTTP/HTTPS are the same.
-                LOGGER.debug("Received unencrypted message from '{}'", ctx.channel().remoteAddress());
-            } else {
-                LOGGER.warn(message, cause);
+                simpleResponse(null, HttpResponseStatus.BAD_REQUEST, message);
             }
-            return;
+            case DigestNotFoundException _, IndexNotFoundException _ -> {
+                simpleResponse(null, HttpResponseStatus.NOT_FOUND);
+            }
+            case EsRejectedExecutionException _ -> {
+                String message = String.format(Locale.ENGLISH, "Rejected execution: %s", cause.getMessage());
+                LOGGER.debug(message);
+                simpleResponse(null, HttpResponseStatus.TOO_MANY_REQUESTS, message);
+            }
+            default -> // pass the exception on to the next handler in the pipeline
+                ctx.fireExceptionCaught(cause);
         }
-
-        HttpResponseStatus status;
-        String body = null;
-        if (cause instanceof DigestMismatchException || cause instanceof BlobsDisabledException
-            || cause instanceof IllegalArgumentException) {
-            status = HttpResponseStatus.BAD_REQUEST;
-            body = String.format(Locale.ENGLISH, "Invalid request sent: %s", cause.getMessage());
-        } else if (cause instanceof DigestNotFoundException || cause instanceof IndexNotFoundException) {
-            status = HttpResponseStatus.NOT_FOUND;
-        } else if (cause instanceof EsRejectedExecutionException) {
-            status = HttpResponseStatus.TOO_MANY_REQUESTS;
-            body = String.format(Locale.ENGLISH, "Rejected execution: %s", cause.getMessage());
-        } else {
-            status = HttpResponseStatus.INTERNAL_SERVER_ERROR;
-            body = String.format(Locale.ENGLISH, "Unhandled exception: %s", cause);
-        }
-        if (body != null) {
-            LOGGER.debug(body);
-        }
-        simpleResponse(null, status, body);
     }
 
     private void head(HttpRequest request, String index, String digest) throws IOException {
