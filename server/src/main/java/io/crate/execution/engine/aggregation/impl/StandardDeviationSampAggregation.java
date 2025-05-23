@@ -102,9 +102,9 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
     @Nullable
     @Override
     public StandardDeviationSamp newState(RamAccounting ramAccounting,
-                                         Version indexVersionCreated,
-                                         Version minNodeInCluster,
-                                         MemoryManager memoryManager) {
+                                          Version indexVersionCreated,
+                                          Version minNodeInCluster,
+                                          MemoryManager memoryManager) {
         ramAccounting.addBytes(stdDevStateTypeInstance().fixedSize());
         return new StandardDeviationSamp();
     }

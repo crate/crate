@@ -608,9 +608,12 @@ of the set of non-null values in a column. It is a measure of the variation
 of data values. A low standard deviation indicates that the values tend to be
 near the mean.
 
-``stddev_pop`` is defined on all numeric types and on timestamp. It always returns
-``double precision`` values. If all values were null or we got no value at all
-``NULL`` is returned.
+``stddev_pop`` is defined on all
+:ref:`standard numeric types<data-types-numeric>`
+(including :ref:`NUMERIC type<type-numeric>`) and on timestamp. Return value
+will be of type ``numeric`` with unspecified precision and scale if the input
+value is of ``numeric`` type, and ``double precision`` for any other numeric
+type. If all values were null or we got no value at all ``NULL`` is returned.
 
 Example::
 
@@ -631,6 +634,12 @@ Example::
     executions of the aggregate function on the same data produce slightly
     differing results.
 
+.. NOTE::
+
+    Please use :ref:`NUMERIC type<type-numeric>` with caution, and consider
+    using the ``double precision`` alternative, as in general ``numeric`` will
+    tend to use more memory and yield worse performance.
+
 .. _aggregation-stddev-samp:
 
 ``stddev_samp(column)``
@@ -641,9 +650,14 @@ of the set of non-null values in a column. It is a measure of the variation
 of data values. A low standard deviation indicates that the values tend to be
 near the mean.
 
-``stddev_samp`` is defined on all numeric types and on timestamp. It always returns
-``double precision`` values. If all values were null or we got no value at all,
-or we got just one value ``NULL`` is returned.
+
+``stddev_samp`` is defined on all
+:ref:`standard numeric types<data-types-numeric>`
+(including :ref:`NUMERIC type<type-numeric>`) and on timestamp. Return value
+will be of type ``numeric`` with unspecified precision and scale if the input
+value is of ``numeric`` type, and ``double precision`` for any other numeric
+type. If all values were null, or we got no value, or just one value ``NULL`` is
+returned.
 
 Example::
 
@@ -663,6 +677,12 @@ Example::
     Due to Java double precision arithmetic it is possible that any two
     executions of the aggregate function on the same data produce slightly
     differing results.
+
+.. NOTE::
+
+    Please use :ref:`NUMERIC type<type-numeric>` with caution, and consider
+    using the ``double precision`` alternative, as in general ``numeric`` will
+    tend to use more memory and yield worse performance.
 
 .. _aggregation-string-agg:
 
