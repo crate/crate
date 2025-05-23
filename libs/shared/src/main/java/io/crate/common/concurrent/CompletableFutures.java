@@ -26,6 +26,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.Future;
 import java.util.function.Supplier;
 
 import io.crate.common.SuppressForbidden;
@@ -81,4 +82,13 @@ public final class CompletableFutures {
         }
     }
 
+    public static <T> CompletableFuture<T> asCompletableFuture(Future<T> future) {
+        return CompletableFuture.supplyAsync(() -> {
+            try {
+                return future.get();
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        });
+    }
 }
