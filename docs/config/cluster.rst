@@ -623,6 +623,14 @@ Routing allocation
    ``cluster.routing.allocation.enable`` is set to ``none``, nodes will recover
    their unassigned local primary shards immediately after restart.
 
+.. NOTE::
+
+   Since CrateDB 5.10.0, cluster setting is applied only when table setting
+   :ref:`routing.allocation.enable <sql-create-table-routing-allocation-enable>`
+   has non-default value, otherwise table setting wins.
+   For versions before 5.10.0, cluster setting was never applied and table
+   setting was always applied (either specified or default value).
+
 .. _cluster.routing.rebalance.enable:
 
 **cluster.routing.rebalance.enable**

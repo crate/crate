@@ -806,6 +806,14 @@ Can be set to:
 :none:
   No shard allocation allowed.
 
+.. NOTE::
+
+   Since CrateDB 5.10.0, table level setting is applied only when non-default
+   value is specified. Otherwise, cluster level setting
+   :ref:`cluster.routing.allocation.enable <cluster.routing.allocation.enable>`
+   is applied.
+   For versions before 5.10.0, cluster setting was never applied and table
+   setting was always applied (either specified or default value).
 
 .. _sql-create-table-allocation-max-retries:
 
