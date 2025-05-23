@@ -84,6 +84,11 @@ public class NumericStandardDeviationSampAggregation
     }
 
     @Override
+    protected NumericStandardDeviationSamp newVariance() {
+        return new NumericStandardDeviationSamp();
+    }
+
+    @Override
     public DataType<?> partialType() {
         return new NumericStdDevSampStateType();
     }

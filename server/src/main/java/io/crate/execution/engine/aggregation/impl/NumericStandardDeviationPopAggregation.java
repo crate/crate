@@ -84,6 +84,11 @@ public class NumericStandardDeviationPopAggregation
     }
 
     @Override
+    protected NumericStandardDeviationPop newVariance() {
+        return new NumericStandardDeviationPop();
+    }
+
+    @Override
     public DataType<?> partialType() {
         return new NumericStdDevPopStateType();
     }

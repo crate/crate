@@ -87,7 +87,12 @@ public class StdDevPopAggregationTest extends AggregationTestCase {
 
     @Test
     public void testNumeric() throws Exception {
+        // with compact doc values
         assertThat(executeAggregation(new NumericType(10, 8), new Object[][]{
+            {new BigDecimal("10.7")}, {new BigDecimal("42.9")}, {new BigDecimal("0.3")}}))
+            .isEqualTo(new BigDecimal("18.13455878212156068287097312248802"));
+        // with large doc values
+        assertThat(executeAggregation(new NumericType(20, 18), new Object[][]{
             {new BigDecimal("10.7")}, {new BigDecimal("42.9")}, {new BigDecimal("0.3")}}))
             .isEqualTo(new BigDecimal("18.13455878212156068287097312248802"));
     }
