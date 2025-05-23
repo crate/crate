@@ -192,10 +192,6 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         );
     }
 
-    public void validateSchema(IndexMetadata indexMetadata) {
-        create(indexMetadata);
-    }
-
     @Nullable
     public DocTableInfo create(IndexMetadata indexMetadata) {
         String indexName = indexMetadata.getIndex().getName();

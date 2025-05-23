@@ -237,7 +237,7 @@ public class MetadataUpgradeService {
     @VisibleForTesting
     void checkMappingsCompatibility(IndexMetadata indexMetadata) {
         try {
-            tableFactory.validateSchema(indexMetadata);
+            tableFactory.create(indexMetadata);
 
             // We cannot instantiate real analysis server or similarity service at this point because the node
             // might not have been started yet. However, we don't really need real analyzers or similarities at

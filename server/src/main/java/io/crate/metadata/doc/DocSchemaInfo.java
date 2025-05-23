@@ -158,7 +158,7 @@ public class DocSchemaInfo implements SchemaInfo {
             }
             return docTableInfo;
         } catch (Exception e) {
-            if (e instanceof ResourceUnknownException || e instanceof IllegalArgumentException) {
+            if (e instanceof ResourceUnknownException) {
                 return null;
             }
             throw e;
@@ -168,11 +168,6 @@ public class DocSchemaInfo implements SchemaInfo {
     @Override
     public DocTableInfo create(RelationName relationName, Metadata metadata) {
         return docTableInfoFactory.create(relationName, metadata);
-    }
-
-    @Override
-    public DocTableInfo create(IndexMetadata indexMetadata) {
-        return docTableInfoFactory.create(indexMetadata);
     }
 
     private static long getTableVersion(Metadata metadata, RelationName name) {
