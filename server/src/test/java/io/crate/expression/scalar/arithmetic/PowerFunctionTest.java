@@ -23,6 +23,8 @@ package io.crate.expression.scalar.arithmetic;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
+
 import org.junit.Test;
 
 import io.crate.expression.scalar.ScalarTestCase;
@@ -65,9 +67,19 @@ public class PowerFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void testNumericType() {
+        assertEvaluate("power(123.4567890123::NUMERIC, -3.12::NUMERIC)",
+            new BigDecimal("2.981764027899956437185215300517614E-7"));
+        assertEvaluate("power(123.4567890123::NUMERIC, -3.12)",
+            new BigDecimal("2.981764027899956437185215300517614E-7"));
+        assertEvaluate("power(123.4567890123, -3.12::NUMERIC)",
+            new BigDecimal("2.981764027899956437185215300517614E-7"));
+    }
+
+    @Test
     public void testInvalidNumberOfArguments() {
         assertThatThrownBy(() -> assertEvaluateNull("power(2)"))
             .hasMessage(
-                "Invalid arguments in: power(2) with (integer). Valid types: (double precision, double precision)");
+                "Invalid arguments in: power(2) with (integer). Valid types: (double precision, double precision), (numeric, numeric)");
     }
 }

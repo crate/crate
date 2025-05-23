@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Set;
 import java.util.function.BinaryOperator;
 
+import ch.obermuhlner.math.big.BigDecimalMath;
 import io.crate.expression.scalar.BinaryScalar;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -197,6 +198,19 @@ public class ArithmeticFunctions {
                 .build(),
             (signature, boundSignature) ->
                 new BinaryScalar<>(Math::pow, signature, boundSignature, DataTypes.DOUBLE)
+        );
+        builder.add(
+            Signature.builder(Names.POWER, FunctionType.SCALAR)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature(), DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
+                .build(),
+            (signature, boundSignature) ->
+                new BinaryScalar<>(
+                    (arg1 , arg2) -> BigDecimalMath.pow(arg1, arg2, MathContext.DECIMAL128),
+                    signature,
+                    boundSignature,
+                    DataTypes.NUMERIC)
         );
     }
 }
