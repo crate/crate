@@ -85,14 +85,14 @@ public class DateFormatFunctionTest extends ScalarTestCase {
     @Test
     public void testEvaluateWithTimezone() {
         assertEvaluate("date_format(time_format, timezone, timestamp_tz)",
-            "Sun Jan 1 1st 01 1 000000 03 03 03 00 001 3 3 January 01 AM 03:00:00 AM " +
-                         "00 00 03:00:00 01 00 01 52 Sunday 0 1871 1870 1871 71",
+            "Thu Jan 1 1st 01 1 000000 03 03 03 00 001 3 3 January 01 AM 03:00:00 AM " +
+                         "00 00 03:00:00 00 01 52 01 Thursday 4 1980 1981 1981 81",
             Literal.of("%a %b %c %D %d %e %f %H %h %I %i %j %k %l %M %m %p %r " +
                        "%S %s %T %U %u %V %v %W %w %X %x %Y %y"),
             Literal.of("EST"),
             Literal.of(
                 DataTypes.TIMESTAMPZ,
-                DataTypes.TIMESTAMPZ.implicitCast("1871-01-01T09:00:00.000+01")
+                DataTypes.TIMESTAMPZ.implicitCast("1981-01-01T09:00:00.000+01")
             )
         );
     }
