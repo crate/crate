@@ -39,6 +39,7 @@ import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.execution.engine.aggregation.statistics.StandardDeviation;
+import io.crate.execution.engine.aggregation.statistics.Variance;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
@@ -121,7 +122,7 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
 
         @Override
         public int fixedSize() {
-            return 56;
+            return Variance.FIXED_SIZE;
         }
 
         @Override
