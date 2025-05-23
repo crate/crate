@@ -94,11 +94,6 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
         return new StdDevSampStateType();
     }
 
-    @Override
-    protected StandardDeviationSamp newVariance() {
-        return new StandardDeviationSamp();
-    }
-
     @Nullable
     @Override
     public StandardDeviationSamp newState(RamAccounting ramAccounting,

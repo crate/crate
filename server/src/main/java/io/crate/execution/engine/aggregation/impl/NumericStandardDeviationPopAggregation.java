@@ -91,9 +91,12 @@ public class NumericStandardDeviationPopAggregation
     @Nullable
     @Override
     public NumericStandardDeviationPop newState(RamAccounting ramAccounting,
-                                                Version indexVersionCreated,
                                                 Version minNodeInCluster,
                                                 MemoryManager memoryManager) {
+        if (minNodeInCluster.before(Version.V_6_0_0)) {
+            throw new IllegalStateException(
+                    "Cannot use '" + NAME + "' aggregation on NUMERIC values until all nodes are upgraded to 6.0");
+        }
         NumericStandardDeviationPop newState = new NumericStandardDeviationPop();
         ramAccounting.addBytes(newState.size());
         return newState;

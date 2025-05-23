@@ -96,11 +96,6 @@ public class StandardDeviationPopAggregation extends StandardDeviationAggregatio
         return new StdDevPopStateType();
     }
 
-    @Override
-    protected StandardDeviationPop newVariance() {
-        return new StandardDeviationPop();
-    }
-
     @Nullable
     @Override
     public StandardDeviationPop newState(RamAccounting ramAccounting,

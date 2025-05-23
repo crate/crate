@@ -201,14 +201,11 @@ public abstract class AggregationTestCase extends ESTestCase {
             terminatePartialAggFunction = aggregationFunction;
         }
 
-        Version minNodeVersion = randomBoolean()
-            ? Version.CURRENT
-            : Version.V_4_0_9;
         Object partialResultWithoutDocValues = execPartialAggregationWithoutDocValues(
             aggregationFunction,
             data,
             randomExtraStates,
-            minNodeVersion
+            Version.CURRENT
         );
         for (var argType : actualArgumentTypes) {
             if (argType.storageSupport() == null) {
@@ -236,7 +233,6 @@ public abstract class AggregationTestCase extends ESTestCase {
                 actualArgumentTypes,
                 actualReturnType,
                 shard,
-                minNodeVersion,
                 optionalParams
             );
             var resultWithoutDocValues = assertAndGetMergedIterAndPartial(
@@ -320,7 +316,6 @@ public abstract class AggregationTestCase extends ESTestCase {
                                                           List<DataType<?>> argumentTypes,
                                                           DataType<?> actualReturnType,
                                                           IndexShard shard,
-                                                          Version minNodeVersion,
                                                           List<Literal<?>> optionalParams) throws Exception {
         // Make sure optional parameters do not become references
         List<Symbol> inputs = InputColumn.mapToInputColumns(argumentTypes.subList(0, argumentTypes.size() - optionalParams.size()));
@@ -358,7 +353,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             )
         );
         var collectPhase = createCollectPhase(toCollectRefs, projections);
-        var collectTask = createCollectTask(shard, collectPhase, minNodeVersion);
+        var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
         var batchIterator = DocValuesAggregates.tryOptimize(
             nodeCtx.functions(),
             refResolver,
