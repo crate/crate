@@ -92,8 +92,8 @@ public class StandardDeviationPopAggregation extends StandardDeviationAggregatio
     }
 
     @Override
-    protected StdDevStateType<StandardDeviationPop> stdDevStateTypeInstance() {
-        return StdDevPopStateType.INSTANCE;
+    public DataType<?> partialType() {
+        return new StdDevPopStateType();
     }
 
     @Override
@@ -107,7 +107,7 @@ public class StandardDeviationPopAggregation extends StandardDeviationAggregatio
                                          Version indexVersionCreated,
                                          Version minNodeInCluster,
                                          MemoryManager memoryManager) {
-        ramAccounting.addBytes(stdDevStateTypeInstance().fixedSize());
+        ramAccounting.addBytes(StandardDeviationPop.fixedSize());
         return new StandardDeviationPop();
     }
 }

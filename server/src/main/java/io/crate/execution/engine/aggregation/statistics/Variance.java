@@ -32,6 +32,10 @@ public class Variance implements Writeable, Comparable<Variance> {
 
     public static final int FIXED_SIZE = 3 * 64; // 2 * double vars + 1 long var
 
+    public static int fixedSize() {
+        return FIXED_SIZE;
+    }
+
     private double sumOfSqrs;
     private double sum;
     private long count;

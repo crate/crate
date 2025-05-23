@@ -90,8 +90,8 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
     }
 
     @Override
-    protected StdDevStateType<StandardDeviationSamp> stdDevStateTypeInstance() {
-        return StdDevSampStateType.INSTANCE;
+    public DataType<?> partialType() {
+        return new StdDevSampStateType();
     }
 
     @Override
@@ -105,7 +105,7 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
                                           Version indexVersionCreated,
                                           Version minNodeInCluster,
                                           MemoryManager memoryManager) {
-        ramAccounting.addBytes(stdDevStateTypeInstance().fixedSize());
+        ramAccounting.addBytes(StandardDeviationSamp.fixedSize());
         return new StandardDeviationSamp();
     }
 }

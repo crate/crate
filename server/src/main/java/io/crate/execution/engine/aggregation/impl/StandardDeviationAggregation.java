@@ -104,8 +104,6 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
         this.boundSignature = boundSignature;
     }
 
-    protected abstract StdDevStateType<V> stdDevStateTypeInstance();
-
     protected abstract V newVariance();
 
     @Override
@@ -166,11 +164,6 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
         return Double.isNaN(result) ? null : result;
     }
 
-    @Override
-    public DataType<?> partialType() {
-        return stdDevStateTypeInstance();
-    }
-
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
@@ -190,7 +183,7 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
                  TimestampType.ID_WITHOUT_TZ -> new SortedNumericDocValueAggregator<>(
                      reference.storageIdent(),
                      (ramAccounting, _, _) -> {
-                         ramAccounting.addBytes(stdDevStateTypeInstance().fixedSize());
+                         ramAccounting.addBytes(V.fixedSize());
                          return newVariance();
                      },
                      (values, state) -> state.increment(values.nextValue())
@@ -198,7 +191,7 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
             case FloatType.ID -> new SortedNumericDocValueAggregator<>(
                 reference.storageIdent(),
                 (ramAccounting, _, _) -> {
-                    ramAccounting.addBytes(stdDevStateTypeInstance().fixedSize());
+                    ramAccounting.addBytes(V.fixedSize());
                     return newVariance();
                 },
                 (values, state) -> {
@@ -209,7 +202,7 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
             case DoubleType.ID -> new SortedNumericDocValueAggregator<>(
                 reference.storageIdent(),
                 (ramAccounting, _, _) -> {
-                    ramAccounting.addBytes(stdDevStateTypeInstance().fixedSize());
+                    ramAccounting.addBytes(V.fixedSize());
                     return newVariance();
                 },
                 (values, state) -> {
