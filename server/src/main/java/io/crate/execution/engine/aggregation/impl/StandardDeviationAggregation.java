@@ -56,7 +56,8 @@ import io.crate.types.TimestampType;
 
 public abstract class StandardDeviationAggregation<V extends Variance> extends AggregationFunction<V, Double> {
 
-    public abstract static class StdDevStateType<V extends Variance> extends DataType<V> implements Streamer<V>, FixedWidthType {
+    public abstract static class StdDevStateType<V extends Variance>
+        extends DataType<V> implements Streamer<V>, FixedWidthType {
 
         @Override
         public Precedence precedence() {

@@ -608,9 +608,11 @@ of the set of non-null values in a column. It is a measure of the variation
 of data values. A low standard deviation indicates that the values tend to be
 near the mean.
 
-``stddev_pop`` is defined on all numeric types and on timestamp. It always returns
-``double precision`` values. If all values were null or we got no value at all
-``NULL`` is returned.
+``stddev_pop`` is defined on all
+:ref:`standard numeric types<data-types-numeric>` and on timestamp. Return value
+will be of type ``numeric`` with unspecified precision and scale if the input
+value is of ``numeric`` type, and ``double precision`` for any other type. If
+all values were null or we got no value at all ``NULL`` is returned.
 
 Example::
 
@@ -641,9 +643,13 @@ of the set of non-null values in a column. It is a measure of the variation
 of data values. A low standard deviation indicates that the values tend to be
 near the mean.
 
-``stddev_samp`` is defined on all numeric types and on timestamp. It always returns
-``double precision`` values. If all values were null or we got no value at all,
-or we got just one value ``NULL`` is returned.
+
+``stddev_samp`` is defined on all
+:ref:`standard numeric types<data-types-numeric>` and on timestamp. Return value
+will be of type ``numeric`` with unspecified precision and scale if the input
+value is of ``numeric`` type, and ``double precision`` for any other type. If
+all values were null, or we got no value, or just one value ``NULL`` is
+returned.
 
 Example::
 

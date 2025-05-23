@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -39,6 +40,7 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 
 public class StdDevSampAggregationTest extends AggregationTestCase {
 
@@ -82,6 +84,13 @@ public class StdDevSampAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void testNumeric() throws Exception {
+        assertThat(executeAggregation(new NumericType(4, 2), new Object[][]{
+            {new BigDecimal("10.7")}, {new BigDecimal("42.9")}, {new BigDecimal("0.3")}}))
+            .isEqualTo(new BigDecimal("22.21020786335268257417589186151252"));
+    }
+
+    @Test
     public void testDouble() throws Exception {
         assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}}))
             .isEqualTo(22.210207863352682d);
@@ -120,6 +129,7 @@ public class StdDevSampAggregationTest extends AggregationTestCase {
     @Test
     public void testTooFewNumbers() throws Exception {
         assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}})).isNull();
+        assertThat(executeAggregation(new NumericType(10, 6), new Object[][]{{new BigDecimal("10.7")}})).isNull();
     }
 
     @Test
