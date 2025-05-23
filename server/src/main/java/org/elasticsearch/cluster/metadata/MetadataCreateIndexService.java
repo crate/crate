@@ -88,7 +88,6 @@ import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.CreateBlobTableRequest;
-import io.crate.execution.ddl.tables.CreateTableRequest;
 import io.crate.execution.ddl.tables.CreateTableResponse;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.DocReferences;
@@ -98,7 +97,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfoFactory;
+import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.table.SchemaInfo;
 
 /**
  * Service responsible for submitting create index requests
@@ -273,7 +273,8 @@ public class MetadataCreateIndexService {
 
         @Override
         public ClusterState execute(ClusterState currentState) throws Exception {
-            String indexName = request.name().indexNameOrAlias();
+            RelationName relationName = request.name();
+            String indexName = relationName.indexNameOrAlias();
             Version versionCreated = currentState.nodes().getSmallestNonClientNodeVersion();
             String indexUUID = UUIDs.randomBase64UUID();
             Settings settings = Settings.builder()
@@ -288,7 +289,7 @@ public class MetadataCreateIndexService {
                 .build();
             return indicesService.withTempIndexService(indexMetadata, indexService -> {
                 Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata())
-                    .setBlobTable(request.name(), indexUUID, settings, State.OPEN);
+                    .setBlobTable(relationName, indexUUID, settings, State.OPEN);
                 ClusterState updatedState = addIndex(
                     allocationService,
                     indexService,
@@ -301,7 +302,9 @@ public class MetadataCreateIndexService {
                     calculateNumRoutingShards(numShards, versionCreated)
                 );
                 // ensure table can be parsed
-                new DocTableInfoFactory(nodeContext).create(request.name(), updatedState.metadata());
+                SchemaInfo blobSchemaInfo = nodeContext.schemas().getSchemaInfo(BlobSchemaInfo.NAME);
+                assert blobSchemaInfo != null : "BlobSchemaInfo should be available";
+                blobSchemaInfo.create(request.name(), updatedState.metadata());
                 return updatedState;
             });
         }
@@ -572,33 +575,43 @@ public class MetadataCreateIndexService {
     }
 
     public ClusterState add(ClusterState currentState,
-                            CreateTableRequest request,
-                            Settings settings) throws IOException {
-        RelationName tableName = request.getTableName();
-        String indexName = tableName.indexNameOrAlias();
+                            RelationMetadata.Table table,
+                            String newIndexUUID,
+                            List<String> partitionValues,
+                            Settings concreteIndexSettings) throws IOException {
+        RelationName tableName = table.name();
+        String indexName;
+        if (partitionValues.isEmpty()) {
+            indexName = tableName.indexNameOrAlias();
+        } else {
+            PartitionName partitionName = new PartitionName(tableName, partitionValues);
+            indexName = partitionName.asIndexName();
+        }
 
         validateIndexName(indexName, currentState);
-        validateIndexSettings(indexName, request.settings(), true);
-        shardLimitValidator.validateShardLimit(settings, currentState);
+        validateIndexSettings(indexName, concreteIndexSettings, true);
 
         Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
         final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
             MappingUtil.AllocPosition.forNewTable(),
-            request.pkConstraintName(),
-            DocReferences.applyOid(request.references(), metadataBuilder.columnOidSupplier()),
-            request.primaryKeys(),
-            request.checkConstraints(),
-            request.partitionedBy(),
-            request.tableColumnPolicy(),
-            request.routingColumn()
+            table.pkConstraintName(),
+            DocReferences.applyOid(table.columns(), metadataBuilder.columnOidSupplier()),
+            table.primaryKeys(),
+            table.checkConstraints(),
+            table.partitionedBy(),
+            table.columnPolicy(),
+            table.routingColumn()
         )));
 
         Settings.Builder indexSettingsBuilder = Settings.builder()
-            .put(settings)
-            .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+            .put(table.settings())
+            .put(concreteIndexSettings)
+            .put(SETTING_INDEX_UUID, newIndexUUID)
             .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
 
         final Settings idxSettings = indexSettingsBuilder.build();
+        shardLimitValidator.validateShardLimit(idxSettings, currentState);
+
         final int routingNumShards = IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.exists(idxSettings)
             ? IndexMetadata.INDEX_NUMBER_OF_ROUTING_SHARDS_SETTING.get(idxSettings)
             : calculateNumRoutingShards(
@@ -623,7 +636,7 @@ public class MetadataCreateIndexService {
         // create the index here (on the master) to validate it can be created, as well as adding the mapping
         return indicesService.withTempIndexService(tmpImd, indexService -> {
             IndexAnalyzers indexAnalyzers = indexService.indexAnalyzers();
-            ensureUsedAnalyzersExist(indexAnalyzers, request.references());
+            ensureUsedAnalyzersExist(indexAnalyzers, table.columns());
             ClusterState updatedState = addIndex(
                 allocationService,
                 indexService,
@@ -635,7 +648,8 @@ public class MetadataCreateIndexService {
                 List.of(),
                 routingNumShards
             );
-            new DocTableInfoFactory(nodeContext).create(tableName, updatedState.metadata());
+            SchemaInfo docSchemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(tableName.schema());
+            docSchemaInfo.create(tableName, updatedState.metadata());
             return updatedState;
         });
     }

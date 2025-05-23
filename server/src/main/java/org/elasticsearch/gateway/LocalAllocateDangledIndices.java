@@ -70,15 +70,17 @@ public class LocalAllocateDangledIndices {
 
     private final AllocationService allocationService;
 
-    private final MetadataUpgradeService metadataIndexUpgradeService;
+    private final MetadataUpgradeService metadataUpgradeService;
 
     @Inject
-    public LocalAllocateDangledIndices(TransportService transportService, ClusterService clusterService,
-                                       AllocationService allocationService, MetadataUpgradeService metadataIndexUpgradeService) {
+    public LocalAllocateDangledIndices(TransportService transportService,
+                                       ClusterService clusterService,
+                                       AllocationService allocationService,
+                                       MetadataUpgradeService metadataUpgradeService) {
         this.transportService = transportService;
         this.clusterService = clusterService;
         this.allocationService = allocationService;
-        this.metadataIndexUpgradeService = metadataIndexUpgradeService;
+        this.metadataUpgradeService = metadataUpgradeService;
         transportService.registerRequestHandler(
             ACTION_NAME,
             ThreadPool.Names.SAME,
@@ -117,7 +119,7 @@ public class LocalAllocateDangledIndices {
                     if (currentState.blocks().disableStatePersistence()) {
                         return currentState;
                     }
-                    Metadata.Builder metadata = Metadata.builder(currentState.metadata());
+                    Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
                     ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
                     RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
                     final Version minIndexCompatibilityVersion = currentState.nodes().getMaxNodeVersion()
@@ -147,7 +149,7 @@ public class LocalAllocateDangledIndices {
                             // The dangled index might be from an older version, we need to make sure it's compatible
                             // with the current version and upgrade it if needed.
                             String indexName = indexMetadata.getIndex().getName();
-                            upgradedIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
+                            upgradedIndexMetadata = metadataUpgradeService.upgradeIndexMetadata(
                                 indexMetadata,
                                 IndexName.isPartitioned(indexName) ?
                                     currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
@@ -164,7 +166,7 @@ public class LocalAllocateDangledIndices {
                             upgradedIndexMetadata = IndexMetadata.builder(indexMetadata).state(IndexMetadata.State.CLOSE)
                                 .version(indexMetadata.getVersion() + 1).build();
                         }
-                        metadata.put(upgradedIndexMetadata, false);
+                        metadataBuilder.put(upgradedIndexMetadata, false);
                         blocks.addBlocks(upgradedIndexMetadata);
                         if (upgradedIndexMetadata.getState() == IndexMetadata.State.OPEN || isIndexVerifiedBeforeClosed(indexMetadata)) {
                             routingTableBuilder.addAsFromDangling(upgradedIndexMetadata);
@@ -176,6 +178,8 @@ public class LocalAllocateDangledIndices {
                         return currentState;
                     }
                     LOGGER.info("auto importing dangled indices {} from [{}]", sb.toString(), request.fromNode);
+
+                    Metadata metadata = metadataUpgradeService.addOrUpgradeRelationMetadata(metadataBuilder.build());
 
                     RoutingTable routingTable = routingTableBuilder.build();
                     ClusterState updatedState = ClusterState.builder(currentState).metadata(metadata).blocks(blocks)

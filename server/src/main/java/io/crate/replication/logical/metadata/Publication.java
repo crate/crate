@@ -38,8 +38,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import io.crate.metadata.IndexName;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.role.Permission;
 import io.crate.role.Role;
@@ -120,16 +118,15 @@ public class Publication implements Writeable {
                                                                        Role subscriber,
                                                                        String publicationName) {
         // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
-        Predicate<String> indexFilter = indexName -> {
-            var indexMetadata = state.metadata().index(indexName);
+        Predicate<String> indexFilter = indexUUID -> {
+            var indexMetadata = state.metadata().indexByUUID(indexUUID);
             if (indexMetadata != null) {
-                var routingTable = state.routingTable().index(indexName);
+                var routingTable = state.routingTable().index(indexMetadata.getIndex().getName());
                 assert routingTable != null : "routingTable must not be null";
                 return routingTable.allPrimaryShardsActive();
 
             }
-            // Partitioned table case (template, no index).
-            return true;
+            return false;
         };
 
         var relations = new HashSet<RelationName>();
@@ -139,29 +136,11 @@ public class Publication implements Writeable {
             for (var table : metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class)) {
                 relations.add(table.name());
             }
-
-            for (var cursor : metadata.templates().keys()) {
-                String templateName = cursor.value;
-                IndexParts indexParts = IndexName.decode(templateName);
-                RelationName relationName = indexParts.toRelationName();
-                if (indexParts.isPartitioned()) {
-                    relations.add(relationName);
-                }
-            }
-            for (var cursor : metadata.indices().values()) {
-                var indexMetadata = cursor.value;
-                var indexName = indexMetadata.getIndex().getName();
-                var indexParts = IndexName.decode(indexName);
-                if (indexParts.isPartitioned() == false) {
-                    relations.add(indexParts.toRelationName());
-                }
-            }
         } else {
             relations.addAll(tables);
         }
 
         return relations.stream()
-            .filter(relationName -> indexFilter.test(relationName.indexNameOrAlias()))
             .filter(relationName -> userCanPublish(roles, relationName, publicationOwner, publicationName))
             .filter(relationName -> subscriberCanRead(roles, relationName, subscriber, publicationName))
             .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata(), indexFilter))

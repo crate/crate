@@ -19,12 +19,14 @@
 
 package org.elasticsearch.gateway;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -32,10 +34,12 @@ import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.TestCustomMetadata;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
@@ -48,10 +52,22 @@ import io.crate.sql.tree.ColumnPolicy;
 
 public class GatewayMetaStateTests extends ESTestCase {
 
+    private final NodeContext nodeCtx = createNodeContext();
+    private MetadataUpgradeService metadataUpgradeService;
+
+    @Before
+    public void setUpUpgradeService() throws Exception {
+        metadataUpgradeService = new MetadataUpgradeService(
+            nodeCtx,
+            new IndexScopedSettings(Settings.EMPTY, Set.of()),
+            null
+        );
+    }
+
     @Test
     public void test_no_metadata_upgrade_build_relation_metadata() {
         Metadata metadata = randomMetadata(false, new CustomMetadata("data"));
-        Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false));
+        Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, metadataUpgradeService);
         assertThat(upgrade).isNotSameAs(metadata);
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
         for (IndexMetadata indexMetadata : upgrade) {
@@ -66,7 +82,7 @@ public class GatewayMetaStateTests extends ESTestCase {
     public void testCustomMetadataValidation() {
         Metadata metadata = randomMetadata(false, new CustomMetadata("data"));
         try {
-            GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(false));
+            GatewayMetaState.upgradeMetadata(metadata, metadataUpgradeService);
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo("custom meta data too old");
         }
@@ -75,11 +91,11 @@ public class GatewayMetaStateTests extends ESTestCase {
     @Test
     public void test_index_metadata_upgrade_and_build_relation_metadata() {
         Metadata metadata = randomMetadata(false);
-        Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(true));
+        Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, metadataUpgradeService);
         assertThat(upgrade).isNotSameAs(metadata);
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
         for (IndexMetadata indexMetadata : upgrade) {
-            assertThat(metadata.hasIndexMetadata(indexMetadata)).isFalse();
+            assertThat(metadata.hasIndexMetadata(indexMetadata)).isTrue();
             RelationName relationName = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
             RelationMetadata.Table relationMetadata = upgrade.getRelation(relationName);
             assertThat(relationMetadata.settings()).isEqualTo(indexMetadata.getSettings());
@@ -89,40 +105,17 @@ public class GatewayMetaStateTests extends ESTestCase {
     @Test
     public void test_index_metadata_upgrade_and_update_relation_metadata() {
         Metadata metadata = randomMetadata(true);
-        Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, new MockMetadataIndexUpgradeService(true));
+        Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, metadataUpgradeService);
         assertThat(upgrade).isNotSameAs(metadata);
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
         for (IndexMetadata indexMetadata : upgrade) {
-            assertThat(metadata.hasIndexMetadata(indexMetadata)).isFalse();
+            assertThat(metadata.hasIndexMetadata(indexMetadata)).isTrue();
             RelationName relationName = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
             RelationMetadata.Table relationMetadata = upgrade.getRelation(relationName);
             assertThat(relationMetadata.settings()).isEqualTo(indexMetadata.getSettings());
         }
     }
 
-    public static class MockMetadataIndexUpgradeService extends MetadataUpgradeService {
-        private final boolean upgrade;
-
-        public MockMetadataIndexUpgradeService(boolean upgrade) {
-            super(mock(NodeContext.class), null, mock(UserDefinedFunctionService.class));
-            this.upgrade = upgrade;
-        }
-
-        @Override
-        public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
-                                                  IndexTemplateMetadata indexTemplateMetadata,
-                                                  Version minimumIndexCompatibilityVersion,
-                                                  UserDefinedFunctionsMetadata userDefinedFunctionsMetadata) {
-            if (upgrade) {
-                Settings newSettings = Settings.builder()
-                    .put(indexMetadata.getSettings())
-                    .put(IndexSettings.INDEX_REFRESH_INTERVAL_SETTING.getKey(),  new TimeValue(999))
-                    .build();
-                return IndexMetadata.builder(indexMetadata).settings(newSettings).build();
-            }
-            return indexMetadata;
-        }
-    }
 
     private static class CustomMetadata extends TestCustomMetadata {
         public static final String TYPE = "custom_md_1";
