@@ -71,7 +71,7 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
 
         @Override
         public long valueBytes(V value) {
-            return value.size();
+            return value != null ? value.size() : 0L;
         }
     }
 
@@ -82,10 +82,6 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
-
-    protected abstract StdDevNumericStateType<V> stdDevStateTypeInstance();
-
-    protected abstract V newVariance();
 
     @Override
     public Signature signature() {
@@ -105,7 +101,10 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
         if (state != null) {
             BigDecimal value = (BigDecimal) args[0].value();
             if (value != null) {
+                long sizeBefore = state.size();
                 state.increment(value);
+                long sizeAfter = state.size();
+                ramAccounting.addBytes(sizeBefore - sizeAfter);
             }
         }
         return state;
@@ -133,7 +132,10 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
         if (previousAggState != null) {
             BigDecimal value = (BigDecimal) stateToRemove[0].value();
             if (value != null) {
+                long sizeBefore = previousAggState.size();
                 previousAggState.decrement(value);
+                long sizeAfter = previousAggState.size();
+                ramAccounting.addBytes(sizeBefore - sizeAfter);
             }
         }
         return previousAggState;
@@ -142,10 +144,5 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
     @Override
     public BigDecimal terminatePartial(RamAccounting ramAccounting, V state) {
         return state.result();
-    }
-
-    @Override
-    public DataType<?> partialType() {
-        return stdDevStateTypeInstance();
     }
 }

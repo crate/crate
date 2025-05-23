@@ -35,6 +35,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class NumericStandardDeviationPopAggregation
@@ -83,13 +84,8 @@ public class NumericStandardDeviationPopAggregation
     }
 
     @Override
-    protected NumericStdDevPopStateType stdDevStateTypeInstance() {
-        return NumericStdDevPopStateType.INSTANCE;
-    }
-
-    @Override
-    protected NumericStandardDeviationPop newVariance() {
-        return new NumericStandardDeviationPop();
+    public DataType<?> partialType() {
+        return new NumericStdDevPopStateType();
     }
 
     @Nullable

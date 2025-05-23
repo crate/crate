@@ -35,6 +35,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
 public class NumericStandardDeviationSampAggregation
@@ -83,13 +84,8 @@ public class NumericStandardDeviationSampAggregation
     }
 
     @Override
-    protected NumericStdDevSampStateType stdDevStateTypeInstance() {
-        return NumericStdDevSampStateType.INSTANCE;
-    }
-
-    @Override
-    protected NumericStandardDeviationSamp newVariance() {
-        return new NumericStandardDeviationSamp();
+    public DataType<?> partialType() {
+        return new NumericStdDevSampStateType();
     }
 
     @Nullable
