@@ -599,9 +599,9 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 //          -> type is detected once the generated expression is analyzed.
                 int arrayNesting = 0;
                 DataType<?> builderType = builder.type;
-                while (builderType instanceof ArrayType<?>) {
+                while (builderType instanceof ArrayType<?> arrayType) {
                     arrayNesting++;
-                    builderType = ((ArrayType<?>) builderType).innerType();
+                    builderType = arrayType.innerType();
                 }
                 assert builderType instanceof ObjectType : "Expecting an ObjectType here";
                 ObjectType objectType = (ObjectType) builderType;
@@ -619,10 +619,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 DataType<?> newType = objectTypeBuilder.build();
                 // only update if changed
                 if (!objectType.equals(newType)) {
-                    for (int i = 0; i < arrayNesting; i++) {
-                        newType = new ArrayType<>(newType);
-                    }
-                    builder.type = newType;
+                    builder.type = ArrayType.makeArray(newType, arrayNesting);
                 }
             }
 
