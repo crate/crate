@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Predicate;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
@@ -40,13 +41,33 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public record RelationMetadata(RelationName name,
-                               List<IndexMetadata> indices,
+                               List<ReplicatedIndex> indices,
                                @Nullable IndexTemplateMetadata template) implements Writeable {
+
+    public record ReplicatedIndex(IndexMetadata indexMetadata, boolean allPrimaryShardsActive) implements Writeable {
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            indexMetadata.writeTo(out);
+            if (out.getVersion().after(Version.V_5_10_5)) {
+                out.writeBoolean(allPrimaryShardsActive);
+            }
+        }
+
+        public static ReplicatedIndex readFrom(StreamInput in) throws IOException {
+            if (in.getVersion().after(Version.V_5_10_5)) {
+                return new ReplicatedIndex(IndexMetadata.readFrom(in), in.readBoolean());
+            } else {
+                // Before 5.10.6 we didn't expose indices with non-active primary shards at all.
+                return new ReplicatedIndex(IndexMetadata.readFrom(in), true);
+            }
+        }
+    }
 
     public RelationMetadata(StreamInput in) throws IOException {
         this(
             new RelationName(in),
-            in.readList(IndexMetadata::readFrom),
+            in.readList(ReplicatedIndex::readFrom),
             in.readOptionalWriteable(IndexTemplateMetadata::readFrom)
         );
     }
@@ -69,14 +90,17 @@ public record RelationMetadata(RelationName name,
                 IndicesOptions.LENIENT_EXPAND_OPEN,
                 indexNameOrAlias
             );
-            ArrayList<IndexMetadata> indicesMetadata = new ArrayList<>(concreteIndices.length);
+            ArrayList<ReplicatedIndex> indicesMetadata = new ArrayList<>(concreteIndices.length);
             for (String concreteIndex : concreteIndices) {
                 if (filter.test(concreteIndex)) {
-                    indicesMetadata.add(metadata.index(concreteIndex));
+                    indicesMetadata.add(new ReplicatedIndex(metadata.index(concreteIndex), true));
+                } else {
+                    indicesMetadata.add(new ReplicatedIndex(metadata.index(concreteIndex), false));
                 }
             }
             return new RelationMetadata(table, indicesMetadata, templateMetadata);
         }
-        return new RelationMetadata(table, List.of(indexMetadata), null);
+        boolean allPrimaryShardsActive = filter.test(indexNameOrAlias);
+        return new RelationMetadata(table, List.of(new ReplicatedIndex(indexMetadata, allPrimaryShardsActive)), null);
     }
 }
