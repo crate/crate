@@ -332,7 +332,7 @@
     <versions.datasketches>5.0.2</versions.datasketches>
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
     <versions.caffeine>3.2.0</versions.caffeine>
-    <versions.jodatime>2.12.7</versions.jodatime>
+    <versions.jodatime>2.14.0</versions.jodatime>
     <versions.aws>1.12.783</versions.aws>
     <versions.opendal>0.47.6</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
