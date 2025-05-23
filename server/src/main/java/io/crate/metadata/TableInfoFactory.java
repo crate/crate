@@ -30,5 +30,13 @@ public interface TableInfoFactory<T extends TableInfo> {
 
     T create(RelationName ident, Metadata metadata);
 
+    /**
+     * Only needed for BWC to build {@link org.elasticsearch.cluster.metadata.RelationMetadata.Table} out of
+     * old {@link IndexMetadata} entries.
+     * See {@link org.elasticsearch.cluster.metadata.MetadataUpgradeService#addOrUpgradeRelationMetadata}.
+     *
+     * @deprecated use {@link #create(RelationName, Metadata)} instead
+     */
+    @Deprecated
     T create(IndexMetadata indexMetadata);
 }
