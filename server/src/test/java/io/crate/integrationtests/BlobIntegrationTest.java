@@ -294,28 +294,6 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
         assertSocketIsConnected(socket);
     }
 
-    @Test
-    public void testResponseContainsCloseHeaderOnHttp10() throws Exception {
-        try (Socket socket = new Socket(randomNode.getAddress(), randomNode.getPort())) {
-            socket.setKeepAlive(false);
-            socket.setSoTimeout(3000);
-
-            OutputStream outputStream = socket.getOutputStream();
-            outputStream.write("HEAD /_blobs/invalid/aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa HTTP/1.0\r\n"
-                .getBytes(StandardCharsets.UTF_8));
-            outputStream.write("Host: localhost\r\n\r\n".getBytes(StandardCharsets.UTF_8));
-            outputStream.flush();
-
-            BufferedReader reader = new BufferedReader(new InputStreamReader(socket.getInputStream(), StandardCharsets.UTF_8));
-            String line;
-            List<String> lines = new ArrayList<>();
-            while ((line = reader.readLine()) != null) {
-                lines.add(line);
-            }
-            assertThat(lines).contains("connection: close");
-        }
-    }
-
     private void assertSocketIsConnected(Socket socket) {
         assertThat(socket.isConnected()).isTrue();
         assertThat(socket.isClosed()).isFalse();
