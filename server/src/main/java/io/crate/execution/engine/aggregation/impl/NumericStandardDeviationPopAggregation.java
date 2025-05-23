@@ -22,15 +22,13 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
-import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Lists;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.statistics.StandardDeviationSamp;
+import io.crate.execution.engine.aggregation.statistics.NumericStandardDeviationPop;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -40,34 +38,30 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
-public class StandardDeviationSampAggregation extends StandardDeviationAggregation<StandardDeviationSamp> {
+public class NumericStandardDeviationPopAggregation
+    extends NumericStandardDeviationAggregation<NumericStandardDeviationPop> {
 
-    public static final String NAME = "stddev_samp";
+    public static final String NAME = "stddev_pop";
 
     static {
-        DataTypes.register(StdDevSampStateType.ID, _ -> StdDevSampStateType.INSTANCE);
+        DataTypes.register(NumericStdDevPopStateType.ID, _ -> NumericStdDevPopStateType.INSTANCE);
     }
-
-    private static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
-        DataTypes.NUMERIC_PRIMITIVE_TYPES, DataTypes.TIMESTAMPZ);
 
     public static void register(Functions.Builder builder) {
-        for (var supportedType : SUPPORTED_TYPES) {
-            builder.add(
-                Signature.builder(NAME, FunctionType.AGGREGATE)
-                    .argumentTypes(supportedType.getTypeSignature())
-                    .returnType(DataTypes.DOUBLE.getTypeSignature())
-                    .features(Scalar.Feature.DETERMINISTIC)
-                    .build(),
-                 StandardDeviationSampAggregation::new
-            );
-        }
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                .returnType(DataTypes.NUMERIC.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            NumericStandardDeviationPopAggregation::new
+        );
     }
 
-    public static class StdDevSampStateType extends StdDevStateType<StandardDeviationSamp> {
+    public static class NumericStdDevPopStateType extends StdDevNumericStateType<NumericStandardDeviationPop> {
 
-        public static final StdDevSampStateType INSTANCE = new StdDevSampStateType();
-        public static final int ID = 8193;
+        public static final NumericStdDevPopStateType INSTANCE = new NumericStdDevPopStateType();
+        public static final int ID = 8195;
 
         @Override
         public int id() {
@@ -76,35 +70,32 @@ public class StandardDeviationSampAggregation extends StandardDeviationAggregati
 
         @Override
         public String getName() {
-            return "stddev_sampl_state";
+            return "stddev_sampl_numeric_state";
         }
 
         @Override
-        public StandardDeviationSamp readValueFrom(StreamInput in) throws IOException {
-            return new StandardDeviationSamp(in);
+        public NumericStandardDeviationPop readValueFrom(StreamInput in) throws IOException {
+            return new NumericStandardDeviationPop(in);
         }
     }
 
-    public StandardDeviationSampAggregation(Signature signature, BoundSignature boundSignature) {
+    public NumericStandardDeviationPopAggregation(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
     }
 
     @Override
     public DataType<?> partialType() {
-        return new StdDevSampStateType();
-    }
-
-    @Override
-    protected StandardDeviationSamp newVariance() {
-        return new StandardDeviationSamp();
+        return new NumericStdDevPopStateType();
     }
 
     @Nullable
     @Override
-    public StandardDeviationSamp newState(RamAccounting ramAccounting,
-                                          Version minNodeInCluster,
-                                          MemoryManager memoryManager) {
-        ramAccounting.addBytes(StandardDeviationSamp.fixedSize());
-        return new StandardDeviationSamp();
+    public NumericStandardDeviationPop newState(RamAccounting ramAccounting,
+                                                Version indexVersionCreated,
+                                                Version minNodeInCluster,
+                                                MemoryManager memoryManager) {
+        NumericStandardDeviationPop newState = new NumericStandardDeviationPop();
+        ramAccounting.addBytes(newState.size());
+        return newState;
     }
 }
