@@ -47,6 +47,10 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Improved memory accounting for the
+  :ref:`population standard deviation<aggregation-stddev-pop>` aggregation
+  function.
+
 - Improved error message thrown when using a ``SELECT *``` on
   :ref:`system tables <system-information>`, during a rolling upgrade, when
   columns on the ``sys`` table queried differ between the old and the new
