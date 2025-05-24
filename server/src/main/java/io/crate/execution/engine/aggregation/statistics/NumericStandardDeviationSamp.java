@@ -19,34 +19,35 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.engine.aggregation.impl.average.numeric;
+package io.crate.execution.engine.aggregation.statistics;
 
-import static org.assertj.core.api.Assertions.assertThat;
-
+import java.io.IOException;
 import java.math.BigDecimal;
 import java.math.MathContext;
 
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.junit.Test;
 
-import io.crate.execution.engine.aggregation.impl.util.BigDecimalValueWrapper;
+import ch.obermuhlner.math.big.BigDecimalMath;
 
-public class NumericAverageStateTest {
+public class NumericStandardDeviationSamp extends NumericVariance {
 
-    @Test
-    @SuppressWarnings("unchecked")
-    public void test_can_stream_bigdecimal_with_precision_eq_scale() throws Exception {
-        var type = new NumericAverageStateType();
-        var out = new BytesStreamOutput();
-        var bigDecimal = new BigDecimal("0.25", new MathContext(2));
-        var bigDecimalValueWrapper = new BigDecimalValueWrapper(bigDecimal);
-        var numericAverageState = new NumericAverageState<>(bigDecimalValueWrapper, 1);
-        type.writeValueTo(out, numericAverageState);
+    public NumericStandardDeviationSamp() {
+    }
 
-        StreamInput in = out.bytes().streamInput();
-        NumericAverageState<BigDecimalValueWrapper> valueFrom = type.readValueFrom(in);
-        assertThat(valueFrom.sum.value()).isEqualTo(bigDecimal);
+    public NumericStandardDeviationSamp(StreamInput in) throws IOException {
+        super(in);
+    }
+
+    @Override
+    public BigDecimal result() {
+        long count = super.count();
+        if (count <= 1) {
+            return null;
+        }
+        return BigDecimalMath.sqrt(
+            super.result().multiply(
+                BigDecimal.valueOf(count)).divide(BigDecimal.valueOf(count - 1),
+                MathContext.DECIMAL128),
+            MathContext.DECIMAL128);
     }
 }
-
