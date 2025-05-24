@@ -226,7 +226,7 @@ public class PgClient implements Client {
                 } else {
                     String user = connectionInfo.user();
                     Map<String, String> properties = Map.of("user", user, "CrateDBTransport", "true");
-                    ClientMessages.sendStartupMessage(buffer, "doc", properties);
+                    ClientMessages.sendStartupMessage(buffer, "crate", properties);
                 }
                 channel.writeAndFlush(buffer);
             } else {
@@ -549,7 +549,7 @@ public class PgClient implements Client {
         private void sendStartup(ChannelHandlerContext ctx) {
             ByteBuf buffer = ctx.alloc().buffer();
             Map<String, String> properties = Map.of("user", user, "CrateDBTransport", "true");
-            ClientMessages.sendStartupMessage(buffer, "doc", properties);
+            ClientMessages.sendStartupMessage(buffer, "crate", properties);
             ChannelFuture flushStartup = ctx.writeAndFlush(buffer);
             if (LOGGER.isWarnEnabled()) {
                 flushStartup.addListener(f -> {
