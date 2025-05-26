@@ -153,8 +153,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             txnCtx,
             nodeCtx,
             insertColumns,
-            request.returnValues()
-        );
+            request.returnValues(),
+            false);
 
         Indexer updatingIndexer = null;
         if (updateToInsert != null) {
@@ -165,8 +165,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 txnCtx,
                 nodeCtx,
                 updateToInsert.columns(),
-                request.returnValues()
-            );
+                request.returnValues(),
+                false);
         }
 
         ColumnIdent firstColumnIdent;
@@ -197,8 +197,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 txnCtx,
                 nodeCtx,
                 request.returnValues(),
-                List.of() // Non deterministic synthetics is not needed on primary
-            );
+                List.of(), // Non deterministic synthetics is not needed on primary
+                false);
         }
 
         Translog.Location translogLocation = null;
@@ -324,8 +324,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 txnCtx,
                 nodeCtx,
                 null,
-                targetColumns.subList(1, targetColumns.size()) // expanded refs (non-deterministic synthetics)
-            );
+                targetColumns.subList(1, targetColumns.size()), // expanded refs (non-deterministic synthetics)
+                true);
         } else {
             rawIndexer = null;
             indexer = new Indexer(
@@ -335,8 +335,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 txnCtx,
                 nodeCtx,
                 targetColumns,
-                null
-            );
+                null,
+                true);
         }
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {

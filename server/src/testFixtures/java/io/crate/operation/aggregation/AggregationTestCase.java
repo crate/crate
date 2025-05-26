@@ -411,8 +411,8 @@ public abstract class AggregationTestCase extends ESTestCase {
             CoordinatorTxnCtx.systemTransactionContext(),
             nodeCtx,
             targetColumns,
-            null
-        );
+            null,
+            false);
 
         final long startTime = System.nanoTime();
         for (Object[] row : data) {

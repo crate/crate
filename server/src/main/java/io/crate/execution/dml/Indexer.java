@@ -368,11 +368,6 @@ public class Indexer {
         @SuppressWarnings("unchecked")
         @Override
         public void verify(Object providedValue) {
-            if (ref.isDeterministic() == false) {
-                throw new IllegalArgumentException(
-                    "Cannot provide a value to " + ref.column() + ", generated column with non-deterministic generation expression"
-                );
-            }
             DataType<Object> valueType = (DataType<Object>) ref.valueType();
             Object generatedValue = input.value();
             int compare = Comparator
@@ -402,7 +397,8 @@ public class Indexer {
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
                    List<Reference> targetColumns,
-                   Symbol[] returnValues) {
+                   Symbol[] returnValues,
+                   boolean forReplica) {
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
@@ -440,7 +436,9 @@ public class Indexer {
                 );
             }
             this.valueIndexers.add(valueIndexer);
-            addGeneratedToVerify(columnConstraints, table, ctxForRefs, ref);
+            if (!forReplica) {
+                addGeneratedToVerify(columnConstraints, table, ctxForRefs, ref);
+            }
         }
         this.tableConstraints = new ArrayList<>(table.checkConstraints().size());
         addNotNullConstraints(
