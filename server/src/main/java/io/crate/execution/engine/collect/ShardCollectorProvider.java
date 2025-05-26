@@ -91,7 +91,6 @@ public abstract class ShardCollectorProvider {
             shardNormalizer,
             t -> null,
             t -> null,
-            indexShard.indexSettings().getIndexVersionCreated(),
             indexShard.shardId(),
             fileOutputFactoryMap
         );

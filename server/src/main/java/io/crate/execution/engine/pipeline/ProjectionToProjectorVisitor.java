@@ -39,7 +39,6 @@ import java.util.function.Predicate;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -169,7 +168,6 @@ public class ProjectionToProjectorVisitor
     private final Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter;
     private final Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter;
     private final CircuitBreakerService circuitBreakerService;
-    private final Version indexVersionCreated;
     @Nullable
     private final ShardId shardId;
     private final int numProcessors;
@@ -186,7 +184,6 @@ public class ProjectionToProjectorVisitor
                                         EvaluatingNormalizer normalizer,
                                         Function<RelationName, SysRowUpdater<?>> sysUpdaterGetter,
                                         Function<RelationName, StaticTableDefinition<?>> staticTableDefinitionGetter,
-                                        Version indexVersionCreated,
                                         @Nullable ShardId shardId,
                                         Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.clusterService = clusterService;
@@ -200,7 +197,6 @@ public class ProjectionToProjectorVisitor
         this.normalizer = normalizer;
         this.sysUpdaterGetter = sysUpdaterGetter;
         this.staticTableDefinitionGetter = staticTableDefinitionGetter;
-        this.indexVersionCreated = indexVersionCreated;
         this.shardId = shardId;
         this.numProcessors = EsExecutors.numberOfProcessors(settings);
         this.fileOutputFactoryMap = fileOutputFactoryMap;
@@ -228,7 +224,6 @@ public class ProjectionToProjectorVisitor
             normalizer,
             sysUpdaterGetter,
             staticTableDefinitionGetter,
-            Version.CURRENT,
             null,
             null
         );
@@ -339,8 +334,7 @@ public class ProjectionToProjectorVisitor
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,
             context.memoryManager,
-            clusterService.state().nodes().getMinNodeVersion(),
-            indexVersionCreated
+            clusterService.state().nodes().getMinNodeVersion()
         );
     }
 
@@ -359,8 +353,7 @@ public class ProjectionToProjectorVisitor
             ctx.aggregations().toArray(new AggregationContext[0]),
             context.ramAccounting,
             context.memoryManager,
-            clusterService.state().nodes().getMinNodeVersion(),
-            indexVersionCreated
+            clusterService.state().nodes().getMinNodeVersion()
         );
     }
 
@@ -722,7 +715,6 @@ public class ProjectionToProjectorVisitor
             context.ramAccounting,
             context.memoryManager,
             clusterService.state().nodes().getMinNodeVersion(),
-            indexVersionCreated,
             ThreadPools.numIdleThreads(searchThreadPool, numProcessors),
             searchThreadPool
         );

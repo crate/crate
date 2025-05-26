@@ -21,6 +21,21 @@
 
 package io.crate.execution.engine.aggregation;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Iterator;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.BiConsumer;
+import java.util.function.BinaryOperator;
+import java.util.function.Function;
+import java.util.function.Supplier;
+import java.util.stream.Collector;
+
+import org.elasticsearch.Version;
+
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -30,20 +45,6 @@ import io.crate.expression.InputCondition;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.memory.MemoryManager;
 import io.crate.types.DataType;
-import org.elasticsearch.Version;
-
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-import java.util.Iterator;
-import java.util.function.BiConsumer;
-import java.util.function.BinaryOperator;
-import java.util.function.Function;
-import java.util.function.Supplier;
-import java.util.stream.Collector;
 
 /**
  * Collector implementation which uses {@link AggregateMode}s and {@code keyInputs}
@@ -64,7 +65,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
     private final int numKeyColumns;
     private final BiConsumer<Map<K, Object[]>, K> accountForNewEntry;
     private final Function<Row, K> keyExtractor;
-    private final Version indexVersionCreated;
     private final BiConsumer<Map<K, Object[]>, Row> accumulator;
     private final Supplier<Map<K, Object[]>> supplier;
     private final Version minNodeVersion;
@@ -78,8 +78,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                MemoryManager memoryManager,
                                                Version minNodeVersion,
                                                Input<?> keyInput,
-                                               DataType keyType,
-                                               Version indexVersionCreated) {
+                                               DataType keyType) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -93,7 +92,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             1,
             GroupByMaps.accountForNewEntry(ramAccounting, keyType),
             row -> keyInput.value(),
-            indexVersionCreated,
             GroupByMaps.mapForType(keyType)
         );
     }
@@ -107,8 +105,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                                                     MemoryManager memoryManager,
                                                     Version minNodeVersion,
                                                     List<Input<?>> keyInputs,
-                                                    List<? extends DataType> keyTypes,
-                                                    Version indexVersionCreated) {
+                                                    List<? extends DataType> keyTypes) {
         return new GroupingCollector<>(
             expressions,
             aggregations,
@@ -122,7 +119,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
             keyInputs.size(),
             GroupByMaps.accountForNewEntry(ramAccountingContext, keyTypes),
             row -> evalKeyInputs(keyInputs),
-            indexVersionCreated,
             HashMap::new
         );
     }
@@ -153,7 +149,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
                               int numKeyColumns,
                               BiConsumer<Map<K, Object[]>, K> accountForNewEntry,
                               Function<Row, K> keyExtractor,
-                              Version indexVersionCreated,
                               Supplier<Map<K, Object[]>> supplier) {
         this.expressions = expressions;
         this.aggregations = aggregations;
@@ -166,7 +161,6 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         this.numKeyColumns = numKeyColumns;
         this.accountForNewEntry = accountForNewEntry;
         this.keyExtractor = keyExtractor;
-        this.indexVersionCreated = indexVersionCreated;
         this.accumulator = mode == AggregateMode.PARTIAL_FINAL ? this::reduce : this::iter;
         this.supplier = supplier;
         this.minNodeVersion = minNodeVersion;
@@ -247,7 +241,7 @@ public class GroupingCollector<K> implements Collector<Row, Map<K, Object[]>, It
         for (int i = 0; i < aggregations.length; i++) {
             AggregationFunction aggregation = aggregations[i];
 
-            var newState = aggregation.newState(ramAccounting, indexVersionCreated, minNodeVersion, memoryManager);
+            var newState = aggregation.newState(ramAccounting, minNodeVersion, memoryManager);
             if (InputCondition.matches(filters[i])) {
                 //noinspection unchecked
                 states[i] = aggregation.iterate(ramAccounting, memoryManager, newState, inputs[i]);

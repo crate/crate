@@ -69,7 +69,6 @@ public class WindowProjector {
                                            RamAccounting ramAccounting,
                                            MemoryManager memoryManager,
                                            Version minNodeVersion,
-                                           Version indexVersionCreated,
                                            IntSupplier numThreads,
                                            Executor executor) {
         var windowFunctionSymbols = projection.windowFunctions();
@@ -106,7 +105,6 @@ public class WindowProjector {
                     new AggregateToWindowFunctionAdapter(
                         (AggregationFunction) impl,
                         filter,
-                        indexVersionCreated,
                         ramAccounting,
                         memoryManager,
                         minNodeVersion

@@ -34,7 +34,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -98,7 +97,6 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
                 null),
             t -> null,
             t -> null,
-            Version.CURRENT,
             new ShardId("dummy", UUID.randomUUID().toString(), 0),
             Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory())
         );

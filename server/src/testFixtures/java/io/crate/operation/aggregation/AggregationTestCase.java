@@ -296,13 +296,13 @@ public abstract class AggregationTestCase extends ESTestCase {
         }
 
         ArrayList<Object> states = new ArrayList<>();
-        states.add(function.newState(RAM_ACCOUNTING, Version.CURRENT, minNodeVersion, memoryManager));
+        states.add(function.newState(RAM_ACCOUNTING, minNodeVersion, memoryManager));
         for (Row row : new ArrayBucket(data)) {
             for (RowCollectExpression input : inputs) {
                 input.setNextRow(row);
             }
             if (randomExtraStates && randomIntBetween(1, 4) == 1) {
-                states.add(function.newState(RAM_ACCOUNTING, Version.CURRENT, minNodeVersion, memoryManager));
+                states.add(function.newState(RAM_ACCOUNTING, minNodeVersion, memoryManager));
             }
             int idx = states.size() - 1;
             states.set(idx, function.iterate(RAM_ACCOUNTING, memoryManager, states.get(idx), inputs));

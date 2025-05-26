@@ -295,7 +295,6 @@ public class IntervalAverageAggregation extends AggregationFunction<IntervalAver
     @Nullable
     @Override
     public IntervalAverageState newState(RamAccounting ramAccounting,
-                                         Version indexVersionCreated,
                                          Version minNodeInCluster,
                                          MemoryManager memoryManager) {
         ramAccounting.addBytes(IntervalAverageStateType.INSTANCE.fixedSize());

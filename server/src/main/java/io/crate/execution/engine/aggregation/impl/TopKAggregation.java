@@ -164,7 +164,6 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
     @Nullable
     @Override
     public State newState(RamAccounting ramAccounting,
-                          Version indexVersionCreated,
                           Version minNodeInCluster,
                           MemoryManager memoryManager) {
         return State.EMPTY;

@@ -416,7 +416,7 @@ final class GroupByOptimizedIterator {
             AggregationContext aggregation = aggregations.get(i);
             AggregationFunction function = aggregation.function();
 
-            var newState = function.newState(ramAccounting, Version.CURRENT, minNodeVersion, memoryManager);
+            var newState = function.newState(ramAccounting, minNodeVersion, memoryManager);
             if (InputCondition.matches(aggregation.filter())) {
                 //noinspection unchecked
                 states[i] = function.iterate(

@@ -230,7 +230,6 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     @Nullable
     @Override
     public GeometricMeanState newState(RamAccounting ramAccounting,
-                                       Version indexVersionCreated,
                                        Version minNodeInCluster,
                                        MemoryManager memoryManager) {
         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());

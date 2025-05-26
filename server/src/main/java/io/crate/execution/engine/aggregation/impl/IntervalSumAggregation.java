@@ -24,9 +24,9 @@ package io.crate.execution.engine.aggregation.impl;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 import org.joda.time.Period;
 
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -68,7 +68,6 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
     @Nullable
     @Override
     public Period newState(RamAccounting ramAccounting,
-                      Version indexVersionCreated,
                       Version minNodeInCluster,
                       MemoryManager memoryManager) {
         ramAccounting.addBytes(bytesSize);

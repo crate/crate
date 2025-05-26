@@ -78,7 +78,7 @@ public class CollectSetAggregationTest extends AggregationTestCase {
                 null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)),
             SearchPath.pathWithPGCatalogAndDoc());
 
-        Object state = impl.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
+        Object state = impl.newState(RAM_ACCOUNTING, Version.CURRENT, memoryManager);
 
         BytesStreamOutput streamOutput = new BytesStreamOutput();
         impl.partialType().streamer().writeValueTo(streamOutput, state);
@@ -94,7 +94,7 @@ public class CollectSetAggregationTest extends AggregationTestCase {
             null, "collect_set", List.of(Literal.of(DataTypes.LONG, null)), SearchPath.pathWithPGCatalogAndDoc());
         var aggregationFunction = (AggregationFunction<Object, Object>) impl.optimizeForExecutionAsWindowFunction();
 
-        Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
+        Object state = aggregationFunction.newState(RAM_ACCOUNTING, Version.CURRENT, memoryManager);
         state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10L));
         state = aggregationFunction.iterate(RAM_ACCOUNTING, memoryManager, state, Literal.of(10L));
 

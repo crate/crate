@@ -79,7 +79,6 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
 
     @Override
     public List<Object> newState(RamAccounting ramAccounting,
-                                 Version indexVersionCreated,
                                  Version minNodeInCluster,
                                  MemoryManager memoryManager) {
         return new ArrayList<>();

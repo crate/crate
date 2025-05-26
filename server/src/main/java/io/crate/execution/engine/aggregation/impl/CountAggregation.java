@@ -129,7 +129,6 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     @Nullable
     @Override
     public MutableLong newState(RamAccounting ramAccounting,
-                                Version indexVersionCreated,
                                 Version minNodeInCluster,
                                 MemoryManager memoryManager) {
         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());

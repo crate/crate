@@ -32,11 +32,11 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.MutableDouble;
 import io.crate.common.MutableFloat;
 import io.crate.common.MutableLong;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -133,7 +133,6 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
     @Nullable
     @Override
     public T newState(RamAccounting ramAccounting,
-                      Version indexVersionCreated,
                       Version minNodeInCluster,
                       MemoryManager memoryManager) {
         ramAccounting.addBytes(bytesSize);

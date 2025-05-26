@@ -21,16 +21,6 @@
 
 package io.crate.execution.engine.aggregation;
 
-import io.crate.data.Input;
-import io.crate.data.Row;
-import io.crate.data.RowN;
-import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.collect.CollectExpression;
-import io.crate.expression.InputCondition;
-import io.crate.expression.symbol.AggregateMode;
-import io.crate.memory.MemoryManager;
-import org.elasticsearch.Version;
-
 import java.util.Collections;
 import java.util.List;
 import java.util.Set;
@@ -39,6 +29,17 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+
+import org.elasticsearch.Version;
+
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.RowN;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.collect.CollectExpression;
+import io.crate.expression.InputCondition;
+import io.crate.expression.symbol.AggregateMode;
+import io.crate.memory.MemoryManager;
 
 /**
  * Collector implementation which uses {@link AggregationFunction}s to aggregate the rows it will receive.
@@ -49,7 +50,6 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private final RamAccounting ramAccounting;
     private final MemoryManager memoryManager;
     private final AggregationFunction[] aggregations;
-    private final Version indexVersionCreated;
     private final Input<Boolean>[] filters;
     private final Input[][] inputs;
     private final BiConsumer<Object[], Row> accumulator;
@@ -61,16 +61,14 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
                               MemoryManager memoryManager,
                               Version minNodeVersion,
                               AggregateMode mode,
-                              AggregationFunction[] aggregations,
-                              Version indexVersionCreated,
-                              Input[][] inputs,
+                              AggregationFunction<?, ?>[] aggregations,
+                              Input<?>[][] inputs,
                               Input<Boolean>[] filters) {
         this.expressions = expressions;
         this.ramAccounting = ramAccounting;
         this.memoryManager = memoryManager;
         this.minNodeVersion = minNodeVersion;
         this.aggregations = aggregations;
-        this.indexVersionCreated = indexVersionCreated;
         this.filters = filters;
         this.inputs = inputs;
         switch (mode) {
@@ -124,7 +122,7 @@ public class AggregateCollector implements Collector<Row, Object[], Iterable<Row
     private Object[] prepareState() {
         Object[] states = new Object[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
-            states[i] = aggregations[i].newState(ramAccounting, indexVersionCreated, minNodeVersion, memoryManager);
+            states[i] = aggregations[i].newState(ramAccounting, minNodeVersion, memoryManager);
         }
         return states;
     }

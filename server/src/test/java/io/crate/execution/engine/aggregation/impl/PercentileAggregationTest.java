@@ -254,7 +254,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
         );
 
         RamAccounting ramAccounting = RamAccounting.NO_ACCOUNTING;
-        Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
+        Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(10L), fractions);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(20L), fractions);
@@ -277,7 +277,7 @@ public class PercentileAggregationTest extends AggregationTestCase {
                 DataTypes.DOUBLE_ARRAY
         );
         RamAccounting ramAccounting = new PlainRamAccounting();
-        Object state = impl.newState(ramAccounting, Version.CURRENT, Version.CURRENT, memoryManager);
+        Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
         assertThat(ramAccounting.totalBytes()).isEqualTo(112L);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
         impl.iterate(ramAccounting, memoryManager, state, Literal.of(10L), fractions);
