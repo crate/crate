@@ -33,6 +33,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -1534,6 +1535,15 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         StoredField storedField = (StoredField) storedFields.getFirst();
         assertThat(storedField.name()).isEqualTo("_array_values_1");
         assertThat(storedField.binaryValue().utf8ToString()).isEqualTo("{\"1\":[{\"2\":[{\"3\":1}]}]}");
+    }
+
+    @Test
+    public void test_reject_custom_values_specified_to_generated_columns_with_nondeterministic_generation_expression() throws IOException {
+        SQLExecutor e = SQLExecutor.of(clusterService).addTable("create table tbl (a generated always as now())");
+        var indexer = getIndexer(e, "tbl", "a");
+        assertThatThrownBy(() -> indexer.index(item(1735689600000L)))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Cannot provide a value to a, generated column with non-deterministic generation expression");
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
