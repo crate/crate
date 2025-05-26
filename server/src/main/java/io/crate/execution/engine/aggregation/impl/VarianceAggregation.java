@@ -65,7 +65,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
     public static final String NAME = "variance";
 
     static {
-        DataTypes.register(VarianceStateType.ID, in -> VarianceStateType.INSTANCE);
+        DataTypes.register(VarianceStateType.ID, _ -> VarianceStateType.INSTANCE);
     }
 
     static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
@@ -245,7 +245,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
                     },
@@ -254,7 +254,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
                     },
@@ -266,7 +266,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
                     },

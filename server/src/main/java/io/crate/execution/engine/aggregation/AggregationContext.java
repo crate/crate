@@ -25,7 +25,6 @@ import java.util.List;
 
 import io.crate.data.Input;
 
-@SuppressWarnings("rawtypes")
 public final class AggregationContext {
 
     private final AggregationFunction impl;

@@ -44,13 +44,13 @@ import io.netty.util.collection.ShortObjectHashMap;
 public final class GroupByMaps {
 
     public static <K, V> BiConsumer<Map<K, V>, K> accountForNewEntry(RamAccounting ramAccounting, DataType<K> type) {
-        return (map, k) -> ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(type.valueBytes(k) + 36));
+        return (_, k) -> ramAccounting.addBytes(RamUsageEstimator.alignObjectSize(type.valueBytes(k) + 36));
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static <K, V> BiConsumer<Map<K, V>, K> accountForNewEntry(RamAccounting ramAccounting,
                                                                      List<? extends DataType> types) {
-        return (map, k) -> {
+        return (_, k) -> {
             assert k instanceof List : "keys must be a list if there are multiple key types";
             long size = 0;
             for (int i = 0; i < types.size(); i++) {
@@ -64,21 +64,13 @@ public final class GroupByMaps {
 
     @SuppressWarnings({"unchecked", "rawtypes"})
     public static <K, V> Supplier<Map<K, V>> mapForType(DataType<K> type) {
-        switch (type.id()) {
-            case ByteType.ID:
-                return () -> (Map) new PrimitiveMapWithNulls<>(new ByteObjectHashMap<>());
-            case ShortType.ID:
-                return () -> (Map) new PrimitiveMapWithNulls<>(new ShortObjectHashMap<>());
-            case IntegerType.ID:
-                return () -> (Map) new PrimitiveMapWithNulls<>(new IntObjectHashMap<>());
-
-            case LongType.ID:
-            case TimestampType.ID_WITH_TZ:
-            case TimestampType.ID_WITHOUT_TZ:
-                return () -> (Map) new PrimitiveMapWithNulls<>(new LongObjectHashMap<>());
-
-            default:
-                return HashMap::new;
-        }
+        return switch (type.id()) {
+            case ByteType.ID -> () -> (Map) new PrimitiveMapWithNulls<>(new ByteObjectHashMap<>());
+            case ShortType.ID -> () -> (Map) new PrimitiveMapWithNulls<>(new ShortObjectHashMap<>());
+            case IntegerType.ID -> () -> (Map) new PrimitiveMapWithNulls<>(new IntObjectHashMap<>());
+            case LongType.ID, TimestampType.ID_WITH_TZ, TimestampType.ID_WITHOUT_TZ ->
+                () -> (Map) new PrimitiveMapWithNulls<>(new LongObjectHashMap<>());
+            default -> HashMap::new;
+        };
     }
 }

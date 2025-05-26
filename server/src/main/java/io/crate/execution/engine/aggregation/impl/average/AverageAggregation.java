@@ -336,7 +336,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
                         return new AverageState();
                     },
@@ -348,7 +348,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
                         return new AverageState();
                     },

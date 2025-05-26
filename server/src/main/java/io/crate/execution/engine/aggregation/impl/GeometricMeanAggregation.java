@@ -68,7 +68,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
     public static final String NAME = "geometric_mean";
 
     static {
-        DataTypes.register(GeometricMeanStateType.ID, in -> GeometricMeanStateType.INSTANCE);
+        DataTypes.register(GeometricMeanStateType.ID, _ -> GeometricMeanStateType.INSTANCE);
     }
 
     static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
@@ -323,7 +323,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();
                     },
@@ -332,7 +332,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();
                     },
@@ -344,7 +344,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(GeometricMeanStateType.INSTANCE.fixedSize());
                         return new GeometricMeanState();
                     },

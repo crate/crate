@@ -46,7 +46,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
     public static final String NAME = "percentile";
 
     static {
-        DataTypes.register(TDigestStateType.ID, in -> TDigestStateType.INSTANCE);
+        DataTypes.register(TDigestStateType.ID, _ -> TDigestStateType.INSTANCE);
     }
 
     public static void register(Functions.Builder builder) {
@@ -160,7 +160,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                 if (values.isEmpty() || values.contains(null)) {
                     throw new IllegalArgumentException("no fraction value specified");
                 }
-                ramAccounting.addBytes(values.size() * Double.BYTES);
+                ramAccounting.addBytes((long) values.size() * Double.BYTES);
                 state.fractions(toDoubleArray(values));
             } else {
                 ramAccounting.addBytes(Double.BYTES);

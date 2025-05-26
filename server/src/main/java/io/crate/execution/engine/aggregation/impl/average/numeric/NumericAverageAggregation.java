@@ -66,7 +66,7 @@ import io.crate.types.ShortType;
 public class NumericAverageAggregation extends AggregationFunction<NumericAverageState<?>, BigDecimal> {
 
     static {
-        DataTypes.register(NumericAverageStateType.ID, in -> NumericAverageStateType.INSTANCE);
+        DataTypes.register(NumericAverageStateType.ID, _ -> NumericAverageStateType.INSTANCE);
     }
 
     public static void register(Functions.Builder builder) {

@@ -25,13 +25,12 @@ import java.util.function.Predicate;
 
 import io.crate.data.Input;
 
-public class InputCondition {
+public final class InputCondition {
 
-    private InputCondition() {
-    }
+    private InputCondition() {}
 
     public static <T> Predicate<T> asPredicate(final Input<Boolean> condition) {
-        return input -> matches(condition);
+        return _ -> matches(condition);
     }
 
     public static boolean matches(Input<Boolean> condition) {

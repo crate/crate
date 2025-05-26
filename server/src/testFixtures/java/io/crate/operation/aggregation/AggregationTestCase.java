@@ -223,7 +223,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             List.of(),
             List.of(),
             Version.CURRENT,
-            (_) -> false
+            _ -> false
         );
 
         try {
@@ -570,7 +570,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             );
         } catch (IOException e) {
             IOUtils.close(store);
-            fail("cannot create a new shard");
+            fail("cannot create a new shard", e);
         }
         return shard;
     }

@@ -89,7 +89,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                     .build();
 
     static {
-        DataTypes.register(CountAggregation.LongStateType.ID, in -> CountAggregation.LongStateType.INSTANCE);
+        DataTypes.register(CountAggregation.LongStateType.ID, _ -> CountAggregation.LongStateType.INSTANCE);
     }
 
     public static void register(Functions.Builder builder) {
@@ -271,22 +271,22 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             case GeoPointType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     ref.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                         return new MutableLong(0L);
                     },
-                    (values, state) -> state.add(1L)
+                    (_, state) -> state.add(1L)
                 );
             case IpType.ID:
             case StringType.ID:
             case BitStringType.ID:
                 return new BinaryDocValueAggregator<>(
                     ref.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
+                    (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                         return new MutableLong(0L);
                     },
-                    (values, state) -> state.add(1L)
+                    (_, state) -> state.add(1L)
                 );
             default:
                 return null;
@@ -310,7 +310,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         if (reference.valueType().id() == ObjectType.ID) {
             // Count on object would require loading the source just to check if there is a value.
             // Try to count on a non-null sub-column to be able to utilize doc-values.
-            var aggregationRef = (Reference) aggregationReferences.get(0);
+            var aggregationRef = aggregationReferences.get(0);
             for (var notNullCol : table.notNullColumns()) {
                 // the first seen not-null sub-column will be used
                 if (notNullCol.isChildOf(aggregationRef.column())) {

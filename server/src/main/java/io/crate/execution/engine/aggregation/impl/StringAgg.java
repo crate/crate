@@ -64,7 +64,7 @@ public final class StringAgg extends AggregationFunction<StringAgg.StringAggStat
     private static final int LIST_ENTRY_OVERHEAD = 32;
 
     static {
-        DataTypes.register(StringAggStateType.INSTANCE.id(), in -> StringAggStateType.INSTANCE);
+        DataTypes.register(StringAggStateType.INSTANCE.id(), _ -> StringAggStateType.INSTANCE);
     }
 
     public static void register(Functions.Builder builder) {
