@@ -19,12 +19,20 @@
 
 package org.elasticsearch.indices.analysis;
 
+import static org.elasticsearch.plugins.AnalysisPlugin.requiresAnalysisSettings;
+
+import java.io.IOException;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.function.Function;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.lucene.analysis.LowerCaseFilter;
 import org.apache.lucene.analysis.TokenStream;
+import org.apache.lucene.analysis.hunspell.Dictionary;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.NamedRegistry;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -50,23 +58,22 @@ import org.elasticsearch.index.analysis.TokenizerFactory;
 import org.elasticsearch.index.analysis.WhitespaceAnalyzerProvider;
 import org.elasticsearch.plugins.AnalysisPlugin;
 
-import java.io.IOException;
-import java.util.List;
-import java.util.Locale;
-import java.util.Map;
-
-import static java.util.Collections.unmodifiableMap;
-import static org.elasticsearch.plugins.AnalysisPlugin.requiresAnalysisSettings;
+import io.crate.common.collections.Lists;
+import io.crate.common.collections.MapBuilder;
 
 /**
  * Sets up {@link AnalysisRegistry}.
  */
 public final class AnalysisModule {
+
     static {
-        Settings build = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).put(
-                IndexMetadata
-            .SETTING_NUMBER_OF_REPLICAS, 1).put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1).build();
-        IndexMetadata metadata = IndexMetadata.builder("_na_").settings(build).build();
+        IndexMetadata metadata = IndexMetadata.builder("_na_")
+            .settings(Settings.builder()
+                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                .put(IndexMetadata .SETTING_NUMBER_OF_REPLICAS, 1)
+                .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                .build())
+            .build();
         NA_INDEX_SETTINGS = new IndexSettings(metadata, Settings.EMPTY);
     }
 
@@ -77,122 +84,126 @@ public final class AnalysisModule {
     private final AnalysisRegistry analysisRegistry;
 
     public AnalysisModule(Environment environment, List<AnalysisPlugin> plugins) throws IOException {
-        NamedRegistry<AnalysisProvider<CharFilterFactory>> charFilters = setupCharFilters(plugins);
-        NamedRegistry<org.apache.lucene.analysis.hunspell.Dictionary> hunspellDictionaries = setupHunspellDictionaries(plugins);
-        HunspellService hunspellService = new HunspellService(environment.settings(), environment, hunspellDictionaries.getRegistry());
-        NamedRegistry<AnalysisProvider<TokenFilterFactory>> tokenFilters = setupTokenFilters(plugins, hunspellService);
-        NamedRegistry<AnalysisProvider<TokenizerFactory>> tokenizers = setupTokenizers(plugins);
-        NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> analyzers = setupAnalyzers(plugins);
-        NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> normalizers = setupNormalizers();
+        var hunspellDictionaries = MapBuilder.<String, Dictionary>newMapBuilder()
+            .putUnique("dictionary", Lists.mapLazy(plugins, AnalysisPlugin::getHunspellDictionaries))
+            .immutableMap();
+        var hunspellService = new HunspellService(environment.settings(), environment, hunspellDictionaries);
 
-        Map<String, PreConfiguredCharFilter> preConfiguredCharFilters = setupPreConfiguredCharFilters(plugins);
-        Map<String, PreConfiguredTokenFilter> preConfiguredTokenFilters = setupPreConfiguredTokenFilters(plugins);
-        Map<String, PreConfiguredTokenizer> preConfiguredTokenizers = setupPreConfiguredTokenizers(plugins);
-        Map<String, PreBuiltAnalyzerProviderFactory> preConfiguredAnalyzers = setupPreBuiltAnalyzerProviderFactories(plugins);
-
-        analysisRegistry = new AnalysisRegistry(environment,
-                charFilters.getRegistry(), tokenFilters.getRegistry(), tokenizers.getRegistry(),
-                analyzers.getRegistry(), normalizers.getRegistry(),
-                preConfiguredCharFilters, preConfiguredTokenFilters, preConfiguredTokenizers, preConfiguredAnalyzers);
-    }
-
-    public AnalysisRegistry getAnalysisRegistry() {
-        return analysisRegistry;
-    }
-
-    private NamedRegistry<AnalysisProvider<CharFilterFactory>> setupCharFilters(List<AnalysisPlugin> plugins) {
-        NamedRegistry<AnalysisProvider<CharFilterFactory>> charFilters = new NamedRegistry<>("char_filter");
-        charFilters.extractAndRegister(plugins, AnalysisPlugin::getCharFilters);
-        return charFilters;
-    }
-
-    public NamedRegistry<org.apache.lucene.analysis.hunspell.Dictionary> setupHunspellDictionaries(List<AnalysisPlugin> plugins) {
-        NamedRegistry<org.apache.lucene.analysis.hunspell.Dictionary> hunspellDictionaries = new NamedRegistry<>("dictionary");
-        hunspellDictionaries.extractAndRegister(plugins, AnalysisPlugin::getHunspellDictionaries);
-        return hunspellDictionaries;
-    }
-
-    private NamedRegistry<AnalysisProvider<TokenFilterFactory>> setupTokenFilters(List<AnalysisPlugin> plugins, HunspellService
-        hunspellService) {
-        NamedRegistry<AnalysisProvider<TokenFilterFactory>> tokenFilters = new NamedRegistry<>("token_filter");
-        tokenFilters.register("stop", StopTokenFilterFactory::new);
-        tokenFilters.register("standard", (indexSettings, environment, name, settings) -> {
-            DEPRECATION_LOGGER.deprecatedAndMaybeLog("standard_deprecation",
-                "The [standard] token filter name is deprecated and will be removed in a future version.");
-            return new AbstractTokenFilterFactory(indexSettings, name, settings) {
-                @Override
-                public TokenStream create(TokenStream tokenStream) {
-                    return tokenStream;
-                }
-            };
-        });
-        tokenFilters.register("shingle", ShingleTokenFilterFactory::new);
-        tokenFilters.register(
-            "hunspell",
-            requiresAnalysisSettings((indexSettings, env, name, settings) ->
+        var tokenFilters = MapBuilder.<String, AnalysisProvider<TokenFilterFactory>>newMapBuilder()
+            .putUnique("token_filter", "stop", StopTokenFilterFactory::new)
+            .putUnique("token_filter", "standard", (indexSettings, _, name, settings) -> {
+                DEPRECATION_LOGGER.deprecatedAndMaybeLog("standard_deprecation",
+                    "The [standard] token filter name is deprecated and will be removed in a future version.");
+                return new AbstractTokenFilterFactory(indexSettings, name, settings) {
+                    @Override
+                    public TokenStream create(TokenStream tokenStream) {
+                        return tokenStream;
+                    }
+                };
+            })
+            .putUnique("token_filter", "shingle", ShingleTokenFilterFactory::new)
+            .putUnique("token_filter", "hunspell", requiresAnalysisSettings((indexSettings, _, name, settings) ->
                 new HunspellTokenFilterFactory(
                     indexSettings,
                     name,
                     settings,
                     hunspellService
                 )
-            )
+            ))
+            .putUnique("token_filter", Lists.mapLazy(plugins, AnalysisPlugin::getTokenFilters))
+            .immutableMap();
+
+        var tokenizers = MapBuilder.<String, AnalysisProvider<TokenizerFactory>>newMapBuilder()
+            .putUnique("tokenizer", "standard", StandardTokenizerFactory::new)
+            .putUnique("tokenizer", Lists.mapLazy(plugins, AnalysisPlugin::getTokenizers))
+            .immutableMap();
+
+        var analyzers = MapBuilder.<String, AnalysisProvider<AnalyzerProvider<?>>>newMapBuilder()
+            .putUnique("analyzers", "default", StandardAnalyzerProvider::new)
+            .putUnique("analyzers", "standard", StandardAnalyzerProvider::new)
+            .putUnique("analyzers", "simple", SimpleAnalyzerProvider::new)
+            .putUnique("analyzers", "stop", StopAnalyzerProvider::new)
+            .putUnique("analyzers", "whitespace", WhitespaceAnalyzerProvider::new)
+            .putUnique("analyzers", "keyword", KeywordAnalyzerProvider::new)
+            .putUnique("analyzers", Lists.mapLazy(plugins, AnalysisPlugin::getAnalyzers))
+            .immutableMap();
+
+        Map<String, AnalysisProvider<AnalyzerProvider<?>>> normalizers = Map.of();
+
+        var preConfiguredCharFilters = preConfig(
+            "pre-configured char_filter",
+            plugins,
+            AnalysisPlugin::getPreConfiguredCharFilters,
+            PreConfiguredCharFilter::getName
+        );
+        var preConfiguredAnalyzers = preConfig(
+            "pre-built analyzer",
+            plugins,
+            AnalysisPlugin::getPreBuiltAnalyzerProviderFactories,
+            PreBuiltAnalyzerProviderFactory::getName
         );
 
-        tokenFilters.extractAndRegister(plugins, AnalysisPlugin::getTokenFilters);
-        return tokenFilters;
+        analysisRegistry = new AnalysisRegistry(
+            environment,
+            MapBuilder.<String, AnalysisProvider<CharFilterFactory>>newMapBuilder()
+                .putUnique("char_filter", Lists.mapLazy(plugins, AnalysisPlugin::getCharFilters))
+                .immutableMap(),
+            tokenFilters,
+            tokenizers,
+            analyzers,
+            normalizers,
+            preConfiguredCharFilters,
+            setupPreConfiguredTokenFilters(plugins),
+            setupPreConfiguredTokenizers(plugins),
+            preConfiguredAnalyzers
+        );
     }
 
-    static Map<String, PreBuiltAnalyzerProviderFactory> setupPreBuiltAnalyzerProviderFactories(List<AnalysisPlugin> plugins) {
-        NamedRegistry<PreBuiltAnalyzerProviderFactory> preConfiguredCharFilters = new NamedRegistry<>("pre-built analyzer");
+    private static <T> Map<String, T> preConfig(String mapName,
+                                                List<AnalysisPlugin> plugins,
+                                                Function<AnalysisPlugin,
+                                                List<T>> getItems, Function<T, String> getKey) {
+        var map = MapBuilder.<String, T>newMapBuilder();
         for (AnalysisPlugin plugin : plugins) {
-            for (PreBuiltAnalyzerProviderFactory factory : plugin.getPreBuiltAnalyzerProviderFactories()) {
-                preConfiguredCharFilters.register(factory.getName(), factory);
+            List<T> items = getItems.apply(plugin);
+            for (T item : items) {
+                map.putUnique(mapName, getKey.apply(item), item);
             }
         }
-        return unmodifiableMap(preConfiguredCharFilters.getRegistry());
+        return map.immutableMap();
     }
 
-    static Map<String, PreConfiguredCharFilter> setupPreConfiguredCharFilters(List<AnalysisPlugin> plugins) {
-        NamedRegistry<PreConfiguredCharFilter> preConfiguredCharFilters = new NamedRegistry<>("pre-configured char_filter");
-
-        // No char filter are available in lucene-core so none are built in to Elasticsearch core
-
-        for (AnalysisPlugin plugin: plugins) {
-            for (PreConfiguredCharFilter filter : plugin.getPreConfiguredCharFilters()) {
-                preConfiguredCharFilters.register(filter.getName(), filter);
-            }
-        }
-        return unmodifiableMap(preConfiguredCharFilters.getRegistry());
+    public AnalysisRegistry getAnalysisRegistry() {
+        return analysisRegistry;
     }
+
 
     static Map<String, PreConfiguredTokenFilter> setupPreConfiguredTokenFilters(List<AnalysisPlugin> plugins) {
-        NamedRegistry<PreConfiguredTokenFilter> preConfiguredTokenFilters = new NamedRegistry<>("pre-configured token_filter");
-
-        // Add filters available in lucene-core
-        preConfiguredTokenFilters.register("lowercase", PreConfiguredTokenFilter.singleton("lowercase", true, LowerCaseFilter::new));
-        preConfiguredTokenFilters.register(
-            "standard",
-            PreConfiguredTokenFilter.singletonWithVersion("standard", false, (reader, version) -> {
+        String name = "pre-configured token_filter";
+        var preConfiguredTokenFilters = MapBuilder.<String, PreConfiguredTokenFilter>newMapBuilder()
+            // Add filters available in lucene-core
+            .putUnique(name, "lowercase", PreConfiguredTokenFilter.singleton("lowercase", true, LowerCaseFilter::new))
+            .putUnique(name, "standard", PreConfiguredTokenFilter.singletonWithVersion("standard", false, (reader, _) -> {
                 DEPRECATION_LOGGER.deprecatedAndMaybeLog("standard_deprecation",
                     "The [standard] token filter is deprecated and will be removed in a future version.");
                 return reader;
             }));
+
         /* Note that "stop" is available in lucene-core but it's pre-built
          * version uses a set of English stop words that are in
          * lucene-analysis-common so "stop" is defined in the analysis-common
          * module. */
-
         for (AnalysisPlugin plugin: plugins) {
             for (PreConfiguredTokenFilter filter : plugin.getPreConfiguredTokenFilters()) {
-                preConfiguredTokenFilters.register(filter.getName(), filter);
+                preConfiguredTokenFilters.putUnique(name, filter.getName(), filter);
             }
         }
-        return unmodifiableMap(preConfiguredTokenFilters.getRegistry());
+        return preConfiguredTokenFilters.immutableMap();
     }
 
     static Map<String, PreConfiguredTokenizer> setupPreConfiguredTokenizers(List<AnalysisPlugin> plugins) {
-        NamedRegistry<PreConfiguredTokenizer> preConfiguredTokenizers = new NamedRegistry<>("pre-configured tokenizer");
+        String mapName = "pre-configured tokenizer";
+        var preConfiguredTokenizers = MapBuilder.<String, PreConfiguredTokenizer>newMapBuilder();
 
         // Temporary shim to register old style pre-configured tokenizers
         for (PreBuiltTokenizers tokenizer : PreBuiltTokenizers.values()) {
@@ -210,38 +221,15 @@ public final class AnalysisModule {
                     throw new UnsupportedOperationException(
                         "Caching strategy unsupported by temporary shim [" + tokenizer + "]");
             }
-            preConfiguredTokenizers.register(name, preConfigured);
+            preConfiguredTokenizers.putUnique(mapName, name, preConfigured);
         }
         for (AnalysisPlugin plugin: plugins) {
             for (PreConfiguredTokenizer tokenizer : plugin.getPreConfiguredTokenizers()) {
-                preConfiguredTokenizers.register(tokenizer.getName(), tokenizer);
+                preConfiguredTokenizers.putUnique(mapName, tokenizer.getName(), tokenizer);
             }
         }
 
-        return unmodifiableMap(preConfiguredTokenizers.getRegistry());
-    }
-
-    private NamedRegistry<AnalysisProvider<TokenizerFactory>> setupTokenizers(List<AnalysisPlugin> plugins) {
-        NamedRegistry<AnalysisProvider<TokenizerFactory>> tokenizers = new NamedRegistry<>("tokenizer");
-        tokenizers.register("standard", StandardTokenizerFactory::new);
-        tokenizers.extractAndRegister(plugins, AnalysisPlugin::getTokenizers);
-        return tokenizers;
-    }
-
-    private NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> setupAnalyzers(List<AnalysisPlugin> plugins) {
-        NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> analyzers = new NamedRegistry<>("analyzer");
-        analyzers.register("default", StandardAnalyzerProvider::new);
-        analyzers.register("standard", StandardAnalyzerProvider::new);
-        analyzers.register("simple", SimpleAnalyzerProvider::new);
-        analyzers.register("stop", StopAnalyzerProvider::new);
-        analyzers.register("whitespace", WhitespaceAnalyzerProvider::new);
-        analyzers.register("keyword", KeywordAnalyzerProvider::new);
-        analyzers.extractAndRegister(plugins, AnalysisPlugin::getAnalyzers);
-        return analyzers;
-    }
-
-    private NamedRegistry<AnalysisProvider<AnalyzerProvider<?>>> setupNormalizers() {
-        return new NamedRegistry<>("normalizer");
+        return preConfiguredTokenizers.immutableMap();
     }
 
     /**

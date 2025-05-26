@@ -71,4 +71,25 @@ public final class MapBuilder<K, V> {
     public void putAll(Map<K, V> value) {
         map.putAll(value);
     }
+
+    /// like [#put(Object, Object)] but fails if the entry already exists in the map.
+    ///
+    /// @param context name of the component/map. Used in the error message.
+    public MapBuilder<K, V> putUnique(String context, K key, V value) {
+        V prev = map.putIfAbsent(key, value);
+        if (prev != null) {
+            throw new IllegalArgumentException(context + ": name [" + key + "] already registered");
+        }
+        return this;
+    }
+
+    /// Adds all entries from all `maps` using [#putUnique(String, Object, Object)]
+    public MapBuilder<K, V> putUnique(String context, Iterable<? extends Map<K, ? extends V>> maps) {
+        for (var map : maps) {
+            for (var entry : map.entrySet()) {
+                putUnique(context, entry.getKey(), entry.getValue());
+            }
+        }
+        return this;
+    }
 }
