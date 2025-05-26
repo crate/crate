@@ -166,7 +166,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 nodeCtx,
                 updateToInsert.columns(),
                 request.returnValues(),
-                false);
+                true);
         }
 
         ColumnIdent firstColumnIdent;
