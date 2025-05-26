@@ -32,15 +32,15 @@ import org.elasticsearch.Version;
 
 public interface DocValueAggregator<T> {
 
-    public T initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion);
+    T initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion);
 
-    public void loadDocValues(LeafReaderContext leafReaderContext) throws IOException;
+    void loadDocValues(LeafReaderContext leafReaderContext) throws IOException;
 
-    public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException;
+    void apply(RamAccounting ramAccounting, int doc, T state) throws IOException;
 
     // Aggregations are executed on shard level,
     // that means there is always a final reduce step necessary
     // → never return final value, but always partial result
     @Nullable
-    public Object partialResult(RamAccounting ramAccounting, T state);
+    Object partialResult(RamAccounting ramAccounting, T state);
 }

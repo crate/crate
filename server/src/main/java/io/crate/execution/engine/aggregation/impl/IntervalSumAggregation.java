@@ -24,7 +24,6 @@ package io.crate.execution.engine.aggregation.impl;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 import org.joda.time.Period;
 
 import io.crate.data.Input;
@@ -58,7 +57,6 @@ public class IntervalSumAggregation extends AggregationFunction<Period, Period> 
     private final BoundSignature boundSignature;
     private final int bytesSize;
 
-    @VisibleForTesting
     private IntervalSumAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;

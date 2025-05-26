@@ -149,11 +149,6 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
         return new ArrayList<>(state.keySet());
     }
 
-    @Override
-    public boolean isRemovableCumulative() {
-        return false;
-    }
-
     /**
      * collect_set implementation that is removable cumulative. It tracks the number of occurrences for every key it
      * sees in order to be able to only remove a value from the aggregated state when it's occurrence count is 1.
@@ -207,7 +202,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
                                                      final long occurrenceIncrement,
                                                      final RamAccounting ramAccountingContext,
                                                      final DataType<Object> elementType) {
-            state.compute(value, (k, v) -> {
+            state.compute(value, (_, v) -> {
                 if (v == null) {
                     ramAccountingContext.addBytes(
                         // values size + 32 bytes for entry, 4 bytes for increased capacity, 8 bytes for the new array

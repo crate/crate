@@ -39,6 +39,7 @@ public class AggregationPipe implements Projector {
 
     private final AggregateCollector collector;
 
+    @SuppressWarnings({"rawtypes", "unchecked"})
     public AggregationPipe(List<CollectExpression<Row, ?>> expressions,
                            AggregateMode aggregateMode,
                            AggregationContext[] aggregations,

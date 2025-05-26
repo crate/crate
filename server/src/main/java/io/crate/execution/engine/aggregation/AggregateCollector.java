@@ -44,6 +44,7 @@ import io.crate.memory.MemoryManager;
 /**
  * Collector implementation which uses {@link AggregationFunction}s to aggregate the rows it will receive.
  */
+@SuppressWarnings({"rawtypes", "unchecked"})
 public class AggregateCollector implements Collector<Row, Object[], Iterable<Row>> {
 
     private final List<? extends CollectExpression<Row, ?>> expressions;
