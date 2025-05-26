@@ -120,7 +120,6 @@ public class IntervalAggregationBenchmark {
             Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { intervalSumAggregation },
-            Version.CURRENT,
             new Input[][] { { inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
         );
@@ -131,7 +130,6 @@ public class IntervalAggregationBenchmark {
             Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { intervalAvgAggregation },
-            Version.CURRENT,
             new Input[][] { { inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
         );

@@ -123,7 +123,6 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     @Nullable
     @Override
     public Object newState(RamAccounting ramAccounting,
-                           Version indexVersionCreated,
                            Version minNodeInCluster,
                            MemoryManager memoryManager) {
         return null;

@@ -122,7 +122,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @Nullable
     @Override
     public HllState newState(RamAccounting ramAccounting,
-                             Version indexVersionCreated,
                              Version minNodeInCluster,
                              MemoryManager memoryManager) {
         return new HllState(dataType, minNodeInCluster.onOrAfter(Version.V_4_1_0));

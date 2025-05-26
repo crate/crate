@@ -149,7 +149,6 @@ public abstract class AbstractWindowFunctionTest extends CrateDummyClusterServic
             windowFunctionImpl = new AggregateToWindowFunctionAdapter(
                 (AggregationFunction) impl,
                 new ExpressionsInput<>(Literal.BOOLEAN_TRUE, List.of()),
-                Version.CURRENT,
                 RamAccounting.NO_ACCOUNTING,
                 memoryManager,
                 Version.CURRENT

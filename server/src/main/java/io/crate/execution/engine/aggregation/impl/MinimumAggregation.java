@@ -220,7 +220,6 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
         @Nullable
         @Override
         public Object newState(RamAccounting ramAccounting,
-                               Version indexVersionCreated,
                                Version minNodeInCluster,
                                MemoryManager memoryManager) {
             return null;
@@ -292,7 +291,6 @@ public abstract class MinimumAggregation extends AggregationFunction<Object, Obj
         @Nullable
         @Override
         public Object newState(RamAccounting ramAccounting,
-                               Version indexVersionCreated,
                                Version minNodeInCluster,
                                MemoryManager memoryManager) {
             ramAccounting.addBytes(size);

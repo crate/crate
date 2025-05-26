@@ -49,7 +49,6 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
     private final AggregationFunction aggregationFunction;
     private final ExpressionsInput<Row, Boolean> filter;
     private final RamAccounting ramAccounting;
-    private final Version indexVersionCreated;
     private final MemoryManager memoryManager;
     private final Version minNodeVersion;
     private Object accumulatedState;
@@ -60,19 +59,16 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
 
     AggregateToWindowFunctionAdapter(AggregationFunction aggregationFunction,
                                      ExpressionsInput<Row, Boolean> filter,
-                                     Version indexVersionCreated,
                                      RamAccounting ramAccounting,
                                      MemoryManager memoryManager,
                                      Version minNodeVersion) {
         this.aggregationFunction = aggregationFunction.optimizeForExecutionAsWindowFunction();
         this.filter = filter;
         this.ramAccounting = ramAccounting;
-        this.indexVersionCreated = indexVersionCreated;
         this.memoryManager = memoryManager;
         this.minNodeVersion = minNodeVersion;
         this.accumulatedState = this.aggregationFunction.newState(
             this.ramAccounting,
-            indexVersionCreated,
             minNodeVersion,
             memoryManager
         );
@@ -148,7 +144,6 @@ public class AggregateToWindowFunctionAdapter implements WindowFunction {
                                    Input<?> ... args) {
         accumulatedState = aggregationFunction.newState(
             ramAccounting,
-            indexVersionCreated,
             minNodeVersion,
             memoryManager
         );

@@ -49,12 +49,11 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      * Called once per "aggregation cycle" to create an initial partial-state-value.
      *
      * @param ramAccounting used to account the memory used for the state.
-     * @param indexVersionCreated the version the current index was created on, this is useful for BWC
+     * @param minNodeInCluster the version the oldest node in the cluster, this is useful for BWC
      * @return a new state instance or null
      */
     @Nullable
     public abstract TPartial newState(RamAccounting ramAccounting,
-                                      Version indexVersionCreated,
                                       Version minNodeInCluster,
                                       MemoryManager memoryManager);
 

@@ -76,11 +76,11 @@ public class StringAggTest extends AggregationTestCase {
         var stringAgg = new StringAgg(
             StringAgg.SIGNATURE,
             BoundSignature.sameAsUnbound(StringAgg.SIGNATURE));
-        var state1 = stringAgg.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
+        var state1 = stringAgg.newState(RAM_ACCOUNTING, Version.CURRENT, memoryManager);
         stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state1, Literal.of("a"), Literal.of(","));
         stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state1, Literal.of("b"), Literal.of(";"));
 
-        var state2 = stringAgg.newState(RAM_ACCOUNTING, Version.CURRENT, Version.CURRENT, memoryManager);
+        var state2 = stringAgg.newState(RAM_ACCOUNTING, Version.CURRENT, memoryManager);
         stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state2, Literal.of("c"), Literal.of(","));
         stringAgg.iterate(RAM_ACCOUNTING, memoryManager, state2, Literal.of("d"), Literal.of(";"));
 

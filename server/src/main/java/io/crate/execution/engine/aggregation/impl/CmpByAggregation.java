@@ -32,7 +32,6 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
@@ -209,9 +208,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
     }
 
     @Override
-    @Nullable
     public CompareBy newState(RamAccounting ramAccounting,
-                              Version indexVersionCreated,
                               Version minNodeInCluster,
                               MemoryManager memoryManager) {
         ramAccounting.addBytes(CompareBy.SHALLOW_SIZE);

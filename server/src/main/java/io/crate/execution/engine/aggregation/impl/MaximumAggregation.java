@@ -260,7 +260,6 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
         @Nullable
         @Override
         public Object newState(RamAccounting ramAccounting,
-                               Version indexVersionCreated,
                                Version minNodeInCluster,
                                MemoryManager memoryManager) {
             ramAccounting.addBytes(size);
@@ -293,7 +292,6 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
         @Nullable
         @Override
         public Object newState(RamAccounting ramAccounting,
-                               Version indexVersionCreated,
                                Version minNodeInCluster,
                                MemoryManager memoryManager) {
             return null;

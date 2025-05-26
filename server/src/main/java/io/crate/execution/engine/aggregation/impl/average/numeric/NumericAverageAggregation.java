@@ -107,7 +107,6 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
     @Nullable
     @Override
     public NumericAverageState<?> newState(RamAccounting ramAccounting,
-                                           Version indexVersionCreated,
                                            Version minNodeInCluster,
                                            MemoryManager memoryManager) {
         ramAccounting.addBytes(INIT_SIZE);

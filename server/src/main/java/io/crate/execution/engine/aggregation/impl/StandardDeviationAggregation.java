@@ -164,7 +164,6 @@ public class StandardDeviationAggregation extends AggregationFunction<StandardDe
     @Nullable
     @Override
     public StandardDeviation newState(RamAccounting ramAccounting,
-                                      Version indexVersionCreated,
                                       Version minNodeInCluster,
                                       MemoryManager memoryManager) {
         ramAccounting.addBytes(StdDevStateType.INSTANCE.fixedSize());

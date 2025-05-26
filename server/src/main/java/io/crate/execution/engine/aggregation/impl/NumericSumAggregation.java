@@ -32,8 +32,8 @@ import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -97,7 +97,6 @@ public class NumericSumAggregation extends AggregationFunction<BigDecimal, BigDe
     @Nullable
     @Override
     public BigDecimal newState(RamAccounting ramAccounting,
-                               Version indexVersionCreated,
                                Version minNodeInCluster,
                                MemoryManager memoryManager) {
         ramAccounting.addBytes(INIT_BIG_DECIMAL_SIZE);

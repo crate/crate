@@ -104,7 +104,6 @@ public class HyperLogLogDistinctAggregationBenchmark {
             Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },
-            Version.CURRENT,
             new Input[][] { { inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
         );
@@ -115,7 +114,6 @@ public class HyperLogLogDistinctAggregationBenchmark {
             Version.CURRENT,
             AggregateMode.ITER_FINAL,
             new AggregationFunction[] { hllAggregation },
-            Version.CURRENT,
             new Input[][] { { inExpr0 } },
             new Input[] { Literal.BOOLEAN_TRUE }
         );

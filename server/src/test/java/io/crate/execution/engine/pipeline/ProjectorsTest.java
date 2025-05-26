@@ -30,7 +30,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.UUID;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -81,7 +80,6 @@ public class ProjectorsTest extends CrateDummyClusterServiceUnitTest {
                 null),
             t -> null,
             t -> null,
-            Version.CURRENT,
             new ShardId("dummy", UUID.randomUUID().toString(), 0),
             null
         );
