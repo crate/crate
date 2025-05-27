@@ -57,7 +57,7 @@ public class StdDevPopAggregationTest extends AggregationTestCase {
     }
 
     @Test
-    public void test_functions_return_type_is_always_double_for_any_argument_type() {
+    public void test_functions_return_type_is_always_double_for_any_argument_type_except_numeric() {
         for (DataType<?> type : Stream.concat(
             DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
             Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
@@ -70,6 +70,17 @@ public class StdDevPopAggregationTest extends AggregationTestCase {
             );
             assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.DOUBLE);
         }
+    }
+
+    @Test
+    public void test_numeric_return_type() {
+        FunctionImplementation stddev = nodeCtx.functions().get(
+            null,
+            StandardDeviationPopAggregation.NAME,
+            List.of(Literal.of(DataTypes.NUMERIC, null)),
+            SearchPath.pathWithPGCatalogAndDoc());
+
+        assertThat(stddev.boundSignature().returnType()).isEqualTo(DataTypes.NUMERIC);
     }
 
     @Test
