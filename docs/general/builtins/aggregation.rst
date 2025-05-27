@@ -364,10 +364,12 @@ The return value is always of type ``bigint``.
 The ``geometric_mean`` aggregate function computes the geometric mean, a mean
 for positive numbers. For details see: `Geometric Mean`_.
 
-``geometric mean`` is defined on all numeric types and on timestamp. It always
-returns double values. If a value is negative, all values were null or we got
-no value at all ``NULL`` is returned. If any of the aggregated values is ``0``
-the result will be ``0.0`` as well.
+``geometric mean`` is defined on all numeric types and on timestamp.
+:ref:`NUMERIC values <type-numeric>` are automatically casted to
+:ref:`DOUBLE PRECISION <type-double-precision>`. It always returns values of
+``double precision``. If a value is negative, all values were null or we got no
+value at all ``NULL`` is returned. If any of the aggregated values is ``0`` the
+result will be ``0.0`` as well.
 
 .. CAUTION::
 
@@ -608,11 +610,11 @@ of the set of non-null values in a column. It is a measure of the variation
 of data values. A low standard deviation indicates that the values tend to be
 near the mean.
 
-``stddev_pop`` is defined on all
-:ref:`standard numeric types<data-types-numeric>` and on timestamp. Return value
-will be of type ``numeric`` with unspecified precision and scale if the input
-value is of ``numeric`` type, and ``double precision`` for any other type. If
-all values were null or we got no value at all ``NULL`` is returned.
+``stddev_pop`` is defined on all :ref:`numeric types<data-types-numeric>` and on
+timestamp. Return value will be of type ``numeric`` with unspecified precision
+and scale if the input value is of ``numeric`` type, and ``double precision``
+for any other type. If all values were null or we got no value at all ``NULL``
+is returned.
 
 Example::
 
@@ -643,13 +645,11 @@ of the set of non-null values in a column. It is a measure of the variation
 of data values. A low standard deviation indicates that the values tend to be
 near the mean.
 
-
-``stddev_samp`` is defined on all
-:ref:`standard numeric types<data-types-numeric>` and on timestamp. Return value
-will be of type ``numeric`` with unspecified precision and scale if the input
-value is of ``numeric`` type, and ``double precision`` for any other type. If
-all values were null, or we got no value, or just one value ``NULL`` is
-returned.
+``stddev_samp`` is defined on all :ref:`numeric types<data-types-numeric>` and on
+timestamp. Return value will be of type ``numeric`` with unspecified precision
+and scale if the input value is of ``numeric`` type, and ``double precision``
+for any other type. If all values were null or we got no value at all ``NULL``
+is returned.
 
 Example::
 
@@ -702,7 +702,8 @@ If all input values are null, null is returned as a result.
 --------------------------------------------------------------
 
 The ``percentile`` aggregate function computes a `Percentile`_ over numeric
-non-null values in a column.
+non-null values in a column. Values of type :ref:`NUMERIC <type-numeric>` are
+not supported.
 
 Percentiles show the point at which a certain percentage of observed values
 occur. For example, the 98th percentile is the value which is greater than 98%
@@ -766,12 +767,12 @@ guidelines to keep in mind in this implementation:
 ---------------
 
 Returns the sum of a set of numeric input values that are not ``NULL``.
-Depending on the argument type a suitable return type is chosen. For
-``interval`` argument types the return type is ``interval``. For ``real`` and
-``double precision`` argument types the return type is equal to the argument
-type. For ``byte``, ``smallint``, ``integer`` and ``bigint`` the return type
-changes to ``bigint``. If the range of ``bigint`` values (-2^64 to 2^64-1) gets
-exceeded an ``ArithmeticException`` will be raised.
+Depending on the argument type a suitable return type is chosen. For ``real``,
+``double precision``, ``numeric`` and ``interval`` argument types, the return
+type is the same as the argument type. For ``byte``, ``smallint``, ``integer``
+and ``bigint`` the return type is always ``bigint``. If the range of ``bigint``
+values (-2^64 to 2^64-1) gets exceeded an ``ArithmeticException`` will be
+raised.
 
 ::
 
@@ -857,7 +858,8 @@ The ``variance`` aggregate function computes the `Variance`_ of the set of
 non-null values in a column. It is a measure about how far a set of numbers is
 spread. A variance of ``0.0`` indicates that all values are the same.
 
-``variance`` is defined on all numeric types and on timestamp. It returns a
+``variance`` is defined on all numeric types, except for
+:ref:`NUMERIC <type-numeric>`, and on timestamp. It always returns a
 ``double precision`` value. If all values were null or we got no value at all
 ``NULL`` is returned.
 
