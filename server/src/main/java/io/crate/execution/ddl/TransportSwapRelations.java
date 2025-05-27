@@ -48,7 +48,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.action.ActionListeners;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
@@ -99,9 +98,8 @@ public final class TransportSwapRelations extends TransportMasterNodeAction<Swap
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         AtomicReference<String[]> indexNamesAfterRelationSwap = new AtomicReference<>(null);
-        ActionListener<AcknowledgedResponse> waitForShardsListener = ActionListeners.waitForShards(
+        ActionListener<AcknowledgedResponse> waitForShardsListener = activeShardsObserver.waitForShards(
             listener,
-            activeShardsObserver,
             request.ackTimeout(),
             () -> logger.info("Switched name of relations, but the operation timed out waiting for enough shards to be started"),
             indexNamesAfterRelationSwap::get
