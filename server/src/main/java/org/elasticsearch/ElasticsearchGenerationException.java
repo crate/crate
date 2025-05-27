@@ -19,9 +19,9 @@
 
 package org.elasticsearch;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-
 import java.io.IOException;
+
+import org.elasticsearch.common.io.stream.StreamInput;
 
 /**
  * A generic exception indicating failure to generate.
@@ -29,10 +29,6 @@ import java.io.IOException;
  *
  */
 public class ElasticsearchGenerationException extends ElasticsearchException {
-
-    public ElasticsearchGenerationException(String msg) {
-        super(msg);
-    }
 
     public ElasticsearchGenerationException(String msg, Throwable cause) {
         super(msg, cause);

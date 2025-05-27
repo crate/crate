@@ -102,7 +102,6 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -386,7 +385,7 @@ public class IndexShardTests extends IndexShardTestCase {
 
         final Thread[] threads = new Thread[randomIntBetween(2, 5)];
         final List<PlainFuture<Releasable>> futures = new ArrayList<>(threads.length);
-        final AtomicArray<Tuple<Boolean, Exception>> results = new AtomicArray<>(threads.length);
+        final List<Tuple<Boolean, Exception>> results = new ArrayList<>(threads.length);
         final CountDownLatch allOperationsDone = new CountDownLatch(threads.length);
 
         for (int i = 0; i < threads.length; i++) {
@@ -403,13 +402,17 @@ public class IndexShardTests extends IndexShardTestCase {
                     }
                     releasable.close();
                     super.onResponse(releasable);
-                    results.setOnce(threadId, new Tuple<>(Boolean.TRUE, null));
+                    synchronized (results) {
+                        results.add(new Tuple<>(Boolean.TRUE, null));
+                    }
                     allOperationsDone.countDown();
                 }
 
                 @Override
                 public void onFailure(final Exception e) {
-                    results.setOnce(threadId, new Tuple<>(Boolean.FALSE, e));
+                    synchronized (results) {
+                        results.add(new Tuple<>(Boolean.FALSE, null));
+                    }
                     allOperationsDone.countDown();
                 }
             };
@@ -450,7 +453,7 @@ public class IndexShardTests extends IndexShardTestCase {
         allPermitsAcquired.await();
         assertThat(blocked.get()).isTrue();
         assertThat(IndexShard.OPERATIONS_BLOCKED).isEqualTo(indexShard.getActiveOperationsCount());
-        assertThat(results.asList())
+        assertThat(results)
             .as("Expected no results, operations are blocked")
             .isEmpty();
         futures.forEach(future -> assertThat(future.isDone()).isFalse());
@@ -460,7 +463,7 @@ public class IndexShardTests extends IndexShardTestCase {
         final Releasable allPermits = futureAllPermits.get();
         assertThat(futureAllPermits.isDone()).isTrue();
 
-        assertThat(results.asList())
+        assertThat(results)
             .as("Expected no results, operations are blocked")
             .isEmpty();
         futures.forEach(future -> assertThat(future.isDone()).isFalse());
@@ -472,12 +475,11 @@ public class IndexShardTests extends IndexShardTestCase {
         }
 
         futures.forEach(future -> assertThat(future.isDone()).isTrue());
-        assertThat(threads.length).isEqualTo(results.asList().size());
-        results.asList().forEach(result -> {
+        assertThat(results).hasSize(threads.length);
+        for (var result : results) {
             assertThat(result.v1()).isTrue();
             assertThat(result.v2()).isNull();
-        });
-
+        }
         closeShards(indexShard);
     }
 
