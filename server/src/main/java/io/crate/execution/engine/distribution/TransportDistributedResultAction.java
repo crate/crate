@@ -71,7 +71,7 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
     private final ScheduledExecutorService scheduler;
     private final ClusterService clusterService;
     private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
-    private final BackoffPolicy backoffPolicy;
+    private final Iterable<TimeValue> backoffPolicy;
 
     @Inject
     public TransportDistributedResultAction(Transports transports,
@@ -96,7 +96,7 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
                                      TransportService transportService,
                                      ClusterService clusterService,
                                      ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction,
-                                     BackoffPolicy backoffPolicy) {
+                                     Iterable<TimeValue> backoffPolicy) {
         super(DistributedResultAction.NAME);
         this.transports = transports;
         this.tasksService = tasksService;

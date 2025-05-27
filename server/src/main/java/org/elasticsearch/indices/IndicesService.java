@@ -59,6 +59,7 @@ import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -109,7 +110,6 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.LimitedExponentialBackoff;
 import io.crate.common.CheckedFunction;
 import io.crate.common.collections.Iterables;
 import io.crate.common.collections.Sets;
@@ -521,10 +521,10 @@ public class IndicesService extends AbstractLifecycleComponent
 
             // ~1.1hours in total; Retries take never more than 5000ms
             int firstDelayInMS = 50;
-            int maxRetries = 1000;
+            int maxRetries = 800;
             int maxDelayInMS = 5000;
             Iterator<TimeValue> backoffIt = backoff == null
-                ? new LimitedExponentialBackoff(firstDelayInMS, maxRetries, maxDelayInMS).iterator()
+                ? BackoffPolicy.exponentialBackoff(firstDelayInMS, maxRetries, maxDelayInMS).iterator()
                 : backoff;
             TimeValue delay = backoffIt.next();
             if (LOGGER.isWarnEnabled() && delay.millis() == maxDelayInMS) {

@@ -259,7 +259,7 @@ public class FileReadingIteratorTest extends ESTestCase {
         verify(scheduler, times(FileReadingIterator.MAX_SOCKET_TIMEOUT_RETRIES))
             .schedule(any(Runnable.class), delays.capture(), eq(TimeUnit.MILLISECONDS));
         final List<Long> actualDelays = delays.getAllValues();
-        assertThat(actualDelays).isEqualTo(Arrays.asList(0L, 10L, 30L, 100L, 230L));
+        assertThat(actualDelays).isEqualTo(Arrays.asList(10L, 30L, 100L, 230L, 530L));
 
         // retry fails if MAX_SOCKET_TIMEOUT_RETRIES is exceeded
         assertThatThrownBy(fi::loadNextBatch)
