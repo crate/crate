@@ -35,7 +35,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.settings.put.UpdateSettingsRequest;
-import org.elasticsearch.action.support.GroupedActionListener;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterInfo;
 import org.elasticsearch.cluster.ClusterState;
@@ -56,6 +55,7 @@ import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Sets;
+import io.crate.execution.support.MultiActionListener;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 
@@ -249,7 +249,7 @@ public class DiskThresholdMonitor {
             }
         }
 
-        final ActionListener<Void> listener = new GroupedActionListener<>(ActionListener.wrap(this::checkFinished), 3);
+        final ActionListener<Void> listener = MultiActionListener.of(3, ActionListener.wrap(this::checkFinished));
 
         if (reroute) {
             LOGGER.debug("rerouting shards: [{}]", explanation);

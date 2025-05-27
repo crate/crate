@@ -21,14 +21,16 @@
 
 package io.crate.execution.support;
 
-import org.elasticsearch.action.ActionListener;
-
+import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collector;
+import java.util.stream.Collectors;
+
+import org.elasticsearch.action.ActionListener;
 
 public final class MultiActionListener<I, S, R> implements ActionListener<I> {
 
@@ -38,6 +40,10 @@ public final class MultiActionListener<I, S, R> implements ActionListener<I> {
     private final Function<S, R> finisher;
     private final ActionListener<? super R> actionListener;
     private final S state;
+
+    public static <I> ActionListener<I> of(int numResponses, ActionListener<Collection<I>> listener) {
+        return new MultiActionListener<>(numResponses, Collectors.toList(), listener);
+    }
 
     public MultiActionListener(int numResponses, Collector<I, S, R> collector, ActionListener<? super R> listener) {
         this(numResponses, collector.supplier(), collector.accumulator(), collector.finisher(), listener);
