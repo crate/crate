@@ -101,8 +101,8 @@ public class IndexerBenchmark {
                 table.getReference(ColumnIdent.of("x")),
                 table.getReference(ColumnIdent.of("y"))
             ),
-            null,
-                false);
+            null
+        );
         items = IntStream.range(1, 2000).mapToObj(x -> new IndexItem.StaticItem(
             "dummy-" + x,
             List.of(),

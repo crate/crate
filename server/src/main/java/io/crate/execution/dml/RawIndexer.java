@@ -61,16 +61,13 @@ public class RawIndexer {
     private Indexer currentRowIndexer;
     private IndexItem.StaticItem currentItem;
 
-    private final boolean forReplica;
-
     public RawIndexer(String indexName,
                       DocTableInfo table,
                       Version shardVersionCreated,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
                       Symbol[] returnValues,
-                      @NotNull List<Reference> nonDeterministicSynthetics,
-                      boolean forReplica) {
+                      @NotNull List<Reference> nonDeterministicSynthetics) {
         this.indexName = indexName;
         this.table = table;
         this.txnCtx = txnCtx;
@@ -78,7 +75,6 @@ public class RawIndexer {
         this.returnValues = returnValues;
         this.nonDeterministicSynthetics = nonDeterministicSynthetics;
         this.shardVersionCreated = shardVersionCreated;
-        this.forReplica = forReplica;
     }
 
     /**
@@ -110,8 +106,8 @@ public class RawIndexer {
                 txnCtx,
                 nodeCtx,
                 targetRefs,
-                returnValues,
-                forReplica);
+                returnValues
+            );
         });
 
         int numExtra = item.insertValues().length - 1; // First value is _raw.
