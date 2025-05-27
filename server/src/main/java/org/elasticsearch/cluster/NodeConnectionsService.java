@@ -52,7 +52,7 @@ import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.execution.support.MultiActionListener;
+import io.crate.concurrent.MultiActionListener;
 
 /**
  * This component is responsible for maintaining connections from this node to all the nodes listed in the cluster state, and for

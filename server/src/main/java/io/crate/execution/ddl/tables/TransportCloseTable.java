@@ -70,7 +70,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
@@ -83,7 +82,8 @@ import org.elasticsearch.transport.TransportService;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
-import io.crate.execution.support.MultiActionListener;
+import io.crate.concurrent.CountDown;
+import io.crate.concurrent.MultiActionListener;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateHelpers;

@@ -28,13 +28,14 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
+import org.jetbrains.annotations.VisibleForTesting;
+
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntContainer;
 import com.carrotsearch.hppc.IntObjectMap;
 
 import io.crate.Streamer;
-import io.crate.action.FutureActionListener;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.data.Bucket;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;

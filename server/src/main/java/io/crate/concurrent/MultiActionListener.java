@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.support;
+package io.crate.concurrent;
 
 import java.util.Collection;
 import java.util.concurrent.atomic.AtomicInteger;

@@ -30,7 +30,7 @@ import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 
 public class RecoveryRequestTracker {
 

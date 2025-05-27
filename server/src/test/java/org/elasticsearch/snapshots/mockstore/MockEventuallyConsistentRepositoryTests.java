@@ -51,7 +51,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import org.opentest4j.AssertionFailedError;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 
 public class MockEventuallyConsistentRepositoryTests extends ESTestCase {
 

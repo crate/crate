@@ -64,7 +64,7 @@ import org.elasticsearch.transport.RemoteClusters;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SubscriptionRestoreException;
 import io.crate.metadata.NodeContext;
