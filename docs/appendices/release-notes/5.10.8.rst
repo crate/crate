@@ -47,6 +47,4 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue that allowed inserting unmatched value to a generated column
-  with non-deterministic generation expression. Now, inputs to such generated
-  columns will cause an an exception.
+None

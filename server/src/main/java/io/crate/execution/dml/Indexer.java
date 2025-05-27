@@ -368,11 +368,6 @@ public class Indexer {
         @SuppressWarnings("unchecked")
         @Override
         public void verify(Object providedValue) {
-            if (ref.isDeterministic() == false) {
-                throw new IllegalArgumentException(
-                    "Cannot provide a value to " + ref.column() + ", generated column with non-deterministic generation expression"
-                );
-            }
             DataType<Object> valueType = (DataType<Object>) ref.valueType();
             Object generatedValue = input.value();
             int compare = Comparator
@@ -663,7 +658,7 @@ public class Indexer {
                                              DocTableInfo table,
                                              Context<?> ctxForRefs,
                                              Reference ref) {
-        if (ref instanceof GeneratedReference generated) {
+        if (ref instanceof GeneratedReference generated && generated.isDeterministic()) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
         }
