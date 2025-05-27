@@ -129,6 +129,7 @@ class InsertAnalyzer {
             insert.insertSource(),
             new StatementAnalysisContext(typeHints, Operation.READ, txnCtx, targetColumns));
 
+        rejectInsertToNonDeterministicGeneratedColumns(targetColumns);
         ensureClusteredByPresentOrNotRequired(targetColumns, tableInfo);
         checkSourceAndTargetColsForLengthAndTypesCompatibility(targetColumns, subQueryRelation.outputs());
 
@@ -262,6 +263,15 @@ class InsertAnalyzer {
 
         throw new IllegalArgumentException(
             "Column `" + clusteredBy + "` is required but is missing from the insert statement");
+    }
+
+    private static void rejectInsertToNonDeterministicGeneratedColumns(List<Reference> targetColumns) {
+        for (Reference ref : targetColumns) {
+            if (ref instanceof GeneratedReference generatedReference && !generatedReference.isDeterministic()) {
+                throw new IllegalArgumentException(
+                    "Cannot provide a value to '" + ref.column() + "' a generated column with non-deterministic generation expression");
+            }
+        }
     }
 
     private static void checkSourceAndTargetColsForLengthAndTypesCompatibility(List<Reference> targetColumns,
