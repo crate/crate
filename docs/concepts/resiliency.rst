@@ -43,9 +43,7 @@ and are not being relocated. This is the lowest risk status for a cluster. The
 status will turn yellow when there is an elevated risk of encountering issues,
 due to a network failure or the failure of a node in the cluster.
 
-The status is updated every few seconds (variable on your cluster `ping
-configuration
-<https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/discovery-cluster-formation-settings>`_).
+The status is updated every few seconds.
 
 
 .. _concept-resiliency-consistency:
