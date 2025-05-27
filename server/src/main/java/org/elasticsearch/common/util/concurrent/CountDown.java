@@ -25,19 +25,17 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * A simple thread safe count-down class that in contrast to a {@link CountDownLatch}
- * never blocks. This class is useful if a certain action has to wait for N concurrent 
+ * never blocks. This class is useful if a certain action has to wait for N concurrent
  * tasks to return or a timeout to occur in order to proceed.
  */
 public final class CountDown {
 
     private final AtomicInteger countDown;
-    private final int originalCount;
 
     public CountDown(int count) {
         if (count < 0) {
             throw new IllegalArgumentException("count must be greater or equal to 0 but was: " + count);
         }
-        this.originalCount = count;
         this.countDown = new AtomicInteger(count);
     }
 
@@ -46,17 +44,7 @@ public final class CountDown {
      * reached zero otherwise <code>false</code>
      */
     public boolean countDown() {
-        assert originalCount > 0;
-        for (;;) {
-            final int current = countDown.get();
-            assert current >= 0;
-            if (current == 0) {
-                return false;
-            }
-            if (countDown.compareAndSet(current, current - 1)) {
-                return current == 1;
-            }
-        }
+        return countDown.decrementAndGet() == 0;
     }
 
     /**
@@ -65,11 +53,10 @@ public final class CountDown {
      * <code>false</code>
      */
     public boolean fastForward() {
-        assert originalCount > 0;
         assert countDown.get() >= 0;
         return countDown.getAndSet(0) > 0;
     }
-    
+
     /**
      * Returns <code>true</code> iff the count-down has reached zero. Otherwise <code>false</code>
      */
