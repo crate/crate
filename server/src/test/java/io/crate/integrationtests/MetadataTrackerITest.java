@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -400,6 +401,44 @@ public class MetadataTrackerITest extends LogicalReplicationITestCase {
                 assertThat(rowCount).isEqualTo(1L);
             }
         );
+    }
+
+    @Test
+    public void test_table_will_not_be_removed_from_subscription_if_a_source_shard_become_inactive() throws Exception {
+        // Create two tables, one should be restored successfully, ensuring that the restore works correctly
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 10 shards WITH(" +
+            defaultTableSettings() +
+            ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        createPublication("pub1", false, List.of("doc.t1"));
+
+        createSubscription("sub1", "pub1");
+
+        // Wait until tables are restored and tracker is active
+        assertBusy(() -> assertThat(isTrackerActive()).isTrue());
+
+        executeOnSubscriber("REFRESH TABLE doc.t1");
+        var response = executeOnSubscriber("SELECT * FROM doc.t1 ORDER BY id");
+        assertThat(response).hasRows(
+            "1",
+            "2"
+        );
+
+        // stop a data node -> make sure that t1 has a non-active shard
+        publisherCluster.stopRandomDataNode();
+
+        // doc.t1 must still be listed inside the subscription state/metadata
+        var res = executeOnSubscriber(
+            "SELECT" +
+                " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+                " FROM pg_subscription s" +
+                " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                " JOIN pg_class r ON sr.srrelid = r.oid");
+        assertThat(res).hasRows("sub1| t1| r| NULL");
+
+        // write to doc.t1 should still not work on the subscriber
+        assertThatThrownBy(() -> executeOnSubscriber("INSERT INTO doc.t1 (id) VALUES (3)"))
+            .hasMessageContaining("The relation \"doc.t1\" doesn't allow INSERT operations, because it is included in a logical replication subscription.");
     }
 
     private boolean isTrackerActive() throws Exception {
