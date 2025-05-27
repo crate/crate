@@ -44,7 +44,6 @@ import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.GroupedActionListener;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.AllocationId;
@@ -68,6 +67,7 @@ import com.carrotsearch.hppc.ObjectLongMap;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.Tuple;
+import io.crate.execution.support.MultiActionListener;
 
 /**
  * This class is responsible for tracking the replication group with its progress and safety markers (local and global checkpoints).
@@ -1395,12 +1395,12 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
     public synchronized void createMissingPeerRecoveryRetentionLeases(ActionListener<Void> listener) {
         if (hasAllPeerRecoveryRetentionLeases == false) {
             final List<ShardRouting> shardRoutings = routingTable.assignedShards();
-            final GroupedActionListener<ReplicationResponse> groupedActionListener = new GroupedActionListener<>(
+            final ActionListener<ReplicationResponse> groupedActionListener = MultiActionListener.of(
+                shardRoutings.size(),
                 listener.map(vs -> {
                     setHasAllPeerRecoveryRetentionLeases();
                     return null;
-                }),
-                shardRoutings.size()
+                })
             );
             for (ShardRouting shardRouting : shardRoutings) {
                 if (retentionLeases.contains(getPeerRecoveryRetentionLeaseId(shardRouting))) {

@@ -37,7 +37,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.support.GroupedActionListener;
 import org.elasticsearch.cluster.coordination.FollowersChecker;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -53,6 +52,7 @@ import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.execution.support.MultiActionListener;
 
 /**
  * This component is responsible for maintaining connections from this node to all the nodes listed in the cluster state, and for
@@ -109,9 +109,10 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
             return;
         }
 
-        final GroupedActionListener<Void> listener
-            = new GroupedActionListener<>(ActionListener.wrap(onCompletion), discoveryNodes.getSize());
-
+        final ActionListener<Void> listener = MultiActionListener.of(
+            discoveryNodes.getSize(),
+            ActionListener.wrap(onCompletion)
+        );
         final List<Runnable> runnables = new ArrayList<>(discoveryNodes.getSize());
         synchronized (mutex) {
             for (final DiscoveryNode discoveryNode : discoveryNodes) {
@@ -175,8 +176,10 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
             if (connectionTargets.isEmpty()) {
                 runnables.add(onCompletion);
             } else {
-                final GroupedActionListener<Void> listener = new GroupedActionListener<>(
-                    ActionListener.wrap(onCompletion), connectionTargets.size());
+                final ActionListener<Void> listener = MultiActionListener.of(
+                    connectionTargets.size(),
+                    ActionListener.wrap(onCompletion)
+                );
                 for (final ConnectionTarget connectionTarget : connectionTargets) {
                     runnables.add(connectionTarget.awaitCurrentActivity(listener));
                 }
@@ -198,8 +201,10 @@ public class NodeConnectionsService extends AbstractLifecycleComponent {
                 runnables.add(onCompletion);
             } else {
                 LOGGER.trace("connectDisconnectedTargets: {}", targetsByNode);
-                final GroupedActionListener<Void> listener = new GroupedActionListener<>(
-                    ActionListener.wrap(onCompletion), connectionTargets.size());
+                final ActionListener<Void> listener = MultiActionListener.of(
+                    connectionTargets.size(),
+                    ActionListener.wrap(onCompletion)
+                );
                 for (final ConnectionTarget connectionTarget : connectionTargets) {
                     runnables.add(connectionTarget.ensureConnected(listener));
                 }
