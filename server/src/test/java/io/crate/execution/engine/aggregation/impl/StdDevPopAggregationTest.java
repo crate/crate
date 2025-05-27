@@ -24,6 +24,7 @@ package io.crate.execution.engine.aggregation.impl;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.stream.Stream;
 
@@ -39,14 +40,15 @@ import io.crate.metadata.functions.Signature;
 import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 
-public class StdDevAggregationTest extends AggregationTestCase {
+public class StdDevPopAggregationTest extends AggregationTestCase {
 
     private Object executeAggregation(DataType<?> argumentType, Object[][] data) throws Exception {
         return executeAggregation(
                 Signature.builder("stddev_pop", FunctionType.AGGREGATE)
                         .argumentTypes(argumentType.getTypeSignature())
-                        .returnType(DataTypes.DOUBLE.getTypeSignature())
+                        .returnType(argumentType.getTypeSignature())
                         .features(Scalar.Feature.DETERMINISTIC)
                         .build(),
                 data,
@@ -56,7 +58,7 @@ public class StdDevAggregationTest extends AggregationTestCase {
 
     @Test
     public void test_functions_return_type_is_always_double_for_any_argument_type() {
-        for (var name: StandardDeviationAggregation.NAMES) {
+        for (var name: StandardDeviationPopAggregation.NAMES) {
             for (DataType<?> type : Stream.concat(
                 DataTypes.NUMERIC_PRIMITIVE_TYPES.stream(),
                 Stream.of(DataTypes.TIMESTAMPZ)).toList()) {
@@ -81,6 +83,18 @@ public class StdDevAggregationTest extends AggregationTestCase {
     public void withSomeNullArgs() throws Exception {
         assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}, {42.9D}, {0.3d}, {null}}))
             .isEqualTo(18.13455878212156);
+    }
+
+    @Test
+    public void testNumeric() throws Exception {
+        // with compact doc values
+        assertThat(executeAggregation(new NumericType(10, 8), new Object[][]{
+            {new BigDecimal("10.7")}, {new BigDecimal("42.9")}, {new BigDecimal("0.3")}}))
+            .isEqualTo(new BigDecimal("18.13455878212156068287097312248802"));
+        // with large doc values
+        assertThat(executeAggregation(new NumericType(20, 18), new Object[][]{
+            {new BigDecimal("10.7")}, {new BigDecimal("42.9")}, {new BigDecimal("0.3")}}))
+            .isEqualTo(new BigDecimal("18.13455878212156068287097312248802"));
     }
 
     @Test
@@ -117,6 +131,13 @@ public class StdDevAggregationTest extends AggregationTestCase {
     public void testByte() throws Exception {
         assertThat(executeAggregation(DataTypes.SHORT, new Object[][]{{(short) 1}, {(short) 1}}))
             .isEqualTo(0d);
+    }
+
+    @Test
+    public void testTooFewNumbers() throws Exception {
+        assertThat(executeAggregation(DataTypes.DOUBLE, new Object[][]{{10.7d}})).isEqualTo(0.0d);
+        assertThat(executeAggregation(new NumericType(10, 6), new Object[][]{{new BigDecimal("10.7")}}))
+            .isEqualTo(new BigDecimal(0));
     }
 
     @Test

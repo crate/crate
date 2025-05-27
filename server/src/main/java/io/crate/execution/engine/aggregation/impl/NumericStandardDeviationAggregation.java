@@ -22,8 +22,11 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -35,8 +38,9 @@ import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
-import io.crate.execution.engine.aggregation.statistics.Variance;
+import io.crate.execution.engine.aggregation.statistics.NumericVariance;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
@@ -44,20 +48,15 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
-import io.crate.types.DoubleType;
-import io.crate.types.FixedWidthType;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
-import io.crate.types.ShortType;
-import io.crate.types.TimestampType;
+import io.crate.types.NumericStorage;
+import io.crate.types.NumericType;
 
-public abstract class StandardDeviationAggregation<V extends Variance> extends AggregationFunction<V, Double> {
+public abstract class NumericStandardDeviationAggregation<V extends NumericVariance>
+    extends AggregationFunction<V, BigDecimal> {
 
-    public abstract static class StdDevStateType<V extends Variance>
-        extends DataType<V> implements Streamer<V>, FixedWidthType {
+    public abstract static class StdDevNumericStateType<V extends NumericVariance>
+        extends DataType<V> implements Streamer<V> {
 
         @Override
         public Precedence precedence() {
@@ -81,25 +80,20 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
         }
 
         @Override
-        public int fixedSize() {
-            return Variance.FIXED_SIZE;
-        }
-
-        @Override
         public void writeValueTo(StreamOutput out, V v) throws IOException {
             v.writeTo(out);
         }
 
         @Override
         public long valueBytes(V value) {
-            return fixedSize();
+            return value != null ? value.size() : 0L;
         }
     }
 
     private final Signature signature;
     private final BoundSignature boundSignature;
 
-    public StandardDeviationAggregation(Signature signature, BoundSignature boundSignature) {
+    public NumericStandardDeviationAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
     }
@@ -120,9 +114,12 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
                      V state,
                      Input<?>... args) throws CircuitBreakingException {
         if (state != null) {
-            Number value = (Number) args[0].value();
+            BigDecimal value = (BigDecimal) args[0].value();
             if (value != null) {
-                state.increment(value.doubleValue());
+                long sizeBefore = state.size();
+                state.increment(value);
+                long sizeAfter = state.size();
+                ramAccounting.addBytes(sizeBefore - sizeAfter);
             }
         }
         return state;
@@ -148,18 +145,20 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
     @Override
     public V removeFromAggregatedState(RamAccounting ramAccounting, V previousAggState, Input<?>[]stateToRemove) {
         if (previousAggState != null) {
-            Number value = (Number) stateToRemove[0].value();
+            BigDecimal value = (BigDecimal) stateToRemove[0].value();
             if (value != null) {
-                previousAggState.decrement(value.doubleValue());
+                long sizeBefore = previousAggState.size();
+                previousAggState.decrement(value);
+                long sizeAfter = previousAggState.size();
+                ramAccounting.addBytes(sizeBefore - sizeAfter);
             }
         }
         return previousAggState;
     }
 
     @Override
-    public Double terminatePartial(RamAccounting ramAccounting, V state) {
-        double result = state.result();
-        return Double.isNaN(result) ? null : result;
+    public BigDecimal terminatePartial(RamAccounting ramAccounting, V state) {
+        return state.result();
     }
 
     @Nullable
@@ -176,39 +175,35 @@ public abstract class StandardDeviationAggregation<V extends Variance> extends A
         if (!reference.hasDocValues()) {
             return null;
         }
-        return switch (reference.valueType().id()) {
-            case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID, TimestampType.ID_WITH_TZ,
-                 TimestampType.ID_WITHOUT_TZ -> new SortedNumericDocValueAggregator<>(
-                     reference.storageIdent(),
-                     (ramAccounting, memoryManager, version) -> {
-                         ramAccounting.addBytes(V.fixedSize());
-                         return newState(ramAccounting, version, memoryManager);
-                     },
-                     (values, state) -> state.increment(values.nextValue())
+
+        NumericType numericType = (NumericType) reference.valueType();
+        Integer precision = numericType.numericPrecision();
+        Integer scale = numericType.scale();
+        if (precision == null || scale == null) {
+            throw new UnsupportedOperationException(
+                    "NUMERIC type requires precision and scale to support aggregation");
+        }
+        if (precision <= NumericStorage.COMPACT_PRECISION) {
+            return new SortedNumericDocValueAggregator<>(
+                    reference.storageIdent(),
+                    (ramAccounting, memoryManager, version) ->
+                        newState(ramAccounting, version, memoryManager),
+                    (values, state) -> {
+                        long docValue = values.nextValue();
+                        state.increment(BigDecimal.valueOf(docValue, scale));
+                    }
             );
-            case FloatType.ID -> new SortedNumericDocValueAggregator<>(
-                reference.storageIdent(),
-                (ramAccounting, memoryManager, version) -> {
-                    ramAccounting.addBytes(V.fixedSize());
-                    return newState(ramAccounting, version, memoryManager);
-                },
-                (values, state) -> {
-                    var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                    state.increment(value);
-                }
+        } else {
+            return new BinaryDocValueAggregator<>(
+                    reference.storageIdent(),
+                    (ramAccounting, memoryManager, version) ->
+                        newState(ramAccounting, version, memoryManager),
+                    (values, state) -> {
+                        BytesRef bytesRef = values.lookupOrd(values.nextOrd());
+                        BigInteger bigInteger = NumericUtils.sortableBytesToBigInt(bytesRef.bytes, bytesRef.offset, bytesRef.length);
+                        state.increment(new BigDecimal(bigInteger, scale));
+                    }
             );
-            case DoubleType.ID -> new SortedNumericDocValueAggregator<>(
-                reference.storageIdent(),
-                (ramAccounting, memoryManager, version) -> {
-                    ramAccounting.addBytes(V.fixedSize());
-                    return newState(ramAccounting, version, memoryManager);
-                },
-                (values, state) -> {
-                    var value = NumericUtils.sortableLongToDouble((values.nextValue()));
-                    state.increment(value);
-                }
-            );
-            default -> null;
-        };
+        }
     }
 }

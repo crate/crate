@@ -21,22 +21,25 @@
 
 package io.crate.execution.engine.aggregation.statistics;
 
-import org.apache.commons.math3.util.FastMath;
+import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.MathContext;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import java.io.IOException;
+import ch.obermuhlner.math.big.BigDecimalMath;
 
-public class StandardDeviation extends Variance {
+public class NumericStandardDeviationPop extends NumericVariance {
 
-    public StandardDeviation() {
+    public NumericStandardDeviationPop() {
     }
 
-    public StandardDeviation(StreamInput in) throws IOException {
+    public NumericStandardDeviationPop(StreamInput in) throws IOException {
         super(in);
     }
 
     @Override
-    public double result() {
-        return FastMath.sqrt(super.result());
+    public BigDecimal result() {
+        return BigDecimalMath.sqrt(super.result(), MathContext.DECIMAL128);
     }
 }

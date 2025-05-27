@@ -22,40 +22,38 @@
 package io.crate.execution.engine.aggregation.statistics;
 
 import java.io.IOException;
+import java.math.BigDecimal;
+import java.math.MathContext;
 import java.util.Objects;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-public class Variance implements Writeable, Comparable<Variance> {
+import io.crate.types.NumericType;
 
-    public static final int FIXED_SIZE = 3 * 64; // 2 * double vars + 1 long var
+public class NumericVariance implements Writeable, Comparable<NumericVariance> {
 
-    public static int fixedSize() {
-        return FIXED_SIZE;
-    }
-
-    private double sumOfSqrs;
-    private double sum;
+    private BigDecimal sumOfSqrs;
+    private BigDecimal sum;
     private long count;
 
-    public Variance() {
-        sumOfSqrs = 0.0;
-        sum = 0.0;
+    public NumericVariance() {
+        sumOfSqrs = new BigDecimal(0);
+        sum = new BigDecimal(0);
         count = 0;
     }
 
-    public Variance(StreamInput in) throws IOException {
-        sumOfSqrs = in.readDouble();
-        sum = in.readDouble();
+    public NumericVariance(StreamInput in) throws IOException {
+        sumOfSqrs = NumericType.INSTANCE.readValueFrom(in);
+        sum = NumericType.INSTANCE.readValueFrom(in);
         count = in.readVLong();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeDouble(sumOfSqrs);
-        out.writeDouble(sum);
+        NumericType.INSTANCE.writeValueTo(out, sumOfSqrs);
+        NumericType.INSTANCE.writeValueTo(out, sum);
         out.writeVLong(count);
     }
 
@@ -63,34 +61,39 @@ public class Variance implements Writeable, Comparable<Variance> {
         return count;
     }
 
-    public void increment(double value) {
-        sumOfSqrs += (value * value);
-        sum += value;
+    public void increment(BigDecimal value) {
+        sumOfSqrs = sumOfSqrs.add(value.multiply(value));
+        sum = sum.add(value);
         count++;
     }
 
-    public void decrement(double value) {
-        sumOfSqrs -= (value * value);
-        sum -= value;
+    public void decrement(BigDecimal value) {
+        sumOfSqrs = sumOfSqrs.subtract(value.multiply(value));
+        sum = sum.subtract(value);
         count--;
     }
 
-    public double result() {
+    public BigDecimal result() {
         if (count == 0) {
-            return Double.NaN;
+            return null;
         }
-        return (sumOfSqrs - ((sum * sum) / count)) / count;
+        return sumOfSqrs.subtract(sum.multiply(sum).divide(BigDecimal.valueOf(count), MathContext.DECIMAL128))
+            .divide(BigDecimal.valueOf(count), MathContext.DECIMAL128);
     }
 
-    public void merge(Variance other) {
-        sumOfSqrs += other.sumOfSqrs;
-        sum += other.sum;
+    public void merge(NumericVariance other) {
+        sumOfSqrs = sumOfSqrs.add(other.sumOfSqrs);
+        sum = sum.add(other.sum);
         count += other.count;
     }
 
+    public long size() {
+        return NumericType.size(sum) + NumericType.size(sumOfSqrs) + 64;
+    }
+
     @Override
-    public int compareTo(Variance o) {
-        return Double.compare(result(), o.result());
+    public int compareTo(NumericVariance o) {
+        return result().compareTo(o.result());
     }
 
     @Override
@@ -101,7 +104,7 @@ public class Variance implements Writeable, Comparable<Variance> {
         if (o == null || getClass() != o.getClass()) {
             return false;
         }
-        Variance variance = (Variance) o;
+        NumericVariance variance = (NumericVariance) o;
         return Objects.equals(variance.result(), result());
     }
 

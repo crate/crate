@@ -276,6 +276,12 @@ Scalar and Aggregation Functions
 - Added support for the :ref:`aggregation-stddev-pop` function to compute
   the population standard deviation.
 
+- Added support for :ref:`NUMERIC type<type-numeric>` to the
+  :ref:`aggregation-stddev-pop` function.
+
+- Added support for the :ref:`aggregation-stddev-samp` function to compute
+  the sample standard deviation.
+
 - Replaced `t-digest <https://github.com/tdunning/t-digest>`_ algorithm used by
   :ref:`percentile aggregation <aggregation-percentile>` from ``AVLTreeDigest``
   to ``MergingDigest`` to improve the consistency and accuracy of the result.
