@@ -70,4 +70,15 @@ public class LimitedBackoffPolicyTest extends ESTestCase {
             .sum());
         assertThat(total).isLessThan(TimeValue.timeValueMinutes(72));
     }
+
+    @Test
+    public void test_timeout_limit() throws Exception {
+        Iterable<TimeValue> policy = BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(50), TimeValue.timeValueMillis(300));
+        assertThat(policy).containsExactly(
+            TimeValue.timeValueMillis(60),
+            TimeValue.timeValueMillis(80),
+            TimeValue.timeValueMillis(150),
+            TimeValue.timeValueMillis(280)
+        );
+    }
 }

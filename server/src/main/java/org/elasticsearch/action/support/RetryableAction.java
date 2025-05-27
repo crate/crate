@@ -20,13 +20,14 @@
 package org.elasticsearch.action.support;
 
 import java.util.ArrayDeque;
+import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
-import org.elasticsearch.common.Randomness;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -45,12 +46,10 @@ public abstract class RetryableAction<Response> {
 
     private final AtomicBoolean isDone = new AtomicBoolean(false);
     private final ThreadPool threadPool;
-    private final long initialDelayMillis;
-    private final long timeoutMillis;
-    private final long startMillis;
     private final ActionListener<Response> finalListener;
 
     private volatile Scheduler.ScheduledCancellable retryTask;
+    private final Iterator<TimeValue> delay;
 
     public RetryableAction(Logger logger,
                            ThreadPool threadPool,
@@ -59,17 +58,12 @@ public abstract class RetryableAction<Response> {
                            ActionListener<Response> listener) {
         this.logger = logger;
         this.threadPool = threadPool;
-        this.initialDelayMillis = initialDelay.millis();
-        if (initialDelayMillis < 1) {
-            throw new IllegalArgumentException("Initial delay was less than 1 millisecond: " + initialDelay);
-        }
-        this.timeoutMillis = timeoutValue.millis();
-        this.startMillis = threadPool.relativeTimeInMillis();
+        this.delay = BackoffPolicy.exponentialBackoff(initialDelay, timeoutValue).iterator();
         this.finalListener = listener;
     }
 
     public void run() {
-        final RetryingListener retryingListener = new RetryingListener(initialDelayMillis, null);
+        final RetryingListener retryingListener = new RetryingListener(null);
         final Runnable runnable = createRunnable(retryingListener);
         runnable.run();
     }
@@ -118,11 +112,9 @@ public abstract class RetryableAction<Response> {
 
         private static final int MAX_EXCEPTIONS = 4;
 
-        private final long delayMillisBound;
         private ArrayDeque<Exception> caughtExceptions;
 
-        private RetryingListener(long delayMillisBound, ArrayDeque<Exception> caughtExceptions) {
-            this.delayMillisBound = delayMillisBound;
+        private RetryingListener(ArrayDeque<Exception> caughtExceptions) {
             this.caughtExceptions = caughtExceptions;
         }
 
@@ -136,27 +128,18 @@ public abstract class RetryableAction<Response> {
 
         @Override
         public void onFailure(Exception e) {
-            if (shouldRetry(e)) {
-                final long elapsedMillis = threadPool.relativeTimeInMillis() - startMillis;
-                if (elapsedMillis >= timeoutMillis) {
-                    logger.debug(() -> new ParameterizedMessage("retryable action timed out after {}",
-                        TimeValue.timeValueMillis(elapsedMillis)), e);
-                    onFinalFailure(e);
-                } else {
-                    addException(e);
+            if (shouldRetry(e) && delay.hasNext()) {
+                TimeValue currentDelay = delay.next();
+                addException(e);
 
-                    final long nextDelayMillisBound = Math.min(delayMillisBound * 2, Integer.MAX_VALUE);
-                    final RetryingListener retryingListener = new RetryingListener(nextDelayMillisBound, caughtExceptions);
-                    final Runnable runnable = createRunnable(retryingListener);
-                    final long delayMillis = Randomness.get().nextInt(Math.toIntExact(delayMillisBound)) + 1;
-                    if (isDone.get() == false) {
-                        final TimeValue delay = TimeValue.timeValueMillis(delayMillis);
-                        logger.debug(() -> new ParameterizedMessage("retrying action that failed in {}", delay), e);
-                        try {
-                            retryTask = threadPool.schedule(runnable, delay, ThreadPool.Names.SAME);
-                        } catch (EsRejectedExecutionException ree) {
-                            onFinalFailure(ree);
-                        }
+                final RetryingListener retryingListener = new RetryingListener(caughtExceptions);
+                final Runnable runnable = createRunnable(retryingListener);
+                if (isDone.get() == false) {
+                    logger.debug(() -> new ParameterizedMessage("retrying action that failed in {}", delay), e);
+                    try {
+                        retryTask = threadPool.schedule(runnable, currentDelay, ThreadPool.Names.SAME);
+                    } catch (EsRejectedExecutionException ree) {
+                        onFinalFailure(ree);
                     }
                 }
             } else {
