@@ -43,6 +43,13 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
 
+/**
+ * Templates are deprecated and will be removed in a future version.
+ * For now, they are still used to support backwards compatibility, any template received or stored will be
+ * converted into a {@link RelationMetadata.Table} object.
+ * See also {@link MetadataUpgradeService#addOrUpgradeRelationMetadata(Metadata)}
+ */
+@Deprecated(since = "6.0.0")
 public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadata> {
 
     private final String name;

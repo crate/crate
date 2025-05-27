@@ -60,7 +60,7 @@ import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.Mockito;
 
-import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class SysSnapshotsTest extends ESTestCase {
 
@@ -255,13 +255,13 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata()).thenReturn(new RepositoryMetadata(repositoryName, "fs", Settings.EMPTY));
 
         SnapshotId snapshotId = new SnapshotId(snapshot, UUIDs.randomBase64UUID());
-        String template = PartitionName.templateName("my_schema", "empty_parted_table");
+        RelationName relationName = new RelationName("my_schema", "empty_parted_table");
         SnapshotsInProgress.Entry entry = SnapshotsInProgress.startedEntry(
             new Snapshot(repositoryName, snapshotId),
             true,
             true,
             List.of(),
-            List.of(template),
+            List.of(relationName),
             123L,
             1L,
             ImmutableOpenMap.of(),

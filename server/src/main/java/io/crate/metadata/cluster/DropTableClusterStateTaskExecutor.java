@@ -32,7 +32,6 @@ import org.elasticsearch.index.Index;
 
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.DropTableRequest;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<DropTableRequest> {
@@ -60,10 +59,8 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
             false,
             IndexMetadata::getIndex
         );
-        String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
         Metadata.Builder newMetadata = Metadata.builder(currentMetadata)
-            .dropRelation(relationName)
-            .removeTemplate(templateName);
+            .dropRelation(relationName);
 
         currentState = ClusterState.builder(currentState)
             .metadata(newMetadata)
@@ -72,7 +69,7 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
         currentState = deleteIndexService.deleteIndices(currentState, indices);
 
         // call possible modifiers
-        currentState = ddlClusterStateService.onDropTable(currentState, request.tableIdent());
+        currentState = ddlClusterStateService.onDropTable(currentState, relationName);
 
         return currentState;
     }

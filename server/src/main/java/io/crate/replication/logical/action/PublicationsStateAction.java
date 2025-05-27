@@ -28,7 +28,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -222,14 +221,6 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             return relationsInPublications.values().stream()
                 .flatMap(x -> x.indices().stream())
                 .map(x -> x.getIndex().getName())
-                .toList();
-        }
-
-        public List<String> concreteTemplates() {
-            return relationsInPublications.values().stream()
-                .map(x -> x.template())
-                .filter(Objects::nonNull)
-                .map(x -> x.name())
                 .toList();
         }
 

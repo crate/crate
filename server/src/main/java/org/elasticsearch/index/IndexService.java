@@ -503,7 +503,7 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
         RelationName relationName = RelationName.fromIndexName(indexName);
         SchemaInfo schemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(relationName.schema());
-        var tableInfo = schemaInfo.create(RelationName.fromIndexName(indexName), metadata);
+        var tableInfo = schemaInfo.create(relationName, metadata);
         TranslogIndexer indexer = getTranslogIndexer(tableInfo);
         this.getTranslogIndexer = () -> indexer;
     }

@@ -25,8 +25,6 @@ import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLIC
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
 
 import java.io.Closeable;
-import java.io.IOException;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -69,7 +67,6 @@ import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -82,6 +79,7 @@ import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.Subscription.RelationState;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
+import io.crate.sql.tree.CheckConstraint;
 
 public final class MetadataTracker implements Closeable {
 
@@ -382,17 +380,28 @@ public final class MetadataTracker implements Closeable {
                     updatedMetadataBuilder.put(indexMetadata, true);
 
                     // Update the table relation with the new index metadata
-                    if (subscriberClusterState.metadata().getRelation(followedTable) != null) {
-                        Metadata tempMetadata = Metadata.builder(subscriberClusterState.metadata())
-                            .put(indexMetadata, true)
-                            .dropRelation(followedTable)
-                            .build();
-                        DocTableInfo newTable = docTableInfoFactory.create(followedTable, tempMetadata);
-                        try {
-                            newTable.writeTo(subscriberClusterState.metadata(), updatedMetadataBuilder);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
+                    org.elasticsearch.cluster.metadata.RelationMetadata.Table table = subscriberClusterState.metadata().getRelation(followedTable);
+                    if (table != null) {
+                        DocTableInfo newTableInfo = docTableInfoFactory.create(indexMetadata);
+                        if (newTableInfo == null) {
+                            throw new IllegalStateException("Cannot create a DocTableInfo out of the indexMetadata for  " + indexMetadata.getIndex().getName());
                         }
+                        updatedMetadataBuilder
+                            .dropRelation(followedTable)
+                            .setTable(
+                                newTableInfo.ident(),
+                                newTableInfo.allReferences(),
+                                newTableInfo.parameters(),
+                                newTableInfo.clusteredBy(),
+                                newTableInfo.columnPolicy(),
+                                newTableInfo.pkConstraintName(),
+                                newTableInfo.checkConstraints().stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
+                                newTableInfo.primaryKey(),
+                                newTableInfo.partitionedBy(),
+                                newTableInfo.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
+                                table.indexUUIDs(),
+                                table.tableVersion() + 1
+                            );
                     }
 
                     updateClusterState = true;
@@ -424,21 +433,10 @@ public final class MetadataTracker implements Closeable {
         var metadata = subscriberClusterState.metadata();
         Set<RelationName> currentlyReplicatedTables = subscription.relations().keySet();
 
-        Set<RelationName> existingRelations = publisherStateResponse.concreteIndices().stream()
-            .filter(index -> metadata.hasIndex(index))
-            .map(index -> RelationName.fromIndexName(index))
+        return publisherStateResponse.relationsInPublications().keySet().stream()
+            .filter(metadata::contains)
             .filter(relationName -> currentlyReplicatedTables.contains(relationName) == false)
             .collect(Collectors.toSet());
-
-        for (String t: publisherStateResponse.concreteTemplates()) {
-            if (metadata.templates().containsKey(t)) {
-                var relationName = PartitionName.fromIndexOrTemplate(t).relationName();
-                if (currentlyReplicatedTables.contains(relationName) == false) {
-                    existingRelations.add(relationName);
-                }
-            }
-        }
-        return existingRelations;
     }
 
     record RestoreDiff(List<TableOrPartition> toRestore,
@@ -455,7 +453,7 @@ public final class MetadataTracker implements Closeable {
                                       PublicationsStateAction.Response stateResponse) {
         Map<RelationName, RelationState> subscribedRelations = subscription.relations();
         HashSet<RelationName> relationNamesForStateUpdate = new HashSet<>();
-        ArrayList<TableOrPartition> toRestore = new ArrayList<>();
+        HashSet<TableOrPartition> toRestore = new HashSet<>();
         Metadata subscriberMetadata = subscriberState.metadata();
         for (var indexName : stateResponse.concreteIndices()) {
             IndexParts indexParts = IndexName.decode(indexName);
@@ -468,23 +466,22 @@ public final class MetadataTracker implements Closeable {
                 relationNamesForStateUpdate.add(relationName);
             }
         }
-        for (var templateName : stateResponse.concreteTemplates()) {
-            var indexParts = IndexName.decode(templateName);
-            if (indexParts.isPartitioned()) {
-                var relationName = indexParts.toRelationName();
-                if (!subscriberState.metadata().templates().containsKey(templateName)
-                        && toRestore.stream().noneMatch(x -> x.table().equals(relationName))) {
-                    toRestore.add(new TableOrPartition(relationName, null));
-                }
-                if (subscribedRelations.get(relationName) == null) {
-                    relationNamesForStateUpdate.add(relationName);
-                }
+        for (RelationName relationName : stateResponse.tables()) {
+            if (relationNamesForStateUpdate.contains(relationName)) {
+                // Already processed due to a concrete index(partition)
+                continue;
+            }
+            if (subscriberMetadata.contains(relationName) == false) {
+                toRestore.add(new TableOrPartition(relationName, null));
+                relationNamesForStateUpdate.add(relationName);
+            } else if (subscribedRelations.get(relationName) == null) {
+                relationNamesForStateUpdate.add(relationName);
             }
         }
         if (toRestore.isEmpty()) {
             relationNamesForStateUpdate.clear();
         }
-        return new RestoreDiff(toRestore, relationNamesForStateUpdate);
+        return new RestoreDiff(toRestore.stream().toList(), relationNamesForStateUpdate);
     }
 
     private ClusterState processDroppedTablesOrPartitions(String subscriptionName,
@@ -497,6 +494,10 @@ public final class MetadataTracker implements Closeable {
         for (var relationName : subscription.relations().keySet()) {
             var publisherRelationMetadata = relationsInPublications.get(relationName);
             boolean relationDisappeared = publisherRelationMetadata == null;
+            var subscriberRelationMetadata = subscriberMetadata.getRelation(relationName);
+            if (subscriberRelationMetadata == null) {
+                continue;
+            }
             if (relationDisappeared) {
                 changedRelations.add(relationName);
                 continue;
