@@ -39,6 +39,7 @@ import org.elasticsearch.action.support.master.TransportMasterNodeReadAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -218,10 +219,9 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             return "Response{" + "relationsInPublications:" + relationsInPublications + '.' + "unknownPublications:" + unknownPublications + '}';
         }
 
-        public List<String> concreteIndices() {
+        public List<IndexMetadata> concreteIndices() {
             return relationsInPublications.values().stream()
                 .flatMap(x -> x.indices().stream())
-                .map(x -> x.getIndex().getName())
                 .toList();
         }
 

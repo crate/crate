@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -32,6 +33,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Rule;
 import org.junit.Test;
@@ -245,6 +247,102 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             "1",
             "2"
         );
+    }
+
+    @Test
+    public void test_subscribing_to_publication_containing_index_with_non_active_shards_wont_be_restored() throws Exception {
+        // Create two tables, one should be restored successfully, ensuring that the restore works correctly
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 10 shards WITH(" +
+                           defaultTableSettings() +
+                           ")");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT) CLUSTERED INTO 1 shards WITH(" +
+                           defaultTableSettings() +
+                           ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO doc.t2 (id) VALUES (1), (2)");
+        createPublication("pub1", false, List.of("doc.t1", "doc.t2"));
+
+        var response = executeOnPublisher("SELECT id, node['name'] FROM sys.shards WHERE table_name = 't2' AND primary = true ORDER BY id LIMIT 1");
+        String nodeName = (String) response.rows()[0][1];
+
+        // stop a node, but not the one holding the primary shard of doc.t2 -> make sure that only t1 has a non-active shard
+        publisherCluster.stopRandomNode(settings -> DiscoveryNode.isDataNode(settings) && NODE_NAME_SETTING.get(settings).equals(nodeName) == false);
+
+        assertBusy(() -> {
+            var response1 = executeOnPublisher(
+                "SELECT health, count(*) FROM sys.health GROUP BY 1 ORDER BY 1 DESC");
+            assertThat(response1.rows()[0][0]).isEqualTo("RED");
+        }, 30, TimeUnit.SECONDS);
+
+        createSubscription("sub1", "pub1");
+
+        executeOnSubscriber("REFRESH TABLE doc.t2");
+        response = executeOnSubscriber("SELECT * FROM doc.t2 ORDER BY id");
+        assertThat(response).hasRows(
+            "1",
+            "2"
+        );
+
+        // doc.t1 must not be restored as it has a non-active shard
+        response = executeOnSubscriber("SELECT table_name FROM information_schema.tables WHERE table_name = 't1'");
+        assertThat(response.rows().length).isZero();
+
+        // also, doc.t1 must not be listed inside the subscription state/metadata
+        var res = executeOnSubscriber(
+            "SELECT" +
+                " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+                " FROM pg_subscription s" +
+                " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                " JOIN pg_class r ON sr.srrelid = r.oid");
+        assertThat(res).hasRows("sub1| t2| r| NULL");
+    }
+
+    @Test
+    public void test__to_publication_containing_index_with_non_active_shards_wont_be() throws Exception {
+        // Create two tables, one should be restored successfully, ensuring that the restore works correctly
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) CLUSTERED INTO 10 shards WITH(" +
+            defaultTableSettings() +
+            ")");
+        executeOnPublisher("CREATE TABLE doc.t2 (id INT) CLUSTERED INTO 1 shards WITH(" +
+            defaultTableSettings() +
+            ")");
+        executeOnPublisher("INSERT INTO doc.t1 (id) VALUES (1), (2)");
+        executeOnPublisher("INSERT INTO doc.t2 (id) VALUES (1), (2)");
+        createPublication("pub1", false, List.of("doc.t1", "doc.t2"));
+
+        var response = executeOnPublisher("SELECT id, node['name'] FROM sys.shards WHERE table_name = 't2' AND primary = true ORDER BY id LIMIT 1");
+        String nodeName = (String) response.rows()[0][1];
+
+        // stop a node, but not the one holding the primary shard of doc.t2 -> make sure that only t1 has a non-active shard
+        publisherCluster.stopRandomNode(settings -> DiscoveryNode.isDataNode(settings) && NODE_NAME_SETTING.get(settings).equals(nodeName) == false);
+
+        assertBusy(() -> {
+            var response1 = executeOnPublisher(
+                "SELECT health, count(*) FROM sys.health GROUP BY 1 ORDER BY 1 DESC");
+            assertThat(response1.rows()[0][0]).isEqualTo("RED");
+        }, 30, TimeUnit.SECONDS);
+
+        createSubscription("sub1", "pub1");
+
+        executeOnSubscriber("REFRESH TABLE doc.t2");
+        response = executeOnSubscriber("SELECT * FROM doc.t2 ORDER BY id");
+        assertThat(response).hasRows(
+            "1",
+            "2"
+        );
+
+        // doc.t1 must not be restored as it has a non-active shard
+        response = executeOnSubscriber("SELECT table_name FROM information_schema.tables WHERE table_name = 't1'");
+        assertThat(response.rows().length).isZero();
+
+        // also, doc.t1 must not be listed inside the subscription state/metadata
+        var res = executeOnSubscriber(
+            "SELECT" +
+                " s.subname, r.relname, sr.srsubstate, sr.srsubstate_reason" +
+                " FROM pg_subscription s" +
+                " JOIN pg_subscription_rel sr ON s.oid = sr.srsubid" +
+                " JOIN pg_class r ON sr.srrelid = r.oid");
+        assertThat(res).hasRows("sub1| t2| r| NULL");
     }
 
     @Test

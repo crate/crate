@@ -21,22 +21,27 @@
 
 package io.crate.replication.logical.metadata;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
+
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.function.Predicate;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.common.settings.Settings;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
@@ -119,18 +124,6 @@ public class Publication implements Writeable {
                                                                        Role publicationOwner,
                                                                        Role subscriber,
                                                                        String publicationName) {
-        // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
-        Predicate<String> indexFilter = indexName -> {
-            var indexMetadata = state.metadata().index(indexName);
-            if (indexMetadata != null) {
-                var routingTable = state.routingTable().index(indexName);
-                assert routingTable != null : "routingTable must not be null";
-                return routingTable.allPrimaryShardsActive();
-
-            }
-            // Partitioned table case (template, no index).
-            return true;
-        };
 
         var relations = new HashSet<RelationName>();
 
@@ -161,12 +154,26 @@ public class Publication implements Writeable {
         }
 
         return relations.stream()
-            .filter(relationName -> indexFilter.test(relationName.indexNameOrAlias()))
             .filter(relationName -> userCanPublish(roles, relationName, publicationOwner, publicationName))
             .filter(relationName -> subscriberCanRead(roles, relationName, subscriber, publicationName))
-            .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata(), indexFilter))
+            .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata(), applyCustomIndexSettings(state)))
             .collect(Collectors.toMap(RelationMetadata::name, x -> x));
 
+    }
+
+    @VisibleForTesting
+    public static Function<IndexMetadata, IndexMetadata> applyCustomIndexSettings(ClusterState state) {
+        // mark indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
+        return im -> {
+            var routingTable = state.routingTable().index(im.getIndex());
+            assert routingTable != null : "routingTable must not be null";
+            boolean isActive = routingTable.allPrimaryShardsActive();
+            IndexMetadata.Builder builder = IndexMetadata.builder(im);
+            return builder.settings(Settings.builder()
+                    .put(im.getSettings())
+                    .put(REPLICATION_INDEX_ROUTING_ACTIVE.getKey(), isActive))
+                .build();
+        };
     }
 
     private static boolean subscriberCanRead(Roles roles, RelationName relationName, Role subscriber, String publicationName) {

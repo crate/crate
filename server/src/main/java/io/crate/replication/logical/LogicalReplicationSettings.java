@@ -103,6 +103,17 @@ public class LogicalReplicationSettings {
     );
 
     /**
+     * Internal index setting to mark the index as active (all primary shards active) and such can be restored.
+     * It should be filtered out on the subscriber cluster when restoring or tracking indices.
+     */
+    public static final Setting<Boolean> REPLICATION_INDEX_ROUTING_ACTIVE = Setting.boolSetting(
+        "index.replication.logical.source_routing_active",
+        true,
+        Setting.Property.InternalIndex,
+        Setting.Property.IndexScope
+    );
+
+    /**
      * These settings are not suitable to replicate between subscribed/replicated indices
      */
     public static final Set<Setting<?>> NON_REPLICATED_SETTINGS = Set.of(
@@ -146,7 +157,8 @@ public class LogicalReplicationSettings {
         MergeSchedulerConfig.AUTO_THROTTLE_SETTING,
         MergeSchedulerConfig.MAX_MERGE_COUNT_SETTING,
         MergeSchedulerConfig.MAX_THREAD_COUNT_SETTING,
-        EngineConfig.INDEX_CODEC_SETTING
+        EngineConfig.INDEX_CODEC_SETTING,
+        REPLICATION_INDEX_ROUTING_ACTIVE
     );
 
     private int batchSize;
