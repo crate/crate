@@ -28,7 +28,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.junit.Test;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 
 public class ActionListenerTest {
 

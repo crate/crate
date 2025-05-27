@@ -34,8 +34,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.junit.Test;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Sets;
+import io.crate.concurrent.FutureActionListener;
 
 public class RecoveryRequestTrackerTests extends ESTestCase {
 

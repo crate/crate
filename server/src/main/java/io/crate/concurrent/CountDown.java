@@ -17,7 +17,7 @@
  * under the License.
  */
 
-package org.elasticsearch.common.util.concurrent;
+package io.crate.concurrent;
 
 
 import java.util.concurrent.CountDownLatch;

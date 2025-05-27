@@ -34,8 +34,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
 
 public class RetryableActionTests extends ESTestCase {
 

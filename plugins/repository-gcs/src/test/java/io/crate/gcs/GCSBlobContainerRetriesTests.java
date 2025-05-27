@@ -76,7 +76,6 @@ import org.elasticsearch.common.lucene.store.ByteArrayIndexInput;
 import org.elasticsearch.common.lucene.store.InputStreamIndexInput;
 import org.elasticsearch.common.network.InetAddresses;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
@@ -94,6 +93,7 @@ import com.sun.net.httpserver.HttpServer;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.CountDown;
 
 public class GCSBlobContainerRetriesTests extends IntegTestCase {
 

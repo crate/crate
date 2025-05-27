@@ -103,9 +103,9 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 import org.mockito.Mockito;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.CheckedFunction;
 import io.crate.common.io.IOUtils;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;

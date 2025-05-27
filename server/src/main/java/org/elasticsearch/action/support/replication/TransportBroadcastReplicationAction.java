@@ -39,8 +39,8 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.concurrent.MultiActionListener;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.MultiActionListener;
 
 /**
  * Base class for requests that should be executed on all shards of an index or several indices.
