@@ -33,13 +33,9 @@ import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.threadpool.Scheduler.Cancellable;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.ConnectTransportException;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -71,7 +67,6 @@ public class DistributingConsumer implements RowConsumer {
     private final List<Downstream> downstreams;
     private final boolean traceEnabled;
     private final CompletableFuture<Void> completionFuture;
-    private final ThreadPool threadPool;
 
     @VisibleForTesting
     final long maxBytes;
@@ -89,9 +84,7 @@ public class DistributingConsumer implements RowConsumer {
                                 int bucketIdx,
                                 Collection<String> downstreamNodeIds,
                                 ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction,
-                                int pageSize,
-                                ThreadPool threadPool) {
-        this.threadPool = threadPool;
+                                int pageSize) {
         this.traceEnabled = LOGGER.isTraceEnabled();
         this.responseExecutor = responseExecutor;
         this.jobId = jobId;
@@ -167,7 +160,6 @@ public class DistributingConsumer implements RowConsumer {
                 NodeRequest<DistributedResultRequest> request = builder.build(downstream.nodeId);
                 var responseHandler = new ResponseHandler(
                     downstream,
-                    request,
                     it,
                     numActiveRequests,
                     true
@@ -211,7 +203,6 @@ public class DistributingConsumer implements RowConsumer {
             );
             var responseHandler = new ResponseHandler(
                 downstream,
-                request,
                 it,
                 numActiveRequests,
                 false
@@ -223,19 +214,15 @@ public class DistributingConsumer implements RowConsumer {
     class ResponseHandler implements BiConsumer<DistributedResultResponse, Throwable> {
 
         private final Downstream downstream;
-        private final NodeRequest<DistributedResultRequest> request;
         private final BatchIterator<Row> it;
         private final AtomicInteger numActiveRequests;
-        private int retry = 0;
         private final boolean isFailureReq;
 
         public ResponseHandler(Downstream downstream,
-                               NodeRequest<DistributedResultRequest> request,
                                BatchIterator<Row> it,
                                AtomicInteger numActiveRequests,
                                boolean isFailureReq) {
             this.downstream = downstream;
-            this.request = request;
             this.it = it;
             this.numActiveRequests = numActiveRequests;
             this.isFailureReq = isFailureReq;
@@ -260,25 +247,6 @@ public class DistributingConsumer implements RowConsumer {
                 downstream.nodeId,
                 err
             );
-            if (err instanceof ConnectTransportException && retry < 10) {
-                LOGGER.trace("Retry={} sending result due to {}", retry, err);
-                retry++;
-                try {
-                    var cancellable = threadPool.scheduleUnlessShuttingDown(
-                        TimeValue.timeValueMillis(retry * 200),
-                        ThreadPool.Names.SEARCH,
-                        () -> distributedResultAction.execute(request).whenComplete(this)
-                    );
-
-                    // shutting down; no retry
-                    if (cancellable == Cancellable.CANCELLED_NOOP) {
-                        handleFailure(err);
-                    }
-                } catch (EsRejectedExecutionException ex) {
-                    handleFailure(err);
-                }
-                return;
-            }
             handleFailure(err);
         }
 
