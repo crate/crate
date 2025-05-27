@@ -24,7 +24,7 @@ package io.crate.replication.logical.metadata;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Predicate;
+import java.util.function.Function;
 
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -58,7 +58,9 @@ public record RelationMetadata(RelationName name,
         out.writeOptionalWriteable(template);
     }
 
-    public static RelationMetadata fromMetadata(RelationName table, Metadata metadata, Predicate<String> filter) {
+    public static RelationMetadata fromMetadata(RelationName table,
+                                                Metadata metadata,
+                                                Function<IndexMetadata, IndexMetadata> applyCustomIndexSettings) {
         String indexNameOrAlias = table.indexNameOrAlias();
         var indexMetadata = metadata.index(indexNameOrAlias);
         if (indexMetadata == null) {
@@ -71,12 +73,24 @@ public record RelationMetadata(RelationName name,
             );
             ArrayList<IndexMetadata> indicesMetadata = new ArrayList<>(concreteIndices.length);
             for (String concreteIndex : concreteIndices) {
-                if (filter.test(concreteIndex)) {
-                    indicesMetadata.add(metadata.index(concreteIndex));
+                IndexMetadata concreteIndexMetadata = metadata.index(concreteIndex);
+                if (concreteIndexMetadata == null) {
+                    continue;
+                }
+                IndexMetadata newIndexMetadata = applyCustomIndexSettings.apply(concreteIndexMetadata);
+                if (newIndexMetadata != null) {
+                    indicesMetadata.add(newIndexMetadata);
                 }
             }
             return new RelationMetadata(table, indicesMetadata, templateMetadata);
         }
-        return new RelationMetadata(table, List.of(indexMetadata), null);
+        IndexMetadata newIndexMetadata = applyCustomIndexSettings.apply(indexMetadata);
+        List<IndexMetadata> indices;
+        if (newIndexMetadata == null) {
+            indices = List.of();
+        } else {
+            indices = List.of(newIndexMetadata);
+        }
+        return new RelationMetadata(table, indices, null);
     }
 }

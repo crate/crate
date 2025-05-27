@@ -23,6 +23,7 @@ package io.crate.replication.logical;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
 
 import java.io.Closeable;
 import java.util.ArrayList;
@@ -67,6 +68,7 @@ import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.DropSubscriptionAction;
@@ -402,8 +404,8 @@ public final class MetadataTracker implements Closeable {
         Set<RelationName> currentlyReplicatedTables = subscription.relations().keySet();
 
         Set<RelationName> existingRelations = publisherStateResponse.concreteIndices().stream()
-            .filter(index -> metadata.hasIndex(index))
-            .map(index -> RelationName.fromIndexName(index))
+            .filter(im -> metadata.hasIndex(im.getIndex().getName()))
+            .map(im -> RelationName.fromIndexName(im.getIndex().getName()))
             .filter(relationName -> currentlyReplicatedTables.contains(relationName) == false)
             .collect(Collectors.toCollection(() -> new HashSet<>()));
 
@@ -431,20 +433,31 @@ public final class MetadataTracker implements Closeable {
     static RestoreDiff getRestoreDiff(Subscription subscription,
                                       ClusterState subscriberState,
                                       PublicationsStateAction.Response stateResponse) {
-
-        var subscribedRelations = subscription.relations();
-        var relationNamesForStateUpdate = new HashSet<RelationName>();
+        Map<RelationName, RelationState> subscribedRelations = subscription.relations();
+        HashSet<RelationName> relationNamesForStateUpdate = new HashSet<>();
         var toRestoreIndices = new ArrayList<String>();
         var toRestoreTemplates = new ArrayList<String>();
 
-        for (var indexName : stateResponse.concreteIndices()) {
-            var relationName = RelationName.fromIndexName(indexName);
-            if (subscriberState.metadata().hasIndex(indexName) == false) {
-                toRestoreIndices.add(indexName);
-                relationNamesForStateUpdate.add(relationName);
-            } else if (subscribedRelations.get(relationName) == null) {
+        Metadata subscriberMetadata = subscriberState.metadata();
+        for (IndexMetadata indexMetadata : stateResponse.concreteIndices()) {
+            String indexName = indexMetadata.getIndex().getName();
+            IndexParts indexParts = IndexName.decode(indexName);
+            RelationName relationName = indexParts.toRelationName();
+            if (subscribedRelations.get(relationName) == null) {
                 relationNamesForStateUpdate.add(relationName);
             }
+            if (REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings()) == false) {
+                // If the index is not active, we cannot restore it
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Skipping index {} for subscription {} as it is not active", indexName, subscription);
+                }
+                continue;
+            }
+            if (!subscriberMetadata.hasIndex(indexName)) {
+                toRestoreIndices.add(indexName);
+                relationNamesForStateUpdate.add(relationName);
+            }
+
         }
         for (var templateName : stateResponse.concreteTemplates()) {
             var indexParts = IndexName.decode(templateName);

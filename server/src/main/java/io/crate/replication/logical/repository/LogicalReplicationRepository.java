@@ -22,6 +22,7 @@
 package io.crate.replication.logical.repository;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 import java.io.IOException;
@@ -149,13 +150,24 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         return getPublicationsState()
             .thenApply(stateResponse ->
-                new SnapshotInfo(snapshotId, stateResponse.concreteIndices(), SnapshotState.SUCCESS, Version.CURRENT));
+                new SnapshotInfo(
+                    snapshotId,
+                    stateResponse.concreteIndices().stream()
+                        .filter(im -> REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings()))
+                        .map(im -> im.getIndex().getName()).toList(),
+                    SnapshotState.SUCCESS,
+                    Version.CURRENT
+                ));
     }
 
     @Override
     public CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId) {
         return getPublicationsState()
-            .thenCompose(resp -> getRemoteClusterState(false, true, resp.concreteIndices(), resp.concreteTemplates()))
+            .thenCompose(resp -> getRemoteClusterState(
+                false,
+                true,
+                resp.concreteIndices().stream().map(im -> im.getIndex().getName()).toList(),
+                resp.concreteTemplates()))
             .thenApply(remoteClusterStateResp -> {
                 ClusterState remoteClusterState = remoteClusterStateResp.getState();
                 var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
@@ -194,9 +206,11 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 builder.put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
                 // Store publishers original index UUID to be able to resolve the original index later on
                 builder.put(PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
+                // Remove source routing active setting, it is only used as a marker to not restore these indices (yet)
+                builder.remove(REPLICATION_INDEX_ROUTING_ACTIVE.getKey());
 
                 var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
-                indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a));
+                indexMetadata.getAliases().valuesIt().forEachRemaining(indexMdBuilder::putAlias);
                 result.add(indexMdBuilder.build());
             }
             return result;
@@ -225,7 +239,11 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     @Override
     public CompletableFuture<RepositoryData> getRepositoryData() {
         return getPublicationsState()
-            .thenCompose(resp -> getRemoteClusterState(false, false, resp.concreteIndices(), resp.concreteTemplates()))
+            .thenCompose(resp -> getRemoteClusterState(
+                false,
+                false,
+                resp.concreteIndices().stream().map(im -> im.getIndex().getName()).toList(),
+                resp.concreteTemplates()))
             .thenApply(remoteStateResp -> {
                 var remoteClusterState = remoteStateResp.getState();
                 var remoteMetadata = remoteClusterState.metadata();
