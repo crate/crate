@@ -31,6 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
@@ -39,7 +40,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.NotifyOnceListener;
 import org.elasticsearch.action.admin.indices.close.TransportVerifyShardBeforeCloseAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.ActiveShardsObserver;
@@ -70,7 +70,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.AtomicArray;
 import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -84,6 +83,7 @@ import org.elasticsearch.transport.TransportService;
 
 import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
+import io.crate.execution.support.MultiActionListener;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateHelpers;
@@ -567,33 +567,22 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             }
 
             final ImmutableOpenIntMap<IndexShardRoutingTable> shards = indexRoutingTable.getShards();
-            final AtomicArray<AcknowledgedResponse> results = new AtomicArray<>(shards.size());
-            final CountDown countDown = new CountDown(shards.size());
-
+            final ActionListener<ReplicationResponse> multiListener = new MultiActionListener<>(
+                shards.size(),
+                // collector (supplier, accumulator, finisher) for "all acked" (=!any failed)
+                () -> new AtomicBoolean(true),
+                (s, resp) -> {
+                    ReplicationResponse.ShardInfo shardInfo = resp.getShardInfo();
+                    if (shardInfo.getFailed() > 0) {
+                        s.set(false);
+                    }
+                },
+                s -> new AcknowledgedResponse(s.get()),
+                ActionListener.wrap(resp -> onResponse.accept(resp), _ -> onResponse.accept(new AcknowledgedResponse(false)))
+            );
             for (IntObjectCursor<IndexShardRoutingTable> shard : shards) {
                 final IndexShardRoutingTable shardRoutingTable = shard.value;
-                final ShardId shardId = shardRoutingTable.shardId();
-                sendVerifyShardBeforeCloseRequest(shardRoutingTable, closingBlock, new NotifyOnceListener<>() {
-                    @Override
-                    public void innerOnResponse(final ReplicationResponse replicationResponse) {
-                        ReplicationResponse.ShardInfo shardInfo = replicationResponse.getShardInfo();
-                        results.setOnce(shardId.id(), new AcknowledgedResponse(shardInfo.getFailed() == 0));
-                        processIfFinished();
-                    }
-
-                    @Override
-                    public void innerOnFailure(final Exception e) {
-                        results.setOnce(shardId.id(), new AcknowledgedResponse(false));
-                        processIfFinished();
-                    }
-
-                    private void processIfFinished() {
-                        if (countDown.countDown()) {
-                            final boolean acknowledged = results.asList().stream().allMatch(AcknowledgedResponse::isAcknowledged);
-                            onResponse.accept(new AcknowledgedResponse(acknowledged));
-                        }
-                    }
-                });
+                sendVerifyShardBeforeCloseRequest(shardRoutingTable, closingBlock, multiListener);
             }
         }
 
@@ -617,7 +606,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 closingBlock
             );
             verifyShardBeforeClose.execute(shardRequest)
-                .thenCompose(ignored -> verifyShardBeforeClose.execute(
+                .thenCompose(_ -> verifyShardBeforeClose.execute(
                     new TransportVerifyShardBeforeCloseAction.ShardRequest(shardId, false, closingBlock)))
                 .whenComplete(listener);
         }
