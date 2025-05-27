@@ -40,7 +40,7 @@ public class TDigestStateTest {
         Streamer<TDigestState> streamer = digestStateType.streamer();
         streamer.writeValueTo(out, digestState1);
         StreamInput in = out.bytes().streamInput();
-        TDigestState digestState2 = (TDigestState) streamer.readValueFrom(in);
+        TDigestState digestState2 = streamer.readValueFrom(in);
 
         assertThat(digestState1.compression()).isEqualTo(digestState2.compression(), Offset.offset(0.001d));
         assertThat(digestState1.fractions()[0]).isEqualTo(digestState2.fractions()[0], Offset.offset(0.001d));

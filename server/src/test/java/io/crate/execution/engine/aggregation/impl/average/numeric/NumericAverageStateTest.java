@@ -47,7 +47,6 @@ public class NumericAverageStateTest {
         StreamInput in = out.bytes().streamInput();
         NumericAverageState<BigDecimalValueWrapper> valueFrom = type.readValueFrom(in);
         assertThat(valueFrom.sum.value()).isEqualTo(bigDecimal);
-
     }
 }
 

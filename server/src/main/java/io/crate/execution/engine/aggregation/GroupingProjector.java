@@ -44,6 +44,7 @@ public class GroupingProjector implements Projector {
     private final Collector<Row, ?, Iterable<Row>> collector;
 
 
+    @SuppressWarnings("unchecked")
     public GroupingProjector(List<? extends Symbol> keys,
                              List<Input<?>> keyInputs,
                              CollectExpression<Row, ?>[] collectExpressions,
@@ -54,8 +55,8 @@ public class GroupingProjector implements Projector {
                              Version minNodeVersion) {
         assert keys.size() == keyInputs.size() : "number of key types must match with number of key inputs";
 
-        AggregationFunction[] functions = new AggregationFunction[aggregations.length];
-        Input[][] inputs = new Input[aggregations.length][];
+        AggregationFunction<?, ?>[] functions = new AggregationFunction[aggregations.length];
+        Input<?>[][] inputs = new Input[aggregations.length][];
         Input<Boolean>[] filters = new Input[aggregations.length];
         for (int i = 0; i < aggregations.length; i++) {
             AggregationContext aggregation = aggregations[i];
@@ -78,8 +79,7 @@ public class GroupingProjector implements Projector {
                 key.valueType()
             );
         } else {
-            //noinspection unchecked
-            collector = (GroupingCollector<Object>) (GroupingCollector) GroupingCollector.manyKeys(
+            collector = GroupingCollector.manyKeys(
                 collectExpressions,
                 mode,
                 functions,
