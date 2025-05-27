@@ -19,10 +19,13 @@
 
 package org.elasticsearch.action.bulk;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.Gatherer;
 import java.util.stream.LongStream;
 import java.util.stream.Stream;
 
+import io.crate.common.MutableLong;
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
 
@@ -60,7 +63,7 @@ public final class BackoffPolicy {
 
     private static Stream<TimeValue> exponential(TimeValue initialDelay) {
         long initialDelayMs = initialDelay.millis();
-        return LongStream.rangeClosed(1, Long.MAX_VALUE)
+        return LongStream.iterate(1, i -> i + 1)
             .mapToObj(i -> TimeValue.timeValueMillis(exp(initialDelayMs, i)));
     }
 
@@ -92,6 +95,28 @@ public final class BackoffPolicy {
             .iterator();
     }
 
+    /// Similar to [#exponentialBackoff(TimeValue, int)] but with a max amount
+    /// of total delays passed limit (`timeout`) instead of a fixed number of retries
+    public static Iterable<TimeValue> exponentialBackoff(TimeValue initialDelay, TimeValue timeout) {
+        long timeoutMs = timeout.millis();
+        if (timeoutMs == 0) {
+            return List.of();
+        }
+        Gatherer<TimeValue, MutableLong, TimeValue> withTimeLimit = Gatherer.ofSequential(
+            () -> new MutableLong(0),
+            (sumState, delay, downstream) -> {
+                sumState.add(delay.millis());
+                downstream.push(delay);
+                long delaySum = sumState.value();
+                // if .add overflows and goes negative we also stop
+                return delaySum > 0 && delaySum < timeoutMs;
+            }
+        );
+        return () -> exponential(initialDelay)
+            .gather(withTimeLimit)
+            .iterator();
+    }
+
     /**
      * Creates an new exponential backoff policy with the provided configuration.
      *
@@ -103,7 +128,7 @@ public final class BackoffPolicy {
      * iterator created from it should only be used by a single thread.
      */
     public static Iterable<TimeValue> exponentialBackoff(int initialDelayMs, int maxNumberOfRetries, int maxDelayMs) {
-        return () -> LongStream.rangeClosed(1, Long.MAX_VALUE)
+        return () -> LongStream.iterate(1, i -> i + 1)
             .mapToObj(i -> TimeValue.timeValueMillis(Math.min(exp(initialDelayMs, i), maxDelayMs)))
             .limit(maxNumberOfRetries)
             .iterator();
