@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Iterator;
 import java.util.NoSuchElementException;
+import java.util.stream.StreamSupport;
 
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.test.ESTestCase;
@@ -38,27 +39,35 @@ public class LimitedBackoffPolicyTest extends ESTestCase {
 
     @Test
     public void testNoNext() throws Exception {
-        BackoffPolicy policy = new LimitedExponentialBackoff(0, 1, Integer.MAX_VALUE);
+        Iterable<TimeValue> policy = BackoffPolicy.exponentialBackoff(0, 1, Integer.MAX_VALUE);
         Iterator<TimeValue> it = policy.iterator();
         it.next();
         assertThatThrownBy(() -> it.next())
-            .isExactlyInstanceOf(NoSuchElementException.class)
-            .hasMessage("Reached maximum amount of backoff iterations. Only 1 iterations allowed.");
+            .isExactlyInstanceOf(NoSuchElementException.class);
     }
 
     @Test
     public void testStartValue() throws Exception {
-        LimitedExponentialBackoff policy = new LimitedExponentialBackoff(100, 1, Integer.MAX_VALUE);
-        Iterator<TimeValue> it = policy.iterator();
-        assertThat(it.next()).isEqualTo(TimeValue.timeValueMillis(100));
+        Iterable<TimeValue> policy = BackoffPolicy.exponentialBackoff(100, 3, Integer.MAX_VALUE);
+        assertThat(policy).containsExactly(
+            TimeValue.timeValueMillis(110),
+            TimeValue.timeValueMillis(130),
+            TimeValue.timeValueMillis(200)
+        );
     }
 
     @Test
     public void testLimit() throws Exception {
         int maxDelay = 1000;
-        LimitedExponentialBackoff policy = new LimitedExponentialBackoff(0, 1000, maxDelay);
+        Iterable<TimeValue> policy = BackoffPolicy.exponentialBackoff(0, 1000, maxDelay);
         for (TimeValue val : policy) {
             assertThat(val.millis()).isLessThanOrEqualTo(maxDelay);
         }
+
+        Iterable<TimeValue> exponentialBackoff = BackoffPolicy.exponentialBackoff(50, 800, 5000);
+        TimeValue total = TimeValue.timeValueMillis(StreamSupport.stream(exponentialBackoff.spliterator(), false)
+            .mapToLong(timeValue -> timeValue.millis())
+            .sum());
+        assertThat(total).isLessThan(TimeValue.timeValueMinutes(72));
     }
 }
