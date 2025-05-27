@@ -179,8 +179,6 @@ Version number representing ambiguous row versions
 
 A client is writing to a primary shard. The node holding the primary shard is
 partitioned from the cluster. It usually takes between 30 and 60 seconds
-(depending on `ping configuration
-<https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/discovery-cluster-formation-settings>`_)
 before the master node notices the partition. During this time, the same row is
 updated on both the primary shard (partitioned) and a replica shard (not
 partitioned).
@@ -286,8 +284,6 @@ Data that was written to the original primary shard on the partitioned node is
 lost as data from the newly elected primary shard replaces it when it rejoins
 the cluster.
 
-The risk window depends on your `ping configuration
-<https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/discovery-cluster-formation-settings>`_.
 The default configuration of a 30 second ping timeout with three retries
 corresponds to a 90 second risk window. However, it is very rare for a node to
 lose connectivity within the cluster but maintain connectivity with clients.
@@ -479,9 +475,7 @@ Unaware master accepts cluster updates
 If a master has lost quorum (i.e. the number of nodes it is in communication
 with has fallen below the configured minimum) it should step down as master and
 stop answering requests to perform cluster updates. There is a small risk
-window between losing quorum and noticing that quorum has been lost, depending
-on your `ping configuration
-<https://www.elastic.co/docs/reference/elasticsearch/configuration-reference/discovery-cluster-formation-settings>`_.
+window between losing quorum and noticing that quorum has been lost.
 
 .. rubric:: Consequence
 
