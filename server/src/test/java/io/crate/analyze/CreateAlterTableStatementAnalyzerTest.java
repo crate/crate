@@ -296,6 +296,15 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     }
 
     @Test
+    public void testCreateTableWithMaxDepthLimit() {
+        BoundCreateTable analysis = analyze(
+            "CREATE TABLE foo (id int primary key) " +
+                "with (\"mapping.depth.limit\"=101)");
+        assertThat(analysis.settings().get(DocTableInfo.DEPTH_LIMIT_SETTING.getKey()))
+            .isEqualTo("101");
+    }
+
+    @Test
     public void testCreateTableWithRefreshInterval() {
         BoundCreateTable analysis = analyze(
             "CREATE TABLE foo (id int primary key, content string) " +
@@ -351,6 +360,22 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "ALTER TABLE users " +
             "RESET (\"mapping.total_fields.limit\")");
         assertThat(analysisReset.settings().get(DocTableInfo.TOTAL_COLUMNS_LIMIT.getKey()))
+            .isNull();
+    }
+
+    @Test
+    public void testMaxDepthLimitCanBeUsedWithAlterTable() {
+        BoundAlterTable analysisSet = analyze(
+            "ALTER TABLE users " +
+                "SET (\"mapping.depth.limit\" = '101')");
+        assertThat(analysisSet.settings().get(DocTableInfo.DEPTH_LIMIT_SETTING.getKey()))
+            .isEqualTo("101");
+
+        // Check if resetting total_fields results in default value
+        BoundAlterTable analysisReset = analyze(
+            "ALTER TABLE users " +
+                "RESET (\"mapping.depth.limit\")");
+        assertThat(analysisReset.settings().get(DocTableInfo.DEPTH_LIMIT_SETTING.getKey()))
             .isNull();
     }
 

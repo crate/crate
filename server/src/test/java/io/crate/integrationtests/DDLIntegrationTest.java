@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,6 +39,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.exceptions.SQLParseException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -49,6 +51,7 @@ import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
+import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
@@ -1135,5 +1138,26 @@ public class DDLIntegrationTest extends IntegTestCase {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
             .hasMessageContaining("Failed CONSTRAINT leaf_check CHECK (\"o1\"['a1']['c1'] > 10)");
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_cannot_exceed_max_depth_limit() throws Exception {
+        StringBuilder sb = new StringBuilder("create table doc.tbl (a int, b int, c int,\n");
+        int depth = 101; // the current limit is 100
+        for (int i = 0; i < depth; i++) {
+            sb.append("  ".repeat(i))
+                .append(randomAlphaOfLength(4))
+                .append(i)
+                .append(" object as (\n");
+        }
+        sb.append("  ".repeat(depth)).append("x int, y int, z int");
+        for (int i = depth; i >= 0; i--) {
+            sb.append("  ".repeat(i)).append(")\n");
+        }
+        String stmt = sb.toString();
+        assertThatThrownBy(() -> execute(stmt))
+            .isExactlyInstanceOf(SQLParseException.class)
+            .hasMessage("Limit of max column depth [100] in table [doc.tbl] exceeded");
     }
 }

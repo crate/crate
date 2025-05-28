@@ -219,6 +219,11 @@ Breaking Changes
         | TRUE          |
         +---------------+
 
+ - :ref:`aggregation-stddev` changed and is now an alias for
+   :ref:`aggregation-stddev-samp`, to match PostgreSQL behavior. In order to
+   calculate the population standard deviation, :ref:`aggregation-stddev-pop`
+   must be used.
+
 Deprecations
 ============
 
@@ -343,6 +348,12 @@ Administration and Operations
 
 - Added ``last_write_before`` column to the sys.shards table, reporting a
   timestamp before which the last write operation to the shard has taken place.
+
+- Re-enabled :ref:`mapping.depth.limit <sql-create-table-mapping-depth-limit>`
+  setting to enforce a maximum nesting depth for object columns when adding new
+  columns to a table. The default value is ``100``. The limit can be increased
+  if necessary, but use caution;deeply nested structures may lead to long
+  execution times or stack overflow errors.
 
 Client interfaces
 -----------------
