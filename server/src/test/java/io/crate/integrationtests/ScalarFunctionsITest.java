@@ -21,7 +21,8 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
+
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -31,7 +32,8 @@ public class ScalarFunctionsITest extends IntegTestCase {
     @Test
     public void testCurrentDatabase() {
         execute("select * FROM (SELECT current_database()) as vt");
-        assertThat(response.cols()[0]).isEqualTo("current_database");
-        assertThat(response.rows()[0][0]).isEqualTo("crate");
+        assertThat(response)
+            .hasColumns("current_database")
+            .hasRows("crate");
     }
 }
