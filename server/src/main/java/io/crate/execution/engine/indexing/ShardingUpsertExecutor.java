@@ -43,6 +43,7 @@ import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitions;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.bulk.BulkRequestExecutor;
+import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -66,7 +67,6 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeLimits;
-import io.crate.execution.support.RetryListener;
 
 public class ShardingUpsertExecutor
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
@@ -219,13 +219,13 @@ public class ShardingUpsertExecutor
                     nodeLimit,
                     resultFuture);
 
-            listener = new RetryListener<>(
+            RetryableAction<ShardResponse> retryableAction = RetryableAction.of(
                 scheduler,
                 l -> requestExecutor.execute(request, l),
-                listener,
-                BackoffPolicy.unlimitedDynamic(nodeLimit)
+                BackoffPolicy.unlimitedDynamic(nodeLimit),
+                listener
             );
-            requestExecutor.execute(request, listener);
+            retryableAction.run();
         }
         return resultFuture.whenComplete((r, err) -> requests.close());
     }

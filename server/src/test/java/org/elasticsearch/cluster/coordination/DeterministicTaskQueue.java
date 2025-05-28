@@ -385,10 +385,12 @@ public class DeterministicTaskQueue {
 
             @Override
             public ScheduledExecutorService scheduler() {
+                ThreadPool tp = this;
                 return new ScheduledExecutorService() {
                     @Override
                     public ScheduledFuture<?> schedule(Runnable command, long delay, TimeUnit unit) {
-                        throw new UnsupportedOperationException();
+                        tp.schedule(command, new TimeValue(delay, unit), ThreadPool.Names.SAME);
+                        return null;
                     }
 
                     @Override
