@@ -172,4 +172,9 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         }
         return result;
     }
+
+    @Override
+    public @Nullable List<String> outputNames() {
+        return relation.outputNames();
+    }
 }

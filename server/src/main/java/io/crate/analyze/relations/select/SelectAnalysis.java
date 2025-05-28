@@ -85,13 +85,14 @@ public class SelectAnalysis {
     }
 
     public void add(ColumnIdent path, Symbol symbol, @Nullable String name) {
+        String outputName = name == null ? path.sqlFqn() : name;
         outputSymbols.add(symbol);
-        outputNames.add(name == null ? path.sqlFqn() : name);
-        var symbols = outputMap.get(path.sqlFqn());
+        outputNames.add(outputName);
+        var symbols = outputMap.get(outputName);
         if (symbols == null) {
             symbols = new HashSet<>();
         }
         symbols.add(symbol);
-        outputMap.put(path.sqlFqn(), symbols);
+        outputMap.put(outputName, symbols);
     }
 }
