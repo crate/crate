@@ -48,8 +48,8 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.io.IOUtils;
+import io.crate.concurrent.FutureActionListener;
 
 public class RetentionLeaseSyncActionTests extends ESTestCase {
 

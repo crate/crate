@@ -21,6 +21,7 @@
 
 package io.crate.replication.logical.action;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
 import static io.crate.role.metadata.RolesHelper.userOf;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -29,6 +30,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.MockLogAppender;
 import org.jetbrains.annotations.Nullable;
@@ -212,7 +214,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void test_resolve_relation_names_for_concrete_tables_ignores_table_with_non_active_primary_shards() throws Exception {
+    public void test_resolve_relation_names_for_concrete_tables_marks_table_with_non_active_primary_shards() throws Exception {
         var user = userOf("dummy");
         Roles roles = new Roles() {
             @Override
@@ -244,11 +246,17 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             "dummy"
         );
 
-        assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
+        RelationMetadata relationMetadata_t1 = resolvedRelations.get(new RelationName("doc", "t1"));
+        IndexMetadata indexMetadata_t1 = relationMetadata_t1.indices().getFirst();
+        assertThat(REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata_t1.getSettings())).isTrue();
+
+        RelationMetadata relationMetadata_t2 = resolvedRelations.get(new RelationName("doc", "t2"));
+        IndexMetadata indexMetadata_t2 = relationMetadata_t2.indices().getFirst();
+        assertThat(REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata_t2.getSettings())).isFalse();
     }
 
     @Test
-    public void test_resolve_relation_names_for_all_tables_ignores_partition_with_non_active_primary_shards() throws Exception {
+    public void test_resolve_relation_names_for_all_tables_marks_partition_with_non_active_primary_shards() throws Exception {
         var user = userOf("dummy");
         Roles roles = new Roles() {
             @Override
@@ -277,11 +285,12 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             "dummy"
         );
         RelationMetadata relationMetadata = resolvedRelations.get(new RelationName("doc", "p1"));
-        assertThat(relationMetadata.indices()).isEmpty();
+        IndexMetadata indexMetadata = relationMetadata.indices().getFirst();
+        assertThat(REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings())).isFalse();
     }
 
     @Test
-    public void test_resolve_relation_names_for_concrete_tables_ignores_partition_with_non_active_primary_shards() throws Exception {
+    public void test_resolve_relation_names_for_concrete_tables_marks_partition_with_non_active_primary_shards() throws Exception {
         var user = userOf("dummy");
         Roles roles = new Roles() {
             @Override
@@ -314,6 +323,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             "dummy"
         );
         RelationMetadata relationMetadata = resolvedRelations.get(new RelationName("doc", "p1"));
-        assertThat(relationMetadata.indices()).isEmpty();
+        IndexMetadata indexMetadata = relationMetadata.indices().getFirst();
+        assertThat(REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings())).isFalse();
     }
 }

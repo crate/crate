@@ -44,8 +44,8 @@ import org.elasticsearch.snapshots.mockstore.MockRepository;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
 
 
 public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {

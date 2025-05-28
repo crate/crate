@@ -173,7 +173,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public static final Setting<Long> TOTAL_COLUMNS_LIMIT =
         Setting.longSetting("index.mapping.total_fields.limit", 1000L, 0, Property.Dynamic, Property.IndexScope);
     public static final Setting<Long> DEPTH_LIMIT_SETTING =
-        Setting.longSetting("index.mapping.depth.limit", 20L, 1, Property.Dynamic, Property.IndexScope);
+        Setting.longSetting("index.mapping.depth.limit", 100L, 1, Property.Dynamic, Property.IndexScope);
 
     private final List<Reference> rootColumns;
     private final Set<Reference> droppedColumns;
@@ -1018,6 +1018,29 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         );
     }
 
+    public static void checkTotalColumnsLimit(RelationName name,
+                                              Settings indexSettings,
+                                              Stream<Reference> columns) {
+        long numColumns = columns.filter(col -> !col.column().isSystemColumn()).count();
+        long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexSettings);
+        if (numColumns > allowedTotalColumns) {
+            throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + name + "] exceeded");
+        }
+    }
+
+    public static void checkObjectDepthLimit(RelationName name,
+                                             Settings indexSettings,
+                                             List<Reference> columns) {
+        int maxDepth = columns.stream()
+            .mapToInt(ref -> ref.column().path().size())
+            .max()
+            .orElse(0);
+        long allowedMaxDepth = DEPTH_LIMIT_SETTING.get(indexSettings);
+        if (maxDepth > allowedMaxDepth) {
+            throw new IllegalArgumentException("Limit of max column depth [" + allowedMaxDepth + "] in table [" + name + "] exceeded");
+        }
+    }
+
     public Metadata.Builder writeTo(Metadata metadata,
                                     Metadata.Builder metadataBuilder) throws IOException {
         List<Reference> allColumns = Stream.concat(
@@ -1054,6 +1077,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
             indexUUIDs.add(indexMetadata.getIndexUUID());
 
+            final Settings indexSettings = indexMetadata.getSettings();
             long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexMetadata.getSettings());
             if (allColumns.size() > allowedTotalColumns) {
                 throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
@@ -1066,12 +1090,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
 
             Settings settings = Settings.builder()
-                .put(indexMetadata.getSettings())
+                .put(indexSettings)
                 // Override only the settings that might have changed
-                .put(tableParameters.filter(s -> !indexMetadata.getSettings().hasValue(s)))
+                .put(tableParameters.filter(s -> !indexSettings.hasValue(s)))
                 .build();
             long newSettingsVersion = indexMetadata.getSettingsVersion();
-            if (settings.equals(indexMetadata.getSettings()) == false) {
+            if (settings.equals(indexSettings) == false) {
                 newSettingsVersion++;
             }
             metadataBuilder.put(
@@ -1195,12 +1219,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                                    IntArrayList pKeyIndices,
                                    Map<String, String> newCheckConstraints) {
         newColumns.forEach(ref -> ref.column().validForCreate());
-        long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(tableParameters);
-        int numSysColumns = SysColumns.COLUMN_IDENTS.size();
-        if (newColumns.size() + allColumns.size() - numSysColumns > allowedTotalColumns) {
-            throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
-        }
-        HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(allColumns);
+        checkTotalColumnsLimit(ident, tableParameters, Stream.concat(allColumns.values().stream(), newColumns.stream()));
+        checkObjectDepthLimit(ident, tableParameters, newColumns);
+        HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(this.allColumns);
         int maxPosition = maxPosition();
         AtomicInteger positions = new AtomicInteger(maxPosition);
         List<Reference> newColumnsWithParents = addMissingParents(newColumns);

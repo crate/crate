@@ -47,4 +47,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a regression introduced in :ref:`version_5.6.0` that caused the logical
+  replication to stop if the publisher source table has some non-active primary
+  shards, for example when restarting a node. Please upgrade a subscriber
+  cluster before upgrading a publisher cluster to apply the fix correctly.
+  This fix will only work if both, the publisher and subscriber clusters, are
+  running with :ref:`version_5.10.8` or higher.

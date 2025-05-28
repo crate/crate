@@ -43,12 +43,12 @@ import org.elasticsearch.index.shard.ShardId;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.analyze.where.DocKeys;
+import io.crate.concurrent.MultiActionListener;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
-import io.crate.execution.support.MultiActionListener;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;

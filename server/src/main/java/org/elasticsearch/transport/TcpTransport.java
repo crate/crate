@@ -71,7 +71,6 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.PageCacheRecycler;
-import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
 import org.elasticsearch.monitor.jvm.JvmInfo;
 import org.elasticsearch.node.Node;
@@ -85,6 +84,7 @@ import com.carrotsearch.hppc.IntSet;
 import io.crate.common.collections.Sets;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.CountDown;
 import io.crate.protocols.ConnectionStats;
 import io.netty.channel.ChannelFuture;
 

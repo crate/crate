@@ -52,7 +52,6 @@ import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.concurrent.CountDown;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
@@ -65,6 +64,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.CountDown;
 
 public class MasterService extends AbstractLifecycleComponent {
 

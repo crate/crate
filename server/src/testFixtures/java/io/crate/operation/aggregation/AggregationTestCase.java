@@ -85,10 +85,10 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.FutureActionListener;
 import io.crate.analyze.WhereClause;
 import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.data.ArrayBucket;
 import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;

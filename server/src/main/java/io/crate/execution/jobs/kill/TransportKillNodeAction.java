@@ -34,7 +34,7 @@ import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.execution.support.MultiActionListener;
+import io.crate.concurrent.MultiActionListener;
 
 public final class TransportKillNodeAction {
 

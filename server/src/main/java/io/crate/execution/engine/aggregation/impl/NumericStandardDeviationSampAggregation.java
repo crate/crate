@@ -22,6 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -41,21 +42,23 @@ import io.crate.types.DataTypes;
 public class NumericStandardDeviationSampAggregation
     extends NumericStandardDeviationAggregation<NumericStandardDeviationSamp> {
 
-    public static final String NAME = "stddev_samp";
+    public static final List<String> NAMES = List.of("stddev_samp", "stddev");
 
     static {
         DataTypes.register(NumericStdDevSampStateType.ID, _ -> NumericStdDevSampStateType.INSTANCE);
     }
 
     public static void register(Functions.Builder builder) {
-        builder.add(
-            Signature.builder(NAME, FunctionType.AGGREGATE)
-                .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
-                .returnType(DataTypes.NUMERIC.getTypeSignature())
-                .features(Scalar.Feature.DETERMINISTIC)
-                .build(),
-            NumericStandardDeviationSampAggregation::new
-        );
+        for (var name: NAMES) {
+            builder.add(
+                    Signature.builder(name, FunctionType.AGGREGATE)
+                            .argumentTypes(DataTypes.NUMERIC.getTypeSignature())
+                            .returnType(DataTypes.NUMERIC.getTypeSignature())
+                            .features(Scalar.Feature.DETERMINISTIC)
+                            .build(),
+                    NumericStandardDeviationSampAggregation::new
+            );
+        }
     }
 
     public static class NumericStdDevSampStateType extends StdDevNumericStateType<NumericStandardDeviationSamp> {
@@ -95,7 +98,7 @@ public class NumericStandardDeviationSampAggregation
                                                  MemoryManager memoryManager) {
         if (minNodeInCluster.before(Version.V_6_0_0)) {
             throw new IllegalStateException(
-                    "Cannot use '" + NAME + "' aggregation on NUMERIC values until all nodes are upgraded to 6.0");
+                    "Cannot use '" + NAMES.getFirst() + "' aggregation on NUMERIC values until all nodes are upgraded to 6.0");
         }
         NumericStandardDeviationSamp newState = new NumericStandardDeviationSamp();
         ramAccounting.addBytes(newState.size());

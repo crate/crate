@@ -30,10 +30,10 @@ import java.util.concurrent.ExecutionException;
 
 import org.elasticsearch.action.ActionListener;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;

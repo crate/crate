@@ -51,6 +51,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
@@ -64,7 +65,7 @@ import org.elasticsearch.transport.RemoteClusters;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SubscriptionRestoreException;
 import io.crate.metadata.NodeContext;
@@ -266,9 +267,10 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             );
             throw new RelationAlreadyExists(relation, message);
         };
-        for (var index : stateResponse.concreteIndices()) {
-            if (metadata.hasIndex(index)) {
-                onExists.accept(RelationName.fromIndexName(index));
+        for (IndexMetadata indexMetadata : stateResponse.concreteIndices()) {
+            String indexName = indexMetadata.getIndex().getName();
+            if (metadata.hasIndex(indexName)) {
+                onExists.accept(RelationName.fromIndexName(indexName));
             }
         }
         for (var template : stateResponse.concreteTemplates()) {

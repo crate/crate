@@ -55,7 +55,7 @@ import com.carrotsearch.hppc.ObjectLookupContainer;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Sets;
-import io.crate.execution.support.MultiActionListener;
+import io.crate.concurrent.MultiActionListener;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 

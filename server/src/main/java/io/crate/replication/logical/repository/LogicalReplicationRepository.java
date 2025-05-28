@@ -22,6 +22,7 @@
 package io.crate.replication.logical.repository;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 
 import java.io.IOException;
@@ -73,10 +74,10 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.RelationName;
@@ -152,7 +153,14 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         return getPublicationsState()
             .thenApply(stateResponse ->
-                new SnapshotInfo(snapshotId, stateResponse.concreteIndices(), SnapshotState.SUCCESS, Version.CURRENT));
+                new SnapshotInfo(
+                    snapshotId,
+                    stateResponse.concreteIndices().stream()
+                        .filter(im -> REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings()))
+                        .map(im -> im.getIndex().getName()).toList(),
+                    SnapshotState.SUCCESS,
+                    Version.CURRENT
+                ));
     }
 
     @Override
@@ -219,9 +227,11 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 builder.put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName);
                 // Store publishers original index UUID to be able to resolve the original index later on
                 builder.put(PUBLISHER_INDEX_UUID.getKey(), indexMetadata.getIndexUUID());
+                // Remove source routing active setting, it is only used as a marker to not restore these indices (yet)
+                builder.remove(REPLICATION_INDEX_ROUTING_ACTIVE.getKey());
 
                 var indexMdBuilder = IndexMetadata.builder(indexMetadata).settings(builder);
-                indexMetadata.getAliases().valuesIt().forEachRemaining(a -> indexMdBuilder.putAlias(a));
+                indexMetadata.getAliases().valuesIt().forEachRemaining(indexMdBuilder::putAlias);
                 result.add(indexMdBuilder.build());
             }
             return result;

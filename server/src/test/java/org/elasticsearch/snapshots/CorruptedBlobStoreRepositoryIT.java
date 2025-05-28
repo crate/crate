@@ -59,7 +59,7 @@ import org.elasticsearch.repositories.blobstore.BlobStoreRepository;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.metadata.RelationName;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;

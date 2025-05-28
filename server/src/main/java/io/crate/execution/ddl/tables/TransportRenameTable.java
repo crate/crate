@@ -43,7 +43,6 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.action.ActionListeners;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.RenameTableClusterStateExecutor;
 import io.crate.metadata.view.ViewsMetadata;
@@ -97,14 +96,12 @@ public class TransportRenameTable extends TransportMasterNodeAction<RenameTableR
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
         AtomicReference<String[]> newIndexNames = new AtomicReference<>(null);
-        ActionListener<AcknowledgedResponse> waitForShardsListener = ActionListeners.waitForShards(
+        ActionListener<AcknowledgedResponse> waitForShardsListener = activeShardsObserver.waitForShards(
             listener,
-            activeShardsObserver,
             request.timeout(),
             () -> logger.info("Renamed a relation, but the operation timed out waiting for enough shards to become available"),
             newIndexNames::get
         );
-
         clusterService.submitStateUpdateTask(
             "rename-table",
             new AckedClusterStateUpdateTask<>(Priority.HIGH, request, waitForShardsListener) {

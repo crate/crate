@@ -1105,6 +1105,14 @@ represented by an unscaled value of the unlimited precision::
      when using the :ref:`HTTP interface<interface-http>`, because of limitation
      of `JSON Data Types`_ for numbers with higher than 53-bits precision.
 
+.. CAUTION::
+
+    ``NUMERIC`` operations, for example :ref:`scalar function<scalar-functions>`
+    and :ref:`aggregations<aggregation>` may consume more memory and have worse
+    performance compared to their :ref:`type-real` and
+    :ref:`type-double-precision`, so consider using those types, unless the
+    increased precision, offered by ``NUMERIC``, is desired.
+
 The ``NUMERIC`` type is internally backed by the Java ``BigDecimal`` class. For
 more detailed information about its behaviour, see `BigDecimal documentation`_.
 

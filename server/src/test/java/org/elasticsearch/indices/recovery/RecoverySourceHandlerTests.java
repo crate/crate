@@ -118,10 +118,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.metadata.doc.SysColumns;
 
 public class RecoverySourceHandlerTests extends ESTestCase {

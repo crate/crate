@@ -42,9 +42,9 @@ import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.concurrent.CompletableFutures;
-import io.crate.execution.support.MultiActionListener;
+import io.crate.concurrent.FutureActionListener;
+import io.crate.concurrent.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;

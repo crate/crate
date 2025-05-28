@@ -71,8 +71,8 @@ import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.test.TestCluster;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 
 public final class BlobStoreTestUtil {

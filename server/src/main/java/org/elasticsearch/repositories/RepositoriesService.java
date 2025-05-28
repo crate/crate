@@ -57,9 +57,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Lists;
 import io.crate.common.io.IOUtils;
+import io.crate.concurrent.FutureActionListener;
 
 /**
  * Service responsible for maintaining and providing access to snapshot repositories on nodes.

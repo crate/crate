@@ -61,11 +61,11 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 
-import io.crate.action.FutureActionListener;
 import io.crate.auth.AccessControl;
 import io.crate.auth.Protocol;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.dml.BulkResponse;

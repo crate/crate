@@ -23,6 +23,7 @@ package io.crate.replication.logical;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.NON_REPLICATED_SETTINGS;
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
 
 import java.io.Closeable;
 import java.io.IOException;
@@ -425,8 +426,8 @@ public final class MetadataTracker implements Closeable {
         Set<RelationName> currentlyReplicatedTables = subscription.relations().keySet();
 
         Set<RelationName> existingRelations = publisherStateResponse.concreteIndices().stream()
-            .filter(index -> metadata.hasIndex(index))
-            .map(index -> RelationName.fromIndexName(index))
+            .filter(im -> metadata.hasIndex(im.getIndex().getName()))
+            .map(im -> RelationName.fromIndexName(im.getIndex().getName()))
             .filter(relationName -> currentlyReplicatedTables.contains(relationName) == false)
             .collect(Collectors.toSet());
 
@@ -457,16 +458,26 @@ public final class MetadataTracker implements Closeable {
         HashSet<RelationName> relationNamesForStateUpdate = new HashSet<>();
         ArrayList<TableOrPartition> toRestore = new ArrayList<>();
         Metadata subscriberMetadata = subscriberState.metadata();
-        for (var indexName : stateResponse.concreteIndices()) {
+        for (IndexMetadata indexMetadata : stateResponse.concreteIndices()) {
+            String indexName = indexMetadata.getIndex().getName();
             IndexParts indexParts = IndexName.decode(indexName);
             RelationName relationName = indexParts.toRelationName();
+            if (subscribedRelations.get(relationName) == null) {
+                relationNamesForStateUpdate.add(relationName);
+            }
+            if (REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings()) == false) {
+                // If the index is not active, we cannot restore it
+                if (LOGGER.isDebugEnabled()) {
+                    LOGGER.debug("Skipping index {} for subscription {} as it is not active", indexName, subscription);
+                }
+                continue;
+            }
             if (!subscriberMetadata.hasIndex(indexName)) {
                 String partitionIdent = indexParts.isPartitioned() ? indexParts.partitionIdent() : null;
                 toRestore.add(new TableOrPartition(relationName, partitionIdent));
                 relationNamesForStateUpdate.add(relationName);
-            } else if (subscribedRelations.get(relationName) == null) {
-                relationNamesForStateUpdate.add(relationName);
             }
+
         }
         for (var templateName : stateResponse.concreteTemplates()) {
             var indexParts = IndexName.decode(templateName);

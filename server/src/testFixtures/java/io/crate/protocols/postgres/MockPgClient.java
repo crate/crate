@@ -37,7 +37,7 @@ import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportRequestOptions;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 
 public class MockPgClient extends PgClient {
 

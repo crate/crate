@@ -136,12 +136,12 @@ import org.elasticsearch.snapshots.SnapshotsService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
+import io.crate.concurrent.MultiActionListener;
 import io.crate.exceptions.InvalidArgumentException;
-import io.crate.execution.support.MultiActionListener;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 
 

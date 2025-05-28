@@ -48,8 +48,8 @@ import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryListener;
 import io.crate.execution.support.RetryRunnable;

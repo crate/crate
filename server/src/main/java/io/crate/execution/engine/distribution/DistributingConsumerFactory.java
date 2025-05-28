@@ -112,8 +112,7 @@ public class DistributingConsumerFactory {
             bucketIdx,
             nodeOperation.downstreamNodes(),
             distributedResultAction,
-            pageSize,
-            threadPool
+            pageSize
         );
     }
 

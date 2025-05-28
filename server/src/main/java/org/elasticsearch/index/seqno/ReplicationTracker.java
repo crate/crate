@@ -67,7 +67,7 @@ import com.carrotsearch.hppc.ObjectLongMap;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.Tuple;
-import io.crate.execution.support.MultiActionListener;
+import io.crate.concurrent.MultiActionListener;
 
 /**
  * This class is responsible for tracking the replication group with its progress and safety markers (local and global checkpoints).

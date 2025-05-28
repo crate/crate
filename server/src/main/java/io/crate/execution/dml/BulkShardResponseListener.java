@@ -29,9 +29,9 @@ import org.elasticsearch.index.engine.VersionConflictEngineException;
 
 import com.carrotsearch.hppc.IntCollection;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
+import io.crate.concurrent.MultiActionListener;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.MultiActionListener;
 
 /**
  * Listener to aggregate the responses of multiple (bulk-operation-mode) ShardResponses
