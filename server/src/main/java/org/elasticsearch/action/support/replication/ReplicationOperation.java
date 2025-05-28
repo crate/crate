@@ -35,6 +35,7 @@ import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.UnavailableShardsException;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
@@ -237,8 +238,11 @@ public class ReplicationOperation<
         };
 
         final String allocationId = shard.allocationId().getId();
-        final RetryableAction<ReplicaResponse> replicationAction = new RetryableAction<ReplicaResponse>(logger, threadPool,
-            initialRetryBackoffBound, retryTimeout, replicationListener) {
+        final RetryableAction<ReplicaResponse> replicationAction = new RetryableAction<ReplicaResponse>(
+                logger,
+                threadPool.scheduler(),
+                BackoffPolicy.exponentialBackoff(initialRetryBackoffBound, retryTimeout),
+                replicationListener) {
 
             @Override
             public void tryAction(ActionListener<ReplicaResponse> listener) {
@@ -252,7 +256,7 @@ public class ReplicationOperation<
             }
 
             @Override
-            public boolean shouldRetry(Exception e) {
+            public boolean shouldRetry(Throwable e) {
                 final Throwable cause = SQLExceptions.unwrap(e);
                 return cause instanceof CircuitBreakingException ||
                     cause instanceof EsRejectedExecutionException ||

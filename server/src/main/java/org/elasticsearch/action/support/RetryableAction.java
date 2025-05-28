@@ -21,17 +21,20 @@ package org.elasticsearch.action.support;
 
 import java.util.ArrayDeque;
 import java.util.Iterator;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
-import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.threadpool.Scheduler;
-import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * A action that will be retried on failure if {@link RetryableAction#shouldRetry(Exception)} returns true.
@@ -41,25 +44,39 @@ import io.crate.common.unit.TimeValue;
  */
 public abstract class RetryableAction<Response> {
 
+    private static final Logger LOGGER = LogManager.getLogger(RetryableAction.class);
+
     private final Logger logger;
 
     private final AtomicBoolean isDone = new AtomicBoolean(false);
-    private final ThreadPool threadPool;
+    private final ScheduledExecutorService scheduler;
     private final ActionListener<Response> finalListener;
     private final Iterator<TimeValue> delay;
     private final ActionRunnable<Response> runnable;
 
-    private volatile Scheduler.ScheduledCancellable retryTask;
+    private volatile ScheduledFuture<?> retryTask;
 
+
+    public static <T> RetryableAction<T> of(ScheduledExecutorService scheduler,
+                                            Consumer<ActionListener<T>> command,
+                                            Iterable<TimeValue> backoffPolicy,
+                                            ActionListener<T> listener) {
+        return new RetryableAction<T>(LOGGER, scheduler, backoffPolicy, listener) {
+
+            @Override
+            public void tryAction(ActionListener<T> listener) {
+                command.accept(listener);
+            }
+        };
+    }
 
     public RetryableAction(Logger logger,
-                           ThreadPool threadPool,
-                           TimeValue initialDelay,
-                           TimeValue timeoutValue,
+                           ScheduledExecutorService scheduler,
+                           Iterable<TimeValue> backoffPolicy,
                            ActionListener<Response> listener) {
         this.logger = logger;
-        this.threadPool = threadPool;
-        this.delay = BackoffPolicy.exponentialBackoff(initialDelay, timeoutValue).iterator();
+        this.scheduler = scheduler;
+        this.delay = backoffPolicy.iterator();
         this.finalListener = listener;
         this.runnable = new ActionRunnable<Response>(new RetryingListener(null)) {
 
@@ -86,9 +103,9 @@ public abstract class RetryableAction<Response> {
 
     public void cancel(Exception e) {
         if (isDone.compareAndSet(false, true)) {
-            Scheduler.ScheduledCancellable localRetryTask = this.retryTask;
+            ScheduledFuture<?> localRetryTask = this.retryTask;
             if (localRetryTask != null) {
-                localRetryTask.cancel();
+                localRetryTask.cancel(false);
             }
             onFinished();
             finalListener.onFailure(e);
@@ -97,7 +114,9 @@ public abstract class RetryableAction<Response> {
 
     public abstract void tryAction(ActionListener<Response> listener);
 
-    public abstract boolean shouldRetry(Exception e);
+    public boolean shouldRetry(Throwable t) {
+        return t instanceof EsRejectedExecutionException rejected && !rejected.isExecutorShutdown();
+    }
 
     public void onFinished() {
     }
@@ -122,13 +141,14 @@ public abstract class RetryableAction<Response> {
 
         @Override
         public void onFailure(Exception e) {
-            if (shouldRetry(e) && delay.hasNext()) {
+            Throwable t = SQLExceptions.unwrap(e);
+            if (shouldRetry(t) && delay.hasNext()) {
                 TimeValue currentDelay = delay.next();
                 addException(e);
                 if (isDone.get() == false) {
                     logger.debug("Retrying action that failed in delay={} err={}", currentDelay, e);
                     try {
-                        retryTask = threadPool.schedule(runnable, currentDelay, ThreadPool.Names.SAME);
+                        retryTask = scheduler.schedule(runnable, currentDelay.millis(), TimeUnit.MILLISECONDS);
                     } catch (EsRejectedExecutionException ree) {
                         onFinalFailure(ree);
                     }

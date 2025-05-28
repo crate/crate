@@ -19,6 +19,7 @@
 
 package org.elasticsearch.action.support;
 
+import static io.crate.common.unit.TimeValue.timeValueMillis;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.node.Node.NODE_NAME_SETTING;
@@ -54,8 +55,11 @@ public class RetryableActionTests extends ESTestCase {
     public void testRetryableActionNoRetries() throws Exception {
         final AtomicInteger executedCount = new AtomicInteger();
         final FutureActionListener<Boolean> future = new FutureActionListener<>();
-        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
-            TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(30), future) {
+        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(
+                logger,
+                taskQueue.getThreadPool().scheduler(),
+                BackoffPolicy.exponentialBackoff(timeValueMillis(10), TimeValue.timeValueSeconds(30)),
+                future) {
 
             @Override
             public void tryAction(ActionListener<Boolean> listener) {
@@ -64,7 +68,7 @@ public class RetryableActionTests extends ESTestCase {
             }
 
             @Override
-            public boolean shouldRetry(Exception e) {
+            public boolean shouldRetry(Throwable e) {
                 return true;
             }
         };
@@ -83,11 +87,11 @@ public class RetryableActionTests extends ESTestCase {
         final FutureActionListener<Boolean> future = new FutureActionListener<>();
         TimeValue initialDelay = TimeValue.timeValueMillis(10);
         TimeValue timeout = TimeValue.timeValueSeconds(30);
+        Iterable<TimeValue> backoffPolicy = BackoffPolicy.exponentialBackoff(initialDelay, timeout);
         final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(
                 logger,
-                taskQueue.getThreadPool(),
-                initialDelay,
-                timeout,
+                taskQueue.getThreadPool().scheduler(),
+                backoffPolicy,
                 future) {
 
             @Override
@@ -104,12 +108,12 @@ public class RetryableActionTests extends ESTestCase {
             }
 
             @Override
-            public boolean shouldRetry(Exception e) {
+            public boolean shouldRetry(Throwable e) {
                 retryCount.getAndIncrement();
                 return e instanceof EsRejectedExecutionException;
             }
         };
-        Iterator<TimeValue> expectedDelays = BackoffPolicy.exponentialBackoff(initialDelay, timeout).iterator();
+        Iterator<TimeValue> expectedDelays = backoffPolicy.iterator();
         retryableAction.run();
         taskQueue.runAllRunnableTasks();
         long previousDeferredTime = 0;
@@ -131,8 +135,11 @@ public class RetryableActionTests extends ESTestCase {
     public void testRetryableActionTimeout() {
         final AtomicInteger retryCount = new AtomicInteger();
         final FutureActionListener<Boolean> future = new FutureActionListener<>();
-        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
-            TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(1), future) {
+        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(
+                logger,
+                taskQueue.getThreadPool().scheduler(),
+                BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(1)),
+                future) {
 
             @Override
             public void tryAction(ActionListener<Boolean> listener) {
@@ -144,7 +151,7 @@ public class RetryableActionTests extends ESTestCase {
             }
 
             @Override
-            public boolean shouldRetry(Exception e) {
+            public boolean shouldRetry(Throwable e) {
                 retryCount.getAndIncrement();
                 return e instanceof EsRejectedExecutionException;
             }
@@ -170,8 +177,11 @@ public class RetryableActionTests extends ESTestCase {
     public void testTimeoutOfZeroMeansNoRetry() {
         final AtomicInteger executedCount = new AtomicInteger();
         final FutureActionListener<Boolean> future = new FutureActionListener<>();
-        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
-            TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(0), future) {
+        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(
+                logger,
+                taskQueue.getThreadPool().scheduler(),
+                BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(0)),
+                future) {
 
             @Override
             public void tryAction(ActionListener<Boolean> listener) {
@@ -180,7 +190,7 @@ public class RetryableActionTests extends ESTestCase {
             }
 
             @Override
-            public boolean shouldRetry(Exception e) {
+            public boolean shouldRetry(Throwable e) {
                 return e instanceof EsRejectedExecutionException;
             }
         };
@@ -196,8 +206,11 @@ public class RetryableActionTests extends ESTestCase {
     public void testFailedBecauseNotRetryable() {
         final AtomicInteger executedCount = new AtomicInteger();
         final FutureActionListener<Boolean> future = new FutureActionListener<>();
-        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
-            TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(30), future) {
+        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(
+                logger,
+                taskQueue.getThreadPool().scheduler(),
+                BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(30)),
+                future) {
 
             @Override
             public void tryAction(ActionListener<Boolean> listener) {
@@ -206,7 +219,7 @@ public class RetryableActionTests extends ESTestCase {
             }
 
             @Override
-            public boolean shouldRetry(Exception e) {
+            public boolean shouldRetry(Throwable e) {
                 return e instanceof EsRejectedExecutionException;
             }
         };
@@ -221,8 +234,11 @@ public class RetryableActionTests extends ESTestCase {
     public void testRetryableActionCancelled() {
         final AtomicInteger executedCount = new AtomicInteger();
         final FutureActionListener<Boolean> future = new FutureActionListener<>();
-        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(logger, taskQueue.getThreadPool(),
-            TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(30), future) {
+        final RetryableAction<Boolean> retryableAction = new RetryableAction<Boolean>(
+                logger,
+                taskQueue.getThreadPool().scheduler(),
+                BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(10), TimeValue.timeValueSeconds(30)),
+                future) {
 
             @Override
             public void tryAction(ActionListener<Boolean> listener) {
@@ -234,7 +250,7 @@ public class RetryableActionTests extends ESTestCase {
             }
 
             @Override
-            public boolean shouldRetry(Exception e) {
+            public boolean shouldRetry(Throwable e) {
                 return e instanceof EsRejectedExecutionException;
             }
         };
