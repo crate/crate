@@ -23,10 +23,12 @@ import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -46,6 +48,38 @@ public class ActiveShardsObserver {
 
     public ActiveShardsObserver(final ClusterService clusterService) {
         this.clusterService = clusterService;
+    }
+
+    /**
+     * Creates a listener that will wait for active shards if the provided
+     * {@link AcknowledgedResponse} is acked before calling the delegate.
+     **/
+    public <T extends AcknowledgedResponse> ActionListener<T> waitForShards(
+            ActionListener<T> delegate,
+            TimeValue timeout,
+            Runnable onShardsNotAcknowledged,
+            Supplier<String[]> getIndexNames) {
+        return ActionListener.wrap(
+            resp -> {
+                if (resp.isAcknowledged()) {
+                    waitForActiveShards(
+                        getIndexNames.get(),
+                        ActiveShardCount.DEFAULT,
+                        timeout,
+                        shardsAcknowledged -> {
+                            if (!shardsAcknowledged) {
+                                onShardsNotAcknowledged.run();
+                            }
+                            delegate.onResponse(resp);
+                        },
+                        delegate::onFailure
+                    );
+                } else {
+                    delegate.onResponse(resp);
+                }
+            },
+            delegate::onFailure
+        );
     }
 
     public CompletableFuture<Boolean> waitForActiveShards(String[] indexNames, ActiveShardCount shardCount, TimeValue timeout) {

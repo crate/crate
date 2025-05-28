@@ -19,79 +19,49 @@
 
 package org.elasticsearch.action.bulk;
 
-import java.util.Iterator;
-import java.util.NoSuchElementException;
 import java.util.concurrent.TimeUnit;
+import java.util.stream.LongStream;
+import java.util.stream.Stream;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
 
-/**
- * Provides a backoff policy for bulk requests. Whenever a bulk request is rejected due to resource constraints (i.e. the client's internal
- * thread pool is full), the backoff policy decides how long the bulk processor will wait before the operation is retried internally.
- *
- * Notes for implementing custom subclasses:
- *
- * The underlying mathematical principle of <code>BackoffPolicy</code> are progressions which can be either finite or infinite although
- * the latter should not be used for retrying. A progression can be mapped to a <code>java.util.Iterator</code> with the following
- * semantics:
- *
- * <ul>
- *     <li><code>#hasNext()</code> determines whether the progression has more elements. Return <code>true</code> for infinite progressions</li>
- *     <li><code>#next()</code> determines the next element in the progression, i.e. the next wait time period</li>
- * </ul>
- *
- * Note that backoff policies are exposed as <code>Iterables</code> in order to be consumed multiple times.
- */
-public abstract class BackoffPolicy implements Iterable<TimeValue> {
+/// Provides backoff policies for anything doing retries
+/// The policies are exposed as `Iterables` in order to be consumed multiple times.
+///
+/// - Use [Iterator#hasNext()] to see if another retry is possible
+/// - Use [Iterator#next()] to get the next delay
+public final class BackoffPolicy {
+
+    private BackoffPolicy() {
+    }
 
     private static final int DEFAULT_RETRY_LIMIT = 10;
 
-    public static BackoffPolicy unlimitedDynamic(ConcurrencyLimit concurrencyLimit) {
-        return new BackoffPolicy() {
-
-            @Override
-            public Iterator<TimeValue> iterator() {
-                return new Iterator<>() {
-
-                    @Override
-                    public boolean hasNext() {
-                        return true;
-                    }
-
-                    @Override
-                    public TimeValue next() {
-                        return TimeValue.timeValueNanos(concurrencyLimit.getLastRtt(TimeUnit.NANOSECONDS));
-                    }
-                };
-            }
-        };
+    public static Iterable<TimeValue> unlimitedDynamic(ConcurrencyLimit concurrencyLimit) {
+        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLongRtt(TimeUnit.NANOSECONDS)))
+            .iterator();
     }
 
-    public static BackoffPolicy limitedDynamic(ConcurrencyLimit concurrencyLimit) {
-        return new BackoffPolicy() {
+    public static Iterable<TimeValue> limitedDynamic(ConcurrencyLimit concurrencyLimit) {
+        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLongRtt(TimeUnit.NANOSECONDS)))
+            .limit(DEFAULT_RETRY_LIMIT)
+            .iterator();
+    }
 
-            int iterations = 0;
+    private static long exp(long initialDelayMs, long i) {
+        long delta = 10 * ((long) Math.exp(0.8d * i) - 1);
+        long result = initialDelayMs + delta;
 
-            @Override
-            public Iterator<TimeValue> iterator() {
-                return new Iterator<>() {
+        // with i=52 we get negative: -6788035485022974986;
+        // at some point we'd go positive again, using a lower than expected delay.
+        return result < 0 || i > 51 ? Long.MAX_VALUE : result;
+    }
 
-                    @Override
-                    public boolean hasNext() {
-                        return iterations < DEFAULT_RETRY_LIMIT;
-                    }
-
-                    @Override
-                    public TimeValue next() {
-                        if (!hasNext()) {
-                            throw new NoSuchElementException("BackoffPolicy iterator exhausted");
-                        }
-                        return TimeValue.timeValueNanos(concurrencyLimit.getLongRtt(TimeUnit.NANOSECONDS));
-                    }
-                };
-            }
-        };
+    private static Stream<TimeValue> exponential(TimeValue initialDelay) {
+        long initialDelayMs = initialDelay.millis();
+        return LongStream.rangeClosed(1, Long.MAX_VALUE)
+            .mapToObj(i -> TimeValue.timeValueMillis(exp(initialDelayMs, i)));
     }
 
 
@@ -102,8 +72,9 @@ public abstract class BackoffPolicy implements Iterable<TimeValue> {
      * @return A backoff policy with an exponential increase in wait time for retries. The returned instance is thread safe but each
      * iterator created from it should only be used by a single thread.
      */
-    public static BackoffPolicy exponentialBackoff() {
-        return exponentialBackoff(TimeValue.timeValueMillis(50), 8);
+    public static Iterable<TimeValue> exponentialBackoff() {
+        return () -> exponential(TimeValue.timeValueMillis(50))
+            .iterator();
     }
 
     /**
@@ -115,60 +86,26 @@ public abstract class BackoffPolicy implements Iterable<TimeValue> {
      * @return A backoff policy with an exponential increase in wait time for retries. The returned instance is thread safe but each
      * iterator created from it should only be used by a single thread.
      */
-    public static BackoffPolicy exponentialBackoff(TimeValue initialDelay, int maxNumberOfRetries) {
-        return new ExponentialBackoff((int) checkDelay(initialDelay).millis(), maxNumberOfRetries);
+    public static Iterable<TimeValue> exponentialBackoff(TimeValue initialDelay, int maxNumberOfRetries) {
+        return () -> exponential(initialDelay)
+            .limit(maxNumberOfRetries)
+            .iterator();
     }
 
-    private static TimeValue checkDelay(TimeValue delay) {
-        if (delay.millis() > Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("delay must be <= " + Integer.MAX_VALUE + " ms");
-        }
-        return delay;
-    }
-
-    private static class ExponentialBackoff extends BackoffPolicy {
-        private final int start;
-
-        private final int numberOfElements;
-
-        private ExponentialBackoff(int start, int numberOfElements) {
-            assert start >= 0;
-            assert numberOfElements >= 0;
-            this.start = start;
-            this.numberOfElements = numberOfElements;
-        }
-
-        @Override
-        public Iterator<TimeValue> iterator() {
-            return new ExponentialBackoffIterator(start, numberOfElements);
-        }
-    }
-
-    private static class ExponentialBackoffIterator implements Iterator<TimeValue> {
-        private final int numberOfElements;
-
-        private final int start;
-
-        private int currentlyConsumed;
-
-        private ExponentialBackoffIterator(int start, int numberOfElements) {
-            this.start = start;
-            this.numberOfElements = numberOfElements;
-        }
-
-        @Override
-        public boolean hasNext() {
-            return currentlyConsumed < numberOfElements;
-        }
-
-        @Override
-        public TimeValue next() {
-            if (!hasNext()) {
-                throw new NoSuchElementException("Only up to " + numberOfElements + " elements");
-            }
-            int result = start + 10 * ((int) Math.exp(0.8d * (currentlyConsumed)) - 1);
-            currentlyConsumed++;
-            return TimeValue.timeValueMillis(result);
-        }
+    /**
+     * Creates an new exponential backoff policy with the provided configuration.
+     *
+     * @param initialDelay       The initial delay defines how long to wait for the first retry attempt. Must not be null.
+     *                           Must be &lt;= <code>Integer.MAX_VALUE</code> ms.
+     * @param maxNumberOfRetries The maximum number of retries. Must be a non-negative number.
+     * @param maxDelayMs maximum value that {@code initialDelay} may grow to - once hit the delay is constant until {@code}maxNumberOfRetries is reached.
+     * @return A backoff policy with an exponential increase in wait time for retries. The returned instance is thread safe but each
+     * iterator created from it should only be used by a single thread.
+     */
+    public static Iterable<TimeValue> exponentialBackoff(int initialDelayMs, int maxNumberOfRetries, int maxDelayMs) {
+        return () -> LongStream.rangeClosed(1, Long.MAX_VALUE)
+            .mapToObj(i -> TimeValue.timeValueMillis(Math.min(exp(initialDelayMs, i), maxDelayMs)))
+            .limit(maxNumberOfRetries)
+            .iterator();
     }
 }

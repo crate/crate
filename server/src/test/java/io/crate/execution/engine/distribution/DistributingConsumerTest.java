@@ -40,7 +40,6 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.test.ESTestCase;
-import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -174,8 +173,7 @@ public class DistributingConsumerTest extends ESTestCase {
             0,
             Collections.singletonList("n1"),
             distributedResultAction::execute,
-            pageSize,
-            mock(ThreadPool.class)
+            pageSize
         );
     }
 

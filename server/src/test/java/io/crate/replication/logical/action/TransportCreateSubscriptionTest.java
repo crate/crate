@@ -48,7 +48,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.replication.logical.LogicalReplicationService;

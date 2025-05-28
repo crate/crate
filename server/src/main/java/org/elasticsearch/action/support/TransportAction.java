@@ -25,7 +25,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 
 public abstract class TransportAction<Request extends TransportRequest, Response extends TransportResponse> {
 

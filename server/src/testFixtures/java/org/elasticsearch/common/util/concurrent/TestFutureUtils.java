@@ -23,7 +23,7 @@ package org.elasticsearch.common.util.concurrent;
 
 import org.elasticsearch.common.CheckedConsumer;
 
-import io.crate.action.FutureActionListener;
+import io.crate.concurrent.FutureActionListener;
 
 public final class TestFutureUtils {
 

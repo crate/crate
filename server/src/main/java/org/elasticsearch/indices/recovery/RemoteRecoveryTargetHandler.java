@@ -57,8 +57,8 @@ import org.elasticsearch.transport.TransportRequestOptions.Type;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.unit.TimeValue;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.exceptions.SQLExceptions;
 
 public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {

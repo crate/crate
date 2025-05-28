@@ -48,9 +48,9 @@ import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService.HandshakeResponse;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.action.FutureActionListener;
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
+import io.crate.concurrent.FutureActionListener;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 
 public final class SniffRemoteClient implements Client {
