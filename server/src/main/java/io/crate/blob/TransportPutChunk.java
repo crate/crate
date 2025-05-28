@@ -81,7 +81,7 @@ public class TransportPutChunk extends TransportReplicationAction<PutChunkReques
     protected void shardOperationOnPrimary(PutChunkRequest request,
                                            IndexShard primary,
                                            ActionListener<PrimaryResult<PutChunkReplicaRequest, PutChunkResponse>> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             PutChunkResponse response = new PutChunkResponse();
             transferTarget.continueTransfer(request, response);
             final PutChunkReplicaRequest replicaRequest = new PutChunkReplicaRequest(
@@ -92,8 +92,10 @@ public class TransportPutChunk extends TransportReplicationAction<PutChunkReques
                 request.content(),
                 request.isLast()
             );
-            return new PrimaryResult<>(replicaRequest, response);
-        });
+            listener.onResponse(new PrimaryResult<>(replicaRequest, response));
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override
