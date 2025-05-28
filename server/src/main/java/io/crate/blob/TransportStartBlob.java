@@ -83,12 +83,14 @@ public class TransportStartBlob extends TransportReplicationAction<StartBlobRequ
     protected void shardOperationOnPrimary(StartBlobRequest request,
                                            IndexShard primary,
                                            ActionListener<PrimaryResult<StartBlobRequest, StartBlobResponse>> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             logger.trace("shardOperationOnPrimary {}", request);
             final StartBlobResponse response = new StartBlobResponse();
             transferTarget.startTransfer(request, response);
-            return new PrimaryResult<>(request, response);
-        });
+            listener.onResponse(new PrimaryResult<>(request, response));
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override

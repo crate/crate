@@ -109,11 +109,11 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
             : acceptableClusterStatePredicate.or(clusterState -> clusterState.nodes().isLocalNodeElectedMaster() == false);
 
         if (acceptableClusterStatePredicate.test(state)) {
-            ActionListener.completeWith(listener, () -> buildResponse(
-                request,
-                state,
-                logger
-            ));
+            try {
+                listener.onResponse(buildResponse(request, state, logger));
+            } catch (Exception ex) {
+                listener.onFailure(ex);
+            }
         } else {
             assert acceptableClusterStateOrNotMasterPredicate.test(state) == false;
             new ClusterStateObserver(state, clusterService.getClusterApplierService(), request.waitForTimeout(), logger)
@@ -122,11 +122,15 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
                     @Override
                     public void onNewClusterState(ClusterState newState) {
                         if (acceptableClusterStatePredicate.test(newState)) {
-                            ActionListener.completeWith(listener, () -> buildResponse(
-                                request,
-                                newState,
-                                logger
-                            ));
+                            try {
+                                listener.onResponse(buildResponse(
+                                    request,
+                                    newState,
+                                    logger
+                                ));
+                            } catch (Exception ex) {
+                                listener.onFailure(ex);
+                            }
                         } else {
                             listener.onFailure(new NotMasterException(
                                 "master stepped down waiting for metadata version " +
