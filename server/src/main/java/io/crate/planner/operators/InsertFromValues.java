@@ -47,6 +47,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.admin.indices.create.CreatePartitionsRequest;
 import org.elasticsearch.action.admin.indices.create.TransportCreatePartitions;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
@@ -94,7 +95,6 @@ import io.crate.execution.engine.indexing.ItemFactory;
 import io.crate.execution.engine.indexing.ShardLocation;
 import io.crate.execution.engine.indexing.ShardedRequests;
 import io.crate.execution.jobs.NodeLimits;
-import io.crate.execution.support.RetryListener;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
@@ -636,7 +636,7 @@ public class InsertFromValues implements LogicalPlan {
     private CompletableFuture<ShardResponse.CompressedResult> execute(NodeLimits nodeLimits,
                                                                       ClusterState state,
                                                                       Collection<ShardUpsertRequest> shardUpsertRequests,
-                                                                      Client elasticsearchClient,
+                                                                      Client client,
                                                                       ScheduledExecutorService scheduler) {
         ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
         if (shardUpsertRequests.isEmpty()) {
@@ -716,14 +716,13 @@ public class InsertFromValues implements LogicalPlan {
                 }
             };
 
-            elasticsearchClient.execute(ShardUpsertAction.INSTANCE, request)
-                .whenComplete(new RetryListener<>(
-                    scheduler,
-                    l -> elasticsearchClient.execute(ShardUpsertAction.INSTANCE, request)
-                        .whenComplete(l),
-                    listener,
-                    BackoffPolicy.limitedDynamic(nodeLimit)
-                ));
+            RetryableAction<ShardResponse> retryableAction = RetryableAction.of(
+                scheduler,
+                l -> client.execute(ShardUpsertAction.INSTANCE, request).whenComplete(l),
+                BackoffPolicy.limitedDynamic(nodeLimit),
+                listener
+            );
+            retryableAction.run();
         }
         return result;
     }

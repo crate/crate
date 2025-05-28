@@ -121,10 +121,7 @@ public class SQLExceptions {
      * If the given list is empty no exception is thrown
      */
     public static <T extends Throwable> void maybeThrowRuntimeAndSuppress(List<T> exceptions) {
-        T main = null;
-        for (T ex : exceptions) {
-            main = Exceptions.useOrSuppress(main, ex);
-        }
+        T main = Exceptions.merge(exceptions);
         if (main != null) {
             throw new ElasticsearchException(main);
         }

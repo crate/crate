@@ -37,6 +37,7 @@ import java.util.stream.Collector;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
@@ -59,7 +60,6 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.jobs.NodeLimits;
-import io.crate.execution.support.RetryListener;
 
 public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                               TItem extends ShardRequest.Item,
@@ -180,20 +180,16 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
                 future.completeExceptionally(e);
             }
         };
-        operation.accept(request, withRetry(request, nodeLimit, listener));
+        RetryableAction<ShardResponse> retryableAction = RetryableAction.of(
+            scheduler,
+            l -> operation.accept(request, l),
+            BackoffPolicy.unlimitedDynamic(nodeLimit) ,
+            listener
+        );
+        retryableAction.run();
         return future;
     }
 
-    private RetryListener<ShardResponse> withRetry(TReq request,
-                                                   ConcurrencyLimit nodeLimit,
-                                                   ActionListener<ShardResponse> listener) {
-        return new RetryListener<>(
-            scheduler,
-            l -> operation.accept(request, l),
-            listener,
-            BackoffPolicy.unlimitedDynamic(nodeLimit)
-        );
-    }
 
     @Override
     public CompletableFuture<TResult> apply(BatchIterator<Row> batchIterator) {

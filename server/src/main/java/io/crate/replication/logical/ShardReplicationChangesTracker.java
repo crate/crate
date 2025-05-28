@@ -27,14 +27,13 @@ import java.util.ArrayDeque;
 import java.util.Deque;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.action.support.replication.ReplicationResponse.ShardInfo;
 import org.elasticsearch.client.Client;
@@ -48,10 +47,8 @@ import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.FutureActionListener;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.execution.support.RetryListener;
 import io.crate.execution.support.RetryRunnable;
 import io.crate.replication.logical.action.ReplayChangesAction;
 import io.crate.replication.logical.action.ShardChangesAction;
@@ -203,15 +200,23 @@ public class ShardReplicationChangesTracker implements Closeable {
             response.maxSeqNoOfUpdatesOrDeletes()
         );
         FutureActionListener<ReplicationResponse> listener = new FutureActionListener<>();
-        var retryListener = new ReplayChangesRetryListener<>(
-            threadPool.scheduler(),
-            l -> localClient.execute(ReplayChangesAction.INSTANCE, replayRequest)
-                .whenComplete(l),
-            listener,
-            BackoffPolicy.exponentialBackoff()
-        );
-        localClient.execute(ReplayChangesAction.INSTANCE, replayRequest)
-            .whenComplete(retryListener);
+        RetryableAction<ReplicationResponse> retryableAction = new RetryableAction<ReplicationResponse>(
+                LOGGER,
+                threadPool.scheduler(),
+                BackoffPolicy.exponentialBackoff(),
+                listener) {
+
+            @Override
+            public void tryAction(ActionListener<ReplicationResponse> listener) {
+                localClient.execute(ReplayChangesAction.INSTANCE, replayRequest).whenComplete(listener);
+            }
+
+            @Override
+            public boolean shouldRetry(Throwable t) {
+                return t instanceof ClusterBlockException || super.shouldRetry(t);
+            }
+        };
+        retryableAction.run();
         return listener.thenApply(resp -> {
             ShardInfo shardInfo = resp.getShardInfo();
             if (shardInfo.getFailed() > 0) {
@@ -387,19 +392,5 @@ public class ShardReplicationChangesTracker implements Closeable {
                 client,
                 ActionListener.wrap(() -> {})
             ));
-    }
-
-    private static class ReplayChangesRetryListener<TResp> extends RetryListener<TResp> {
-
-        public ReplayChangesRetryListener(ScheduledExecutorService scheduler,
-                                          Consumer<ActionListener<TResp>> command, ActionListener<TResp> delegate,
-                                          Iterable<TimeValue> backOffPolicy) {
-            super(scheduler, command, delegate, backOffPolicy);
-        }
-
-        @Override
-        protected boolean shouldRetry(Throwable throwable) {
-            return super.shouldRetry(throwable) || throwable instanceof ClusterBlockException;
-        }
     }
 }

@@ -19,19 +19,23 @@
 
 package org.elasticsearch.action.support;
 
-import java.util.ArrayDeque;
+import java.util.Iterator;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Consumer;
 
+import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
-import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.threadpool.Scheduler;
-import org.elasticsearch.threadpool.ThreadPool;
 
+import io.crate.common.collections.RingBuffer;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.exceptions.SQLExceptions;
 
 /**
  * A action that will be retried on failure if {@link RetryableAction#shouldRetry(Exception)} returns true.
@@ -41,75 +45,79 @@ import io.crate.common.unit.TimeValue;
  */
 public abstract class RetryableAction<Response> {
 
+    private static final Logger LOGGER = LogManager.getLogger(RetryableAction.class);
+
     private final Logger logger;
 
     private final AtomicBoolean isDone = new AtomicBoolean(false);
-    private final ThreadPool threadPool;
-    private final long initialDelayMillis;
-    private final long timeoutMillis;
-    private final long startMillis;
+    private final ScheduledExecutorService scheduler;
     private final ActionListener<Response> finalListener;
+    private final Iterator<TimeValue> delay;
+    private final ActionRunnable<Response> runnable;
 
-    private volatile Scheduler.ScheduledCancellable retryTask;
+    private volatile ScheduledFuture<?> retryTask;
 
-    public RetryableAction(Logger logger,
-                           ThreadPool threadPool,
-                           TimeValue initialDelay,
-                           TimeValue timeoutValue,
-                           ActionListener<Response> listener) {
-        this.logger = logger;
-        this.threadPool = threadPool;
-        this.initialDelayMillis = initialDelay.millis();
-        if (initialDelayMillis < 1) {
-            throw new IllegalArgumentException("Initial delay was less than 1 millisecond: " + initialDelay);
-        }
-        this.timeoutMillis = timeoutValue.millis();
-        this.startMillis = threadPool.relativeTimeInMillis();
-        this.finalListener = listener;
-    }
 
-    public void run() {
-        final RetryingListener retryingListener = new RetryingListener(initialDelayMillis, null);
-        final Runnable runnable = createRunnable(retryingListener);
-        runnable.run();
-    }
-
-    public void cancel(Exception e) {
-        if (isDone.compareAndSet(false, true)) {
-            Scheduler.ScheduledCancellable localRetryTask = this.retryTask;
-            if (localRetryTask != null) {
-                localRetryTask.cancel();
-            }
-            onFinished();
-            finalListener.onFailure(e);
-        }
-    }
-
-    private Runnable createRunnable(RetryingListener retryingListener) {
-        return new ActionRunnable<Response>(retryingListener) {
+    public static <T> RetryableAction<T> of(ScheduledExecutorService scheduler,
+                                            Consumer<ActionListener<T>> command,
+                                            Iterable<TimeValue> backoffPolicy,
+                                            ActionListener<T> listener) {
+        return new RetryableAction<T>(LOGGER, scheduler, backoffPolicy, listener) {
 
             @Override
-            public void doRun() {
+            public void tryAction(ActionListener<T> listener) {
+                command.accept(listener);
+            }
+        };
+    }
+
+    public RetryableAction(Logger logger,
+                           ScheduledExecutorService scheduler,
+                           Iterable<TimeValue> backoffPolicy,
+                           ActionListener<Response> listener) {
+        this.logger = logger;
+        this.scheduler = scheduler;
+        this.delay = backoffPolicy.iterator();
+        this.finalListener = listener;
+        this.runnable = new ActionRunnable<Response>(new RetryingListener()) {
+
+            @Override
+            public void doRun() throws Exception {
                 retryTask = null;
                 // It is possible that the task was cancelled in between the retry being dispatched and now
                 if (isDone.get() == false) {
-                    tryAction(listener);
+                    tryAction(this.listener);
                 }
             }
 
             @Override
             public void onRejection(Exception e) {
                 retryTask = null;
-                // TODO: The only implementations of this class use SAME which means the execution will not be
-                //  rejected. Future implementations can adjust this functionality as needed.
                 onFailure(e);
             }
         };
     }
 
+    public void run() {
+        runnable.run();
+    }
+
+    public void cancel(Exception e) {
+        if (isDone.compareAndSet(false, true)) {
+            ScheduledFuture<?> localRetryTask = this.retryTask;
+            if (localRetryTask != null) {
+                localRetryTask.cancel(false);
+            }
+            onFinished();
+            finalListener.onFailure(e);
+        }
+    }
+
     public abstract void tryAction(ActionListener<Response> listener);
 
-    public abstract boolean shouldRetry(Exception e);
+    public boolean shouldRetry(Throwable t) {
+        return t instanceof EsRejectedExecutionException rejected && !rejected.isExecutorShutdown();
+    }
 
     public void onFinished() {
     }
@@ -118,12 +126,9 @@ public abstract class RetryableAction<Response> {
 
         private static final int MAX_EXCEPTIONS = 4;
 
-        private final long delayMillisBound;
-        private ArrayDeque<Exception> caughtExceptions;
+        private RingBuffer<Exception> caughtExceptions;
 
-        private RetryingListener(long delayMillisBound, ArrayDeque<Exception> caughtExceptions) {
-            this.delayMillisBound = delayMillisBound;
-            this.caughtExceptions = caughtExceptions;
+        private RetryingListener() {
         }
 
         @Override
@@ -136,27 +141,16 @@ public abstract class RetryableAction<Response> {
 
         @Override
         public void onFailure(Exception e) {
-            if (shouldRetry(e)) {
-                final long elapsedMillis = threadPool.relativeTimeInMillis() - startMillis;
-                if (elapsedMillis >= timeoutMillis) {
-                    logger.debug(() -> new ParameterizedMessage("retryable action timed out after {}",
-                        TimeValue.timeValueMillis(elapsedMillis)), e);
-                    onFinalFailure(e);
-                } else {
-                    addException(e);
-
-                    final long nextDelayMillisBound = Math.min(delayMillisBound * 2, Integer.MAX_VALUE);
-                    final RetryingListener retryingListener = new RetryingListener(nextDelayMillisBound, caughtExceptions);
-                    final Runnable runnable = createRunnable(retryingListener);
-                    final long delayMillis = Randomness.get().nextInt(Math.toIntExact(delayMillisBound)) + 1;
-                    if (isDone.get() == false) {
-                        final TimeValue delay = TimeValue.timeValueMillis(delayMillis);
-                        logger.debug(() -> new ParameterizedMessage("retrying action that failed in {}", delay), e);
-                        try {
-                            retryTask = threadPool.schedule(runnable, delay, ThreadPool.Names.SAME);
-                        } catch (EsRejectedExecutionException ree) {
-                            onFinalFailure(ree);
-                        }
+            Throwable t = SQLExceptions.unwrap(e);
+            if (shouldRetry(t) && delay.hasNext()) {
+                TimeValue currentDelay = delay.next();
+                addException(e);
+                if (isDone.get() == false) {
+                    logger.debug("Retrying action that failed in delay={} err={}", currentDelay, e);
+                    try {
+                        retryTask = scheduler.schedule(runnable, currentDelay.millis(), TimeUnit.MILLISECONDS);
+                    } catch (EsRejectedExecutionException ree) {
+                        onFinalFailure(ree);
                     }
                 }
             } else {
@@ -168,28 +162,15 @@ public abstract class RetryableAction<Response> {
             addException(e);
             if (isDone.compareAndSet(false, true)) {
                 onFinished();
-                finalListener.onFailure(buildFinalException());
+                finalListener.onFailure(Exceptions.merge(caughtExceptions));
             }
-        }
-
-        private Exception buildFinalException() {
-            final Exception topLevel = caughtExceptions.removeFirst();
-            Exception suppressed;
-            while ((suppressed = caughtExceptions.pollFirst()) != null) {
-                topLevel.addSuppressed(suppressed);
-            }
-            return topLevel;
         }
 
         private void addException(Exception e) {
-            if (caughtExceptions != null) {
-                if (caughtExceptions.size() == MAX_EXCEPTIONS) {
-                    caughtExceptions.removeLast();
-                }
-            } else {
-                caughtExceptions = new ArrayDeque<>(MAX_EXCEPTIONS);
+            if (caughtExceptions == null) {
+                caughtExceptions = new RingBuffer<>(MAX_EXCEPTIONS);
             }
-            caughtExceptions.addFirst(e);
+            caughtExceptions.add(e);
         }
     }
 }

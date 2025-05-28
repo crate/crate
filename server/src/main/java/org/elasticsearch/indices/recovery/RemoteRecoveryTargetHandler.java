@@ -34,6 +34,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
@@ -280,7 +281,11 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
         final ActionListener<T> removeListener = ActionListener.runBefore(actionListener, () -> onGoingRetryableActions.remove(key));
         final TimeValue initialDelay = TimeValue.timeValueMillis(200);
         final TimeValue timeout = recoverySettings.internalActionRetryTimeout();
-        final RetryableAction<T> retryableAction = new RetryableAction<T>(LOGGER, threadPool, initialDelay, timeout, removeListener) {
+        final RetryableAction<T> retryableAction = new RetryableAction<T>(
+                LOGGER,
+                threadPool.scheduler(),
+                BackoffPolicy.exponentialBackoff(initialDelay, timeout),
+                removeListener) {
 
             @Override
             public void tryAction(ActionListener<T> listener) {
@@ -289,7 +294,7 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
             }
 
             @Override
-            public boolean shouldRetry(Exception e) {
+            public boolean shouldRetry(Throwable e) {
                 return retriesSupported && retryableException(e);
             }
         };
@@ -300,14 +305,14 @@ public class RemoteRecoveryTargetHandler implements RecoveryTargetHandler {
         }
     }
 
-    private static boolean retryableException(Exception e) {
-        if (e instanceof ConnectTransportException) {
+    private static boolean retryableException(Throwable t) {
+        if (t instanceof ConnectTransportException) {
             return true;
-        } else if (e instanceof SendRequestTransportException) {
-            final Throwable cause = SQLExceptions.unwrap(e);
+        } else if (t instanceof SendRequestTransportException) {
+            final Throwable cause = SQLExceptions.unwrap(t);
             return cause instanceof ConnectTransportException;
-        } else if (e instanceof RemoteTransportException) {
-            final Throwable cause = SQLExceptions.unwrap(e);
+        } else if (t instanceof RemoteTransportException) {
+            final Throwable cause = SQLExceptions.unwrap(t);
             return cause instanceof CircuitBreakingException ||
                 cause instanceof EsRejectedExecutionException;
         }
