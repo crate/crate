@@ -119,11 +119,13 @@ public final class SelectAnalyzer {
         }
 
         private static void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
+            int i = 0;
             for (Symbol field : relation.outputs()) {
                 var columnIdent = field.toColumn();
                 if (!columnIdent.isSystemColumn()) {
-                    context.add(field.toColumn(), field, null);
+                    context.add(field.toColumn(), field, relation.outputNames() != null ? relation.outputNames().get(i) : null);
                 }
+                i++;
             }
         }
     }

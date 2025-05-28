@@ -28,6 +28,7 @@ import java.util.function.Consumer;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.collections.Lists;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.scalar.SubscriptFunctions;
@@ -112,6 +113,14 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
     @Override
     public List<Symbol> outputs() {
         return List.copyOf(outputs);
+    }
+
+    @Override
+    public @Nullable List<String> outputNames() {
+        if (relationName.name().equals("unnest")) {
+            return null;
+        }
+        return Lists.map(outputs(), x -> x.toColumn().sqlFqn());
     }
 
     @Override
