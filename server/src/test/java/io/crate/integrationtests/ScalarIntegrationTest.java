@@ -28,13 +28,14 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 
-@UseJdbc(0) // data types needed
 public class ScalarIntegrationTest extends IntegTestCase {
 
+    @UseJdbc(0) // data types needed
     @Test
     public void testExtractFunctionReturnTypes() {
         execute("SELECT EXTRACT(DAY FROM CURRENT_TIMESTAMP)");
@@ -70,5 +71,13 @@ public class ScalarIntegrationTest extends IntegTestCase {
                                             session2);
             assertThat(TestingHelpers.printedTable(response.rows())).isEqualTo("[1]\n[NULL]\n");
         }
+    }
+
+    @Test
+    public void testCurrentDatabase() {
+        execute("select * FROM (SELECT current_database()) as vt");
+        Asserts.assertThat(response)
+            .hasColumns("current_database")
+            .hasRows("crate");
     }
 }
