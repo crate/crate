@@ -24,7 +24,6 @@ import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.bulk.BackoffPolicy;
@@ -47,9 +46,11 @@ public abstract class RetryableAction<Response> {
     private final AtomicBoolean isDone = new AtomicBoolean(false);
     private final ThreadPool threadPool;
     private final ActionListener<Response> finalListener;
+    private final Iterator<TimeValue> delay;
+    private final ActionRunnable<Response> runnable;
 
     private volatile Scheduler.ScheduledCancellable retryTask;
-    private final Iterator<TimeValue> delay;
+
 
     public RetryableAction(Logger logger,
                            ThreadPool threadPool,
@@ -60,11 +61,26 @@ public abstract class RetryableAction<Response> {
         this.threadPool = threadPool;
         this.delay = BackoffPolicy.exponentialBackoff(initialDelay, timeoutValue).iterator();
         this.finalListener = listener;
+        this.runnable = new ActionRunnable<Response>(new RetryingListener(null)) {
+
+            @Override
+            public void doRun() throws Exception {
+                retryTask = null;
+                // It is possible that the task was cancelled in between the retry being dispatched and now
+                if (isDone.get() == false) {
+                    tryAction(this.listener);
+                }
+            }
+
+            @Override
+            public void onRejection(Exception e) {
+                retryTask = null;
+                onFailure(e);
+            }
+        };
     }
 
     public void run() {
-        final RetryingListener retryingListener = new RetryingListener(null);
-        final Runnable runnable = createRunnable(retryingListener);
         runnable.run();
     }
 
@@ -77,28 +93,6 @@ public abstract class RetryableAction<Response> {
             onFinished();
             finalListener.onFailure(e);
         }
-    }
-
-    private Runnable createRunnable(RetryingListener retryingListener) {
-        return new ActionRunnable<Response>(retryingListener) {
-
-            @Override
-            public void doRun() {
-                retryTask = null;
-                // It is possible that the task was cancelled in between the retry being dispatched and now
-                if (isDone.get() == false) {
-                    tryAction(listener);
-                }
-            }
-
-            @Override
-            public void onRejection(Exception e) {
-                retryTask = null;
-                // TODO: The only implementations of this class use SAME which means the execution will not be
-                //  rejected. Future implementations can adjust this functionality as needed.
-                onFailure(e);
-            }
-        };
     }
 
     public abstract void tryAction(ActionListener<Response> listener);
@@ -131,11 +125,8 @@ public abstract class RetryableAction<Response> {
             if (shouldRetry(e) && delay.hasNext()) {
                 TimeValue currentDelay = delay.next();
                 addException(e);
-
-                final RetryingListener retryingListener = new RetryingListener(caughtExceptions);
-                final Runnable runnable = createRunnable(retryingListener);
                 if (isDone.get() == false) {
-                    logger.debug(() -> new ParameterizedMessage("retrying action that failed in {}", delay), e);
+                    logger.debug("Retrying action that failed in delay={} err={}", currentDelay, e);
                     try {
                         retryTask = threadPool.schedule(runnable, currentDelay, ThreadPool.Names.SAME);
                     } catch (EsRejectedExecutionException ree) {
