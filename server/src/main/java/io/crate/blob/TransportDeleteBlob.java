@@ -85,13 +85,15 @@ public class TransportDeleteBlob extends TransportReplicationAction<DeleteBlobRe
     protected void shardOperationOnPrimary(DeleteBlobRequest shardRequest,
                                            IndexShard primary,
                                            ActionListener<PrimaryResult<DeleteBlobRequest, DeleteBlobResponse>> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             logger.trace("shardOperationOnPrimary {}", shardRequest);
             BlobShard blobShard = blobIndicesService.blobShardSafe(shardRequest.shardId());
             boolean deleted = blobShard.delete(shardRequest.id());
             final DeleteBlobResponse response = new DeleteBlobResponse(deleted);
-            return new PrimaryResult<>(shardRequest, response);
-        });
+            listener.onResponse(new PrimaryResult<>(shardRequest, response));
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override

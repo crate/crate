@@ -1071,15 +1071,17 @@ public class RecoverySourceHandler {
             sourceMetadata,
             ActionListener.delegateResponse(
                 listener,
-                (l, e) -> ActionListener.completeWith(
-                    l,
-                    () -> {
+                (l, e) -> {
+                    try {
                         StoreFileMetadata[] mds = StreamSupport.stream(sourceMetadata.spliterator(), false).toArray(StoreFileMetadata[]::new);
                         ArrayUtil.timSort(mds, Comparator.comparingLong(StoreFileMetadata::length)); // check small files first
                         handleErrorOnSendFiles(store, e, mds);
-                        throw e;
+
+                        l.onFailure(e);
+                    } catch (Exception ex) {
+                        l.onFailure(ex);
                     }
-                )
+                }
             )
         );
     }

@@ -28,7 +28,6 @@ import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedRunnable;
 
 import io.crate.common.CheckedFunction;
-import io.crate.common.CheckedSupplier;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
@@ -209,19 +208,6 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
                 }
             }
         };
-    }
-
-    /**
-     * Completes the given listener with the result from the provided supplier accordingly.
-     * This method is mainly used to complete a listener with a block of synchronous code.
-     */
-    static <Response> void completeWith(ActionListener<Response> listener,
-                                        CheckedSupplier<Response, ? extends Exception> supplier) {
-        try {
-            listener.onResponse(supplier.get());
-        } catch (Exception e) {
-            listener.onFailure(e);
-        }
     }
 
     /**
