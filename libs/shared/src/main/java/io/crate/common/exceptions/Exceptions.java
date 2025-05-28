@@ -90,17 +90,23 @@ public final class Exceptions {
         throw (T) t;
     }
 
+    @Nullable
+    public static <T extends Throwable> T merge(Iterable<T> exceptions) {
+        T main = null;
+        for (var ex : exceptions) {
+            main = useOrSuppress(main, ex);
+        }
+        return main;
+    }
+
 
     /**
      * Rethrows the first exception in the list and adds all remaining to the suppressed list.
      * If the given list is empty no exception is thrown
      *
      */
-    public static <T extends Throwable> void rethrowAndSuppress(List<T> exceptions) throws T {
-        T main = null;
-        for (T ex : exceptions) {
-            main = useOrSuppress(main, ex);
-        }
+    public static <T extends Throwable> void rethrowAndSuppress(List<? extends T> exceptions) throws T {
+        T main = merge(exceptions);
         if (main != null) {
             throw main;
         }

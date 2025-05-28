@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.support;
 
-import java.util.ArrayDeque;
 import java.util.Iterator;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
@@ -33,6 +32,8 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
+import io.crate.common.collections.RingBuffer;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
 
@@ -78,7 +79,7 @@ public abstract class RetryableAction<Response> {
         this.scheduler = scheduler;
         this.delay = backoffPolicy.iterator();
         this.finalListener = listener;
-        this.runnable = new ActionRunnable<Response>(new RetryingListener(null)) {
+        this.runnable = new ActionRunnable<Response>(new RetryingListener()) {
 
             @Override
             public void doRun() throws Exception {
@@ -125,10 +126,9 @@ public abstract class RetryableAction<Response> {
 
         private static final int MAX_EXCEPTIONS = 4;
 
-        private ArrayDeque<Exception> caughtExceptions;
+        private RingBuffer<Exception> caughtExceptions;
 
-        private RetryingListener(ArrayDeque<Exception> caughtExceptions) {
-            this.caughtExceptions = caughtExceptions;
+        private RetryingListener() {
         }
 
         @Override
@@ -162,28 +162,15 @@ public abstract class RetryableAction<Response> {
             addException(e);
             if (isDone.compareAndSet(false, true)) {
                 onFinished();
-                finalListener.onFailure(buildFinalException());
+                finalListener.onFailure(Exceptions.merge(caughtExceptions));
             }
-        }
-
-        private Exception buildFinalException() {
-            final Exception topLevel = caughtExceptions.removeFirst();
-            Exception suppressed;
-            while ((suppressed = caughtExceptions.pollFirst()) != null) {
-                topLevel.addSuppressed(suppressed);
-            }
-            return topLevel;
         }
 
         private void addException(Exception e) {
-            if (caughtExceptions != null) {
-                if (caughtExceptions.size() == MAX_EXCEPTIONS) {
-                    caughtExceptions.removeLast();
-                }
-            } else {
-                caughtExceptions = new ArrayDeque<>(MAX_EXCEPTIONS);
+            if (caughtExceptions == null) {
+                caughtExceptions = new RingBuffer<>(MAX_EXCEPTIONS);
             }
-            caughtExceptions.addFirst(e);
+            caughtExceptions.add(e);
         }
     }
 }
