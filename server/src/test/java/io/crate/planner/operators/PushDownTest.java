@@ -346,7 +346,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         );
         var expectedPlan =
             """
-            Rename[x, "pg_catalog.generate_series(1, x)"] AS tt
+            Rename[x, generate_series] AS tt
               └ Eval[x, pg_catalog.generate_series(1, x)]
                 └ ProjectSet[pg_catalog.generate_series(1, x), x]
                   └ Collect[doc.t1 | [x] | (x > 1)]
@@ -433,7 +433,7 @@ public class PushDownTest extends CrateDummyClusterServiceUnitTest {
         );
         var expectedPlan =
             """
-            Rename[x, "sum(x) OVER (PARTITION BY x)"] AS sums
+            Rename[x, sum] AS sums
               └ WindowAgg[x] | [sum(x) OVER (PARTITION BY x)]
                 └ Collect[doc.t1 | [x] | (x = 10)]
             """;

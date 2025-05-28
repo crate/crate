@@ -65,7 +65,9 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         for (int i = 0; i < relation.outputs().size(); i++) {
             Symbol childOutput = relation.outputs().get(i);
             ColumnIdent childColumn = childOutput.toColumn();
-            ColumnIdent columnAlias = childColumn;
+            ColumnIdent columnAlias = relation.outputNames() != null
+                ? ColumnIdent.of(relation.outputNames().get(i))
+                : childColumn;
             if (i < columnAliases.size()) {
                 columnAlias = ColumnIdent.of(columnAliases.get(i));
             }
