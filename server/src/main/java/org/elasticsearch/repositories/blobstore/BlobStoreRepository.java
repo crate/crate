@@ -846,7 +846,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }));
 
         final Set<String> survivingIndexIds = newRepoData.getIndices().values().stream().map(IndexId::getId).collect(Collectors.toSet());
-        executor.execute(ActionRunnable.supply(groupedListener, () -> cleanupStaleIndices(foundIndices, survivingIndexIds)));
+        cleanupStaleIndices(foundIndices, survivingIndexIds, groupedListener);
     }
 
     // Finds all blobs directly under the repository root path that are not referenced by the current RepositoryData
@@ -913,28 +913,37 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         return Collections.emptyList();
     }
 
-    private long cleanupStaleIndices(Map<String, BlobContainer> foundIndices, Set<String> survivingIndexIds) {
-        long deleteResult = 0;
+    private void cleanupStaleIndices(Map<String, BlobContainer> foundIndices,
+                                     Set<String> survivingIndexIds,
+                                     ActionListener<Long> listener) {
         try {
+            final List<Map.Entry<String,BlobContainer>> staleIndicesToDelete = new ArrayList<>();
             for (Map.Entry<String, BlobContainer> indexEntry : foundIndices.entrySet()) {
-                final String indexSnId = indexEntry.getKey();
-                try {
-                    if (survivingIndexIds.contains(indexSnId) == false) {
-                        LOGGER.debug("[{}] Found stale index [{}]. Cleaning it up", metadata.name(), indexSnId);
-                        indexEntry.getValue().delete();
-                        //This is not the exact number of blobs, as the blob container could also have children.
-                        //However fetching the blobs before deletion is an expensive operation.
-                        //This is ok because currently the deletes are not used. BlobContainer.delete()
-                        //could return the number of blobs and the bytes deleted if we plan to use this
-                        //data somewhere.
-                        deleteResult++;
-                        LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
-                    }
-                } catch (Exception e) {
-                    LOGGER.warn(() -> new ParameterizedMessage(
-                        "[{}] index {} is no longer part of any snapshots in the repository, " +
-                        "but failed to clean up their index folders", metadata.name(), indexSnId), e);
+                if (survivingIndexIds.contains(indexEntry.getKey()) == false) {
+                    staleIndicesToDelete.add(indexEntry);
                 }
+            }
+
+            final ActionListener<Long> groupedListener = new MultiActionListener<>(
+                staleIndicesToDelete.size(), Collectors.summingLong(Long::longValue), listener);
+
+            for (var staleIndex : staleIndicesToDelete) {
+                threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.supply(groupedListener, () -> {
+                    try {
+                        staleIndex.getValue().delete();
+                        LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), staleIndex.getKey());
+                        return 1L;
+                    } catch (IOException e) {
+                        LOGGER.warn(() -> new ParameterizedMessage(
+                            "[{}] index {} is no longer part of any snapshots in the repository, " +
+                                "but failed to clean up their index folders", metadata.name(), staleIndex.getKey()), e);
+                        return 0L;
+                    } catch (Exception e) {
+                        assert false : e;
+                        LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
+                        return 0L;
+                    }
+                }));
             }
         } catch (Exception e) {
             // TODO: We shouldn't be blanket catching and suppressing all exceptions here and instead handle them safely upstream.
@@ -943,7 +952,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             assert false : e;
             LOGGER.warn(new ParameterizedMessage("[{}] Exception during cleanup of stale indices", metadata.name()), e);
         }
-        return deleteResult;
     }
 
     /**
