@@ -23,21 +23,29 @@ package io.crate.replication.logical.action;
 
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
 import static io.crate.role.metadata.RolesHelper.userOf;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.test.MockLogAppender;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -96,15 +104,21 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1", "doc.t3");
         var publication = new Publication("publisher", true, List.of());
 
-        var resolvedRelations = publication.resolveCurrentRelations(
+        Metadata.Builder metadataBuilder = Metadata.builder();
+        publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
             publicationOwner,
             subscriber,
-            "dummy"
+            "dummy",
+            metadataBuilder
         );
+        Metadata metadata = metadataBuilder.build();
 
-        assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
+        List<RelationName> relationNames = metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
+            .map(org.elasticsearch.cluster.metadata.RelationMetadata.Table::name)
+            .toList();
+        assertThat(relationNames).contains(new RelationName("doc", "t1"));
     }
 
     @Test
@@ -135,8 +149,21 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", true, List.of());
 
-        var resolvedRelations = publication.resolveCurrentRelations(clusterService.state(), roles, publicationOwner, subscriber, "dummy");
-        assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
+        Metadata.Builder metadataBuilder = Metadata.builder();
+        publication.resolveCurrentRelations(
+            clusterService.state(),
+            roles,
+            publicationOwner,
+            subscriber,
+            "dummy",
+            metadataBuilder
+        );
+        Metadata metadata = metadataBuilder.build();
+
+        List<RelationName> relationNames = metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
+            .map(org.elasticsearch.cluster.metadata.RelationMetadata.Table::name)
+            .toList();
+        assertThat(relationNames).contains(new RelationName("doc", "t1"));
     }
 
     @Test
@@ -171,14 +198,21 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             )
         );
 
-        var resolvedRelations = publication.resolveCurrentRelations(
+        Metadata.Builder metadataBuilder = Metadata.builder();
+        publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
             publicationOwner,
             subscriber,
-            "dummy"
+            "dummy",
+            metadataBuilder
         );
-        assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
+        Metadata metadata = metadataBuilder.build();
+
+        List<RelationName> relationNames = metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
+            .map(org.elasticsearch.cluster.metadata.RelationMetadata.Table::name)
+            .toList();
+        assertThat(relationNames).contains(new RelationName("doc", "t1"));
     }
 
     @Test
@@ -202,15 +236,22 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1");      // <- only t1 has active primary shards;
         var publication = new Publication("some_user", true, List.of());
 
-        var resolvedRelations = publication.resolveCurrentRelations(
+        Metadata.Builder metadataBuilder = Metadata.builder();
+        publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
             user,
             user,
-            "dummy"
+            "dummy",
+            metadataBuilder
         );
+        Metadata metadata = metadataBuilder.build();
 
-        assertThat(resolvedRelations.keySet()).contains(new RelationName("doc", "t1"));
+        List<RelationName> relationNames = metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
+            .map(org.elasticsearch.cluster.metadata.RelationMetadata.Table::name)
+            .toList();
+
+        assertThat(relationNames).contains(new RelationName("doc", "t1"));
     }
 
     @Test
@@ -238,20 +279,23 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             List.of(RelationName.fromIndexName("t1"), RelationName.fromIndexName("doc.t2"))
         );
 
-        var resolvedRelations = publication.resolveCurrentRelations(
+        Metadata.Builder metadataBuilder = Metadata.builder();
+        publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
             user,
             user,
-            "dummy"
+            "dummy",
+            metadataBuilder
         );
+        Metadata metadata = metadataBuilder.build();
 
-        RelationMetadata relationMetadata_t1 = resolvedRelations.get(new RelationName("doc", "t1"));
-        IndexMetadata indexMetadata_t1 = relationMetadata_t1.indices().getFirst();
+        List<IndexMetadata> indices_t1 = metadata.getIndices(new RelationName("doc", "t1"), List.of(), true, im -> im);
+        IndexMetadata indexMetadata_t1 = indices_t1.getFirst();
         assertThat(REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata_t1.getSettings())).isTrue();
 
-        RelationMetadata relationMetadata_t2 = resolvedRelations.get(new RelationName("doc", "t2"));
-        IndexMetadata indexMetadata_t2 = relationMetadata_t2.indices().getFirst();
+        List<IndexMetadata> indices_t2 = metadata.getIndices(new RelationName("doc", "t2"), List.of(), true, im -> im);
+        IndexMetadata indexMetadata_t2 = indices_t2.getFirst();
         assertThat(REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata_t2.getSettings())).isFalse();
     }
 
@@ -277,15 +321,19 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             );
         var publication = new Publication("some_user", true, List.of());
 
-        var resolvedRelations = publication.resolveCurrentRelations(
+        Metadata.Builder metadataBuilder = Metadata.builder();
+        publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
             user,
             user,
-            "dummy"
+            "dummy",
+            metadataBuilder
         );
-        RelationMetadata relationMetadata = resolvedRelations.get(new RelationName("doc", "p1"));
-        IndexMetadata indexMetadata = relationMetadata.indices().getFirst();
+        Metadata metadata = metadataBuilder.build();
+
+        List<IndexMetadata> indices = metadata.getIndices(new RelationName("doc", "p1"), List.of(), true, im -> im);
+        IndexMetadata indexMetadata = indices.getFirst();
         assertThat(REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings())).isFalse();
     }
 
@@ -315,15 +363,100 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             List.of(RelationName.fromIndexName("p1"))
         );
 
-        var resolvedRelations = publication.resolveCurrentRelations(
+        Metadata.Builder metadataBuilder = Metadata.builder();
+        publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
             user,
             user,
-            "dummy"
+            "dummy",
+            metadataBuilder
         );
-        RelationMetadata relationMetadata = resolvedRelations.get(new RelationName("doc", "p1"));
-        IndexMetadata indexMetadata = relationMetadata.indices().getFirst();
+        Metadata metadata = metadataBuilder.build();
+
+        List<IndexMetadata> indices = metadata.getIndices(new RelationName("doc", "p1"), List.of(), true, im -> im);
+        IndexMetadata indexMetadata = indices.getFirst();
         assertThat(REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings())).isFalse();
+    }
+
+    @Test
+    public void test_bwc_streaming_5() throws Exception {
+        var publicationOwner = userOf("publisher");
+        var subscriber = userOf("subscriber");
+
+        Roles roles = new Roles() {
+            @Override
+            public Collection<Role> roles() {
+                return List.of(publicationOwner, subscriber);
+            }
+
+            @Override
+            public boolean hasPrivilege(Role user, Permission permission, Securable securable, @Nullable String ident) {
+                return true;
+            }
+
+        };
+
+        RelationName relationName1 = new RelationName("doc", "t1");
+        RelationName relationName2 = new RelationName("doc", "t2");
+        PartitionName partitionName = new PartitionName(relationName2, singletonList("1"));
+
+        SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE doc.t1 (id int)")
+            .addTable("CREATE TABLE doc.t2 (id int, p int) PARTITIONED BY (p)", partitionName.asIndexName())
+            .startShards("doc.t1", "doc.t2");
+        var publication = new Publication("publisher", true, List.of());
+
+        Metadata.Builder metadataBuilder = Metadata.builder();
+        publication.resolveCurrentRelations(
+            clusterService.state(),
+            roles,
+            publicationOwner,
+            subscriber,
+            "dummy",
+            metadataBuilder
+        );
+        Metadata metadata = metadataBuilder.build();
+        PublicationsStateAction.Response response = new PublicationsStateAction.Response(metadata, List.of());
+
+        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(createNodeContext(), IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, null);
+
+        // Ensure a node < 6.0.0 can read the response
+        {
+            BytesStreamOutput out = new BytesStreamOutput();
+            out.setVersion(Version.V_5_10_0);
+            response.writeTo(out);
+            try (var in = out.bytes().streamInput()) {
+                in.setVersion(Version.V_5_10_0);
+                Map<RelationName, RelationMetadata> relationsInPublications = in.readMap(RelationName::new, RelationMetadata::new);
+                assertThat(relationsInPublications).hasSize(2);
+                assertThat(relationsInPublications.keySet()).contains(relationName1, relationName2);
+
+                RelationMetadata relationMetadataT1 = relationsInPublications.get(relationName1);
+                assertThat(relationMetadataT1.indices().stream().map(im -> im.getIndex().getName()).toList()).containsExactly(relationName1.indexNameOrAlias());
+                assertThat(relationMetadataT1.template()).isNull();
+
+                RelationMetadata relationMetadataT2 = relationsInPublications.get(relationName2);
+                assertThat(relationMetadataT2.indices().stream().map(im -> im.getIndex().getName()).toList()).containsExactly(partitionName.asIndexName());
+                assertThat(relationMetadataT2.template()).isNotNull();
+            }
+        }
+
+        // Ensure a response from a node < 6.0.0 can be read/converted
+        {
+            BytesStreamOutput out = new BytesStreamOutput();
+            out.setVersion(Version.V_5_10_0);
+            response.writeTo(out);
+            try (var in = out.bytes().streamInput()) {
+                in.setVersion(Version.V_5_10_0);
+                PublicationsStateAction.Response response1 = new PublicationsStateAction.Response(in);
+                Metadata metadata1 = metadataUpgradeService.addOrUpgradeRelationMetadata(response1.metadata());
+                org.elasticsearch.cluster.metadata.RelationMetadata.Table table1 = metadata1.getRelation(relationName1);
+                assertThat(table1).isNotNull();
+                org.elasticsearch.cluster.metadata.RelationMetadata.Table table2 = metadata1.getRelation(relationName2);
+                assertThat(table2).isNotNull();
+                assertThat(table2.partitionedBy()).containsExactly(ColumnIdent.of("p"));
+            }
+        }
     }
 }

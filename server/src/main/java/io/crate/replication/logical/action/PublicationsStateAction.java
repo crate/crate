@@ -23,15 +23,14 @@ package io.crate.replication.logical.action;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.master.MasterNodeReadRequest;
@@ -40,6 +39,8 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -128,7 +129,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 throw new IllegalStateException("Cannot build publication state, no publications found");
             }
 
-            Map<RelationName, RelationMetadata> allRelationsInPublications = new HashMap<>();
+            Metadata.Builder metadataBuilder = Metadata.builder();
             List<String> unknownPublications = new ArrayList<>();
             for (var publicationName : request.publications()) {
                 var publication = publicationsMetadata.publications().get(publicationName);
@@ -137,13 +138,19 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                     continue;
                 }
 
-                // Publication owner cannot be null as we ensure that users who owns publication cannot be dropped.
+                // Publication owner cannot be null as we ensure that users who own publication cannot be dropped.
                 // Also, before creating publication or subscription we check that owner was not dropped right before creation.
                 Role publicationOwner = roles.findUser(publication.owner());
-                allRelationsInPublications.putAll(
-                    publication.resolveCurrentRelations(state, roles, publicationOwner, subscriber, publicationName));
+                publication.resolveCurrentRelations(
+                    state,
+                    roles,
+                    publicationOwner,
+                    subscriber,
+                    publicationName,
+                    metadataBuilder
+                );
             }
-            listener.onResponse(new Response(allRelationsInPublications, unknownPublications));
+            listener.onResponse(new Response(metadataBuilder.build(), unknownPublications));
         }
 
         @Override
@@ -187,27 +194,51 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
     public static class Response extends TransportResponse {
 
-        private final Map<RelationName, RelationMetadata> relationsInPublications;
+        private final Metadata metadata;
         private final List<String> unknownPublications;
 
-        public Response(Map<RelationName, RelationMetadata> relationsInPublications, List<String> unknownPublications) {
-            this.relationsInPublications = relationsInPublications;
+        public Response(Metadata metadata, List<String> unknownPublications) {
+            this.metadata = metadata;
             this.unknownPublications = unknownPublications;
         }
 
         public Response(StreamInput in) throws IOException {
-            relationsInPublications = in.readMap(RelationName::new, RelationMetadata::new);
+            if (in.getVersion().before(Version.V_6_0_0)) {
+                Map<RelationName, RelationMetadata> relationsInPublications = in.readMap(RelationName::new, RelationMetadata::new);
+                Metadata.Builder mdBuilder = Metadata.builder();
+                for (Map.Entry<RelationName, RelationMetadata> entry : relationsInPublications.entrySet()) {
+                    RelationMetadata relationMetadata = entry.getValue();
+                    for (IndexMetadata indexMetadata : relationMetadata.indices()) {
+                        mdBuilder.put(indexMetadata, false);
+                    }
+                    IndexTemplateMetadata templateMetadata = relationMetadata.template();
+                    if (templateMetadata != null) {
+                        mdBuilder.put(templateMetadata);
+                    }
+                }
+                metadata = mdBuilder.build();
+            } else {
+                metadata = Metadata.readFrom(in);
+            }
             unknownPublications = in.readList(StreamInput::readString);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            out.writeMap(relationsInPublications, (o, v) -> v.writeTo(out), (o, v) -> v.writeTo(out));
+            if (out.getVersion().before(Version.V_6_0_0)) {
+                Map<RelationName, RelationMetadata> relationsInPublications =
+                    metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
+                        .map(table -> RelationMetadata.fromMetadata(table, metadata))
+                        .collect(Collectors.toMap(RelationMetadata::name, x -> x));
+                out.writeMap(relationsInPublications, (o, v) -> v.writeTo(out), (o, v) -> v.writeTo(out));
+            } else {
+                metadata.writeTo(out);
+            }
             out.writeStringCollection(unknownPublications);
         }
 
-        public Map<RelationName, RelationMetadata> relationsInPublications() {
-            return relationsInPublications;
+        public Metadata metadata() {
+            return metadata;
         }
 
         public List<String> unknownPublications() {
@@ -216,25 +247,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
         @Override
         public String toString() {
-            return "Response{" + "relationsInPublications:" + relationsInPublications + '.' + "unknownPublications:" + unknownPublications + '}';
-        }
-
-        public List<IndexMetadata> concreteIndices() {
-            return relationsInPublications.values().stream()
-                .flatMap(x -> x.indices().stream())
-                .toList();
-        }
-
-        public List<String> concreteTemplates() {
-            return relationsInPublications.values().stream()
-                .map(x -> x.template())
-                .filter(Objects::nonNull)
-                .map(x -> x.name())
-                .toList();
-        }
-
-        public Collection<RelationName> tables() {
-            return relationsInPublications.keySet();
+            return "Response{" + "metadata:" + metadata + ", unknownPublications:" + unknownPublications + '}';
         }
     }
 }

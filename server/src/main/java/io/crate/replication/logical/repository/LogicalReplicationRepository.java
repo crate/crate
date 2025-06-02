@@ -51,6 +51,7 @@ import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -103,6 +104,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     public static final long REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC = 60000L;
 
     private final LogicalReplicationService logicalReplicationService;
+    private final MetadataUpgradeService metadataUpgradeService;
     private final RepositoryMetadata metadata;
     private final String subscriptionName;
     private final ThreadPool threadPool;
@@ -112,12 +114,14 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
     public LogicalReplicationRepository(ClusterService clusterService,
                                         LogicalReplicationService logicalReplicationService,
+                                        MetadataUpgradeService metadataUpgradeService,
                                         RemoteClusters remoteClusters,
                                         RepositoryMetadata metadata,
                                         ThreadPool threadPool,
                                         LogicalReplicationSettings replicationSettings) {
         this.clusterService = clusterService;
         this.logicalReplicationService = logicalReplicationService;
+        this.metadataUpgradeService = metadataUpgradeService;
         this.remoteClusters = remoteClusters;
         this.metadata = metadata;
         assert metadata.name().startsWith(REMOTE_REPOSITORY_PREFIX)
@@ -152,21 +156,30 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     public CompletableFuture<SnapshotInfo> getSnapshotInfo(SnapshotId snapshotId) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         return getPublicationsState()
-            .thenApply(stateResponse ->
-                new SnapshotInfo(
+            .thenApply(stateResponse -> {
+                List<String> indicesNames = new ArrayList<>();
+                for (var container : stateResponse.metadata().indices().values()) {
+                    IndexMetadata im = container.value;
+                    if (REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings())) {
+                        indicesNames.add(im.getIndex().getName());
+                    }
+                }
+                return new SnapshotInfo(
                     snapshotId,
-                    stateResponse.concreteIndices().stream()
-                        .filter(im -> REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings()))
-                        .map(im -> im.getIndex().getName()).toList(),
+                    indicesNames,
                     SnapshotState.SUCCESS,
                     Version.CURRENT
-                ));
+                );
+            });
     }
 
     @Override
     public CompletableFuture<Metadata> getSnapshotGlobalMetadata(SnapshotId snapshotId) {
         return getPublicationsState()
-            .thenCompose(resp -> getRemoteClusterState(false, true, resp.tables().stream().toList()))
+            .thenCompose(resp -> getRemoteClusterState(
+                false,
+                true,
+                resp.metadata().relations(RelationMetadata.Table.class).stream().map(RelationMetadata.Table::name).toList()))
             .thenApply(remoteClusterStateResp -> {
                 ClusterState remoteClusterState = remoteClusterStateResp.getState();
                 var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
@@ -241,7 +254,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
     @Override
     public CompletableFuture<RepositoryData> getRepositoryData() {
         return getPublicationsState()
-            .thenCompose(resp -> getRemoteClusterState(false, false, resp.tables().stream().toList()))
+            .thenCompose(resp -> getRemoteClusterState(
+                false,
+                false,
+                resp.metadata().relations(RelationMetadata.Table.class).stream().map(RelationMetadata.Table::name).toList()))
             .thenApply(remoteStateResp -> {
                 var remoteClusterState = remoteStateResp.getState();
                 var remoteMetadata = remoteClusterState.metadata();
@@ -479,7 +495,11 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             new PublicationsStateAction.Request(
                 logicalReplicationService.subscriptions().get(subscriptionName).publications(),
                 logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
-            ));
+            )).thenApply(r ->
+                new Response(
+                    metadataUpgradeService.addOrUpgradeRelationMetadata(r.metadata()),
+                    r.unknownPublications()
+                ));
     }
 
     private void releasePublisherResources(Client remoteClient,

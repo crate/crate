@@ -23,6 +23,7 @@ package io.crate.replication.logical.action;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
@@ -40,9 +41,11 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -53,9 +56,9 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.ConnectionInfo;
-import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.role.Roles;
 import io.crate.role.StubRoleManager;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.QualifiedName;
 
 public class TransportCreateSubscriptionTest {
@@ -67,9 +70,16 @@ public class TransportCreateSubscriptionTest {
     @Test
     public void test_subscribing_to_tables_with_higher_version_raises_error() throws Exception {
         FutureActionListener<AcknowledgedResponse> responseFuture = new FutureActionListener<>();
-        subscribeToTablesWithVersion(responseFuture, Version.CURRENT.internalId + 10000);
+        subscribeToTablesWithVersion(responseFuture, Version.CURRENT.internalId + 10000, true);
 
         var tableVersion = Version.fromId(Version.CURRENT.internalId + 10000);
+        assertThatThrownBy(responseFuture::get)
+            .hasMessageContaining("One of the published tables has version higher than subscriber's minimal node version." +
+                " Table=doc.t1, Table-Version=" + tableVersion + ", Local-Minimal-Version: " + Version.CURRENT);
+
+        // Repeat, but with an unsupported version inside the index of the relation
+        responseFuture = new FutureActionListener<>();
+        subscribeToTablesWithVersion(responseFuture, Version.CURRENT.internalId + 10000, false);
         assertThatThrownBy(responseFuture::get)
             .hasMessageContaining("One of the published tables has version higher than subscriber's minimal node version." +
                 " Table=doc.t1, Table-Version=" + tableVersion + ", Local-Minimal-Version: " + Version.CURRENT);
@@ -78,13 +88,14 @@ public class TransportCreateSubscriptionTest {
     @Test
     public void test_subscribing_to_tables_with_higher_hotfix_works() throws Exception {
         FutureActionListener<AcknowledgedResponse> responseFuture = new FutureActionListener<>();
-        subscribeToTablesWithVersion(responseFuture, Version.CURRENT.internalId + 100);
+        subscribeToTablesWithVersion(responseFuture, Version.CURRENT.internalId + 100, false);
 
         assertThat(responseFuture.get().isAcknowledged()).isTrue();
     }
 
     private void subscribeToTablesWithVersion(FutureActionListener<AcknowledgedResponse> responseFuture,
-                                              int internalVersionId) throws Exception {
+                                              int internalVersionId,
+                                              boolean versionInRelation) throws Exception {
         var transportCreateSubscription = new TransportCreateSubscription(
             mock(TransportService.class),
             clusterService,
@@ -110,26 +121,39 @@ public class TransportCreateSubscriptionTest {
             .when(clusterService).submitStateUpdateTask(anyString(), any());
 
         RelationName relationName = RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME);
-        RelationMetadata relationMetadata = new RelationMetadata(
-            relationName,
-            List.of(
-                IndexMetadata.builder("t1")
-                .settings(
-                    // Not necessary to set a valid version, only fact that version is higher than CURRENT is important for this test.
-                    Settings.builder()
-                        .put(IndexMetadata.SETTING_VERSION_CREATED, internalVersionId)
-                        .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2) // must be supplied
-                        .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0) // must be supplied
-                )
-                .build()
-            ),
-            null
-        );
 
-        PublicationsStateAction.Response response = new PublicationsStateAction.Response(
-            Map.of(relationName, relationMetadata),
-            List.of()
-        );
+        // Not necessary to set a valid version, only fact that version is higher than CURRENT is important for this test.
+        Settings relationSettings = Settings.builder()
+            .put(IndexMetadata.SETTING_VERSION_CREATED, versionInRelation ? internalVersionId : Version.CURRENT.internalId)
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 2) // must be supplied
+            .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0) // must be supplied
+            .build();
+
+        String indexUUID = UUIDs.randomBase64UUID();
+        Settings.Builder indexSettings = Settings.builder().put(relationSettings).put(SETTING_INDEX_UUID, indexUUID);
+        if (!versionInRelation) {
+            indexSettings.put(IndexMetadata.SETTING_VERSION_CREATED, internalVersionId);
+        }
+
+        Metadata publisherMetadata = Metadata.builder()
+            .setTable(
+                relationName,
+                List.of(),
+                relationSettings,
+                null,
+                ColumnPolicy.STRICT,
+                null,
+                Map.of(),
+                List.of(),
+                List.of(),
+                IndexMetadata.State.OPEN,
+                List.of(indexUUID),
+                0L
+                )
+            .put(IndexMetadata.builder(relationName.indexNameOrAlias()).settings(indexSettings))
+            .build();
+
+        PublicationsStateAction.Response response = new PublicationsStateAction.Response(publisherMetadata, List.of());
         when(logicalReplicationService.getPublicationState(anyString(), any(List.class), any(ConnectionInfo.class)))
             .thenReturn(CompletableFuture.completedFuture(response));
 
