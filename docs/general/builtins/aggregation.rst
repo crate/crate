@@ -228,10 +228,9 @@ column to the ``numeric`` data type::
 ``avg(DISTINCT column)``
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``avg`` aggregate function also supports the ``distinct`` keyword except for
-arguments of :ref:`NUMERIC type<type-numeric>`. This keyword changes the
-behaviour of the function so that it will only average the number of distinct
-values in this column that are not ``NULL``::
+The ``avg`` aggregate function also supports the ``distinct`` keyword. This
+keyword changes the behaviour of the function so that it will only average the
+number of distinct values in this column that are not ``NULL``::
 
     cr> select
     ...   avg(distinct position) AS avg_pos,
