@@ -183,7 +183,7 @@ The ``avg`` and ``mean`` aggregate function returns the arithmetic mean, the
 *average*, of all values in a column that are not ``NULL``. It accepts all
 numeric, timestamp and interval types as single argument. For ``numeric``
 argument type the return type is ``numeric``, for ``interval`` argument type the
-return type is ``interval`` and for other argument type the return type is
+return type is ``interval`` and for other argument types the return type is
 ``double``.
 
 Example::
@@ -228,9 +228,10 @@ column to the ``numeric`` data type::
 ``avg(DISTINCT column)``
 ~~~~~~~~~~~~~~~~~~~~~~~~
 
-The ``avg`` aggregate function also supports the ``distinct`` keyword. This
-keyword changes the behaviour of the function so that it will only average the
-number of distinct values in this column that are not ``NULL``::
+The ``avg`` aggregate function also supports the ``distinct`` keyword except for
+arguments of :ref:`NUMERIC type<type-numeric>`. This keyword changes the
+behaviour of the function so that it will only average the number of distinct
+values in this column that are not ``NULL``::
 
     cr> select
     ...   avg(distinct position) AS avg_pos,
