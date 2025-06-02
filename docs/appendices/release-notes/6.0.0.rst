@@ -271,6 +271,9 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added support for :ref:`NUMERIC type<type-numeric>` to the
+  :ref:`aggregation-avg-distinct` function.
+
 - Added support for :ref:`NUMERIC type<type-numeric>` to the following
   arithmetic scalar functions: :ref:`POWER<scalar-power>`,
   :ref:`DEGREES<scalar-degrees>` and :ref:`RADIANS<scalar-radians>`.

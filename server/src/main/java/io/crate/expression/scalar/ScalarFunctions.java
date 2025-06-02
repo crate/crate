@@ -118,6 +118,7 @@ public class ScalarFunctions implements FunctionsProvider {
         NegateFunctions.register(builder);
         CollectionCountFunction.register(builder);
         CollectionAverageFunction.register(builder);
+        NumericCollectionAverageFunction.register(builder);
         FormatFunction.register(builder);
         SubstrFunction.register(builder);
         RegexpReplaceFunction.register(builder);

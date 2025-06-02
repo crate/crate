@@ -23,6 +23,7 @@ package io.crate.execution.engine.aggregation.impl;
 
 import static io.crate.testing.Asserts.assertThat;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.elasticsearch.Version;
@@ -41,6 +42,7 @@ import io.crate.operation.aggregation.AggregationTestCase;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.NumericType;
 
 public class CollectSetAggregationTest extends AggregationTestCase {
 
@@ -61,6 +63,18 @@ public class CollectSetAggregationTest extends AggregationTestCase {
         FunctionImplementation collectSet = nodeCtx.functions().get(
             null, "collect_set", List.of(Literal.of(DataTypes.INTEGER, null)), SearchPath.pathWithPGCatalogAndDoc());
         assertThat(collectSet.boundSignature().returnType()).isEqualTo(new ArrayType<>(DataTypes.INTEGER));
+        collectSet = nodeCtx.functions().get(
+            null, "collect_set", List.of(Literal.of(DataTypes.NUMERIC, null)), SearchPath.pathWithPGCatalogAndDoc());
+        assertThat(collectSet.boundSignature().returnType()).isEqualTo(new ArrayType<>(DataTypes.NUMERIC));
+    }
+
+    @SuppressWarnings("unchecked")
+    @Test
+    public void testNumeric() throws Exception {
+        assertThat(
+            (List<BigDecimal>) executeAggregation(new NumericType(4, 3), new Object[][]{{
+                new BigDecimal("0.713")}, {new BigDecimal("0.312")}, {new BigDecimal("0.713")}}))
+            .containsExactlyInAnyOrder(new BigDecimal("0.312"), new BigDecimal("0.713"));
     }
 
     @SuppressWarnings("unchecked")

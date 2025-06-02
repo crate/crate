@@ -96,6 +96,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             "  int_array array(int)," +
             "  short_array array(short)," +
             "  double_array array(double precision)," +
+            "  numeric_array array(numeric)," +
             "  regex_pattern text," +
             "  geoshape geo_shape," +
             "  geopoint geo_point," +

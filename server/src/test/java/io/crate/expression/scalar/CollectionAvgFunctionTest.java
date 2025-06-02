@@ -21,6 +21,7 @@
 
 package io.crate.expression.scalar;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 import org.junit.Test;
@@ -28,6 +29,7 @@ import org.junit.Test;
 import io.crate.expression.symbol.Literal;
 import io.crate.types.ArrayType;
 import io.crate.types.LongType;
+import io.crate.types.NumericType;
 
 public class CollectionAvgFunctionTest extends ScalarTestCase {
 
@@ -40,4 +42,14 @@ public class CollectionAvgFunctionTest extends ScalarTestCase {
         );
     }
 
+    @Test
+    public void test_evaluate_numeric() throws Exception {
+        assertEvaluate(
+            "collection_avg(numeric_array)",
+            new BigDecimal("2.440"),
+            Literal.of(
+                List.of(new BigDecimal("1.325"), new BigDecimal("2.345"), new BigDecimal("3.65")),
+                new ArrayType<>(new NumericType(5, 3)))
+        );
+    }
 }

@@ -31,6 +31,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
@@ -56,7 +57,7 @@ public class CollectSetAggregation extends AggregationFunction<Map<Object, Objec
     public static final String NAME = "collect_set";
 
     public static void register(Functions.Builder builder) {
-        for (DataType<?> supportedType : DataTypes.PRIMITIVE_TYPES) {
+        for (DataType<?> supportedType : Lists.concat(DataTypes.PRIMITIVE_TYPES, DataTypes.NUMERIC)) {
             var returnType = new ArrayType<>(supportedType);
             builder.add(
                     Signature.builder(NAME, FunctionType.AGGREGATE)
