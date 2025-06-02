@@ -53,3 +53,7 @@ Fixes
   cluster before upgrading a publisher cluster to apply the fix correctly.
   This fix will only work if both, the publisher and subscriber clusters, are
   running with :ref:`version_5.10.8` or higher.
+
+- Fixed an issue where ``sas_token`` and ``key`` settings for
+  :ref:`azure repositories <sql-create-repo-azure>` were exposed as unmasked
+  settings in :ref:`sys.repositories <sys-repositories>` table.

@@ -22,13 +22,14 @@
 package org.elasticsearch.repositories.azure;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.net.InetAddress;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Map;
 
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
@@ -105,6 +106,16 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
 
         execute("DROP SNAPSHOT r1.s1");
         handler.blobs().keySet().forEach(x -> assertThat(x).doesNotEndWith("dat"));
+
+        execute("SELECT * FROM sys.repositories");
+        assertThat(response.rows()[0][0]).isEqualTo("r1");
+        //noinspection unchecked
+        assertThat((Map<String, String>) response.rows()[0][1])
+            .hasEntrySatisfying("account", v -> assertThat(v).isEqualTo("[xxxxx]"))
+            .hasEntrySatisfying("container", v -> assertThat(v).isEqualTo("crate_snapshots"))
+            .hasEntrySatisfying("endpoint_suffix", v -> assertThat(v).matches("ignored;DefaultEndpointsProtocol=http;BlobEndpoint=http://127.0.0.1:\\d+"))
+            .hasEntrySatisfying("key", v -> assertThat(v).isEqualTo("[xxxxx]"));
+        assertThat(response.rows()[0][2]).isEqualTo("azure");
     }
 
     @Test
@@ -160,6 +171,17 @@ public class AzureSnapshotIntegrationTest extends IntegTestCase {
             "location_mode = 'PRIMARY_ONLY', " +
             "endpoint = '" + httpServerUrl() + "')");
         assertThat(response.rowCount()).isEqualTo(1L);
+
+        execute("SELECT * FROM sys.repositories");
+        assertThat(response.rows()[0][0]).isEqualTo("r1");
+        //noinspection unchecked
+        assertThat((Map<String, String>) response.rows()[0][1])
+            .hasEntrySatisfying("account", v -> assertThat(v).isEqualTo("[xxxxx]"))
+            .hasEntrySatisfying("container", v -> assertThat(v).isEqualTo("crate_snapshots"))
+            .hasEntrySatisfying("endpoint", v -> assertThat(v).matches("http://127.0.0.1:\\d+"))
+            .hasEntrySatisfying("location_mode", v -> assertThat(v).isEqualTo("PRIMARY_ONLY"))
+            .hasEntrySatisfying("sas_token", v -> assertThat(v).isEqualTo("[xxxxx]"));
+        assertThat(response.rows()[0][2]).isEqualTo("azure");
     }
 
     @Test
