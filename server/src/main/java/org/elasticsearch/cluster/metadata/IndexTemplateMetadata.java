@@ -42,6 +42,9 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
+import io.crate.execution.ddl.tables.MappingUtil;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadata> {
 
@@ -352,6 +355,32 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
             }
 
             return null;
+        }
+
+        public static IndexTemplateMetadata of(RelationMetadata.Table table) {
+            assert table.partitionedBy().isEmpty() == false : "table must be partitioned";
+            RelationName relationName = table.name();
+            String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
+            String templatePrefix = PartitionName.templatePrefix(relationName.schema(), relationName.name());
+            return IndexTemplateMetadata.builder(templateName)
+                .version(null)
+                .patterns(List.of(templatePrefix))
+                .putAlias(new AliasMetadata(relationName.indexNameOrAlias()))
+                .settings(table.settings())
+                .putMapping(new CompressedXContent(Map.of(
+                    Constants.DEFAULT_MAPPING_TYPE,
+                    MappingUtil.createMapping(
+                        MappingUtil.AllocPosition.forTable(table),
+                        table.pkConstraintName(),
+                        table.columns(),
+                        table.primaryKeys(),
+                        table.checkConstraints(),
+                        table.partitionedBy(),
+                        table.columnPolicy(),
+                        table.routingColumn()
+                    )
+                )))
+                .build();
         }
     }
 

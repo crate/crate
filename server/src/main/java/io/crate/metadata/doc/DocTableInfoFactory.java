@@ -406,7 +406,7 @@ public class DocTableInfoFactory {
                 table.state(),
                 publicationsMetadata == null ? false : publicationsMetadata.isPublished(table.name())
             ),
-            0
+            table.tableVersion()
         );
     }
 

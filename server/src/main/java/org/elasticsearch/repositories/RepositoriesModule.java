@@ -24,6 +24,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -55,6 +56,7 @@ public class RepositoriesModule extends AbstractModule {
                               TransportService transportService,
                               ClusterService clusterService,
                               LogicalReplicationService logicalReplicationService,
+                              MetadataUpgradeService metadataUpgradeService,
                               RemoteClusters remoteClusters,
                               ThreadPool threadPool,
                               NamedWriteableRegistry namedWriteableRegistry,
@@ -82,6 +84,7 @@ public class RepositoriesModule extends AbstractModule {
                     return new LogicalReplicationRepository(
                         clusterService,
                         logicalReplicationService,
+                        metadataUpgradeService,
                         remoteClusters,
                         metadata,
                         threadPool,

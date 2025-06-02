@@ -798,7 +798,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
          * Adds the relation to the corresponding {@link SchemaMetadata}.
          * If the relation already exists with the same name it is overridden.
          **/
-        private void setRelation(RelationMetadata relation) {
+        public void setRelation(RelationMetadata relation) {
             ImmutableOpenMap<String, RelationMetadata> relations;
             RelationName relationName = relation.name();
             String schema = relationName.schema();

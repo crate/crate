@@ -26,7 +26,6 @@ import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -53,6 +52,8 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -67,19 +68,13 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.support.RetryRunnable;
-import io.crate.metadata.IndexName;
-import io.crate.metadata.IndexParts;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
-import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.Subscription.RelationState;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
@@ -96,7 +91,7 @@ public final class MetadataTracker implements Closeable {
     private final ClusterService clusterService;
     private final IndexScopedSettings indexScopedSettings;
     private final AllocationService allocationService;
-    private final DocTableInfoFactory docTableInfoFactory;
+    private final MetadataUpgradeService metadataUpgradeService;
 
     // Using a copy-on-write approach. The assumption is that subscription changes are rare and reads happen more frequently
     private volatile Set<String> subscriptionsToTrack = Set.of();
@@ -111,7 +106,7 @@ public final class MetadataTracker implements Closeable {
                            Function<String, Client> remoteClient,
                            ClusterService clusterService,
                            AllocationService allocationService,
-                           NodeContext nodeContext) {
+                           MetadataUpgradeService metadataUpgradeService) {
         this.settings = settings;
         this.threadPool = threadPool;
         this.replicationService = replicationService;
@@ -121,7 +116,7 @@ public final class MetadataTracker implements Closeable {
         this.clusterService = clusterService;
         this.indexScopedSettings = indexScopedSettings;
         this.allocationService = allocationService;
-        this.docTableInfoFactory = new DocTableInfoFactory(nodeContext);
+        this.metadataUpgradeService = metadataUpgradeService;
     }
 
     private void start() {
@@ -221,7 +216,12 @@ public final class MetadataTracker implements Closeable {
             subscription.publications(),
             subscription.connectionInfo().user()
         );
-        CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
+        CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request)
+            .thenApply(r ->
+                new Response(
+                    metadataUpgradeService.addOrUpgradeRelationMetadata(r.metadata()),
+                    r.unknownPublications()
+                ));
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
             if (response.unknownPublications().containsAll(subscription.publications())) {
                 stopTracking(subscriptionName);
@@ -320,15 +320,14 @@ public final class MetadataTracker implements Closeable {
                     subscriptionName,
                     subscription,
                     localClusterState,
-                    response.relationsInPublications()
+                    response.metadata()
                 );
-                return updateIndexMetadata(
+                return updateRelations(
                     subscriptionName,
                     subscription,
                     localClusterState,
                     response,
-                    indexScopedSettings,
-                    docTableInfoFactory
+                    indexScopedSettings
                 );
             }
 
@@ -345,58 +344,80 @@ public final class MetadataTracker implements Closeable {
     }
 
     @VisibleForTesting
-    static ClusterState updateIndexMetadata(String subscriptionName,
-                                            Subscription subscription,
-                                            ClusterState subscriberClusterState,
-                                            Response publicationsState,
-                                            IndexScopedSettings indexScopedSettings,
-                                            DocTableInfoFactory docTableInfoFactory) {
+    static ClusterState updateRelations(String subscriptionName,
+                                        Subscription subscription,
+                                        ClusterState subscriberClusterState,
+                                        Response publicationsState,
+                                        IndexScopedSettings indexScopedSettings) {
         // Check for all the subscribed tables if the index metadata and settings changed and if so apply
         // the changes from the publisher cluster state to the subscriber cluster state
         var updatedMetadataBuilder = Metadata.builder(subscriberClusterState.metadata());
         var updateClusterState = false;
+        Metadata subscriberMetadata = subscriberClusterState.metadata();
+        Metadata publisherMetadata = publicationsState.metadata();
         for (var followedTable : subscription.relations().keySet()) {
-            RelationMetadata relationMetadata = publicationsState.relationsInPublications().get(followedTable);
-            Map<String, IndexMetadata> publisherIndices = relationMetadata == null
-                ? Map.of()
-                : relationMetadata.indices()
-                    .stream()
-                    .collect(Collectors.toMap(x -> x.getIndex().getName(), x -> x));
-            var publisherIndexMetadata = publisherIndices.get(followedTable.indexNameOrAlias());
-            var subscriberIndexMetadata = subscriberClusterState.metadata().index(followedTable.indexNameOrAlias());
-            if (publisherIndexMetadata != null && subscriberIndexMetadata != null) {
-                var updatedIndexMetadataBuilder = IndexMetadata.builder(subscriberIndexMetadata);
-                var updatedMapping = updateIndexMetadataMappings(publisherIndexMetadata, subscriberIndexMetadata);
-                if (updatedMapping != null) {
-                    updatedIndexMetadataBuilder.putMapping(updatedMapping).mappingVersion(publisherIndexMetadata.getMappingVersion());
-                }
-                var updatedSettings = updateIndexMetadataSettings(
-                    publisherIndexMetadata.getSettings(),
-                    subscriberIndexMetadata.getSettings(),
+            RelationMetadata.Table publisherTable = publisherMetadata.getRelation(followedTable);
+            if (publisherTable == null) {
+                // Dropped relations are handled separately, see processDroppedTablesOrPartitions(...)
+                continue;
+            }
+            RelationMetadata.Table subscriberTable = subscriberMetadata.getRelation(followedTable);
+            if (subscriberTable == null) {
+                // Table creation is handled by restore, see getRestoreDiff(...)
+                continue;
+            }
+
+            // Update main table relation
+            if (publisherTable.tableVersion() > subscriberTable.tableVersion()) {
+                Settings updatedSettings = updateSettings(
+                    publisherTable.settings(),
+                    subscriberTable.settings(),
                     indexScopedSettings
                 );
-                if (updatedSettings != null) {
-                    updatedIndexMetadataBuilder.settings(updatedSettings).settingsVersion(subscriberIndexMetadata.getSettingsVersion() + 1L);
-                }
-                if (updatedMapping != null || updatedSettings != null) {
-                    IndexMetadata indexMetadata = updatedIndexMetadataBuilder.build();
-                    updatedMetadataBuilder.put(indexMetadata, true);
+                updatedMetadataBuilder.setTable(
+                    subscriberTable.name(),
+                    publisherTable.columns(),
+                    updatedSettings != null ? updatedSettings : subscriberTable.settings(),
+                    publisherTable.routingColumn(),
+                    publisherTable.columnPolicy(),
+                    publisherTable.pkConstraintName(),
+                    publisherTable.checkConstraints(),
+                    publisherTable.primaryKeys(),
+                    publisherTable.partitionedBy(),
+                    subscriberTable.state(),
+                    subscriberTable.indexUUIDs(),
+                    publisherTable.tableVersion()
+                );
+                updateClusterState = true;
+            }
 
-                    // Update the table relation with the new index metadata
-                    if (subscriberClusterState.metadata().getRelation(followedTable) != null) {
-                        Metadata tempMetadata = Metadata.builder(subscriberClusterState.metadata())
-                            .put(indexMetadata, true)
-                            .dropRelation(followedTable)
-                            .build();
-                        DocTableInfo newTable = docTableInfoFactory.create(followedTable, tempMetadata);
-                        try {
-                            newTable.writeTo(subscriberClusterState.metadata(), updatedMetadataBuilder);
-                        } catch (IOException e) {
-                            throw new RuntimeException(e);
-                        }
+            // Update table indices, but only indices existing already on the subscriber.
+            Map<String, IndexMetadata> subscriberIndices = subscriberMetadata.getIndices(followedTable, List.of(), false, x -> x)
+                    .stream()
+                    .collect(Collectors.toMap(x -> PUBLISHER_INDEX_UUID.get(x.getSettings()), x -> x));
+            List<IndexMetadata> publisherIndices = publisherMetadata.getIndices(followedTable, List.of(), false, x -> x);
+
+            for (IndexMetadata publisherIndexMetadata : publisherIndices) {
+                var subscriberIndexMetadata = subscriberIndices.get(publisherIndexMetadata.getIndexUUID());
+                if (subscriberIndexMetadata != null) {
+                    var updatedIndexMetadataBuilder = IndexMetadata.builder(subscriberIndexMetadata);
+                    var updatedMapping = updateIndexMetadataMappings(publisherIndexMetadata, subscriberIndexMetadata);
+                    if (updatedMapping != null) {
+                        updatedIndexMetadataBuilder.putMapping(updatedMapping).mappingVersion(publisherIndexMetadata.getMappingVersion());
                     }
-
-                    updateClusterState = true;
+                    var updatedSettings = updateSettings(
+                        publisherIndexMetadata.getSettings(),
+                        subscriberIndexMetadata.getSettings(),
+                        indexScopedSettings
+                    );
+                    if (updatedSettings != null) {
+                        updatedIndexMetadataBuilder.settings(updatedSettings).settingsVersion(subscriberIndexMetadata.getSettingsVersion() + 1L);
+                    }
+                    if (updatedMapping != null || updatedSettings != null) {
+                        IndexMetadata indexMetadata = updatedIndexMetadataBuilder.build();
+                        updatedMetadataBuilder.put(indexMetadata, true);
+                        updateClusterState = true;
+                    }
                 }
             }
         }
@@ -425,21 +446,11 @@ public final class MetadataTracker implements Closeable {
         var metadata = subscriberClusterState.metadata();
         Set<RelationName> currentlyReplicatedTables = subscription.relations().keySet();
 
-        Set<RelationName> existingRelations = publisherStateResponse.concreteIndices().stream()
-            .filter(im -> metadata.hasIndex(im.getIndex().getName()))
-            .map(im -> RelationName.fromIndexName(im.getIndex().getName()))
+        return publisherStateResponse.metadata().relations(RelationMetadata.Table.class).stream()
+            .map(RelationMetadata.Table::name)
+            .filter(relationName -> metadata.getRelation(relationName) != null)
             .filter(relationName -> currentlyReplicatedTables.contains(relationName) == false)
             .collect(Collectors.toSet());
-
-        for (String t: publisherStateResponse.concreteTemplates()) {
-            if (metadata.templates().containsKey(t)) {
-                var relationName = PartitionName.fromIndexOrTemplate(t).relationName();
-                if (currentlyReplicatedTables.contains(relationName) == false) {
-                    existingRelations.add(relationName);
-                }
-            }
-        }
-        return existingRelations;
     }
 
     record RestoreDiff(List<TableOrPartition> toRestore,
@@ -458,36 +469,31 @@ public final class MetadataTracker implements Closeable {
         HashSet<RelationName> relationNamesForStateUpdate = new HashSet<>();
         ArrayList<TableOrPartition> toRestore = new ArrayList<>();
         Metadata subscriberMetadata = subscriberState.metadata();
-        for (IndexMetadata indexMetadata : stateResponse.concreteIndices()) {
-            String indexName = indexMetadata.getIndex().getName();
-            IndexParts indexParts = IndexName.decode(indexName);
-            RelationName relationName = indexParts.toRelationName();
-            if (subscribedRelations.get(relationName) == null) {
-                relationNamesForStateUpdate.add(relationName);
-            }
-            if (REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings()) == false) {
-                // If the index is not active, we cannot restore it
-                if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Skipping index {} for subscription {} as it is not active", indexName, subscription);
-                }
-                continue;
-            }
-            if (!subscriberMetadata.hasIndex(indexName)) {
-                String partitionIdent = indexParts.isPartitioned() ? indexParts.partitionIdent() : null;
-                toRestore.add(new TableOrPartition(relationName, partitionIdent));
-                relationNamesForStateUpdate.add(relationName);
-            }
-
-        }
-        for (var templateName : stateResponse.concreteTemplates()) {
-            var indexParts = IndexName.decode(templateName);
-            if (indexParts.isPartitioned()) {
-                var relationName = indexParts.toRelationName();
-                if (!subscriberState.metadata().templates().containsKey(templateName)
-                        && toRestore.stream().noneMatch(x -> x.table().equals(relationName))) {
-                    toRestore.add(new TableOrPartition(relationName, null));
-                }
+        Metadata publisherMetadata = stateResponse.metadata();
+        for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
+            RelationName relationName = table.name();
+            for (IndexMetadata indexMetadata : publisherMetadata.getIndices(relationName, List.of(), false, x -> x)) {
+                String indexName = indexMetadata.getIndex().getName();
                 if (subscribedRelations.get(relationName) == null) {
+                    relationNamesForStateUpdate.add(relationName);
+                }
+                if (REPLICATION_INDEX_ROUTING_ACTIVE.get(indexMetadata.getSettings()) == false) {
+                    // If the index is not active, we cannot restore it
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Skipping index {} for subscription {} as it is not active", indexName, subscription);
+                    }
+                    continue;
+                }
+                if (!subscriberMetadata.hasIndex(indexName)) {
+                    String partitionIdent = PartitionName.encodeIdent(indexMetadata.partitionValues());
+                    toRestore.add(new TableOrPartition(relationName, partitionIdent));
+                    relationNamesForStateUpdate.add(relationName);
+                }
+            }
+            if (table.indexUUIDs().isEmpty() && table.partitionedBy().isEmpty() == false) {
+                // If the table is partitioned, we need to restore the table itself
+                if (subscriberMetadata.getRelation(relationName) == null) {
+                    toRestore.add(new TableOrPartition(relationName, null));
                     relationNamesForStateUpdate.add(relationName);
                 }
             }
@@ -501,14 +507,13 @@ public final class MetadataTracker implements Closeable {
     private ClusterState processDroppedTablesOrPartitions(String subscriptionName,
                                                           Subscription subscription,
                                                           ClusterState subscriberClusterState,
-                                                          Map<RelationName, RelationMetadata> relationsInPublications) {
+                                                          Metadata publisherMetadata) {
         HashSet<RelationName> changedRelations = new HashSet<>();
         HashSet<Index> partitionsToRemove = new HashSet<>();
         Metadata subscriberMetadata = subscriberClusterState.metadata();
         for (var relationName : subscription.relations().keySet()) {
-            var publisherRelationMetadata = relationsInPublications.get(relationName);
-            boolean relationDisappeared = publisherRelationMetadata == null;
-            if (relationDisappeared) {
+            RelationMetadata.Table publisherTable = publisherMetadata.getRelation(relationName);
+            if (publisherTable == null) {
                 changedRelations.add(relationName);
                 continue;
             }
@@ -516,7 +521,7 @@ public final class MetadataTracker implements Closeable {
             List<IndexMetadata> concreteIndices = subscriberMetadata.getIndices(relationName, List.of(), false, x -> x);
             for (IndexMetadata concreteIndex : concreteIndices) {
                 String indexUUID = PUBLISHER_INDEX_UUID.get(concreteIndex.getSettings());
-                boolean publisherContainsIndex = publisherRelationMetadata.indices().stream().anyMatch(x -> x.getIndexUUID().equals(indexUUID));
+                boolean publisherContainsIndex = publisherTable.indexUUIDs().contains(indexUUID);
                 if (!publisherContainsIndex) {
                     partitionsToRemove.add(concreteIndex.getIndex());
                 }
@@ -582,17 +587,19 @@ public final class MetadataTracker implements Closeable {
     }
 
     @Nullable
-    private static Settings updateIndexMetadataSettings(Settings publisherMetadataSettings,
-                                                        Settings subscriberMetadataSettings,
-                                                        IndexScopedSettings indexScopedSettings) {
-        var newSettingsBuilder = Settings.builder().put(subscriberMetadataSettings);
-        var updatedSettings = publisherMetadataSettings.filter(
+    private static Settings updateSettings(Settings publisherSettings,
+                                           Settings subscriberSettings,
+                                           IndexScopedSettings indexScopedSettings) {
+        var updatedSettings = publisherSettings.filter(
             key -> isReplicatableSetting(key, indexScopedSettings) &&
-                !Objects.equals(subscriberMetadataSettings.get(key), publisherMetadataSettings.get(key)));
+                !Objects.equals(subscriberSettings.get(key), publisherSettings.get(key)));
         if (updatedSettings.isEmpty()) {
             return null;
         }
-        return newSettingsBuilder.put(updatedSettings).build();
+        return Settings.builder()
+            .put(subscriberSettings)
+            .put(updatedSettings)
+            .build();
     }
 
     private static boolean isReplicatableSetting(String key, IndexScopedSettings indexScopedSettings) {

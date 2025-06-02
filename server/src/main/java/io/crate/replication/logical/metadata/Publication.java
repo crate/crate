@@ -25,12 +25,9 @@ import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATIO
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Map;
 import java.util.Objects;
-import java.util.function.Function;
-import java.util.stream.Collectors;
+import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -41,10 +38,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.elasticsearch.index.Index;
 
-import io.crate.metadata.IndexName;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.RelationName;
 import io.crate.role.Permission;
 import io.crate.role.Role;
@@ -119,61 +114,74 @@ public class Publication implements Writeable {
         return "Publication{forAllTables=" + forAllTables + ", owner=" + owner + ", tables=" + tables + "}";
     }
 
-    public Map<RelationName, RelationMetadata> resolveCurrentRelations(ClusterState state,
-                                                                       Roles roles,
-                                                                       Role publicationOwner,
-                                                                       Role subscriber,
-                                                                       String publicationName) {
+    public Metadata.Builder resolveCurrentRelations(ClusterState state,
+                                                    Roles roles,
+                                                    Role publicationOwner,
+                                                    Role subscriber,
+                                                    String publicationName,
+                                                    Metadata.Builder metadataBuilder) {
+        Metadata metadata = state.metadata();
+        Predicate<RelationName> relationFilter = relationName -> {
+            if (!userCanPublish(roles, relationName, publicationOwner, publicationName)) {
+                return false;
+            }
+            return subscriberCanRead(roles, relationName, subscriber, publicationName);
+        };
+        // skip indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
+        Predicate<Index> indexFilter = index -> {
+            var indexMetadata = metadata.index(index);
+            if (indexMetadata != null) {
+                var routingTable = state.routingTable().index(index);
+                assert routingTable != null : "routingTable must not be null";
+                return routingTable.allPrimaryShardsActive();
 
-        var relations = new HashSet<RelationName>();
+            }
+            // Partitioned table case (template, no index).
+            return true;
+        };
 
         if (isForAllTables()) {
-            Metadata metadata = state.metadata();
             for (var table : metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class)) {
-                relations.add(table.name());
-            }
-
-            for (var cursor : metadata.templates().keys()) {
-                String templateName = cursor.value;
-                IndexParts indexParts = IndexName.decode(templateName);
-                RelationName relationName = indexParts.toRelationName();
-                if (indexParts.isPartitioned()) {
-                    relations.add(relationName);
+                if (relationFilter.test(table.name()) == false) {
+                    continue;
                 }
-            }
-            for (var cursor : metadata.indices().values()) {
-                var indexMetadata = cursor.value;
-                var indexName = indexMetadata.getIndex().getName();
-                var indexParts = IndexName.decode(indexName);
-                if (indexParts.isPartitioned() == false) {
-                    relations.add(indexParts.toRelationName());
-                }
+                addRelation(metadata, metadataBuilder, table, indexFilter);
             }
         } else {
-            relations.addAll(tables);
+            for (RelationName relationName : tables) {
+                if (relationFilter.test(relationName) == false) {
+                    continue;
+                }
+                org.elasticsearch.cluster.metadata.RelationMetadata.Table table = metadata.getRelation(relationName);
+                if (table == null) {
+                    if (LOGGER.isDebugEnabled()) {
+                        LOGGER.debug("Table {} not found in metadata, skipping publication resolution for it.", relationName);
+                    }
+                    continue;
+                }
+                addRelation(metadata, metadataBuilder, table, indexFilter);
+            }
         }
 
-        return relations.stream()
-            .filter(relationName -> userCanPublish(roles, relationName, publicationOwner, publicationName))
-            .filter(relationName -> subscriberCanRead(roles, relationName, subscriber, publicationName))
-            .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata(), applyCustomIndexSettings(state)))
-            .collect(Collectors.toMap(RelationMetadata::name, x -> x));
-
+        return metadataBuilder;
     }
 
-    @VisibleForTesting
-    public static Function<IndexMetadata, IndexMetadata> applyCustomIndexSettings(ClusterState state) {
-        // mark indices where not all shards are active yet, restore will fail if primaries are not (yet) assigned
-        return im -> {
-            var routingTable = state.routingTable().index(im.getIndex());
-            assert routingTable != null : "routingTable must not be null";
-            boolean isActive = routingTable.allPrimaryShardsActive();
-            IndexMetadata.Builder builder = IndexMetadata.builder(im);
-            return builder.settings(Settings.builder()
-                    .put(im.getSettings())
-                    .put(REPLICATION_INDEX_ROUTING_ACTIVE.getKey(), isActive))
-                .build();
-        };
+    private static void addRelation(Metadata currentMetadata,
+                                    Metadata.Builder metadataBuilder,
+                                    org.elasticsearch.cluster.metadata.RelationMetadata.Table table,
+                                    Predicate<Index> indexFilter) {
+        metadataBuilder.setRelation(table);
+        for (IndexMetadata indexMetadata : currentMetadata.getIndices(table.name(), List.of(), true, im -> im)) {
+            var publishedIndexMetadata = IndexMetadata.builder(indexMetadata);
+            if (indexFilter.test(indexMetadata.getIndex()) == false) {
+                publishedIndexMetadata.settings(
+                    Settings.builder()
+                        .put(indexMetadata.getSettings())
+                        .put(REPLICATION_INDEX_ROUTING_ACTIVE.getKey(), false)
+                );
+            }
+            metadataBuilder.put(publishedIndexMetadata);
+        }
     }
 
     private static boolean subscriberCanRead(Roles roles, RelationName relationName, Role subscriber, String publicationName) {

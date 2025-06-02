@@ -22,13 +22,9 @@
 package io.crate.replication.logical.metadata;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
-import java.util.function.Function;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,9 +32,13 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
+/**
+ * This class is deprecated and should not be used in new code. It only exists for backward compatibility to support
+ * reading and writing Publication metadata in the old format (<6.0.0) to/from old nodes.
+ */
+@Deprecated
 public record RelationMetadata(RelationName name,
                                List<IndexMetadata> indices,
                                @Nullable IndexTemplateMetadata template) implements Writeable {
@@ -58,29 +58,13 @@ public record RelationMetadata(RelationName name,
         out.writeOptionalWriteable(template);
     }
 
-    public static RelationMetadata fromMetadata(RelationName table,
-                                                Metadata metadata,
-                                                Function<IndexMetadata, IndexMetadata> applyCustomIndexSettings) {
-        String indexNameOrAlias = table.indexNameOrAlias();
-        var indexMetadata = metadata.index(indexNameOrAlias);
-        if (indexMetadata == null) {
-            String templateName = PartitionName.templateName(table.schema(), table.name());
-            var templateMetadata = metadata.templates().get(templateName);
-            String[] concreteIndices = IndexNameExpressionResolver.concreteIndexNames(
-                metadata,
-                IndicesOptions.LENIENT_EXPAND_OPEN,
-                indexNameOrAlias
-            );
-            ArrayList<IndexMetadata> indicesMetadata = new ArrayList<>(concreteIndices.length);
-            for (String concreteIndex : concreteIndices) {
-                IndexMetadata concreteIndexMetadata = metadata.index(concreteIndex);
-                if (concreteIndexMetadata == null) {
-                    continue;
-                }
-                indicesMetadata.add(applyCustomIndexSettings.apply(concreteIndexMetadata));
-            }
-            return new RelationMetadata(table, indicesMetadata, templateMetadata);
+    public static RelationMetadata fromMetadata(org.elasticsearch.cluster.metadata.RelationMetadata.Table table,
+                                                Metadata metadata) {
+        IndexTemplateMetadata templateMetadata = null;
+        if (table.partitionedBy().isEmpty() == false) {
+            templateMetadata = IndexTemplateMetadata.Builder.of(table);
         }
-        return new RelationMetadata(table, List.of(applyCustomIndexSettings.apply(indexMetadata)), null);
+        List<IndexMetadata> indices = metadata.getIndices(table.name(), List.of(), false, im -> im);
+        return new RelationMetadata(table.name(), indices, templateMetadata);
     }
 }
