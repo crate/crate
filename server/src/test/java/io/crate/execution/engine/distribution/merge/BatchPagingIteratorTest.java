@@ -28,6 +28,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -40,7 +41,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.common.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowN;
@@ -76,7 +76,7 @@ public class BatchPagingIteratorTest {
             pagingIterator.merge(singletonList(new KeyIterable<>(0, rows)));
             return new BatchPagingIterator<>(
                 pagingIterator,
-                exhaustedIt -> KillableCompletionStage.failed(new IllegalStateException("upstreams exhausted")),
+                exhaustedIt -> CompletableFuture.failedStage(new IllegalStateException("upstreams exhausted")),
                 () -> true,
                 throwable -> {}
             );
@@ -93,29 +93,25 @@ public class BatchPagingIteratorTest {
         Supplier<BatchIterator<Row>> batchIteratorSupplier = () -> {
             BatchSimulatingIterator<Row> source =
                 new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10), 2, 5, executor);
-            Function<Integer, KillableCompletionStage<? extends Iterable<? extends KeyIterable<Integer, Row>>>> fetchMore = exhausted -> {
+            Function<Integer, CompletionStage<? extends Iterable<? extends KeyIterable<Integer, Row>>>> fetchMore = exhausted -> {
                 List<Row> rows = new ArrayList<>();
                 while (source.moveNext()) {
                     rows.add(new RowN(source.currentElement().materialize()));
                 }
                 if (source.allLoaded()) {
-                    return KillableCompletionStage.whenKilled(
-                        CompletableFuture.completedFuture(singletonList(new KeyIterable<>(1, rows))),
-                        t -> {});
+                    return CompletableFuture.completedFuture(singletonList(new KeyIterable<>(1, rows)));
                 }
                 // this is intentionally not recursive to not consume the whole source in the first `fetchMore` call
                 // but to simulate multiple pages and fetchMore calls
                 try {
-                    return KillableCompletionStage.whenKilled(
-                        source.loadNextBatch().toCompletableFuture().thenApply(ignored -> {
-                            while (source.moveNext()) {
-                                rows.add(new RowN(source.currentElement().materialize()));
-                            }
-                            return singleton(new KeyIterable<>(1, rows));
-                        }),
-                        t -> {});
+                    return source.loadNextBatch().toCompletableFuture().thenApply(ignored -> {
+                        while (source.moveNext()) {
+                            rows.add(new RowN(source.currentElement().materialize()));
+                        }
+                        return singleton(new KeyIterable<>(1, rows));
+                    });
                 } catch (Exception e) {
-                    return KillableCompletionStage.failed(e);
+                    return CompletableFuture.failedStage(e);
                 }
             };
             return new BatchPagingIterator<>(
@@ -140,7 +136,7 @@ public class BatchPagingIteratorTest {
         TestPagingIterator pagingIterator = new TestPagingIterator();
         BatchPagingIterator<Integer> iterator = new BatchPagingIterator<>(
             pagingIterator,
-            exhaustedIt -> KillableCompletionStage.failed(new IllegalStateException("upstreams exhausted")),
+            exhaustedIt -> CompletableFuture.failedStage(new IllegalStateException("upstreams exhausted")),
             () -> true,
             throwable -> {}
         );
