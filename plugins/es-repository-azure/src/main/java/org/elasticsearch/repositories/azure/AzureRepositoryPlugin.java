@@ -19,6 +19,10 @@
 
 package org.elasticsearch.repositories.azure;
 
+import static org.elasticsearch.repositories.azure.AzureRepository.Repository.ACCOUNT_SETTING;
+import static org.elasticsearch.repositories.azure.AzureRepository.Repository.KEY_SETTING;
+import static org.elasticsearch.repositories.azure.AzureRepository.Repository.SAS_TOKEN_SETTING;
+
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -73,6 +77,6 @@ public class AzureRepositoryPlugin extends Plugin implements RepositoryPlugin {
 
     @Override
     public List<Setting<?>> getSettings() {
-        return List.of(AzureRepository.Repository.ACCOUNT_SETTING);
+        return List.of(ACCOUNT_SETTING, SAS_TOKEN_SETTING, KEY_SETTING);
     }
 }
