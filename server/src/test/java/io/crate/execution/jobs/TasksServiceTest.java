@@ -240,6 +240,9 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
 
         assertThatThrownBy(() -> tasksService.createTask(builder))
             .isExactlyInstanceOf(NoSuchNodeException.class);
+
+        assertThat(tasksService.getTaskOrNull(jobId)).isNull();
+        assertThat(tasksService.recentlyFailed(jobId)).isTrue();
     }
 
     @Test
