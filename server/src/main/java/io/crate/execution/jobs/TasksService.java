@@ -180,7 +180,9 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         DiscoveryNodes nodes = clusterService.state().nodes();
         for (String participatingNode : newRootTask.participatingNodes()) {
             if (!nodes.nodeExists(participatingNode)) {
-                throw new NoSuchNodeException(participatingNode);
+                NoSuchNodeException noSuchNodeException = new NoSuchNodeException(participatingNode);
+                taskCallback.accept(null, noSuchNodeException);
+                throw noSuchNodeException;
             }
         }
 
