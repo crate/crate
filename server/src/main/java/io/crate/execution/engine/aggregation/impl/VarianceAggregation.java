@@ -249,7 +249,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
                     },
-                    (values, state) -> state.increment(values.nextValue())
+                    (_, values, state) -> state.increment(values.nextValue())
                 );
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
@@ -258,7 +258,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
                     },
-                    (values, state) -> {
+                    (_, values, state) -> {
                         var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
                         state.increment(value);
                     }
@@ -270,7 +270,7 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                         ramAccounting.addBytes(VarianceStateType.INSTANCE.fixedSize());
                         return new Variance();
                     },
-                    (values, state) -> {
+                    (_, values, state) -> {
                         var value = NumericUtils.sortableLongToDouble((values.nextValue()));
                         state.increment(value);
                     }
