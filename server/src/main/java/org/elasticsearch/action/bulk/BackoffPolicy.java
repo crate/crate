@@ -76,8 +76,7 @@ public final class BackoffPolicy {
      * iterator created from it should only be used by a single thread.
      */
     public static Iterable<TimeValue> exponentialBackoff() {
-        return () -> exponential(TimeValue.timeValueMillis(50))
-            .iterator();
+        return exponentialBackoff(TimeValue.timeValueMillis(50), 8);
     }
 
     /**

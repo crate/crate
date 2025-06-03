@@ -57,6 +57,20 @@ public class LimitedBackoffPolicyTest extends ESTestCase {
     }
 
     @Test
+    public void test_exp_backoff_defaults_to_8_retries() throws Exception {
+        assertThat(BackoffPolicy.exponentialBackoff()).containsExactly(
+            TimeValue.timeValueMillis(60),
+            TimeValue.timeValueMillis(80),
+            TimeValue.timeValueMillis(150),
+            TimeValue.timeValueMillis(280),
+            TimeValue.timeValueMillis(580),
+            TimeValue.timeValueMillis(1250),
+            TimeValue.timeValueMillis(2740),
+            TimeValue.timeValueMillis(6050)
+        );
+    }
+
+    @Test
     public void testLimit() throws Exception {
         int maxDelay = 1000;
         Iterable<TimeValue> policy = BackoffPolicy.exponentialBackoff(0, 1000, maxDelay);
