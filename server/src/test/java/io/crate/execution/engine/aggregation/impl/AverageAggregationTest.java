@@ -203,6 +203,18 @@ public class AverageAggregationTest extends AggregationTestCase {
     }
 
     @Test
+    public void test_numeric_with_doc_values() throws Exception {
+        // with compact doc values
+        assertThat(executeAvgAgg(new NumericType(10, 8), new Object[][]{
+            {new BigDecimal("10.7654")}, {new BigDecimal("42.12345")}, {new BigDecimal("0.3123")}}))
+            .isEqualTo(new BigDecimal("17.73371666666666666666666666666667"));
+        // with large doc values
+        assertThat(executeAvgAgg(new NumericType(20, 18), new Object[][]{
+            {new BigDecimal("10.7654")}, {new BigDecimal("42.12345")}, {new BigDecimal("0.3123")}}))
+            .isEqualTo(new BigDecimal("17.73371666666666666666666666666667"));
+    }
+
+    @Test
     public void test_avg_numeric_on_double_non_doc_values() {
         Version minNodeVersion = randomBoolean()
             ? Version.CURRENT
