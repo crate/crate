@@ -47,6 +47,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a race condition that could leak memory when a node disconnected right
+  about when a query requiring that node was about to start on another node.
+
 - Fixed a regression introduced in :ref:`version_5.6.0` that caused the logical
   replication to stop if the publisher source table has some non-active primary
   shards, for example when restarting a node. Please upgrade a subscriber
