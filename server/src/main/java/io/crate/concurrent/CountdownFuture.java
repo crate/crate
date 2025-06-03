@@ -78,4 +78,9 @@ public class CountdownFuture extends CompletableFuture<Void> implements BiConsum
             onFailure(t);
         }
     }
+
+    @Override
+    public String toString() {
+        return "CountdownFuture{counter=" + counter + ", lastFailure=" + lastFailure + "}";
+    }
 }
