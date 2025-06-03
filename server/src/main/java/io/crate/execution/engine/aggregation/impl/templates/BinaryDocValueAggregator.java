@@ -23,15 +23,14 @@ package io.crate.execution.engine.aggregation.impl.templates;
 
 import java.io.IOException;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.TriFunction;
+import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.CheckedTriConsumer;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.memory.MemoryManager;
@@ -40,13 +39,15 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
 
     private final String columnName;
     private final TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer;
-    private final CheckedBiConsumer<SortedSetDocValues, T, IOException> docValuesConsumer;
+    private final CheckedTriConsumer<RamAccounting, SortedSetDocValues, T, IOException> docValuesConsumer;
 
     protected SortedSetDocValues values;
 
-    public BinaryDocValueAggregator(String columnName,
-                                    TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer,
-                                    CheckedBiConsumer<SortedSetDocValues, T, IOException> docValuesConsumer) {
+    public BinaryDocValueAggregator(
+        String columnName,
+        TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer,
+        CheckedTriConsumer<RamAccounting, SortedSetDocValues, T, IOException> docValuesConsumer) {
+
         this.columnName = columnName;
         this.stateInitializer = stateInitializer;
         this.docValuesConsumer = docValuesConsumer;
@@ -65,7 +66,7 @@ public class BinaryDocValueAggregator<T> implements DocValueAggregator<T> {
     @Override
     public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException {
         if (values.advanceExact(doc) && values.docValueCount() == 1) {
-            docValuesConsumer.accept(values, state);
+            docValuesConsumer.accept(ramAccounting, values, state);
         }
     }
 

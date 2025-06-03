@@ -21,30 +21,33 @@
 
 package io.crate.execution.engine.aggregation.impl.templates;
 
-import io.crate.data.breaker.RamAccounting;
-import io.crate.execution.engine.aggregation.DocValueAggregator;
-import io.crate.memory.MemoryManager;
+import java.io.IOException;
+
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.Version;
-import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.TriFunction;
-
 import org.jetbrains.annotations.Nullable;
-import java.io.IOException;
+
+import io.crate.common.CheckedTriConsumer;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.aggregation.DocValueAggregator;
+import io.crate.memory.MemoryManager;
 
 public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T> {
 
     private final String columnName;
     private final TriFunction<RamAccounting, MemoryManager, Version, T> stateInitializer;
-    private final CheckedBiConsumer<SortedNumericDocValues, T, IOException> docValuesConsumer;
+    private final CheckedTriConsumer<RamAccounting, SortedNumericDocValues, T, IOException> docValuesConsumer;
 
     private SortedNumericDocValues values;
 
-    public SortedNumericDocValueAggregator(String columnName,
-                                           TriFunction<RamAccounting, MemoryManager,Version, T> stateInitializer,
-                                           CheckedBiConsumer<SortedNumericDocValues, T, IOException> docValuesConsumer) {
+    public SortedNumericDocValueAggregator(
+        String columnName,
+        TriFunction<RamAccounting, MemoryManager,Version, T> stateInitializer,
+        CheckedTriConsumer<RamAccounting, SortedNumericDocValues, T, IOException> docValuesConsumer) {
+
         this.columnName = columnName;
         this.stateInitializer = stateInitializer;
         this.docValuesConsumer = docValuesConsumer;
@@ -63,7 +66,7 @@ public class SortedNumericDocValueAggregator<T> implements DocValueAggregator<T>
     @Override
     public void apply(RamAccounting ramAccounting, int doc, T state) throws IOException {
         if (values.advanceExact(doc) && values.docValueCount() == 1) {
-            docValuesConsumer.accept(values, state);
+            docValuesConsumer.accept(ramAccounting, values, state);
         }
     }
 

@@ -188,9 +188,12 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
                     reference.storageIdent(),
                     (ramAccounting, memoryManager, version) ->
                         newState(ramAccounting, version, memoryManager),
-                    (values, state) -> {
+                    (ramAccounting, values, state) -> {
                         long docValue = values.nextValue();
+                        long sizeBefore = state.size();
                         state.increment(BigDecimal.valueOf(docValue, scale));
+                        long sizeAfter = state.size();
+                        ramAccounting.addBytes(sizeBefore - sizeAfter);
                     }
             );
         } else {
@@ -198,10 +201,13 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
                     reference.storageIdent(),
                     (ramAccounting, memoryManager, version) ->
                         newState(ramAccounting, version, memoryManager),
-                    (values, state) -> {
+                    (ramAccounting, values, state) -> {
                         BytesRef bytesRef = values.lookupOrd(values.nextOrd());
                         BigInteger bigInteger = NumericUtils.sortableBytesToBigInt(bytesRef.bytes, bytesRef.offset, bytesRef.length);
+                        long sizeBefore = state.size();
                         state.increment(new BigDecimal(bigInteger, scale));
+                        long sizeAfter = state.size();
+                        ramAccounting.addBytes(sizeBefore - sizeAfter);
                     }
             );
         }

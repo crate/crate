@@ -265,4 +265,28 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(JobKilledException.class)
             .withMessage("Job killed. Participating node n1 disconnected");
     }
+
+    @Test
+    public void test_kill_missing_job_adds_job_id_to_recently_failed() throws Exception {
+        /// Adding jobs that are missing when killed to recentlyFailed helps
+        /// speed up the failure in the following scenario:
+        ///
+        /// - handler-node: mergeOnHandler starts
+        /// - handler-node: collect starts
+        /// - handler-node: collect finishes with a failure and:
+        ///   - forwards the failure to the participating downstreams
+        ///   - propagates the failure to sibling tasks to clean them up
+        ///
+        /// - handler_node: Given that the local task failed, remote task
+        ///   initialization is skipped, instead it immediately sends out a kill to
+        ///   the other nodes
+        ///
+        /// - remote node: kill received, but is a no-op, because context is missing
+        /// - remote node: receives the failure forwarded by the collect, but given
+        ///   that the task context is missing it retries.
+
+        UUID jobId = UUID.randomUUID();
+        tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), "Sparks no joy");
+        assertThat(tasksService.recentlyFailed(jobId)).isTrue();
+    }
 }

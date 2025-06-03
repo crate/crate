@@ -67,7 +67,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
     public static final String NAME = NAMES[0];
 
     static {
-        DataTypes.register(AverageStateType.ID, in -> AverageStateType.INSTANCE);
+        DataTypes.register(AverageStateType.ID, _ -> AverageStateType.INSTANCE);
     }
 
     static final List<DataType<?>> SUPPORTED_TYPES = Lists.concat(
@@ -318,48 +318,41 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
         if (!reference.hasDocValues()) {
             return null;
         }
-        switch (reference.valueType().id()) {
-            case ByteType.ID:
-            case ShortType.ID:
-            case IntegerType.ID:
-            case LongType.ID:
-                return new SortedNumericDocValueAggregator<>(
-                    reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
-                        ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
-                        return new AverageState();
-                    },
-                    (values, state) -> {
-                        state.addNumber(values.nextValue(), true); // Mutates state.
-                    }
-                );
-            case FloatType.ID:
-                return new SortedNumericDocValueAggregator<>(
-                    reference.storageIdent(),
-                    (ramAccounting, _, _) -> {
-                        ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
-                        return new AverageState();
-                    },
-                    (values, state) -> {
-                        var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
-                        state.addNumber(value, false); // Mutates state.
-                    }
-                );
-            case DoubleType.ID:
-                return new SortedNumericDocValueAggregator<>(
-                    reference.storageIdent(),
-                    (ramAccounting, _, _) -> {
-                        ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
-                        return new AverageState();
-                    },
-                    (values, state) -> {
-                        var value = NumericUtils.sortableLongToDouble((values.nextValue()));
-                        state.addNumber(value, false); // Mutates state.
-                    }
-                );
-            default:
-                return null;
-        }
+        return switch (reference.valueType().id()) {
+            case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID -> new SortedNumericDocValueAggregator<>(
+                reference.storageIdent(),
+                (ramAccounting, _, _) -> {
+                    ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
+                    return new AverageState();
+                },
+                (_, values, state) -> {
+                    state.addNumber(values.nextValue(), true); // Mutates state.
+                }
+            );
+            case FloatType.ID -> new SortedNumericDocValueAggregator<>(
+                reference.storageIdent(),
+                (ramAccounting, _, _) -> {
+                    ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
+                    return new AverageState();
+                },
+                (_, values, state) -> {
+                    var value = NumericUtils.sortableIntToFloat((int) values.nextValue());
+                    state.addNumber(value, false); // Mutates state.
+                }
+            );
+            case DoubleType.ID -> new SortedNumericDocValueAggregator<>(
+                reference.storageIdent(),
+                (ramAccounting, _, _) -> {
+                    ramAccounting.addBytes(AverageStateType.INSTANCE.fixedSize());
+                    return new AverageState();
+                },
+                (_, values, state) -> {
+                    var value = NumericUtils.sortableLongToDouble((values.nextValue()));
+                    state.addNumber(value, false); // Mutates state.
+                }
+            );
+            default -> null;
+        };
     }
 }
 
