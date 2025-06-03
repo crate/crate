@@ -58,4 +58,9 @@ class InitializationTracker {
             return prevFailure;
         });
     }
+
+    @Override
+    public String toString() {
+        return "InitializationTracker{" + future + "}";
+    }
 }
