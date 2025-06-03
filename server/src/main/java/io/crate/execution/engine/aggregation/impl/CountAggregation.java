@@ -259,38 +259,27 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         if (!ref.hasDocValues()) {
             return null;
         }
-        switch (ref.valueType().id()) {
-            case ByteType.ID:
-            case ShortType.ID:
-            case IntegerType.ID:
-            case LongType.ID:
-            case TimestampType.ID_WITH_TZ:
-            case TimestampType.ID_WITHOUT_TZ:
-            case FloatType.ID:
-            case DoubleType.ID:
-            case GeoPointType.ID:
-                return new SortedNumericDocValueAggregator<>(
+        return switch (ref.valueType().id()) {
+            case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID, TimestampType.ID_WITH_TZ,
+                 TimestampType.ID_WITHOUT_TZ, FloatType.ID, DoubleType.ID, GeoPointType.ID ->
+                new SortedNumericDocValueAggregator<>(
                     ref.storageIdent(),
                     (ramAccounting, _, _) -> {
                         ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
                         return new MutableLong(0L);
                     },
-                    (_, state) -> state.add(1L)
+                    (_, _, state) -> state.add(1L)
                 );
-            case IpType.ID:
-            case StringType.ID:
-            case BitStringType.ID:
-                return new BinaryDocValueAggregator<>(
-                    ref.storageIdent(),
-                    (ramAccounting, _, _) -> {
-                        ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
-                        return new MutableLong(0L);
-                    },
-                    (_, state) -> state.add(1L)
-                );
-            default:
-                return null;
-        }
+            case IpType.ID, StringType.ID, BitStringType.ID -> new BinaryDocValueAggregator<>(
+                ref.storageIdent(),
+                (ramAccounting, _, _) -> {
+                    ramAccounting.addBytes(LongStateType.INSTANCE.fixedSize());
+                    return new MutableLong(0L);
+                },
+                (_, _, state) -> state.add(1L)
+            );
+            default -> null;
+        };
     }
 
     @Nullable

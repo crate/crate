@@ -200,7 +200,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         return initIfNeeded(state, memoryManager, precision);
                     },
-                    (values, state) -> {
+                    (_, values, state) -> {
                         var hash = BitMixer.mix64(values.nextValue());
                         state.addHash(hash);
                     }
@@ -212,7 +212,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         return initIfNeeded(state, memoryManager, precision);
                     },
-                    (values, state) -> {
+                    (_, values, state) -> {
                         // Murmur3Hash.Double in regular aggregation calls mix64 of doubleToLongBits(double value).
                         // Equivalent of that in context of double DocValue is
                         // mix64(doubleToLongBits(decoded))
@@ -230,7 +230,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                         var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         return initIfNeeded(state, memoryManager, precision);
                     },
-                    (values, state) -> {
+                    (_, values, state) -> {
                         // Murmur3Hash.Float in regular aggregation calls mix64 of doubleToLongBits(double value).
                         // Equivalent of that in context of float DocValue is
                         // mix64(doubleToLongBits(decoded))
