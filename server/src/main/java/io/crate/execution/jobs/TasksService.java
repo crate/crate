@@ -234,13 +234,13 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         for (UUID jobId : toKill) {
             RootTask ctx = activeTasks.get(jobId);
             if (ctx == null) {
+                recentlyFailed.put(jobId, failedSentinel);
                 // no kill but we need to count down
                 countDownFuture.onSuccess();
                 continue;
             }
             // superuser can always kill jobs; normal users only their own jobs
             if (isSuperUser || ctx.userName().equals(userName)) {
-                recentlyFailed.put(jobId, failedSentinel);
                 ctx.completionFuture().whenComplete(countDownFuture);
                 ctx.kill(reason);
                 numKilled++;
