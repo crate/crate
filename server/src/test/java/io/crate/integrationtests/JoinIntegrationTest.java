@@ -45,7 +45,7 @@ import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -57,7 +57,6 @@ public class JoinIntegrationTest extends IntegTestCase {
 
     @After
     public void resetStatsAndBreakerSettings() {
-        resetTableStats();
         execute("reset global indices");
     }
 
@@ -909,12 +908,6 @@ public class JoinIntegrationTest extends IntegTestCase {
             "2| 3");
     }
 
-    private void resetTableStats() {
-        for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
-            tableStats.updateTableStats(new HashMap<>());
-        }
-    }
-
     @Test
     public void testJoinWithLargerRightBranch() throws Exception {
         execute("create table t1 (a integer)");
@@ -924,8 +917,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t2 (x) values (1), (3), (4), (4), (5), (6)");
         execute("refresh table t1, t2");
 
-        Iterable<TableStats> tableStatsOnAllNodes = cluster().getInstances(TableStats.class);
-        for (TableStats tableStats : tableStatsOnAllNodes) {
+        Iterable<TableStatsService> tableStatsOnAllNodes = cluster().getInstances(TableStatsService.class);
+        for (TableStatsService tableStats : tableStatsOnAllNodes) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(4L, 16L, Map.of()));
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(6L, 24L, Map.of()));
@@ -953,8 +946,8 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t3 (y) values (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)");
         execute("refresh table t1, t2, t3");
 
-        Iterable<TableStats> tableStatsOnAllNodes = cluster().getInstances(TableStats.class);
-        for (TableStats tableStats : tableStatsOnAllNodes) {
+        Iterable<TableStatsService> tableStatsOnAllNodes = cluster().getInstances(TableStatsService.class);
+        for (TableStatsService tableStats : tableStatsOnAllNodes) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(2L, 8L, Map.of()));
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(3L, 12L, Map.of()));
@@ -1004,7 +997,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         long tableSizeInBytes = new Random().nextInt(3 * (int) availableMemory);
         long rowSizeBytes = tableSizeInBytes / rowsCount;
 
-        for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
+        for (TableStatsService tableStats : cluster().getInstances(TableStatsService.class)) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), relationName), new Stats(rowsCount, tableSizeInBytes, Map.of()));
             tableStats.updateTableStats(newStats);

@@ -24,6 +24,7 @@ package io.crate.statistics;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -160,5 +161,17 @@ public class Stats implements Writeable {
             }
         }
         return sum;
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Stats stats = (Stats) o;
+        return numDocs == stats.numDocs && sizeInBytes == stats.sizeInBytes && Objects.equals(statsByColumn, stats.statsByColumn);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(numDocs, sizeInBytes, statsByColumn);
     }
 }

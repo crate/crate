@@ -186,7 +186,9 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
+import io.crate.statistics.StubTableStats;
 import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.
@@ -319,7 +321,7 @@ public class SQLExecutor {
             }
             addNodesToClusterState(clusterService, numNodes);
             final Settings settings = Settings.EMPTY;
-            var tableStats = new TableStats();
+            var tableStats = new StubTableStats();
             var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
             AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
             Path homeDir = CrateLuceneTestCase.createTempDir();
@@ -397,7 +399,6 @@ public class SQLExecutor {
                         settings,
                         clusterService,
                         nodeCtx,
-                        tableStats,
                         null,
                         null,
                         roleManager,

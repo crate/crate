@@ -116,7 +116,7 @@ import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.replication.logical.LogicalReplicationSettings;
 import io.crate.session.Sessions;
-import io.crate.statistics.TableStatsService;
+import io.crate.statistics.UpdateTableStatsService;
 import io.crate.udc.service.UDCService;
 
 /**
@@ -432,8 +432,8 @@ public final class ClusterSettings extends AbstractScopedSettings {
         JobsLogService.STATS_JOBS_LOG_PERSIST_FILTER,
         JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING,
         JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING,
-        TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
-        TableStatsService.STATS_SERVICE_THROTTLING_SETTING,
+        UpdateTableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING,
+        UpdateTableStatsService.STATS_SERVICE_THROTTLING_SETTING,
         ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING,
         DecommissioningService.DECOMMISSION_INTERNAL_SETTING_GROUP,
         DecommissioningService.GRACEFUL_STOP_MIN_AVAILABILITY_SETTING,

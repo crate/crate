@@ -72,7 +72,7 @@ public final class TransportAnalyzeAction {
                                   ReservoirSampler reservoirSampler,
                                   NodeContext nodeContext,
                                   ClusterService clusterService,
-                                  TableStats tableStats,
+                                  TableStatsService tableStats,
                                   ThreadPool threadPool) {
         this.transportService = transportService;
         this.schemas = nodeContext.schemas();

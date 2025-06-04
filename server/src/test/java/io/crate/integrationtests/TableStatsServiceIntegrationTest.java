@@ -31,7 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.metadata.RelationName;
-import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 
 
 @IntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
@@ -54,7 +54,7 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
         execute("insert into t1(a) values(1), (2), (3), (4), (5)");
         execute("refresh table t1");
         assertBusy(() -> {
-            TableStats tableStats = cluster().getDataNodeInstance(TableStats.class);
+            TableStatsService tableStats = cluster().getDataNodeInstance(TableStatsService.class);
             assertThat(tableStats.numDocs(new RelationName(sqlExecutor.getCurrentSchema(), "t1"))).isEqualTo(5L);
             // tableStats.tableStats.estimatedSizePerRow() is not tested because it's based on sys.shards size
             // column which is is cached for 10 secs in ShardSizeExpression which will increase the time needed

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,23 +21,17 @@
 
 package io.crate.statistics;
 
+import java.util.Map;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+public interface TableStats {
 
-/**
- * Holds table statistics that are updated periodically by {@link TableStatsService}.
- */
-public class TableStats {
+    void updateTableStats(Map<RelationName, Stats> tableStats);
 
-    private volatile Map<RelationName, Stats> tableStats = new HashMap<>();
 
-    public void updateTableStats(Map<RelationName, Stats> tableStats) {
-        this.tableStats = tableStats;
-    }
+    void reset();
 
     /**
      * Returns the number of docs a table has.
@@ -47,9 +41,8 @@ public class TableStats {
      * </p>
      * Returns -1 if the table isn't in the cache
      */
-    public long numDocs(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY).numDocs;
-    }
+    public long numDocs(RelationName relationName);
+
 
     /**
      * Returns an estimation (avg) size of each row of the table in bytes.
@@ -59,37 +52,17 @@ public class TableStats {
      * </p>
      * Returns -1 if the table isn't in the cache
      */
-    public long estimatedSizePerRow(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY).averageSizePerRowInBytes();
-    }
+    public long estimatedSizePerRow(RelationName relationName);
+
 
     /**
      * Returns an estimation (avg) size of each row of the table in bytes or if no stats are available
      * for the given table an estimate (avg) based on the column types of the table.
      */
-    public long estimatedSizePerRow(TableInfo tableInfo) {
-        Stats stats = tableStats.get(tableInfo.ident());
-        if (stats == null) {
-            // if stats are not available we fall back to estimate the size based on
-            // column types. Therefore we need to get the column information.
-            return Stats.EMPTY.estimateSizeForColumns(tableInfo);
-        } else {
-            return stats.averageSizePerRowInBytes();
-        }
-    }
+    public long estimatedSizePerRow(TableInfo tableInfo);
 
-    public Iterable<ColumnStatsEntry> statsEntries() {
-        Set<Map.Entry<RelationName, Stats>> entries = tableStats.entrySet();
-        return () -> entries.stream()
-            .flatMap(tableEntry -> {
-                Stats stats = tableEntry.getValue();
-                return stats.statsByColumn().entrySet().stream()
-                    .map(columnEntry ->
-                        new ColumnStatsEntry(tableEntry.getKey(), columnEntry.getKey(), columnEntry.getValue()));
-            }).iterator();
-    }
+    public Iterable<ColumnStatsEntry> statsEntries(Iterable<RelationName> relationNames);
 
-    public Stats getStats(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY);
-    }
+    public Stats getStats(RelationName relationName);
+
 }

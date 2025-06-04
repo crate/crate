@@ -59,7 +59,6 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.join.Join;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -402,12 +401,6 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testBlockNestedLoopWhenLeftSideIsSmallerAndOneExecutionNode() throws IOException {
-        TableStats tableStats = new TableStats();
-        Map<RelationName, Stats> stats = new HashMap<>();
-        stats.put(T3.T1, new Stats(23, 64, Map.of()));
-        stats.put(T3.T4, new Stats(42, 64, Map.of()));
-        tableStats.updateTableStats(stats);
-
         // rebuild executor + cluster state with 1 node
         resetClusterService();
         e = SQLExecutor.of(clusterService)

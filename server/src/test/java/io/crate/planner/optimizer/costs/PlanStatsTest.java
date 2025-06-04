@@ -53,6 +53,7 @@ import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.statistics.Stats;
 import io.crate.statistics.StatsUtils;
+import io.crate.statistics.StubTableStats;
 import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -76,7 +77,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                                  List.of(x),
                                  WhereClause.MATCH_ALL);
 
-        TableStats tableStats = new TableStats();
+        TableStats tableStats = new StubTableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, DataTypes.INTEGER.fixedSize(), Map.of())));
 
         var memo = new Memo(source);
@@ -97,7 +98,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL);
         var groupReference = new GroupReference(1, source.outputs(), Set.of());
 
-        TableStats tableStats = new TableStats();
+        TableStats tableStats = new StubTableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, DataTypes.INTEGER.fixedSize(), Map.of())));
 
         var memo = new Memo(source);
@@ -117,7 +118,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var x = e.asSymbol("x");
         var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL);
 
-        TableStats tableStats = new TableStats();
+        TableStats tableStats = new StubTableStats();
         tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1, Map.of())));
 
         var limit = new Limit(source, Literal.of(5), Literal.of(0));
@@ -154,7 +155,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
 
         var rhs = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
 
-        TableStats tableStats = new TableStats();
+        TableStats tableStats = new StubTableStats();
         tableStats.updateTableStats(
             Map.of(
                 aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of()),
@@ -187,7 +188,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var lhs = new Collect(new DocTableRelation(aDoc), List.of(x), WhereClause.MATCH_ALL);
         var rhs = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);
 
-        TableStats tableStats = new TableStats();
+        TableStats tableStats = new StubTableStats();
         Map<ColumnIdent, ColumnStats<?>> columnStats = Map.of(
             ColumnIdent.of("x"),
             new ColumnStats<>(
@@ -242,7 +243,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         ColumnStats<Integer> xStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9));
         ColumnStats<Integer> yStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1));
 
-        TableStats tableStats = new TableStats();
+        TableStats tableStats = new StubTableStats();
         tableStats.updateTableStats(
             Map.of(
                 aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of(ColumnIdent.of("x"), xStats)),
@@ -283,7 +284,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         Collect source = new Collect(new DocTableRelation(tbl), List.of(x), WhereClause.MATCH_ALL);
         Filter filter = new Filter(source, e.asSymbol("x = 10"));
 
-        TableStats tableStats = new TableStats();
+        TableStats tableStats = new StubTableStats();
         Map<ColumnIdent, ColumnStats<?>> columnStats = Map.of(
             ColumnIdent.of("x"),
             new ColumnStats<>(
@@ -308,7 +309,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_unsupported_plan_return_empty_stats() throws Exception {
         MemoTest.TestPlan unsupportedPlan = new MemoTest.TestPlan(1, List.of());
-        PlanStats planStats = new PlanStats(nodeContext, txnCtx, new TableStats(), null);
+        PlanStats planStats = new PlanStats(nodeContext, txnCtx, new StubTableStats(), null);
         assertThat(planStats.get(unsupportedPlan).isEmpty()).isTrue();
     }
 }

@@ -49,13 +49,13 @@ import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.session.Session;
-import io.crate.statistics.TableStats;
+import io.crate.statistics.StubTableStats;
 
 public class IterativeOptimizerTest {
 
     private final NodeContext nodeCtx = createNodeContext();
     private final CoordinatorTxnCtx ctx = CoordinatorTxnCtx.systemTransactionContext();
-    private final PlanStats planStats = new PlanStats(nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new TableStats());
+    private final PlanStats planStats = new PlanStats(nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new StubTableStats());
 
     @Test
     public void test_match_single_rule_merge_filters() {

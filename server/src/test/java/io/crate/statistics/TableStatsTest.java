@@ -74,17 +74,15 @@ public class TableStatsTest extends ESTestCase {
     );
 
     @Test
-    public void test_estimating_row_size_with_with_stats() {
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(docTableInfo.ident(), new Stats(1L, 1000L, Map.of())));
-        long sizeEstimate = tableStats.estimatedSizePerRow(docTableInfo.ident());
+    public void test_estimating_row_size_with_stats() {
+        Stats stats = new Stats(1L, 1000L, Map.of());
+        long sizeEstimate = stats.averageSizePerRowInBytes();
         assertThat(sizeEstimate).isEqualTo(1000L);
     }
 
     @Test
     public void test_estimating_row_size_with_empty_stats_using_columns_estimates() {
-        TableStats tableStats = new TableStats();
-        long sizeEstimate = tableStats.estimatedSizePerRow(docTableInfo);
+        long sizeEstimate = Stats.EMPTY.estimateSizeForColumns(docTableInfo);
         assertThat(sizeEstimate).isEqualTo(1168L);
     }
 

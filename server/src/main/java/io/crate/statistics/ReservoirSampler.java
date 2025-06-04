@@ -22,7 +22,7 @@
 package io.crate.statistics;
 
 import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
-import static io.crate.statistics.TableStatsService.STATS_SERVICE_THROTTLING_SETTING;
+import static io.crate.statistics.UpdateTableStatsService.STATS_SERVICE_THROTTLING_SETTING;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;

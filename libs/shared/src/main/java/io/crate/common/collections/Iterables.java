@@ -21,6 +21,8 @@
 
 package io.crate.common.collections;
 
+import static java.util.stream.StreamSupport.stream;
+
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Comparator;
@@ -334,4 +336,9 @@ public final class Iterables {
         }
 
     }
+
+    public static <T> Stream<T> sequentialStream(Iterable<T> iterable) {
+        return stream(iterable.spliterator(), false);
+    }
+
 }

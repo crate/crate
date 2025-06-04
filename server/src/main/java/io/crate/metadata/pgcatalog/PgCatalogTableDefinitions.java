@@ -21,15 +21,18 @@
 
 package io.crate.metadata.pgcatalog;
 
+import static io.crate.common.collections.Iterables.sequentialStream;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.Map;
 
 import org.elasticsearch.common.inject.Inject;
 
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.session.Sessions;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
@@ -46,7 +49,7 @@ import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
-import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 
 public final class PgCatalogTableDefinitions {
 
@@ -55,13 +58,24 @@ public final class PgCatalogTableDefinitions {
     @Inject
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables,
                                      Sessions sessions,
-                                     TableStats tableStats,
+                                     TableStatsService tableStats,
                                      PgCatalogSchemaInfo pgCatalogSchemaInfo,
                                      SessionSettingRegistry sessionSettingRegistry,
                                      NodeContext nodeContext,
                                      LogicalReplicationService logicalReplicationService,
                                      Roles roles) {
         Schemas schemas = nodeContext.schemas();
+        Iterable<RelationName> docTableRelations = () -> sequentialStream(nodeContext.schemas())
+            .flatMap(x -> sequentialStream(x.getTables()))
+            .filter(x -> x instanceof DocTableInfo).map(x -> x.ident())
+            .sorted(new Comparator<RelationName>() {
+                @Override
+                public int compare(RelationName o1, RelationName o2) {
+                    return o1.fqn().compareTo(o2.fqn());
+                }
+            })
+            .iterator();
+
         Iterable<PgSubscriptionTable.SubscriptionRow> subscriptionRows =
             () -> logicalReplicationService.subscriptions().entrySet().stream()
                 .map(e -> new PgSubscriptionTable.SubscriptionRow(e.getKey(), e.getValue()))
@@ -73,7 +87,7 @@ public final class PgCatalogTableDefinitions {
 
         tableDefinitions = Map.ofEntries(
             Map.entry(PgStatsTable.NAME, new StaticTableDefinition<>(
-                    tableStats::statsEntries,
+                    () -> tableStats.statsEntries(docTableRelations),
                     (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relation().fqn()),
                     PgStatsTable.INSTANCE.expressions()
                 )
