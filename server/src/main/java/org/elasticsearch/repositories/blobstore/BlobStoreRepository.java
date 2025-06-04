@@ -1979,8 +1979,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     public void restoreShard(Store store, SnapshotId snapshotId, IndexId indexId, ShardId snapshotShardId,
                              RecoveryState recoveryState, ActionListener<Void> listener) {
         final ShardId shardId = store.shardId();
-        final ActionListener<Void> restoreListener = ActionListener.delegateResponse(listener,
-            (l, e) -> l.onFailure(new IndexShardRestoreFailedException(shardId, "failed to restore snapshot [" + snapshotId + "]", e)));
+        final ActionListener<Void> restoreListener = listener.withOnFailure((l, e) -> l.onFailure(new IndexShardRestoreFailedException(shardId, "failed to restore snapshot [" + snapshotId + "]", e)));
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
         final BlobContainer container = shardContainer(indexId, snapshotShardId);
         executor.execute(ActionRunnable.wrap(restoreListener, l -> {
@@ -2088,7 +2087,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     private static ActionListener<Void> fileQueueListener(BlockingQueue<BlobStoreIndexShardSnapshot.FileInfo> files,
                                                           int workers,
                                                           ActionListener<Collection<Void>> listener) {
-        return ActionListener.delegateResponse(MultiActionListener.of(workers, listener), (l, e) -> {
+        return MultiActionListener.of(workers, listener).withOnFailure((l, e) -> {
             files.clear(); // Stop uploading the remaining files if we run into any exception
             l.onFailure(e);
         });

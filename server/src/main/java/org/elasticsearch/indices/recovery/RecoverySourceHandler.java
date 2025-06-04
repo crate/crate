@@ -837,7 +837,7 @@ public class RecoverySourceHandler {
                 maxSeqNoOfUpdatesOrDeletes,
                 retentionLeases,
                 mappingVersion,
-                ActionListener.delegateFailure(listener, (l, newCheckpoint) -> {
+                listener.withOnResponse((l, newCheckpoint) -> {
                     targetLocalCheckpoint.updateAndGet(curr -> SequenceNumbers.max(curr, newCheckpoint));
                     l.onResponse(null);
                 }));
@@ -1069,20 +1069,12 @@ public class RecoverySourceHandler {
             translogOps.getAsInt(),
             globalCheckpoint,
             sourceMetadata,
-            ActionListener.delegateResponse(
-                listener,
-                (l, e) -> {
-                    try {
-                        StoreFileMetadata[] mds = StreamSupport.stream(sourceMetadata.spliterator(), false).toArray(StoreFileMetadata[]::new);
-                        ArrayUtil.timSort(mds, Comparator.comparingLong(StoreFileMetadata::length)); // check small files first
-                        handleErrorOnSendFiles(store, e, mds);
-
-                        l.onFailure(e);
-                    } catch (Exception ex) {
-                        l.onFailure(ex);
-                    }
-                }
-            )
+            listener.withOnFailure((l, e) -> {
+                StoreFileMetadata[] mds = StreamSupport.stream(sourceMetadata.spliterator(), false).toArray(StoreFileMetadata[]::new);
+                ArrayUtil.timSort(mds, Comparator.comparingLong(StoreFileMetadata::length)); // check small files first
+                handleErrorOnSendFiles(store, e, mds);
+                l.onFailure(e);
+            })
         );
     }
 
