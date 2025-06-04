@@ -412,5 +412,24 @@
       <scope>test</scope>
     </dependency>
 
+    <dependency>
+      <groupId>org.apache.arrow</groupId>
+      <artifactId>arrow-memory-core</artifactId>
+      <version>${versions.arrow}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.arrow</groupId>
+      <artifactId>arrow-vector</artifactId>
+      <version>${versions.arrow}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.arrow</groupId>
+      <artifactId>arrow-memory-unsafe</artifactId>
+      <version>${versions.arrow}</version>
+      <scope>runtime</scope>
+    </dependency>
+
   </dependencies>
 </project>

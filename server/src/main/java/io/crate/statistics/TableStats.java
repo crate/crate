@@ -23,6 +23,8 @@ package io.crate.statistics;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
+import io.crate.statistics.arrow.ArrowBufferAllocator;
+import io.crate.statistics.arrow.Statistics;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -31,12 +33,25 @@ import java.util.Set;
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.
  */
-public class TableStats {
+public class TableStats implements AutoCloseable {
 
-    private volatile Map<RelationName, Stats> tableStats = new HashMap<>();
+    private volatile Map<RelationName, Statistics> tableStats = new HashMap<>();
 
     public void updateTableStats(Map<RelationName, Stats> tableStats) {
-        this.tableStats = tableStats;
+        HashMap<RelationName, Statistics> update = new HashMap<>();
+        for (Map.Entry<RelationName, Stats> entry : tableStats.entrySet()) {
+            RelationName relationName = entry.getKey();
+            Stats stats = entry.getValue();
+            Statistics statistics = new Statistics(
+                ArrowBufferAllocator.INSTANCE,
+                stats.numDocs,
+                stats.sizeInBytes,
+                stats.statsByColumn()
+            );
+            update.put(relationName, statistics);
+
+        }
+        this.tableStats = update;
     }
 
     /**
@@ -48,7 +63,11 @@ public class TableStats {
      * Returns -1 if the table isn't in the cache
      */
     public long numDocs(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY).numDocs;
+        Statistics statistics = tableStats.get(relationName);
+        if (statistics == null) {
+            return Stats.EMPTY.numDocs();
+        }
+        return statistics.numDocs();
     }
 
     /**
@@ -60,7 +79,11 @@ public class TableStats {
      * Returns -1 if the table isn't in the cache
      */
     public long estimatedSizePerRow(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY).averageSizePerRowInBytes();
+        Statistics statistics = tableStats.get(relationName);
+        if (statistics == null) {
+            return Stats.EMPTY.averageSizePerRowInBytes();
+        }
+        return statistics.averageSizePerRowInBytes();
     }
 
     /**
@@ -68,7 +91,7 @@ public class TableStats {
      * for the given table an estimate (avg) based on the column types of the table.
      */
     public long estimatedSizePerRow(TableInfo tableInfo) {
-        Stats stats = tableStats.get(tableInfo.ident());
+        Statistics stats = tableStats.get(tableInfo.ident());
         if (stats == null) {
             // if stats are not available we fall back to estimate the size based on
             // column types. Therefore we need to get the column information.
@@ -79,10 +102,10 @@ public class TableStats {
     }
 
     public Iterable<ColumnStatsEntry> statsEntries() {
-        Set<Map.Entry<RelationName, Stats>> entries = tableStats.entrySet();
+        Set<Map.Entry<RelationName, Statistics>> entries = tableStats.entrySet();
         return () -> entries.stream()
             .flatMap(tableEntry -> {
-                Stats stats = tableEntry.getValue();
+                Statistics stats = tableEntry.getValue();
                 return stats.statsByColumn().entrySet().stream()
                     .map(columnEntry ->
                         new ColumnStatsEntry(tableEntry.getKey(), columnEntry.getKey(), columnEntry.getValue()));
@@ -90,6 +113,17 @@ public class TableStats {
     }
 
     public Stats getStats(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY);
+        Statistics statistics = tableStats.get(relationName);
+        if (statistics == null) {
+            return Stats.EMPTY;
+        }
+        return new Stats(statistics.numDocs(), statistics.sizeInBytes(), statistics.statsByColumn());
+    }
+
+    @Override
+    public void close() throws Exception {
+        for (Statistics stats : tableStats.values()) {
+            stats.close();
+        }
     }
 }
