@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.concurrent.CountDownLatch;
 
 import org.apache.lucene.store.IndexInput;
-import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
@@ -176,7 +175,11 @@ public class ESIndexInputTestCase extends ESTestCase {
                     try {
                         startLatch.countDown();
                         startLatch.await();
-                        ActionListener.completeWith(mainThreadResultFuture, () -> randomReadAndSlice(indexInput, mainThreadReadEnd));
+                        try {
+                            mainThreadResultFuture.onResponse(randomReadAndSlice(indexInput, mainThreadReadEnd));
+                        } catch (Exception ex) {
+                            mainThreadResultFuture.onFailure(ex);
+                        }
                         System.arraycopy(FutureUtils.get(mainThreadResultFuture), readPos, output, readPos, mainThreadReadEnd - readPos);
                         readPos = mainThreadReadEnd;
                         finishLatch.await();

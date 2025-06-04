@@ -96,19 +96,18 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             listener.onFailure(JobKilledException.of(JobKilledException.MESSAGE));
             return;
         }
-        ActionListener.completeWith(
-            listener,
-            () -> {
-                KillableWrapper<WritePrimaryResult<Request, ShardResponse>> callable =
-                    new KillableWrapper<WritePrimaryResult<Request, ShardResponse>>(request.jobId()) {
-                        @Override
-                        public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
-                            return processRequestItems(primary, request, killed);
-                        }
-                    };
-                return wrapOperationInKillable(request, callable);
-            }
-        );
+        try {
+            KillableWrapper<WritePrimaryResult<Request, ShardResponse>> callable =
+                new KillableWrapper<WritePrimaryResult<Request, ShardResponse>>(request.jobId()) {
+                    @Override
+                    public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
+                        return processRequestItems(primary, request, killed);
+                    }
+                };
+            listener.onResponse(wrapOperationInKillable(request, callable));
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override

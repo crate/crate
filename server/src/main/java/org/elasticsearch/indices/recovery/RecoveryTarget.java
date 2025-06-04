@@ -19,6 +19,7 @@
 
 package org.elasticsearch.indices.recovery;
 
+
 import java.io.IOException;
 import java.nio.file.Path;
 import java.util.List;
@@ -293,19 +294,20 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
      *  Implementation of {@link RecoveryTargetHandler}
      */
     @Override
-    public void prepareForTranslogOperations(int totalTranslogOps,
-                                             ActionListener<Void> listener) {
-        ActionListener.completeWith(listener, () -> {
+    public void prepareForTranslogOperations(int totalTranslogOps, ActionListener<Void> listener) {
+        try {
             state().getIndex().setFileDetailsComplete(); // ops-based recoveries don't send the file details
             state().getTranslog().totalOperations(totalTranslogOps);
             indexShard().openEngineAndSkipTranslogRecovery();
-            return null;
-        });
+            listener.onResponse(null);
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override
     public void finalizeRecovery(final long globalCheckpoint, final long trimAboveSeqNo, ActionListener<Void> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             indexShard.updateGlobalCheckpointOnReplica(globalCheckpoint, "finalizing recovery");
             // Persist the global checkpoint.
             indexShard.sync();
@@ -325,8 +327,10 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                 indexShard.forceFlush();
             }
             indexShard.finalizeRecovery();
-            return null;
-        });
+            listener.onResponse(null);
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     private boolean hasUncommittedOperations() throws IOException {
@@ -339,10 +343,12 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
 
     @Override
     public void handoffPrimaryContext(final ReplicationTracker.PrimaryContext primaryContext, ActionListener<Void> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             indexShard.activateWithPrimaryContext(primaryContext);
-            return null;
-        });
+            listener.onResponse(null);
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override
@@ -353,7 +359,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                                         RetentionLeases retentionLeases,
                                         long mappingVersionOnPrimary,
                                         ActionListener<Long> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             final RecoveryState.Translog translog = state().getTranslog();
             translog.totalOperations(totalTranslogOps);
             assert indexShard().recoveryState() == state();
@@ -395,8 +401,10 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
             indexShard().sync();
             // roll over / flush / trim if needed
             indexShard().afterWriteOperation();
-            return indexShard().getLocalCheckpoint();
-        });
+            listener.onResponse(indexShard().getLocalCheckpoint());
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
 
@@ -407,7 +415,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                                 List<Long> phase1ExistingFileSizes,
                                 int totalTranslogOps,
                                 ActionListener<Void> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             indexShard.resetRecoveryStage();
             indexShard.prepareForIndexRecovery();
             final RecoveryState.Index index = state().getIndex();
@@ -420,8 +428,10 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
             index.setFileDetailsComplete();
             state().getTranslog().totalOperations(totalTranslogOps);
             state().getTranslog().totalOperationsOnStart(totalTranslogOps);
-            return null;
-        });
+            listener.onResponse(null);
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override
@@ -429,7 +439,7 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
                            long globalCheckpoint,
                            Store.MetadataSnapshot sourceMetadata,
                            ActionListener<Void> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             state().getTranslog().totalOperations(totalTranslogOps);
             // first, we go and move files that were created with the recovery id suffix to
             // the actual names, its ok if we have a corrupted index here, since we have replicas
@@ -478,8 +488,10 @@ public class RecoveryTarget extends AbstractRefCounted implements RecoveryTarget
             } finally {
                 store.decRef();
             }
-            return null;
-        });
+            listener.onResponse(null);
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override

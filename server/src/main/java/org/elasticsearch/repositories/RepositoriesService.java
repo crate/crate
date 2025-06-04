@@ -252,18 +252,17 @@ public class RepositoriesService extends AbstractLifecycleComponent implements C
                 final String verificationToken = repository.startVerification();
                 if (verificationToken != null) {
                     try {
-                        verifyAction.verify(repositoryName, readOnly, verificationToken, ActionListener.delegateFailure(listener,
-                            (delegatedListener, verifyResponse) -> threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
-                                try {
-                                    repository.endVerification(verificationToken);
-                                } catch (Exception e) {
-                                    LOGGER.warn(() -> new ParameterizedMessage(
-                                        "[{}] failed to finish repository verification", repositoryName), e);
-                                    delegatedListener.onFailure(e);
-                                    return;
-                                }
-                                delegatedListener.onResponse(verifyResponse);
-                            })));
+                        verifyAction.verify(repositoryName, readOnly, verificationToken, listener.withOnResponse((delegatedListener, verifyResponse) -> threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
+                            try {
+                                repository.endVerification(verificationToken);
+                            } catch (Exception e) {
+                                LOGGER.warn(() -> new ParameterizedMessage(
+                                    "[{}] failed to finish repository verification", repositoryName), e);
+                                delegatedListener.onFailure(e);
+                                return;
+                            }
+                            delegatedListener.onResponse(verifyResponse);
+                        })));
                     } catch (Exception e) {
                         threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(() -> {
                             try {

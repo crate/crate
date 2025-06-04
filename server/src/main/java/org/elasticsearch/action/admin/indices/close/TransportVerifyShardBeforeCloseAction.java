@@ -92,12 +92,15 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
     }
 
     @Override
-    public void shardOperationOnPrimary(final ShardRequest shardRequest, final IndexShard primary,
+    public void shardOperationOnPrimary(final ShardRequest shardRequest,
+                                        final IndexShard primary,
                                         ActionListener<PrimaryResult<ShardRequest, ReplicationResponse>> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             executeShardOperation(shardRequest, primary);
-            return new PrimaryResult<>(shardRequest, new ReplicationResponse());
-        });
+            listener.onResponse(new PrimaryResult<>(shardRequest, new ReplicationResponse()));
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override

@@ -181,10 +181,12 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                        boolean lastChunk,
                                        int totalTranslogOps,
                                        ActionListener<Void> listener) {
-                ActionListener.completeWith(listener, () -> {
+                try {
                     multiFileWriter.writeFileChunk(md, position, content, lastChunk);
-                    return null;
-                });
+                    listener.onResponse(null);
+                } catch (Exception ex) {
+                    listener.onFailure(ex);
+                }
             }
         };
         RecoverySourceHandler handler = new RecoverySourceHandler(null, new AsyncRecoveryTarget(target, recoveryExecutor),
@@ -460,10 +462,12 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                        boolean lastChunk,
                                        int totalTranslogOps,
                                        ActionListener<Void> listener) {
-                 ActionListener.completeWith(listener, () -> {
+                 try {
                      multiFileWriter.writeFileChunk(md, position, content, lastChunk);
-                     return null;
-                 });
+                     listener.onResponse(null);
+                 } catch (Exception ex) {
+                     listener.onFailure(ex);
+                 }
             }
         };
         RecoverySourceHandler handler = new RecoverySourceHandler(null, new AsyncRecoveryTarget(target, recoveryExecutor), threadPool,

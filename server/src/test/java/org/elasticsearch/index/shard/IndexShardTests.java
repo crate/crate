@@ -1412,7 +1412,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 indexShard.getPendingPrimaryTerm() + randomIntBetween(1, 100),
                 UNASSIGNED_SEQ_NO,
                 randomNonNegativeLong(),
-                null,
+                new FutureActionListener<>(),
                 "")
         ).isExactlyInstanceOf(IndexShardNotStartedException.class);
         closeShards(indexShard);
@@ -3264,7 +3264,7 @@ public class IndexShardTests extends IndexShardTestCase {
                                          ShardId snapshotShardId,
                                          RecoveryState recoveryState,
                                          ActionListener<Void> listener) {
-                    ActionListener.completeWith(listener, () -> {
+                    try {
                         cleanLuceneIndex(targetStore.directory());
                         for (String file : sourceStore.directory().listAll()) {
                             if (file.equals("write.lock") || file.startsWith("extra")) {
@@ -3275,8 +3275,10 @@ public class IndexShardTests extends IndexShardTestCase {
                                 .copyFrom(sourceStore.directory(), file, file, IOContext.DEFAULT);
                         }
                         recoveryState.getIndex().setFileDetailsComplete();
-                        return null;
-                    });
+                        listener.onResponse(null);
+                    } catch (Exception ex) {
+                        listener.onFailure(ex);
+                    }
                 }
 
             @Override

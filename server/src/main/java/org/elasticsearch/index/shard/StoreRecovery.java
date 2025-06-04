@@ -94,11 +94,15 @@ final class StoreRecovery {
             assert
                 recoveryType == RecoverySource.Type.EMPTY_STORE || recoveryType == RecoverySource.Type.EXISTING_STORE :
                 "expected store recovery type but was: " + recoveryType;
-            ActionListener.completeWith(recoveryListener(indexShard, listener), () -> {
+
+            ActionListener<Boolean> recoveryListener = recoveryListener(indexShard, listener);
+            try {
                 logger.debug("starting recovery from store ...");
                 internalRecoverFromStore(indexShard);
-                return true;
-            });
+                recoveryListener.onResponse(true);
+            } catch (Exception ex) {
+                recoveryListener.onFailure(ex);
+            }
         } else {
             listener.onResponse(false);
         }
@@ -123,35 +127,36 @@ final class StoreRecovery {
             validateSchema.accept(sourceMetadata);
 
             final boolean isSplit = sourceMetadata.getNumberOfShards() < indexShard.indexSettings().getNumberOfShards();
-            ActionListener.completeWith(recoveryListener(indexShard, listener), () -> {
-                logger.debug("starting recovery from local shards {}", shards);
-                try {
-                    final Directory directory = indexShard.store().directory(); // don't close this directory!!
-                    final Directory[] sources = shards.stream().map(LocalShardSnapshot::getSnapshotDirectory).toArray(Directory[]::new);
-                    final long maxSeqNo = shards.stream().mapToLong(LocalShardSnapshot::maxSeqNo).max().getAsLong();
-                    final long maxUnsafeAutoIdTimestamp = shards.stream()
-                        .mapToLong(LocalShardSnapshot::maxUnsafeAutoIdTimestamp)
-                        .max()
-                        .getAsLong();
-                    addIndices(
-                        indexShard.recoveryState().getIndex(),
-                        directory,
-                        sources,
-                        maxSeqNo,
-                        maxUnsafeAutoIdTimestamp,
-                        indexShard.indexSettings().getIndexMetadata(),
-                        indexShard.shardId().id(),
-                        isSplit
-                    );
-                    internalRecoverFromStore(indexShard);
-                    // just trigger a merge to do housekeeping on the
-                    // copied segments - we will also see them in stats etc.
-                    indexShard.getEngine().forceMerge(false, -1, false, UUIDs.randomBase64UUID());
-                    return true;
-                } catch (IOException ex) {
-                    throw new IndexShardRecoveryException(indexShard.shardId(), "failed to recover from local shards", ex);
-                }
-            });
+            ActionListener<Boolean> recoveryListener = recoveryListener(indexShard, listener);
+            logger.debug("starting recovery from local shards {}", shards);
+            try {
+                final Directory directory = indexShard.store().directory(); // don't close this directory!!
+                final Directory[] sources = shards.stream().map(LocalShardSnapshot::getSnapshotDirectory).toArray(Directory[]::new);
+                final long maxSeqNo = shards.stream().mapToLong(LocalShardSnapshot::maxSeqNo).max().getAsLong();
+                final long maxUnsafeAutoIdTimestamp = shards.stream()
+                    .mapToLong(LocalShardSnapshot::maxUnsafeAutoIdTimestamp)
+                    .max()
+                    .getAsLong();
+                addIndices(
+                    indexShard.recoveryState().getIndex(),
+                    directory,
+                    sources,
+                    maxSeqNo,
+                    maxUnsafeAutoIdTimestamp,
+                    indexShard.indexSettings().getIndexMetadata(),
+                    indexShard.shardId().id(),
+                    isSplit
+                );
+                internalRecoverFromStore(indexShard);
+                // just trigger a merge to do housekeeping on the
+                // copied segments - we will also see them in stats etc.
+                indexShard.getEngine().forceMerge(false, -1, false, UUIDs.randomBase64UUID());
+                recoveryListener.onResponse(true);
+            } catch (IOException ex) {
+                recoveryListener.onFailure(new IndexShardRecoveryException(indexShard.shardId(), "failed to recover from local shards", ex));
+            } catch (Exception ex) {
+                recoveryListener.onFailure(ex);
+            }
         } else {
             listener.onResponse(false);
         }
