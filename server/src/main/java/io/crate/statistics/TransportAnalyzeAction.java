@@ -66,6 +66,7 @@ public final class TransportAnalyzeAction {
     private final ClusterService clusterService;
     private final ConcurrentHashMap<FetchSampleRequest, CompletableFuture<Samples>> analysisByRequest = new ConcurrentHashMap<>();
     private final Executor executor;
+    private TableStatsService tableStatsService;
 
     @Inject
     public TransportAnalyzeAction(TransportService transportService,
@@ -73,7 +74,9 @@ public final class TransportAnalyzeAction {
                                   NodeContext nodeContext,
                                   ClusterService clusterService,
                                   TableStats tableStats,
+                                  TableStatsService tableStatsService,
                                   ThreadPool threadPool) {
+        this.tableStatsService = tableStatsService;
         this.transportService = transportService;
         this.schemas = nodeContext.schemas();
         this.clusterService = clusterService;
@@ -116,6 +119,7 @@ public final class TransportAnalyzeAction {
             new NodeActionRequestHandler<PublishTableStatsRequest, AcknowledgedResponse>(
                 req -> {
                     tableStats.updateTableStats(req.tableStats());
+                    tableStatsService.persist(tableStats);
                     return completedFuture(new AcknowledgedResponse(true));
                 }
             )

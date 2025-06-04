@@ -219,6 +219,7 @@ import io.crate.role.Roles;
 import io.crate.role.RolesService;
 import io.crate.session.Sessions;
 import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 
@@ -385,6 +386,7 @@ public class Node implements Closeable {
 
             final Roles roles = new RolesService(clusterService);
             final TableStats tableStats = new TableStats();
+
             final NodeContext nodeContext = NodeContext.of(environment, clusterService, functions, roles, tableStats);
             final var udfService = new UserDefinedFunctionService(clusterService, nodeContext);
 
@@ -739,6 +741,19 @@ public class Node implements Closeable {
                 clusterService,
                 sessionSettingRegistry
             );
+
+            final TableStatsService tableStatsService = new TableStatsService(
+                nodeEnvironment,
+                settings,
+                threadPool,
+                clusterService,
+                sessions);
+
+            TableStats persistedTableStats = tableStatsService.load();
+            if (persistedTableStats != null) {
+                tableStats.updateTableStats(persistedTableStats.tableStats());
+            }
+
             final HttpServerTransport httpServerTransport = newHttpTransport(
                 networkService,
                 bigArrays,
@@ -834,6 +849,7 @@ public class Node implements Closeable {
                     b.bind(PgCatalogSchemaInfo.class).toInstance((PgCatalogSchemaInfo) schemas.getSystemSchema(PgCatalogSchemaInfo.NAME));
                     b.bind(InformationSchemaInfo.class).toInstance((InformationSchemaInfo) schemas.getSystemSchema(InformationSchemaInfo.NAME));
                     b.bind(BlobSchemaInfo.class).toInstance((BlobSchemaInfo) schemas.getSystemSchema(BlobSchemaInfo.NAME));
+                    b.bind(TableStatsService.class).toInstance(tableStatsService);
                 }
             );
             injector = modules.createInjector();
@@ -1140,6 +1156,7 @@ public class Node implements Closeable {
         injector.getInstance(DanglingArtifactsService.class).stop();
         injector.getInstance(SslContextProviderService.class).stop();
         injector.getInstance(BlobService.class).stop();
+        injector.getInstance(TasksService.class).stop();
 
         if (UDCService.UDC_ENABLED_SETTING.get(settings)) {
             injector.getInstance(UDCService.class).stop();
@@ -1237,6 +1254,7 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(BlobService.class));
         toClose.add(() -> stopWatch.stop().start("netty_bootstrap"));
         toClose.add(injector.getInstance(NettyBootstrap.class));
+        toClose.add(injector.getInstance(TasksService.class));
 
         for (LifecycleComponent plugin : pluginLifecycleComponents) {
             toClose.add(() -> stopWatch.stop().start("plugin(" + plugin.getClass().getName() + ")"));

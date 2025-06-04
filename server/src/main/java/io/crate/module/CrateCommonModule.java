@@ -37,7 +37,6 @@ public class CrateCommonModule extends AbstractModule {
     protected void configure() {
         bind(FulltextAnalyzerResolver.class).asEagerSingleton();
         bind(PostgresNetty.class).asEagerSingleton();
-        bind(TableStatsService.class).asEagerSingleton();
         bind(MemoryManagerFactory.class).asEagerSingleton();
         bind(DanglingArtifactsService.class).asEagerSingleton();
         bind(PublisherRestoreService.class).asEagerSingleton();
