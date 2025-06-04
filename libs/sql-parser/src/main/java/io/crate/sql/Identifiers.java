@@ -71,6 +71,7 @@ public final class Identifiers {
         "current_date",
         "current_time",
         "current_timestamp",
+        "current_catalog",
         "current_schema",
         "current_user",
         "current_role",

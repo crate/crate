@@ -271,6 +271,9 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
+- Added :ref:`scalar-current_catalog` function which for CrateDB always returns
+  ``crate``, to enhance compatibility with PostgreSQL JDBC driver.
+
 - Improved performance of :ref:`aggregation-avg` function when operating on
   columns of :ref:`NUMERIC type<type-numeric>` with enabled
   :ref:`ddl-storage-columnstore`.

@@ -21,6 +21,8 @@
 
 package io.crate.expression.scalar;
 
+import java.util.List;
+
 import io.crate.Constants;
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
@@ -36,17 +38,22 @@ import io.crate.types.DataTypes;
 
 final class CurrentDatabaseFunction extends Scalar<String, Void> {
 
-    private static final FunctionName FQN = new FunctionName(PgCatalogSchemaInfo.NAME, "current_database");
+    private static final List<FunctionName> FQNS = List.of(
+        new FunctionName(PgCatalogSchemaInfo.NAME, "current_database"),
+        new FunctionName(PgCatalogSchemaInfo.NAME, "current_catalog")
+    );
 
     public static void register(Functions.Builder module) {
-        module.add(
-            Signature.builder(FQN, FunctionType.SCALAR)
-                .argumentTypes()
-                .returnType(DataTypes.STRING.getTypeSignature())
-                .features(Feature.DETERMINISTIC, Feature.NOTNULL)
-                .build(),
-            CurrentDatabaseFunction::new
-        );
+        for (FunctionName fn : FQNS) {
+            module.add(
+                Signature.builder(fn, FunctionType.SCALAR)
+                    .argumentTypes()
+                    .returnType(DataTypes.STRING.getTypeSignature())
+                    .features(Feature.DETERMINISTIC, Feature.NOTNULL)
+                    .build(),
+                CurrentDatabaseFunction::new
+            );
+        }
     }
 
     public CurrentDatabaseFunction(Signature signature, BoundSignature boundSignature) {
