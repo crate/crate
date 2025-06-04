@@ -314,7 +314,7 @@
     <!-- see surefire plugin configuration for explanation -->
     <skipRunTests>false</skipRunTests>
 
-    <versions.jdk>24.0.1</versions.jdk>
+    <versions.jdk>24.0.0</versions.jdk>
     <versions.annotations>26.0.2</versions.annotations>
     <versions.log4j>2.24.3</versions.log4j>
     <versions.assertj>3.27.3</versions.assertj>
@@ -346,6 +346,7 @@
     <versions.graalvm>24.2.1</versions.graalvm>
     <versions.jwt>4.5.0</versions.jwt>
     <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
+    <versions.arrow>18.3.0</versions.arrow>
 
     <versions.google.gax>2.43.0</versions.google.gax>
     <versions.google.auth>1.23.0</versions.google.auth>
