@@ -21,14 +21,21 @@
 
 package io.crate.execution.engine.aggregation;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.TriConsumer;
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.aggregation.impl.templates.BinaryDocValueAggregator;
+import io.crate.execution.engine.aggregation.impl.templates.SortedNumericDocValueAggregator;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
@@ -36,6 +43,8 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
+import io.crate.types.NumericStorage;
+import io.crate.types.NumericType;
 
 /**
  * A special FunctionImplementation that compute a single result from a set of input values
@@ -134,5 +143,53 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         return null;
+    }
+
+    protected DocValueAggregator<?> getNumericDocValueAggregator(
+        List<Reference> aggregationReferences,
+        TriConsumer<RamAccounting, TPartial, BigDecimal> applyToState) {
+
+        Reference reference = aggregationReferences.get(0);
+        if (reference == null) {
+            return null;
+        }
+        if (!reference.hasDocValues()) {
+            return null;
+        }
+
+        DataType<?> valueType = reference.valueType();
+        if (valueType.id() != NumericType.ID) {
+            return null;
+        }
+
+        NumericType numericType = (NumericType) valueType;
+        Integer precision = numericType.numericPrecision();
+        Integer scale = numericType.scale();
+        if (precision == null || scale == null) {
+            throw new UnsupportedOperationException(
+                "NUMERIC type requires precision and scale to support aggregation");
+        }
+        if (precision <= NumericStorage.COMPACT_PRECISION) {
+            return new SortedNumericDocValueAggregator<>(
+                reference.storageIdent(),
+                (ramAccounting, memoryManager, version) ->
+                    newState(ramAccounting, version, memoryManager),
+                (ramAccounting, values, state) -> {
+                    long docValue = values.nextValue();
+                    applyToState.accept(ramAccounting, state, BigDecimal.valueOf(docValue, scale));
+                }
+            );
+        } else {
+            return new BinaryDocValueAggregator<>(
+                reference.storageIdent(),
+                (ramAccounting, memoryManager, version) ->
+                    newState(ramAccounting, version, memoryManager),
+                (ramAccounting, values, state) -> {
+                    BytesRef bytesRef = values.lookupOrd(values.nextOrd());
+                    BigInteger bigInteger = NumericUtils.sortableBytesToBigInt(bytesRef.bytes, bytesRef.offset, bytesRef.length);
+                    applyToState.accept(ramAccounting, state, new BigDecimal(bigInteger, scale));
+                }
+            );
+        }
     }
 }

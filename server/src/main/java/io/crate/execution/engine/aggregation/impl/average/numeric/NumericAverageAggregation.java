@@ -24,14 +24,9 @@ package io.crate.execution.engine.aggregation.impl.average.numeric;
 import static io.crate.execution.engine.aggregation.impl.average.AverageAggregation.NAMES;
 import static io.crate.execution.engine.aggregation.impl.average.numeric.NumericAverageStateType.INIT_SIZE;
 
-import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.apache.lucene.index.DocValues;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
@@ -41,10 +36,8 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.DocValueAggregator;
 import io.crate.execution.engine.aggregation.impl.util.BigDecimalValueWrapper;
-import io.crate.execution.engine.aggregation.impl.util.OverflowAwareMutableLong;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
-import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -53,15 +46,9 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.types.ByteType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
-import io.crate.types.DoubleType;
-import io.crate.types.FloatType;
-import io.crate.types.IntegerType;
-import io.crate.types.LongType;
 import io.crate.types.NumericType;
-import io.crate.types.ShortType;
 
 public class NumericAverageAggregation extends AggregationFunction<NumericAverageState<?>, BigDecimal> {
 
@@ -197,150 +184,13 @@ public class NumericAverageAggregation extends AggregationFunction<NumericAverag
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        Reference reference = aggregationReferences.get(0);
-        if (reference == null) {
-            return null;
-        }
-        if (!reference.hasDocValues()) {
-            return null;
-        }
-        var argumentTypes = Symbols.typeView(aggregationReferences);
-        return switch (argumentTypes.get(0).id()) {
-            case ByteType.ID, ShortType.ID, IntegerType.ID, LongType.ID ->
-                new AvgLong(reference.storageIdent());
-            case FloatType.ID -> new AvgFloat(returnType, reference.storageIdent());
-            case DoubleType.ID -> new AvgDouble(returnType, reference.storageIdent());
-            default -> null;
-        };
-    }
-
-    static class AvgLong implements DocValueAggregator<NumericAverageState<OverflowAwareMutableLong>> {
-
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        AvgLong(String columnName) {
-            this.columnName = columnName;
-        }
-
-        @Override
-        public NumericAverageState<OverflowAwareMutableLong> initialState(RamAccounting ramAccounting,
-                                                                          MemoryManager memoryManager,
-                                                                          Version minNodeVersion) {
-            ramAccounting.addBytes(INIT_SIZE);
-            return new NumericAverageState<>(new OverflowAwareMutableLong(0L), 0L);
-        }
-
-        @Override
-        public void loadDocValues(LeafReaderContext reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader.reader(), columnName);
-        }
-
-        @Override
-        public void apply(RamAccounting ramAccounting,
-                          int doc,
-                          NumericAverageState<OverflowAwareMutableLong> state) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                if (state != null) {
-                    state.sum.add(values.nextValue());
-                    state.count++;
-                }
-            }
-        }
-
-        @Override
-        public Object partialResult(RamAccounting ramAccounting, NumericAverageState<OverflowAwareMutableLong> state) {
-            return state;
-        }
-    }
-
-    static class AvgDouble implements DocValueAggregator<NumericAverageState<BigDecimalValueWrapper>> {
-
-        private final DataType<BigDecimal> returnType;
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        AvgDouble(DataType<BigDecimal> returnType, String columnName) {
-            this.returnType = returnType;
-            this.columnName = columnName;
-        }
-
-        @Override
-        public NumericAverageState<BigDecimalValueWrapper> initialState(RamAccounting ramAccounting,
-                                                                        MemoryManager memoryManager,
-                                                                        Version minNodeVersion) {
-            ramAccounting.addBytes(INIT_SIZE);
-            return new NumericAverageState<>(new BigDecimalValueWrapper(BigDecimal.ZERO), 0L);
-        }
-
-        @Override
-        public void loadDocValues(LeafReaderContext reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader.reader(), columnName);
-        }
-
-        @Override
-        public void apply(RamAccounting ramAccounting,
-                          int doc,
-                          NumericAverageState<BigDecimalValueWrapper> state) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                if (state != null) {
-                    BigDecimal value = returnType.implicitCast(NumericUtils.sortableLongToDouble(values.nextValue()));
-                    BigDecimal newValue = state.sum.value().add(value);
-                    ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
-                    (state.sum).setValue(newValue);
-                    state.count++;
-                }
-            }
-        }
-
-        @Override
-        public Object partialResult(RamAccounting ramAccounting, NumericAverageState<BigDecimalValueWrapper> state) {
-            return state;
-        }
-    }
-
-    static class AvgFloat implements DocValueAggregator<NumericAverageState<BigDecimalValueWrapper>> {
-
-        private final DataType<BigDecimal> returnType;
-        private final String columnName;
-        private SortedNumericDocValues values;
-
-        AvgFloat(DataType<BigDecimal> returnType, String columnName) {
-            this.returnType = returnType;
-            this.columnName = columnName;
-        }
-
-        @Override
-        public NumericAverageState<BigDecimalValueWrapper> initialState(RamAccounting ramAccounting,
-                                                                        MemoryManager memoryManager,
-                                                                        Version minNodeVersion) {
-            ramAccounting.addBytes(INIT_SIZE);
-            return new NumericAverageState<>(new BigDecimalValueWrapper(BigDecimal.ZERO), 0L);
-        }
-
-        @Override
-        public void loadDocValues(LeafReaderContext reader) throws IOException {
-            values = DocValues.getSortedNumeric(reader.reader(), columnName);
-        }
-
-        @Override
-        public void apply(RamAccounting ramAccounting,
-                          int doc,
-                          NumericAverageState<BigDecimalValueWrapper> state) throws IOException {
-            if (values.advanceExact(doc) && values.docValueCount() == 1) {
-                if (state != null) {
-                    BigDecimal value = returnType.implicitCast(NumericUtils.sortableIntToFloat((int) values.nextValue()));
-                    BigDecimal newValue = state.sum.value().add(value);
-                    ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
-                    (state.sum).setValue(newValue);
-                    state.count++;
-                }
-            }
-        }
-
-        @Override
-        public Object partialResult(RamAccounting ramAccounting, NumericAverageState<BigDecimalValueWrapper> state) {
-            return state;
-        }
+        return getNumericDocValueAggregator(
+            aggregationReferences,
+            (ramAccounting, state, bigDecimal) -> {
+                BigDecimal newValue = state.sum.value().add(bigDecimal);
+                ramAccounting.addBytes(NumericType.sizeDiff(newValue, state.sum.value()));
+                state.sum.setValue(newValue);
+                state.count++;
+            });
     }
 }

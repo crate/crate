@@ -271,6 +271,10 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
+- Improved performance of :ref:`aggregation-avg` function when operating on
+  columns of :ref:`NUMERIC type<type-numeric>` with enabled
+  :ref:`ddl-storage-columnstore`.
+
 - Added support for :ref:`NUMERIC type<type-numeric>` to the
   :ref:`aggregation-avg-distinct` function.
 
