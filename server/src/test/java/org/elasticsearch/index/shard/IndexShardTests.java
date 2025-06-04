@@ -1412,7 +1412,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 indexShard.getPendingPrimaryTerm() + randomIntBetween(1, 100),
                 UNASSIGNED_SEQ_NO,
                 randomNonNegativeLong(),
-                null,
+                new FutureActionListener<>(),
                 "")
         ).isExactlyInstanceOf(IndexShardNotStartedException.class);
         closeShards(indexShard);
