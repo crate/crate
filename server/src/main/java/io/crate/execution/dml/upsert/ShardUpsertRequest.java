@@ -400,10 +400,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             return usedBytes;
         }
 
-        boolean retryOnConflict() {
-            return seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && version == Versions.MATCH_ANY;
-        }
-
         @Nullable
         Symbol[] updateAssignments() {
             return updateAssignments;

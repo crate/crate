@@ -23,6 +23,7 @@ package io.crate.execution.dml.upsert;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -33,6 +34,7 @@ import org.elasticsearch.common.UUIDs;
 import org.junit.Test;
 
 import io.crate.analyze.Id;
+import io.crate.execution.dml.upsert.UpdateToInsert.Update;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.symbol.InputColumn;
@@ -76,12 +78,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> source = Map.of("x", 10, "y", 5);
         Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
 
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(20) },
             new Object[0]
         );
-        assertThat(item.insertValues())
+        assertThat(update.insertValues())
             .containsExactly(10, 20);
     }
 
@@ -100,12 +102,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> source = Map.of("x", 10, "y", 5);
         Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
 
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(0) },
             new Object[] { 20 }
         );
-        assertThat(item.insertValues())
+        assertThat(update.insertValues())
             .containsExactly(10, 20);
     }
 
@@ -123,12 +125,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         Map<String, Object> source = Map.of("x", 1, "o", Map.of("y", 2));
         Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(3) },
             new Object[] {}
         );
-        assertThat(item.insertValues())
+        assertThat(update.insertValues())
             .containsExactly(1, Map.of("y", 3));
     }
 
@@ -146,12 +148,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         Map<String, Object> source = Map.of("x", 1, "y", 5);
         Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(8) },
             new Object[] {}
         );
-        assertThat(item.insertValues())
+        assertThat(update.insertValues())
             .containsExactly(8);
     }
 
@@ -174,8 +176,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
 
         Symbol[] assignments = new Symbol[] { Literal.of(8) };
-        UpdateToInsert.Update item = updateToInsert.convert(doc, assignments, new Object[0]);
-        assertThat(item.insertValues())
+        Update update = updateToInsert.convert(doc, assignments, new Object[0]);
+        assertThat(update.insertValues())
             .containsExactly(8);
     }
 
@@ -193,7 +195,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         Map<String, Object> source = Map.of("x", 12);
         Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1), Literal.of(2) },
             new Object[] {}
@@ -202,7 +204,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             c -> assertThat(c).hasName("x"),
             c -> assertThat(c).hasName("y")
         );
-        assertThat(item.insertValues())
+        assertThat(update.insertValues())
             .containsExactly(1, 2);
     }
 
@@ -220,12 +222,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         Map<String, Object> source = Map.of("y", 1, "o", Map.of("x", 3));
         Doc doc = doc("3", table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1) },
             new Object[] {}
         );
-        assertThat(item.pkValues()).containsExactly("3");
+        assertThat(update.pkValues()).containsExactly("3");
     }
 
     @Test
@@ -269,12 +271,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
         Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(20) },
             new Object[] { Literal.of(3) }
         );
-        assertThat(item.insertValues()).containsExactly(3, 1, 20);
+        assertThat(update.insertValues()).containsExactly(3, 1, 20);
     }
 
     /**
@@ -309,12 +311,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> source = Map.of("x", 1, "y", Map.of("a", 2), "z", 3);
         String id = UUIDs.randomBase64UUID();
         Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
                 doc,
                 new Symbol[] { Literal.of(20) },
                 new Object[] { Literal.of(3) }
         );
-        assertThat(item.insertValues()).containsExactly(3, 1, Map.of("a", 20));
+        assertThat(update.insertValues()).containsExactly(3, 1, Map.of("a", 20));
     }
 
     @Test
@@ -346,7 +348,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
         String id = Id.encode(List.of("1", "2"), -1);
         Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
             new Object[] { 1, 20 }
@@ -355,8 +357,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             x -> assertThat(x).hasName("x"),
             x -> assertThat(x).hasName("z")
         );
-        assertThat(item.pkValues()).containsExactly("1", "2");
-        assertThat(item.insertValues()).containsExactly(1, 20);
+        assertThat(update.pkValues()).containsExactly("1", "2");
+        assertThat(update.insertValues()).containsExactly(1, 20);
     }
 
     @Test
@@ -393,13 +395,13 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         String id = Id.encode(List.of("1", "2"), -1);
         Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
             new Object[] { 1, 20 }
         );
-        assertThat(item.pkValues()).containsExactly("1", "2");
-        assertThat(item.insertValues()).containsExactly(1, 20, Map.of("y", 2));
+        assertThat(update.pkValues()).containsExactly("1", "2");
+        assertThat(update.insertValues()).containsExactly(1, 20, Map.of("y", 2));
     }
 
     @Test
@@ -434,12 +436,12 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         String id = Id.encode(List.of("1", "10"), -1);
         Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Update update = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
             new Object[] { 1, 20 }
         );
-        assertThat(item.pkValues()).containsExactly("1", "10");
-        assertThat(item.insertValues()).containsExactly(1, 20, 10);
+        assertThat(update.pkValues()).containsExactly("1", "10");
+        assertThat(update.insertValues()).containsExactly(1, 20, 10);
     }
 }
