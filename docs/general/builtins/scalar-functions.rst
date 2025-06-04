@@ -4303,6 +4303,28 @@ Example::
 Returns the server start time as ``timestamp with time zone``.
 
 
+.. _scalar-current_catalog:
+
+``current_catalog()``
+----------------------
+
+The ``current_catalog`` function returns the name of the current catalog, which
+in CrateDB will always be ``crate``::
+
+    cr> select current_catalog() AS db;
+    +-------+
+    | db    |
+    +-------+
+    | crate |
+    +-------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    The ``CURRENT_CATALOG`` function has a special SQL syntax, meaning that it
+    must be called without trailing parenthesis (``()``). However, CrateDB also
+    supports the optional parenthesis.
+
 .. _scalar-current_database:
 
 ``current_database()``
