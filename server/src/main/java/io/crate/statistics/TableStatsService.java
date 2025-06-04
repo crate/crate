@@ -22,22 +22,68 @@
 package io.crate.statistics;
 
 
+import static org.elasticsearch.gateway.PersistedClusterStateService.NODE_ID_KEY;
+import static org.elasticsearch.gateway.PersistedClusterStateService.NODE_VERSION_KEY;
+import static org.elasticsearch.gateway.PersistedClusterStateService.createIndexWriter;
+
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.IntPredicate;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexNotFoundException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.NIOFSDirectory;
+import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.InputStreamStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+
+import io.crate.common.io.IOUtils;
 import io.crate.session.BaseResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
@@ -48,7 +94,7 @@ import io.crate.data.Row;
  * Periodically refresh {@link TableStats} based on {@link #refreshInterval}.
  */
 @Singleton
-public class TableStatsService implements Runnable {
+public class TableStatsService extends AbstractLifecycleComponent implements Runnable {
 
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
@@ -72,11 +118,31 @@ public class TableStatsService implements Runnable {
     @VisibleForTesting
     volatile Scheduler.ScheduledCancellable scheduledRefresh;
 
+    private final Path[] dataPaths;
+    private final String nodeId;
+    private final Writer writer;
+
+    private static final String TYPE_FIELD_NAME = "type";
+    private static final String TYPE = "_stats";
+    private static final String DATA_FIELD_NAME = "data";
+
+
     @Inject
-    public TableStatsService(Settings settings,
+    public TableStatsService(NodeEnvironment nodeEnvironment,
+                             Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             Sessions sessions) {
+                             Sessions sessions) throws IOException {
+        this(nodeEnvironment.nodeDataPaths(), nodeEnvironment.nodeId(), settings, threadPool, clusterService, sessions);
+    }
+
+    @VisibleForTesting
+    TableStatsService(Path[] dataPaths,
+                      String nodeId,
+                      Settings settings,
+                      ThreadPool threadPool,
+                      ClusterService clusterService,
+                      Sessions sessions) throws IOException {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.sessions = sessions;
@@ -85,11 +151,241 @@ public class TableStatsService implements Runnable {
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
+        this.dataPaths = dataPaths;
+        this.nodeId = nodeId;
+        this.writer = createWriter();
+    }
+
+    public Writer createWriter() throws IOException {
+        final List<TableStatsService.TableStatsWriter> writers = new ArrayList<>();
+        final List<Closeable> closeables = new ArrayList<>();
+        boolean success = false;
+        try {
+            for (final Path path : dataPaths) {
+                Path stats = path.resolve(TYPE);
+                final Directory directory = createDirectory(stats);
+                closeables.add(directory);
+                final IndexWriter indexWriter = createIndexWriter(directory, false);
+                closeables.add(indexWriter);
+                writers.add(new TableStatsService.TableStatsWriter(directory, indexWriter));
+            }
+            success = true;
+        } finally {
+            if (success == false) {
+                IOUtils.closeWhileHandlingException(closeables);
+            }
+        }
+        return new Writer(writers, nodeId);
+    }
+
+    @Nullable
+    public TableStats load() throws IOException {
+        String nodeId = null;
+        Version version = null;
+        for (final Path dataPath : dataPaths) {
+            Path stats = dataPath.resolve(TYPE);
+            if (Files.exists(stats)) {
+                try (Directory dir = new NIOFSDirectory(stats)) {
+                    DirectoryReader reader;
+                    try {
+                        reader = DirectoryReader.open(dir);
+                    } catch (IndexNotFoundException e) {
+                        LOGGER.debug("No table stats found");
+                        return null;
+                    }
+                    final Map<String, String> userData = reader.getIndexCommit().getUserData();
+                    assert userData.get(NODE_VERSION_KEY) != null;
+
+                    final String thisNodeId = userData.get(NODE_ID_KEY);
+                    assert thisNodeId != null;
+                    if (nodeId != null && nodeId.equals(thisNodeId) == false) {
+                        //Do nothing, because the metadata does not belong to this node
+                    } else if (nodeId == null) {
+                        nodeId = thisNodeId;
+                        version = Version.fromId(Integer.parseInt(userData.get(NODE_VERSION_KEY)));
+                    }
+                    IndexSearcher indexSearcher = new IndexSearcher(reader);
+                    indexSearcher.setQueryCache(null);
+                    Query query = new TermQuery(new Term(TYPE_FIELD_NAME, TYPE));
+                    Weight weight = indexSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+                    try (IndexReader indexReader = indexSearcher.getIndexReader()) {
+                        for (LeafReaderContext leafReaderContext : indexReader.leaves()) {
+                            final Scorer scorer = weight.scorer(leafReaderContext);
+                            if (scorer != null) {
+                                final Bits liveDocs = leafReaderContext.reader().getLiveDocs();
+                                final IntPredicate isLiveDoc = liveDocs == null ? i -> true : liveDocs::get;
+                                final DocIdSetIterator docIdSetIterator = scorer.iterator();
+                                StoredFields storedFields = leafReaderContext.reader().storedFields();
+                                while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                    if (isLiveDoc.test(docIdSetIterator.docID())) {
+                                        BytesRef binaryValue = storedFields.document(docIdSetIterator.docID()).getBinaryValue(DATA_FIELD_NAME);
+                                        byte[] bytes = binaryValue.bytes;
+                                        var stream = new ByteArrayInputStream(bytes);
+                                        StreamInput streamInput = new InputStreamStreamInput(stream);
+                                        TableStats tableStats = new TableStats(streamInput);
+                                        LOGGER.debug("Loaded TableStats = " + tableStats);
+                                        return tableStats;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+
+    @Override
+    protected void doStart() {
+
+    }
+
+    @Override
+    protected void doStop() {
+        close();
+    }
+
+    @Override
+    public void close() {
+        try {
+            this.writer.close();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    @Override
+    protected void doClose() throws IOException {
+        close();
+    }
+
+
+    public static class TableStatsWriter implements Closeable {
+
+        private final Logger logger;
+        private final Directory directory;
+        private final IndexWriter indexWriter;
+
+        TableStatsWriter(Directory directory, IndexWriter indexWriter) {
+            this.directory = directory;
+            this.indexWriter = indexWriter;
+            this.logger = Loggers.getLogger(TableStatsService.TableStatsWriter.class, directory.toString());
+        }
+
+        void updateDoc(Document tableStatsDoc) throws IOException {
+            indexWriter.updateDocument(new Term(TYPE_FIELD_NAME, TYPE), tableStatsDoc);
+        }
+
+        void flush() throws IOException {
+            this.indexWriter.flush();
+        }
+
+        void prepareCommit(String nodeId) throws IOException {
+            final Map<String, String> commitData = new HashMap<>();
+            commitData.put(NODE_VERSION_KEY, Integer.toString(Version.CURRENT.internalId));
+            commitData.put(NODE_ID_KEY, nodeId);
+            indexWriter.setLiveCommitData(commitData.entrySet());
+            indexWriter.prepareCommit();
+        }
+
+        void commit() throws IOException {
+            indexWriter.commit();
+        }
+
+        @Override
+        public void close() throws IOException {
+            IOUtils.close(indexWriter, directory);
+        }
+    }
+
+    public static class Writer implements Closeable {
+
+        private final List<TableStatsService.TableStatsWriter> tableStatsWriters;
+        private final String nodeId;
+        private final AtomicBoolean closed = new AtomicBoolean();
+
+        private Writer(List<TableStatsService.TableStatsWriter> tableStatsWriters, String nodeId) {
+            this.tableStatsWriters = tableStatsWriters;
+            this.nodeId = nodeId;
+        }
+
+        private void ensureOpen() {
+            if (closed.get()) {
+                throw new AlreadyClosedException("table stats writer is closed already");
+            }
+        }
+
+        public boolean isOpen() {
+            return closed.get() == false;
+        }
+
+
+        public void writeAndCommit(TableStats tableStats) throws IOException {
+            ensureOpen();
+            try {
+                commit(tableStats);
+            } finally {
+                close();
+            }
+        }
+
+        void commit(TableStats tableStats) throws IOException {
+            ensureOpen();
+            Document tableStatsDoc = makeDocument(tableStats);
+            try {
+                for (TableStatsService.TableStatsWriter tableStatsWriter : tableStatsWriters) {
+                    tableStatsWriter.updateDoc(tableStatsDoc);
+                    tableStatsWriter.prepareCommit(nodeId);
+                    tableStatsWriter.flush();
+                    tableStatsWriter.commit();
+                }
+            } catch (Exception e) {
+                try {
+                    close();
+                } catch (Exception e2) {
+                    LOGGER.warn("failed on closing table stats writer", e2);
+                    e.addSuppressed(e2);
+                }
+                throw e;
+            } finally {
+                close();
+            }
+        }
+
+        @Override
+        public void close() throws IOException {
+            if (closed.compareAndSet(false, true)) {
+                IOUtils.close(tableStatsWriters);
+            }
+        }
+
+        private Document makeDocument(TableStats tableStats) throws IOException {
+            BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
+            tableStats.writeTo(bytesStreamOutput);
+            final Document document = new Document();
+            document.add(new StringField(TYPE_FIELD_NAME, TYPE, Field.Store.NO));
+            document.add(new StringField(DATA_FIELD_NAME, bytesStreamOutput.bytes().toBytesRef(), Field.Store.YES));
+            return document;
+        }
+    }
+
+    Directory createDirectory(Path path) throws IOException {
+        return new NIOFSDirectory(path);
     }
 
     @Override
     public void run() {
         updateStats();
+    }
+
+    public void persist(TableStats tableStats) {
+        try {
+            writer.writeAndCommit(tableStats);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     public void updateStats() {

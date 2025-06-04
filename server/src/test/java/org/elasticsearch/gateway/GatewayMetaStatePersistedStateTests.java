@@ -431,7 +431,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
             new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), writableRegistry(), getBigArrays(),
                 new ClusterSettings(settings, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L) {
                 @Override
-                Directory createDirectory(Path path) {
+                public Directory createDirectory(Path path) {
                     final MockDirectoryWrapper wrapper = newMockFSDirectory(path);
                     wrapper.setAllowRandomFileNotFoundException(randomBoolean());
                     wrapper.setRandomIOExceptionRate(ioExceptionRate.get());

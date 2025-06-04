@@ -129,8 +129,8 @@ public class PersistedClusterStateService {
     private static final Logger LOGGER = LogManager.getLogger(PersistedClusterStateService.class);
     private static final String CURRENT_TERM_KEY = "current_term";
     private static final String LAST_ACCEPTED_VERSION_KEY = "last_accepted_version";
-    private static final String NODE_ID_KEY = "node_id";
-    private static final String NODE_VERSION_KEY = "node_version";
+    public static final String NODE_ID_KEY = "node_id";
+    public static final String NODE_VERSION_KEY = "node_version";
     private static final String TYPE_FIELD_NAME = "type";
     private static final String DATA_FIELD_NAME = "data";
     private static final String GLOBAL_TYPE_NAME = "global";
@@ -223,7 +223,7 @@ public class PersistedClusterStateService {
         return new Writer(metadataIndexWriters, nodeId, bigArrays, relativeTimeMillisSupplier, () -> slowWriteLoggingThreshold);
     }
 
-    private static IndexWriter createIndexWriter(Directory directory, boolean openExisting) throws IOException {
+    public static IndexWriter createIndexWriter(Directory directory, boolean openExisting) throws IOException {
         final IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
         // start empty since we re-write the whole cluster state to ensure it is all using the same format version
         indexWriterConfig.setOpenMode(openExisting ? IndexWriterConfig.OpenMode.APPEND : IndexWriterConfig.OpenMode.CREATE);
@@ -248,7 +248,7 @@ public class PersistedClusterStateService {
     }
 
     // exposed for tests
-    Directory createDirectory(Path path) throws IOException {
+    public Directory createDirectory(Path path) throws IOException {
         // it is possible to disable the use of MMapDirectory for indices, and it may be surprising to users that have done so if we still
         // use a MMapDirectory here, which might happen with FSDirectory.open(path). Concurrency is of no concern here so a
         return new NIOFSDirectory(path);
