@@ -25,14 +25,24 @@ import org.junit.Test;
 
 public class CurrentDatabaseFunctionTest extends ScalarTestCase {
 
-
     @Test
     public void testCurrentDatabaseReturnsTheDefaultDBName() {
         assertEvaluate("current_database()", "crate");
     }
 
     @Test
+    public void testCurrenCatalogReturnsTheDefaultDBName() {
+        assertEvaluate("current_catalog()", "crate");
+        assertEvaluate("current_catalog", "crate");
+    }
+
+    @Test
     public void testCurrentDatabaseWithFQNFunctionName() {
         assertEvaluate("pg_catalog.current_database()", "crate");
+    }
+
+    @Test
+    public void testCurrentCatalogWithFQNFunctionName() {
+        assertEvaluate("pg_catalog.current_catalog()", "crate");
     }
 }

@@ -347,6 +347,7 @@ explicitFunction
         (OPEN_ROUND_BRACKET precision=integerLiteral CLOSE_ROUND_BRACKET)?           #specialDateTimeFunction
     | name=CURRENT_TIMESTAMP
         (OPEN_ROUND_BRACKET precision=integerLiteral CLOSE_ROUND_BRACKET)?           #specialDateTimeFunction
+    | CURRENT_CATALOG                                                                #currentCatalog
     | CURRENT_SCHEMA                                                                 #currentSchema
     | (CURRENT_USER | CURRENT_ROLE | USER)                                           #currentUser
     | SESSION_USER                                                                   #sessionUser
@@ -912,6 +913,7 @@ nonReserved
     | CONNECTION
     | COPY
     | CURRENT
+    | CURRENT_CATALOG
     | CURRENT_DATE
     | CURRENT_SCHEMA
     | CURRENT_TIME

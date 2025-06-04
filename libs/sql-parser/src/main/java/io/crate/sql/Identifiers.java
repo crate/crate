@@ -47,6 +47,7 @@ public final class Identifiers {
     public record Keyword(String word, boolean reserved) {}
 
     public static final Set<String> RESERVED_FUNCTIONS = Set.of(
+        "current_catalog",
         "current_role",
         "current_session",
         "current_user",
@@ -58,6 +59,7 @@ public final class Identifiers {
         "current_date",
         "current_time",
         "current_timestamp",
+        "current_catalog",
         "current_schema",
         "current_user",
         "current_role",
