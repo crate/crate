@@ -158,6 +158,7 @@ quoted if used as identifiers::
     | costs             |
     | create            |
     | cross             |
+    | current_catalog   |
     | current_date      |
     | current_role      |
     | current_schema    |
@@ -237,7 +238,7 @@ quoted if used as identifiers::
     | where             |
     | with              |
     +-------------------+
-    SELECT 96 rows in set (... sec)
+    SELECT 97 rows in set (... sec)
 
 Tokens such as ``my_table``, ``id``, ``name``, or ``data`` in the example below
 are *identifiers*, which identify names of tables, columns, and other database
