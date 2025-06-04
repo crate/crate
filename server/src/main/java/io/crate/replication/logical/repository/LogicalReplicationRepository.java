@@ -49,7 +49,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -183,13 +182,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .thenApply(remoteClusterStateResp -> {
                 ClusterState remoteClusterState = remoteClusterStateResp.getState();
                 var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
-                for (var cursor : remoteClusterState.metadata().templates().values()) {
-                    // Add subscription name as a setting value which can be used to restrict operations on
-                    // partitioned tables (e.g. forbid writes/creating new partitions)
-                    var settings = addSubscriptionSetting(cursor.value.settings(), subscriptionName);
-                    var templateMetadata = new IndexTemplateMetadata.Builder(cursor.value).settings(settings);
-                    metadataBuilder.put(templateMetadata);
-                }
 
                 // We update all tables with the subscription setting, not only the partitioned ones,
                 // as in getSnapshotIndexMetadata() we don't have access to the whole `Metadata` object.

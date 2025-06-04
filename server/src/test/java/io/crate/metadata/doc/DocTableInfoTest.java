@@ -39,8 +39,8 @@ import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -708,7 +708,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     @UseRandomizedSchema(random = false)
     @Test
     public void test_write_to_preserves_number_of_shards_of_partitions() throws Exception {
-        var partitionIndexName = new PartitionName(new RelationName("doc", "tbl"), singletonList("1")).asIndexName();
+        RelationName relationName = new RelationName("doc", "tbl");
+        var partitionIndexName = new PartitionName(relationName, singletonList("1")).asIndexName();
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(
                 """
@@ -723,14 +724,26 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         ClusterState state = clusterService.state();
         Metadata metadata = state.metadata();
 
-        // Change the number of shards of the partition table/template aka. ALTER TABLE tbl SET (number_of_shards=3)
-        var oldTemplate = metadata.templates().get(PartitionName.templateName("doc", "tbl"));
-        var newTemplate = new IndexTemplateMetadata.Builder(oldTemplate);
-        newTemplate.settings(Settings.builder().put(oldTemplate.settings()).put("index.number_of_shards", 3));
+        // Change the number of shards of the partition table aka. ALTER TABLE tbl SET (number_of_shards=3)
+        RelationMetadata.Table table = metadata.getRelation(relationName);
+        assertThat(table).isNotNull();
+        Metadata.Builder metadataBuilder = new Metadata.Builder(metadata);
+        metadataBuilder.setTable(
+            table.name(),
+            table.columns(),
+            Settings.builder().put(table.settings()).put("index.number_of_shards", 3).build(),
+            table.routingColumn(),
+            table.columnPolicy(),
+            table.pkConstraintName(),
+            table.checkConstraints(),
+            table.primaryKeys(),
+            table.partitionedBy(),
+            table.state(),
+            table.indexUUIDs(),
+            table.tableVersion() + 1
+        );
 
-        Metadata.Builder builder = new Metadata.Builder(metadata);
-        builder.put(newTemplate);
-        var newMetadata = builder.build();
+        var newMetadata = metadataBuilder.build();
 
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(e.nodeCtx);
         DocTableInfo tbl = docTableInfoFactory.create(RelationName.fromIndexName("tbl"), newMetadata);

@@ -40,6 +40,7 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
     private final RelationName relationName;
     private final AlterTableOperator<T> alterTableOperator;
     private final @Nullable FulltextAnalyzerResolver fulltextAnalyzerResolver;
+    private final DocTableInfoFactory docTableInfoFactory;
 
     /**
      * @param fulltextAnalyzerResolver will be passed 1:1 to the given {@code alterTableOperator}
@@ -53,11 +54,11 @@ public class AlterTableTask<T> extends DDLClusterStateTaskExecutor<T> {
         this.relationName = relationName;
         this.alterTableOperator = alterTableOperator;
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
+        docTableInfoFactory = new DocTableInfoFactory(nodeContext);
     }
 
     @Override
     public ClusterState execute(ClusterState currentState, T t) throws Exception {
-        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeContext);
         Metadata metadata = currentState.metadata();
         DocTableInfo currentTable = docTableInfoFactory.create(relationName, metadata);
         Metadata.Builder metadataBuilder = Metadata.builder(metadata);

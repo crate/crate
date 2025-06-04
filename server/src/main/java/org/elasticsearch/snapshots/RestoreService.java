@@ -59,11 +59,10 @@ import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.metadata.RepositoriesMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
@@ -100,10 +99,10 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.execution.ddl.Templates;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 
 /**
@@ -215,6 +214,10 @@ public class RestoreService implements ClusterStateApplier {
                     resolvedTemplates
                 );
 
+                final List<RelationName> standaloneRelations = resolvedTemplates.stream()
+                    .map(t -> PartitionName.fromIndexOrTemplate(t).relationName())
+                    .toList();
+
                 // Empty list is resolved to "all indices" and we don't want break this behavior since RestoreService is used
                 // in other components (index recovery, logical replication).
                 // However, when restoring an empty partitioned table, there are no resolved indices
@@ -228,8 +231,17 @@ public class RestoreService implements ClusterStateApplier {
                     : List.of();
 
                 return repository.getSnapshotGlobalMetadata(snapshotId).thenCompose(globalMetadata -> {
+                    globalMetadata = metadataIndexUpgradeService.addOrUpgradeRelationMetadata(globalMetadata);
                     var metadataBuilder = Metadata.builder(globalMetadata);
                     var indexIdsInSnapshot = Lists.map(indicesInSnapshot, repositoryData::resolveIndexId);
+                    List<RelationName> relationNames;
+                    if (standaloneRelations.isEmpty() && tablesToRestore.isEmpty() && request.includeTables) {
+                        relationNames = globalMetadata.relations(RelationMetadata.Table.class).stream().map(RelationMetadata::name).toList();
+                    } else {
+                        relationNames = standaloneRelations;
+                    }
+
+
                     var futureSnapshotIndexMetadata = repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexIdsInSnapshot);
                     return futureSnapshotIndexMetadata.thenAccept(snapshotIndexMetadata -> {
                         for (IndexMetadata indexMetadata : snapshotIndexMetadata) {
@@ -250,7 +262,7 @@ public class RestoreService implements ClusterStateApplier {
                             listener,
                             request,
                             indices,
-                            resolvedTemplates,
+                            relationNames,
                             metadata
                         );
                         clusterService.submitStateUpdateTask("restore_snapshot[" + snapshotName + ']', updateTask);
@@ -261,10 +273,6 @@ public class RestoreService implements ClusterStateApplier {
             listener.onFailure(Exceptions.toException(t));
             return null;
         });
-    }
-
-    private boolean allTemplates(Collection<String> resolvedTemplates) {
-        return resolvedTemplates.size() == 1 && resolvedTemplates.contains(Metadata.ALL);
     }
 
     /**
@@ -319,10 +327,6 @@ public class RestoreService implements ClusterStateApplier {
                 }
             }
         }
-
-        if (request.includeTables() && tablesToRestore.isEmpty()) {
-            resolvedTemplates.add(Metadata.ALL);
-        }
     }
 
     public static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
@@ -368,7 +372,7 @@ public class RestoreService implements ClusterStateApplier {
         private final ActionListener<RestoreCompletionResponse> listener;
         private final RestoreRequest request;
         private final Map<String, String> indices;
-        private final List<String> templates;
+        private final List<RelationName> standaloneRelationNames;
 
         private final Metadata snapshotMetadata;
         final String restoreUUID = UUIDs.randomBase64UUID();
@@ -381,7 +385,7 @@ public class RestoreService implements ClusterStateApplier {
                                           ActionListener<RestoreCompletionResponse> listener,
                                           RestoreRequest request,
                                           Map<String, String> indices,
-                                          List<String> templates,
+                                          List<RelationName> standaloneRelationNames,
                                           Metadata snapshotMetadata) {
             this.snapshotInfo = snapshotInfo;
             this.snapshotId = snapshotId;
@@ -390,7 +394,7 @@ public class RestoreService implements ClusterStateApplier {
             this.listener = listener;
             this.request = request;
             this.indices = indices;
-            this.templates = templates;
+            this.standaloneRelationNames = standaloneRelationNames;
             this.snapshotMetadata = snapshotMetadata;
         }
 
@@ -529,6 +533,7 @@ public class RestoreService implements ClusterStateApplier {
                     mdBuilder.put(updatedIndexMetadata, true);
                     renamedIndex = updatedIndexMetadata.getIndex();
                 }
+
                 relationIndexUUIDs.compute(relationName, (_, indexUUIDs) -> {
                     if (indexUUIDs == null) {
                         indexUUIDs = new ArrayList<>();
@@ -543,65 +548,16 @@ public class RestoreService implements ClusterStateApplier {
                 }
             }
 
+            boolean ignoreUnavailable = request.indicesOptions().ignoreUnavailable();
+
+            for (RelationName relationName : standaloneRelationNames) {
+                restoreRelation(relationName, mdBuilder, currentMetadata, List.of(), !ignoreUnavailable);
+            }
+
             for (var entry : relationIndexUUIDs.entrySet()) {
                 RelationName relationName = entry.getKey();
-                String newSchema = relationName.schema().replaceAll(
-                    request.schemaRenamePattern(),
-                    request.schemaRenameReplacement()
-                );
-                String newTableName = relationName.name().replaceAll(
-                    request.tableRenamePattern(),
-                    request.tableRenameReplacement()
-                );
-                RelationName newName = new RelationName(newSchema, newTableName);
                 List<String> indexUUIDs = entry.getValue();
-                RelationMetadata existingRelation = currentMetadata.getRelation(newName);
-                RelationMetadata snapshotRelation = snapshotMetadata.getRelation(relationName);
-                if (existingRelation instanceof RelationMetadata.Table existingTable) {
-                    // restoring into existing closed tables is allowed
-                    RelationMetadata.Table table = snapshotRelation instanceof RelationMetadata.Table snapshotTable
-                        ? snapshotTable
-                        : existingTable;
-                    mdBuilder.setTable(
-                        newName,
-                        table.columns(),
-                        table.settings(),
-                        table.routingColumn(),
-                        table.columnPolicy(),
-                        table.pkConstraintName(),
-                        table.checkConstraints(),
-                        table.primaryKeys(),
-                        table.partitionedBy(),
-                        table.state(),
-                        Lists.concatUnique(existingTable.indexUUIDs(), indexUUIDs),
-                        table.tableVersion()
-                    );
-                } else if (existingRelation == null) {
-                    if (snapshotRelation instanceof RelationMetadata.Table table) {
-                        mdBuilder.setTable(
-                            newName,
-                            table.columns(),
-                            table.settings(),
-                            table.routingColumn(),
-                            table.columnPolicy(),
-                            table.pkConstraintName(),
-                            table.checkConstraints(),
-                            table.primaryKeys(),
-                            table.partitionedBy(),
-                            table.state(),
-                            indexUUIDs,
-                            table.tableVersion()
-                        );
-                    }
-                } else {
-                    throw new IllegalArgumentException(String.format(
-                        Locale.ENGLISH,
-                        "Cannot restore relation `%s` as `%s`, it conflicts with: %s",
-                        relationName,
-                        newName,
-                        existingRelation
-                    ));
-                }
+                restoreRelation(relationName, mdBuilder, currentMetadata, indexUUIDs, !ignoreUnavailable);
             }
 
             shards = shardsBuilder.build();
@@ -617,10 +573,6 @@ public class RestoreService implements ClusterStateApplier {
                     currentState.custom(RestoreInProgress.TYPE, RestoreInProgress.EMPTY)).add(restoreEntry).build());
             }
 
-            validateExistingTemplates(templates);
-            checkAliasNameConflicts(indices, aliases);
-            // Restore templates (but do NOT overwrite existing templates)
-            restoreTemplates(templates, mdBuilder);
 
             // Restore global state if needed
             if (request.includeGlobalSettings() && snapshotMetadata.persistentSettings() != null) {
@@ -668,12 +620,79 @@ public class RestoreService implements ClusterStateApplier {
             return allocationService.reroute(updatedState, "restored snapshot [" + snapshot + "]");
         }
 
-        private void checkAliasNameConflicts(Map<String, String> renamedIndices, Set<String> aliases) {
-            for (Map.Entry<String, String> renamedIndex : renamedIndices.entrySet()) {
-                if (aliases.contains(renamedIndex.getKey())) {
-                    throw new SnapshotRestoreException(snapshot, "cannot rename index [" + renamedIndex.getValue() +
-                                                                    "] into [" + renamedIndex.getKey() + "] because of conflict with an alias with the same name");
+        private void restoreRelation(RelationName relationName,
+                                     Metadata.Builder mdBuilder,
+                                     Metadata currentMetadata,
+                                     List<String> indexUUIDs,
+                                     boolean strict) {
+            String newSchema = relationName.schema().replaceAll(
+                request.schemaRenamePattern(),
+                request.schemaRenameReplacement()
+            );
+            String newTableName = relationName.name().replaceAll(
+                request.tableRenamePattern(),
+                request.tableRenameReplacement()
+            );
+            RelationName newName = new RelationName(newSchema, newTableName);
+            RelationMetadata existingRelation = currentMetadata.getRelation(newName);
+            RelationMetadata snapshotRelation = snapshotMetadata.getRelation(relationName);
+            if (snapshotRelation == null) {
+                if (strict) {
+                    throw new ResourceNotFoundException("Relation [{}] not found in snapshot", relationName);
                 }
+                return;
+            }
+
+            if (existingRelation instanceof RelationMetadata.Table existingTable) {
+                // restoring into existing closed tables is allowed
+                RelationMetadata.Table table = snapshotRelation instanceof RelationMetadata.Table snapshotTable
+                    ? snapshotTable
+                    : existingTable;
+                mdBuilder.setTable(
+                    newName,
+                    Lists.map(
+                        table.columns(),
+                        ref -> ref.withReferenceIdent(new ReferenceIdent(newName, ref.column()))
+                    ),
+                    table.settings(),
+                    table.routingColumn(),
+                    table.columnPolicy(),
+                    table.pkConstraintName(),
+                    table.checkConstraints(),
+                    table.primaryKeys(),
+                    table.partitionedBy(),
+                    table.state(),
+                    Lists.concatUnique(existingTable.indexUUIDs(), indexUUIDs),
+                    table.tableVersion()
+                );
+            } else if (existingRelation == null) {
+                if (snapshotRelation instanceof RelationMetadata.Table table) {
+                    mdBuilder.setTable(
+                        newName,
+                        Lists.map(
+                            table.columns(),
+                            ref -> ref.withReferenceIdent(new ReferenceIdent(newName, ref.column()))
+                        ),
+                        table.settings(),
+                        table.routingColumn(),
+                        table.columnPolicy(),
+                        table.pkConstraintName(),
+                        table.checkConstraints(),
+                        table.primaryKeys(),
+                        table.partitionedBy(),
+                        table.state(),
+                        indexUUIDs,
+                        table.tableVersion()
+                    );
+                }
+            } else {
+                throw new IllegalArgumentException(String.format(
+                    Locale.ENGLISH,
+                    "Cannot restore relation `%s` as `%s`, it conflicts with: %s",
+                    relationName,
+                    newName,
+                    existingRelation
+                ));
             }
         }
 
@@ -701,64 +720,6 @@ public class RestoreService implements ClusterStateApplier {
                 throw new SnapshotRestoreException(snapshot, "cannot restore index [" + renamedIndex + "] with [" + currentIndexMetadata.getNumberOfShards() +
                                                                 "] shards from a snapshot of index [" + snapshotIndexMetadata.getIndex().getName() + "] with [" +
                                                                 snapshotIndexMetadata.getNumberOfShards() + "] shards");
-            }
-        }
-
-        private void restoreTemplates(List<String> templates, Metadata.Builder mdBuilder) {
-            ImmutableOpenMap<String, IndexTemplateMetadata> templateMetadata = snapshotMetadata.templates();
-            if (templateMetadata == null) {
-                return;
-            }
-            Map<String, IndexTemplateMetadata> includedTemplates = new HashMap<>();
-            boolean allTemplates = allTemplates(templates);
-            boolean applyRenamePattern = request.hasNonDefaultRenamePatterns();
-            for (var cursor : templateMetadata) {
-                String templateName = cursor.key;
-                IndexTemplateMetadata indexTemplateMetadata = cursor.value;
-                if (allTemplates || templates.contains(templateName)) {
-                    IndexTemplateMetadata previous;
-                    if (applyRenamePattern) {
-                        IndexParts indexParts = IndexName.decode(templateName);
-                        String schema = indexParts.schema();
-                        String table = indexParts.table();
-                        RelationName newName = new RelationName(
-                            schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement()),
-                            table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement())
-                        );
-                        IndexTemplateMetadata renamedIndexTemplateMetadata = Templates.withName(indexTemplateMetadata, newName).build();
-                        previous = includedTemplates.put(newName.indexNameOrAlias(), renamedIndexTemplateMetadata);
-                    } else {
-                        previous = includedTemplates.put(templateName, indexTemplateMetadata);
-                    }
-                    if (previous != null) {
-                        throw new SnapshotRestoreException(
-                            request.repositoryName,
-                            request.snapshotName,
-                            String.format(
-                                Locale.ENGLISH,
-                                "Rename conflict for partitioned table `%s`. `%s` already exists. Cannot rename `%s` to the same name",
-                                IndexName.decode(templateName).toRelationName().fqn(),
-                                templateName,
-                                previous.name()
-                            )
-                        );
-                    }
-                }
-            }
-            includedTemplates = metadataIndexUpgradeService.upgradeTemplates(includedTemplates);
-            for (var indexTemplateMetadata : includedTemplates.values()) {
-                mdBuilder.put(indexTemplateMetadata);
-            }
-        }
-
-        private void validateExistingTemplates(List<String> templates) {
-            if (request.indicesOptions().ignoreUnavailable() || allTemplates(templates)) {
-                return;
-            }
-            for (String template : templates) {
-                if (!snapshotMetadata.templates().containsKey(template)) {
-                    throw new ResourceNotFoundException("[{}] template not found", template);
-                }
             }
         }
 
