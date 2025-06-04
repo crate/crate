@@ -258,27 +258,24 @@ final class IndexShardOperationPermits implements Closeable {
                 if (queuedBlockOperations > 0) {
                     final ActionListener<Releasable> wrappedListener;
                     if (executorOnDelay != null) {
-                        wrappedListener = ActionListener.delegateFailure(
-                            onAcquired,
-                            (l, r) -> threadPool.executor(executorOnDelay).execute(new ActionRunnable<>(l) {
+                        wrappedListener = onAcquired.withOnResponse((l, r) -> threadPool.executor(executorOnDelay).execute(new ActionRunnable<>(l) {
 
-                                @Override
-                                public boolean isForceExecution() {
-                                    return forceExecution;
-                                }
+                            @Override
+                            public boolean isForceExecution() {
+                                return forceExecution;
+                            }
 
-                                @Override
-                                public void doRun() {
-                                    listener.onResponse(r);
-                                }
+                            @Override
+                            public void doRun() {
+                                listener.onResponse(r);
+                            }
 
-                                @Override
-                                public void onRejection(Exception e) {
-                                    IOUtils.closeWhileHandlingException(r);
-                                    super.onRejection(e);
-                                }
-                            })
-                        );
+                            @Override
+                            public void onRejection(Exception e) {
+                                IOUtils.closeWhileHandlingException(r);
+                                super.onRejection(e);
+                            }
+                        }));
                     } else {
                         wrappedListener = onAcquired;
                     }
