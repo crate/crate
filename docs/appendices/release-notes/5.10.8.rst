@@ -60,3 +60,6 @@ Fixes
 - Fixed an issue where ``sas_token`` and ``key`` settings for
   :ref:`azure repositories <sql-create-repo-azure>` were exposed as unmasked
   settings in :ref:`sys.repositories <sys-repositories>` table.
+
+- Fixed an issue that caused queries to not complete and return if a 
+  ``CircuitBreakerException`` was thrown while constructing the result set.

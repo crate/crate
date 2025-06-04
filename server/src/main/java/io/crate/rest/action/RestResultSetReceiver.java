@@ -68,7 +68,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
             builder.addRow(row, outputFields.size());
             rowCount++;
             return null;
-        } catch (IOException e) {
+        } catch (Exception e) {
             fail(e);
             return null;
         }
