@@ -22,7 +22,60 @@
 package io.crate.statistics.arrow;
 
 
+import java.util.Map;
+
+import org.apache.arrow.vector.VectorSchemaRoot;
+
+import io.crate.metadata.RelationName;
+import io.crate.metadata.table.TableInfo;
+import io.crate.statistics.ColumnStatsEntry;
+
 public class TableStats {
+
+    VectorSchemaRoot stats;
+
+    public void updateTableStats(Map<RelationName, io.crate.statistics.Stats> tableStats) {
+    }
+
+    /**
+     * Returns the number of docs a table has.
+     * <p>
+     * <p>
+     * The returned number isn't an accurate real-time value but a cached value that is periodically updated
+     * </p>
+     * Returns -1 if the table isn't in the cache
+     */
+    public long numDocs(RelationName relationName) {
+        return -1;
+    }
+
+    /**
+     * Returns an estimation (avg) size of each row of the table in bytes.
+     * <p>
+     * <p>
+     * The returned number isn't an accurate real-time value but a cached value that is periodically updated
+     * </p>
+     * Returns -1 if the table isn't in the cache
+     */
+    public long estimatedSizePerRow(RelationName relationName) {
+        return -1;
+    }
+
+    /**
+     * Returns an estimation (avg) size of each row of the table in bytes or if no stats are available
+     * for the given table an estimate (avg) based on the column types of the table.
+     */
+    public long estimatedSizePerRow(TableInfo tableInfo) {
+      return -1;
+    }
+
+    public Iterable<ColumnStatsEntry> statsEntries() {
+       return null;
+    }
+
+    public io.crate.statistics.Stats getStats(RelationName relationName) {
+       return null;
+    }
 
 
 }

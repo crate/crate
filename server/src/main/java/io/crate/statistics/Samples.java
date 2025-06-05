@@ -101,6 +101,7 @@ class Samples implements Writeable {
         );
     }
 
+    // convert here to arrow structure
     public Stats createTableStats(List<Reference> primitiveColumns) {
         Map<ColumnIdent, ColumnStats<?>> statsByColumn = HashMap.newHashMap(primitiveColumns.size());
         for (int i = 0; i < primitiveColumns.size(); i++) {
