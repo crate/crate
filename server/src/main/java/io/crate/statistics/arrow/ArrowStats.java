@@ -27,8 +27,6 @@ import java.util.List;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BigIntVector;
-import org.apache.arrow.vector.FieldVector;
-import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
@@ -36,7 +34,7 @@ import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class Stats {
+public class ArrowStats {
 
     public static void main(String[] args) {
         Schema schema = simpleSchema();
@@ -52,6 +50,9 @@ public class Stats {
             sizeInBytes.set(0, 10L);
             root.setRowCount(1);
             System.out.println("VectorSchemaRoot created: \n" + root.contentToTSVString());
+            BigIntVector numDocs1 = (BigIntVector) root.getVector("numDocs");
+            long l = numDocs.get(0);
+            System.out.println("numDocs = " + l);
         }
     }
 
