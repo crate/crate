@@ -670,6 +670,8 @@ public class Session implements AutoCloseable {
                 return exec(deferredExecutions);
             }
             default: {
+                // Mix of different defered execution is PG specific.
+                // HTTP sync-s at the end of both single/bulk requests, and it's always one statement.
                 // sequentiallize execution to ensure client receives row counts in correct order
                 CompletableFuture<?> allCompleted = null;
                 for (var entry : deferredExecutionsByStmt.entrySet()) {
@@ -679,8 +681,9 @@ public class Session implements AutoCloseable {
                     } else {
                         allCompleted = allCompleted
                             // individual rowReceiver will receive failure; must not break execution chain due to failures.
-                            .exceptionally(swallowException -> null)
-                            .thenCompose(ignored -> exec(deferredExecutions));
+                            // No need to log execution and as it's handled in the exec() call.
+                            .exceptionally(_ -> null)
+                            .thenCompose(_ -> exec(deferredExecutions));
                     }
                 }
                 deferredExecutionsByStmt.clear();
@@ -751,9 +754,15 @@ public class Session implements AutoCloseable {
         );
         List<CompletableFuture<?>> resultReceiverFutures = Lists.map(toExec, x -> x.resultReceiver().completionFuture());
         CompletableFuture<Void> allResultReceivers = CompletableFuture.allOf(resultReceiverFutures.toArray(new CompletableFuture[0]));
-
         result
-            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp));
+            .thenAccept(bulkResp -> emitRowCountsToResultReceivers(jobId, jobsLogs, toExec, bulkResp))
+            .exceptionally(t -> {
+                for (int i = 0; i < toExec.size(); i++) {
+                    toExec.get(i).resultReceiver().fail(t);
+                }
+                jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(t));
+                return null;
+            });
         addStatementTimeout(result, timeoutToken);
         return result.runAfterBoth(allResultReceivers, () -> {});
 
