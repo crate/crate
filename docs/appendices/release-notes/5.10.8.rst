@@ -63,3 +63,6 @@ Fixes
 
 - Fixed an issue that caused queries to not complete and return if a 
   ``CircuitBreakerException`` was thrown while constructing the result set.
+
+- Fixed an issue that caused an interrupted bulk operation to not be cleared
+  from the :ref:`sys.jobs <sys-jobs>` table.

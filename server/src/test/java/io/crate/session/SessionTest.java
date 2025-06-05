@@ -24,7 +24,6 @@ package io.crate.session;
 import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -511,6 +510,54 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                 }
             );
         }
+    }
+
+    @Test
+    public void test_bulk_operations_completed_exceptionally_sys_job_cleared() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build()
+            .addTable("create table t1 (x int)");
+        sqlExecutor.jobsLogsEnabled = true;
+        Session session = sqlExecutor.createSession();
+        when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
+            .thenReturn(
+                new Plan() {
+                    @Override
+                    public StatementType type() {
+                        return StatementType.INSERT;
+                    }
+
+                    @Override
+                    public void executeOrFail(DependencyCarrier dependencies,
+                                              PlannerContext plannerContext,
+                                              RowConsumer consumer,
+                                              Row params,
+                                              SubQueryResults subQueryResults) throws Exception {
+                    }
+
+                    @Override
+                    public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                                       PlannerContext plannerContext,
+                                                                       List<Row> bulkParams,
+                                                                       SubQueryResults subQueryResults) {
+
+                        return CompletableFuture.failedFuture(new RuntimeException("dummy"));
+                    }
+                }
+            );
+
+
+        session.parse(UNNAMED, "INSERT INTO t1 (x) VALUES (?)", List.of());
+        // At least 2 execute() calls, so that we have >1 deferred executions and sync() hits bulkExec.
+        for (int i = 0; i < 2; i++) {
+            session.bind(UNNAMED, UNNAMED, List.of(i), null);
+            session.execute(UNNAMED, 0, new BaseResultReceiver());
+        }
+
+        session.sync();
+        assertThat(sqlExecutor.jobsLogs.activeJobs().iterator().hasNext()).isFalse();
     }
 
 }
