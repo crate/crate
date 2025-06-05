@@ -689,6 +689,8 @@ public class Session implements AutoCloseable {
                 return exec(deferredExecutions);
             }
             default: {
+                // Mix of different defered execution is PG specific.
+                // HTTP sync-s at the end of both single/bulk requests, and it's always one statement.
                 // sequentiallize execution to ensure client receives row counts in correct order
                 CompletableFuture<?> allCompleted = null;
                 for (var entry : deferredExecutionsByStmt.entrySet()) {
@@ -698,6 +700,7 @@ public class Session implements AutoCloseable {
                     } else {
                         allCompleted = allCompleted
                             // individual rowReceiver will receive failure; must not break execution chain due to failures.
+                            // No need to log execution and as it's handled in the exec() call.
                             .exceptionally(_ -> null)
                             .thenCompose(_ -> exec(deferredExecutions));
                     }
