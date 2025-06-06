@@ -18,6 +18,10 @@
  */
 package org.elasticsearch.test;
 
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.inject.AbstractModule;
@@ -26,10 +30,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexSettings;
-
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
 
 public class IndexSettingsModule extends AbstractModule {
 
@@ -60,9 +60,10 @@ public class IndexSettingsModule extends AbstractModule {
         Settings build = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+            .put(IndexMetadata.SETTING_OLD_NAME, index.getName())
             .put(indexSetting)
             .build();
-        IndexMetadata metadata = IndexMetadata.builder(index.getName()).settings(build).build();
+        IndexMetadata metadata = IndexMetadata.builder(index.getUUID()).settings(build).build();
         Set<Setting<?>> settingSet = new HashSet<>(IndexScopedSettings.BUILT_IN_INDEX_SETTINGS);
         if (setting.length > 0) {
             settingSet.addAll(Arrays.asList(setting));
@@ -74,9 +75,10 @@ public class IndexSettingsModule extends AbstractModule {
         Settings build = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                 .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
                 .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+                .put(IndexMetadata.SETTING_OLD_NAME, index.getName())
                 .put(settings)
                 .build();
-        IndexMetadata metadata = IndexMetadata.builder(index.getName()).settings(build).build();
+        IndexMetadata metadata = IndexMetadata.builder(index.getUUID()).settings(build).build();
         return new IndexSettings(metadata, Settings.EMPTY, indexScopedSettings);
     }
 

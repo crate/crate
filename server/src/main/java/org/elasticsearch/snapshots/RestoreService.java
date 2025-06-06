@@ -464,7 +464,7 @@ public class RestoreService implements ClusterStateApplier {
                     createIndexService.validateIndexSettings(renamedIndexName, snapshotIndexMetadata.getSettings(), false);
                     IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata)
                         .state(IndexMetadata.State.OPEN)
-                        .index(renamedIndexName);
+                        .indexUUID(renamedIndexName);
 
                     if (request.hasNonDefaultRenamePatterns() && snapshotIndexMetadata.getAliases().isEmpty() == false) {
                         // Partitioned tables are created with an alias.
@@ -531,7 +531,7 @@ public class RestoreService implements ClusterStateApplier {
                         Settings.builder()
                             .put(snapshotIndexMetadata.getSettings())
                             .put(IndexMetadata.SETTING_INDEX_UUID, newIndexUUID));
-                    IndexMetadata updatedIndexMetadata = indexMdBuilder.index(renamedIndexName).build();
+                    IndexMetadata updatedIndexMetadata = indexMdBuilder.indexUUID(renamedIndexName).build();
                     rtBuilder.addAsRestore(updatedIndexMetadata, recoverySource);
                     blocks.updateBlocks(updatedIndexMetadata);
                     mdBuilder.put(updatedIndexMetadata, true);

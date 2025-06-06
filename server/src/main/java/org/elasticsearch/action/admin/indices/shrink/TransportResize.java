@@ -95,7 +95,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
             request.table(),
             request.partitionValues(),
             false,
-            idxMd -> idxMd.getIndex().getName()
+            idxMd -> idxMd.getIndex().getUUID()
         ).toArray(String[]::new);
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
     }
@@ -105,9 +105,13 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
                                    final ClusterState state,
                                    final ActionListener<ResizeResponse> listener) {
 
+
+
         String sourceIndex = request.partitionValues().isEmpty()
             ? request.table().indexNameOrAlias()
             : new PartitionName(request.table(), request.partitionValues()).asIndexName();
+
+
 
         // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
         final String resizedIndex = AlterTableClient.RESIZE_PREFIX + sourceIndex;
@@ -127,6 +131,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
                         });
                 }
             })
+
             .whenComplete(listener);
     }
 }

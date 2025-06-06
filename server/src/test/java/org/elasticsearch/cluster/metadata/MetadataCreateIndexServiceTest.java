@@ -109,10 +109,12 @@ public class MetadataCreateIndexServiceTest extends CrateDummyClusterServiceUnit
         );
 
         RelationName tbl = new RelationName("doc", "srctbl");
+        String indexUUID = startedShardsState.metadata().getIndex(tbl, List.of(), true, IndexMetadata::getIndexUUID);
         int newNumShards = 1;
         var resizeIndexTask = new MetadataCreateIndexService.ResizeIndexTask(
             Mockito.mock(AllocationService.class),
             new ResizeRequest(tbl, List.of(), newNumShards),
+            indexUUID,
             Mockito.mock(IndicesService.class),
             _ -> Integer.MAX_VALUE,
             new ShardLimitValidator(Settings.EMPTY, clusterService),

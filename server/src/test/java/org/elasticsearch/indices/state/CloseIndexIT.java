@@ -27,10 +27,12 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.execution.ddl.tables.TransportCloseTable;
+import io.crate.metadata.RelationName;
 
 public class CloseIndexIT extends IntegTestCase {
 
@@ -57,22 +59,21 @@ public class CloseIndexIT extends IntegTestCase {
         ensureGreen();
         cluster().fullRestart();
         ensureGreen();
-        assertIndexIsClosed("test");
+        assertIndexIsClosed(new RelationName("doc", "test"));
     }
 
-    static void assertIndexIsClosed(final String... indices) {
+    static void assertIndexIsClosed(final RelationName relation) {
         var clusterState = FutureUtils.get(client().state(new ClusterStateRequest())).getState();
-        var availableIndices = clusterState.metadata().indices();
-        assertThat(availableIndices.keys().toArray(String.class)).containsExactly(indices);
-        for (String index : indices) {
-            final IndexMetadata indexMetadata = availableIndices.get(index);
+        List<IndexMetadata> indices = clusterState.metadata().getIndices(relation, List.of(), true, im -> im);
+        for (IndexMetadata indexMetadata : indices) {
+            Index index = indexMetadata.getIndex();
             assertThat(indexMetadata.getState()).isEqualTo(IndexMetadata.State.CLOSE);
             final Settings indexSettings = indexMetadata.getSettings();
             assertThat(indexSettings.hasValue(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey())).isTrue();
             assertThat(indexSettings.getAsBoolean(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), false)).isTrue();
             assertThat(clusterState.routingTable().index(index)).isNotNull();
-            assertThat(clusterState.blocks().hasIndexBlock(index, IndexMetadata.INDEX_CLOSED_BLOCK)).isTrue();
-            assertThat(clusterState.blocks().indices().getOrDefault(index, emptySet()).stream()
+            assertThat(clusterState.blocks().hasIndexBlock(index.getUUID(), IndexMetadata.INDEX_CLOSED_BLOCK)).isTrue();
+            assertThat(clusterState.blocks().indices().getOrDefault(index.getUUID(), emptySet()).stream()
                            .filter(clusterBlock -> clusterBlock.id() == TransportCloseTable.INDEX_CLOSED_BLOCK_ID).count()).as("Index " + index + " must have only 1 block with [id=" + TransportCloseTable.INDEX_CLOSED_BLOCK_ID + "]").isEqualTo(1L);
         }
     }

@@ -232,7 +232,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             }
 
             String[] concreteIndices
-                = clusterState.metadata().getIndices(request.partitions(), false, im -> im.getIndex().getName()).toArray(String[]::new);
+                = clusterState.metadata().getIndices(request.partitions(), false, im -> im.getIndex().getUUID()).toArray(String[]::new);
             ClusterBlockException requestBlockException = checkRequestBlock(clusterState, request, concreteIndices);
             if (requestBlockException != null) {
                 throw requestBlockException;

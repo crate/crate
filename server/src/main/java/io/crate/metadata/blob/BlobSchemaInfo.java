@@ -23,13 +23,12 @@ package io.crate.metadata.blob;
 
 import java.util.Collections;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.stream.Stream;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 
-import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.SchemaInfo;
@@ -79,10 +78,9 @@ public class BlobSchemaInfo implements SchemaInfo {
 
     @Override
     public Iterable<TableInfo> getTables() {
-        return Stream.of(clusterService.state().metadata().getConcreteAllOpenIndices())
-            .filter(BlobIndex::isBlobIndex)
-            .map(BlobIndex::stripPrefix)
-            .map(this::getTableInfo)
+        return clusterService.state().metadata().relations(RelationMetadata.BlobTable.class)
+            .stream()
+            .map(b -> getTableInfo(b.name().name()))
             ::iterator;
     }
 

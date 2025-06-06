@@ -32,9 +32,8 @@ import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 
-import io.crate.common.collections.Lists;
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
-import io.crate.metadata.RelationName;
+import io.crate.metadata.PartitionName;
 
 public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAndDropIndexRequest> {
 
@@ -50,15 +49,27 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
         String resizedIndexName = request.source();
         String originalIndexName = request.target();
 
+        PartitionName originalPartitionName = PartitionName.fromIndexOrTemplate(originalIndexName);
+        List<IndexMetadata> indices = currentState.metadata().getIndices(originalPartitionName.relationName(), originalPartitionName.values(), true, im -> im);
+
+        IndexMetadata resizedIndex = null;
+        IndexMetadata originalIndex = null;
+        for (IndexMetadata index : indices) {
+            if (index.getIndex().getName().equals(resizedIndexName)) {
+                resizedIndex = index;
+            }
+            if (index.getIndex().getName().equals(originalIndexName)) {
+                originalIndex = index;
+            }
+        }
+
         final ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(currentState.blocks());
         final Metadata.Builder mdBuilder = Metadata.builder(metadata);
         final RoutingTable.Builder routingBuilder = RoutingTable.builder(currentState.routingTable());
 
-        IndexMetadata resizedIndex = metadata.index(resizedIndexName);
         if (resizedIndex == null) {
             throw new IllegalArgumentException("Source index must exist: " + resizedIndexName);
         }
-        IndexMetadata originalIndex = metadata.index(originalIndexName);
         if (originalIndex == null) {
             throw new IllegalArgumentException("Target index must exist: " + originalIndexName);
         }
@@ -68,27 +79,24 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
                 "Cannot swap and drop index if source '" + resizedIndexName + "' has unallocated primaries");
         }
 
-        mdBuilder.remove(resizedIndexName);
-        mdBuilder.remove(originalIndexName);
-        routingBuilder.remove(resizedIndexName);
-        routingBuilder.remove(originalIndexName);
-        blocksBuilder.removeIndexBlocks(resizedIndexName);
-        blocksBuilder.removeIndexBlocks(originalIndexName);
+        mdBuilder.remove(resizedIndex.getIndexUUID());
+        mdBuilder.remove(originalIndex.getIndexUUID());
+        routingBuilder.remove(resizedIndex.getIndexUUID());
+        routingBuilder.remove(originalIndex.getIndexUUID());
+        blocksBuilder.removeIndexBlocks(resizedIndex.getIndexUUID());
+        blocksBuilder.removeIndexBlocks(originalIndex.getIndexUUID());
         IndexMetadata newIndexMetadata = IndexMetadata
             .builder(resizedIndex)
-            .index(originalIndexName)
+            .indexName(originalIndex.getIndex().getName())
             .build();
         mdBuilder.put(newIndexMetadata, true);
         routingBuilder.addAsFromCloseToOpen(newIndexMetadata);
         blocksBuilder.addBlocks(newIndexMetadata);
 
-        RelationName relationName = RelationName.fromIndexName(originalIndexName);
-        RelationMetadata relation = metadata.getRelation(relationName);
+        RelationMetadata relation = metadata.getRelation(originalPartitionName.relationName());
         if (relation instanceof RelationMetadata.Table table) {
             String originalUUID = originalIndex.getIndexUUID();
-            List<String> newUUIDs = Lists.map(table.indexUUIDs(), uuid -> {
-                return uuid.equals(originalUUID) ? newIndexMetadata.getIndexUUID() : uuid;
-            });
+            List<String> newUUIDs = table.indexUUIDs().stream().filter(s -> s.equals(originalUUID) == false).toList();
             mdBuilder.setTable(
                 table.name(),
                 table.columns(),

@@ -209,10 +209,10 @@ public class SwapRelationsOperation {
         Metadata metadata = state.metadata();
         List<Index> indices = metadata.getIndices(name, List.of(), false, IndexMetadata::getIndex);
         for (Index index : indices) {
-            String indexName = index.getName();
-            routingBuilder.remove(indexName);
-            updatedMetadata.remove(indexName);
-            blocksBuilder.removeIndexBlocks(indexName);
+            String indexUUID = index.getUUID();
+            routingBuilder.remove(indexUUID);
+            updatedMetadata.remove(indexUUID);
+            blocksBuilder.removeIndexBlocks(indexUUID);
         }
     }
 
@@ -235,7 +235,7 @@ public class SwapRelationsOperation {
                 targetIndexName = partitionName.asIndexName();
             }
             targetMd = IndexMetadata.builder(sourceMd)
-                .index(targetIndexName)
+                .indexUUID(targetIndexName)
                 .build();
             onProcessedIndex.accept(targetIndexName);
             updatedMetadata.put(targetMd, true);

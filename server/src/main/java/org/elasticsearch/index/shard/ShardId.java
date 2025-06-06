@@ -65,13 +65,17 @@ public class ShardId implements Writeable, Comparable<ShardId> {
         return index.getName();
     }
 
+    public String getIndexUUID() {
+        return index.getUUID();
+    }
+
     public int id() {
         return this.shardId;
     }
 
     @Override
     public String toString() {
-        return "[" + index.getName() + "][" + shardId + "]";
+        return "[" + index.getName() + "/" + index.getUUID() + "][" + shardId + "]";
     }
 
     @Override

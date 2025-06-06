@@ -128,6 +128,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexUUID;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -508,7 +509,7 @@ public class ProjectionToProjectorVisitor
             state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,
-            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
+            IndexUUID.createResolver(state.metadata(), projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             elasticsearchClient,
             projection.primaryKeys(),
             projection.ids(),

@@ -19,7 +19,10 @@
 
 package org.elasticsearch.gateway;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -32,9 +35,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.common.settings.ClusterSettings;
 
-import java.util.Map;
-
-import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 public class ClusterStateUpdaters {
 
@@ -143,7 +144,7 @@ public class ClusterStateUpdaters {
             blocks.removeGlobalBlock(Metadata.CLUSTER_READ_ONLY_BLOCK);
             blocks.removeGlobalBlock(Metadata.CLUSTER_READ_ONLY_ALLOW_DELETE_BLOCK);
             for (IndexMetadata indexMetadata: state.metadata()) {
-                blocks.removeIndexBlocks(indexMetadata.getIndex().getName());
+                blocks.removeIndexBlocks(indexMetadata.getIndex().getUUID());
             }
             final Metadata metadata = Metadata.builder()
                     .clusterUUID(state.metadata().clusterUUID())

@@ -37,6 +37,7 @@ import java.util.TreeMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Function;
 import java.util.function.LongSupplier;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -153,7 +154,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final Settings persistentSettings;
     private final Settings settings;
     private final ImmutableOpenMap<String, IndexMetadata> indices;
-    private final ImmutableOpenMap<String, IndexMetadata> indicesByUUID;
     private final ImmutableOpenMap<String, IndexTemplateMetadata> templates;
     private final ImmutableOpenMap<String, Custom> customs;
     private final ImmutableOpenMap<String, SchemaMetadata> schemas;
@@ -213,8 +213,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.allOpenIndices = allOpenIndices;
         this.allClosedIndices = allClosedIndices;
         this.aliasAndIndexLookup = aliasAndIndexLookup;
-
-        indicesByUUID = buildIndicesByUUIDMap();
     }
 
     private ImmutableOpenMap<String, IndexMetadata> buildIndicesByUUIDMap() {
@@ -293,40 +291,38 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return allClosedIndices;
     }
 
-    public boolean hasIndex(String index) {
-        return indices.containsKey(index);
+    public boolean hasIndex(String indexUUID) {
+        return indices.containsKey(indexUUID);
     }
 
     public boolean hasIndex(Index index) {
-        return indicesByUUID.containsKey(index.getUUID());
+        return indices.containsKey(index.getUUID());
     }
 
-    public boolean hasConcreteIndex(String index) {
-        return getAliasAndIndexLookup().containsKey(index);
-    }
-
-    @Nullable
-    public IndexMetadata indexByUUID(String indexUUID) {
-        return indicesByUUID.get(indexUUID);
+    public boolean hasConcreteIndex(String indexUUID) {
+        return getAliasAndIndexLookup().containsKey(indexUUID);
     }
 
     @Nullable
-    public IndexMetadata index(String indexName) {
-        return indices.get(indexName);
+    public IndexMetadata index(String indexUUID) {
+        return indices.get(indexUUID);
     }
 
     @Nullable
     public IndexMetadata index(Index index) {
-        return indicesByUUID.get(index.getUUID());
+        return indices.get(index.getUUID());
     }
 
-    /** Returns true iff existing index has the same {@link IndexMetadata} instance */
+    /**
+     * Returns true iff existing index has the same {@link IndexMetadata} instance
+     */
     public boolean hasIndexMetadata(final IndexMetadata indexMetadata) {
-        return indices.get(indexMetadata.getIndex().getName()) == indexMetadata;
+        return indices.get(indexMetadata.getIndex().getUUID()) == indexMetadata;
     }
 
     /**
      * Returns the {@link IndexMetadata} for this index.
+     *
      * @throws IndexNotFoundException if no metadata for this index is found
      */
     public IndexMetadata getIndexSafe(Index index) {
@@ -377,6 +373,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     /**
      * Gets the total number of shards from all indices, including replicas and
      * closed indices.
+     *
      * @return The total number shards from all indices.
      */
     public int getTotalNumberOfShards() {
@@ -386,6 +383,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     /**
      * Gets the total number of open shards from all indices. Includes
      * replicas, but does not include shards that are part of closed indices.
+     *
      * @return The total number of open shards from all indices.
      */
     public int getTotalOpenIndexShards() {
@@ -395,6 +393,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     /**
      * Gets the number of primary shards from all indices, not including
      * replicas.
+     *
      * @return The number of primary shards from all indices.
      */
     public int getNumberOfShards() {
@@ -720,21 +719,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             // we know its a new one, increment the version and store
             indexMetadataBuilder.version(indexMetadataBuilder.version() + 1);
             IndexMetadata indexMetadata = indexMetadataBuilder.build();
-            assert indices.containsKey(indexMetadata.getIndexUUID()) == false :
-                "An index with the same UUID already exists: [" + indexMetadata.getIndexUUID() + "]";
-            indices.put(indexMetadata.getIndex().getName(), indexMetadata);
+            indices.put(indexMetadata.getIndex().getUUID(), indexMetadata);
             return this;
         }
 
         public Builder put(IndexMetadata indexMetadata, boolean incrementVersion) {
-            if (indices.get(indexMetadata.getIndex().getName()) == indexMetadata) {
+            if (indices.get(indexMetadata.getIndex().getUUID()) == indexMetadata) {
                 return this;
             }
             // if we put a new index metadata, increment its version
             if (incrementVersion) {
                 indexMetadata = IndexMetadata.builder(indexMetadata).version(indexMetadata.getVersion() + 1).build();
             }
-            indices.put(indexMetadata.getIndex().getName(), indexMetadata);
+            indices.put(indexMetadata.getIndex().getUUID(), indexMetadata);
             return this;
         }
 
@@ -743,20 +740,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         public IndexMetadata getSafe(Index index) {
-            IndexMetadata indexMetadata = get(index.getName());
+            IndexMetadata indexMetadata = get(index.getUUID());
             if (indexMetadata != null) {
-                if (indexMetadata.getIndexUUID().equals(index.getUUID())) {
-                    return indexMetadata;
-                }
-                throw new IndexNotFoundException(index,
-                    new IllegalStateException("index uuid doesn't match expected: [" + index.getUUID()
-                        + "] but got: [" + indexMetadata.getIndexUUID() + "]"));
+                return indexMetadata;
             }
             throw new IndexNotFoundException(index);
         }
 
-        public Builder remove(String index) {
-            indices.remove(index);
+        public Builder remove(String indexUUID) {
+            indices.remove(indexUUID);
             return this;
         }
 
@@ -879,14 +871,14 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
          * Update the number of replicas for the specified indices.
          *
          * @param numberOfReplicas the number of replicas
-         * @param indices          the indices to update the number of replicas for
+         * @param indicesUUIDs     the indices to update the number of replicas for
          * @return the builder
          */
-        public Builder updateNumberOfReplicas(final int numberOfReplicas, final String[] indices) {
-            for (String index : indices) {
-                IndexMetadata indexMetadata = this.indices.get(index);
+        public Builder updateNumberOfReplicas(final int numberOfReplicas, final String[] indicesUUIDs) {
+            for (String indexUUID : indicesUUIDs) {
+                IndexMetadata indexMetadata = this.indices.get(indexUUID);
                 if (indexMetadata == null) {
-                    throw new IndexNotFoundException(index);
+                    throw new IndexNotFoundException(indexUUID);
                 }
                 put(IndexMetadata.builder(indexMetadata).numberOfReplicas(numberOfReplicas));
             }
@@ -965,13 +957,13 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             final Set<String> duplicateAliasesIndices = new HashSet<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 final IndexMetadata indexMetadata = cursor.value;
-                final String name = indexMetadata.getIndex().getName();
-                boolean added = allIndices.add(name);
-                assert added : "double index named [" + name + "]";
+                final String uuid = indexMetadata.getIndex().getUUID();
+                boolean added = allIndices.add(uuid);
+                assert added : "double index named [" + uuid + "]";
                 if (indexMetadata.getState() == IndexMetadata.State.OPEN) {
-                    allOpenIndices.add(indexMetadata.getIndex().getName());
+                    allOpenIndices.add(uuid);
                 } else if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-                    allClosedIndices.add(indexMetadata.getIndex().getName());
+                    allClosedIndices.add(uuid);
                 }
                 indexMetadata.getAliases().keysIt().forEachRemaining(duplicateAliasesIndices::add);
             }
@@ -980,7 +972,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 // iterate again and constructs a helpful message
                 ArrayList<String> duplicates = new ArrayList<>();
                 for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
-                    for (String alias: duplicateAliasesIndices) {
+                    for (String alias : duplicateAliasesIndices) {
                         if (cursor.value.getAliases().containsKey(alias)) {
                             duplicates.add(alias + " (alias of " + cursor.value.getIndex() + ")");
                         }
@@ -1026,7 +1018,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = new TreeMap<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 IndexMetadata indexMetadata = cursor.value;
-                AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().getName(), new AliasOrIndex.Index(indexMetadata));
+                AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().getUUID(), new AliasOrIndex.Index(indexMetadata));
                 assert existing == null : "duplicate for " + indexMetadata.getIndex();
 
                 for (ObjectObjectCursor<String, AliasMetadata> aliasCursor : indexMetadata.getAliases()) {
@@ -1126,7 +1118,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
          * <p>
          * Adds the table, overriding it if a table with the same schema and name exists.
          * </p>
-         *
+         * <p>
          * oidSupplier is only parameterized for testing.
          * For production code use {@link #setTable(RelationName, List, Settings, ColumnIdent, ColumnPolicy, String, Map, List, List, State, List, long)
          **/
@@ -1239,6 +1231,27 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             setRelation(updatedTable);
             return this;
         }
+
+        public Builder removeIndexUUIDs(RelationMetadata.Table table, List<String> indexUUIDs) {
+            List<String> updatedUUIDS = new ArrayList<>(table.indexUUIDs());
+            updatedUUIDS.removeAll(indexUUIDs);
+            RelationMetadata.Table updatedTable = new RelationMetadata.Table(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                updatedUUIDS,
+                table.tableVersion() + 1
+            );
+            setRelation(updatedTable);
+            return this;
+        }
     }
 
     public static class UnknownGatewayOnlyCustom implements Custom {
@@ -1299,9 +1312,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     public boolean contains(RelationName tableName) {
-        if (indices.containsKey(tableName.indexNameOrAlias())) {
-            return true;
-        }
         if (templates.containsKey(PartitionName.templateName(tableName.schema(), tableName.name()))) {
             return true;
         }
@@ -1323,6 +1333,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     @Nullable
     public <T extends RelationMetadata> T getRelation(RelationName relation) {
         return getRelation(relation, schemas::get);
+    }
+
+    @Nullable
+    public RelationMetadata getRelation(String indexUUID) {
+        List<RelationMetadata> relations = relations(r -> r.indexUUIDs().contains(indexUUID), Function.identity());
+        if (!relations.isEmpty()) {
+            return relations.getFirst();
+        }
+        return null;
     }
 
     public <T extends RelationMetadata> List<T> relations(Class<T> clazz) {
@@ -1353,6 +1372,18 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return relations;
     }
 
+    public List<RelationMetadata> relations(Predicate<RelationMetadata> predicate, Function<RelationMetadata, RelationMetadata> as) {
+        ArrayList<RelationMetadata> relations = new ArrayList<>();
+        for (ObjectCursor<SchemaMetadata> cursor : schemas.values()) {
+            for (ObjectCursor<RelationMetadata> relationCursor : cursor.value.relations().values()) {
+                if (predicate.test(relationCursor.value)) {
+                    relations.add(relationCursor.value);
+                }
+            }
+        }
+        return relations;
+    }
+
     /**
      * <p>
      * Resolve the indices for a list of partitions and return their data either as
@@ -1365,6 +1396,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
      * {@code null} values returned from {@code as} are excluded from the result.
      * This can be used to filter based on state or similar.
      * </p>
+     *
      * @param partitions A list of partitions to resolve
      **/
     public <T> List<T> getIndices(List<PartitionName> partitions, boolean strict, Function<IndexMetadata, T> as) {
@@ -1389,6 +1421,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
      * {@code null} values returned from {@code as} are excluded from the result.
      * This can be used to filter based on state or similar.
      * </p>
+     *
      * @param partitionValues filter by a single partition. Use `List.of()` to include all partitions.
      **/
     public <T> List<T> getIndices(RelationName relationName,
@@ -1404,7 +1437,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 return List.of();
             }
             case RelationMetadata.BlobTable blobTable -> {
-                IndexMetadata imd = indexByUUID(blobTable.indexUUID());
+                IndexMetadata imd = index(blobTable.indexUUID());
                 if (imd == null) {
                     throw new RelationUnknown(relationName);
                 }
@@ -1418,7 +1451,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 List<String> indexUUIDs = table.indexUUIDs();
                 ArrayList<T> result = new ArrayList<>(indexUUIDs.size());
                 for (String indexUUID : indexUUIDs) {
-                    IndexMetadata imd = indexByUUID(indexUUID);
+                    IndexMetadata imd = index(indexUUID);
                     if (imd == null) {
                         if (strict) {
                             throw new RelationUnknown(relationName);
@@ -1440,6 +1473,20 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
         // should be never reached
         throw new UnsupportedOperationException("Unsupported relation type: " + relation.getClass().getName());
+    }
+
+    @Nullable
+    public <T> T getIndex(RelationName relationName,
+                          List<String> partitionValues,
+                          boolean strict,
+                          Function<IndexMetadata, T> as) {
+        List<T> indices = getIndices(relationName, partitionValues, strict, as);
+        if (indices.size() > 1) {
+            throw new IllegalArgumentException("Expected a single index for " + relationName + " but got " + indices.size());
+        } else if (indices.size() == 1) {
+            return indices.getFirst();
+        }
+        return null;
     }
 
     @SuppressWarnings("unchecked")

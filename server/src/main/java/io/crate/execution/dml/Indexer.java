@@ -834,16 +834,14 @@ public class Indexer {
         return result;
     }
 
-    public static Consumer<IndexItem> createConstraintCheck(String indexName,
+    public static Consumer<IndexItem> createConstraintCheck(String indexUUID,
                                                             DocTableInfo table,
                                                             TransactionContext txnCtx,
                                                             NodeContext nodeCtx,
                                                             List<Reference> targetColumns) {
         var symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
-        PartitionName partitionName = table.isPartitioned()
-            ? PartitionName.fromIndexOrTemplate(indexName)
-            : null;
         InputFactory inputFactory = new InputFactory(nodeCtx);
+        PartitionName partitionName = table.getPartition(indexUUID);
         var referenceResolver = new RefResolver(symbolEval, partitionName, targetColumns, table);
         Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,

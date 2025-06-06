@@ -312,14 +312,10 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         List<CompletableFuture<OrderedDocCollector>> orderedDocCollectors = new ArrayList<>();
         Metadata metadata = clusterService.state().metadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
-            String indexName = entry.getKey();
-            IndexMetadata indexMetadata = metadata.index(indexName);
+            String indexUUID = entry.getKey();
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
-                if (IndexName.isPartitioned(indexName)) {
-                    continue;
-                } else {
-                    throw new IndexNotFoundException(indexName);
-                }
+                throw new IndexNotFoundException(indexUUID);
             }
             Index index = indexMetadata.getIndex();
             for (IntCursor shard : entry.getValue()) {
@@ -347,7 +343,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
-                    if (IndexName.isPartitioned(indexName)) {
+                    if (IndexName.isPartitioned(indexUUID)) {
                         break;
                     }
                     throw e;

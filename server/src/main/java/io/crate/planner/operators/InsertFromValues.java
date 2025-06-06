@@ -53,6 +53,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockException;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.OperationRouting;
 import org.elasticsearch.cluster.routing.ShardIterator;
@@ -101,6 +102,7 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexUUID;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -210,16 +212,20 @@ public class InsertFromValues implements LogicalPlan {
             onConflictAssignments = assignments.bindSources(tableInfo, params, subQueryResults);
             onConflictColumns = assignments.targetNames();
         }
-        var indexNameResolver = IndexName.createResolver(
+
+
+        var indexUUIDResolver = IndexUUID.createResolver(
+            dependencies.clusterService().state().metadata(),
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
-            partitionedByInputs);
+            partitionedByInputs
+        );
 
         Map<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
 
-        BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
+        BiConsumer<String, IndexItem> constraintsChecker = (indexUUID, indexItem) -> checkConstraints(
             indexItem,
-            indexName,
+            indexUUID,
             tableInfo,
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
@@ -232,7 +238,7 @@ public class InsertFromValues implements LogicalPlan {
                 constraintsChecker,
                 onConflictAssignments,
                 insertInputs,
-                indexNameResolver,
+                indexUUIDResolver,
                 context,
                 plannerContext,
                 dependencies.clusterService());
@@ -271,7 +277,7 @@ public class InsertFromValues implements LogicalPlan {
                 // Primary Key and CLUSTERED BY check is already done in grouper -> RowShardResolver, both cannot be null.
                 // constraintsChecker is also used in grouper.apply but only for partitioned tables.
                 // We keep the check below so that insert from values into regular tables doesn't send invalid values to the shards and fails early.
-                constraintsChecker.accept(indexNameResolver.get(), item);
+                constraintsChecker.accept(indexUUIDResolver.get(), item);
             } catch (Throwable t) {
                 consumer.accept(null, t);
                 return;
@@ -280,6 +286,7 @@ public class InsertFromValues implements LogicalPlan {
         validatorsCache.clear();
 
         createPartitions(
+            tableInfo,
             dependencies.client(),
             shardedRequests.itemsByMissingPartition().keySet(),
             dependencies.clusterService()
@@ -352,10 +359,12 @@ public class InsertFromValues implements LogicalPlan {
             context.add(writerProjection.clusteredBy());
         }
 
-        var indexNameResolver = IndexName.createResolver(
+        var indexUUIDResolver = IndexUUID.createResolver(
+            dependencies.clusterService().state().metadata(),
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
-            partitionedByInputs);
+            partitionedByInputs
+        );
 
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             plannerContext.transactionContext().sessionSettings(),
@@ -373,9 +382,9 @@ public class InsertFromValues implements LogicalPlan {
 
         HashMap<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
 
-        BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
+        BiConsumer<String, IndexItem> constraintsChecker = (indexUUID, indexItem) -> checkConstraints(
             indexItem,
-            indexName,
+            indexUUID,
             tableInfo,
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
@@ -401,7 +410,7 @@ public class InsertFromValues implements LogicalPlan {
                     constraintsChecker,
                     assignmentSources,
                     insertInputs,
-                    indexNameResolver,
+                    indexUUIDResolver,
                     context,
                     plannerContext,
                     dependencies.clusterService());
@@ -423,7 +432,7 @@ public class InsertFromValues implements LogicalPlan {
                     // Primary Key and CLUSTERED BY check is already done in grouper -> RowShardResolver, both cannot be null.
                     // constraintsChecker is also used in grouper.apply but only for partitioned tables.
                     // We keep the check below so that insert from values into regular tables doesn't send invalid values to the shards and fails early.
-                    constraintsChecker.accept(indexNameResolver.get(), item);
+                    constraintsChecker.accept(indexUUIDResolver.get(), item);
                     bulkIndices.add(bulkIdx);
                 }
             } catch (Throwable t) {
@@ -437,6 +446,7 @@ public class InsertFromValues implements LogicalPlan {
         validatorsCache.clear();
 
         createPartitions(
+            tableInfo,
             dependencies.client(),
             shardedRequests.itemsByMissingPartition().keySet(),
             dependencies.clusterService()
@@ -465,7 +475,7 @@ public class InsertFromValues implements LogicalPlan {
         createRowsByShardGrouper(BiConsumer<String, IndexItem> constraintsChecker,
                                  Symbol[] onConflictAssignments,
                                  ArrayList<Input<?>> insertInputs,
-                                 Supplier<String> indexNameResolver,
+                                 Supplier<String> indexUUIDResolver,
                                  InputFactory.Context<CollectExpression<Row, ?>> collectContext,
                                  PlannerContext plannerContext,
                                  ClusterService clusterService) {
@@ -493,7 +503,7 @@ public class InsertFromValues implements LogicalPlan {
             clusterService,
             constraintsChecker,
             rowShardResolver,
-            indexNameResolver,
+            indexUUIDResolver,
             collectContext.expressions(),
             itemFactory,
             true
@@ -501,7 +511,7 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     public static void checkConstraints(@Nullable IndexItem indexItem,
-                                        String indexName,
+                                        String indexUUID,
                                         DocTableInfo tableInfo,
                                         TransactionContext txnCtx,
                                         NodeContext nodeCtx,
@@ -511,9 +521,9 @@ public class InsertFromValues implements LogicalPlan {
             return;
         }
         var validator = validatorsCache.computeIfAbsent(
-            indexName,
+            indexUUID,
             index -> Indexer.createConstraintCheck(
-                indexName,
+                indexUUID,
                 tableInfo,
                 txnCtx,
                 nodeCtx,
@@ -572,14 +582,20 @@ public class InsertFromValues implements LogicalPlan {
         return new RowN(cells);
     }
 
-    private static ShardLocation getShardLocation(String indexName,
+    private static ShardLocation getShardLocation(PartitionName partitionName,
                                                   String id,
                                                   @Nullable String routing,
                                                   OperationRouting operationRouting,
                                                   ClusterState state) {
+        Metadata metadata = state.metadata();
+        List<String> indexUUIDs = metadata.getIndices(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
+        if (indexUUIDs.isEmpty()) {
+            throw new IndexNotFoundException(partitionName.asIndexName());
+        }
+        String indexUUID = indexUUIDs.getFirst();
         ShardIterator shardIterator = operationRouting.indexShards(
             state,
-            indexName,
+            indexUUID,
             id,
             routing);
 
@@ -601,6 +617,7 @@ public class InsertFromValues implements LogicalPlan {
         var itemsByMissingPartition = shardedRequests.itemsByMissingPartition().entrySet().iterator();
         ClusterState state = clusterService.state();
         OperationRouting operationRouting = clusterService.operationRouting();
+        Metadata metadata = state.metadata();
         while (itemsByMissingPartition.hasNext()) {
             var entry = itemsByMissingPartition.next();
             var partition = entry.getKey();
@@ -612,7 +629,7 @@ public class InsertFromValues implements LogicalPlan {
                 ShardLocation shardLocation;
                 try {
                     shardLocation = getShardLocation(
-                        partition.asIndexName(),
+                        partition,
                         itemAndRoutingAndSourceInfo.item().id(),
                         itemAndRoutingAndSourceInfo.routing(),
                         operationRouting,
@@ -746,13 +763,14 @@ public class InsertFromValues implements LogicalPlan {
         return false;
     }
 
-    private static CompletableFuture<AcknowledgedResponse> createPartitions(Client client,
+    private static CompletableFuture<AcknowledgedResponse> createPartitions(DocTableInfo tableInfo,
+                                                                            Client client,
                                                                             Set<PartitionName> partitions,
                                                                             ClusterService clusterService) {
         Metadata metadata = clusterService.state().metadata();
         List<PartitionName> partitionsToCreate = new ArrayList<>();
         for (var partition : partitions) {
-            if (metadata.hasIndex(partition.asIndexName()) == false) {
+            if (tableInfo.getPartition(partition) == null) {
                 partitionsToCreate.add(partition);
             }
         }
