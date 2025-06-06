@@ -161,7 +161,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 for (var container : stateResponse.metadata().indices().values()) {
                     IndexMetadata im = container.value;
                     if (REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings())) {
-                        indicesNames.add(im.getIndex().getName());
+                        indicesNames.add(im.getIndex().getUUID());
                     }
                 }
                 return new SnapshotInfo(
@@ -380,7 +380,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             ClusterState publisherClusterState = resp.getState();
             var publisherShardRouting = publisherClusterState.routingTable()
                 .shardRoutingTable(
-                    snapshotShardId.getIndexName(),
+                    snapshotShardId.getIndexUUID(),
                     snapshotShardId.id()
                 )
                 .primaryShard();
@@ -388,7 +388,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             // Get the index UUID of the publisher cluster for the metadata request
             var shardId = new ShardId(
                 snapshotShardId.getIndexName(),
-                publisherClusterState.metadata().index(indexId.getName()).getIndexUUID(),
+                indexId.getId(),
                 snapshotShardId.id()
             );
             var restoreUUID = UUIDs.randomBase64UUID();

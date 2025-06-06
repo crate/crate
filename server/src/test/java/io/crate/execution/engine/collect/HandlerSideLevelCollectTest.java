@@ -97,6 +97,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             "dummy",
             routing,
             rowGranularity,
+            false,
             toCollect,
             List.of(),
             whereClause.queryOrFallback(),

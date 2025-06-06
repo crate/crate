@@ -271,7 +271,8 @@ public class PartitionNameTest extends CrateDummyClusterServiceUnitTest {
         Metadata metadata = e.getPlannerContext().clusterState().metadata();
         PartitionName partitionName = PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 10)), metadata);
         assertThat(partitionName.values()).containsExactly("10");
-        assertThat(partitionName.asIndexName()).isEqualTo(tableInfo.concreteIndices(metadata)[0]);
+        String indexName = metadata.getIndex(partitionName.relationName(), partitionName.values(), true, im -> im.getIndex().getName());
+        assertThat(partitionName.asIndexName()).isEqualTo(indexName);
 
         assertThatThrownBy(() -> PartitionName.ofAssignments(tableInfo, List.of(new Assignment<>(new QualifiedName("p1"), 20)), metadata)).isExactlyInstanceOf(PartitionUnknownException.class);
     }

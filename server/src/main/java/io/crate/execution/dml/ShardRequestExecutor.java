@@ -34,6 +34,8 @@ import java.util.function.BiFunction;
 import java.util.function.Function;
 
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -50,9 +52,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
@@ -146,6 +146,7 @@ public class ShardRequestExecutor<Req> {
     }
 
     private int addRequests(int location, Row parameters, Map<ShardId, Req> requests, SubQueryResults subQueryResults) {
+        Metadata metadata = clusterService.state().metadata();
         for (DocKeys.DocKey docKey : docKeys) {
             String id = docKey.getId(txnCtx, nodeCtx, parameters, subQueryResults);
             if (id == null) {
@@ -153,15 +154,10 @@ public class ShardRequestExecutor<Req> {
             }
             String routing = docKey.getRouting(txnCtx, nodeCtx, parameters, subQueryResults);
             List<String> partitionValues = docKey.getPartitionValues(txnCtx, nodeCtx, parameters, subQueryResults);
-            final String indexName;
-            if (partitionValues == null) {
-                indexName = table.ident().indexNameOrAlias();
-            } else {
-                indexName = IndexName.encode(table.ident(), PartitionName.encodeIdent(partitionValues));
-            }
+            final String indexUUID = metadata.getIndex(table.ident(), partitionValues, false, IndexMetadata::getIndexUUID);
             final ShardId shardId;
             try {
-                shardId = getShardId(clusterService, indexName, id, routing);
+                shardId = getShardId(clusterService, indexUUID, id, routing);
             } catch (IndexNotFoundException e) {
                 if (table.isPartitioned()) {
                     continue;
@@ -189,12 +185,12 @@ public class ShardRequestExecutor<Req> {
     }
 
     private static ShardId getShardId(ClusterService clusterService,
-                              String index,
+                              String indexUUID,
                               String id,
                               String routing) {
         return clusterService.operationRouting().indexShards(
             clusterService.state(),
-            index,
+            indexUUID,
             id,
             routing
         ).shardId();
