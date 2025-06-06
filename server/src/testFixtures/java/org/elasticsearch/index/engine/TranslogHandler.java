@@ -79,6 +79,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
             null,
             indexSettings.getSettings(),
             List.of(),
+            Map.of(),
             ColumnPolicy.DYNAMIC,
             Version.CURRENT,
             Version.CURRENT,

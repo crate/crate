@@ -36,9 +36,11 @@ import java.util.Map;
 import java.util.TreeMap;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardId;
@@ -217,7 +219,7 @@ public class SysShardsTableInfo {
                                             ShardId shardId) {
         String node;
         int id;
-        String index = shardId.getIndex().getName();
+        String index = shardId.getIndex().getUUID();
 
         if (shardRouting == null) {
             node = localNodeId;
@@ -251,10 +253,14 @@ public class SysShardsTableInfo {
         Role user = sessionSettings != null ? sessionSettings.sessionUser() : null;
         if (user != null) {
             List<String> accessibleTables = new ArrayList<>(concreteIndices.length);
-            for (String indexName : concreteIndices) {
-                String tableName = RelationName.fqnFromIndexName(indexName);
+            for (String indexUUID : concreteIndices) {
+                RelationMetadata table = clusterState.metadata().getRelation(indexUUID);
+                if (table == null) {
+                    throw new IndexNotFoundException(indexUUID);
+                }
+                String tableName = table.name().indexNameOrAlias();
                 if (roles.hasAnyPrivilege(user, Securable.TABLE, tableName)) {
-                    accessibleTables.add(indexName);
+                    accessibleTables.add(indexUUID);
                 }
             }
             concreteIndices = accessibleTables.toArray(new String[0]);

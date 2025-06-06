@@ -379,7 +379,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             ClusterState publisherClusterState = resp.getState();
             var publisherShardRouting = publisherClusterState.routingTable()
                 .shardRoutingTable(
-                    snapshotShardId.getIndexName(),
+                    snapshotShardId.getIndexUUID(),
                     snapshotShardId.id()
                 )
                 .primaryShard();

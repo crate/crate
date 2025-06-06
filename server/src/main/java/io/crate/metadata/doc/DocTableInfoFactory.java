@@ -126,15 +126,15 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         if (relationMetadata == null) {
             throw new RelationUnknown(relation);
         }
-        PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
         if (relationMetadata instanceof RelationMetadata.Table table) {
-            return tableFromRelationMetadata(table, publicationsMetadata);
+            return tableFromRelationMetadata(table, metadata);
         }
         throw new UnsupportedOperationException("Unsupported relation type: " + relationMetadata.getClass().getSimpleName());
     }
 
     private DocTableInfo tableFromRelationMetadata(RelationMetadata.Table table,
-                                                   @Nullable PublicationsMetadata publicationsMetadata) {
+                                                   Metadata metadata) {
+        PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
         Map<ColumnIdent, Reference> columns = table.columns().stream()
             .filter(ref -> !ref.isDropped())
             .filter(ref -> !(ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty()))
@@ -166,6 +166,15 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             expressionAnalysisContext,
             table.checkConstraints()
         );
+
+        Map<String, PartitionName> partitions = metadata.getIndices(table.name(), List.of(), true, im -> im)
+            .stream()
+            .filter(im -> im.partitionValues().isEmpty() == false)
+            .collect(Collectors.toMap(
+                IndexMetadata::getIndexUUID,
+                im -> new PartitionName(table.name(), im.partitionValues())
+            ));
+
         return new DocTableInfo(
             table.name(),
             columns,
@@ -179,6 +188,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             routingColumn,
             table.settings(),
             table.partitionedBy(),
+            partitions,
             table.columnPolicy(),
             versionCreated,
             versionUpgraded,
@@ -204,9 +214,13 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         Version versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
         MappingMetadata mapping = indexMetadata.mapping();
         Map<String, Object> mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
+        Map<String, PartitionName> partitions = indexMetadata.partitionValues().isEmpty() ?
+            Map.of() :
+            Map.of(indexMetadata.getIndexUUID(), new PartitionName(relationName, indexMetadata.partitionValues()));
         return create(
             relationName,
             mappingSource,
+            partitions,
             tableParameters,
             versionCreated,
             versionUpgraded,
@@ -237,12 +251,15 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             IndicesOptions.LENIENT_EXPAND_OPEN,
             PartitionName.templatePrefix(relationName.schema(), relationName.name())
         );
+        Map<String, PartitionName> partitions = new HashMap<>();
         for (Index index : concreteIndices) {
             IndexMetadata indexMetadata = metadata.index(index);
             if (indexMetadata != null) {
                 versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
+                partitions.put(indexMetadata.getIndexUUID(), PartitionName.fromIndexOrTemplate(indexMetadata.getIndex().getName()));
             }
         }
+
         Version versionUpgraded = null;
         boolean isClosed = Maps.getOrDefault(
             Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
@@ -251,6 +268,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         return create(
             relationName,
             mappingSource,
+            partitions,
             tableParameters,
             versionCreated,
             versionUpgraded,
@@ -262,6 +280,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
 
     private DocTableInfo create(RelationName relationName,
                                 Map<String, Object> mappingSource,
+                                Map<String, PartitionName> partitions,
                                 Settings tableParameters,
                                 Version versionCreated,
                                 Version versionUpgraded,
@@ -332,6 +351,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 versionCreated = Version.V_5_4_0;
             }
         }
+
+
         return new DocTableInfo(
             relationName,
             references,
@@ -344,6 +365,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             clusteredBy,
             tableParameters,
             partitionedBy,
+            partitions,
             ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
             versionCreated,
             versionUpgraded,

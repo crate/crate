@@ -196,9 +196,9 @@ public class BalancedShardsAllocator implements ShardsAllocator {
             theta1 = indexBalance / sum;
         }
 
-        float weight(Balancer balancer, ModelNode node, String index) {
+        float weight(Balancer balancer, ModelNode node, String indexUUID) {
             final float weightShard = node.numShards() - balancer.avgShardsPerNode();
-            final float weightIndex = node.numShards(index) - balancer.avgShardsPerNode(index);
+            final float weightIndex = node.numShards(indexUUID) - balancer.avgShardsPerNode(indexUUID);
             return theta0 * weightShard + theta1 * weightIndex;
         }
     }
@@ -871,7 +871,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                 }
 
                 // weight of this index currently on the node
-                float currentWeight = weight.weight(this, node, shard.getIndexName());
+                float currentWeight = weight.weight(this, node, shard.shardId().getIndexUUID());
                 // moving the shard would not improve the balance, and we are not in explain mode, so short circuit
                 if (currentWeight > minWeight && explain == false) {
                     continue;
@@ -899,8 +899,9 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                          */
                         if (decision != null && currentDecision.type() == decision.type()) {
                             final int repId = shard.id();
-                            final int nodeHigh = node.highestPrimary(shard.index().getName());
-                            final int minNodeHigh = minNode.highestPrimary(shard.getIndexName());
+                            final String indexUUID = shard.index().getUUID();
+                            final int nodeHigh = node.highestPrimary(indexUUID);
+                            final int minNodeHigh = minNode.highestPrimary(indexUUID);
                             updateMinNode = ((((nodeHigh > repId && minNodeHigh > repId)
                                                    || (nodeHigh < repId && minNodeHigh < repId))
                                                   && (nodeHigh < minNodeHigh))
@@ -1020,13 +1021,13 @@ public class BalancedShardsAllocator implements ShardsAllocator {
             return numShards;
         }
 
-        public int numShards(String idx) {
-            ModelIndex index = indices.get(idx);
+        public int numShards(String indexUUID) {
+            ModelIndex index = indices.get(indexUUID);
             return index == null ? 0 : index.numShards();
         }
 
-        public int highestPrimary(String index) {
-            ModelIndex idx = indices.get(index);
+        public int highestPrimary(String indexUUID) {
+            ModelIndex idx = indices.get(indexUUID);
             if (idx != null) {
                 return idx.highestPrimary();
             }
@@ -1034,9 +1035,10 @@ public class BalancedShardsAllocator implements ShardsAllocator {
         }
 
         public void addShard(ShardRouting shard) {
-            ModelIndex index = indices.get(shard.getIndexName());
+            String indexUUID = shard.index().getUUID();
+            ModelIndex index = indices.get(indexUUID);
             if (index == null) {
-                index = new ModelIndex(shard.getIndexName());
+                index = new ModelIndex(indexUUID);
                 indices.put(index.getIndexId(), index);
             }
             index.addShard(shard);
@@ -1044,11 +1046,12 @@ public class BalancedShardsAllocator implements ShardsAllocator {
         }
 
         public void removeShard(ShardRouting shard) {
-            ModelIndex index = indices.get(shard.getIndexName());
+            String indexUUID = shard.index().getUUID();
+            ModelIndex index = indices.get(indexUUID);
             if (index != null) {
                 index.removeShard(shard);
                 if (index.numShards() == 0) {
-                    indices.remove(shard.getIndexName());
+                    indices.remove(indexUUID);
                 }
             }
             numShards--;
@@ -1067,7 +1070,8 @@ public class BalancedShardsAllocator implements ShardsAllocator {
         }
 
         public boolean containsShard(ShardRouting shard) {
-            ModelIndex index = getIndex(shard.getIndexName());
+            String indexUUID = shard.index().getUUID();
+            ModelIndex index = getIndex(indexUUID);
             return index == null ? false : index.containsShard(shard);
         }
 

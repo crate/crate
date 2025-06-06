@@ -212,7 +212,7 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
                             table.tableVersion()
                         );
                         for (String indexUUID : table.indexUUIDs()) {
-                            IndexMetadata indexMetadata = currentState.metadata().indexByUUID(indexUUID);
+                            IndexMetadata indexMetadata = currentState.metadata().index(indexUUID);
                             if (indexMetadata != null) {
                                 mdBuilder.put(indexMetadata, false);
                             }

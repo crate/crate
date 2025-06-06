@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.UUID;
 
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,7 +50,7 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
         );
         shardedRequests.add(
             new ShardDeleteRequest.Item("id1"),
-            new PartitionName(relationName, List.of("1")).asIndexName(),
+            UUIDs.randomBase64UUID(),
             null,
             RowSourceInfo.EMPTY_INSTANCE
         );

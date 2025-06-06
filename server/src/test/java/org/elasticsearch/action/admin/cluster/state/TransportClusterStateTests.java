@@ -142,7 +142,7 @@ public class TransportClusterStateTests extends ESTestCase {
             RelationMetadata.Table table = response.getState().metadata().getRelation(relationName);
             assertThat(table).isNotNull();
             for (String indexUUID : table.indexUUIDs()) {
-                assertThat(response.getState().metadata().indexByUUID(indexUUID)).isNotNull();
+                assertThat(response.getState().metadata().index(indexUUID)).isNotNull();
             }
             if (!table.partitionedBy().isEmpty()) {
                 String templateName = PartitionName.templateName(table.name().schema(), table.name().name());
@@ -166,7 +166,7 @@ public class TransportClusterStateTests extends ESTestCase {
         RelationMetadata.Table table = response.getState().metadata().getRelation(relationName);
         assertThat(table).isNotNull();
         for (String indexUUID : table.indexUUIDs()) {
-            assertThat(response.getState().metadata().indexByUUID(indexUUID)).isNotNull();
+            assertThat(response.getState().metadata().index(indexUUID)).isNotNull();
         }
         assertThat(response.getState().metadata().persistentSettings().get("setting1")).isNull();
     }

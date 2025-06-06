@@ -82,22 +82,22 @@ public class ActiveShardsObserver {
         );
     }
 
-    public CompletableFuture<Boolean> waitForActiveShards(String[] indexNames, ActiveShardCount shardCount, TimeValue timeout) {
+    public CompletableFuture<Boolean> waitForActiveShards(String[] indexUUIDs, ActiveShardCount shardCount, TimeValue timeout) {
         CompletableFuture<Boolean> result = new CompletableFuture<>();
-        waitForActiveShards(indexNames, shardCount, timeout, result::complete, result::completeExceptionally);
+        waitForActiveShards(indexUUIDs, shardCount, timeout, result::complete, result::completeExceptionally);
         return result;
     }
 
     /**
      * Waits on the specified number of active shards to be started before executing the
      *
-     * @param indexNames the indices to wait for active shards on
+     * @param indexUUIDs the indices to wait for active shards on
      * @param activeShardCount the number of active shards to wait on before returning
      * @param timeout the timeout value
      * @param onResult a function that is executed in response to the requisite shards becoming active or a timeout (whichever comes first)
      * @param onFailure a function that is executed in response to an error occurring during waiting for the active shards
      */
-    public void waitForActiveShards(final String[] indexNames,
+    public void waitForActiveShards(final String[] indexUUIDs,
                                     final ActiveShardCount activeShardCount,
                                     final TimeValue timeout,
                                     final Consumer<Boolean> onResult,
@@ -113,10 +113,10 @@ public class ActiveShardsObserver {
         final ClusterState state = clusterService.state();
         final ClusterStateObserver observer = new ClusterStateObserver(
             state, clusterService.getClusterApplierService(), null, LOGGER);
-        if (activeShardCount.enoughShardsActive(state, indexNames)) {
+        if (activeShardCount.enoughShardsActive(state, indexUUIDs)) {
             onResult.accept(true);
         } else {
-            final Predicate<ClusterState> shardsAllocatedPredicate = newState -> activeShardCount.enoughShardsActive(newState, indexNames);
+            final Predicate<ClusterState> shardsAllocatedPredicate = newState -> activeShardCount.enoughShardsActive(newState, indexUUIDs);
 
             final ClusterStateObserver.Listener observerListener = new ClusterStateObserver.Listener() {
                 @Override
@@ -126,7 +126,7 @@ public class ActiveShardsObserver {
 
                 @Override
                 public void onClusterServiceClose() {
-                    LOGGER.debug("[{}] cluster service closed while waiting for enough shards to be started.", Arrays.toString(indexNames));
+                    LOGGER.debug("[{}] cluster service closed while waiting for enough shards to be started.", Arrays.toString(indexUUIDs));
                     onFailure.accept(new NodeClosedException(clusterService.localNode()));
                 }
 

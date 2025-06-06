@@ -392,6 +392,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
                 .build(),
             List.of(),
+            Map.of(),
             ColumnPolicy.STRICT,
             Version.CURRENT,
             null,
