@@ -65,13 +65,17 @@ public class ShardId implements Writeable, Comparable<ShardId> {
         return index.getName();
     }
 
+    public String getIndexUUID() {
+        return index.getUUID();
+    }
+
     public int id() {
         return this.shardId;
     }
 
     @Override
     public String toString() {
-        return "[" + index.getName() + "][" + shardId + "]";
+        return "[" + index.getName() + "/" + index.getUUID() + "][" + shardId + "]";
     }
 
     @Override
@@ -96,11 +100,11 @@ public class ShardId implements Writeable, Comparable<ShardId> {
     @Override
     public int compareTo(ShardId o) {
         if (o.id() == shardId) {
-            int compare = index.getName().compareTo(o.getIndex().getName());
+            int compare = index.getUUID().compareTo(o.getIndex().getUUID());
             if (compare != 0) {
                 return compare;
             }
-            return index.getUUID().compareTo(o.getIndex().getUUID());
+            return index.getName().compareTo(o.getIndex().getName());
         }
         return Integer.compare(shardId, o.id());
     }

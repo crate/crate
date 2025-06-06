@@ -1172,19 +1172,6 @@ public final class NodeEnvironment implements Closeable {
     }
 
     /**
-     * Returns the {@code NodePath.path} for this shard.
-     */
-    public static Path shardStatePathToDataPath(Path shardPath) {
-        int count = shardPath.getNameCount();
-
-        // Sanity check:
-        assert Integer.parseInt(shardPath.getName(count - 1).toString()) >= 0;
-        assert "indices".equals(shardPath.getName(count - 3).toString());
-
-        return shardPath.getParent().getParent().getParent();
-    }
-
-    /**
      * This is a best effort to ensure that we actually have write permissions to write in all our data directories.
      * This prevents disasters if nodes are started under the wrong username etc.
      */

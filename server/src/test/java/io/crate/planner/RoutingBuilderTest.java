@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.Collections;
 import java.util.List;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.Randomness;
 import org.junit.Before;
 import org.junit.Test;
@@ -94,8 +95,10 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         ReaderAllocations readerAllocations = routingBuilder.buildReaderAllocations();
         routingBuilder.newAllocations();
 
+        String indexUUID = clusterService.state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
         assertThat(readerAllocations.indices()).hasSize(1);
-        assertThat(readerAllocations.indices().get(0)).isEqualTo(relationName.indexNameOrAlias());
+        assertThat(readerAllocations.indices().get(0)).isEqualTo(indexUUID);
         assertThat(readerAllocations.nodeReaders()).hasSize(2);
 
         IntSet n1 = readerAllocations.nodeReaders().get("n1");
@@ -108,7 +111,7 @@ public class RoutingBuilderTest extends CrateDummyClusterServiceUnitTest {
         assertThat(n2.contains(1)).isTrue();
         assertThat(n2.contains(3)).isTrue();
 
-        assertThat(readerAllocations.bases().get(relationName.indexNameOrAlias())).isEqualTo(0);
+        assertThat(readerAllocations.bases().get(indexUUID)).isEqualTo(0);
 
         ReaderAllocations readerAllocations2 = routingBuilder.buildReaderAllocations();
         assertThat(readerAllocations).isNotEqualTo(readerAllocations2);

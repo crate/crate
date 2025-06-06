@@ -23,9 +23,11 @@ package io.crate.execution.engine.collect.collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RoutingTable;
@@ -34,6 +36,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Test;
 
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -47,8 +50,9 @@ public class ShardStateObserverTest extends CrateDummyClusterServiceUnitTest {
             .build()
             .addTable("create table t1 (x int) clustered into 1 shards");
 
+        String indexUUID = clusterService.state().metadata().getIndex(RelationName.fromIndexName("t1"), List.of(), true, IndexMetadata::getIndexUUID);
         var observer = new ShardStateObserver(clusterService);
-        IndexShardRoutingTable routingTable = clusterService.state().routingTable().shardRoutingTable("t1", 0);
+        IndexShardRoutingTable routingTable = clusterService.state().routingTable().shardRoutingTable(indexUUID, 0);
         ShardId shardId = routingTable.shardId();
         CompletableFuture<ShardRouting> shard0Active = observer.waitForActiveShard(shardId);
         assertThat(shard0Active.isDone()).isFalse();

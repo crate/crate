@@ -60,6 +60,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.symbol.Optimizer;
@@ -136,8 +137,9 @@ public final class QueryTester implements AutoCloseable {
         }
 
         public Builder indexValue(String column, Object value) throws IOException {
+            IndexMetadata indexMetadata = plannerContext.clusterState().metadata().getIndex(table.ident(), List.of(), true, im -> im);
             Indexer indexer = new Indexer(
-                table.concreteIndices(plannerContext.clusterState().metadata())[0],
+                new PartitionName(table.ident(), indexMetadata.partitionValues()),
                 table,
                 indexVersion,
                 plannerContext.transactionContext(),
@@ -152,8 +154,9 @@ public final class QueryTester implements AutoCloseable {
         }
 
         public Builder indexValues(List<String> columns, Object ... values) throws IOException {
+            IndexMetadata indexMetadata = plannerContext.clusterState().metadata().getIndex(table.ident(), List.of(), true, im -> im);
             Indexer indexer = new Indexer(
-                table.concreteIndices(plannerContext.clusterState().metadata())[0],
+                new PartitionName(table.ident(), indexMetadata.partitionValues()),
                 table,
                 indexVersion,
                 plannerContext.transactionContext(),

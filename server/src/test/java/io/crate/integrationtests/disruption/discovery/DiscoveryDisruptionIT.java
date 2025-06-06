@@ -46,8 +46,6 @@ import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
-import io.crate.metadata.IndexName;
-
 
 /**
  * Tests for discovery during disruptions.
@@ -160,6 +158,8 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
         execute("create table t (id int primary key, x string) clustered into 1 shards " +
                 "with (number_of_replicas = 0)", null, randomFrom(nonPreferredNodes));
 
+        String indexUUID = resolveIndex("t").getUUID();
+
         cluster().clearDisruptionScheme(false);
         cluster().setDisruptionScheme(isolateAllNodes);
 
@@ -172,7 +172,8 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
         isolateAllNodes.stopDisrupting();
 
         final ClusterState state = client().state(new ClusterStateRequest()).get().getState();
-        if (state.metadata().hasIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null)) == false) {
+
+        if (state.metadata().hasIndex(indexUUID) == false) {
             fail("index 'test' was lost. current cluster state: " + state);
         }
 

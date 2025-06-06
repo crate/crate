@@ -116,7 +116,7 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
         }
 
         final ClusterBlocks clusterBlocks = clusterService.state().blocks();
-        if (clusterBlocks.hasIndexBlock(shardId.getIndexName(), request.clusterBlock()) == false) {
+        if (clusterBlocks.hasIndexBlock(shardId.getIndexUUID(), request.clusterBlock()) == false) {
             throw new IllegalStateException("Index shard " + shardId + " must be blocked by " + request.clusterBlock() + " before closing");
         }
 

@@ -102,13 +102,14 @@ public class SysSnapshots {
     private static SysSnapshot toSysSnapshot(Repository repository,
                                              SnapshotId snapshotId,
                                              SnapshotInfo snapshotInfo,
+                                             List<String> concreteIndices,
                                              List<String> partedTables) {
         Version version = snapshotInfo.version();
         return new SysSnapshot(
             snapshotId.getUUID(),
             snapshotId.getName(),
             repository.getMetadata().name(),
-            snapshotInfo.indices(),
+            concreteIndices,
             partedTables,
             snapshotInfo.startTime(),
             snapshotInfo.endTime(),
@@ -149,7 +150,8 @@ public class SysSnapshots {
                     .filter(t -> !t.partitionedBy().isEmpty())
                     .map(t -> t.name().fqn())
                     .toList();
-                return SysSnapshots.toSysSnapshot(repository, snapshotId, snapshotInfo, partedTables);
+                List<String> concreteIndices = snapshotInfo.indices();
+                return SysSnapshots.toSysSnapshot(repository, snapshotId, snapshotInfo, concreteIndices, partedTables);
             }).exceptionally(t -> {
                 var err = SQLExceptions.unwrap(t);
                 if (err instanceof SnapshotException) {

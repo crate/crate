@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
@@ -53,6 +54,12 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     private final RowGranularity maxRowGranularity;
     private final Symbol where;
 
+    /**
+     * Whether to throw an exception if an index is not available or not.
+     * Should be set to true on partitioned tables
+     */
+    private final boolean ignoreUnavailableIndex;
+
     private DistributionInfo distributionInfo;
 
     @Nullable
@@ -66,6 +73,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               String name,
                               Routing routing,
                               RowGranularity maxRowGranularity,
+                              boolean ignoreUnavailableIndex,
                               List<Symbol> toCollect,
                               Collection<? extends Projection> projections,
                               Symbol where,
@@ -83,6 +91,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         this.maxRowGranularity = maxRowGranularity;
         this.toCollect = toCollect;
         this.distributionInfo = distributionInfo;
+        this.ignoreUnavailableIndex = ignoreUnavailableIndex;
         this.outputTypes = extractOutputTypes(toCollect, this.projections);
     }
 
@@ -194,6 +203,10 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         return maxRowGranularity;
     }
 
+    public boolean ignoreUnavailableIndex() {
+        return ignoreUnavailableIndex;
+    }
+
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitRoutedCollectPhase(this, context);
@@ -213,6 +226,11 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         nodePageSizeHint = in.readOptionalVInt();
 
         orderBy = in.readOptionalWriteable(OrderBy::new);
+        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+            ignoreUnavailableIndex = in.readBoolean();
+        } else {
+            ignoreUnavailableIndex = false;
+        }
     }
 
     @Override
@@ -229,6 +247,9 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
         out.writeOptionalVInt(nodePageSizeHint);
         out.writeOptionalWriteable(orderBy);
+        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+            out.writeBoolean(ignoreUnavailableIndex);
+        }
     }
 
     @Override
@@ -247,6 +268,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                Objects.equals(toCollect, that.toCollect) &&
                maxRowGranularity == that.maxRowGranularity &&
                Objects.equals(where, that.where) &&
+               Objects.equals(ignoreUnavailableIndex, that.ignoreUnavailableIndex) &&
                Objects.equals(distributionInfo, that.distributionInfo) &&
                Objects.equals(nodePageSizeHint, that.nodePageSizeHint) &&
                Objects.equals(orderBy, that.orderBy);
@@ -255,6 +277,6 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     @Override
     public int hashCode() {
         return Objects.hash(
-            super.hashCode(), routing, toCollect, maxRowGranularity, where, distributionInfo, nodePageSizeHint, orderBy);
+            super.hashCode(), routing, toCollect, maxRowGranularity, where, ignoreUnavailableIndex, distributionInfo, nodePageSizeHint, orderBy);
     }
 }

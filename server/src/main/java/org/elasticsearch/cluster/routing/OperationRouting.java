@@ -50,16 +50,16 @@ public class OperationRouting {
         this.awarenessAttributes = awarenessAttributes;
     }
 
-    public ShardIterator indexShards(ClusterState clusterState, String index, String id, @Nullable String routing) {
-        return shards(clusterState, index, id, routing).shardsIt();
+    public ShardIterator indexShards(ClusterState clusterState, String indexUUID, String id, @Nullable String routing) {
+        return shards(clusterState, indexUUID, id, routing).shardsIt();
     }
 
     public ShardIterator getShards(ClusterState clusterState,
-                                   String index,
+                                   String indexUUID,
                                    String id,
                                    @Nullable String routing,
                                    @Nullable String preference) {
-        return preferenceActiveShardIterator(shards(clusterState, index, id, routing), clusterState.nodes().getLocalNodeId(), clusterState.nodes(), preference);
+        return preferenceActiveShardIterator(shards(clusterState, indexUUID, id, routing), clusterState.nodes().getLocalNodeId(), clusterState.nodes(), preference);
     }
 
     private ShardIterator preferenceActiveShardIterator(IndexShardRoutingTable indexShard,
@@ -142,17 +142,17 @@ public class OperationRouting {
         }
     }
 
-    public static IndexMetadata indexMetadata(ClusterState clusterState, String index) {
-        IndexMetadata indexMetadata = clusterState.metadata().index(index);
+    public static IndexMetadata indexMetadata(ClusterState clusterState, String indexUUID) {
+        IndexMetadata indexMetadata = clusterState.metadata().index(indexUUID);
         if (indexMetadata == null) {
-            throw new IndexNotFoundException(index);
+            throw new IndexNotFoundException(indexUUID);
         }
         return indexMetadata;
     }
 
-    protected IndexShardRoutingTable shards(ClusterState clusterState, String index, String id, String routing) {
-        int shardId = generateShardId(indexMetadata(clusterState, index), id, routing);
-        return clusterState.routingTable().shardRoutingTable(index, shardId);
+    protected IndexShardRoutingTable shards(ClusterState clusterState, String indexUUID, String id, String routing) {
+        int shardId = generateShardId(indexMetadata(clusterState, indexUUID), id, routing);
+        return clusterState.routingTable().shardRoutingTable(indexUUID, shardId);
     }
 
     public static int generateShardId(IndexMetadata indexMetadata, @Nullable String id, @Nullable String routing) {

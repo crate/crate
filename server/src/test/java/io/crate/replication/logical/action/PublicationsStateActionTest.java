@@ -37,6 +37,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -146,7 +147,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
-            .addTable("CREATE TABLE doc.t3 (id int)")
+            .addTable("CREATE TABLE doc.t2 (id int)")
             .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", true, List.of());
 
@@ -464,7 +465,12 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_ensure_streaming_response_received_from_5_10_can_be_forwarded_to_5_10() throws IOException {
         var relName = new RelationName("doc", "x");
-        var indexMetadata = IndexMetadata.builder("x").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0).build();
+        var indexMetadata = IndexMetadata.builder(UUIDs.randomBase64UUID())
+            .indexName("x")
+            .settings(settings(Version.CURRENT))
+            .numberOfShards(1)
+            .numberOfReplicas(0)
+            .build();
         Map<RelationName, RelationMetadata> relationsInPublications = Map.of(
             relName,
             new RelationMetadata(relName, List.of(indexMetadata), null));

@@ -36,6 +36,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -45,6 +46,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.protocols.postgres.PGErrorStatus;
@@ -536,8 +538,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         execute("insert into t (id) values(1)");
         execute("refresh table t");
         execute("select id, id_generated from t");
-        assertThat(response.rows()[0][0]).isEqualTo(1);
-        assertThat(response.rows()[0][1]).isEqualTo(2);
+        assertThat(response).hasRows("1| 2");
     }
 
     @Test
@@ -713,14 +714,17 @@ public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
     public void testDropTable() throws Exception {
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "test");
         execute("create table test (col1 integer primary key, col2 string)");
 
-        assertThat(cluster().clusterService().state().metadata().hasIndex("test")).isTrue();
+        RelationMetadata.Table table = cluster().clusterService().state().metadata().getRelation(relationName);
+        assertThat(table).isNotNull();
 
         execute("drop table test");
         assertThat(response).hasRowCount(1);
 
-        assertThat(cluster().clusterService().state().metadata().hasIndex("test")).isFalse();
+        table = cluster().clusterService().state().metadata().getRelation(relationName);
+        assertThat(table).isNull();
     }
 
     @Test
@@ -741,12 +745,16 @@ public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
     public void testDropTableIfExists() {
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "test");
         execute("create table test (col1 integer primary key, col2 string)");
 
-        assertThat(cluster().clusterService().state().metadata().hasIndex("test")).isTrue();
+        RelationMetadata.Table table = cluster().clusterService().state().metadata().getRelation(relationName);
+        assertThat(table).isNotNull();
         execute("drop table if exists test");
         assertThat(response).hasRowCount(1);
-        assertThat(cluster().clusterService().state().metadata().hasIndex("test")).isFalse();
+
+        table = cluster().clusterService().state().metadata().getRelation(relationName);
+        assertThat(table).isNull();
     }
 
     @Test
