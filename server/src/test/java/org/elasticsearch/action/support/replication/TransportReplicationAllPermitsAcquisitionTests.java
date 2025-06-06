@@ -132,7 +132,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             .localNodeId(node1.getId())
             .masterNodeId(node1.getId()));
 
-        shardId = new ShardId("index", UUID.randomUUID().toString(), 0);
+        shardId = new ShardId("_na_", "index", 0);
         ShardRouting shardRouting =
             newShardRouting(shardId, node1.getId(), true, ShardRoutingState.INITIALIZING, RecoverySource.EmptyStoreRecoverySource.INSTANCE);
 
@@ -145,7 +145,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             .build();
 
         primary = newStartedShard(p -> newShard(shardRouting, indexSettings, List.of()), true);
-        IndexMetadata indexMetadata = IndexMetadata.builder(shardId.getIndexName())
+        IndexMetadata indexMetadata = IndexMetadata.builder(shardId.getIndexUUID())
             .settings(indexSettings)
             .primaryTerm(shardId.id(), primary.getOperationPrimaryTerm())
             .putMapping("{ \"properties\": { \"value\":  { \"type\": \"short\", \"position\": 1}}}")

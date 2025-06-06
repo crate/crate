@@ -102,16 +102,18 @@ public class TransportClusterStateTests extends ESTestCase {
                     List.of(indexUUID2),
                     0
                 )
-                .put(IndexMetadata.builder(relationName1.indexNameOrAlias())
+                .put(IndexMetadata.builder(indexUUID1)
                         .settings(settings(Version.CURRENT)
                             .put(SETTING_INDEX_UUID, indexUUID1))
+                        .indexName(relationName1.indexNameOrAlias())
                         .numberOfShards(1)
                         .numberOfReplicas(0)
                         .build(),
                     true)
-                .put(IndexMetadata.builder(relationName2.indexNameOrAlias())
+                .put(IndexMetadata.builder(indexUUID2)
                         .settings(settings(Version.CURRENT)
                             .put(SETTING_INDEX_UUID, indexUUID2))
+                        .indexName(relationName2.indexNameOrAlias())
                         .numberOfShards(1)
                         .numberOfReplicas(0)
                         .build(),

@@ -1128,7 +1128,7 @@ public abstract class IntegTestCase extends ESTestCase {
         for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
                 for (ShardRouting shardRouting : indexShardRoutingTable) {
-                    if (shardRouting.currentNodeId() != null && index.equals(shardRouting.getIndexName())) {
+                    if (shardRouting.currentNodeId() != null && index.equals(shardRouting.getIndexUUID())) {
                         String name = clusterState.nodes().get(shardRouting.currentNodeId()).getName();
                         nodes.add(name);
                         assertThat(Regex.simpleMatch(pattern, name))
@@ -1919,9 +1919,9 @@ public abstract class IntegTestCase extends ESTestCase {
         return false;
     }
 
-    public static Index resolveIndex(String index) {
+    public static Index resolveIndex(String indexUUID) {
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
-        IndexMetadata indexMetadata = clusterService.state().metadata().index(index);
-        return new Index(index, indexMetadata.getIndexUUID());
+        IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);
+        return new Index(indexMetadata.getIndex().getName(), indexUUID);
     }
 }
