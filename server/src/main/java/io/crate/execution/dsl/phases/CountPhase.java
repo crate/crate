@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -42,15 +43,18 @@ public class CountPhase implements UpstreamPhase {
     private final Routing routing;
     private final Symbol where;
     private DistributionInfo distributionInfo;
+    private final boolean ignoreUnavailableIndex;
 
     public CountPhase(int executionPhaseId,
                       Routing routing,
                       Symbol where,
-                      DistributionInfo distributionInfo) {
+                      DistributionInfo distributionInfo,
+                      boolean ignoreUnavailableIndex) {
         this.executionPhaseId = executionPhaseId;
         this.routing = routing;
         this.where = where;
         this.distributionInfo = distributionInfo;
+        this.ignoreUnavailableIndex = ignoreUnavailableIndex;
     }
 
     @Override
@@ -96,6 +100,10 @@ public class CountPhase implements UpstreamPhase {
         this.distributionInfo = distributionInfo;
     }
 
+    public boolean ignoreUnavailableIndex() {
+        return ignoreUnavailableIndex;
+    }
+
     @Override
     public <C, R> R accept(ExecutionPhaseVisitor<C, R> visitor, C context) {
         return visitor.visitCountPhase(this, context);
@@ -106,6 +114,11 @@ public class CountPhase implements UpstreamPhase {
         routing = new Routing(in);
         where = Symbol.fromStream(in);
         distributionInfo = new DistributionInfo(in);
+        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+            ignoreUnavailableIndex = in.readBoolean();
+        } else {
+            ignoreUnavailableIndex = false;
+        }
     }
 
     @Override
@@ -114,6 +127,9 @@ public class CountPhase implements UpstreamPhase {
         routing.writeTo(out);
         Symbol.toStream(where, out);
         distributionInfo.writeTo(out);
+        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+            out.writeBoolean(ignoreUnavailableIndex);
+        }
     }
 
     @Override
@@ -128,11 +144,12 @@ public class CountPhase implements UpstreamPhase {
         return executionPhaseId == that.executionPhaseId &&
                Objects.equals(routing, that.routing) &&
                Objects.equals(where, that.where) &&
-               Objects.equals(distributionInfo, that.distributionInfo);
+               Objects.equals(distributionInfo, that.distributionInfo) &&
+               ignoreUnavailableIndex == that.ignoreUnavailableIndex;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(executionPhaseId, routing, where, distributionInfo);
+        return Objects.hash(executionPhaseId, routing, where, distributionInfo, ignoreUnavailableIndex);
     }
 }

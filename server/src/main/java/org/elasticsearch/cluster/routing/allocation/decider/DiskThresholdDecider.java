@@ -488,7 +488,7 @@ public class DiskThresholdDecider extends AllocationDecider {
             if (sourceIndexMeta != null) {
                 final Set<ShardId> shardIds = IndexMetadata.selectRecoverFromShards(shard.id(),
                     sourceIndexMeta, indexMetadata.getNumberOfShards());
-                for (IndexShardRoutingTable shardRoutingTable : routingTable.index(mergeSourceIndex.getName())) {
+                for (IndexShardRoutingTable shardRoutingTable : routingTable.index(mergeSourceIndex.getUUID())) {
                     if (shardIds.contains(shardRoutingTable.shardId())) {
                         targetShardSize += clusterInfo.getShardSize(shardRoutingTable.primaryShard(), 0);
                     }

@@ -38,8 +38,10 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -182,7 +184,14 @@ public class ExplainPlan implements Plan {
                     boundCopyFrom,
                     dependencies.clusterService().state().nodes(),
                     plannerContext);
-                String planAsJson = DataTypes.STRING.implicitCast(PlanPrinter.objectMap(executionPlan));
+                Function<String, String> uuidToIndexName = indexUUID -> {
+                    RelationMetadata relation = dependencies.clusterService().state().metadata().getRelation(indexUUID);
+                    if (relation != null) {
+                        return relation.name().sqlFqn();
+                    }
+                    throw new IllegalStateException("RelationMetadata for " + indexUUID + " is not available");
+                };
+                String planAsJson = DataTypes.STRING.implicitCast(PlanPrinter.objectMap(executionPlan, uuidToIndexName));
                 consumer.accept(InMemoryBatchIterator.of(new Row1(planAsJson), SENTINEL), null);
             } else if (verbose) {
                 consumer.accept(null,

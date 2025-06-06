@@ -36,7 +36,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 import org.elasticsearch.client.Client;
@@ -128,6 +127,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.IndexUUID;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
@@ -412,8 +412,6 @@ public class ProjectionToProjectorVisitor
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
         Input<?> sourceInput = ctx.add(projection.rawSource());
-        Supplier<String> indexNameResolver =
-            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         ClusterState state = clusterService.state();
         DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
 
@@ -445,7 +443,8 @@ public class ProjectionToProjectorVisitor
             targetTableNumShards,
             targetTableNumReplicas,
             elasticsearchClient,
-            indexNameResolver,
+            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
+            IndexUUID.createResolver(state.metadata(), projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             projection.rawSourceReference(),
             projection.primaryKeys(),
             projection.ids(),
@@ -486,9 +485,9 @@ public class ProjectionToProjectorVisitor
         int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableInfo.parameters(), state.nodes());
 
         final Map<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
-        BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
+        BiConsumer<String, IndexItem> constraintsChecker = (indexUUID, indexItem) -> checkConstraints(
             indexItem,
-            indexName,
+            indexUUID,
             nodeCtx.schemas().getTableInfo(projection.tableIdent()),
             context.txnCtx,
             nodeCtx,
@@ -509,6 +508,7 @@ public class ProjectionToProjectorVisitor
             targetTableNumShards,
             targetTableNumReplicas,
             IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
+            IndexUUID.createResolver(state.metadata(), projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             elasticsearchClient,
             projection.primaryKeys(),
             projection.ids(),

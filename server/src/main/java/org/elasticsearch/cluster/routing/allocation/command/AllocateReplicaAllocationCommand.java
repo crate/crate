@@ -19,6 +19,10 @@
 
 package org.elasticsearch.cluster.routing.allocation.command;
 
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingNodes;
@@ -32,10 +36,6 @@ import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
-
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
 
 /**
  * Allocates an unassigned replica shard to a specific node. Checks if allocation deciders allow allocation.
@@ -110,7 +110,7 @@ public class AllocateReplicaAllocationCommand extends AbstractAllocateAllocation
         ShardRouting primaryShardRouting = null;
         for (RoutingNode node : allocation.routingNodes()) {
             for (ShardRouting shard : node) {
-                if (shard.getIndexName().equals(index) && shard.getId() == shardId && shard.primary()) {
+                if (shard.getIndexUUID().equals(index) && shard.getId() == shardId && shard.primary()) {
                     primaryShardRouting = shard;
                     break;
                 }
@@ -123,7 +123,7 @@ public class AllocateReplicaAllocationCommand extends AbstractAllocateAllocation
 
         List<ShardRouting> replicaShardRoutings = new ArrayList<>();
         for (ShardRouting shard : allocation.routingNodes().unassigned()) {
-            if (shard.getIndexName().equals(index) && shard.getId() == shardId && shard.primary() == false) {
+            if (shard.getIndexUUID().equals(index) && shard.getId() == shardId && shard.primary() == false) {
                 replicaShardRoutings.add(shard);
             }
         }

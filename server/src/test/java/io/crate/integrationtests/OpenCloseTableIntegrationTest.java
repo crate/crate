@@ -26,16 +26,15 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.metadata.RelationName;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -211,14 +210,14 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(1);
         assertThat(response.rows()[0][0]).isEqualTo(true);
 
-        IndexMetadata indexMetadata = client().state(new ClusterStateRequest()).get().getState().metadata()
-            .indices().get(getFqn("t"));
+        IndexMetadata indexMetadata = clusterService().state().metadata()
+            .getIndex(new RelationName(sqlExecutor.getCurrentSchema(), "t"), List.of(), true, im -> im);
         assertThat(indexMetadata.getState()).isEqualTo(IndexMetadata.State.CLOSE);
 
         execute("alter table t open");
 
-        indexMetadata = client().state(new ClusterStateRequest()).get().getState().metadata()
-            .indices().get(getFqn("t"));
+        indexMetadata = clusterService().state().metadata()
+            .getIndex(new RelationName(sqlExecutor.getCurrentSchema(), "t"), List.of(), true, im -> im);
 
         execute("select closed from information_schema.tables where table_name = 't'");
         assertThat(response.rowCount()).isEqualTo(1);

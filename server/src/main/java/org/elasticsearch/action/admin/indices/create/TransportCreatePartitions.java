@@ -216,13 +216,15 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                     numTargetShards, indexVersionCreated);
             }
 
-            IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(firstIndex)
+            String tmpUUID = UUIDs.randomBase64UUID();
+            IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(tmpUUID)
+                .indexName(firstIndex)
                 .setRoutingNumShards(routingNumShards);
 
             // Set up everything, now locally create the index to see that things are ok, and apply
             final IndexMetadata tmpImd = tmpImdBuilder.settings(Settings.builder()
                     .put(commonIndexSettings)
-                    .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())).build();
+                    .put(IndexMetadata.SETTING_INDEX_UUID, tmpUUID)).build();
             ActiveShardCount waitForActiveShards = tmpImd.getWaitForActiveShards();
             if (!waitForActiveShards.validate(tmpImd.getNumberOfReplicas())) {
                 throw new IllegalArgumentException("invalid wait_for_active_shards[" + waitForActiveShards +
@@ -250,12 +252,14 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             ArrayList<String> indexUUIDs = new ArrayList<>(partitions.size());
             for (PartitionName partition : partitions) {
                 String indexName = partition.asIndexName();
-                final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexName)
+                String indexUUID = UUIDs.randomBase64UUID();
+                final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
+                    .indexName(indexName)
                     .setRoutingNumShards(routingNumShards)
                     .partitionValues(partition.values())
                     .settings(Settings.builder()
                         .put(commonIndexSettings)
-                        .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                        .put(IndexMetadata.SETTING_INDEX_UUID, indexUUID)
                     );
 
                 indexMetadataBuilder.putMapping(mapping);
@@ -275,7 +279,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(
                     indexMetadata.getIndex(), indexMetadata.getSettings());
                 newMetadataBuilder.put(indexMetadata, false);
-                indexUUIDs.add(indexMetadata.getIndexUUID());
+                indexUUIDs.add(indexUUID);
                 routingTableBuilder.addAsNew(indexMetadata);
             }
             newMetadataBuilder.addIndexUUIDs(table, indexUUIDs);

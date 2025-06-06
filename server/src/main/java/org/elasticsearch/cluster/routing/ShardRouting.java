@@ -111,6 +111,10 @@ public final class ShardRouting implements Writeable {
         return shardId.getIndexName();
     }
 
+    public String getIndexUUID() {
+        return shardId.getIndexUUID();
+    }
+
     /**
      * The shard id.
      */

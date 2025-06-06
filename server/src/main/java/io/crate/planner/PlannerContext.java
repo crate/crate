@@ -212,8 +212,8 @@ public class PlannerContext {
         return routingBuilder.allocateRouting(tableInfo, where, shardSelection, sessionSettings);
     }
 
-    public ShardRouting resolveShard(String indexName, String id, @Nullable String routing) {
-        return routingBuilder.resolveShard(indexName, id, routing);
+    public ShardRouting resolveShard(String indexUUID, String id, @Nullable String routing) {
+        return routingBuilder.resolveShard(indexUUID, id, routing);
     }
 
     public ReaderAllocations buildReaderAllocations() {

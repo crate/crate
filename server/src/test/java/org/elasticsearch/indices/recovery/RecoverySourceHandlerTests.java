@@ -869,7 +869,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             handler.canSkipPhase1(newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs),
                 newMetadataSnapshot(syncId, Long.toString(localCheckpointOnTarget), Long.toString(maxSeqNoOnTarget), numDocs));
         }).isExactlyInstanceOf(AssertionError.class)
-            .hasMessageContaining("try to recover [index][1] with sync id but seq_no stats are mismatched:");
+            .hasMessageContaining("try to recover [index/_na_][1] with sync id but seq_no stats are mismatched:");
     }
 
     private Store.MetadataSnapshot newMetadataSnapshot(String syncId, String localCheckpoint, String maxSeqNo, int numDocs) {

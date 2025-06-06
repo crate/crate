@@ -116,7 +116,7 @@ public class NotPredicateTest extends ScalarTestCase {
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table \"t_" + typeDefinition + "\" (xs array(" + typeDefinition + "))"
+                "create table \"t_0_" + typeDefinition + "\" (xs array(" + typeDefinition + "))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", query);
                 Asserts.assertThat(result)
@@ -133,7 +133,7 @@ public class NotPredicateTest extends ScalarTestCase {
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table \"t_" + typeDefinition + "\" (xs array(" + typeDefinition + ") storage with (columnstore = false))"
+                "create table \"t_1_" + typeDefinition + "\" (xs array(" + typeDefinition + ") storage with (columnstore = false))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", query);
                 Asserts.assertThat(result)
@@ -164,7 +164,7 @@ public class NotPredicateTest extends ScalarTestCase {
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table \"t_" + typeDefinition + "\" (xs array(" + typeDefinition + "))"
+                "create table \"t_0_" + typeDefinition + "\" (xs array(" + typeDefinition + "))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", query);
                 Asserts.assertThat(result)
@@ -181,7 +181,7 @@ public class NotPredicateTest extends ScalarTestCase {
                 THREAD_POOL,
                 clusterService,
                 Version.CURRENT,
-                "create table \"t_" + typeDefinition + "\" (xs array(" + typeDefinition + ") storage with (columnstore = false))"
+                "create table \"t_1_" + typeDefinition + "\" (xs array(" + typeDefinition + ") storage with (columnstore = false))"
             ).indexValues("xs", values).build()) {
                 List<Object> result = tester.runQuery("xs", query);
                 Asserts.assertThat(result)

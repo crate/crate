@@ -104,9 +104,10 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
         execute("create table custom.foo (id integer)");
         execute("create table custom.bar (id integer)");
 
-        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo")).isTrue();
+        String indexUUID = resolveIndex("custom.foo").getUUID();
+        assertThat(cluster().clusterService().state().metadata().hasIndex(indexUUID)).isTrue();
         execute("drop table custom.foo");
-        assertThat(cluster().clusterService().state().metadata().hasIndex("custom.foo")).isFalse();
+        assertThat(cluster().clusterService().state().metadata().hasIndex(indexUUID)).isFalse();
 
         assertBusy(() -> {
             try {

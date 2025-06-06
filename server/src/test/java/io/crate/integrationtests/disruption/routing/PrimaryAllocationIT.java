@@ -23,7 +23,6 @@ package io.crate.integrationtests.disruption.routing;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collection;
 import java.util.Collections;
@@ -84,8 +83,10 @@ public class PrimaryAllocationIT extends IntegTestCase {
         execute("insert into t values ('value1')");
         execute("refresh table t");
 
+        String indexUUID = resolveIndex(indexName).getUUID();
+
         ClusterState state = client().state(new ClusterStateRequest().all()).get().getState();
-        List<ShardRouting> shards = state.routingTable().allShards(indexName);
+        List<ShardRouting> shards = state.routingTable().allShards(indexUUID);
         assertThat(shards).hasSize(2);
 
         final String primaryNode;

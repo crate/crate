@@ -155,12 +155,12 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
         return false;
     }
 
-    public boolean hasIndexBlock(String index, ClusterBlock block) {
-        return indicesBlocks.containsKey(index) && indicesBlocks.get(index).contains(block);
+    public boolean hasIndexBlock(String indexUUID, ClusterBlock block) {
+        return indicesBlocks.containsKey(indexUUID) && indicesBlocks.get(indexUUID).contains(block);
     }
 
-    public boolean hasIndexBlockWithId(String index, int blockId) {
-        final Set<ClusterBlock> clusterBlocks = indicesBlocks.get(index);
+    public boolean hasIndexBlockWithId(String indexUUID, int blockId) {
+        final Set<ClusterBlock> clusterBlocks = indicesBlocks.get(indexUUID);
         if (clusterBlocks != null) {
             for (ClusterBlock clusterBlock : clusterBlocks) {
                 if (clusterBlock.id() == blockId) {
@@ -172,8 +172,8 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
     }
 
     @Nullable
-    public ClusterBlock getIndexBlockWithId(final String index, final int blockId) {
-        final Set<ClusterBlock> clusterBlocks = indicesBlocks.get(index);
+    public ClusterBlock getIndexBlockWithId(final String indexUUID, final int blockId) {
+        final Set<ClusterBlock> clusterBlocks = indicesBlocks.get(indexUUID);
         if (clusterBlocks != null) {
             for (ClusterBlock clusterBlock : clusterBlocks) {
                 if (clusterBlock.id() == blockId) {
@@ -344,31 +344,31 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
         }
 
         public Builder addBlocks(IndexMetadata indexMetadata) {
-            String indexName = indexMetadata.getIndex().getName();
+            String indexUUID = indexMetadata.getIndex().getUUID();
             if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-                addIndexBlock(indexName, IndexMetadata.INDEX_CLOSED_BLOCK);
+                addIndexBlock(indexUUID, IndexMetadata.INDEX_CLOSED_BLOCK);
             }
             if (IndexMetadata.INDEX_READ_ONLY_SETTING.get(indexMetadata.getSettings())) {
-                addIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_BLOCK);
+                addIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK);
             }
             if (IndexMetadata.INDEX_BLOCKS_READ_SETTING.get(indexMetadata.getSettings())) {
-                addIndexBlock(indexName, IndexMetadata.INDEX_READ_BLOCK);
+                addIndexBlock(indexUUID, IndexMetadata.INDEX_READ_BLOCK);
             }
             if (IndexMetadata.INDEX_BLOCKS_WRITE_SETTING.get(indexMetadata.getSettings())) {
-                addIndexBlock(indexName, IndexMetadata.INDEX_WRITE_BLOCK);
+                addIndexBlock(indexUUID, IndexMetadata.INDEX_WRITE_BLOCK);
             }
             if (IndexMetadata.INDEX_BLOCKS_METADATA_SETTING.get(indexMetadata.getSettings())) {
-                addIndexBlock(indexName, IndexMetadata.INDEX_METADATA_BLOCK);
+                addIndexBlock(indexUUID, IndexMetadata.INDEX_METADATA_BLOCK);
             }
             if (IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING.get(indexMetadata.getSettings())) {
-                addIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK);
+                addIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK);
             }
             return this;
         }
 
         public Builder updateBlocks(IndexMetadata indexMetadata) {
             // let's remove all blocks for this index and add them back -- no need to remove all individual blocks....
-            indices.remove(indexMetadata.getIndex().getName());
+            indices.remove(indexMetadata.getIndex().getUUID());
             return addBlocks(indexMetadata);
         }
 
@@ -388,19 +388,19 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
         }
 
 
-        public Builder addIndexBlock(String index, ClusterBlock block) {
-            if (!indices.containsKey(index)) {
-                indices.put(index, new HashSet<>());
+        public Builder addIndexBlock(String indexUUID, ClusterBlock block) {
+            if (!indices.containsKey(indexUUID)) {
+                indices.put(indexUUID, new HashSet<>());
             }
-            indices.get(index).add(block);
+            indices.get(indexUUID).add(block);
             return this;
         }
 
-        public Builder removeIndexBlocks(String index) {
-            if (!indices.containsKey(index)) {
+        public Builder removeIndexBlocks(String indexUUID) {
+            if (!indices.containsKey(indexUUID)) {
                 return this;
             }
-            indices.remove(index);
+            indices.remove(indexUUID);
             return this;
         }
 

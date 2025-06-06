@@ -1174,9 +1174,9 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         execute("RESTORE SNAPSHOT repo1.snap1 ALL with (wait_for_completion=true)");
 
         // Ensure tables are restored and data can be queried
-        execute("SELECT i FROM doc.t1");
+        execute("SELECT i FROM doc.t1 ORDER BY i");
         assertThat(response).hasRows("1", "2");
-        execute("SELECT i, p FROM doc.p1");
+        execute("SELECT i, p FROM doc.p1 ORDER BY i");
         assertThat(response).hasRows("1| 1", "2| 2");
     }
 

@@ -85,7 +85,7 @@ public class BlobTableInfoFactory implements TableInfoFactory<BlobTableInfo> {
 
                 throw new RelationUnknown(ident);
             }
-            indexMetadata = metadata.indexByUUID(blobTable.indexUUID());
+            indexMetadata = metadata.index(blobTable.indexUUID());
             if (indexMetadata == null) {
                 throw new RelationUnknown(ident);
             }
