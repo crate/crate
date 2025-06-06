@@ -387,16 +387,16 @@ public class RoutingNodes implements Iterable<RoutingNode> {
         return shards;
     }
 
-    public List<ShardRouting> shardsWithState(String index, ShardRoutingState... state) {
+    public List<ShardRouting> shardsWithState(String indexUUID, ShardRoutingState... state) {
         // TODO these are used on tests only - move into utils class
         List<ShardRouting> shards = new ArrayList<>();
         for (RoutingNode routingNode : this) {
-            shards.addAll(routingNode.shardsWithState(index, state));
+            shards.addAll(routingNode.shardsWithState(indexUUID, state));
         }
         for (ShardRoutingState s : state) {
             if (s == ShardRoutingState.UNASSIGNED) {
                 for (ShardRouting unassignedShard : unassignedShards) {
-                    if (unassignedShard.index().getName().equals(index)) {
+                    if (unassignedShard.index().getUUID().equals(indexUUID)) {
                         shards.add(unassignedShard);
                     }
                 }

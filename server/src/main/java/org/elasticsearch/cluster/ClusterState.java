@@ -249,7 +249,7 @@ public class ClusterState implements Diffable<ClusterState> {
                 }
                 sb.append(TAB).append(TAB).append("indices:\n");
                 for (String indexUUID : table.indexUUIDs()) {
-                    IndexMetadata indexMetadata = metadata.indexByUUID(indexUUID);
+                    IndexMetadata indexMetadata = metadata.index(indexUUID);
                     assert indexMetadata != null : "indexUUID " + indexUUID + " not found in metadata";
                     sb.append(TAB).append(TAB).append(TAB).append(indexMetadata.getIndex());
                     if (partitioned) {

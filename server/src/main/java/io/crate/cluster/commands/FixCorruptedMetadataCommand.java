@@ -197,13 +197,14 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
     static void fixInconsistencyBetweenIndexAndTemplates(IndexMetadata indexMetadata,
                                                          Metadata.Builder fixedMetadata) {
         String indexName = indexMetadata.getIndex().getName();
+        String indexUUID = indexMetadata.getIndex().getUUID();
         String[] indexParts = indexName.split("\\.");
         MappingMetadata mappingMetadata = indexMetadata.mapping();
         if (mappingMetadata != null && !IndexName.isPartitioned(indexName) && indexParts.length == 2) {
             Map<String, Object> metaMap = Maps.get(mappingMetadata.sourceAsMap(), "_meta");
             if (metaMap != null && metaMap.containsKey("partitioned_by")) {
                 List<List<String>> partitionedByColumns = Maps.get(metaMap, "partitioned_by");
-                fixedMetadata.remove(indexName);
+                fixedMetadata.remove(indexUUID);
                 fixedMetadata.put(generatePartitionedIndexMetadata(indexName, indexMetadata, partitionedByColumns));
 
                 String templateName = PartitionName.templateName(indexParts[0], indexParts[1]);
@@ -266,7 +267,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
             new RelationName(indexParts[0], indexParts[1]),
             partitionedByColumns.stream().map(c -> (String) null).toList())
             .toString();
-        partitionedIndexMetadata.index(partitionedIndexName);
+        partitionedIndexMetadata.indexName(partitionedIndexName);
 
         return partitionedIndexMetadata;
     }
@@ -305,11 +306,12 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
      */
     private static void fixNameOfIndexMetadata(IndexMetadata indexMetadata, Metadata.Builder fixedMetadata) {
         String indexName = indexMetadata.getIndex().getName();
+        String indexUUID = indexMetadata.getIndex().getUUID();
         String fixedName = fixIndexName(indexName);
         if (fixedName != null) {
-            IndexMetadata corrupted = fixedMetadata.get(indexName);
-            fixedMetadata.remove(indexName);
-            fixedMetadata.put(IndexMetadata.builder(corrupted).index(fixedName));
+            IndexMetadata corrupted = fixedMetadata.get(indexUUID);
+            fixedMetadata.remove(indexUUID);
+            fixedMetadata.put(IndexMetadata.builder(corrupted).indexName(fixedName));
         }
     }
 

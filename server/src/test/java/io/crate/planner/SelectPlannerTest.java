@@ -35,6 +35,7 @@ import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
@@ -319,14 +320,28 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCollectAndMergePlanPartitioned() throws Exception {
+        RelationName relationName = new RelationName("doc", "parted_pks");
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
             .addTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
+                new PartitionName(relationName, List.of("1395874800000")).asIndexName(),
+                new PartitionName(relationName, List.of("1395961200000")).asIndexName()
             );
+
+        String partition1UUID = clusterService.state().metadata().getIndex(
+            relationName,
+            List.of("1395874800000"),
+            true,
+            IndexMetadata::getIndexUUID
+        );
+        String partition2UUID = clusterService.state().metadata().getIndex(
+            relationName,
+            List.of("1395961200000"),
+            true,
+            IndexMetadata::getIndexUUID
+        );
 
         QueryThenFetch qtf = e.plan("select id, name, date from parted_pks where date > 0 and name = 'x' order by id limit 10");
         Merge merge = (Merge) qtf.subPlan();
@@ -337,12 +352,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         for (Map.Entry<String, Map<String, IntIndexedContainer>> entry : locations.entrySet()) {
             indices.addAll(entry.getValue().keySet());
         }
-        assertThat(indices).satisfiesExactlyInAnyOrder(
-            i -> assertThat(i).isEqualTo(
-                new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395874800000")).asIndexName()),
-            i -> assertThat(i).isEqualTo(
-                new PartitionName(new RelationName("doc", "parted_pks"), List.of("1395961200000")).asIndexName())
-        );
+        assertThat(indices).containsExactlyInAnyOrder(partition1UUID, partition2UUID);
 
         assertThat(collectPhase.where().toString()).isEqualTo("(name = 'x')");
 
@@ -438,6 +448,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCountOnPartitionedTable() throws Exception {
+        RelationName relationName = new RelationName("doc", "parted");
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
@@ -448,17 +459,24 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+                new PartitionName(relationName, singletonList("1395874800000")).asIndexName(),
+                new PartitionName(relationName, singletonList("1395961200000")).asIndexName(),
+                new PartitionName(relationName, singletonList(null)).asIndexName()
             );
+
+        String partition1UUID = clusterService.state().metadata().getIndex(
+            relationName,
+            List.of("1395874800000"),
+            true,
+            IndexMetadata::getIndexUUID
+        );
 
         CountPlan plan = e.plan("select count(*) from parted where date = 1395874800000");
         assertThat(
             plan.countPhase().routing().locations().entrySet().stream()
                 .flatMap(x -> x.getValue().keySet().stream())
                 .collect(Collectors.toSet()))
-            .containsExactly(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
+            .containsExactly(partition1UUID);
     }
 
     @Test
@@ -521,6 +539,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGlobalAggregateWithWhereOnPartitionColumn() throws Exception {
+        RelationName relationName = new RelationName("doc", "parted");
         SQLExecutor e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
@@ -531,10 +550,17 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+                new PartitionName(relationName, singletonList("1395874800000")).asIndexName(),
+                new PartitionName(relationName, singletonList("1395961200000")).asIndexName(),
+                new PartitionName(relationName, singletonList(null)).asIndexName()
             );
+
+        String partition2UUID = clusterService.state().metadata().getIndex(
+            relationName,
+            List.of("1395961200000"),
+            true,
+            IndexMetadata::getIndexUUID
+        );
 
         ExecutionPlan plan = e.plan(
             "select min(name) from parted where date >= 1395961200000");
@@ -551,7 +577,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 .stream()
                 .flatMap(shardsByIndex -> shardsByIndex.keySet().stream())
                 .collect(Collectors.toSet()))
-            .containsExactly(".partitioned.parted.04732cpp6ksjcc9i60o30c1g");
+            .containsExactly(partition2UUID);
     }
 
     @Test
@@ -1436,6 +1462,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1577836800000")).asIndexName(),
                 new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1580515200000")).asIndexName());
 
+        String expectedPartitionUUID = clusterService.state().metadata().getIndex(
+            new RelationName("doc", "parted_by_generated"), List.of("1580515200000"), true, IndexMetadata::getIndexUUID);
+
         String stmt = "SELECT * FROM parted_by_generated WHERE ts >= '2020-02-01'";
         LogicalPlan plan = e.logicalPlan(stmt);
         String expectedPlan =
@@ -1449,7 +1478,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(routedCollectPhase.routing().locations().values().stream()
             .flatMap(x -> x.keySet().stream())
             .collect(Collectors.toSet())).containsExactly(
-                ".partitioned.parted_by_generated.04732d9o60qj2d9i60o30c1g");
+                expectedPartitionUUID);
     }
 
     @Test

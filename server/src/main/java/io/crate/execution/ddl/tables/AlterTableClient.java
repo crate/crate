@@ -49,6 +49,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.BoundAlterTable;
 import io.crate.data.Row;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -188,31 +189,26 @@ public class AlterTableClient {
     private CompletableFuture<Long> resize(BoundAlterTable analysis) {
         final TableInfo table = analysis.table();
         PartitionName partitionName = analysis.partitionName();
-        String sourceIndexName = partitionName == null
-            ? table.ident().indexNameOrAlias()
-            : partitionName.asIndexName();
-
         final ClusterState currentState = clusterService.state();
-        final IndexMetadata sourceIndexMetadata = currentState.metadata().index(sourceIndexName);
+        List<String> partitionValues = partitionName == null
+            ? List.of()
+            : partitionName.values();
+        IndexMetadata sourceIndexMetadata = currentState.metadata().getIndex(table.ident(), partitionValues, true, im -> im);
+        if (sourceIndexMetadata == null) {
+            throw new RelationUnknown(
+                String.format(Locale.ENGLISH, "Table/Partition '%s' does not exist", table.ident().fqn()));
+        }
+
         final int targetNumberOfShards = getNumberOfShards(analysis.settings());
         validateNumberOfShardsForResize(sourceIndexMetadata, targetNumberOfShards);
         validateReadOnlyIndexForResize(sourceIndexMetadata);
-
-        final String resizedIndex = RESIZE_PREFIX + sourceIndexName;
-
-        CompletableFuture<Long> future;
-        if (currentState.metadata().hasIndex(resizedIndex)) {
-            future = deleteTempIndices();
-        } else {
-            future = CompletableFuture.completedFuture(1L);
-        }
 
         final ResizeRequest request = new ResizeRequest(
             table.ident(),
             partitionName == null ? List.of() : partitionName.values(),
             targetNumberOfShards
         );
-        return future
+        return deleteTempIndices()
             .thenCompose(_ -> client.execute(TransportResize.ACTION, request))
             .thenApply(_ -> 0L);
     }

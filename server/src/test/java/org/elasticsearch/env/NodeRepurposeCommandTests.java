@@ -246,11 +246,12 @@ public class NodeRepurposeCommandTests extends ESTestCase {
                 try (PersistedClusterStateService.Writer writer =
                          ElasticsearchNodeCommand.createPersistedClusterStateService(Settings.EMPTY, env.nodeDataPaths()).createWriter()) {
                     writer.writeFullStateAndCommit(1L, ClusterState.builder(ClusterName.DEFAULT)
-                        .metadata(Metadata.builder().put(IndexMetadata.builder(INDEX.getName())
-                                                             .settings(Settings.builder().put("index.version.created", Version.CURRENT)
-                                                                           .put(IndexMetadata.SETTING_INDEX_UUID, INDEX.getUUID()))
-                                                             .numberOfShards(1)
-                                                             .numberOfReplicas(1)).build())
+                        .metadata(Metadata.builder().put(IndexMetadata.builder(INDEX.getUUID())
+                            .settings(Settings.builder().put("index.version.created", Version.CURRENT)
+                                .put(IndexMetadata.SETTING_INDEX_UUID, INDEX.getUUID()))
+                            .indexName(INDEX.getName())
+                            .numberOfShards(1)
+                            .numberOfReplicas(1)).build())
                         .build());
                 }
             }

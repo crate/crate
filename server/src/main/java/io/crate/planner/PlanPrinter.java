@@ -25,6 +25,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
@@ -62,11 +63,12 @@ public final class PlanPrinter {
     private PlanPrinter() {
     }
 
-    public static Map<String, Object> objectMap(ExecutionPlan executionPlan) {
-        return ExecutionPlan2MapVisitor.createMap(executionPlan);
+    public static Map<String, Object> objectMap(ExecutionPlan executionPlan,
+                                                Function<String, String> indexUUIDToIndexName) {
+        return ExecutionPlan2MapVisitor.createMap(executionPlan, indexUUIDToIndexName);
     }
 
-    private static class ExecutionPhase2MapVisitor extends ExecutionPhaseVisitor<Void, MapBuilder<String, Object>> {
+    private static class ExecutionPhase2MapVisitor extends ExecutionPhaseVisitor<Function<String, String>, MapBuilder<String, Object>> {
 
         public static final ExecutionPhase2MapVisitor INSTANCE = new ExecutionPhase2MapVisitor();
 
@@ -84,9 +86,9 @@ public final class PlanPrinter {
                 .put("executionNodes", new ArrayList<>(phase.nodeIds()));
         }
 
-        static MapBuilder<String, Object> toBuilder(ExecutionPhase executionPhase) {
+        static MapBuilder<String, Object> toBuilder(ExecutionPhase executionPhase, Function<String, String> indexUUIDToIndexName) {
             assert executionPhase != null : "executionPhase must not be null";
-            return executionPhase.accept(INSTANCE, null);
+            return executionPhase.accept(INSTANCE, indexUUIDToIndexName);
         }
 
         private static List<Map<String, Object>> projections(Iterable<Projection> projections) {
@@ -104,7 +106,7 @@ public final class PlanPrinter {
         }
 
         @Override
-        protected MapBuilder<String, Object> visitExecutionPhase(ExecutionPhase phase, Void context) {
+        protected MapBuilder<String, Object> visitExecutionPhase(ExecutionPhase phase, Function<String, String> context) {
             return createMap(phase, createSubMap(phase));
         }
 
@@ -126,11 +128,11 @@ public final class PlanPrinter {
         }
 
         @Override
-        public MapBuilder<String, Object> visitRoutedCollectPhase(RoutedCollectPhase phase, Void context) {
+        public MapBuilder<String, Object> visitRoutedCollectPhase(RoutedCollectPhase phase, Function<String, String> context) {
             MapBuilder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
             builder.put("toCollect", "[" + Lists.joinOn(", ", phase.toCollect(), Symbol::toString) + "]");
             dqlPlanNode(phase, builder);
-            builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations()));
+            builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations(), context));
             builder.put("where", phase.where().toString());
             OrderBy orderBy = phase.orderBy();
             if (orderBy != null) {
@@ -140,7 +142,7 @@ public final class PlanPrinter {
         }
 
         @Override
-        public MapBuilder<String, Object> visitPKLookup(PKLookupPhase phase, Void context) {
+        public MapBuilder<String, Object> visitPKLookup(PKLookupPhase phase, Function<String, String> context) {
             MapBuilder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
             builder.put("toCollect", Lists.joinOn(", ", phase.toCollect(), Symbol::toString));
             dqlPlanNode(phase, builder);
@@ -156,39 +158,39 @@ public final class PlanPrinter {
         }
 
         @Override
-        public MapBuilder<String, Object> visitCollectPhase(CollectPhase phase, Void context) {
+        public MapBuilder<String, Object> visitCollectPhase(CollectPhase phase, Function<String, String> context) {
             MapBuilder<String, Object> builder = upstreamPhase(phase, createSubMap(phase));
             builder.put("toCollect", Lists.joinOn(", ", phase.toCollect(), Symbol::toString));
             return createMap(phase, builder);
         }
 
         @Override
-        public MapBuilder<String, Object> visitCountPhase(CountPhase phase, Void context) {
+        public MapBuilder<String, Object> visitCountPhase(CountPhase phase, Function<String, String> context) {
             MapBuilder<String, Object> builder = upstreamPhase(phase, visitExecutionPhase(phase, context));
-            builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations()));
+            builder.put("routing", xContentSafeRoutingLocations(phase.routing().locations(), context));
             builder.put("where", phase.where().toString());
             return builder;
         }
 
         @Override
-        public MapBuilder<String, Object> visitFetchPhase(FetchPhase phase, Void context) {
+        public MapBuilder<String, Object> visitFetchPhase(FetchPhase phase, Function<String, String> context) {
             return createMap(phase, createSubMap(phase)
                 .put("fetchRefs", Lists.joinOn(", ", phase.fetchRefs(), Reference::toString)));
         }
 
         @Override
-        public MapBuilder<String, Object> visitMergePhase(MergePhase phase, Void context) {
+        public MapBuilder<String, Object> visitMergePhase(MergePhase phase, Function<String, String> context) {
             MapBuilder<String, Object> b = upstreamPhase(phase, createSubMap(phase));
             return createMap(phase, dqlPlanNode(phase, b));
         }
 
         @Override
-        public MapBuilder<String, Object> visitNestedLoopPhase(NestedLoopPhase phase, Void context) {
+        public MapBuilder<String, Object> visitNestedLoopPhase(NestedLoopPhase phase, Function<String, String> context) {
             return getBuilderForJoinPhase(phase);
         }
 
         @Override
-        public MapBuilder<String, Object> visitHashJoinPhase(HashJoinPhase phase, Void context) {
+        public MapBuilder<String, Object> visitHashJoinPhase(HashJoinPhase phase, Function<String, String> context) {
             return getBuilderForJoinPhase(phase);
         }
 
@@ -200,7 +202,7 @@ public final class PlanPrinter {
         }
     }
 
-    private static class ExecutionPlan2MapVisitor extends ExecutionPlanVisitor<Void, MapBuilder<String, Object>> {
+    private static class ExecutionPlan2MapVisitor extends ExecutionPlanVisitor<Function<String, String>, MapBuilder<String, Object>> {
 
         private static final ExecutionPlan2MapVisitor INSTANCE = new ExecutionPlan2MapVisitor();
 
@@ -215,64 +217,64 @@ public final class PlanPrinter {
         }
 
         @Override
-        protected MapBuilder<String, Object> visitPlan(ExecutionPlan executionPlan, Void context) {
+        protected MapBuilder<String, Object> visitPlan(ExecutionPlan executionPlan, Function<String, String> context) {
             return createMap(executionPlan, createSubMap());
         }
 
-        private static Map<String, Object> phaseMap(@Nullable ExecutionPhase node) {
+        private static Map<String, Object> phaseMap(@Nullable ExecutionPhase node, Function<String, String> indexUUIDToIndexName) {
             if (node == null) {
                 return null;
             } else {
-                return ExecutionPhase2MapVisitor.toBuilder(node).map();
+                return ExecutionPhase2MapVisitor.toBuilder(node, indexUUIDToIndexName).map();
             }
         }
 
-        static Map<String, Object> createMap(ExecutionPlan executionPlan) {
+        static Map<String, Object> createMap(ExecutionPlan executionPlan, Function<String, String> indexUUIDToIndexName) {
             assert executionPlan != null : "plan must not be null";
-            return INSTANCE.process(executionPlan, null).map();
+            return INSTANCE.process(executionPlan, indexUUIDToIndexName).map();
         }
 
         @Override
-        public MapBuilder<String, Object> visitCollect(Collect plan, Void context) {
+        public MapBuilder<String, Object> visitCollect(Collect plan, Function<String, String> context) {
             return createMap(plan, createSubMap()
-                .put("collectPhase", phaseMap(plan.collectPhase())));
+                .put("collectPhase", phaseMap(plan.collectPhase(), context)));
         }
 
         @Override
-        public MapBuilder<String, Object> visitJoin(Join plan, Void context) {
+        public MapBuilder<String, Object> visitJoin(Join plan, Function<String, String> context) {
             return createMap(plan, createSubMap()
                 .put("left", process(plan.left(), context).map())
                 .put("right", process(plan.right(), context).map())
-                .put("joinPhase", phaseMap(plan.joinPhase())));
+                .put("joinPhase", phaseMap(plan.joinPhase(), context)));
         }
 
         @Override
-        public MapBuilder<String, Object> visitQueryThenFetch(QueryThenFetch plan, Void context) {
+        public MapBuilder<String, Object> visitQueryThenFetch(QueryThenFetch plan, Function<String, String> context) {
             return createMap(plan, createSubMap()
-                .put("subPlan", createMap(plan.subPlan()))
-                .put("fetchPhase", phaseMap(plan.fetchPhase())));
+                .put("subPlan", createMap(plan.subPlan(), context))
+                .put("fetchPhase", phaseMap(plan.fetchPhase(), context)));
         }
 
         @Override
-        public MapBuilder<String, Object> visitMerge(Merge merge, Void context) {
+        public MapBuilder<String, Object> visitMerge(Merge merge, Function<String, String> context) {
             return createMap(merge, createSubMap()
-                .put("subPlan", createMap(merge.subPlan()))
-                .put("mergePhase", phaseMap(merge.mergePhase())));
+                .put("subPlan", createMap(merge.subPlan(), context))
+                .put("mergePhase", phaseMap(merge.mergePhase(), context)));
         }
 
         @Override
-        public MapBuilder<String, Object> visitUnionPlan(UnionExecutionPlan unionExecutionPlan, Void context) {
+        public MapBuilder<String, Object> visitUnionPlan(UnionExecutionPlan unionExecutionPlan, Function<String, String> context) {
             return createMap(unionExecutionPlan, createSubMap()
-                .put("left", createMap(unionExecutionPlan.left()))
-                .put("right", createMap(unionExecutionPlan.right()))
-                .put("mergePhase", phaseMap(unionExecutionPlan.mergePhase())));
+                .put("left", createMap(unionExecutionPlan.left(), context))
+                .put("right", createMap(unionExecutionPlan.right(), context))
+                .put("mergePhase", phaseMap(unionExecutionPlan.mergePhase(), context)));
         }
 
         @Override
-        public MapBuilder<String, Object> visitCountPlan(CountPlan countPlan, Void context) {
+        public MapBuilder<String, Object> visitCountPlan(CountPlan countPlan, Function<String, String> context) {
             return visitPlan(countPlan, context)
-                .put("countPhase", phaseMap(countPlan.countPhase()))
-                .put("mergePhase", phaseMap(countPlan.mergePhase()));
+                .put("countPhase", phaseMap(countPlan.countPhase(), context))
+                .put("mergePhase", phaseMap(countPlan.mergePhase(), context));
         }
     }
 
@@ -281,7 +283,8 @@ public final class PlanPrinter {
      * classes are not supported by the {@link org.elasticsearch.common.xcontent.XContentBuilder}.
      */
     private static Map<String, Map<String, List<Integer>>> xContentSafeRoutingLocations(
-        Map<String, Map<String, IntIndexedContainer>> locations) {
+        Map<String, Map<String, IntIndexedContainer>> locations,
+        Function<String, String> indexUUIDToIndexName) {
         HashMap<String, Map<String, List<Integer>>> safeLocations = new HashMap<>(locations.size(), 1f);
         for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : locations.entrySet()) {
             HashMap<String, List<Integer>> tableShards = new HashMap<>(nodeEntry.getValue().size(), 1f);
@@ -292,7 +295,7 @@ public final class PlanPrinter {
                 }
                 // ensure a deterministic shard list by sorting it (important for test assertions but maybe also for apps)
                 shardList.sort(Integer::compareTo);
-                tableShards.put(tableEntry.getKey(), shardList);
+                tableShards.put(indexUUIDToIndexName.apply(tableEntry.getKey()), shardList);
             }
             safeLocations.put(nodeEntry.getKey(), tableShards);
         }

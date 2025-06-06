@@ -197,6 +197,7 @@ public final class DeletePlanner {
                 "collect",
                 routing,
                 tableInfo.rowGranularity(),
+                tableInfo.isPartitioned(),
                 List.of(idReference),
                 List.of(deleteProjection),
                 Optimizer.optimizeCasts(where.queryOrFallback(), context),

@@ -50,8 +50,8 @@ public class CreatePartitionsRequest extends AcknowledgedRequest<CreatePartition
             .toList();
         return switch (relations.size()) {
             case 0 -> throw new IllegalArgumentException("Must create at least one partition");
-            case 1 -> new CreatePartitionsRequest(relations.get(0), Lists.map(partitions, PartitionName::values));
-            default -> throw new IllegalArgumentException("Cannot create partitions for more than one table in the same request");
+            case 1 -> new CreatePartitionsRequest(relations.get(0), Lists.map(partitions, p -> p.ident().isEmpty() ? List.of() : p.values()));
+            default -> throw new IllegalArgumentException("Cannot create partitions for more than one table in the same request: " + relations);
         };
     }
 

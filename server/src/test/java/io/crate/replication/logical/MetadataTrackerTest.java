@@ -257,7 +257,7 @@ public class MetadataTrackerTest extends ESTestCase {
             );
 
             for (String indexUUID : table.indexUUIDs()) {
-                var indexMetadata = clusterState.metadata().indexByUUID(indexUUID);
+                var indexMetadata = clusterState.metadata().index(indexUUID);
                 var updatedSettings = Settings.builder()
                     .put(indexMetadata.getSettings())
                     .put(newSettings)
@@ -411,9 +411,9 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(syncedTable.columns()).isEqualTo(publisherTable.columns());
 
         for (String indexUUID : syncedTable.indexUUIDs()) {
-            IndexMetadata syncedIndexMetadata = syncedSubscriberClusterState.metadata().indexByUUID(indexUUID);
+            IndexMetadata syncedIndexMetadata = syncedSubscriberClusterState.metadata().index(indexUUID);
             String publisherIndexUUID = PUBLISHER_INDEX_UUID.get(syncedIndexMetadata.getSettings());
-            IndexMetadata publisherIndexMetadata = updatedPublisherClusterState.metadata().indexByUUID(publisherIndexUUID);
+            IndexMetadata publisherIndexMetadata = updatedPublisherClusterState.metadata().index(publisherIndexUUID);
             assertThat(syncedIndexMetadata.mapping()).isEqualTo(publisherIndexMetadata.mapping());
         }
     }
@@ -458,7 +458,7 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedTable.settings())).isNotEqualTo(50);
 
         for (String indexUUID : syncedTable.indexUUIDs()) {
-            IndexMetadata indexMetadata = syncedSubscriberClusterState.metadata().indexByUUID(indexUUID);
+            IndexMetadata indexMetadata = syncedSubscriberClusterState.metadata().index(indexUUID);
             assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings())).isNotEqualTo(50);
         }
     }

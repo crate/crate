@@ -42,6 +42,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
@@ -50,6 +51,7 @@ import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
+import io.crate.metadata.RelationName;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 2)
 @WindowsIncompatible
@@ -400,13 +402,20 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     @Nullable
     private BlobShard getBlobShard(String digest) {
+        String indexName = ".blob_test";
+        RelationName relationName = RelationName.fromIndexName(indexName);
+        String indexUUID = clusterService().state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        if (indexUUID == null) {
+            throw new IndexNotFoundException(indexName);
+        }
+
         Iterable<BlobIndicesService> services = cluster().getInstances(BlobIndicesService.class);
         Iterator<BlobIndicesService> it = services.iterator();
         BlobShard blobShard = null;
         while (it.hasNext()) {
             BlobIndicesService nextService = it.next();
             try {
-                blobShard = nextService.localBlobShard(".blob_test", digest);
+                blobShard = nextService.localBlobShard(indexUUID, digest);
             } catch (ShardNotFoundException | IndexNotFoundException e) {
                 continue;
             }

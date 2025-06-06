@@ -2157,7 +2157,7 @@ public class IndexShardTests extends IndexShardTestCase {
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .build();
         IndexMetadata.Builder indexMetadata = IndexMetadata
-            .builder(shardRouting.getIndexName())
+            .builder(shardRouting.getIndexUUID())
             .settings(settings).primaryTerm(0, 1);
         AtomicBoolean synced = new AtomicBoolean();
         IndexShard primaryShard = newShard(
@@ -2548,7 +2548,7 @@ public class IndexShardTests extends IndexShardTestCase {
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .build();
-        IndexMetadata metaData = IndexMetadata.builder(shardRouting.getIndexName())
+        IndexMetadata metaData = IndexMetadata.builder(shardRouting.getIndexUUID())
             .settings(settings)
             .primaryTerm(0, 1)
             .build();
