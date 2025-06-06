@@ -302,8 +302,8 @@ public class DiskThresholdMonitor {
         final Set<String> indicesToAutoRelease = StreamSupport.stream(state.routingTable().indicesRouting()
             .spliterator(), false)
             .map(c -> c.key)
-            .filter(index -> indicesNotToAutoRelease.contains(index) == false)
-            .filter(index -> state.blocks().hasIndexBlock(index, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
+            .filter(indexUUID -> indicesNotToAutoRelease.contains(indexUUID) == false)
+            .filter(indexUUID -> state.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
             .collect(Collectors.toSet());
 
         if (indicesToAutoRelease.isEmpty() == false) {
@@ -314,7 +314,7 @@ public class DiskThresholdMonitor {
             listener.onResponse(null);
         }
 
-        indicesToMarkReadOnly.removeIf(index -> state.blocks().indexBlocked(ClusterBlockLevel.WRITE, index));
+        indicesToMarkReadOnly.removeIf(indexUUID -> state.blocks().indexBlocked(ClusterBlockLevel.WRITE, indexUUID));
         LOGGER.trace("marking indices as read-only: [{}]", indicesToMarkReadOnly);
         if (indicesToMarkReadOnly.isEmpty() == false) {
             updateIndicesReadOnly(indicesToMarkReadOnly, listener, true);
@@ -335,8 +335,8 @@ public class DiskThresholdMonitor {
             if (usages.containsKey(routingNode.nodeId()) == false) {
                 if (routingNode != null) {
                     for (ShardRouting routing : routingNode) {
-                        String indexName = routing.index().getName();
-                        indicesToMarkIneligibleForAutoRelease.add(indexName);
+                        String indexUUID = routing.index().getUUID();
+                        indicesToMarkIneligibleForAutoRelease.add(indexUUID);
                     }
                 }
             }

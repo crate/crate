@@ -191,6 +191,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final List<CheckConstraint<Symbol>> checkConstraints;
     private final ColumnIdent clusteredBy;
     private final List<ColumnIdent> partitionedBy;
+    private final Map<String, PartitionName> partitions;
     private final int numberOfShards;
     private final String numberOfReplicas;
     private final Settings tableParameters;
@@ -215,6 +216,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         ColumnIdent clusteredBy,
                         Settings tableParameters,
                         List<ColumnIdent> partitionedBy,
+                        Map<String, PartitionName> partitions,
                         ColumnPolicy columnPolicy,
                         Version versionCreated,
                         @Nullable Version versionUpgraded,
@@ -279,6 +281,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.tableParameters = tableParameters;
         isPartitioned = !partitionedByColumns.isEmpty();
         this.partitionedBy = partitionedBy;
+        this.partitions = partitions;
         this.columnPolicy = columnPolicy;
         assert versionCreated.after(Version.V_EMPTY) : "Table must have a versionCreated";
         this.versionCreated = versionCreated;
@@ -421,7 +424,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (whereClause.partitions().isEmpty()) {
             indices = concreteOpenIndices(state.metadata());
         } else {
-            indices = whereClause.partitions().toArray(new String[0]);
+            indices = concreteOpenIndices(state.metadata(), whereClause.partitions());
         }
         return routingProvider.forIndices(
             state,
@@ -469,7 +472,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public String[] concreteIndices(Metadata metadata) {
         boolean strict = !isPartitioned;
         return metadata
-            .getIndices(ident, List.of(), strict, imd -> imd.getIndex().getName())
+            .getIndices(ident, List.of(), strict, imd -> imd.getIndex().getUUID())
             .toArray(String[]::new);
     }
 
@@ -480,9 +483,29 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 ident,
                 List.of(),
                 strict,
-                imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null
+                imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
             )
             .toArray(String[]::new);
+    }
+
+    public String[] concreteOpenIndices(Metadata metadata, List<String> partitions) {
+        if (partitions.isEmpty()) {
+            return new String[0];
+        }
+        String[] uuids = new String[partitions.size()];
+        for (int i = 0; i < partitions.size(); i++) {
+            List<String> partitionValues = PartitionName.fromIndexOrTemplate(partitions.get(i)).values();
+            List<String> indexUUIDS = metadata.getIndices(
+                ident,
+                partitionValues,
+                false,
+                imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
+            );
+            if (!indexUUIDS.isEmpty()) {
+                uuids[i] = indexUUIDS.getFirst();
+            }
+        }
+        return uuids;
     }
 
     /**
@@ -552,6 +575,21 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 settings
             );
         });
+    }
+
+    @Nullable
+    public PartitionName getPartition(String indexUUID) {
+        return partitions.get(indexUUID);
+    }
+
+    @Nullable
+    public String getPartition(PartitionName partitionName) {
+        for (Entry<String, PartitionName> entry : partitions.entrySet()) {
+            if (entry.getValue().equals(partitionName)) {
+                return entry.getKey();
+            }
+        }
+        return null;
     }
 
 
@@ -830,6 +868,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             clusteredBy,
             tableParameters,
             partitionedBy,
+            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,
@@ -902,6 +941,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             clusteredBy,
             tableParameters,
             partitionedBy,
+            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,
@@ -1006,6 +1046,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             renamedClusteredBy,
             tableParameters,
             renamedPartitionedBy,
+            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,
@@ -1268,6 +1309,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             clusteredBy,
             newSettingsBuilder.build(),
             partitionedBy,
+            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,

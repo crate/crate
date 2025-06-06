@@ -141,21 +141,21 @@ public final class ActiveShardCount implements Writeable {
      * Returns true iff the given cluster state's routing table contains enough active
      * shards for the given indices to meet the required shard count represented by this instance.
      */
-    public boolean enoughShardsActive(final ClusterState clusterState, final String... indices) {
+    public boolean enoughShardsActive(final ClusterState clusterState, final String... indicesUUIDs) {
         if (this == ActiveShardCount.NONE) {
             // not waiting for any active shards
             return true;
         }
 
-        for (final String indexName : indices) {
-            final IndexMetadata indexMetadata = clusterState.metadata().index(indexName);
+        for (final String indexUUID : indicesUUIDs) {
+            final IndexMetadata indexMetadata = clusterState.metadata().index(indexUUID);
             if (indexMetadata == null) {
                 // its possible the index was deleted while waiting for active shard copies,
                 // in this case, we'll just consider it that we have enough active shard copies
                 // and we can stop waiting
                 continue;
             }
-            final IndexRoutingTable indexRoutingTable = clusterState.routingTable().index(indexName);
+            final IndexRoutingTable indexRoutingTable = clusterState.routingTable().index(indexUUID);
             assert indexRoutingTable != null;
             if (indexRoutingTable.allPrimaryShardsActive() == false) {
                 // all primary shards aren't active yet

@@ -56,6 +56,8 @@ public sealed interface RelationMetadata extends Writeable permits
         };
     }
 
+    List<String> indexUUIDs();
+
     static void toStream(StreamOutput out, RelationMetadata v) throws IOException {
         out.writeShort(v.ord());
         v.writeTo(out);
@@ -87,6 +89,11 @@ public sealed interface RelationMetadata extends Writeable permits
         @Override
         public short ord() {
             return ORD;
+        }
+
+        @Override
+        public List<String> indexUUIDs() {
+            return List.of(indexUUID);
         }
     }
 

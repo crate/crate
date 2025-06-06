@@ -266,7 +266,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
             new RelationName(indexParts[0], indexParts[1]),
             partitionedByColumns.stream().map(c -> (String) null).toList())
             .toString();
-        partitionedIndexMetadata.index(partitionedIndexName);
+        partitionedIndexMetadata.indexUUID(partitionedIndexName);
 
         return partitionedIndexMetadata;
     }
@@ -309,7 +309,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
         if (fixedName != null) {
             IndexMetadata corrupted = fixedMetadata.get(indexName);
             fixedMetadata.remove(indexName);
-            fixedMetadata.put(IndexMetadata.builder(corrupted).index(fixedName));
+            fixedMetadata.put(IndexMetadata.builder(corrupted).indexUUID(fixedName));
         }
     }
 

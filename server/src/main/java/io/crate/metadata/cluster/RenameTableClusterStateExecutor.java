@@ -113,6 +113,7 @@ public class RenameTableClusterStateExecutor {
                 table.tableVersion() + 1
             );
 
+        // TODO: Can be removed once indices are completely based on indexUUIDs
         List<IndexMetadata> sourceIndices = currentState.metadata().getIndices(source, List.of(), true, x -> x);
         for (IndexMetadata sourceIndex : sourceIndices) {
             String sourceIndexName;
@@ -132,7 +133,7 @@ public class RenameTableClusterStateExecutor {
             blocksBuilder.removeIndexBlocks(sourceIndexName);
 
             IndexMetadata targetMd = IndexMetadata.builder(sourceIndex)
-                .index(targetIndexName)
+                .indexName(targetIndexName)
                 .build();
             newMetadata.put(targetMd, true);
             newRoutingTable.addAsFromCloseToOpen(targetMd);

@@ -164,7 +164,6 @@ public class PartitionName implements Writeable {
     /**
      * decodes an encoded ident into it's values
      */
-    @Nullable
     public static List<String> decodeIdent(@Nullable String ident) {
         if (ident == null) {
             return List.of();
