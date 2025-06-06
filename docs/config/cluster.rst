@@ -1176,6 +1176,9 @@ each of them, the breaker limit can be set.
 Total circuit breaker
 ---------------------
 
+The total - or parent - circuit breaker represents a sum of all other circuit
+breakers and additionally takes the current heap usage into consideration.
+
 .. _indices.breaker.total.limit:
 
 **indices.breaker.total.limit**
