@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.junit.Test;
 
 import io.crate.analyze.DropColumn;
@@ -72,9 +73,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .as("Version is not increased. The MasterService does when the state is applied")
             .isEqualTo(initialState.metadata().version());
 
-        String indexName = tbl.ident().indexNameOrAlias();
-        assertThat(newState.metadata().index(indexName).getVersion())
-            .isGreaterThan(initialState.metadata().index(indexName).getVersion());
+        String indexUUID = newState.metadata().getIndex(tbl.ident(), List.of(), true, IndexMetadata::getIndexUUID);
+        assertThat(newState.metadata().index(indexUUID).getVersion())
+            .isGreaterThan(initialState.metadata().index(indexUUID).getVersion());
 
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
@@ -106,9 +107,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .as("Version is not increased. The MasterService does when the state is applied")
             .isEqualTo(initialState.metadata().version());
 
-        String indexName = tbl.ident().indexNameOrAlias();
-        assertThat(newState.metadata().index(indexName).getVersion())
-            .isGreaterThan(initialState.metadata().index(indexName).getVersion());
+        String indexUUID = newState.metadata().getIndex(tbl.ident(), List.of(), true, IndexMetadata::getIndexUUID);
+        assertThat(newState.metadata().index(indexUUID).getVersion())
+            .isGreaterThan(initialState.metadata().index(indexUUID).getVersion());
 
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 

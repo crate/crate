@@ -33,6 +33,7 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequ
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -48,6 +49,8 @@ import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
 import org.elasticsearch.test.InternalSettingsPlugin;
 import org.junit.Test;
+
+import io.crate.metadata.RelationName;
 
 @ClusterScope(scope= Scope.TEST, numDataNodes=0)
 public class FilteringAllocationIT extends IntegTestCase {
@@ -121,10 +124,12 @@ public class FilteringAllocationIT extends IntegTestCase {
         execute("create table test(x int, value text) clustered into ? shards with (number_of_replicas='0-all')",
                 new Object[]{numberOfShards()});
 
-        String tableName = getFqn("test");
-
         ClusterState clusterState = client().state(new ClusterStateRequest()).get().getState();
-        assertThat(clusterState.metadata().index(tableName).getNumberOfReplicas()).isEqualTo(1);
+
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "test");
+        String indexUUID = clusterState.metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
+        assertThat(clusterState.metadata().index(indexUUID).getNumberOfReplicas()).isEqualTo(1);
         ensureGreen();
 
         logger.info("--> filter out the second node");
@@ -137,7 +142,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         logger.info("--> verify all are allocated on node1 now");
         final var cs = client().state(new ClusterStateRequest()).get().getState();
-        assertThat(cs.metadata().index(tableName).getNumberOfReplicas()).isEqualTo(0);
+        assertThat(cs.metadata().index(indexUUID).getNumberOfReplicas()).isEqualTo(0);
         for (IndexRoutingTable indexRoutingTable : cs.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
                 for (ShardRouting shardRouting : indexShardRoutingTable) {
@@ -159,8 +164,9 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         execute("create table test(x int, value text) clustered into 2 shards with (number_of_replicas='0')");
 
-        String tableName = getFqn("test");
         ensureGreen();
+
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "test");
 
         logger.info("--> index some data");
         for (int i = 0; i < 100; i++) {
@@ -178,7 +184,9 @@ public class FilteringAllocationIT extends IntegTestCase {
         }
 
         ClusterState clusterState = client().state(new ClusterStateRequest()).get().getState();
-        IndexRoutingTable indexRoutingTable = clusterState.routingTable().index(tableName);
+        String indexUUID = clusterState.metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
+        IndexRoutingTable indexRoutingTable = clusterState.routingTable().index(indexUUID);
         int numShardsOnNode1 = 0;
         for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
             for (ShardRouting shardRouting : indexShardRoutingTable) {
@@ -203,7 +211,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         logger.info("--> verify all shards are allocated on node_1 now");
         var state = client().state(new ClusterStateRequest()).get().getState();
-        for (IndexShardRoutingTable indexShardRoutingTable : state.routingTable().index(tableName)) {
+        for (IndexShardRoutingTable indexShardRoutingTable : state.routingTable().index(indexUUID)) {
             for (ShardRouting shardRouting : indexShardRoutingTable) {
                 assertThat(state.nodes().get(shardRouting.currentNodeId()).getName()).isEqualTo(node_1);
             }
@@ -216,7 +224,7 @@ public class FilteringAllocationIT extends IntegTestCase {
 
         logger.info("--> verify that there are shards allocated on both nodes now");
         state = client().state(new ClusterStateRequest()).get().getState();
-        assertThat(state.routingTable().index(tableName).numberOfNodesShardsAreAllocatedOn()).isEqualTo(2);
+        assertThat(state.routingTable().index(indexUUID).numberOfNodesShardsAreAllocatedOn()).isEqualTo(2);
     }
 
     @Test

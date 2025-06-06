@@ -22,11 +22,11 @@
 package io.crate.blob;
 
 
-import org.elasticsearch.index.shard.ShardId;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.util.UUID;
+
+import org.elasticsearch.index.shard.ShardId;
 
 public class BlobTransferStatus implements Closeable {
 
@@ -37,7 +37,7 @@ public class BlobTransferStatus implements Closeable {
 
     public BlobTransferStatus(ShardId shardId, UUID transferId, DigestBlob digestBlob) {
         this.shardId = shardId;
-        this.index = shardId.getIndexName();
+        this.index = shardId.getIndexUUID();
         this.transferId = transferId;
         this.digestBlob = digestBlob;
     }

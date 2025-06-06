@@ -47,6 +47,7 @@ import org.junit.Test;
 import com.carrotsearch.randomizedtesting.LifecycleScope;
 
 import io.crate.exceptions.JobKilledException;
+import io.crate.metadata.RelationName;
 import io.crate.session.Sessions;
 import io.crate.testing.SQLTransportExecutor;
 import io.crate.testing.UseJdbc;
@@ -129,7 +130,8 @@ public class CopyFromFailFastITest extends IntegTestCase {
         Path target = Files.createDirectories(tmpDir.resolve("target"));
         int numDocs = 100;
 
-        var indexMetadata = clusterService().state().metadata().index("t");
+        RelationName relationName = new RelationName("doc", "t");
+        var indexMetadata = clusterService().state().metadata().getIndex(relationName, List.of(), true, im -> im);
         List<String> rows = new ArrayList<>();
         int failedNumDocs = 0;
         for (int i = 0; i < numDocs; i++) {
@@ -206,7 +208,8 @@ public class CopyFromFailFastITest extends IntegTestCase {
         Path target = Files.createDirectories(tmpDir.resolve("target"));
         int numDocs = 100;
 
-        var indexMetadata = clusterService().state().metadata().index("t");
+        RelationName relationName = new RelationName("doc", "t");
+        var indexMetadata = clusterService().state().metadata().getIndex(relationName, List.of(), true, im -> im);
         List<String> rows = new ArrayList<>();
         int failedNumDocs = 0;
         for (int i = 0; i < numDocs; i++) {
