@@ -164,7 +164,6 @@ public class PartitionName implements Writeable {
     /**
      * decodes an encoded ident into it's values
      */
-    @Nullable
     public static List<String> decodeIdent(@Nullable String ident) {
         if (ident == null) {
             return List.of();
@@ -337,6 +336,7 @@ public class PartitionName implements Writeable {
                 String.format(Locale.ENGLISH, "Trying to create partition name from the name of a non-partitioned table %s", indexOrTemplate)
             );
         }
+
         return new PartitionName(new RelationName(indexParts.schema(), indexParts.table()), indexParts.partitionIdent());
     }
 

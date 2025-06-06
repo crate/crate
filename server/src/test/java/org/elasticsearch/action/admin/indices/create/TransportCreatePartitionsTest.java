@@ -28,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Before;
@@ -71,16 +72,19 @@ public class TransportCreatePartitionsTest extends IntegTestCase {
 
         // Assert number of routing shards is calculated properly to
         // allow for future shard number increase on existing partitions.
-        String partitionName = new PartitionName(new RelationName(sqlExecutor.getCurrentSchema(), "test"),
-                                                 List.of(String.valueOf(1))).asIndexName();
-        assertThat(updatedMetadata.index(partitionName).getRoutingNumShards()).isEqualTo(1024);
+        PartitionName partitionName = new PartitionName(new RelationName(sqlExecutor.getCurrentSchema(), "test"),
+                                                 List.of(String.valueOf(1)));
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
+
+        assertThat(updatedMetadata.index(indexUUID).getRoutingNumShards()).isEqualTo(1024);
 
         // CREATE TABLE statement assigns specific names to partitioned tables indices, all having template name as a prefix.
         // See BoundCreateTable.templateName
         String tableTemplateName = PartitionName.templateName("doc", "test");
 
-        for (ObjectCursor<String> cursor : updatedMetadata.indices().keys()) {
-            String indexName = cursor.value; // Something like "partitioned.{table_name}.{part}
+        for (ObjectCursor<IndexMetadata> cursor : updatedMetadata.indices().values()) {
+            String indexName = cursor.value.getIndex().getName(); // Something like "partitioned.{table_name}.{part}
             assertThat(PartitionName.templateName(indexName)).isEqualTo(tableTemplateName);
         }
     }

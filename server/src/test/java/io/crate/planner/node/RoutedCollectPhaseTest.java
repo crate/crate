@@ -57,6 +57,7 @@ public class RoutedCollectPhaseTest extends ESTestCase {
             "cn",
             new Routing(Map.of()),
             RowGranularity.DOC,
+            true,
             toCollect,
             List.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),
@@ -76,5 +77,6 @@ public class RoutedCollectPhaseTest extends ESTestCase {
         assertThat(cn.phaseId()).isEqualTo(cn2.phaseId());
         assertThat(cn.maxRowGranularity()).isEqualTo(cn2.maxRowGranularity());
         assertThat(cn.distributionInfo()).isEqualTo(cn2.distributionInfo());
+        assertThat(cn.onPartitionedTable()).isEqualTo(cn2.onPartitionedTable());
     }
 }

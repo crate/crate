@@ -19,6 +19,7 @@
 
 package org.elasticsearch.repositories.blobstore;
 
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -34,6 +35,7 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.TestUtil;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -41,6 +43,7 @@ import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.TestFutureUtils;
 import org.elasticsearch.env.Environment;
@@ -153,6 +156,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
         }
     }
 
+    @Test
     public void testSnapshotWithConflictingName() throws Exception {
         final IndexId indexId = new IndexId(randomAlphaOfLength(10), UUIDs.randomBase64UUID());
         final ShardId shardId = new ShardId(indexId.getName(), indexId.getId(), 0);
@@ -170,6 +174,13 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
             }
             assertDocCount(shard, numDocs);
 
+            MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(
+                createNodeContext(), IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, null
+            );
+            Metadata metadata = metadataUpgradeService.upgradeMetadata(
+                Metadata.builder().put(shard.indexSettings().getIndexMetadata(), false).build()
+            );
+
             // snapshot the shard
             final Repository repository = createRepository();
             final Snapshot snapshot = new Snapshot(repository.getMetadata().name(), new SnapshotId(randomAlphaOfLength(10), "_uuid"));
@@ -182,7 +193,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
                 repository.finalizeSnapshot(
                     shardGenerations,
                     RepositoryData.EMPTY_REPO_GEN,
-                    Metadata.builder().put(shard.indexSettings().getIndexMetadata(), false).build(),
+                    metadata,
                     new SnapshotInfo(snapshot.getSnapshotId(), shardGenerations.indices().stream()
                         .map(IndexId::getName).collect(Collectors.toList()), 0L, null, 1L, 6,
                         Collections.emptyList(), true),

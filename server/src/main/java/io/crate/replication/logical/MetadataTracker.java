@@ -483,7 +483,8 @@ public final class MetadataTracker implements Closeable {
                     }
                     continue;
                 }
-                if (!subscriberMetadata.hasIndex(indexName)) {
+                String indexUUID = subscriberMetadata.getIndex(relationName, indexMetadata.partitionValues(), false, IndexMetadata::getIndexUUID);
+                if (indexUUID == null) {
                     String partitionIdent = PartitionName.encodeIdent(indexMetadata.partitionValues());
                     toRestore.add(new TableOrPartition(relationName, partitionIdent));
                     relationNamesForStateUpdate.add(relationName);
@@ -510,10 +511,15 @@ public final class MetadataTracker implements Closeable {
         HashSet<RelationName> changedRelations = new HashSet<>();
         HashSet<Index> partitionsToRemove = new HashSet<>();
         Metadata subscriberMetadata = subscriberClusterState.metadata();
+        Metadata.Builder updatedMetadataBuilder = Metadata.builder(subscriberMetadata);
         for (var relationName : subscription.relations().keySet()) {
             RelationMetadata.Table publisherTable = publisherMetadata.getRelation(relationName);
             if (publisherTable == null) {
                 changedRelations.add(relationName);
+                continue;
+            }
+            RelationMetadata.Table subscriberTable = subscriberMetadata.getRelation(relationName);
+            if (subscriberTable == null) {
                 continue;
             }
             // Check for possible dropped partitions
@@ -527,7 +533,9 @@ public final class MetadataTracker implements Closeable {
             }
         }
 
-        var updatedClusterState = subscriberClusterState;
+        var updatedClusterState = ClusterState.builder(subscriberClusterState)
+            .metadata(updatedMetadataBuilder)
+            .build();
 
         if (partitionsToRemove.isEmpty() == false) {
             updatedClusterState = MetadataDeleteIndexService.deleteIndices(
@@ -536,6 +544,7 @@ public final class MetadataTracker implements Closeable {
                 allocationService,
                 partitionsToRemove
             );
+
         }
         if (changedRelations.isEmpty() == false) {
             HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();

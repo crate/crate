@@ -51,6 +51,7 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.views.TransportCreateView;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -143,7 +144,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
         } else {
             stateUpdateListener = createIndexService.withWaitForShards(
                 listener,
-                relationName.indexNameOrAlias(),
+                relationName,
                 ActiveShardCount.DEFAULT,
                 request.ackTimeout(),
                 (stateAck, shardsAck) -> new CreateTableResponse(stateAck && shardsAck)
@@ -158,8 +159,14 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
 
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
-                String indexName = relationName.indexNameOrAlias();
-                MetadataCreateIndexService.validateIndexName(indexName, currentState);
+                // Validate the relation name
+                // TODO: These restrictions are mostly artificial nowadays and can be lifted?
+                IndexName.validate(relationName.indexNameOrAlias());
+
+                RelationMetadata.Table table = currentState.metadata().getRelation(relationName);
+                if (table != null) {
+                    throw new RelationAlreadyExists(table.name());
+                }
 
                 ClusterState newState = ClusterState.builder(currentState).build();
                 Metadata newMetadata = Metadata.builder(newState.metadata())
@@ -177,7 +184,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                         List.of(),
                         0
                     ).build();
-                RelationMetadata.Table table = newMetadata.getRelation(relationName);
+                table = newMetadata.getRelation(relationName);
                 assert table != null : "table must not be null";
 
                 newState = ClusterState.builder(newState).metadata(newMetadata).build();

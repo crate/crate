@@ -86,13 +86,14 @@ public class SchemasITest extends IntegTestCase {
         );
 
         Set<String> nodes = routing.nodes();
+        String indexUUID = resolveIndex("t1").getUUID();
 
         assertThat(nodes.size()).isBetween(1, 2); // for the rare case
         // where all shards are on 1 node
         int numShards = 0;
         for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {
-                assertThat(indexEntry.getKey()).isEqualTo(getFqn("t1"));
+                assertThat(indexEntry.getKey()).isEqualTo(indexUUID);
                 numShards += indexEntry.getValue().size();
             }
         }
@@ -123,17 +124,17 @@ public class SchemasITest extends IntegTestCase {
         Routing routing = ti.getRouting(
             clusterService.state(), routingProvider, null, null, CoordinatorSessionSettings.systemDefaults());
 
-        Set<String> tables = new HashSet<>();
-        Set<String> expectedTables = Set.of(getFqn("t2"), getFqn("t3"));
+        Set<String> indexUUIDs = new HashSet<>();
+        Set<String> expectedIndexUUIDs = Set.of(resolveIndex("t2").getUUID(), resolveIndex("t3").getUUID());
         int numShards = 0;
         for (Map.Entry<String, Map<String, IntIndexedContainer>> nodeEntry : routing.locations().entrySet()) {
             for (Map.Entry<String, IntIndexedContainer> indexEntry : nodeEntry.getValue().entrySet()) {
-                tables.add(indexEntry.getKey());
+                indexUUIDs.add(indexEntry.getKey());
                 numShards += indexEntry.getValue().size();
             }
         }
         assertThat(numShards).isEqualTo(12);
-        assertThat(tables).isEqualTo(expectedTables);
+        assertThat(indexUUIDs).isEqualTo(expectedIndexUUIDs);
     }
 
     @Test

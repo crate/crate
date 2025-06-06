@@ -92,8 +92,8 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
         final Version minIndexCompatibilityVersion = currentState.nodes().getMaxNodeVersion()
             .minimumIndexCompatibilityVersion();
         for (IndexMetadata closedMetadata : closedIndices) {
-            final String indexName = closedMetadata.getIndex().getName();
-            blocksBuilder.removeIndexBlockWithId(indexName, TransportCloseTable.INDEX_CLOSED_BLOCK_ID);
+            final String indexUUID = closedMetadata.getIndex().getUUID();
+            blocksBuilder.removeIndexBlockWithId(indexUUID, TransportCloseTable.INDEX_CLOSED_BLOCK_ID);
 
             if (closedMetadata.getState() == IndexMetadata.State.OPEN) {
                 continue;
@@ -113,7 +113,7 @@ public class OpenTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
             try {
                 indicesService.verifyIndexMetadata(updatedIndexMetadata, updatedIndexMetadata);
             } catch (Exception e) {
-                throw new ElasticsearchException("Failed to verify index " + indexName, e);
+                throw new ElasticsearchException("Failed to verify index " + indexUUID, e);
             }
 
             mdBuilder.put(updatedIndexMetadata, true);

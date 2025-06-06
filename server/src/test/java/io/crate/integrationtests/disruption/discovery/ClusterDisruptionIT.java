@@ -22,7 +22,6 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,7 +64,6 @@ import org.junit.Test;
 import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.DuplicateKeyException;
-import io.crate.metadata.IndexName;
 
 /**
  * Tests various cluster operations (e.g., indexing) during disruptions.
@@ -311,6 +309,8 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
         ensureGreen();
         String nonMasterNodeId = cluster().clusterService(nonMasterNode).localNode().getId();
 
+        String indexUUUUD = resolveIndex("t").getUUID();
+
         // fail a random shard
         ShardRouting failedShard =
             randomFrom(clusterService().state().getRoutingNodes().node(nonMasterNodeId).shardsWithState(
@@ -363,7 +363,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
 
         // the failed shard should be gone
         List<ShardRouting> shards = clusterService().state().routingTable()
-            .allShards(IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null));
+            .allShards(indexUUUUD);
         for (ShardRouting shard : shards) {
             assertThat(shard.allocationId()).isNotEqualTo(failedShard.allocationId());
         }
@@ -372,7 +372,6 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
     @Test
     public void testRestartNodeWhileIndexing() throws Exception {
         startCluster(3);
-        String index = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
 
         int numberOfReplicas = between(1, 2);
         logger.info("creating table with {} shards and {} replicas", 1, numberOfReplicas);
@@ -398,6 +397,9 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
             threads[i].start();
         }
         ensureGreen();
+
+        String indexUUID = resolveIndex("t").getUUID();
+
         assertBusy(() -> assertThat(docID.get()).isGreaterThanOrEqualTo(100));
         cluster().restartRandomDataNode(new TestCluster.RestartCallback());
         ensureGreen();
@@ -407,7 +409,7 @@ public class ClusterDisruptionIT extends AbstractDisruptionTestCase {
             thread.join();
         }
         ClusterState clusterState = cluster().clusterService().state();
-        for (ShardRouting shardRouting : clusterState.routingTable().allShards(index)) {
+        for (ShardRouting shardRouting : clusterState.routingTable().allShards(indexUUID)) {
             String nodeName = clusterState.nodes().get(shardRouting.currentNodeId()).getName();
             IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeName);
             IndexShard shard = indicesService.getShardOrNull(shardRouting.shardId());
