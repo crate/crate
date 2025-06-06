@@ -1179,6 +1179,7 @@ each of them, the breaker limit can be set.
 
 Total circuit breaker
 ---------------------
+Also known as Parent circuit breaker.
 
 .. _indices.breaker.total.limit:
 
