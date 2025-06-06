@@ -385,15 +385,19 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
     @Test
     public void testSizeShrinkIndex() {
         ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
-        shardSizes.put("[test][0][p]", 10L);
-        shardSizes.put("[test][1][p]", 100L);
-        shardSizes.put("[test][2][p]", 500L);
-        shardSizes.put("[test][3][p]", 500L);
+        shardSizes.put("[1234][0][p]", 10L);
+        shardSizes.put("[1234][1][p]", 100L);
+        shardSizes.put("[1234][2][p]", 500L);
+        shardSizes.put("[1234][3][p]", 500L);
+
+        final Index index = new Index("test", "1234");
 
         ClusterInfo info = new DevNullClusterInfo(ImmutableOpenMap.of(), ImmutableOpenMap.of(), shardSizes.build());
         Metadata.Builder metaBuilder = Metadata.builder();
-        metaBuilder.put(IndexMetadata.builder("test").settings(settings(Version.CURRENT).put("index.uuid", "1234"))
-                            .numberOfShards(4).numberOfReplicas(0));
+        metaBuilder.put(IndexMetadata.builder(index.getUUID())
+                .settings(settings(Version.CURRENT).put("index.uuid", "1234"))
+                .indexName(index.getName())
+                .numberOfShards(4).numberOfReplicas(0));
         metaBuilder.put(IndexMetadata.builder("target").settings(settings(Version.CURRENT).put("index.uuid", "5678")
                                                                      .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test").put(
                         IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, "1234"))
@@ -405,7 +409,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
                             .numberOfShards(2).numberOfReplicas(0));
         Metadata metadata = metaBuilder.build();
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
-        routingTableBuilder.addAsNew(metadata.index("test"));
+        routingTableBuilder.addAsNew(metadata.index(index.getUUID()));
         routingTableBuilder.addAsNew(metadata.index("target"));
         routingTableBuilder.addAsNew(metadata.index("target2"));
         ClusterState clusterState = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING
@@ -417,11 +421,10 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         clusterState = allocationService.reroute(clusterState, "foo");
 
         clusterState = startShardsAndReroute(allocationService, clusterState,
-            clusterState.routingTable().index("test").shardsWithState(ShardRoutingState.UNASSIGNED));
+            clusterState.routingTable().index(index.getUUID()).shardsWithState(ShardRoutingState.UNASSIGNED));
 
         RoutingAllocation allocation = new RoutingAllocation(null, clusterState.getRoutingNodes(), clusterState, info, null,0);
 
-        final Index index = new Index("test", "1234");
         ShardRouting test_0 = ShardRouting.newUnassigned(new ShardId(index, 0), true,
                                                          LocalShardsRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
         test_0 = ShardRoutingHelper.initialize(test_0, "node1");
@@ -458,8 +461,8 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
         // check that the DiskThresholdDecider still works even if the source index has been deleted
         ClusterState clusterStateWithMissingSourceIndex = ClusterState.builder(clusterState)
-            .metadata(Metadata.builder(metadata).remove("test"))
-            .routingTable(RoutingTable.builder(clusterState.routingTable()).remove("test").build())
+            .metadata(Metadata.builder(metadata).remove(index.getUUID()))
+            .routingTable(RoutingTable.builder(clusterState.routingTable()).remove(index.getUUID()).build())
             .build();
 
         allocationService.reroute(clusterState, "foo");

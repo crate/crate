@@ -42,6 +42,7 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -364,12 +365,13 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
             .build();
 
         var numberOfShards = 85;
-        var indexRoutingTableBuilder = IndexRoutingTable.builder(new Index("test", UUID.randomUUID().toString()));
+        Index index = new Index("test", UUIDs.randomBase64UUID());
+        var indexRoutingTableBuilder = IndexRoutingTable.builder(index);
         // Create a routing table for 85 shards on the same node
         for (int i = 1; i <= numberOfShards; i++) {
             indexRoutingTableBuilder.addShard(
                 TestShardRouting.newShardRouting(
-                    "test",
+                    index.getUUID(),
                     i,
                     nodeId,
                     true,
@@ -379,7 +381,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         }
 
         var routingTable = RoutingTable.builder().add(indexRoutingTableBuilder).build();
-        var meta = IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(numberOfShards).numberOfReplicas(0);
+        var meta = IndexMetadata.builder(index.getUUID()).settings(settings(Version.CURRENT)).numberOfShards(numberOfShards).numberOfReplicas(0);
         var clusterState = ClusterState.builder(new ClusterName("crate")).version(1L)
             .metadata(Metadata.builder().put(meta)).routingTable(routingTable).nodes(discoveryNodes).build();
 

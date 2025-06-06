@@ -253,7 +253,7 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
         final SnapshotShardSizeInfo snapshotShardSizeInfo = snapshotsInfoService.snapshotShardSizes();
         for (Map.Entry<InternalSnapshotsInfoService.SnapshotShard, Long> snapshotShard : results.entrySet()) {
             final ShardId shardId = snapshotShard.getKey().shardId();
-            final ShardRouting shardRouting = clusterService.state().routingTable().index(shardId.getIndexName())
+            final ShardRouting shardRouting = clusterService.state().routingTable().index(shardId.getIndexUUID())
                 .shard(shardId.id()).primaryShard();
             assertThat(shardRouting).isNotNull();
 

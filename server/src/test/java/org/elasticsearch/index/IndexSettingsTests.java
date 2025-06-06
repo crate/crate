@@ -23,7 +23,6 @@ package org.elasticsearch.index;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -55,8 +54,7 @@ public class IndexSettingsTests extends ESTestCase {
     public void testRunListener() {
         Version version = VersionUtils.getPreviousVersion();
         Settings theSettings = Settings.builder()
-            .put(IndexMetadata.SETTING_VERSION_CREATED, version)
-            .put(IndexMetadata.SETTING_INDEX_UUID, "0xdeadbeef").build();
+            .put(IndexMetadata.SETTING_VERSION_CREATED, version).build();
         final AtomicInteger integer = new AtomicInteger(0);
         Setting<Integer> integerSetting = Setting.intSetting(
             "index.test.setting.int",
@@ -70,7 +68,6 @@ public class IndexSettingsTests extends ESTestCase {
         settings.getScopedSettings().addSettingsUpdateConsumer(integerSetting, integer::set);
 
         assertThat(settings.getIndexVersionCreated()).isEqualTo(version);
-        assertThat(settings.getUUID()).isEqualTo("0xdeadbeef");
 
         assertThat(settings.updateIndexMetadata(metaData)).isFalse();
         assertThat(settings.getSettings()).isEqualTo(metaData.getSettings());
@@ -92,7 +89,6 @@ public class IndexSettingsTests extends ESTestCase {
         Version version = VersionUtils.getPreviousVersion();
         Settings theSettings = Settings.builder()
             .put(IndexMetadata.SETTING_VERSION_CREATED, version)
-            .put(IndexMetadata.SETTING_INDEX_UUID, "0xdeadbeef")
             .build();
         final AtomicInteger integer = new AtomicInteger(0);
         Setting<Integer> integerSetting = Setting.intSetting(
@@ -113,7 +109,6 @@ public class IndexSettingsTests extends ESTestCase {
             });
 
         assertThat(settings.getIndexVersionCreated()).isEqualTo(version);
-        assertThat(settings.getUUID()).isEqualTo("0xdeadbeef");
 
         assertThat(settings.updateIndexMetadata(metaData)).isFalse();
         assertThat(settings.getSettings()).isEqualTo(metaData.getSettings());
@@ -143,7 +138,6 @@ public class IndexSettingsTests extends ESTestCase {
         Version version = VersionUtils.getPreviousVersion();
         Settings theSettings = Settings.builder()
             .put(IndexMetadata.SETTING_VERSION_CREATED, version)
-            .put(IndexMetadata.SETTING_INDEX_UUID, "0xdeadbeef")
             .build();
         final AtomicInteger integer = new AtomicInteger(0);
         final StringBuilder builder = new StringBuilder();
@@ -199,7 +193,7 @@ public class IndexSettingsTests extends ESTestCase {
         );
         final IndexSettings settings = new IndexSettings(metaData, Settings.EMPTY);
         assertThat(settings.getIndexVersionCreated()).isEqualTo(version);
-        assertThat(settings.getUUID()).isEqualTo("_na_");
+        assertThat(settings.getIndex().getName()).isEqualTo("_na_");
 
         assertThatThrownBy(() -> {
             settings.updateIndexMetadata(
@@ -224,7 +218,7 @@ public class IndexSettingsTests extends ESTestCase {
                 .build());
         IndexSettings settings2 = new IndexSettings(metaData, Settings.EMPTY);
         assertThat(settings2.getIndexVersionCreated()).isEqualTo(Version.fromId(unknownVersion));
-        assertThat(settings2.getUUID()).isEqualTo("_na_");
+        assertThat(settings2.getIndex().getName()).isEqualTo("_na_");
         settings2.updateIndexMetadata(
             newIndexMeta(
                 "index",
@@ -248,12 +242,13 @@ public class IndexSettingsTests extends ESTestCase {
                     "index",
                     Settings.builder()
                         .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                        .put(IndexMetadata.SETTING_INDEX_UUID, "_na_")
                         .put("index.test.setting.int", 42)
                         .build()
                 )
             );
         }).isExactlyInstanceOf(IllegalArgumentException.class)
-            .hasMessage("uuid mismatch on settings update expected: 0xdeadbeef but was: _na_");
+            .hasMessage("uuid mismatch on settings update expected: index but was: _na_");
         assertThat(settings3.getSettings()).isEqualTo(metaData.getSettings());
     }
 
@@ -307,6 +302,7 @@ public class IndexSettingsTests extends ESTestCase {
         Settings build = Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 1)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
+            .put(IndexMetadata.SETTING_INDEX_UUID, name)
             .put(indexSettings)
             .build();
         return IndexMetadata.builder(name).settings(build).build();

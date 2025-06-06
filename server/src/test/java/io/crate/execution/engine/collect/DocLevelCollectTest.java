@@ -139,7 +139,7 @@ public class DocLevelCollectTest extends IntegTestCase {
                 locations.put(shardRouting.currentNodeId(), shardIds);
             }
 
-            IntIndexedContainer shardIdSet = shardIds.get(shardRouting.getIndexName());
+            IntIndexedContainer shardIdSet = shardIds.get(shardRouting.getIndexUUID());
             if (shardIdSet == null) {
                 shardIdSet = new IntArrayList();
                 shardIds.put(shardRouting.index().getName(), shardIdSet);

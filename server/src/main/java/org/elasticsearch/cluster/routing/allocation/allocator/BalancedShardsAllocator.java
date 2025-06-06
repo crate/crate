@@ -337,7 +337,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
             assert currentNode != null : "currently assigned node could not be found";
 
             // balance the shard, if a better node can be found
-            final String idxName = shard.getIndexName();
+            final String idxName = shard.getIndexUUID();
             final float currentWeight = weight.weight(this, currentNode, idxName);
             final AllocationDeciders deciders = allocation.deciders();
             Type rebalanceDecisionType = Type.NO;
@@ -652,7 +652,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                 return MoveDecision.stay(canRemain);
             }
 
-            sorter.reset(shardRouting.getIndexName());
+            sorter.reset(shardRouting.getIndexUUID());
             /*
              * the sorter holds the minimum weight node first for the shards index.
              * We now walk through the nodes until we find a node to allocate the shard.
@@ -742,7 +742,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
                 if (o1.primary() ^ o2.primary()) {
                     return o1.primary() ? -1 : 1;
                 }
-                if (o1.getIndexName().compareTo(o2.getIndexName()) == 0) {
+                if (o1.getIndexUUID().compareTo(o2.getIndexUUID()) == 0) {
                     return o1.getId() - o2.getId();
                 }
                 // this comparator is more expensive than all the others up there

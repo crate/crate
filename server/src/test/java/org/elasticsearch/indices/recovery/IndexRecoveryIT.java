@@ -24,7 +24,6 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
 
 import java.io.IOException;
@@ -58,6 +57,7 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -115,6 +115,7 @@ import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.RelationName;
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
 public class IndexRecoveryIT extends IntegTestCase {
@@ -265,7 +266,10 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen();
 
         logger.info("--> request recoveries");
-        final Index index = resolveIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        final Index index = resolveIndex(indexUUID);
         var indicesService = cluster().getInstance(IndicesService.class, node);
         var shard = indicesService.indexService(index).getShard(0);
 
@@ -301,12 +305,15 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("CREATE TABLE " + INDEX_NAME + " (id BIGINT, data TEXT) " +
                 " CLUSTERED INTO " + SHARD_COUNT + " SHARDS WITH (number_of_replicas=" + REPLICA_COUNT + ")");
         ensureGreen();
-        final Index index = resolveIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        final Index index = resolveIndex(indexUUID);
 
         final int numOfDocs = scaledRandomIntBetween(1, 200);
         try (BackgroundIndexer indexer = new BackgroundIndexer(
             sqlExecutor.getCurrentSchema(),
-            IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null),
+            relationName.indexNameOrAlias(),
             "data",
             sqlExecutor.jdbcUrl(),
             numOfDocs,
@@ -375,7 +382,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("OPTIMIZE TABLE " + INDEX_NAME);
         //assertThat(client().prepareSyncedFlush(INDEX_NAME).get().failedShards()).isEqualTo(0));
 
-        final Index index = resolveIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
+        final Index index = resolveIndex(indexUUID);
 
         // hold peer recovery on phase 2 after nodeB down
         CountDownLatch phase1ReadyBlocked = new CountDownLatch(1);
@@ -445,6 +456,10 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         ensureGreen();
 
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
         logger.info("--> slowing down recoveries");
         slowDownRecovery(shardSize);
 
@@ -452,7 +467,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("ALTER TABLE " + INDEX_NAME + " REROUTE MOVE SHARD 0 FROM '" + nodeA + "' TO '" + nodeB + "'");
 
         logger.info("--> waiting for recovery to start both on source and target");
-        final Index index = resolveIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
+        final Index index = resolveIndex(indexUUID);
         assertBusy(() -> {
             IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeA);
             assertThat(indicesService.indexServiceSafe(index).getShard(0).recoveryStats().currentAsSource())
@@ -601,19 +616,21 @@ public class IndexRecoveryIT extends IntegTestCase {
         SnapshotId snapshotId = new SnapshotId(SNAP_NAME, uuid);
 
         logger.info("--> request recoveries");
-        var indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null);
 
         Repository repository = cluster().getMasterNodeInstance(RepositoriesService.class).repository(REPO_NAME);
         RepositoryData repositoryData = repository.getRepositoryData().get(5, TimeUnit.SECONDS);
 
-        final Index index = resolveIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), INDEX_NAME, null));
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        final Index index = resolveIndex(indexUUID);
         var indicesServiceA = cluster().getInstance(IndicesService.class, nodeA);
         var shardA = indicesServiceA.indexService(index).getShard(0);
         var recoveryState = shardA.recoveryState();
         RecoverySource.SnapshotRecoverySource recoverySource = new RecoverySource.SnapshotRecoverySource(
             ((RecoverySource.SnapshotRecoverySource)recoveryState.getRecoverySource()).restoreUUID(),
             new Snapshot(REPO_NAME, snapshotId),
-            Version.CURRENT, repositoryData.resolveIndexId(indexName));
+            Version.CURRENT, repositoryData.resolveIndexId(indexUUID));
         assertRecoveryState(recoveryState, 0, recoverySource, true, RecoveryState.Stage.DONE, null, nodeA);
         validateIndexRecoveryState(recoveryState.getIndex());
     }
@@ -1067,7 +1084,10 @@ public class IndexRecoveryIT extends IntegTestCase {
         String nodeA = cluster().startNode(randomFrom(firstNodeToStopDataPathSettings, secondNodeToStopDataPathSettings));
         ensureGreen();
 
-        final Index index = resolveIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), "test", null));
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "test");
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        final Index index = resolveIndex(indexUUID);
         var indicesServiceA = cluster().getInstance(IndicesService.class, nodeA);
         var shardA = indicesServiceA.indexService(index).getShard(0);
         var recoveryState = shardA.recoveryState();
@@ -1168,7 +1188,9 @@ public class IndexRecoveryIT extends IntegTestCase {
         cluster().ensureAtLeastNumDataNodes(2);
         List<String> nodes = randomSubsetOf(2, StreamSupport.stream(clusterService().state().nodes().getDataNodes().spliterator(), false)
             .map(node -> node.value.getName()).collect(Collectors.toSet()));
-        String indexName = "test";
+        RelationName relationName = new RelationName("doc", "test");
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
         execute("CREATE TABLE doc.test (num INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (" +
@@ -1195,7 +1217,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             transportService.addSendBehavior((connection, requestId, action, request, options) -> {
                 if (action.equals(PeerRecoverySourceService.Actions.START_RECOVERY)) {
                     final RecoveryState recoveryState = cluster().getInstance(IndicesService.class, failingNode)
-                        .getShardOrNull(new ShardId(resolveIndex(indexName), 0)).recoveryState();
+                        .getShardOrNull(new ShardId(resolveIndex(indexUUID), 0)).recoveryState();
                     assertThat(recoveryState.getTranslog().recoveredOperations()).isEqualTo(recoveryState.getTranslog().totalLocal());
                     if (startRecoveryRequestFuture.isDone()) {
                         assertThat(recoveryState.getTranslog().totalLocal()).isEqualTo(0);
@@ -1208,7 +1230,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 }
                 if (action.equals(PeerRecoveryTargetService.Actions.FILE_CHUNK)) {
                     RetentionLeases retentionLeases = cluster().getInstance(IndicesService.class, node)
-                        .indexServiceSafe(resolveIndex(indexName))
+                        .indexServiceSafe(resolveIndex(indexUUID))
                         .getShard(0).getRetentionLeases();
                     throw new AssertionError("expect an operation-based recovery:" +
                                              "retention leases" + retentionLeases + "]");
@@ -1217,7 +1239,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             });
         }
         IndexShard shard = cluster().getInstance(IndicesService.class, failingNode)
-            .getShardOrNull(new ShardId(resolveIndex(indexName), 0));
+            .getShardOrNull(new ShardId(resolveIndex(indexUUID), 0));
         final long lastSyncedGlobalCheckpoint = shard.getLastSyncedGlobalCheckpoint();
         final long localCheckpointOfSafeCommit;
         try(Engine.IndexCommitRef safeCommitRef = shard.acquireSafeIndexCommit()){
@@ -1239,7 +1261,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         String recoveringNode = startRecoveryRequest.targetNode().getName();
         IndexShard recoveringShard = cluster().getInstance(IndicesService.class, recoveringNode)
-            .getShardOrNull(new ShardId(resolveIndex(indexName), 0));
+            .getShardOrNull(new ShardId(resolveIndex(indexUUID), 0));
         var recoveryState = recoveringShard.recoveryState();
         assertThat(recoveryState.getIndex().fileDetails().values())
             .as("expect an operation-based recovery")
@@ -1258,7 +1280,6 @@ public class IndexRecoveryIT extends IntegTestCase {
     public void testUsesFileBasedRecoveryIfRetentionLeaseMissing() throws Exception {
         cluster().ensureAtLeastNumDataNodes(2);
 
-        String indexName = "test";
         execute("CREATE TABLE doc.test (num INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (" +
@@ -1273,7 +1294,10 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
         ensureGreen();
 
-        final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
+        RelationName relationName = new RelationName("doc", "test");
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        final ShardId shardId = new ShardId(resolveIndex(indexUUID), 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
@@ -1310,7 +1334,6 @@ public class IndexRecoveryIT extends IntegTestCase {
     public void testUsesFileBasedRecoveryIfRetentionLeaseAheadOfGlobalCheckpoint() throws Exception {
         cluster().ensureAtLeastNumDataNodes(2);
 
-        String indexName = "test";
         execute("CREATE TABLE doc.test (num INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (" +
@@ -1325,7 +1348,10 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
         ensureGreen();
 
-        final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
+        RelationName relationName = new RelationName("doc", "test");
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        final ShardId shardId = new ShardId(resolveIndex(indexUUID), 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
@@ -1373,7 +1399,6 @@ public class IndexRecoveryIT extends IntegTestCase {
     public void testUsesFileBasedRecoveryIfOperationsBasedRecoveryWouldBeUnreasonable() throws Exception {
         cluster().ensureAtLeastNumDataNodes(2);
 
-        String indexName = "test";
         var settings = new ArrayList<String>();
         settings.add("number_of_replicas = 1");
         settings.add("\"unassigned.node_left.delayed_timeout\"='12h'");
@@ -1400,10 +1425,14 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
         ensureGreen();
 
+        RelationName relationName = new RelationName("doc", "test");
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
         execute("OPTIMIZE TABLE doc.test");
         // wait for all history to be discarded
         assertBusy(() -> {
-            var indicesStats = client().stats(new IndicesStatsRequest(indexName)).get();
+            var indicesStats = client().stats(new IndicesStatsRequest(indexUUID)).get();
             for (ShardStats shardStats : indicesStats.getShards()) {
                 final long maxSeqNo = shardStats.getSeqNoStats().getMaxSeqNo();
                 assertThat(shardStats.getRetentionLeaseStats().leases().leases().stream().allMatch(
@@ -1412,18 +1441,18 @@ public class IndexRecoveryIT extends IntegTestCase {
         });
         execute("OPTIMIZE TABLE doc.test"); // ensure that all operations are in the safe commit
 
-        var indicesStats = client().stats(new IndicesStatsRequest(indexName)).get();
+        var indicesStats = client().stats(new IndicesStatsRequest(indexUUID)).get();
         final ShardStats shardStats = indicesStats.getShards()[0];
         final long docCount = shardStats.getStats().docs.getCount();
         assertThat(shardStats.getStats().docs.getDeleted()).isEqualTo(0L);
         assertThat(shardStats.getSeqNoStats().getMaxSeqNo() + 1).isEqualTo(docCount);
 
-        final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
+        final ShardId shardId = new ShardId(resolveIndex(indexUUID), 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
         final ShardRouting replicaShardRouting = indexShardRoutingTable.replicaShards().get(0);
-        indicesStats = client().stats(new IndicesStatsRequest(indexName)).get();
+        indicesStats = client().stats(new IndicesStatsRequest(indexUUID)).get();
         assertThat(indicesStats.getShards()[0].getRetentionLeaseStats()
                        .leases().contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as("should have lease for " + replicaShardRouting).isTrue();
         cluster().restartNode(discoveryNodes.get(replicaShardRouting.currentNodeId()).getName(),
@@ -1468,7 +1497,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                                               execute("OPTIMIZE TABLE doc.test");
 
                                               assertBusy(() -> {
-                                                  var indicesStats = client().stats(new IndicesStatsRequest(indexName)).get();
+                                                  var indicesStats = client().stats(new IndicesStatsRequest(indexUUID)).get();
                                                   assertThat(indicesStats.getShards()[0].getRetentionLeaseStats().leases().contains(
                                                             ReplicationTracker.getPeerRecoveryRetentionLeaseId(replicaShardRouting))).as(
                                                         "should no longer have lease for " + replicaShardRouting).isFalse();
@@ -1487,7 +1516,6 @@ public class IndexRecoveryIT extends IntegTestCase {
     public void testDoesNotCopyOperationsInSafeCommit() throws Exception {
         cluster().ensureAtLeastNumDataNodes(2);
 
-        String indexName = "test";
         execute("CREATE TABLE doc.test (num INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (" +
@@ -1500,7 +1528,11 @@ public class IndexRecoveryIT extends IntegTestCase {
         }
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
 
-        final ShardId shardId = new ShardId(resolveIndex(indexName), 0);
+        RelationName relationName = new RelationName("doc", "test");
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
+        final ShardId shardId = new ShardId(resolveIndex(indexUUID), 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
