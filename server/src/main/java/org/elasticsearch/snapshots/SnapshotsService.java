@@ -277,7 +277,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         table.name(),
                         List.of(),
                         false,
-                        im -> im.getIndex().getName()
+                        im -> im.getIndex().getUUID()
                     );
                     indices.addAll(relationIndices);
                 }
@@ -289,7 +289,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         partitionName.relationName(),
                         partitionName.values(),
                         false,
-                        im -> im.getIndex().getName()
+                        im -> im.getIndex().getUUID()
                     );
                     indices.addAll(partitionIndices);
                 }
@@ -301,7 +301,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         .filter(entry -> entry.repository().equals(repositoryName))
                         .flatMap(entry -> entry.indices().stream())
                         .distinct()
-                        .collect(Collectors.toMap(IndexId::getName, Function.identity()))
+                        .collect(Collectors.toMap(IndexId::getId, Function.identity()))
                 );
                 final Version version = minCompatibleVersion(currentState.nodes().getMinNodeVersion(), repositoryData, null);
                 ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards = shards(
@@ -318,7 +318,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     Set<String> missing = new HashSet<>();
                     for (ObjectObjectCursor<ShardId, SnapshotsInProgress.ShardSnapshotStatus> entry : shards) {
                         if (entry.value.state() == ShardState.MISSING) {
-                            missing.add(entry.key.getIndex().getName());
+                            missing.add(entry.key.getIndex().getUUID());
                         }
                     }
                     if (missing.isEmpty() == false) {

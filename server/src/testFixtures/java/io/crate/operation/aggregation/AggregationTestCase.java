@@ -512,7 +512,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .put(Settings.EMPTY)
             .build();
-        var indexMetadata = IndexMetadata.builder(routing.getIndexName())
+        var indexMetadata = IndexMetadata.builder(routing.getIndexUUID())
             .settings(indexSettings)
             .primaryTerm(0, 1)
             .putMapping(Strings.toString(mapping))

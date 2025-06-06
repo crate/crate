@@ -21,6 +21,7 @@ package org.elasticsearch.snapshots;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -36,6 +37,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
 import org.junit.Test;
 
+import io.crate.metadata.RelationName;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -73,13 +75,14 @@ public class AbortedRestoreIT extends AbstractSnapshotIntegTestCase {
             new Object[0][]
         );
 
-        String indexName = "tbl";
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "tbl");
+        String indexUUID = clusterService().state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
 
         assertBusy(() -> {
             ClusterService clusterService = cluster().getInstance(ClusterService.class);
-            IndexMetadata indexMetadata = clusterService.state().metadata().index(indexName);
+            IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);
             assertThat(indexMetadata).isNotNull();
-            var index = new Index(indexName, indexMetadata.getIndexUUID());
+            var index = new Index(relationName.indexNameOrAlias(), indexMetadata.getIndexUUID());
             var indicesService = cluster().getInstance(IndicesService.class, dataNode);
             var indexService = indicesService.indexService(index);
             assertThat(indexService).isNotNull();

@@ -55,6 +55,7 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.RelationName;
 import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
@@ -440,7 +441,7 @@ public class IndexServiceTests extends IntegTestCase {
     public void testUpdateSyncIntervalDynamically() throws Exception {
         execute("create table test (x int) clustered into 1 shards with (\"translog.sync_interval\" = '10s')");
         IndexService indexService = getIndexService("test");
-        var indexName = indexService.index().getName();
+        var indexUUID = indexService.index().getUUID();
 
         ensureGreen();
         assertThat(indexService.getFsyncTask()).isNull();
@@ -452,14 +453,14 @@ public class IndexServiceTests extends IntegTestCase {
 
         IndexMetadata indexMetadata = client()
             .state(new ClusterStateRequest())
-            .get().getState().metadata().index(indexName);
+            .get().getState().metadata().index(indexUUID);
         assertThat(indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey())).isEqualTo("5s");
 
         execute("alter table test close");
         execute("alter table test set (\"translog.sync_interval\" = '20s')");
         indexMetadata = client()
             .state(new ClusterStateRequest())
-            .get().getState().metadata().index(indexName);
+            .get().getState().metadata().index(indexUUID);
         assertThat(indexMetadata.getSettings().get(IndexSettings.INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.getKey())).isEqualTo("20s");
     }
 
@@ -476,7 +477,11 @@ public class IndexServiceTests extends IntegTestCase {
     }
 
     private IndexService getIndexService(String index) {
-        return getIndicesService().indexServiceSafe(resolveIndex(getFqn(index)));
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), index);
+        String indexUUID = clusterService().state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
+        return getIndicesService().indexServiceSafe(resolveIndex(indexUUID));
     }
 
     private IndicesService getIndicesService() {

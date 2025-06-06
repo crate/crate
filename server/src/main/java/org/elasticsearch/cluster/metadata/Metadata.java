@@ -735,8 +735,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        public IndexMetadata get(String index) {
-            return indices.get(index);
+        public IndexMetadata get(String indexUUID) {
+            return indices.get(indexUUID);
         }
 
         public IndexMetadata getSafe(Index index) {

@@ -194,9 +194,9 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             if ((state == State.INIT || state == State.ABORTED) && shards.isEmpty()) {
                 return true;
             }
-            final Set<String> indexNames = indices.stream().map(IndexId::getName).collect(Collectors.toSet());
+            final Set<String> indexNames = indices.stream().map(IndexId::getId).collect(Collectors.toSet());
             final Set<String> indexNamesInShards = new HashSet<>();
-            shards.keysIt().forEachRemaining(s -> indexNamesInShards.add(s.getIndexName()));
+            shards.keysIt().forEachRemaining(s -> indexNamesInShards.add(s.getIndexUUID()));
             assert indexNames.equals(indexNamesInShards)
                 : "Indices in shards " + indexNamesInShards + " differ from expected indices " + indexNames +
                   " for state [" + state + "]";

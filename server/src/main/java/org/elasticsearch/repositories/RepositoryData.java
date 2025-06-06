@@ -35,6 +35,7 @@ import java.util.stream.Collectors;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -432,8 +433,8 @@ public final class RepositoryData {
      * Resolve the index name to the index id specific to the repository,
      * throwing an exception if the index could not be resolved.
      */
-    public IndexId resolveIndexId(final String indexName) {
-        return Objects.requireNonNull(indices.get(indexName), () -> "Tried to resolve unknown index [" + indexName + "]");
+    public IndexId resolveIndexId(final String indexUUID) {
+        return Objects.requireNonNull(indices.get(indexUUID), () -> "Tried to resolve unknown index [" + indexUUID + "]");
     }
 
     /**
@@ -445,13 +446,13 @@ public final class RepositoryData {
      */
     public List<IndexId> resolveNewIndices(List<String> indicesToResolve, Map<String, IndexId> inFlightIds) {
         List<IndexId> snapshotIndices = new ArrayList<>();
-        for (String index : indicesToResolve) {
-            IndexId indexId = indices.get(index);
+        for (String indexUUID : indicesToResolve) {
+            IndexId indexId = indices.get(indexUUID);
             if (indexId == null) {
-                indexId = inFlightIds.get(index);
+                indexId = inFlightIds.get(indexUUID);
             }
             if (indexId == null) {
-                indexId = new IndexId(index, UUIDs.randomBase64UUID());
+                indexId = new IndexId(IndexMetadata.INDEX_NAME_NA_VALUE, indexUUID);
             }
             snapshotIndices.add(indexId);
         }
