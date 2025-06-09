@@ -33,7 +33,10 @@ import org.apache.arrow.vector.IntVector;
 import org.apache.arrow.vector.ValueVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.complex.ListVector;
 import org.apache.arrow.vector.complex.MapVector;
+import org.apache.arrow.vector.complex.StructVector;
+import org.apache.arrow.vector.complex.impl.UnionListWriter;
 import org.apache.arrow.vector.complex.impl.UnionMapReader;
 import org.apache.arrow.vector.complex.impl.UnionMapWriter;
 import org.apache.arrow.vector.complex.writer.BaseWriter;
@@ -48,6 +51,7 @@ import org.jetbrains.annotations.Nullable;
 
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.sql.tree.Extract;
 import io.crate.statistics.ColumnStats;
 
 public class Statistics {
@@ -111,10 +115,11 @@ public class Statistics {
         List<Field> columnStats = new ArrayList<>();
         columnStats.add(Field.notNullable("columnIdent", new ArrowType.Utf8()));
         columnStats.add(Field.notNullable("nullFraction", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
-        columnStats.add(Field.notNullable("averageSizeInBytes", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
-        columnStats.add(Field.notNullable("approxDistinct", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
-
-//        stats.add(new Field("statsByColumn", FieldType.nullable(new ArrowType.Map(false)), columnStats));
+//        columnStats.add(Field.notNullable("averageSizeInBytes", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
+//        columnStats.add(Field.notNullable("approxDistinct", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
+        Field columnStatsStruct = new Field("statsByColumn", FieldType.nullable(new ArrowType.Struct()), columnStats);
+        FieldType listType = new FieldType(true, new ArrowType.List(), null);
+        stats.add(new Field("statsByColumn",listType, List.of(columnStatsStruct)));
         Schema schema =  new Schema(stats);
         System.out.println("schema = " + schema);
 
@@ -137,54 +142,28 @@ public class Statistics {
 
         sizeInBytesVector.setValueCount(1);
 
+        ListVector statsByColumn = (ListVector) root.getVector("statsByColumn");
+        UnionListWriter listWriter = statsByColumn.getWriter();
+        listWriter.startList();
+        listWriter.setPosition(0);
+        BaseWriter.StructWriter struct = listWriter.struct();
+        struct.start();
+        struct.varChar("columnIdent").writeVarChar("column");
+        struct.float8("nullFraction").writeFloat8(10.0);
+        struct.end();
+        listWriter.endList();
+        listWriter.setValueCount(1);
+
+        root.setRowCount(1);
+
         VarCharVector relationName = (VarCharVector) root.getVector("relationName");
         System.out.println("relationName = " + new String(relationName.get(0)));
         BigIntVector numDocs = (BigIntVector) root.getVector("numDocs");
         System.out.println("numDocs = " + numDocs.get(0));
         BigIntVector sizeInBytes = (BigIntVector) root.getVector("numDocs");
         System.out.println("sizeInBytes = " + sizeInBytes.get(0));
-
-
-
-
-//        FieldType stringType = new FieldType(true, new ArrowType.Utf8(), null);
-//        FieldType mapType = new FieldType(true, new ArrowType.Map(false), null);
-//
-//        Field keyField = new Field("key", stringType, null);
-//        Field value1Field = new Field("value1", stringType, null);
-//        Field value2Field = new Field("value2", stringType, null);
-//
-//        List<Field> childFields = new ArrayList<>();
-//        childFields.add(keyField);
-//        childFields.add(value1Field);
-//        childFields.add(value2Field);
-//        Field points = new Field("points", mapType, childFields);
-//        System.out.print(points);
-//
-//        // map
-//
-//        MapVector vector = new MapVector("map", new RootAllocator(),
-//            FieldType.nullable(new ArrowType.Map(false)), null);
-//        BaseWriter.MapWriter writer = vector.getWriter();
-//
-//        writer.startMap();
-//        writer.startEntry();
-//        writer.key().integer().writeInt(1);
-//        writer.value().varChar().writeVarChar("foo");
-//        writer.endEntry();
-//        writer.startEntry();
-//        writer.key().integer().writeInt(2);
-//        writer.value().varChar().writeVarChar("bar");
-//        writer.endEntry();
-//        writer.endMap();
-//
-//        vector.setValueCount(1);
-//        System.out.println("vector = " + vector);
-//        for (int i = 0; i < vector.getValueCount(); i++) {
-//            if (!vector.isNull(i)) {
-//                JsonStringHashMap elements = (JsonStringHashMap) vector.getObject(i);
-//                System.out.println(elements);
-//            }
-//        }
+        ListVector statsByColumn1 = (ListVector) root.getVector("statsByColumn");
+        System.out.println("statsByColumn1 = " + statsByColumn1);
+        
     }
 }
