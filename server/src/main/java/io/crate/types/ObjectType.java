@@ -200,6 +200,12 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         }
     }
 
+    @Override
+    @SuppressWarnings("unchecked")
+    public Map<String, Object> valueForInsert(Map<String, Object> value) {
+        return convert(value, (dataType, v) -> ((DataType<Object>) dataType).valueForInsert(v));
+    }
+
     @SuppressWarnings("unchecked")
     private Map<String, Object> convert(Object value,
                                         BiFunction<DataType<?>, Object, Object> innerType) {

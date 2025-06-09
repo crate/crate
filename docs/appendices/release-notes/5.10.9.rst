@@ -47,4 +47,11 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue where length limits were not enforced during insertion.
+  e.g.::
+
+    CREATE TABLE t (o OBJECT AS (c CHAR(3)));
+    INSERT INTO t VALUES ({c='abcd'});
+
+  The insert succeeded before, but now it will cause an
+  ``IllegalArgumentException``.
