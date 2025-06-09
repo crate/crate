@@ -233,4 +233,16 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
         );
         assertThat(valueBytes).isEqualTo(2504L);
     }
+
+    @Test
+    public void test_valueForInsert_on_nested_object() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("c", "abcd");
+        var type = ObjectType.of(ColumnPolicy.DYNAMIC)
+            .setInnerType("c", CharacterType.of(3))
+            .build();
+        assertThatThrownBy(() -> type.valueForInsert(map))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast object element `c` with value `abcd` to type `text(3)`");
+    }
 }
