@@ -22,9 +22,19 @@
 package io.crate.statistics;
 
 import java.io.IOException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
+import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.vector.BigIntVector;
+import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.types.FloatingPointPrecision;
+import org.apache.arrow.vector.types.pojo.ArrowType;
+import org.apache.arrow.vector.types.pojo.Field;
+import org.apache.arrow.vector.types.pojo.FieldType;
+import org.apache.arrow.vector.types.pojo.Schema;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -160,5 +170,39 @@ public class Stats implements Writeable {
             }
         }
         return sum;
+    }
+
+    public static Stats fromVectorSchemaRoot(VectorSchemaRoot vector) {
+        BigIntVector numDocsVector = (BigIntVector) vector.getVector("numDocs");
+        long numDocs = numDocsVector.get(0);
+        BigIntVector sizeInBytesVector = (BigIntVector) vector.getVector("sizeInBytes");
+        long sizeInBytes = sizeInBytesVector.get(0);
+        return new Stats(numDocs, sizeInBytes, Map.of());
+
+    }
+
+    public VectorSchemaRoot toVectorSchemaRoot(BufferAllocator bufferAllocator) {
+        VectorSchemaRoot vector = VectorSchemaRoot.create(arrowSchema(), bufferAllocator);
+        BigIntVector numDocsVector = (BigIntVector) vector.getVector("numDocs");
+        numDocsVector.allocateNew(1);
+        numDocsVector.set(0, numDocs);
+        BigIntVector sizeInBytesVector = (BigIntVector) vector.getVector("sizeInBytes");
+        sizeInBytesVector.allocateNew(1);
+        sizeInBytesVector.set(0, sizeInBytes);
+        vector.setRowCount(1);
+        return vector;
+    }
+
+    private static Schema arrowSchema() {
+        List<Field> columnStats = new ArrayList<>();
+        columnStats.add(Field.notNullable("nullFraction", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
+        columnStats.add(Field.notNullable("averageSizeInBytes", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
+        columnStats.add(Field.notNullable("approxDistinct", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
+        columnStats.add(Field.notNullable("type", new ArrowType.Int(16, true)));
+        List<Field> stats = new ArrayList<>();
+        stats.add(Field.notNullable("numDocs", new ArrowType.Int(64, true)));
+        stats.add(Field.notNullable("sizeInBytes", new ArrowType.Int(64, true)));
+//        stats.add(new Field("statsByColumn", FieldType.nullable(new ArrowType.Map(false)), columnStats));
+        return new Schema(stats);
     }
 }

@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
+ *   http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,42 +21,23 @@
 
 package io.crate.statistics;
 
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.BigIntVector;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.types.pojo.ArrowType;
-import org.apache.arrow.vector.types.pojo.Field;
-import org.apache.arrow.vector.types.pojo.Schema;
-
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
-public class TableStats implements AutoCloseable {
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Set;
 
-    private final BufferAllocator BUFFER_ALLOCATOR = new RootAllocator();
-    private volatile Map<RelationName, VectorSchemaRoot> tableStats = new HashMap<>();
+/**
+ * Holds table statistics that are updated periodically by {@link TableStatsService}.
+ */
+public class TableStats {
 
-    public void updateTableStats(Map<RelationName, Stats> input) {
-        for (Map.Entry<RelationName, Stats> entry : input.entrySet()) {
-            RelationName relationName = entry.getKey();
-            Stats stats = entry.getValue();
-            VectorSchemaRoot root = VectorSchemaRoot.create(schema(), this.BUFFER_ALLOCATOR);
-            BigIntVector numDocs = (BigIntVector) root.getVector("numDocs");
-            numDocs.allocateNew(1);
-            numDocs.set(0, stats.numDocs());
-            BigIntVector sizeInBytes = (BigIntVector) root.getVector("sizeInBytes");
-            sizeInBytes.allocateNew(1);
-            sizeInBytes.set(0, stats.sizeInBytes());
-            root.setRowCount(1);
-            tableStats.put(relationName, root);
-        }
+    private volatile Map<RelationName, Stats> tableStats = new HashMap<>();
+
+    public void updateTableStats(Map<RelationName, Stats> tableStats) {
+        this.tableStats = tableStats;
     }
 
     /**
@@ -68,12 +49,7 @@ public class TableStats implements AutoCloseable {
      * Returns -1 if the table isn't in the cache
      */
     public long numDocs(RelationName relationName) {
-        VectorSchemaRoot result = tableStats.get(relationName);
-        if (result != null) {
-            BigIntVector numDocs = (BigIntVector) result.getVector("numDocs");
-            return numDocs.get(0);
-        }
-        return Stats.EMPTY.numDocs();
+        return tableStats.getOrDefault(relationName, Stats.EMPTY).numDocs;
     }
 
     /**
@@ -85,12 +61,7 @@ public class TableStats implements AutoCloseable {
      * Returns -1 if the table isn't in the cache
      */
     public long estimatedSizePerRow(RelationName relationName) {
-        VectorSchemaRoot result = tableStats.get(relationName);
-        if (result != null) {
-            BigIntVector numDocs = (BigIntVector) result.getVector("sizeInBytes");
-            return numDocs.get(0);
-        }
-        return Stats.EMPTY.numDocs();
+        return tableStats.getOrDefault(relationName, Stats.EMPTY).averageSizePerRowInBytes();
     }
 
     /**
@@ -98,27 +69,32 @@ public class TableStats implements AutoCloseable {
      * for the given table an estimate (avg) based on the column types of the table.
      */
     public long estimatedSizePerRow(TableInfo tableInfo) {
-        return -1;
+        Stats stats = tableStats.get(tableInfo.ident());
+        if (stats == null) {
+            // if stats are not available we fall back to estimate the size based on
+            // column types. Therefore we need to get the column information.
+            return Stats.EMPTY.estimateSizeForColumns(tableInfo);
+        } else {
+            return stats.averageSizePerRowInBytes();
+        }
+    }
+
+    public Map<RelationName, Stats> values() {
+        return Collections.unmodifiableMap(tableStats);
     }
 
     public Iterable<ColumnStatsEntry> statsEntries() {
-        return null;
+        Set<Map.Entry<RelationName, Stats>> entries = tableStats.entrySet();
+        return () -> entries.stream()
+            .flatMap(tableEntry -> {
+                Stats stats = tableEntry.getValue();
+                return stats.statsByColumn().entrySet().stream()
+                    .map(columnEntry ->
+                        new ColumnStatsEntry(tableEntry.getKey(), columnEntry.getKey(), columnEntry.getValue()));
+            }).iterator();
     }
 
-    public io.crate.statistics.Stats getStats(RelationName relationName) {
-        return null;
-    }
-
-    private static Schema schema() {
-        List<Field> stats = new ArrayList<>();
-        stats.add(Field.notNullable("numDocs", new ArrowType.Int(64, true)));
-        stats.add(Field.notNullable("sizeInBytes", new ArrowType.Int(64, true)));
-        return new Schema(stats);
-    }
-
-
-    @Override
-    public void close() throws Exception {
-        BUFFER_ALLOCATOR.close();
+    public Stats getStats(RelationName relationName) {
+        return tableStats.getOrDefault(relationName, Stats.EMPTY);
     }
 }
