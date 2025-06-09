@@ -376,6 +376,3 @@ Client interfaces
   and useless variables, fixed potential pathing error, corrected the malformed
   schebang and pointed it to bash instead of sh for improved portability, added
   pipefail option to bash execution
-
-  This component now strongly supports CICD in controlling the main application
-  as an abstract orchestrator, particularly if converted to a compiled language
