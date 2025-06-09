@@ -364,3 +364,18 @@ Administration and Operations
 
 Client interfaces
 -----------------
+
+- Refactored /bin/crate. Closed an injection risk due to the eval of a variable
+  Fixed bug where memory allocation was using the java default instead of using
+  the crate default, resulting in misconfigured heap stack sizes. Fragile logic
+  and logical errors have been replaced, flags now include --version and --help
+  with a --verbose flag for improved debugging information. Antiquated bash has
+  been modernized to align with posix, code is now organized into sections that
+  can actually be read and understood, arguments are now aggregated into string
+  format and then passed to the actual java executable, remove unreachable code
+  and useless variables, fixed potential pathing error, corrected the malformed
+  schebang and pointed it to bash instead of sh for improved portability, added
+  pipefail option to bash execution
+
+  This component now strongly supports CICD in controlling the main application
+  as an abstract orchestrator, particularly if converted to a compiled language
