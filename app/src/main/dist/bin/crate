@@ -1,4 +1,5 @@
-#!/bin/sh -e
+#!/usr/bin/env bash
+set -o errexit -o pipefail
 
 # Licensed to Crate.io GmbH ("Crate") under one or more contributor
 # license agreements.  See the NOTICE file distributed with this work for
@@ -21,11 +22,11 @@
 
 
 # OPTIONS:
-#   -v: print crate version to stdout
-#   -h: print usage information
-#   -D: set a java system property value
-#   -C: set a Crate property value
-#   -X: set a nonstandard java option
+#   -v, --verbose   : print crate version to stdout
+#   -h, --help      : print usage information
+#   -D              : set a java system property value
+#   -C              : set a Crate property value
+#   -X              : set a nonstandard java option
 
 # CONTROLLING STARTUP:
 #
@@ -40,8 +41,100 @@
 #   CRATE_HEAP_SIZE -- Sets both the minimum and maximum memory to allocate (recommended)
 #
 
+
+# Meta      ################################################################################################################
+
+
+printVersion() {
+    "$JAVA" -cp "$CRATE_CLASSPATH" org.elasticsearch.Version
+    exit 0
+}
+
+printHelp() {
+    cat <<-EOF
+
+    	CrateDB is a shared nothing, fully searchable document oriented cluster datastore.
+
+    	  Usage: crate [OPTION]...
+    	         starts a new CrateDB instance
+
+    	Options:
+    	    -h | --help     print usage information
+    	    -v | --version  print version information
+    	    -C<option>      set a CrateDB setting
+    	    -D<option>      set a java system property value
+    	    -X<option>      set a nonstandard java option
+
+	EOF
+    exit 0
+}
+
+
+#   Bash flags
+verbose='/dev/null'     #   echo test > $verbose        Discarded unless user types --verbose
+quiet='/dev/stdout'     #   echo test > $quiet          Discarded if the user types --quiet
+breakScript='0'         #   Set to 1 to end the script
+
+declare -a JAVA_OPTS_ARRAY=()
+declare -a CRATE_OPTS_ARRAY=()
+
+for flag in "$@"; do
+	case $flag in
+
+#<      Bash
+		--verbose)
+			verbose=/dev/stdout
+		;;
+
+		--quiet)
+			quiet=/dev/null
+		;;
+
+		-h|--help)
+            printHelp
+			exit 0
+		;;
+
+		-v|--version)
+            :   #   Called at the end of the file, since the location of java
+                #   is determined by body logic. Retained for error detection
+		;;
+
+
+#<      Java
+        -D*)
+            JAVA_OPTS_ARRAY+=("$flag")
+            ;;
+
+        -X*)
+            JAVA_OPTS_ARRAY+=("$flag")
+            ;;
+
+        -C*)
+            CRATE_OPTS_ARRAY+=("$flag")
+            ;;
+
+#<      Meta
+        --)
+            break
+        ;;
+
+        -*)
+            echo "Unrecognized option: $flag"
+            exit 1
+        ;;
+		
+	esac
+done
+
+
+# Logic     ################################################################################################################
+
+
 CDPATH=""
 SCRIPT="$0"
+declare JAVA_OPTS
+
 
 # SCRIPT may be an arbitrarily deep series of symlinks. Loop until we have the concrete path.
 while [ -h "$SCRIPT" ] ; do
@@ -60,194 +153,162 @@ CRATE_HOME=$(dirname "$SCRIPT")/..
 
 # make CRATE_HOME absolute
 CRATE_HOME=$(cd "$CRATE_HOME"; pwd)
+echo "CRATE_HOME = $CRATE_HOME" > $verbose
 
 
-if [ "x$CRATE_CLASSPATH" != "x" ]; then
-    cat >&2 << EOF
-Error: Don't modify the classpath with CRATE_CLASSPATH.
-Add plugins and their dependencies into the plugins/ folder instead.
-EOF
+#   Define CREATE_CLASSPATH as the library locations, fail if paths could not be determined
+if [ -n "$CRATE_CLASSPATH" ]; then
+
+    cat >&2 <<- EOF
+		Error: Don't modify the classpath with CRATE_CLASSPATH.
+		Add plugins and their dependencies into the plugins/ folder instead.
+	EOF
     exit 1
-fi
 
-for libname in "$CRATE_HOME"/lib/*.jar; do
-    if [ "x$CRATE_CLASSPATH" != "x" ]; then
-        CRATE_CLASSPATH="$CRATE_CLASSPATH:$libname"
-    else
-        CRATE_CLASSPATH="$libname"
+else
+
+    for libname in "$CRATE_HOME"/lib/*.jar; do
+        if [ -n "$CRATE_CLASSPATH" ]; then
+            CRATE_CLASSPATH="$CRATE_CLASSPATH:$libname"
+        else
+            CRATE_CLASSPATH="$libname"
     fi
-done
 
-if [ "$CRATE_MIN_MEM" = "" ]; then
-    CRATE_MIN_MEM=256m
+    if [ -z "$CRATE_CLASSPATH" ]; then
+        echo "ERROR: CRATE_CLASSPATH for library \"$libname\" is not defined or empty" >&2
+        breakScript="1"
+    fi
+
+    done
+    [[ $breakScript == '1' ]] && exit 1
+
+    if [[ "$(uname)" == CYGWIN* ]]; then
+        if [[ -z $(command -v cygpath) ]]; then
+            echo "Cygwin detected but command 'cygpath' not found on the system, which is required to determine paths"
+        fi
+
+        CRATE_CLASSPATH=$(cygpath -p -w "$CRATE_CLASSPATH")
+        CRATE_HOME=$(cygpath -p -w "$CRATE_HOME")
+
+    fi
+
 fi
-if [ "x$CRATE_HEAP_SIZE" != "x" ]; then
-    CRATE_MIN_MEM=$CRATE_HEAP_SIZE
-    CRATE_MAX_MEM=$CRATE_HEAP_SIZE
-fi
+
+                                                             
+# java opts #################################################
+
+JAVA="$CRATE_HOME/jdk/bin/java"
+echo $JAVA > $verbose
+for flag in "$@"; do case $flag in -v|--version) printVersion;; esac; done
+
+
+# # Lucene uses native access and vector module
+# JAVA_OPTS+="--enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector "
+
+# set to headless, just in case
+JAVA_OPTS+="-Djava.awt.headless=true "
+
+## GC configuration
+JAVA_OPTS+="-XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 "
+
+# Disables explicit GC
+JAVA_OPTS+="-XX:+DisableExplicitGC "
+
+# Prevent denial of service attacks via SSL renegotiation
+JAVA_OPTS+="-Djdk.tls.rejectClientInitiatedRenegotiation=true "
+
+# Ensure UTF-8 encoding by default (e.g. filenames)
+JAVA_OPTS+="-Dfile.encoding=UTF-8 "
+
+# Use our provided JNA always versus the system one
+JAVA_OPTS+="-Djna.nosys=true "
+
+# log4j options
+JAVA_OPTS+="-Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=true -Dlog4j.skipJansi=true "
+
+# Disable netty recycler
+JAVA_OPTS+="-Dio.netty.recycler.maxCapacityPerThread=0 "
+
+# Dump heap on OOM
+JAVA_OPTS+="-XX:+HeapDumpOnOutOfMemoryError "
+[ -n "$CRATE_HEAP_DUMP_PATH" ] && JAVA_OPTS+="-XX:HeapDumpPath=$CRATE_HEAP_DUMP_PATH "
 
 # min and max heap sizes should be set to the same value to avoid
 # stop-the-world GC pauses during resize, and so that we can lock the
 # heap in memory on startup to prevent any of it from being swapped
 # out.
-JAVA_OPTS="$JAVA_OPTS -Xms${CRATE_MIN_MEM}"
-if [ "x$CRATE_MAX_MEM" != "x" ]; then
-    JAVA_OPTS="$JAVA_OPTS -Xmx${CRATE_MAX_MEM}"
-fi
+[ "$CRATE_MIN_MEM" = "" ] && CRATE_MIN_MEM=256m
 
-# new generation
-if [ "x$CRATE_HEAP_NEWSIZE" != "x" ]; then
-    JAVA_OPTS="$JAVA_OPTS -Xmn${CRATE_HEAP_NEWSIZE}"
+if [ -n "$CRATE_HEAP_SIZE" ]; then      #   set min and max equal to size
+    CRATE_MIN_MEM=$CRATE_HEAP_SIZE
+    CRATE_MAX_MEM=$CRATE_HEAP_SIZE
 fi
+CRATE_MAX_MEM=$CRATE_MIN_MEM
+echo "Crate heap size = $CRATE_HEAP_SIZE"   > $verbose
+echo "Crate min size =$CRATE_MIN_MEM"       > $verbose
+echo "Crate max size =$CRATE_MAX_MEM"       > $verbose
 
-# max direct memory
-if [ "x$CRATE_DIRECT_SIZE" != "x" ]; then
-    JAVA_OPTS="$JAVA_OPTS -XX:MaxDirectMemorySize=${CRATE_DIRECT_SIZE}"
-fi
-
-# set to headless, just in case
-JAVA_OPTS="$JAVA_OPTS -Djava.awt.headless=true"
+JAVA_OPTS+="-Xms${CRATE_MIN_MEM} "
+[ -n "$CRATE_MAX_MEM" ] && JAVA_OPTS+="-Xmx${CRATE_MAX_MEM} "
+[ -n "$CRATE_HEAP_NEWSIZE" ] && JAVA_OPTS+="-Xmn${CRATE_HEAP_NEWSIZE} "                     #   new generation
+[ -n "$CRATE_DIRECT_SIZE" ] && JAVA_OPTS+="-XX:MaxDirectMemorySize=${CRATE_DIRECT_SIZE} "   #   max direct memory
 
 # Force the JVM to use IPv4 stack
-if [ "x$CRATE_USE_IPV4" != "x" ]; then
-  JAVA_OPTS="$JAVA_OPTS -Djava.net.preferIPv4Stack=true"
-fi
+[ -n "$CRATE_USE_IPV4" ] && JAVA_OPTS+="-Djava.net.preferIPv4Stack=true"
 
-## GC configuration
-JAVA_OPTS="$JAVA_OPTS -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30"
 
 # GC logging options
 # Set CRATE_DISABLE_GC_LOGGING=1 to disable GC logging
 if [ "$CRATE_DISABLE_GC_LOGGING" = "" ]; then
-  # GC log directory needs to be set explicitly by packages
-  # GC logging requires 16x64mb = 1g of free disk space
-  GC_LOG_DIR=${CRATE_GC_LOG_DIR:-"$CRATE_HOME/logs"};
-  GC_LOG_SIZE=${CRATE_GC_LOG_SIZE:-"64m"}
-  GC_LOG_FILES=${CRATE_GC_LOG_FILES:-"16"}
+    # GC log directory needs to be set explicitly by packages
+    # GC logging requires 16x64mb = 1g of free disk space
+    GC_LOG_DIR=${CRATE_GC_LOG_DIR:-"$CRATE_HOME/logs"};
+    GC_LOG_SIZE=${CRATE_GC_LOG_SIZE:-"64m"}
+    GC_LOG_FILES=${CRATE_GC_LOG_FILES:-"16"}
 
-  # Ensure that the directory for the log file exists: the JVM will not create it.
-  if ! test -d "$GC_LOG_DIR" || ! test -x "$GC_LOG_DIR"; then
-    cat >&2 << EOF
-ERROR: Garbage collection log directory '$GC_LOG_DIR' does not exist or is not accessible.
-EOF
-    exit 1
-  fi
-  LOGGC="$GC_LOG_DIR/gc.log"
+    # Ensure that the directory for the log file exists: the JVM will not create it.
+    if ! test -d "$GC_LOG_DIR" || ! test -x "$GC_LOG_DIR"; then
 
-  if [ -x "$JAVA_HOME/bin/java" ]; then
-      JAVA="$JAVA_HOME/bin/java"
-  else
-      JAVA=java
-  fi
-  export JAVA
-  JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=\"${LOGGC}\":utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
+        cat >&2 <<-EOF
+			ERROR: Garbage collection log directory '$GC_LOG_DIR' does not exist or is not accessible.
+		EOF
+    	exit 1
+
+    fi
+    LOGGC="$GC_LOG_DIR/gc.log"
+
+    #   Fully redundant if java is vendored, retained here for reference only
+    # if [ -x "$JAVA_HOME/bin/java" ]; then
+    #     JAVA="$JAVA_HOME/bin/java"
+    # else
+    #     JAVA=java
+    # fi
+
+    # export JAVA
+    JAVA_OPTS+="-Xlog:gc*,gc+age=trace,safepoint:file=\"${LOGGC}\":utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE} "
 fi
 
-# Disables explicit GC
-JAVA_OPTS="$JAVA_OPTS -XX:+DisableExplicitGC"
 
-# Prevent denial of service attacks via SSL renegotiation
-JAVA_OPTS="$JAVA_OPTS -Djdk.tls.rejectClientInitiatedRenegotiation=true"
+# Launch    #################################################
 
-# Ensure UTF-8 encoding by default (e.g. filenames)
-JAVA_OPTS="$JAVA_OPTS -Dfile.encoding=UTF-8"
 
-# Use our provided JNA always versus the system one
-JAVA_OPTS="$JAVA_OPTS -Djna.nosys=true"
+declare -a JVM_FLAGS=("${JAVA_OPTS_ARRAY[@]}")
 
-# log4j options
-JAVA_OPTS="$JAVA_OPTS -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=true -Dlog4j.skipJansi=true"
 
-# Disable netty recycler
-JAVA_OPTS="$JAVA_OPTS -Dio.netty.recycler.maxCapacityPerThread=0"
-
-# Netty uses Unsafe, disable warning, continue to allow it (See also https://github.com/netty/netty/pull/14975)
-JAVA_OPTS="$JAVA_OPTS --sun-misc-unsafe-memory-access=allow"
-
-# Netty 4.2.1 runs into leaks with the adaptive allocator, likely due to https://github.com/netty/netty/commit/1e228de839e083482138df8298a9ceb6c464cf0c
-JAVA_OPTS="$JAVA_OPTS -Dio.netty.allocator.type=pooled"
-
-# Lucene uses native access and vector module
-JAVA_OPTS="$JAVA_OPTS --enable-native-access=ALL-UNNAMED --add-modules jdk.incubator.vector"
-
-# Dump heap on OOM
-JAVA_OPTS="$JAVA_OPTS -XX:+HeapDumpOnOutOfMemoryError"
-if [ "x$CRATE_HEAP_DUMP_PATH" != "x" ]; then
-    JAVA_OPTS="$JAVA_OPTS -XX:HeapDumpPath=$CRATE_HEAP_DUMP_PATH"
-fi
-
-JAVA="$CRATE_HOME/jdk/bin/java"
-
-if [ -z "$CRATE_CLASSPATH" ]; then
-    echo "ERROR: CRATE_CLASSPATH is not defined or empty" >&2
-    exit 1
-fi
-
-# Special-case path variables.
-case $(uname) in
-    CYGWIN*)
-      CRATE_CLASSPATH=$(cygpath -p -w "$CRATE_CLASSPATH")
-      CRATE_HOME=$(cygpath -p -w "$CRATE_HOME")
-    ;;
-esac
-
-launch_service()
+main()
 {
-    javaProperties=$1
 
-    case "$2" in
-        *"-Cpath.home="*)
-            props="$2" ;;
-        *)
-            props="\"-Cpath.home=$CRATE_HOME\" $2";;
-    esac
+    #   Accumulate arguments and prepend -Cpath.home if not user specified
+    [[ ! " ${CRATE_OPTS_ARRAY[*]} " =~ " -Cpath.home=" ]] && CRATE_OPTS_ARRAY=("-Cpath.home=$CRATE_HOME" "${CRATE_OPTS_ARRAY[@]}")
+    local -a JVM_ARGS=("--enable-native-access=ALL-UNNAMED" "--add-modules" "jdk.incubator.vector" $JAVA_OPTS)  #   <<  unquoted strings trim spaces, resulting in separate arguments being passed
 
-    eval exec "\"$JAVA\"" $JAVA_OPTS $CRATE_JAVA_OPTS $javaProperties -cp "\"$CRATE_CLASSPATH\"" \
-          io.crate.bootstrap.CrateDB $props
-    execval=$?
+    #   Run the final command
+    exec "$JAVA" "${JVM_ARGS[@]}" "${JAVA_OPTS_ARRAY[@]}" $CRATE_JAVA_OPTS -cp "$CRATE_CLASSPATH" io.crate.bootstrap.CrateDB "${CRATE_OPTS_ARRAY[@]}"
 
-    return $execval
+    return $?
+    echo test
 }
 
-# Parse any command line options.
-while getopts "vhD:X:C:" opt; do
-    case $opt in
-        v)
-            "$JAVA" $JAVA_OPTS $CRATE_JAVA_OPTS -cp "$CRATE_CLASSPATH" $props \
-                    org.elasticsearch.Version
-            exit 0
-        ;;
-        h)
-            echo "CrateDB is a shared nothing, fully searchable document oriented cluster datastore."
-            echo ""
-            echo "  Usage: $(basename "$0") [OPTION]..."
-            echo "         starts a new CrateDB instance"
-            echo ""
-            echo "General options:"
-            echo "  -h            print usage information"
-            echo "  -v            print version information"
-            echo "  -C            set a CrateDB setting"
-            echo "  -D            set a java system property value"
-            echo "  -X            set a nonstandard java option"
-            exit 0
-        ;;
-        D)
-            javaProperties="$javaProperties \"-D$OPTARG\""
-        ;;
-        C)
-            properties="$properties \"-C$OPTARG\""
-        ;;
-        X)
-            properties="$properties \"-X$OPTARG\""
-        ;;
-        *)
-            echo "Error parsing arguments!" >&2
-            exit 1
-        ;;
-    esac
-done
-
-# Start up the service
-launch_service "$javaProperties" "$properties"
-
+echo -e "\nOptions = $JAVA_OPTS\n" > $verbose
+main
 exit $?
