@@ -575,4 +575,20 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         }
         return objType.build();
     }
+
+    @Override
+    public String toString() {
+        StringBuilder innerTypeStr = new StringBuilder();
+        for (DataType<?> innerType : innerTypes.values()) {
+            if (!innerTypeStr.isEmpty()) {
+                innerTypeStr.append(", ");
+            }
+            innerTypeStr.append(innerType.toString());
+        }
+        StringBuilder objectTypeStr = new StringBuilder(NAME);
+        if (!innerTypeStr.isEmpty()) {
+            objectTypeStr.append('(').append(innerTypeStr).append(')');
+        }
+        return objectTypeStr.toString();
+    }
 }
