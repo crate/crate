@@ -63,11 +63,13 @@ public class TransportShardRefreshAction
     protected void shardOperationOnPrimary(BasicReplicationRequest shardRequest,
                                            IndexShard primary,
                                            ActionListener<PrimaryResult<BasicReplicationRequest, ReplicationResponse>> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             primary.refresh("api");
             logger.trace("{} refresh request executed on primary", primary.shardId());
-            return new PrimaryResult<>(shardRequest, new ReplicationResponse());
-        });
+            listener.onResponse(new PrimaryResult<>(shardRequest, new ReplicationResponse()));
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override
