@@ -77,8 +77,8 @@ public final class PgGetKeywordsFunction extends TableFunctionImplementation<Lis
 
                 @Override
                 public Row apply(Identifiers.Keyword keyword) {
-                    columns[0] = keyword.getWord().toLowerCase(Locale.ENGLISH);
-                    if (keyword.isReserved()) {
+                    columns[0] = keyword.word().toLowerCase(Locale.ENGLISH);
+                    if (keyword.reserved()) {
                         columns[1] = "R";
                         columns[2] = "reserved";
                     } else {
