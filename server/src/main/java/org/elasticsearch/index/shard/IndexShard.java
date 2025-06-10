@@ -2250,7 +2250,14 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     getPendingPrimaryTerm(),
                     retentionLeases.v2()
                 );
-                syncFuture.whenComplete((_, _) -> pendingRetentionLeaseBackgroundSync.compareAndSet(true, false));
+                syncFuture.whenComplete((_, err) -> {
+                    pendingRetentionLeaseBackgroundSync.compareAndSet(true, false);
+                    if (err == null) {
+                        listener.onResponse(new ReplicationResponse());
+                    } else {
+                        listener.onFailure(Exceptions.toException(err));
+                    }
+                });
             }
         }
     }
