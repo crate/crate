@@ -8,11 +8,6 @@ Released on 2025-06-10.
 
 .. NOTE::
 
-    In development. 5.10.8 isn't released yet. These are the release notes for
-    the upcoming release.
-
-.. NOTE::
-
     If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
     before you upgrade to 5.10.8.
 
