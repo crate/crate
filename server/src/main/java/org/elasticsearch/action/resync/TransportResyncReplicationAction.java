@@ -92,10 +92,11 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
     protected void shardOperationOnPrimary(ResyncReplicationRequest request,
                                            IndexShard primary,
                                            ActionListener<PrimaryResult<ResyncReplicationRequest, ReplicationResponse>> listener) {
-        ActionListener.completeWith(
-            listener,
-            () -> new WritePrimaryResult<>(performOnPrimary(request), new ReplicationResponse(), null, null, primary)
-        );
+        try {
+            listener.onResponse(new WritePrimaryResult<>(performOnPrimary(request), new ReplicationResponse(), null, null, primary));
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     public static ResyncReplicationRequest performOnPrimary(ResyncReplicationRequest request) {

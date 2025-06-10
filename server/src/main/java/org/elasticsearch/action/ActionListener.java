@@ -24,11 +24,11 @@ import java.util.List;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import org.elasticsearch.common.CheckedBiConsumer;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedRunnable;
 
 import io.crate.common.CheckedFunction;
-import io.crate.common.CheckedSupplier;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
 
@@ -108,30 +108,45 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
         };
     }
 
-    /**
-     * Creates a listener that delegates all exceptions it receives to another listener.
-     *
-     * @param delegate ActionListener to wrap and delegate any exception to
-     * @param bc BiConsumer invoked with delegate listener and response
-     * @param <T> Type of the delegating listener's response
-     * @param <R> Type of the wrapped listeners
-     * @return Delegating listener
-     */
-    static <T, R> ActionListener<T> delegateFailure(ActionListener<R> delegate, BiConsumer<ActionListener<R>, T> bc) {
+    /// Return a new listener that uses the provided `onResponse` consumer instead of calling the original `onResponse`.
+    /// The original listener is used on failures.
+    default <T> ActionListener<T> withOnResponse(CheckedBiConsumer<ActionListener<Response>, T, Exception> onResponse) {
+        ActionListener<Response> original = this;
         return new ActionListener<T>() {
 
             @Override
-            public void onResponse(T r) {
+            public void onResponse(T response) {
                 try {
-                    bc.accept(delegate, r);
+                    onResponse.accept(original, response);
                 } catch (Throwable t) {
-                    delegate.onFailure(Exceptions.toException(t));
+                    original.onFailure(Exceptions.toException(t));
                 }
             }
 
             @Override
             public void onFailure(Exception e) {
-                delegate.onFailure(e);
+                original.onFailure(e);
+            }
+        };
+    }
+
+    /// Return a new listener that calls `onFailure` in case of a failure.
+    /// The original listener is used for `onResponse` or as fallback in case the new `onFailure` consumer fails itself.
+    default ActionListener<Response> withOnFailure(CheckedBiConsumer<ActionListener<Response>, Exception, Exception> onFailure) {
+        ActionListener<Response> original = this;
+        return new ActionListener<>() {
+            @Override
+            public void onResponse(Response response) {
+                original.onResponse(response);
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+                try {
+                    onFailure.accept(original, e);
+                } catch (Exception onFailureEx) {
+                    original.onFailure(onFailureEx);
+                }
             }
         };
     }
@@ -212,19 +227,6 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
     }
 
     /**
-     * Completes the given listener with the result from the provided supplier accordingly.
-     * This method is mainly used to complete a listener with a block of synchronous code.
-     */
-    static <Response> void completeWith(ActionListener<Response> listener,
-                                        CheckedSupplier<Response, ? extends Exception> supplier) {
-        try {
-            listener.onResponse(supplier.get());
-        } catch (Exception e) {
-            listener.onFailure(e);
-        }
-    }
-
-    /**
      * Wraps a given listener and returns a new listener which executes the provided {@code runBefore}
      * callback before the listener is notified via either {@code #onResponse} or {@code #onFailure}.
      * If the callback throws an exception then it will be passed to the listener's {@code #onFailure} and its {@code #onResponse} will
@@ -251,29 +253,6 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
                     e.addSuppressed(ex);
                 }
                 delegate.onFailure(e);
-            }
-        };
-    }
-
-    /**
-     * Creates a listener that delegates all responses it receives to another listener.
-     *
-     * @param delegate ActionListener to wrap and delegate any exception to
-     * @param onFailure BiConsumer invoked with delegate listener and exception
-     * @param <T> Type of the listener
-     * @return Delegating listener
-     */
-    static <T> ActionListener<T> delegateResponse(ActionListener<T> delegate, BiConsumer<ActionListener<T>, Exception> onFailure) {
-        return new ActionListener<T>() {
-
-            @Override
-            public void onResponse(T r) {
-                delegate.onResponse(r);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                onFailure.accept(delegate, e);
             }
         };
     }
