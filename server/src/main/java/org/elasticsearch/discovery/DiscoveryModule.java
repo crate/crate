@@ -72,8 +72,18 @@ public class DiscoveryModule {
 
     public static final String SINGLE_NODE_DISCOVERY_TYPE = "single-node";
 
-    public static final Setting<String> DISCOVERY_TYPE_SETTING =
-        new Setting<>("discovery.type", ZEN2_DISCOVERY_TYPE, Function.identity(), DataTypes.STRING, Property.NodeScope);
+    public static final Setting<String> DISCOVERY_TYPE_SETTING = new Setting<>(
+        "discovery.type",
+        ZEN2_DISCOVERY_TYPE,
+        discoveryType -> {
+            if (ZEN2_DISCOVERY_TYPE.equals(discoveryType) || SINGLE_NODE_DISCOVERY_TYPE.equals(discoveryType)) {
+                return discoveryType;
+            }
+            throw new IllegalArgumentException("Unknown discovery type [" + discoveryType + "]. Expected `zen` or `single-node`");
+        },
+        DataTypes.STRING,
+        Property.NodeScope
+    );
     public static final Setting<List<String>> DISCOVERY_SEED_PROVIDERS_SETTING =
         Setting.listSetting("discovery.seed_providers", Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY,
             Property.NodeScope);
@@ -85,11 +95,19 @@ public class DiscoveryModule {
 
     private final Coordinator coordinator;
 
-    public DiscoveryModule(Settings settings, TransportService transportService,
-                           NamedWriteableRegistry namedWriteableRegistry, NetworkService networkService, MasterService masterService,
-                           ClusterApplier clusterApplier, ClusterSettings clusterSettings, List<DiscoveryPlugin> plugins,
-                           AllocationService allocationService, Path configFile, GatewayMetaState gatewayMetaState,
-                           RerouteService rerouteService, NodeHealthService nodeHealthService) {
+    public DiscoveryModule(Settings settings,
+                           TransportService transportService,
+                           NamedWriteableRegistry namedWriteableRegistry,
+                           NetworkService networkService,
+                           MasterService masterService,
+                           ClusterApplier clusterApplier,
+                           ClusterSettings clusterSettings,
+                           List<DiscoveryPlugin> plugins,
+                           AllocationService allocationService,
+                           Path configFile,
+                           GatewayMetaState gatewayMetaState,
+                           RerouteService rerouteService,
+                           NodeHealthService nodeHealthService) {
         final Collection<BiConsumer<DiscoveryNode, ClusterState>> joinValidators = new ArrayList<>();
         final Map<String, Supplier<SeedHostsProvider>> hostProviders = new HashMap<>();
         hostProviders.put("settings", () -> new SettingsBasedSeedHostsProvider(settings, transportService));
@@ -146,28 +164,23 @@ public class DiscoveryModule {
             throw new IllegalArgumentException("Unknown election strategy " + ELECTION_STRATEGY_SETTING.get(settings));
         }
 
-        if (ZEN2_DISCOVERY_TYPE.equals(discoveryType) || SINGLE_NODE_DISCOVERY_TYPE.equals(discoveryType)) {
-            coordinator = new Coordinator(
-                NODE_NAME_SETTING.get(settings),
-                settings,
-                clusterSettings,
-                transportService,
-                namedWriteableRegistry,
-                allocationService,
-                masterService,
-                gatewayMetaState::getPersistedState,
-                seedHostsProvider,
-                clusterApplier,
-                joinValidators,
-                new Random(Randomness.get().nextLong()),
-                rerouteService,
-                electionStrategy,
-                nodeHealthService
-            );
-        } else {
-            throw new IllegalArgumentException("Unknown discovery type [" + discoveryType + "]");
-        }
-
+        coordinator = new Coordinator(
+            NODE_NAME_SETTING.get(settings),
+            settings,
+            clusterSettings,
+            transportService,
+            namedWriteableRegistry,
+            allocationService,
+            masterService,
+            gatewayMetaState::getPersistedState,
+            seedHostsProvider,
+            clusterApplier,
+            joinValidators,
+            new Random(Randomness.get().nextLong()),
+            rerouteService,
+            electionStrategy,
+            nodeHealthService
+        );
         LOGGER.info("using discovery type [{}] and seed hosts providers {}", discoveryType, seedProviderNames);
     }
 
