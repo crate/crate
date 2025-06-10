@@ -35,6 +35,7 @@ import org.apache.arrow.vector.complex.impl.UnionListReader;
 import org.apache.arrow.vector.complex.impl.UnionListWriter;
 import org.apache.arrow.vector.complex.reader.BaseReader;
 import org.apache.arrow.vector.complex.reader.Float8Reader;
+import org.apache.arrow.vector.complex.reader.IntReader;
 import org.apache.arrow.vector.complex.reader.VarCharReader;
 import org.apache.arrow.vector.complex.writer.BaseWriter;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
@@ -48,17 +49,14 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStats;
+import io.crate.statistics.MostCommonValues;
+import io.crate.types.DataTypes;
 
 public class Statistics {
 
     private static final Field RELATION_NAME = Field.notNullable("relationName", new ArrowType.Utf8());
     private static final Field NUM_DOCS = Field.notNullable("numDocs", new ArrowType.Int(64, true));
     private static final Field SIZE_IN_BYTES = Field.notNullable("sizeInBytes", new ArrowType.Int(64, true));
-
-    private static final Field COLUMN_IDENT = Field.notNullable("columnIdent", new ArrowType.Utf8()));
-    private static final Field NULL_FRACTION = Field.notNullable("nullFraction", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE));
-    private static final Field AVERAGE_SIZE_IN_BYTES = Field.notNullable("averageSizeInBytes", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE));
-    private static final Field APPROX_DISTINCT = Field.notNullable("approxDistinct", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE));
 
     private final VectorSchemaRoot root;
 
@@ -91,6 +89,7 @@ public class Statistics {
             struct.float8("nullFraction").writeFloat8(columnStats.nullFraction());
             struct.float8("averageSizeInBytes").writeFloat8(columnStats.averageSizeInBytes());
             struct.float8("approxDistinct").writeFloat8(columnStats.approxDistinct());
+            struct.integer("type").writeInt(columnStats.type().id());
             struct.end();
             listWriter.endList();
             listWriter.setValueCount(index);
@@ -122,12 +121,19 @@ public class Statistics {
                 Float8Reader nullFraction = (Float8Reader) structReader.reader("nullFraction");
                 Float8Reader averageSizeInBytes = (Float8Reader) structReader.reader("averageSizeInBytes");
                 Float8Reader approxDistinct = (Float8Reader) structReader.reader("approxDistinct");
-                ColumnStats<?> columnStats = new ColumnStats<?>(
+                IntReader type = (IntReader) structReader.reader("type");
+                ColumnStats<?> columnStats = new ColumnStats<>(
                     nullFraction.readDouble(),
                     averageSizeInBytes.readDouble(),
                     approxDistinct.readDouble(),
+                    DataTypes.fromId(type.readInteger()),
+                    MostCommonValues.empty(),
+                    List.of()
+                );
+                result.put(columnIdent, columnStats);
             }
         }
+        return result;
     }
 
     @Nullable
@@ -146,6 +152,7 @@ public class Statistics {
         columnStats.add(Field.notNullable("nullFraction", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
         columnStats.add(Field.notNullable("averageSizeInBytes", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
         columnStats.add(Field.notNullable("approxDistinct", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
+        columnStats.add(Field.notNullable("type", new ArrowType.Int(32, true)));
         Field columnStatsStruct = new Field("statsByColumn", FieldType.nullable(new ArrowType.Struct()), columnStats);
         FieldType listType = new FieldType(true, new ArrowType.List(), null);
         stats.add(new Field("statsByColumn",listType, List.of(columnStatsStruct)));
