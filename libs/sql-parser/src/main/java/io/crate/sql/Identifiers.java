@@ -34,6 +34,8 @@ import org.antlr.v4.runtime.Vocabulary;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.parser.antlr.SqlBaseLexer;
+import io.crate.sql.tree.Expression;
+import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.QualifiedNameReference;
 
 public final class Identifiers {
@@ -42,30 +44,15 @@ public final class Identifiers {
     private static final Pattern ESCAPE_REPLACE_RE = Pattern.compile("\"", Pattern.LITERAL);
     private static final String ESCAPE_REPLACEMENT = Matcher.quoteReplacement("\"\"");
 
-    public static class Keyword {
-        private final String word;
-        private final boolean reserved;
+    public record Keyword(String word, boolean reserved) {}
 
-        public Keyword(String word, boolean reserved) {
-            this.word = word;
-            this.reserved = reserved;
-        }
-
-        public String getWord() {
-            return word;
-        }
-
-        public boolean isReserved() {
-            return reserved;
-        }
-    }
-
-    public static final Collection<Keyword> KEYWORDS = identifierCandidates();
-
-    private static final Set<String> RESERVED_KEYWORDS = KEYWORDS.stream()
-        .filter(Keyword::isReserved)
-        .map(Keyword::getWord)
-        .collect(Collectors.toSet());
+    public static final Set<String> RESERVED_FUNCTIONS = Set.of(
+        "current_role",
+        "current_session",
+        "current_user",
+        "user",
+        "session_user"
+    );
 
     public static final Set<String> PARENTHESIS_LESS_FUNCTIONS = Set.of(
         "current_date",
@@ -77,6 +64,13 @@ public final class Identifiers {
         "user",
         "session_user"
     );
+
+    public static final Collection<Keyword> KEYWORDS = identifierCandidates();
+
+    private static final Set<String> RESERVED_KEYWORDS = KEYWORDS.stream()
+        .filter(Keyword::reserved)
+        .map(Keyword::word)
+        .collect(Collectors.toSet());
 
     private Identifiers() {}
 
@@ -148,7 +142,11 @@ public final class Identifiers {
 
     private static boolean reserved(String expression) {
         try {
-            return !(SqlParser.createExpression(expression) instanceof QualifiedNameReference);
+            Expression expr = SqlParser.createExpression(expression);
+            if (RESERVED_FUNCTIONS.contains(expression.toLowerCase(Locale.ENGLISH))) {
+                return true;
+            }
+            return !(expr instanceof QualifiedNameReference || expr instanceof FunctionCall);
         } catch (ParsingException ignored) {
             return true;
         }
