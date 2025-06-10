@@ -16,6 +16,7 @@ build/
 *.iml
 *.ipr
 *.iws
+.idea/
 build-idea/
 reports/
 test-output/
@@ -24,6 +25,9 @@ test-output/
 bin/
 .jdt.ls/
 benchmarks/.factorypath
+
+# vscode
+.vscode/
 
 # Python files
 __pycache__/
