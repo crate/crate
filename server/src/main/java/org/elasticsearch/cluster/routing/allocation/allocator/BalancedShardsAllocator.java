@@ -323,7 +323,7 @@ public class BalancedShardsAllocator implements ShardsAllocator {
 
             final Decision canRebalance = allocation.deciders().canRebalance(shard, allocation);
 
-            sorter.reset(shard.getIndexName());
+            sorter.reset(shard.getIndexUUID());
             ModelNode[] modelNodes = sorter.modelNodes;
             final String currentNodeId = shard.currentNodeId();
             // find currently assigned node

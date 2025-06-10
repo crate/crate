@@ -36,7 +36,6 @@ import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.snapshots.SnapshotId;
@@ -119,7 +118,7 @@ public final class RepositoryData {
             Collections.unmodifiableMap(snapshotIds),
             Collections.unmodifiableMap(snapshotStates),
             Collections.unmodifiableMap(snapshotVersions),
-            Collections.unmodifiableMap(indexSnapshots.keySet().stream().collect(Collectors.toMap(IndexId::getName, Function.identity()))),
+            Collections.unmodifiableMap(indexSnapshots.keySet().stream().collect(Collectors.toMap(IndexId::getId, Function.identity()))),
             Collections.unmodifiableMap(indexSnapshots),
             shardGenerations,
             indexMetaDataGenerations

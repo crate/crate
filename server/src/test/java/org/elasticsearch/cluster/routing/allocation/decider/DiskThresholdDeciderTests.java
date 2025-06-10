@@ -516,7 +516,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         ImmutableOpenMap<String, DiskUsage> usages = usagesBuilder.build();
 
         ImmutableOpenMap.Builder<String, Long> shardSizesBuilder = ImmutableOpenMap.builder();
-        shardSizesBuilder.put("[test][0][p]", 10L); // 10 bytes
+        shardSizesBuilder.put("[_na_/test][0][p]", 10L); // 10 bytes
         ImmutableOpenMap<String, Long> shardSizes = shardSizesBuilder.build();
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
 
@@ -658,6 +658,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         assertThat(node1Usage.getFreeBytes()).isEqualTo(25L);
     }
 
+    @Test
     public void testFreeDiskPercentageAfterShardAssigned() {
         DiskThresholdDecider decider = makeDecider(Settings.EMPTY);
 
@@ -673,6 +674,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         assertThat(after).isEqualTo(19.0);
     }
 
+    @Test
     public void testCanRemainWithShardRelocatingAway() {
         Settings diskSettings = Settings.builder()
             .put(DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_DISK_THRESHOLD_ENABLED_SETTING.getKey(), true)
@@ -687,9 +689,9 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         ImmutableOpenMap<String, DiskUsage> usages = usagesBuilder.build();
 
         ImmutableOpenMap.Builder<String, Long> shardSizesBuilder = ImmutableOpenMap.builder();
-        shardSizesBuilder.put("[test][0][p]", 40L);
-        shardSizesBuilder.put("[test][1][p]", 40L);
-        shardSizesBuilder.put("[foo][0][p]", 10L);
+        shardSizesBuilder.put("[_na_/test][0][p]", 40L);
+        shardSizesBuilder.put("[_na_/test][1][p]", 40L);
+        shardSizesBuilder.put("[_na_/foo][0][p]", 10L);
         ImmutableOpenMap<String, Long> shardSizes = shardSizesBuilder.build();
 
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
@@ -946,7 +948,8 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
 
         DevNullClusterInfo(ImmutableOpenMap<String, DiskUsage> leastAvailableSpaceUsage,
                            ImmutableOpenMap<String, DiskUsage> mostAvailableSpaceUsage,
-                           ImmutableOpenMap<String, Long> shardSizes, ImmutableOpenMap<NodeAndPath, ReservedSpace> reservedSpace) {
+                           ImmutableOpenMap<String, Long> shardSizes,
+                           ImmutableOpenMap<NodeAndPath, ReservedSpace> reservedSpace) {
             super(leastAvailableSpaceUsage, mostAvailableSpaceUsage, shardSizes, null, reservedSpace);
         }
 

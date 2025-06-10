@@ -57,7 +57,6 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.NodeConnectionsService;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -266,10 +265,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen();
 
         logger.info("--> request recoveries");
-        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
-        final Index index = resolveIndex(indexUUID);
+        Index index = resolveIndex(INDEX_NAME);
         var indicesService = cluster().getInstance(IndicesService.class, node);
         var shard = indicesService.indexService(index).getShard(0);
 
@@ -305,15 +301,12 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("CREATE TABLE " + INDEX_NAME + " (id BIGINT, data TEXT) " +
                 " CLUSTERED INTO " + SHARD_COUNT + " SHARDS WITH (number_of_replicas=" + REPLICA_COUNT + ")");
         ensureGreen();
-        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
-        final Index index = resolveIndex(indexUUID);
+        Index index = resolveIndex(INDEX_NAME);
 
         final int numOfDocs = scaledRandomIntBetween(1, 200);
         try (BackgroundIndexer indexer = new BackgroundIndexer(
             sqlExecutor.getCurrentSchema(),
-            relationName.indexNameOrAlias(),
+            RelationName.fqnFromIndexName(index.getName()),
             "data",
             sqlExecutor.jdbcUrl(),
             numOfDocs,
@@ -382,11 +375,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("OPTIMIZE TABLE " + INDEX_NAME);
         //assertThat(client().prepareSyncedFlush(INDEX_NAME).get().failedShards()).isEqualTo(0));
 
-        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
-
-        final Index index = resolveIndex(indexUUID);
+        Index index = resolveIndex(INDEX_NAME);
 
         // hold peer recovery on phase 2 after nodeB down
         CountDownLatch phase1ReadyBlocked = new CountDownLatch(1);
@@ -456,9 +445,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         ensureGreen();
 
-        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        Index index = resolveIndex(INDEX_NAME);
 
         logger.info("--> slowing down recoveries");
         slowDownRecovery(shardSize);
@@ -467,7 +454,6 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("ALTER TABLE " + INDEX_NAME + " REROUTE MOVE SHARD 0 FROM '" + nodeA + "' TO '" + nodeB + "'");
 
         logger.info("--> waiting for recovery to start both on source and target");
-        final Index index = resolveIndex(indexUUID);
         assertBusy(() -> {
             IndicesService indicesService = cluster().getInstance(IndicesService.class, nodeA);
             assertThat(indicesService.indexServiceSafe(index).getShard(0).recoveryStats().currentAsSource())
@@ -620,10 +606,8 @@ public class IndexRecoveryIT extends IntegTestCase {
         Repository repository = cluster().getMasterNodeInstance(RepositoriesService.class).repository(REPO_NAME);
         RepositoryData repositoryData = repository.getRepositoryData().get(5, TimeUnit.SECONDS);
 
-        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), INDEX_NAME);
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
-        final Index index = resolveIndex(indexUUID);
+        Index index = resolveIndex(INDEX_NAME);
+        String indexUUID = index.getUUID();
         var indicesServiceA = cluster().getInstance(IndicesService.class, nodeA);
         var shardA = indicesServiceA.indexService(index).getShard(0);
         var recoveryState = shardA.recoveryState();
@@ -1084,10 +1068,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         String nodeA = cluster().startNode(randomFrom(firstNodeToStopDataPathSettings, secondNodeToStopDataPathSettings));
         ensureGreen();
 
-        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "test");
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
-        final Index index = resolveIndex(indexUUID);
+        Index index = resolveIndex("test");
         var indicesServiceA = cluster().getInstance(IndicesService.class, nodeA);
         var shardA = indicesServiceA.indexService(index).getShard(0);
         var recoveryState = shardA.recoveryState();
@@ -1188,9 +1169,6 @@ public class IndexRecoveryIT extends IntegTestCase {
         cluster().ensureAtLeastNumDataNodes(2);
         List<String> nodes = randomSubsetOf(2, StreamSupport.stream(clusterService().state().nodes().getDataNodes().spliterator(), false)
             .map(node -> node.value.getName()).collect(Collectors.toSet()));
-        RelationName relationName = new RelationName("doc", "test");
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
         execute("CREATE TABLE doc.test (num INT)" +
                 " CLUSTERED INTO 1 SHARDS" +
                 " WITH (" +
@@ -1199,6 +1177,8 @@ public class IndexRecoveryIT extends IntegTestCase {
                 "  \"routing.allocation.include._name\"='" + String.join(",", nodes) + "'" +
                 " )");
         ensureGreen();
+        Index index = resolveIndex("doc.test");
+
         int numDocs = randomIntBetween(1, 100);
         var args = new Object[numDocs][];
         for (int i = 0; i < numDocs; i++) {
@@ -1217,7 +1197,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             transportService.addSendBehavior((connection, requestId, action, request, options) -> {
                 if (action.equals(PeerRecoverySourceService.Actions.START_RECOVERY)) {
                     final RecoveryState recoveryState = cluster().getInstance(IndicesService.class, failingNode)
-                        .getShardOrNull(new ShardId(resolveIndex(indexUUID), 0)).recoveryState();
+                        .getShardOrNull(new ShardId(index, 0)).recoveryState();
                     assertThat(recoveryState.getTranslog().recoveredOperations()).isEqualTo(recoveryState.getTranslog().totalLocal());
                     if (startRecoveryRequestFuture.isDone()) {
                         assertThat(recoveryState.getTranslog().totalLocal()).isEqualTo(0);
@@ -1230,7 +1210,7 @@ public class IndexRecoveryIT extends IntegTestCase {
                 }
                 if (action.equals(PeerRecoveryTargetService.Actions.FILE_CHUNK)) {
                     RetentionLeases retentionLeases = cluster().getInstance(IndicesService.class, node)
-                        .indexServiceSafe(resolveIndex(indexUUID))
+                        .indexServiceSafe(index)
                         .getShard(0).getRetentionLeases();
                     throw new AssertionError("expect an operation-based recovery:" +
                                              "retention leases" + retentionLeases + "]");
@@ -1239,7 +1219,7 @@ public class IndexRecoveryIT extends IntegTestCase {
             });
         }
         IndexShard shard = cluster().getInstance(IndicesService.class, failingNode)
-            .getShardOrNull(new ShardId(resolveIndex(indexUUID), 0));
+            .getShardOrNull(new ShardId(index, 0));
         final long lastSyncedGlobalCheckpoint = shard.getLastSyncedGlobalCheckpoint();
         final long localCheckpointOfSafeCommit;
         try(Engine.IndexCommitRef safeCommitRef = shard.acquireSafeIndexCommit()){
@@ -1261,7 +1241,7 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         String recoveringNode = startRecoveryRequest.targetNode().getName();
         IndexShard recoveringShard = cluster().getInstance(IndicesService.class, recoveringNode)
-            .getShardOrNull(new ShardId(resolveIndex(indexUUID), 0));
+            .getShardOrNull(new ShardId(index, 0));
         var recoveryState = recoveringShard.recoveryState();
         assertThat(recoveryState.getIndex().fileDetails().values())
             .as("expect an operation-based recovery")
@@ -1294,10 +1274,8 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
         ensureGreen();
 
-        RelationName relationName = new RelationName("doc", "test");
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
-        final ShardId shardId = new ShardId(resolveIndex(indexUUID), 0);
+        Index index = resolveIndex("doc.test");
+        final ShardId shardId = new ShardId(index, 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
@@ -1348,10 +1326,8 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
         ensureGreen();
 
-        RelationName relationName = new RelationName("doc", "test");
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
-        final ShardId shardId = new ShardId(resolveIndex(indexUUID), 0);
+        Index index = resolveIndex("doc.test");
+        final ShardId shardId = new ShardId(index, 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
@@ -1425,9 +1401,8 @@ public class IndexRecoveryIT extends IntegTestCase {
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
         ensureGreen();
 
-        RelationName relationName = new RelationName("doc", "test");
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        Index index = resolveIndex("doc.test");
+        String indexUUID = index.getUUID();
 
         execute("OPTIMIZE TABLE doc.test");
         // wait for all history to be discarded
@@ -1447,7 +1422,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertThat(shardStats.getStats().docs.getDeleted()).isEqualTo(0L);
         assertThat(shardStats.getSeqNoStats().getMaxSeqNo() + 1).isEqualTo(docCount);
 
-        final ShardId shardId = new ShardId(resolveIndex(indexUUID), 0);
+        final ShardId shardId = new ShardId(index, 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 
@@ -1528,11 +1503,9 @@ public class IndexRecoveryIT extends IntegTestCase {
         }
         execute("INSERT INTO doc.test (num) VALUES (?)", args);
 
-        RelationName relationName = new RelationName("doc", "test");
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        Index index = resolveIndex("doc.test");
 
-        final ShardId shardId = new ShardId(resolveIndex(indexUUID), 0);
+        final ShardId shardId = new ShardId(index, 0);
         final DiscoveryNodes discoveryNodes = clusterService().state().nodes();
         final IndexShardRoutingTable indexShardRoutingTable = clusterService().state().routingTable().shardRoutingTable(shardId);
 

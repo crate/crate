@@ -55,7 +55,6 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.IndexName;
-import io.crate.metadata.RelationName;
 import io.crate.testing.Asserts;
 
 @IntegTestCase.ClusterScope(numDataNodes = 1, supportsDedicatedMasters = false)
@@ -477,11 +476,7 @@ public class IndexServiceTests extends IntegTestCase {
     }
 
     private IndexService getIndexService(String index) {
-        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), index);
-        String indexUUID = clusterService().state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
-
-        return getIndicesService().indexServiceSafe(resolveIndex(indexUUID));
+        return getIndicesService().indexServiceSafe(resolveIndex(index));
     }
 
     private IndicesService getIndicesService() {
