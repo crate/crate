@@ -29,6 +29,7 @@ import java.util.function.Function;
 
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteAction;
 import org.elasticsearch.action.admin.cluster.reroute.ClusterRerouteRequest;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
@@ -240,12 +241,8 @@ public class AlterTableReroutePlan implements Plan {
                                               List<Assignment<Object>> partitionsProperties,
                                               Metadata metadata) {
             if (shardedTable instanceof DocTableInfo docTableInfo) {
-                if (docTableInfo.isPartitioned()) {
-                    var partitionName = PartitionName.ofAssignments(docTableInfo, partitionsProperties, metadata);
-                    return partitionName.asIndexName();
-                } else {
-                    return docTableInfo.ident().indexNameOrAlias();
-                }
+                var partitionName = PartitionName.ofAssignments(docTableInfo, partitionsProperties, metadata);
+                return metadata.getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
             }
 
             // Table is a blob table

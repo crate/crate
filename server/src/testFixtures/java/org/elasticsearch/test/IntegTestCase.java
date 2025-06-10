@@ -163,6 +163,8 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
@@ -1919,9 +1921,23 @@ public abstract class IntegTestCase extends ESTestCase {
         return false;
     }
 
-    public static Index resolveIndex(String indexUUID) {
+    public RelationName resolveRelationName(String indexName) {
+        IndexParts indexParts = IndexName.decode(indexName);
+        String schema = indexParts.schema();
+        if (indexName.contains(schema) == false) {
+            schema = sqlExecutor.getCurrentSchema();
+        }
+        return new RelationName(schema, indexParts.table());
+    }
+
+    public Index resolveIndex(String indexName) {
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
+
+        RelationName relationName = resolveRelationName(indexName);
+        String indexUUID = clusterService.state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
         IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);
-        return new Index(indexMetadata.getIndex().getName(), indexUUID);
+        return indexMetadata.getIndex();
     }
 }

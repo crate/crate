@@ -677,8 +677,9 @@ public class SQLExecutor {
                                                             @Nullable Map<String, Object> mapping,
                                                             Version smallestNodeVersion) throws IOException {
         Settings indexSettings = buildSettings(true, settings, smallestNodeVersion);
-        IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
-            .settings(indexSettings);
+        IndexMetadata.Builder metaBuilder = IndexMetadata.builder(UUIDs.randomBase64UUID())
+            .settings(indexSettings)
+            .indexName(indexName);
         if (mapping != null) {
             metaBuilder.putMapping(new MappingMetadata(mapping));
         }

@@ -21,7 +21,6 @@ package org.elasticsearch.gateway;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -30,21 +29,17 @@ import java.util.Set;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.TestCustomMetadata;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.expression.udf.UserDefinedFunctionService;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
@@ -107,7 +102,7 @@ public class GatewayMetaStateTests extends ESTestCase {
         Metadata metadata = randomMetadata(true);
         Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, metadataUpgradeService);
         assertThat(upgrade).isNotSameAs(metadata);
-        assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
+        assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isTrue();
         for (IndexMetadata indexMetadata : upgrade) {
             assertThat(metadata.hasIndexMetadata(indexMetadata)).isTrue();
             RelationName relationName = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
@@ -147,9 +142,11 @@ public class GatewayMetaStateTests extends ESTestCase {
         }
         for (int i = 0; i < randomIntBetween(1, 5); i++) {
             String indexName = randomAlphaOfLength(10);
+            String indexUUID = UUIDs.randomBase64UUID();
             builder.put(
-                IndexMetadata.builder(indexName)
+                IndexMetadata.builder(indexUUID)
                     .settings(settings(Version.CURRENT))
+                    .indexName(indexName)
                     .numberOfReplicas(randomIntBetween(0, 3))
                     .numberOfShards(randomIntBetween(1, 5))
             );
@@ -157,7 +154,7 @@ public class GatewayMetaStateTests extends ESTestCase {
                 builder.setTable(
                     IndexName.decode(indexName).toRelationName(),
                     List.of(),
-                    builder.get(indexName).getSettings(),
+                    builder.get(indexUUID).getSettings(),
                     null,
                     ColumnPolicy.STRICT,
                     null,
@@ -165,7 +162,7 @@ public class GatewayMetaStateTests extends ESTestCase {
                     List.of(),
                     List.of(),
                     IndexMetadata.State.OPEN,
-                    List.of(),
+                    List.of(indexUUID),
                     0
                 );
             }

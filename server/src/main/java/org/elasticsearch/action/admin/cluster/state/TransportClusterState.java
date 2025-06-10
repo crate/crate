@@ -170,7 +170,7 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
                 RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
                 List<String> indices = request.relationNames().stream()
                     .map(r ->
-                        currentState.metadata().getIndices(r, List.of(), false, im -> im.getIndex().getName()))
+                        currentState.metadata().getIndices(r, List.of(), false, IndexMetadata::getIndexUUID))
                     .flatMap(Collection::stream)
                     .toList();
                 for (String filteredIndex : indices) {
