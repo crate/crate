@@ -40,6 +40,7 @@ import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
+import org.apache.arrow.vector.VectorUnloader;
 import org.apache.arrow.vector.complex.ListVector;
 import org.apache.arrow.vector.complex.impl.UnionListReader;
 import org.apache.arrow.vector.complex.impl.UnionListWriter;
@@ -77,14 +78,18 @@ public class Statistics {
     private final VectorSchemaRoot root;
 
     public Statistics(RootAllocator allocator, InputStream in) throws IOException {
-        try(
+        try (
             ArrowStreamReader reader = new ArrowStreamReader(in, allocator);
         ) {
-            while(reader.loadNextBatch()){
-                System.out.print(reader.getVectorSchemaRoot().contentToTSVString());
-            }
+            reader.loadNextBatch();
+            final VectorSchemaRoot source = reader.getVectorSchemaRoot();
+            final VectorUnloader unloader = new VectorUnloader(source);
+            final VectorSchemaRoot copy = VectorSchemaRoot.create(source.getSchema(), allocator);
+            final VectorLoader loader = new VectorLoader(copy);
+            loader.load(unloader.getRecordBatch());
+            this.root = copy;
+//            System.out.println("root.contentToTSVString() = " + root.contentToTSVString());
         }
-        root = null;
     }
 
     public Statistics(RootAllocator rootAllocator,

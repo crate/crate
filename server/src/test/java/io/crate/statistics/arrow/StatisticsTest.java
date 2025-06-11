@@ -68,7 +68,9 @@ public class StatisticsTest extends ESTestCase {
             try (final RootAllocator newAllocator = new RootAllocator(Integer.MAX_VALUE)) {
                 Statistics fromStream = new Statistics(newAllocator, out.bytes().streamInput());
 //        long actual = statistics.numDocs();
-//            long expected = fromStream.numDocs();
+
+            long expected = fromStream.numDocs();
+                System.out.println("expected = " + expected);
 //        assertThat(actual).isEqualTo(expected);
 //            assertThat(statistics.sizeInBytes()).isEqualTo(fromStream.sizeInBytes());
 //            assertThat(statistics.statsByColumn()).isEqualTo(fromStream.statsByColumn());
