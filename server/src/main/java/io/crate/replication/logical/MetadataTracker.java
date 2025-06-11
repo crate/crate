@@ -26,7 +26,6 @@ import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
 
 import java.io.Closeable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -424,7 +423,7 @@ public final class MetadataTracker implements Closeable {
 
         if (updateClusterState) {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Updated index metadata for subscription {}", subscriptionName);
+                LOGGER.debug("Updated some relations of subscription {}", subscriptionName);
             }
             return ClusterState.builder(subscriberClusterState).metadata(updatedMetadataBuilder).build();
         } else {
@@ -467,7 +466,7 @@ public final class MetadataTracker implements Closeable {
                                       PublicationsStateAction.Response stateResponse) {
         Map<RelationName, RelationState> subscribedRelations = subscription.relations();
         HashSet<RelationName> relationNamesForStateUpdate = new HashSet<>();
-        ArrayList<TableOrPartition> toRestore = new ArrayList<>();
+        HashSet<TableOrPartition> toRestore = new HashSet<>();
         Metadata subscriberMetadata = subscriberState.metadata();
         Metadata publisherMetadata = stateResponse.metadata();
         for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
@@ -501,7 +500,7 @@ public final class MetadataTracker implements Closeable {
         if (toRestore.isEmpty()) {
             relationNamesForStateUpdate.clear();
         }
-        return new RestoreDiff(toRestore, relationNamesForStateUpdate);
+        return new RestoreDiff(toRestore.stream().toList(), relationNamesForStateUpdate);
     }
 
     private ClusterState processDroppedTablesOrPartitions(String subscriptionName,
@@ -576,9 +575,9 @@ public final class MetadataTracker implements Closeable {
         if (publisherMapping != null && subscriberMapping != null) {
             if (publisherIndexMetadata.getMappingVersion() > subscriberIndexMetadata.getMappingVersion()) {
                 if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Updated index mapping {} for subscription {}",
+                    LOGGER.debug("Updated subscriber mapping index={}, newMapping={}",
                         subscriberIndexMetadata.getIndex().getName(),
-                        publisherMapping);
+                        publisherMapping.sourceAsMap());
                 }
                 return publisherMapping;
             }

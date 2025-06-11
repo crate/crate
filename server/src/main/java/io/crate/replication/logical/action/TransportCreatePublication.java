@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -37,7 +38,6 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.PublicationAlreadyExistsException;
 import io.crate.replication.logical.metadata.Publication;
@@ -100,8 +100,8 @@ public class TransportCreatePublication extends AbstractDDLTransportAction<Creat
 
                 // Ensure tables exists
                 for (var relation : request.tables()) {
-                    if (currentMetadata.hasIndex(relation.indexNameOrAlias()) == false
-                        && currentMetadata.templates().containsKey(PartitionName.templateName(relation.schema(), relation.name())) == false) {
+                    RelationMetadata.Table table = currentMetadata.getRelation(relation);
+                    if (table == null) {
                         throw new RelationUnknown(relation);
                     }
                 }

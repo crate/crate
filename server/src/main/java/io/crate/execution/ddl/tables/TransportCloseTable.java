@@ -54,7 +54,6 @@ import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
@@ -68,7 +67,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -86,7 +84,6 @@ import io.crate.concurrent.CountDown;
 import io.crate.concurrent.MultiActionListener;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.cluster.DDLClusterStateHelpers;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
 public final class TransportCloseTable extends TransportMasterNodeAction<CloseTableRequest, AcknowledgedResponse> {
@@ -163,15 +160,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
         // that does not support the replication of closed indices
         final boolean removeRoutingTable = currentState.nodes().getMinNodeVersion().before(Version.V_4_3_0);
 
-        IndexTemplateMetadata templateMetadata = target.templateMetadata();
-        ClusterState updatedState;
-        if (templateMetadata == null) {
-            updatedState = currentState;
-        } else {
-            Metadata.Builder metadata = Metadata.builder(currentState.metadata());
-            metadata.put(closePartitionTemplate(templateMetadata));
-            updatedState = ClusterState.builder(currentState).metadata(metadata).build();
-        }
+        ClusterState updatedState = currentState;
 
         RelationMetadata.Table table = updatedState.metadata().getRelation(target.table());
         List<String> partitionValues = target.partitionValues();
@@ -262,17 +251,6 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
             .metadata(metadata)
             .routingTable(routingTable.build())
             .build();
-    }
-
-    private static IndexTemplateMetadata closePartitionTemplate(IndexTemplateMetadata templateMetadata) {
-        Map<String, Object> metaMap = Collections.singletonMap("_meta", Collections.singletonMap("closed", true));
-        return DDLClusterStateHelpers.updateTemplate(
-            templateMetadata,
-            metaMap,
-            Collections.emptyMap(),
-            Settings.EMPTY,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS // Not used if new settings are empty
-        );
     }
 
     @Override

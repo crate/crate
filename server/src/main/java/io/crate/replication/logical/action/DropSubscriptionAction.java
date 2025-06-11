@@ -34,7 +34,6 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -46,7 +45,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.execution.ddl.AbstractDDLTransportAction;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
@@ -91,13 +89,6 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                 );
             }
 
-            var possibleTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
-            var templateMetadata = currentState.metadata().templates().get(possibleTemplateName);
-            if (templateMetadata != null) {
-                var templateBuilder = new IndexTemplateMetadata.Builder(templateMetadata);
-                var settingsBuilder = removeSubscriptionSetting(templateMetadata.settings());
-                mdBuilder.put(templateBuilder.settings(settingsBuilder).build());
-            }
 
             if (metadata.getRelation(relationName) instanceof RelationMetadata.Table table) {
                 mdBuilder.setTable(

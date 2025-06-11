@@ -184,10 +184,16 @@ public class NodeJoinTests extends ESTestCase {
             transportService, writableRegistry(),
             ESAllocationTestCase.createAllocationService(Settings.EMPTY),
             masterService,
-            () -> new InMemoryPersistedState(term, initialState), r -> emptyList(),
+            () -> new InMemoryPersistedState(term, initialState),
+            r -> emptyList(),
             new NoOpClusterApplier(),
             Collections.emptyList(),
-            random, (s, p, r) -> {}, ElectionStrategy.DEFAULT_INSTANCE, nodeHealthService);
+            random,
+            (s, p, r) -> {},
+            ElectionStrategy.DEFAULT_INSTANCE,
+            nodeHealthService,
+            null
+        );
         transportService.start();
         transportService.acceptIncomingRequests();
         transport = capturingTransport;

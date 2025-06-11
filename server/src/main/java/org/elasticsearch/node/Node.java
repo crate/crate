@@ -689,7 +689,8 @@ public class Node implements Closeable {
                 environment.configFile(),
                 gatewayMetaState,
                 rerouteService,
-                fsHealthService
+                fsHealthService,
+                metadataIndexUpgradeService
             );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
             DDLClusterStateService ddlClusterStateService = new DDLClusterStateService();
