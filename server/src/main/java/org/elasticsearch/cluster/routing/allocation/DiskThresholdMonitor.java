@@ -25,6 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
@@ -41,6 +42,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.DiskUsage;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.RoutingNodes;
@@ -56,8 +58,8 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.collections.Sets;
 import io.crate.concurrent.MultiActionListener;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 /**
  * Listens for a node to go over the high watermark and kicks off an empty
@@ -162,9 +164,9 @@ public class DiskThresholdMonitor {
 
                 if (routingNode != null) { // might be temporarily null if the ClusterInfoService and the ClusterService are out of step
                     for (ShardRouting routing : routingNode) {
-                        String indexName = routing.index().getName();
-                        indicesToMarkReadOnly.add(indexName);
-                        indicesNotToAutoRelease.add(indexName);
+                        String indexUUID = routing.index().getUUID();
+                        indicesToMarkReadOnly.add(indexUUID);
+                        indicesNotToAutoRelease.add(indexUUID);
                     }
                 }
 
@@ -179,8 +181,8 @@ public class DiskThresholdMonitor {
 
                 if (routingNode != null) { // might be temporarily null if the ClusterInfoService and the ClusterService are out of step
                     for (ShardRouting routing : routingNode) {
-                        String indexName = routing.index().getName();
-                        indicesNotToAutoRelease.add(indexName);
+                        String indexUUID = routing.index().getUUID();
+                        indicesNotToAutoRelease.add(indexUUID);
                     }
                 }
             }
@@ -306,9 +308,10 @@ public class DiskThresholdMonitor {
             .filter(indexUUID -> state.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK))
             .collect(Collectors.toSet());
 
+        Metadata metadata = state.metadata();
         if (indicesToAutoRelease.isEmpty() == false) {
             LOGGER.info("releasing read-only-allow-delete block on indices: [{}]", indicesToAutoRelease);
-            updateIndicesReadOnly(indicesToAutoRelease, listener, false);
+            updateIndicesReadOnly(indicesToAutoRelease, metadata::index, listener, false);
         } else {
             LOGGER.trace("no auto-release required");
             listener.onResponse(null);
@@ -317,7 +320,7 @@ public class DiskThresholdMonitor {
         indicesToMarkReadOnly.removeIf(indexUUID -> state.blocks().indexBlocked(ClusterBlockLevel.WRITE, indexUUID));
         LOGGER.trace("marking indices as read-only: [{}]", indicesToMarkReadOnly);
         if (indicesToMarkReadOnly.isEmpty() == false) {
-            updateIndicesReadOnly(indicesToMarkReadOnly, listener, true);
+            updateIndicesReadOnly(indicesToMarkReadOnly, metadata::index, listener, true);
         } else {
             listener.onResponse(null);
         }
@@ -347,7 +350,9 @@ public class DiskThresholdMonitor {
         lastRunTimeMillis.getAndUpdate(l -> Math.max(l, currentTimeMillisSupplier.getAsLong()));
     }
 
-    protected void updateIndicesReadOnly(Set<String> indicesToUpdate, ActionListener<Void> listener, boolean readOnly) {
+    protected void updateIndicesReadOnly(Set<String> indicesToUpdate,
+                                         Function<String, IndexMetadata> indexMetadataResolver,
+                                         ActionListener<Void> listener, boolean readOnly) {
         // set read-only block but don't block on the response
         ActionListener<Void> wrappedListener = ActionListener.wrap(r -> {
             setLastRunTimeMillis();
@@ -361,8 +366,15 @@ public class DiskThresholdMonitor {
             .put(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE, Boolean.TRUE.toString()).build() :
             Settings.builder().putNull(IndexMetadata.SETTING_READ_ONLY_ALLOW_DELETE).build();
         List<PartitionName> partitions = indicesToUpdate.stream()
-            .map(index -> IndexName.decode(index).toPartitionName())
+            .map(indexUUID -> {
+                IndexMetadata indexMetadata = indexMetadataResolver.apply(indexUUID);
+                if (indexMetadata == null) {
+                    throw new IllegalArgumentException("Index with UUID [" + indexUUID + "] does not exist in metadata");
+                }
+                return new PartitionName(RelationName.fromIndexName(indexMetadata.getIndex().getName()), indexMetadata.partitionValues());
+            })
             .toList();
+
         client.updateSettings(new UpdateSettingsRequest(readOnlySettings, partitions))
             .thenApply(response -> (Void) null)
             .whenComplete(wrappedListener);

@@ -22,7 +22,6 @@
 package io.crate.integrationtests.disruption.discovery;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -65,7 +64,6 @@ import org.junit.Test;
 import io.crate.common.collections.Sets;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.DuplicateKeyException;
-import io.crate.metadata.IndexName;
 
 /**
  * Tests various cluster operations (e.g., indexing) during disruptions.

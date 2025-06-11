@@ -413,9 +413,9 @@ public class ProjectionToProjectorVisitor
             partitionedByInputs.add(ctx.add(partitionedBySymbol));
         }
         Input<?> sourceInput = ctx.add(projection.rawSource());
-        Supplier<String> indexNameResolver =
-            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         ClusterState state = clusterService.state();
+        Supplier<String> indexUUIDResolver =
+            IndexUUID.createResolver(state.metadata(), projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
 
         int targetTableNumShards = tableInfo.numberOfShards();
@@ -446,7 +446,7 @@ public class ProjectionToProjectorVisitor
             targetTableNumShards,
             targetTableNumReplicas,
             elasticsearchClient,
-            indexNameResolver,
+            indexUUIDResolver,
             projection.rawSourceReference(),
             projection.primaryKeys(),
             projection.ids(),
@@ -487,9 +487,9 @@ public class ProjectionToProjectorVisitor
         int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableInfo.parameters(), state.nodes());
 
         final Map<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
-        BiConsumer<String, IndexItem> constraintsChecker = (indexName, indexItem) -> checkConstraints(
+        BiConsumer<String, IndexItem> constraintsChecker = (indexUUID, indexItem) -> checkConstraints(
             indexItem,
-            indexName,
+            indexUUID,
             nodeCtx.schemas().getTableInfo(projection.tableIdent()),
             context.txnCtx,
             nodeCtx,

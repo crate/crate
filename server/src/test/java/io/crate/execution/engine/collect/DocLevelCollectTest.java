@@ -132,7 +132,8 @@ public class DocLevelCollectTest extends IntegTestCase {
     private Routing routing(String table) {
         Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
 
-        for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(table)) {
+        String indexUUID = resolveIndex(table).getUUID();
+        for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(indexUUID)) {
             Map<String, IntIndexedContainer> shardIds = locations.get(shardRouting.currentNodeId());
             if (shardIds == null) {
                 shardIds = new TreeMap<>();
@@ -142,7 +143,7 @@ public class DocLevelCollectTest extends IntegTestCase {
             IntIndexedContainer shardIdSet = shardIds.get(shardRouting.getIndexUUID());
             if (shardIdSet == null) {
                 shardIdSet = new IntArrayList();
-                shardIds.put(shardRouting.index().getName(), shardIdSet);
+                shardIds.put(shardRouting.index().getUUID(), shardIdSet);
             }
             shardIdSet.add(shardRouting.id());
         }

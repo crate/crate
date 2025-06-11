@@ -174,7 +174,6 @@ public class MetadataCreateIndexService {
     }
 
     public CompletableFuture<ResizeResponse> resizeIndex(ResizeRequest request, IndicesStatsResponse indicesStats) {
-        String sourceIndexName = new PartitionName(request.table(), request.partitionValues()).asIndexName();
         String sourceIndexUUID = clusterService.state().metadata().getIndex(request.table(), request.partitionValues(), true, IndexMetadata::getIndexUUID);
         IndexStats indexStats = indicesStats.getIndex(sourceIndexUUID);
         Map<Integer, IndexShardStats> indexShards = indexStats.getIndexShards();
@@ -273,6 +272,7 @@ public class MetadataCreateIndexService {
             IndexMetadata indexMetadata = IndexMetadata.builder(indexUUID)
                 .settings(settings)
                 .build();
+
             return indicesService.withTempIndexService(indexMetadata, indexService -> {
                 Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata())
                     .setBlobTable(relationName, indexUUID, settings, State.OPEN);

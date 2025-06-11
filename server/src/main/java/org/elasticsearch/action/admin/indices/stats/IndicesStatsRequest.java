@@ -87,8 +87,8 @@ public class IndicesStatsRequest extends BroadcastRequest {
         flags = new CommonStatsFlags(in);
     }
 
-    public IndicesStatsRequest(String partition) {
-        this(new PartitionName(RelationName.fromIndexName(partition), List.of()));
+    public IndicesStatsRequest(RelationName relationName) {
+        this(new PartitionName(relationName, List.of()));
     }
 
     public IndicesStatsRequest(PartitionName partitions) {

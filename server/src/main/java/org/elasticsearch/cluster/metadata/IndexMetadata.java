@@ -72,7 +72,6 @@ import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.IndexUUID;
 import io.crate.metadata.PartitionName;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataTypes;

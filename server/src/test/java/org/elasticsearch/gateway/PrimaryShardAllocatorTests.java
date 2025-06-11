@@ -69,7 +69,7 @@ import org.junit.Test;
 
 public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
 
-    private final ShardId shardId = new ShardId("test", "_na_", 0);
+    private final ShardId shardId = new ShardId( "_na_", "test", 0);
     private final DiscoveryNode node1 = newNode("node1");
     private final DiscoveryNode node2 = newNode("node2");
     private final DiscoveryNode node3 = newNode("node3");
@@ -422,7 +422,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
 
     private RoutingAllocation getRestoreRoutingAllocation(AllocationDeciders allocationDeciders, Long shardSize, String... allocIds) {
         Metadata metadata = Metadata.builder()
-            .put(IndexMetadata.builder(shardId.getIndexName()).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0)
+            .put(IndexMetadata.builder(shardId.getIndexUUID()).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0)
                 .putInSyncAllocationIds(0, Set.of(allocIds)))
             .build();
 
@@ -430,7 +430,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
         RoutingTable routingTable = RoutingTable.builder()
             .addAsRestore(metadata.index(shardId.getIndex()),
                 new SnapshotRecoverySource(UUIDs.randomBase64UUID(), snapshot, Version.CURRENT,
-                    new IndexId(shardId.getIndexName(), UUIDs.randomBase64UUID(random()))))
+                    new IndexId(shardId.getIndexName(), shardId.getIndexUUID())))
             .build();
         ClusterState state = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING.getDefault(Settings.EMPTY))
             .metadata(metadata)
@@ -448,7 +448,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
     private RoutingAllocation routingAllocationWithOnePrimaryNoReplicas(AllocationDeciders deciders, UnassignedInfo.Reason reason,
                                                                         String... activeAllocationIds) {
         Metadata metadata = Metadata.builder()
-                .put(IndexMetadata.builder(shardId.getIndexName()).settings(settings(Version.CURRENT))
+                .put(IndexMetadata.builder(shardId.getIndexUUID()).settings(settings(Version.CURRENT))
                     .numberOfShards(1).numberOfReplicas(0).putInSyncAllocationIds(shardId.id(), Set.of(activeAllocationIds)))
                 .build();
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder();

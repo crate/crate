@@ -755,7 +755,9 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         var newBuilder = new Metadata.Builder(metadata);
         tbl.writeTo(newMetadata, newBuilder);
 
-        var partitionIndex = newBuilder.build().index(partitionIndexName);
+        newMetadata = newBuilder.build();
+
+        var partitionIndex = newMetadata.getIndex(relationName, List.of("1"), true, im -> im);
         assertThat(partitionIndex.getNumberOfShards()).isEqualTo(2);
     }
 

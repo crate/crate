@@ -391,7 +391,7 @@ public class Indexer {
      *
      */
     @SuppressWarnings("unchecked")
-    public Indexer(String indexName,
+    public Indexer(PartitionName partitionName,
                    DocTableInfo table,
                    Version shardVersionCreated,
                    TransactionContext txnCtx,
@@ -402,9 +402,6 @@ public class Indexer {
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
         this.getRef = table::getReference;
-        PartitionName partitionName = table.isPartitioned()
-            ? PartitionName.fromIndexOrTemplate(indexName)
-            : null;
         InputFactory inputFactory = new InputFactory(nodeCtx);
         SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         var referenceResolver = new RefResolver(symbolEval, partitionName, targetColumns, table);

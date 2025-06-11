@@ -120,6 +120,7 @@ import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -378,9 +379,9 @@ public abstract class AggregationTestCase extends ESTestCase {
     private void insertDataIntoShard(IndexShard shard,
                                      Object[][] data,
                                      List<Reference> targetColumns) throws IOException {
-
+        RelationName relationName = new RelationName("doc", shard.shardId().getIndexName());
         DocTableInfo table = new DocTableInfo(
-            new RelationName("doc", shard.shardId().getIndexName()),
+            relationName,
             targetColumns.stream().collect(Collectors.toMap(Reference::column, r -> r)),
             Map.of(),
             Set.of(),
@@ -401,7 +402,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             0
         );
         Indexer indexer = new Indexer(
-            shard.shardId().getIndexName(),
+            new PartitionName(relationName, List.of()),
             table,
             Version.CURRENT,
             CoordinatorTxnCtx.systemTransactionContext(),

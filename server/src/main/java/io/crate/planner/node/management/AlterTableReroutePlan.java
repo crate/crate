@@ -241,7 +241,12 @@ public class AlterTableReroutePlan implements Plan {
                                               List<Assignment<Object>> partitionsProperties,
                                               Metadata metadata) {
             if (shardedTable instanceof DocTableInfo docTableInfo) {
-                var partitionName = PartitionName.ofAssignments(docTableInfo, partitionsProperties, metadata);
+                PartitionName partitionName;
+                if (docTableInfo.isPartitioned()) {
+                    partitionName = PartitionName.ofAssignments(docTableInfo, partitionsProperties, metadata);
+                } else {
+                    partitionName = new PartitionName(docTableInfo.ident(), List.of());
+                }
                 return metadata.getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
             }
 

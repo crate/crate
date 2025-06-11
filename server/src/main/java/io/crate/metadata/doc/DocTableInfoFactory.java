@@ -352,7 +352,6 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             }
         }
 
-
         return new DocTableInfo(
             relationName,
             references,
