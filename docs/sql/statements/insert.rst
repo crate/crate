@@ -9,11 +9,6 @@
 You can use the ``INSERT`` :ref:`statement <gloss-statement>` to :ref:`insert
 new rows <dml-inserting-data>` into a table.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _sql-insert-synopsis:
 
@@ -93,8 +88,8 @@ will attempt automatic :ref:`type conversion <data-types-casting>`.
     the number of rows for which the ``INSERT`` succeeded.
     Please refer to :ref:`dml` for more details.
 
-    Inserting data from a query uses :ref:`Overload Protection <overload_protection>` 
-    to ensure other queries can still perform. Please change these settings during 
+    Inserting data from a query uses :ref:`Overload Protection <overload_protection>`
+    to ensure other queries can still perform. Please change these settings during
     large inserts if needed.
 
 The optional ``RETURNING`` clause causes the ``INSERT`` statement to compute

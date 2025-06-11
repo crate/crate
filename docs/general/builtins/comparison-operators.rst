@@ -10,11 +10,6 @@ A comparison :ref:`operator <gloss-operator>` tests the relationship between
 two values and returns a corresponding value of ``true``, ``false``, or
 ``NULL``.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _comparison-operators-basic:
 

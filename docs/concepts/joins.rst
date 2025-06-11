@@ -14,11 +14,6 @@ the existing types of joins and algorithms provided. Then a description of how
 CrateDB implements them along with the necessary optimizations, which allows us
 to work with huge datasets.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _join-types:
 

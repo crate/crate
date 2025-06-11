@@ -7,11 +7,6 @@
 
 Drop an existing database user or role.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 
@@ -44,4 +39,3 @@ Parameters
 
   If a role is granted to one ore more other roles and/or users, it cannot be
   dropped. The role must first be revoked from those roles and/or users.
-

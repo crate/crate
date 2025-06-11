@@ -7,11 +7,6 @@
 
 Create a new database role.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

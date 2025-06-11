@@ -8,12 +8,6 @@
 
 Drop one or more :ref:`views <ddl-views>`.
 
-.. rubric:: Table of contents
-
-.. contents::
-    :local:
-
-
 Synopsis
 ========
 

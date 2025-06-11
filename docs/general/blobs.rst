@@ -14,10 +14,6 @@ regular data.
 
    Backup of blobs via :ref:`sql-create-snapshot` is not supported.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 Creating a table for blobs
 ==========================

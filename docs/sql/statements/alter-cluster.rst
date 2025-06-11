@@ -7,11 +7,6 @@
 
 Alter the state of an existing cluster.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

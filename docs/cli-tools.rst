@@ -32,11 +32,6 @@ Alternatively, if the CrateDB ``bin`` directory is on your
 
     sh$ crate
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _cli-crate:
 

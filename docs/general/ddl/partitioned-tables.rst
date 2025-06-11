@@ -6,11 +6,6 @@
 Partitioned tables
 ==================
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _partitioned-intro:
 

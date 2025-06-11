@@ -10,11 +10,6 @@ Selecting (i.e., retrieving) data from CrateDB can be done by using an SQL
 includes the column names of the result, the result rows as a two-dimensional
 array of values, the row count, and the execution time.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 Introduction
 ============
