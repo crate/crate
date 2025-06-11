@@ -23,14 +23,19 @@ package io.crate.statistics.arrow;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.arrow.memory.RootAllocator;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.execution.ddl.tables.CreateTableRequest;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.types.DataTypes;
@@ -39,13 +44,38 @@ public class StatisticsTest extends ESTestCase {
 
     @Test
     public void test_basic() throws Exception {
-        ColumnStats<?> columnStats = new ColumnStats<Integer>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
-        ColumnIdent ident = ColumnIdent.of("a");
-        Statistics statistics = new Statistics(RelationName.fromIndexName("doc.test"), 1L, 200L, Map.of(ident, columnStats));
-        assertThat(statistics.numDocs()).isEqualTo(1);
-        assertThat(statistics.sizeInBytes()).isEqualTo(200L);
-        ColumnStats<?> result = statistics.getColumnStats(ident);
-        assertThat(result).isEqualTo(columnStats);
+        try (final RootAllocator allocator = new RootAllocator(Integer.MAX_VALUE)) {
+            ColumnStats<?> columnStats = new ColumnStats<Integer>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
+            ColumnIdent ident = ColumnIdent.of("a");
+//        Statistics statistics = new Statistics(RelationName.fromIndexName("doc.test"), 1L, 200L, Map.of(ident, columnStats));
+            Statistics statistics = new Statistics(allocator, 1L, 200L, Map.of(ident, columnStats));
+            assertThat(statistics.numDocs()).isEqualTo(1);
+            assertThat(statistics.sizeInBytes()).isEqualTo(200L);
+            ColumnStats<?> result = statistics.getColumnStats(ident);
+            assertThat(result).isEqualTo(columnStats);
+        }
     }
+
+    @Test
+    public void test_streaming() throws Exception {
+        try (
+            BytesStreamOutput out = new BytesStreamOutput();
+            final RootAllocator allocator = new RootAllocator(Integer.MAX_VALUE)) {
+            ColumnStats<?> columnStats = new ColumnStats<Integer>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
+            ColumnIdent ident = ColumnIdent.of("a");
+            Statistics statistics = new Statistics(allocator, 1L, 200L, Map.of(ident, columnStats));
+            statistics.write(out);
+            try (final RootAllocator newAllocator = new RootAllocator(Integer.MAX_VALUE)) {
+                Statistics fromStream = new Statistics(newAllocator, out.bytes().streamInput());
+//        long actual = statistics.numDocs();
+//            long expected = fromStream.numDocs();
+//        assertThat(actual).isEqualTo(expected);
+//            assertThat(statistics.sizeInBytes()).isEqualTo(fromStream.sizeInBytes());
+//            assertThat(statistics.statsByColumn()).isEqualTo(fromStream.statsByColumn());
+            }
+        }
+    }
+
+
 
 }

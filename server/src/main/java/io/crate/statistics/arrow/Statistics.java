@@ -21,6 +21,12 @@
 
 package io.crate.statistics.arrow;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.OutputStream;
+import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -30,7 +36,9 @@ import java.util.Objects;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BigIntVector;
+import org.apache.arrow.vector.FieldVector;
 import org.apache.arrow.vector.VarCharVector;
+import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
 import org.apache.arrow.vector.complex.ListVector;
 import org.apache.arrow.vector.complex.impl.UnionListReader;
@@ -40,11 +48,17 @@ import org.apache.arrow.vector.complex.reader.Float8Reader;
 import org.apache.arrow.vector.complex.reader.IntReader;
 import org.apache.arrow.vector.complex.reader.VarCharReader;
 import org.apache.arrow.vector.complex.writer.BaseWriter;
+import org.apache.arrow.vector.ipc.ArrowStreamReader;
+import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.apache.arrow.vector.types.FloatingPointPrecision;
 import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.arrow.vector.util.VectorSchemaRootAppender;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.Nullable;
 
 
@@ -56,53 +70,62 @@ import io.crate.types.DataTypes;
 
 public class Statistics {
 
-    private final static BufferAllocator BUFFER_ALLOCATOR = new RootAllocator();
-
     private static final Field RELATION_NAME = Field.notNullable("relationName", new ArrowType.Utf8());
     private static final Field NUM_DOCS = Field.notNullable("numDocs", new ArrowType.Int(64, true));
     private static final Field SIZE_IN_BYTES = Field.notNullable("sizeInBytes", new ArrowType.Int(64, true));
 
     private final VectorSchemaRoot root;
 
-    public Statistics(RelationName relationName,
+    public Statistics(RootAllocator allocator, InputStream in) throws IOException {
+        try(
+            ArrowStreamReader reader = new ArrowStreamReader(in, allocator);
+        ) {
+            while(reader.loadNextBatch()){
+                System.out.print(reader.getVectorSchemaRoot().contentToTSVString());
+            }
+        }
+        root = null;
+    }
+
+    public Statistics(RootAllocator rootAllocator,
                       long numDocs,
                       long sizeInBytes,
                       Map<ColumnIdent, ColumnStats<?>> statsByColumn) {
-        root = VectorSchemaRoot.create(schema(), BUFFER_ALLOCATOR);
-        VarCharVector relationNameVector = (VarCharVector) root.getVector(RELATION_NAME);
-        relationNameVector.allocateNew(1);
-        relationNameVector.set(0, relationName.fqn().getBytes());
-        BigIntVector numDocsVector = (BigIntVector) root.getVector(NUM_DOCS);
+        this.root = VectorSchemaRoot.create(schema(), rootAllocator);
+//        VarCharVector relationNameVector = (VarCharVector) root.getVector(RELATION_NAME);
+//        relationNameVector.allocateNew(1);
+//        relationNameVector.set(0, relationName.fqn().getBytes());
+        BigIntVector numDocsVector = (BigIntVector) root.getVector("numDocs");
         numDocsVector.allocateNew(1);
         numDocsVector.set(0, numDocs);
-        BigIntVector sizeInBytesVector = (BigIntVector) root.getVector(SIZE_IN_BYTES);
-        sizeInBytesVector.allocateNew(1);
-        sizeInBytesVector.set(0, sizeInBytes);
-        int index = 0;
-        ListVector statsByColumnVector = (ListVector) root.getVector("statsByColumn");
-        UnionListWriter listWriter = statsByColumnVector.getWriter();
-        listWriter.startList();
-        for (Map.Entry<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsEntry : statsByColumn.entrySet()) {
-            ColumnIdent columnIdent = columnIdentColumnStatsEntry.getKey();
-            ColumnStats<?> columnStats = columnIdentColumnStatsEntry.getValue();
-            listWriter.setPosition(index);
-            BaseWriter.StructWriter struct = listWriter.struct();
-            struct.start();
-            struct.varChar("columnIdent").writeVarChar(columnIdent.fqn());
-            struct.float8("nullFraction").writeFloat8(columnStats.nullFraction());
-            struct.float8("averageSizeInBytes").writeFloat8(columnStats.averageSizeInBytes());
-            struct.float8("approxDistinct").writeFloat8(columnStats.approxDistinct());
-            struct.integer("type").writeInt(columnStats.type().id());
-            struct.end();
-            index++;
-        }
-        listWriter.endList();
-        listWriter.setValueCount(index);
+//        BigIntVector sizeInBytesVector = (BigIntVector) root.getVector(SIZE_IN_BYTES);
+//        sizeInBytesVector.allocateNew(1);
+//        sizeInBytesVector.set(0, sizeInBytes);
+//        ListVector statsByColumnVector = (ListVector) root.getVector("statsByColumn");
+//        UnionListWriter listWriter = statsByColumnVector.getWriter();
+//        listWriter.startList();
+//        int index = 0;
+//        for (Map.Entry<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsEntry : statsByColumn.entrySet()) {
+//            ColumnIdent columnIdent = columnIdentColumnStatsEntry.getKey();
+//            ColumnStats<?> columnStats = columnIdentColumnStatsEntry.getValue();
+//            listWriter.setPosition(index);
+//            BaseWriter.StructWriter struct = listWriter.struct();
+//            struct.start();
+//            struct.varChar("columnIdent").writeVarChar(columnIdent.fqn());
+//            struct.float8("nullFraction").writeFloat8(columnStats.nullFraction());
+//            struct.float8("averageSizeInBytes").writeFloat8(columnStats.averageSizeInBytes());
+//            struct.float8("approxDistinct").writeFloat8(columnStats.approxDistinct());
+//            struct.integer("type").writeInt(columnStats.type().id());
+//            struct.end();
+//            index++;
+//        }
+//        listWriter.endList();
+//        listWriter.setValueCount(index);
         root.setRowCount(1);
     }
 
     public long numDocs() {
-        BigIntVector numDocsVector = (BigIntVector) root.getVector(NUM_DOCS);
+        BigIntVector numDocsVector = (BigIntVector) root.getVector("numDocs");
         return numDocsVector.get(0);
     }
 
@@ -141,13 +164,12 @@ public class Statistics {
 
     @Nullable
     public ColumnStats<?> getColumnStats(ColumnIdent column) {
-        Map<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsMap = statsByColumn();
-        return columnIdentColumnStatsMap.get(column);
+        return statsByColumn().get(column);
     }
 
     private static Schema schema() {
         List<Field> stats = new ArrayList<>();
-        stats.add(Field.notNullable("relationName", new ArrowType.Utf8()));
+//        stats.add(Field.notNullable("relationName", new ArrowType.Utf8()));
         stats.add(Field.notNullable("numDocs", new ArrowType.Int(64, true)));
         stats.add(Field.notNullable("sizeInBytes", new ArrowType.Int(64, true)));
 
@@ -174,5 +196,14 @@ public class Statistics {
     @Override
     public int hashCode() {
         return Objects.hashCode(root);
+    }
+
+    public void write(StreamOutput out) throws IOException {
+        try (
+            ArrowStreamWriter writer = new ArrowStreamWriter(root, null, Channels.newChannel(out));
+        ) {
+            writer.start();
+            writer.writeBatch();
+        }
     }
 }
