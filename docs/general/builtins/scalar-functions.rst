@@ -10,11 +10,6 @@ Scalar functions
 Scalar functions are :ref:`functions <gloss-function>` that return
 :ref:`scalars <gloss-scalar>`.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _scalar-string:
 

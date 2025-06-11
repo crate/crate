@@ -7,11 +7,6 @@
 
 Drops a foreign table.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

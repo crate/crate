@@ -17,11 +17,6 @@ the cluster, its nodes and their shards.
     have been added, removed or modified between versions. Instead, use a
     defined list of the columns that you need to return from the query.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 .. _sys-cluster:
 
 Cluster

@@ -5,11 +5,6 @@
 ``SET LICENSE``
 ===============
 
-.. rubric:: Table of contents
-
-.. contents::
-    :local:
-
 Synopsis
 ========
 

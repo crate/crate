@@ -6,11 +6,7 @@
 ``CLOSE``
 =========
 
-Close a cursor
-
-
-.. contents::
-   :local:
+Close a cursor.
 
 .. _sql-close-synopsis:
 

@@ -47,11 +47,6 @@ A simple ``SELECT`` statement can be submitted like this::
     in this document, we use `here documents`_ (i.e. ``EOF``) for multi line
     readability.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _http-param-substitution:
 

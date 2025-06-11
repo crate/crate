@@ -8,12 +8,6 @@
 
 Create a new :ref:`function <user-defined-functions>`.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 Synopsis
 ========
 

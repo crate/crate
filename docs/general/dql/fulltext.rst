@@ -10,10 +10,6 @@ In order to use fulltext search on one or more columns, a
 defined while creating the column: either with ``CREATE TABLE`` or ``ALTER
 TABLE ADD COLUMN``. For more information see :ref:`fulltext-indices`.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 .. _predicates_match:
 

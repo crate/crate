@@ -13,10 +13,6 @@ returns a boolean value (i.e., ``true`` or ``false``) or ``NULL``.
 
     :ref:`SQL: Value expressions <sql-scalar-subquery>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 .. _sql_in_subquery_expression:
 

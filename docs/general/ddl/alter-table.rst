@@ -4,10 +4,6 @@
 Altering tables
 ===============
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 .. NOTE::
 

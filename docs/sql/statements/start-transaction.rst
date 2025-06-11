@@ -13,12 +13,6 @@ not support transactions and will silently ignore this statement.
 
     :ref:`Appendix: SQL compatibility <appendix-compatibility>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 Synopsis
 ========
 

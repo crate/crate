@@ -23,11 +23,6 @@ authentication.
     :ref:`Non-runtime cluster-wide settings <applying-cluster-settings>` must
     be configured the same on every node.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _admin_hba_cratedb:
 

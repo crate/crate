@@ -14,11 +14,6 @@ that every node in the CrateDB cluster can perform every operation - hence all
 nodes are equal in terms of functionality (see
 :ref:`concept-node-components`) and are configured the same.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _concept-node-components:
 
@@ -138,8 +133,8 @@ Master Node Election
 --------------------
 
 In a CrateDB cluster there can only be one master node at any single time.
-The cluster only becomes available to serve requests once a master has been 
-elected, and a new election takes place if the current master node becomes 
+The cluster only becomes available to serve requests once a master has been
+elected, and a new election takes place if the current master node becomes
 unavailable.
 
 By default, all nodes are master-eligible, but
@@ -148,14 +143,14 @@ is available to indicate, if desired, that a node must not take on the role
 of master.
 
 To elect a master among the eligible nodes, a majority
-(``floor(half)+1``), also known as *quorum*, is required among a subset of 
+(``floor(half)+1``), also known as *quorum*, is required among a subset of
 all master-eligible nodes, this subset of nodes is known as the
 *voting configuration*.
 The *voting configuration* is a list which is persisted as part of the cluster
 state. It is maintained automatically in a way that makes so that split-brain
 scenarios are never possible.
 
-Every time a node joins the cluster, or leaves the cluster, even if it is 
+Every time a node joins the cluster, or leaves the cluster, even if it is
 for a few seconds, CrateDB re-evaluates the voting configuration.
 If the new number of master-eligible nodes in the cluster is odd, CrateDB will
 put them all in the voting configuration.
@@ -164,32 +159,32 @@ from the voting configuration.
 
 The voting configuration is not shrunk below 3 nodes, meaning that if there
 were 3 nodes in the voting configuration and one of them becomes unavailable,
-they all stay in the voting configuration and a quorum of 2 nodes is still 
+they all stay in the voting configuration and a quorum of 2 nodes is still
 required.
 A master node rescinds its role if it cannot contact a quorum of nodes from
 the latest voting configuration.
 
 .. WARNING::
 
-   If you do infrastructure maintenance, please note that as nodes are shutdown 
+   If you do infrastructure maintenance, please note that as nodes are shutdown
    or rebooted, they will temporarily leave the voting configuration, and for
    the cluster to elect a master a quorum is required among the
    nodes that were last in the voting configuration.
 
    For instance, if you
-   have a 5-nodes cluster, with all nodes master-eligible, and node 1 is 
-   currently the master, and you shutdown node 5, then node 4, then node 3, 
-   the cluster will stay available as the voting configuration will have 
+   have a 5-nodes cluster, with all nodes master-eligible, and node 1 is
+   currently the master, and you shutdown node 5, then node 4, then node 3,
+   the cluster will stay available as the voting configuration will have
    adapted to only have nodes 1, 2, and 3 on it.
 
    If you then shutdown one more node the cluster will become unavailable as
    a quorum of 2 nodes is now required and not available.
-   To bring the cluster back online at this point you will require two nodes 
+   To bring the cluster back online at this point you will require two nodes
    among 1, 2, and 3. Bringing back nodes 3, 4, and 5, will not be sufficient.
-  
+
 .. NOTE::
 
-   Special `settings and considerations 
+   Special `settings and considerations
    <https://crate.io/docs/crate/reference/en/5.1/concepts/clustering.html#master-node-election>`_
    applied prior to CrateDB version 4.0.0.
 

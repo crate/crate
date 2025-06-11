@@ -7,11 +7,6 @@
 
 Create a new database user.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

@@ -7,11 +7,6 @@ Privileges
 
 To execute statements, a user needs to have the required privileges.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _privileges-intro:
 

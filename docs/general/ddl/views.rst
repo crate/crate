@@ -4,11 +4,6 @@
 Views
 =====
 
-.. rubric:: Table of contents
-
-.. contents::
-    :local:
-
 
 .. _views-create:
 

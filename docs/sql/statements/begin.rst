@@ -5,12 +5,7 @@
 ``BEGIN``
 =========
 
-Start a transaction block
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
+Start a transaction block.
 
 Synopsis
 ========
