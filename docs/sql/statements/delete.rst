@@ -5,12 +5,7 @@
 ``DELETE``
 ==========
 
-Delete rows of a table
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
+Delete rows of a table.
 
 Synopsis
 ========

@@ -5,11 +5,6 @@
 Optimization
 ============
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Introduction
 ============
 

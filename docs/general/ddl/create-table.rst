@@ -10,11 +10,6 @@ column holding a single data element (i.e., value). You can :ref:`query <dql>`
 tables to :ref:`insert data <dml-inserting-data>`, :ref:`select <sql_dql_queries>`
 (i.e., retrieve) data, and :ref:`delete data <dml-deleting-data>`.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _ddl-create-table-definition:
 

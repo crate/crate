@@ -4,11 +4,6 @@
 Cloud discovery
 ===============
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Amazon EC2 discovery
 ====================
 

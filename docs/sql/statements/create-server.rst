@@ -5,13 +5,7 @@
 ``CREATE SERVER``
 =================
 
-Create a new foreign server
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
+Create a new foreign server.
 
 Synopsis
 ========

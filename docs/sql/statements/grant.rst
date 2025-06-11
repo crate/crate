@@ -7,11 +7,6 @@
 Grants privilege to an existing user or role on the whole cluster or on a
 specific object, or grant one or more roles to a user or role.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

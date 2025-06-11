@@ -13,13 +13,6 @@ add a new subscription to the current cluster.
 
     :ref:`DROP SUBSCRIPTION <sql-drop-subscription>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-   :depth: 2
-
-
 .. _sql-create-subscription-synopsis:
 
 Synopsis
@@ -103,7 +96,7 @@ Parameters
 
   .. CAUTION::
 
-     The user specified in the connection string, must have ``DQL`` privileges 
+     The user specified in the connection string, must have ``DQL`` privileges
      on all tables of the publication on a publisher cluster. Tables, for which
      the user does not have the ``DQL``  privilege, will not be replicated.
 

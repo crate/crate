@@ -15,12 +15,6 @@ register a new repository that you can use to create, manage, and restore
 
     :ref:`DROP REPOSITORY <sql-drop-repository>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-   :depth: 2
-
 
 .. _sql-create-repo-synopsis:
 

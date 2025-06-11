@@ -14,11 +14,6 @@ setting variables. Some of these can also be configured via
    The ``SHOW`` statement for session settings is unrelated to the other ``SHOW``
    statements like e.g. ``SHOW TABLES``.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

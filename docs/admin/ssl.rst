@@ -31,11 +31,6 @@ You can enable SSL on a per-protocol basis:
    to be ``on`` in all nodes as communication is point-2-point, and intra-zone
    communication will also be encrypted.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 SSL/TLS configuration
 =====================
 

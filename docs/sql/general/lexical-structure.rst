@@ -13,11 +13,6 @@ The syntax of a command defines its set of valid tokens. A token can be a key
 word, an identifier, a quoted identifier, a literal (or constant), or a special
 character symbol.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _string_literal:
 
@@ -337,4 +332,3 @@ Example::
   SELECT *
     FROM information_schema.tables
     WHERE table_schema = 'doc'; -- query information schema for doc tables
-

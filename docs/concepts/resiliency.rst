@@ -21,11 +21,6 @@ unlikely to experience resiliency issues with CrateDB.
 
     :ref:`Appendix: Resiliency Issues <appendix-resiliency>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _concept-resiliency-monitoring:
 

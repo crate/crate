@@ -15,11 +15,6 @@ from a file into a table.
 
     :ref:`SQL syntax: COPY TO <sql-copy-to>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-   :depth: 2
 
 .. _sql-copy-from-synopsis:
 

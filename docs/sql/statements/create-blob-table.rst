@@ -8,11 +8,6 @@
 
 Create a new table for storing *Binary Large OBjects* (BLOBS).
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _sql-create-blob-table-synopsis:
 

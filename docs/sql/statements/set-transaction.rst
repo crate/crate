@@ -7,10 +7,6 @@
 
 Sets the characteristics of transactions.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 Synopsis
 ========
@@ -35,4 +31,3 @@ subsequent transactions of a session.
 
 As CrateDB does not support transactions, this command has no effect and will be
 ignored. The support was added for compatibility reasons.
-

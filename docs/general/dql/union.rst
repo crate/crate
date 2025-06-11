@@ -13,10 +13,6 @@ multiple :ref:`SELECT <sql-select>` statements.
 
     `Union (SQL)`_
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 .. _union-all:
 
