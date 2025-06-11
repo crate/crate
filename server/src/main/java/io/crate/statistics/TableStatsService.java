@@ -73,7 +73,7 @@ public class TableStatsService implements Runnable {
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final Sessions sessions;
-    private final Path path;
+//    private final Path path;
     private final String STATS_PATH = "_stats";
 
     private Session session;
@@ -88,11 +88,12 @@ public class TableStatsService implements Runnable {
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             Sessions sessions,
-                             Path path) {
+                             Sessions sessions
+//                             Path path
+    ) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-        this.path = path;
+//        this.path = path;
         this.sessions = sessions;
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);
         scheduledRefresh = scheduleNextRefresh(refreshInterval);
@@ -106,26 +107,26 @@ public class TableStatsService implements Runnable {
         updateStats();
     }
 
-    public void save(TableStats tableStats) {
-        try (BufferAllocator rootAllocator = new RootAllocator()) {
-            Map<RelationName, Stats> values = tableStats.values();
-            for (Map.Entry<RelationName, Stats> entry : values.entrySet()) {
-                RelationName relationName = entry.getKey();
-                Stats stats = entry.getValue();
-                File file = new File(relationName.fqn() + ".arrow");
-                VectorSchemaRoot vectorSchemaRoot = stats.toVectorSchemaRoot(rootAllocator);
-                try (
-                    FileOutputStream out = new FileOutputStream(file);
-                    ArrowStreamWriter writer = new ArrowStreamWriter(vectorSchemaRoot, null, out.getChannel());
-                ) {
-                    writer.start();
-                    writer.writeBatch();
-                } catch(Exception e) {
-                    throw new RuntimeException(e);
-                }
-            }
-        }
-    }
+//    public void save(TableStats tableStats) {
+//        try (BufferAllocator rootAllocator = new RootAllocator()) {
+//            Map<RelationName, Stats> values = tableStats.values();
+//            for (Map.Entry<RelationName, Stats> entry : values.entrySet()) {
+//                RelationName relationName = entry.getKey();
+//                Stats stats = entry.getValue();
+//                File file = new File(relationName.fqn() + ".arrow");
+//                VectorSchemaRoot vectorSchemaRoot = stats.toVectorSchemaRoot(rootAllocator);
+//                try (
+//                    FileOutputStream out = new FileOutputStream(file);
+//                    ArrowStreamWriter writer = new ArrowStreamWriter(vectorSchemaRoot, null, out.getChannel());
+//                ) {
+//                    writer.start();
+//                    writer.writeBatch();
+//                } catch(Exception e) {
+//                    throw new RuntimeException(e);
+//                }
+//            }
+//        }
+//    }
 
 //    public void save(TableStatistics tableStats) {
 //                File file = new File("tablestats.arrow");

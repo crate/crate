@@ -25,8 +25,10 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 
 import org.apache.arrow.memory.BufferAllocator;
+import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.VarCharVector;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -54,18 +56,19 @@ import io.crate.types.DataTypes;
 
 public class Statistics {
 
+    private final static BufferAllocator BUFFER_ALLOCATOR = new RootAllocator();
+
     private static final Field RELATION_NAME = Field.notNullable("relationName", new ArrowType.Utf8());
     private static final Field NUM_DOCS = Field.notNullable("numDocs", new ArrowType.Int(64, true));
     private static final Field SIZE_IN_BYTES = Field.notNullable("sizeInBytes", new ArrowType.Int(64, true));
 
     private final VectorSchemaRoot root;
 
-    public Statistics(BufferAllocator bufferAllocator,
-                      RelationName relationName,
+    public Statistics(RelationName relationName,
                       long numDocs,
                       long sizeInBytes,
                       Map<ColumnIdent, ColumnStats<?>> statsByColumn) {
-        root = VectorSchemaRoot.create(schema(), bufferAllocator);
+        root = VectorSchemaRoot.create(schema(), BUFFER_ALLOCATOR);
         VarCharVector relationNameVector = (VarCharVector) root.getVector(RELATION_NAME);
         relationNameVector.allocateNew(1);
         relationNameVector.set(0, relationName.fqn().getBytes());
@@ -76,12 +79,12 @@ public class Statistics {
         sizeInBytesVector.allocateNew(1);
         sizeInBytesVector.set(0, sizeInBytes);
         int index = 0;
+        ListVector statsByColumnVector = (ListVector) root.getVector("statsByColumn");
+        UnionListWriter listWriter = statsByColumnVector.getWriter();
+        listWriter.startList();
         for (Map.Entry<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsEntry : statsByColumn.entrySet()) {
             ColumnIdent columnIdent = columnIdentColumnStatsEntry.getKey();
             ColumnStats<?> columnStats = columnIdentColumnStatsEntry.getValue();
-            ListVector statsByColumnVector = (ListVector) root.getVector("statsByColumn");
-            UnionListWriter listWriter = statsByColumnVector.getWriter();
-            listWriter.startList();
             listWriter.setPosition(index);
             BaseWriter.StructWriter struct = listWriter.struct();
             struct.start();
@@ -91,10 +94,10 @@ public class Statistics {
             struct.float8("approxDistinct").writeFloat8(columnStats.approxDistinct());
             struct.integer("type").writeInt(columnStats.type().id());
             struct.end();
-            listWriter.endList();
-            listWriter.setValueCount(index);
             index++;
         }
+        listWriter.endList();
+        listWriter.setValueCount(index);
         root.setRowCount(1);
     }
 
@@ -118,10 +121,10 @@ public class Statistics {
                 BaseReader.StructReader structReader = listReader.reader();
                 VarCharReader columnIdenReader = structReader.reader("columnIdent");
                 ColumnIdent columnIdent  = ColumnIdent.of(columnIdenReader.readText().toString());
-                Float8Reader nullFraction = (Float8Reader) structReader.reader("nullFraction");
-                Float8Reader averageSizeInBytes = (Float8Reader) structReader.reader("averageSizeInBytes");
-                Float8Reader approxDistinct = (Float8Reader) structReader.reader("approxDistinct");
-                IntReader type = (IntReader) structReader.reader("type");
+                Float8Reader nullFraction = structReader.reader("nullFraction");
+                Float8Reader averageSizeInBytes = structReader.reader("averageSizeInBytes");
+                Float8Reader approxDistinct = structReader.reader("approxDistinct");
+                IntReader type = structReader.reader("type");
                 ColumnStats<?> columnStats = new ColumnStats<>(
                     nullFraction.readDouble(),
                     averageSizeInBytes.readDouble(),
@@ -138,7 +141,8 @@ public class Statistics {
 
     @Nullable
     public ColumnStats<?> getColumnStats(ColumnIdent column) {
-        return null;
+        Map<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsMap = statsByColumn();
+        return columnIdentColumnStatsMap.get(column);
     }
 
     private static Schema schema() {
@@ -153,9 +157,22 @@ public class Statistics {
         columnStats.add(Field.notNullable("averageSizeInBytes", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
         columnStats.add(Field.notNullable("approxDistinct", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
         columnStats.add(Field.notNullable("type", new ArrowType.Int(32, true)));
+
         Field columnStatsStruct = new Field("statsByColumn", FieldType.nullable(new ArrowType.Struct()), columnStats);
         FieldType listType = new FieldType(true, new ArrowType.List(), null);
         stats.add(new Field("statsByColumn",listType, List.of(columnStatsStruct)));
         return new Schema(stats);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (o == null || getClass() != o.getClass()) return false;
+        Statistics that = (Statistics) o;
+        return Objects.equals(root, that.root);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hashCode(root);
     }
 }

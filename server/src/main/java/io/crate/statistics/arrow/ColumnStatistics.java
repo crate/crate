@@ -29,15 +29,31 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.Schema;
 
-public class ColumnStatistics {
+import io.crate.statistics.MostCommonValues;
+import io.crate.types.DataType;
+
+public class ColumnStatistics<T> {
 
     private static Schema schema() {
         List<Field> columnStats = new ArrayList<>();
+        columnStats.add(Field.notNullable("columnIdent", new ArrowType.Utf8()));
         columnStats.add(Field.notNullable("nullFraction", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
         columnStats.add(Field.notNullable("averageSizeInBytes", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
         columnStats.add(Field.notNullable("approxDistinct", new ArrowType.FloatingPoint(FloatingPointPrecision.DOUBLE)));
-        columnStats.add(Field.notNullable("type", new ArrowType.Int(16, true)));
+        columnStats.add(Field.notNullable("type", new ArrowType.Int(32, true)));
         return new Schema(columnStats);
     }
+
+    public ColumnStatistics(double nullFraction,
+                       double averageSizeInBytes,
+                       double approxDistinct,
+                       DataType<T> type,
+                       MostCommonValues<T> mostCommonValues,
+                       List<T> histogram) {
+
+    }
+
+
+
 
 }
