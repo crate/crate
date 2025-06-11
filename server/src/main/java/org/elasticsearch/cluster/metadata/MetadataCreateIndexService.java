@@ -174,7 +174,6 @@ public class MetadataCreateIndexService {
     }
 
     public CompletableFuture<ResizeResponse> resizeIndex(ResizeRequest request, IndicesStatsResponse indicesStats) {
-        String sourceIndexName = new PartitionName(request.table(), request.partitionValues()).asIndexName();
         String sourceIndexUUID = clusterService.state().metadata().getIndex(request.table(), request.partitionValues(), true, IndexMetadata::getIndexUUID);
         IndexStats indexStats = indicesStats.getIndex(sourceIndexUUID);
         Map<Integer, IndexShardStats> indexShards = indexStats.getIndexShards();
@@ -264,15 +263,16 @@ public class MetadataCreateIndexService {
             String indexUUID = UUIDs.randomBase64UUID();
             Settings settings = Settings.builder()
                 .put(request.settings())
-                .put(SETTING_OLD_NAME, indexName)
                 .put(SETTING_INDEX_UUID, indexUUID)
                 .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
                 .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), versionCreated)
                 .build();
             int numShards = IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING.get(settings);
             IndexMetadata indexMetadata = IndexMetadata.builder(indexUUID)
+                .indexName(indexName)
                 .settings(settings)
                 .build();
+
             return indicesService.withTempIndexService(indexMetadata, indexService -> {
                 Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata())
                     .setBlobTable(relationName, indexUUID, settings, State.OPEN);
@@ -416,6 +416,7 @@ public class MetadataCreateIndexService {
             }
 
             IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(resizedIndexUUID)
+                .indexName(sourceIndex.getIndex().getName())
                 .settings(indexSettingsBuilder)
                 .indexName(resizedIndexName)
                 .partitionValues(sourceIndex.partitionValues())
@@ -609,7 +610,6 @@ public class MetadataCreateIndexService {
             .put(table.settings())
             .put(concreteIndexSettings)
             .put(SETTING_INDEX_UUID, newIndexUUID)
-            .put(SETTING_OLD_NAME, indexName)
             .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
 
         final Settings idxSettings = indexSettingsBuilder.build();
@@ -628,6 +628,7 @@ public class MetadataCreateIndexService {
         final IndexMetadata tmpImd = IndexMetadata.builder(newIndexUUID)
             .settings(indexSettingsBuilder.build())
             .setRoutingNumShards(routingNumShards)
+            .indexName(indexName)
             .build();
 
         ActiveShardCount waitForActiveShards = tmpImd.getWaitForActiveShards();
@@ -667,6 +668,7 @@ public class MetadataCreateIndexService {
                                          Iterable<Alias> aliases,
                                          int routingNumShards) {
         final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
+            .indexName(tmpImd.getIndex().getName())
             .settings(tmpImd.getSettings())
             .setRoutingNumShards(routingNumShards)
             .partitionValues(tmpImd.partitionValues())

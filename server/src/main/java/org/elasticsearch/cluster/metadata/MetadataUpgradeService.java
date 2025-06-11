@@ -19,8 +19,10 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_VERSION_CREATED;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_UPGRADED;
 import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
+import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.HashMap;
 import java.util.List;
@@ -35,9 +37,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -193,13 +197,40 @@ public class MetadataUpgradeService {
             RelationName relationName = IndexName.decode(indexTemplateMetadata.name()).toRelationName();
             RelationMetadata.Table table = newMetadata.getRelation(relationName);
             DocTableInfo docTable = tableFactory.create(indexTemplateMetadata, metadata);
+            Version versionCreated = docTable.versionCreated();
+
+            // Versions up to 5.9.7 had a bug where ALTER TABLE on a partitioned table could change the `versionCreated` property on the template.
+            // See https://github.com/crate/crate/pull/17178
+            // To mitigate the impact, this looks through partitions and takes their lowest version:
+            Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(
+                metadata,
+                IndicesOptions.LENIENT_EXPAND_OPEN,
+                PartitionName.templatePrefix(relationName.schema(), relationName.name())
+            );
+            for (Index index : concreteIndices) {
+                IndexMetadata indexMetadata = metadata.index(index);
+                if (indexMetadata != null) {
+                    versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
+                }
+            }
+            if (versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
+                // Due to https://github.com/crate/crate/pull/17178 the created version in the template
+                // can be wrong; inferring the correct version from partitions can also fail if old partitions
+                // are deleted.
+                // This is another safety mechanism. If a column doesn't have OIDs the table must be from < 5.5.0
+                if (docTable.rootColumns().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
+                    versionCreated = Version.V_5_4_0;
+                }
+            }
+
             // versionCreated could be missing from the template settings and "calculated" afterwards
             // in DocTableInfo, so put it back to RelationMetadata#parameters
             Settings settings = Settings.builder()
                 // If RelationMetadata exist in the cluster state, make sure to override them with
                 // the upgraded settings which currently takes place on IndexTemplateMetadata
                 .put(indexTemplateMetadata.settings())
-                .put(SETTING_INDEX_VERSION_CREATED.getKey(), docTable.versionCreated())
+                .put(SETTING_VERSION_CREATED, versionCreated)
+                .put(SETTING_VERSION_UPGRADED, Version.CURRENT)
                 .build();
             newMetadata.setTable(
                 docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
@@ -233,6 +264,12 @@ public class MetadataUpgradeService {
             LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
                 ? NO_OID_COLUMN_OID_SUPPLIER
                 : newMetadata.columnOidSupplier();
+            Settings settings = Settings.builder()
+                // If RelationMetadata exist in the cluster state, make sure to override them with
+                // the upgraded settings which currently takes place on IndexTemplateMetadata
+                .put(indexMetadata.getSettings())
+                .put(SETTING_VERSION_UPGRADED, Version.CURRENT)
+                .build();
             if (relation == null) {
                 newMetadata.setTable(
                     columnOidSupplier,
@@ -240,7 +277,7 @@ public class MetadataUpgradeService {
                     docTable.allReferences(),
                     // If RelationMetadata exist in the cluster state, make sure to override them with
                     // the upgraded settings which currently takes place on IndexMetadata
-                    indexMetadata.getSettings(),
+                    settings,
                     docTable.clusteredBy(),
                     docTable.columnPolicy(),
                     docTable.pkConstraintName(),
@@ -330,7 +367,7 @@ public class MetadataUpgradeService {
      * Marks index as upgraded so we don't have to test it again
      */
     private IndexMetadata markAsUpgraded(IndexMetadata indexMetadata) {
-        Settings settings = Settings.builder().put(indexMetadata.getSettings()).put(IndexMetadata.SETTING_VERSION_UPGRADED, Version.CURRENT).build();
+        Settings settings = Settings.builder().put(indexMetadata.getSettings()).put(SETTING_VERSION_UPGRADED, Version.CURRENT).build();
         return IndexMetadata.builder(indexMetadata).settings(settings).build();
     }
 

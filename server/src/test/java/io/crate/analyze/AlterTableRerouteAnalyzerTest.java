@@ -25,10 +25,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.allocation.command.AllocateReplicaAllocationCommand;
@@ -40,6 +42,8 @@ import org.junit.Test;
 
 import io.crate.data.RowN;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.management.AlterTableReroutePlan;
 import io.crate.planner.operators.SubQueryResults;
@@ -50,6 +54,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
 
     private SQLExecutor e;
     private PlannerContext plannerContext;
+    private String usersIndexUUID;
 
     @Before
     public void prepare() throws IOException {
@@ -61,6 +66,12 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS
             );
         plannerContext = e.getPlannerContext();
+        usersIndexUUID = clusterService.state().metadata().getIndex(
+            new RelationName("doc", "users"),
+            List.of(),
+            true,
+            IndexMetadata::getIndexUUID
+        );
     }
 
     @SuppressWarnings("unchecked")
@@ -97,14 +108,14 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteMoveShardWithLiterals() {
         MoveAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE MOVE SHARD 0 FROM 'n2' TO 'n1'");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.fromNode()).isEqualTo("n2");
         assertThat(command.toNode()).isEqualTo("n1");
 
         command = analyze(
             "ALTER TABLE users REROUTE MOVE SHARD CAST('11' AS int) FROM 'n2' TO 'n1'");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(11);
         assertThat(command.fromNode()).isEqualTo("n2");
         assertThat(command.toNode()).isEqualTo("n1");
@@ -114,14 +125,14 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteMoveShardWithParameters() {
         MoveAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE MOVE SHARD 0 FROM ? TO ?", "n2", "n1");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.fromNode()).isEqualTo("n2");
         assertThat(command.toNode()).isEqualTo("n1");
 
         command = analyze(
             "ALTER TABLE users REROUTE MOVE SHARD ?::long FROM ? TO ?", "12", "n2", "n1");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(12);
         assertThat(command.fromNode()).isEqualTo("n2");
         assertThat(command.toNode()).isEqualTo("n1");
@@ -136,9 +147,15 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void testRerouteMoveShardPartitionedTable() {
+        String indexUUID = clusterService.state().metadata().getIndex(
+            new RelationName("doc", "parted"),
+            List.of("1395874800000"),
+            true,
+            IndexMetadata::getIndexUUID
+        );
         MoveAllocationCommand command = analyze(
             "ALTER TABLE parted PARTITION (date = 1395874800000) REROUTE MOVE SHARD 0 FROM 'n1' TO 'n2'");
-        assertThat(command.index()).isEqualTo(".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
+        assertThat(command.index()).isEqualTo(indexUUID);
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.fromNode()).isEqualTo("n1");
         assertThat(command.toNode()).isEqualTo("n2");
@@ -146,22 +163,28 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
 
     @Test
     public void testRerouteOnBlobTable() {
+        String indexUUID = clusterService.state().metadata().getIndex(
+            new RelationName(BlobSchemaInfo.NAME, "blobs"),
+            List.of(),
+            true,
+            IndexMetadata::getIndexUUID
+        );
         MoveAllocationCommand command = analyze(
             "ALTER TABLE blob.blobs REROUTE MOVE SHARD 0 FROM 'n1' TO 'n2'");
-        assertThat(command.index()).isEqualTo(".blob_blobs");
+        assertThat(command.index()).isEqualTo(indexUUID);
     }
 
     @Test
     public void testRerouteAllocateReplicaShardWithLiterals() {
         AllocateReplicaAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD 0 ON 'n1'");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.node()).isEqualTo("n1");
 
         command = analyze(
             "ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD '12'::short ON 'n1'");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(12);
         assertThat(command.node()).isEqualTo("n1");
     }
@@ -170,13 +193,13 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteAllocateReplicaShardWithParameters() {
         AllocateReplicaAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD 0 ON ?", "n1");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.node()).isEqualTo("n1");
 
         command = analyze(
             "ALTER TABLE users REROUTE ALLOCATE REPLICA SHARD CAST(? AS int) ON ?", "123", "n1");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(123);
         assertThat(command.node()).isEqualTo("n1");
     }
@@ -192,14 +215,14 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteCancelShardWithLiterals() {
         CancelAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'n2'");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.node()).isEqualTo("n2");
         assertThat(command.allowPrimary()).isFalse();
 
         command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD CAST('12' AS long) ON 'n2'");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(12);
         assertThat(command.node()).isEqualTo("n2");
         assertThat(command.allowPrimary()).isFalse();
@@ -209,14 +232,14 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteCancelShardWithParameters() {
         CancelAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON ?", "n2");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.node()).isEqualTo("n2");
         assertThat(command.allowPrimary()).isFalse();
 
         command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD ?::int ON ?", "32", "n2");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(32);
         assertThat(command.node()).isEqualTo("n2");
         assertThat(command.allowPrimary()).isFalse();
@@ -233,14 +256,14 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void testRerouteCancelShardWithOptions() {
         CancelAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'n1' WITH (allow_primary = TRUE)");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.node()).isEqualTo("n1");
         assertThat(command.allowPrimary()).isTrue();
 
         command = analyze(
             "ALTER TABLE users REROUTE CANCEL SHARD 0 ON 'n2' WITH (allow_primary = FALSE)");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(0);
         assertThat(command.node()).isEqualTo("n2");
         assertThat(command.allowPrimary()).isFalse();
@@ -250,7 +273,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void test_promote_replica_shard_with_literals() {
         AllocateStalePrimaryAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE PROMOTE REPLICA SHARD 2 ON 'n1' WITH (accept_data_loss = true)");
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(2);
         assertThat(command.node()).isEqualTo("n1");
         assertThat(command.acceptDataLoss()).isTrue();
@@ -260,7 +283,7 @@ public class AlterTableRerouteAnalyzerTest extends CrateDummyClusterServiceUnitT
     public void test_promote_replica_shard_with_parameters() {
         AllocateStalePrimaryAllocationCommand command = analyze(
             "ALTER TABLE users REROUTE PROMOTE REPLICA SHARD 2 ON ? WITH (accept_data_loss = ?)", "n1", true);
-        assertThat(command.index()).isEqualTo("users");
+        assertThat(command.index()).isEqualTo(usersIndexUUID);
         assertThat(command.shardId()).isEqualTo(2);
         assertThat(command.node()).isEqualTo("n1");
         assertThat(command.acceptDataLoss()).isTrue();

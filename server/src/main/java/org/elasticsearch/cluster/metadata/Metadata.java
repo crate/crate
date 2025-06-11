@@ -1018,7 +1018,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = new TreeMap<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 IndexMetadata indexMetadata = cursor.value;
-                AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().getUUID(), new AliasOrIndex.Index(indexMetadata));
+                AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().getName(), new AliasOrIndex.Index(indexMetadata));
                 assert existing == null : "duplicate for " + indexMetadata.getIndex();
 
                 for (ObjectObjectCursor<String, AliasMetadata> aliasCursor : indexMetadata.getAliases()) {

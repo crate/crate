@@ -65,7 +65,7 @@ public class ShardLockIT extends IntegTestCase {
             """,
             new Object[] { nodeName }
         );
-        Index index = resolveIndex("tbl");
+        Index index = resolveIndex("doc.tbl");
         ShardId shardId = new ShardId(index, 0);
         NodeEnvironment nodeEnv = cluster().getInstance(NodeEnvironment.class, nodeName);
 

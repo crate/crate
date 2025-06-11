@@ -1931,13 +1931,14 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     public Index resolveIndex(String indexName) {
+        return resolveIndex(indexName, List.of());
+    }
+
+    public Index resolveIndex(String indexName, List<String> partitionValues) {
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
 
         RelationName relationName = resolveRelationName(indexName);
-        String indexUUID = clusterService.state().metadata()
-            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
-
-        IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);
-        return indexMetadata.getIndex();
+        return clusterService.state().metadata()
+            .getIndex(relationName, partitionValues, true, IndexMetadata::getIndex);
     }
 }

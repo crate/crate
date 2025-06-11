@@ -116,21 +116,18 @@ public class RenameTableClusterStateExecutor {
         // TODO: Can be removed once indices are completely based on indexUUIDs
         List<IndexMetadata> sourceIndices = currentState.metadata().getIndices(source, List.of(), true, x -> x);
         for (IndexMetadata sourceIndex : sourceIndices) {
-            String sourceIndexName;
+            String sourceIndexUUID = sourceIndex.getIndexUUID();
             String targetIndexName;
             if (sourceIndex.partitionValues().isEmpty()) {
-                sourceIndexName = source.indexNameOrAlias();
                 targetIndexName = target.indexNameOrAlias();
             } else {
-                PartitionName partitionName = new PartitionName(source, sourceIndex.partitionValues());
-                sourceIndexName = partitionName.asIndexName();
                 PartitionName newPartitionName = new PartitionName(target, sourceIndex.partitionValues());
                 targetIndexName = newPartitionName.asIndexName();
             }
 
-            newMetadata.remove(sourceIndexName);
-            newRoutingTable.remove(sourceIndexName);
-            blocksBuilder.removeIndexBlocks(sourceIndexName);
+            newMetadata.remove(sourceIndexUUID);
+            newRoutingTable.remove(sourceIndexUUID);
+            blocksBuilder.removeIndexBlocks(sourceIndexUUID);
 
             IndexMetadata targetMd = IndexMetadata.builder(sourceIndex)
                 .indexName(targetIndexName)

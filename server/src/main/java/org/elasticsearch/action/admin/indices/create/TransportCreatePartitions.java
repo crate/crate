@@ -218,12 +218,12 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
 
             String tmpUUID = UUIDs.randomBase64UUID();
             IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(tmpUUID)
+                .indexName(firstIndex)
                 .setRoutingNumShards(routingNumShards);
 
             // Set up everything, now locally create the index to see that things are ok, and apply
             final IndexMetadata tmpImd = tmpImdBuilder.settings(Settings.builder()
                     .put(commonIndexSettings)
-                    .put(IndexMetadata.SETTING_OLD_NAME, firstIndex)
                     .put(IndexMetadata.SETTING_INDEX_UUID, tmpUUID)).build();
             ActiveShardCount waitForActiveShards = tmpImd.getWaitForActiveShards();
             if (!waitForActiveShards.validate(tmpImd.getNumberOfReplicas())) {
@@ -254,11 +254,11 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                 String indexName = partition.asIndexName();
                 String indexUUID = UUIDs.randomBase64UUID();
                 final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
+                    .indexName(indexName)
                     .setRoutingNumShards(routingNumShards)
                     .partitionValues(partition.values())
                     .settings(Settings.builder()
                         .put(commonIndexSettings)
-                        .put(IndexMetadata.SETTING_OLD_NAME, indexName)
                         .put(IndexMetadata.SETTING_INDEX_UUID, indexUUID)
                     );
 

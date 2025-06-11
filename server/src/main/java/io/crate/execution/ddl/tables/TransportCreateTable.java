@@ -51,6 +51,7 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.execution.ddl.views.TransportCreateView;
+import io.crate.metadata.IndexName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -158,6 +159,10 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
 
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
+                // Validate the relation name
+                // TODO: These restrictions are mostly artificial nowadays and can be lifted?
+                IndexName.validate(relationName.indexNameOrAlias());
+
                 RelationMetadata.Table table = currentState.metadata().getRelation(relationName);
                 if (table != null) {
                     throw new RelationAlreadyExists(table.name());

@@ -47,13 +47,13 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.metadata.IndexName;
+import io.crate.metadata.RelationName;
 
 /**
  * Tests relating to the loss of the master.
  */
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-@IntegTestCase.Slow
+//@IntegTestCase.Slow
 public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
     /**
@@ -240,9 +240,9 @@ public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
         disruption.stopDisrupting();
 
-        String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null);
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "t");
         assertBusy(() -> {
-            IndicesStatsResponse stats = FutureUtils.get(client().stats(new IndicesStatsRequest(indexName).clear()));
+            IndicesStatsResponse stats = FutureUtils.get(client().stats(new IndicesStatsRequest(relationName).clear()));
             for (ShardStats shardStats : stats.getShards()) {
                 assertThat(shardStats.getSeqNoStats().getGlobalCheckpoint()).as(shardStats.getShardRouting().toString()).isEqualTo(shardStats.getSeqNoStats().getLocalCheckpoint());
             }

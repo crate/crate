@@ -401,23 +401,31 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         final Index index = new Index("test", "1234");
 
         ClusterInfo info = new DevNullClusterInfo(ImmutableOpenMap.of(), ImmutableOpenMap.of(), shardSizes.build());
+
+        // Setting the creation date is important here as shards of newer indices are allocated first, see PriorityComparator
+        // Shards of the source index must be allocated first, so set the highest creation date
         Metadata.Builder metaBuilder = Metadata.builder();
         metaBuilder.put(IndexMetadata.builder(index.getUUID())
-            .settings(settings(Version.CURRENT).put("index.uuid", index.getUUID()))
+            .settings(settings(Version.CURRENT)
+                .put("index.uuid", index.getUUID())
+                .put(IndexMetadata.SETTING_CREATION_DATE, 3))
             .indexName(index.getName())
             .numberOfShards(4)
             .numberOfReplicas(0));
         metaBuilder.put(IndexMetadata.builder("5678")
-            .settings(settings(Version.CURRENT).put("index.uuid", "5678")
-                .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test").put(
-                    IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, "1234"))
+            .settings(settings(Version.CURRENT)
+                .put("index.uuid", "5678")
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test")
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, "1234")
+                .put(IndexMetadata.SETTING_CREATION_DATE, 2))
             .indexName("target")
             .numberOfShards(1)
             .numberOfReplicas(0));
         metaBuilder.put(IndexMetadata.builder("9101112")
             .settings(settings(Version.CURRENT).put("index.uuid", "9101112")
-                .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test").put(
-                    IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, index.getUUID()))
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test")
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, index.getUUID())
+                .put(IndexMetadata.SETTING_CREATION_DATE, 1))
             .indexName("target2")
             .numberOfShards(2)
             .numberOfReplicas(0));

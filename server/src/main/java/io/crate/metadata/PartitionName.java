@@ -331,11 +331,14 @@ public class PartitionName implements Writeable {
         assert indexOrTemplate != null : "indexOrTemplate must not be null";
 
         IndexParts indexParts = IndexName.decode(indexOrTemplate);
+        /*
         if (!indexParts.isPartitioned()) {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "Trying to create partition name from the name of a non-partitioned table %s", indexOrTemplate)
             );
         }
+
+         */
         return new PartitionName(new RelationName(indexParts.schema(), indexParts.table()), indexParts.partitionIdent());
     }
 

@@ -101,7 +101,6 @@ import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexUUID;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -299,7 +298,8 @@ public class InsertFromValues implements LogicalPlan {
                 dependencies.clusterService().state(),
                 shardUpsertRequests,
                 dependencies.client(),
-                dependencies.scheduler());
+                dependencies.scheduler(),
+                tableInfo.isPartitioned());
         }).whenComplete((response, t) -> {
             if (t == null) {
                 if (returnValues.isEmpty()) {
@@ -459,7 +459,8 @@ public class InsertFromValues implements LogicalPlan {
                 dependencies.clusterService().state(),
                 shardUpsertRequests,
                 dependencies.client(),
-                dependencies.scheduler());
+                dependencies.scheduler(),
+                tableInfo.isPartitioned());
         }).whenComplete((response, t) -> {
             if (t == null) {
                 bulkResponse.update(response, bulkIndices);
@@ -654,7 +655,8 @@ public class InsertFromValues implements LogicalPlan {
                                                                       ClusterState state,
                                                                       Collection<ShardUpsertRequest> shardUpsertRequests,
                                                                       Client client,
-                                                                      ScheduledExecutorService scheduler) {
+                                                                      ScheduledExecutorService scheduler,
+                                                                      boolean isPartitioned) {
         ShardResponse.CompressedResult compressedResult = new ShardResponse.CompressedResult();
         if (shardUpsertRequests.isEmpty()) {
             return CompletableFuture.completedFuture(compressedResult);
@@ -664,7 +666,7 @@ public class InsertFromValues implements LogicalPlan {
         AtomicInteger numRequests = new AtomicInteger(shardUpsertRequests.size());
         AtomicReference<Throwable> lastFailure = new AtomicReference<>(null);
 
-        Consumer<ShardUpsertRequest> countdown = request -> {
+        Consumer<ShardUpsertRequest> countdown = ignored -> {
             if (numRequests.decrementAndGet() == 0) {
                 Throwable throwable = lastFailure.get();
                 if (throwable == null) {
@@ -673,8 +675,8 @@ public class InsertFromValues implements LogicalPlan {
                     throwable = SQLExceptions.unwrap(throwable);
                     // we want to report duplicate key exceptions
                     if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&
-                            (partitionWasDeleted(throwable, request.index())
-                                    || partitionClosed(throwable, request.index())
+                            (partitionWasDeleted(throwable, isPartitioned)
+                                    || partitionClosed(throwable, isPartitioned)
                                     || mixedArgumentTypesFailure(throwable))) {
                         result.complete(compressedResult);
                     } else {
@@ -692,7 +694,7 @@ public class InsertFromValues implements LogicalPlan {
                     .currentNodeId();
             } catch (IndexNotFoundException e) {
                 lastFailure.set(e);
-                if (!IndexName.isPartitioned(request.index())) {
+                if (!isPartitioned) {
                     synchronized (compressedResult) {
                         compressedResult.markAsFailed(request.items());
                     }
@@ -723,7 +725,7 @@ public class InsertFromValues implements LogicalPlan {
                 public void onFailure(Exception e) {
                     nodeLimit.onSample(startTime, true);
                     Throwable t = SQLExceptions.unwrap(e);
-                    if (!partitionWasDeleted(t, request.index())) {
+                    if (!partitionWasDeleted(t, isPartitioned)) {
                         synchronized (compressedResult) {
                             compressedResult.markAsFailed(request.items());
                         }
@@ -748,12 +750,12 @@ public class InsertFromValues implements LogicalPlan {
         return throwable instanceof ClassCastException;
     }
 
-    private static boolean partitionWasDeleted(Throwable throwable, String index) {
-        return throwable instanceof IndexNotFoundException && IndexName.isPartitioned(index);
+    private static boolean partitionWasDeleted(Throwable throwable, boolean isPartitioned) {
+        return throwable instanceof IndexNotFoundException && isPartitioned;
     }
 
-    private static boolean partitionClosed(Throwable throwable, String index) {
-        if (throwable instanceof ClusterBlockException blockException && IndexName.isPartitioned(index)) {
+    private static boolean partitionClosed(Throwable throwable, boolean isPartitioned) {
+        if (throwable instanceof ClusterBlockException blockException && isPartitioned) {
             for (ClusterBlock clusterBlock : blockException.blocks()) {
                 if (clusterBlock.id() == INDEX_CLOSED_BLOCK.id()) {
                     return true;

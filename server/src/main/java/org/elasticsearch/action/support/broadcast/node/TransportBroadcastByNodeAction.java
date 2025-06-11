@@ -126,7 +126,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
                 successfulShards += response.getSuccessfulShards();
                 for (BroadcastShardOperationFailedException throwable : response.getExceptions()) {
                     if (!SQLExceptions.isShardNotAvailable(throwable)) {
-                        exceptions.add(new DefaultShardOperationFailedException(throwable.getShardId().getIndexName(), throwable.getShardId().id(), throwable));
+                        exceptions.add(new DefaultShardOperationFailedException(throwable.getShardId().getIndex().toString(), throwable.getShardId().id(), throwable));
                     }
                 }
             }

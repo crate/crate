@@ -636,7 +636,7 @@ public abstract class TransportReplicationAction<
                             request.shardId().getIndex(), request, state.version(), request.routedBasedOnClusterVersion());
                         retry(new IndexNotFoundException("failed to find index as current cluster state with version [" + state.version() +
                             "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]",
-                            request.shardId().getIndexName()));
+                            request.shardId().getIndex().toString()));
                         return;
                     } else {
                         finishAsFailed(new IndexNotFoundException(request.shardId().getIndex()));

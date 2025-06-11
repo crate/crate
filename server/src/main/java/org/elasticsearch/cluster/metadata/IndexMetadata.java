@@ -72,7 +72,6 @@ import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
-import io.crate.metadata.IndexUUID;
 import io.crate.metadata.PartitionName;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.DataTypes;
@@ -783,6 +782,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
     public static class Builder {
 
         private String indexUUID;
+        private String indexName;
         private State state = State.OPEN;
         private long version = 1;
         private long mappingVersion = 1;
@@ -808,6 +808,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
         public Builder(IndexMetadata indexMetadata) {
             this.indexUUID = indexMetadata.getIndex().getUUID();
+            this.indexName = indexMetadata.getIndex().getName();
             this.state = indexMetadata.state;
             this.version = indexMetadata.version;
             this.mappingVersion = indexMetadata.mappingVersion;
@@ -822,10 +823,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         }
 
         public Builder indexName(String indexName) {
-            settings(Settings.builder()
-                .put(settings)
-                .put(SETTING_OLD_NAME, indexName)
-                .build());
+            this.indexName = indexName;
             return this;
         }
 
@@ -1043,7 +1041,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
         public IndexMetadata build() {
             final ImmutableOpenMap.Builder<String, AliasMetadata> tmpAliases = aliases;
-            final Settings tmpSettings = settings;
+            final Settings tmpSettings = Settings.builder()
+                .put(settings)
+                .put(SETTING_OLD_NAME, indexName)
+                .build();
 
             if (indexUUID == null || indexUUID.isEmpty()) {
                 throw new IllegalArgumentException("index uuid must not be null or empty");
@@ -1126,10 +1127,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                                                    "number of shard copies [" + (numberOfReplicas + 1) + "]");
             }
 
-            final String name = settings.get(SETTING_OLD_NAME, INDEX_NAME_NA_VALUE);
-
             return new IndexMetadata(
-                new Index(name, indexUUID),
+                new Index(indexName, indexUUID),
                 version,
                 mappingVersion,
                 settingsVersion,
@@ -1164,8 +1163,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             if (parser.currentToken() != XContentParser.Token.FIELD_NAME) {
                 throw new IllegalArgumentException("expected field name but got a " + parser.currentToken());
             }
-            String indexName = parser.currentName();
             Builder builder = new Builder();
+            builder.indexName(parser.currentName());
 
             String currentFieldName = null;
             XContentParser.Token token = parser.nextToken();
@@ -1278,7 +1277,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
             String indexUUID = builder.settings.get(SETTING_INDEX_UUID, INDEX_UUID_NA_VALUE);
             builder.indexUUID(indexUUID);
-            builder.settings(Settings.builder().put(SETTING_OLD_NAME, indexName)
+            builder.settings(Settings.builder()
                 .put(builder.settings)
                 .build());
 

@@ -103,13 +103,13 @@ public class MetadataCreateIndexServiceTest extends CrateDummyClusterServiceUnit
         var state = clusterService.state();
         var allocationService = createAllocationService();
         var routingTable = allocationService.reroute(state, "reroute").routingTable();
+        RelationName tbl = new RelationName("doc", "srctbl");
+        String indexUUID = state.metadata().getIndex(tbl, List.of(), true, IndexMetadata::getIndexUUID);
         ClusterState startedShardsState = allocationService.applyStartedShards(
             state,
-            routingTable.index("srctbl").shardsWithState(ShardRoutingState.INITIALIZING)
+            routingTable.index(indexUUID).shardsWithState(ShardRoutingState.INITIALIZING)
         );
 
-        RelationName tbl = new RelationName("doc", "srctbl");
-        String indexUUID = startedShardsState.metadata().getIndex(tbl, List.of(), true, IndexMetadata::getIndexUUID);
         int newNumShards = 1;
         var resizeIndexTask = new MetadataCreateIndexService.ResizeIndexTask(
             Mockito.mock(AllocationService.class),

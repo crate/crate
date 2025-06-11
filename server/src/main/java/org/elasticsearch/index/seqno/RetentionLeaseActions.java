@@ -259,7 +259,7 @@ public class RetentionLeaseActions {
         }
 
         Request(final ShardId shardId, final String id) {
-            super(Objects.requireNonNull(shardId).getIndexName());
+            super(Objects.requireNonNull(shardId).getIndexUUID());
             this.shardId = shardId;
             this.id = Objects.requireNonNull(id);
         }
