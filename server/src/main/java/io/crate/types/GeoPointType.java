@@ -106,10 +106,16 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             return point;
         } else if (value instanceof Double[] doubles) {
             checkLengthIs2(doubles.length);
+            if (doubles[0] == null || doubles[1] == null) {
+                return null;
+            }
             ensurePointsInRange(doubles[0], doubles[1]);
             return new PointImpl(doubles[0], doubles[1], JtsSpatialContext.GEO);
         } else if (value instanceof Object[] values) {
             checkLengthIs2(values.length);
+            if (values[0] == null || values[1] == null) {
+                return null;
+            }
             PointImpl point = new PointImpl(
                 ((Number) values[0]).doubleValue(),
                 ((Number) values[1]).doubleValue(),
@@ -120,6 +126,9 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             return pointFromString(str);
         } else if (value instanceof List<?> values) {
             checkLengthIs2(values.size());
+            if (values.getFirst() == null || values.getLast() == null) {
+                return null;
+            }
             PointImpl point = new PointImpl(
                 ((Number) values.get(0)).doubleValue(),
                 ((Number) values.get(1)).doubleValue(),
@@ -137,6 +146,9 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
             return null;
         } else if (value instanceof List<?> values) {
             checkLengthIs2(values.size());
+            if (values.getFirst() == null || values.getLast() == null) {
+                return null;
+            }
             PointImpl point = new PointImpl(
                 ((Number) values.get(0)).doubleValue(),
                 ((Number) values.get(1)).doubleValue(),
