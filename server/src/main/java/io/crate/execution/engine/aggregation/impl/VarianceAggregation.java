@@ -230,13 +230,11 @@ public class VarianceAggregation extends AggregationFunction<Variance, Double> {
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        Reference reference = aggregationReferences.get(0);
+        Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
             return null;
         }
-        if (!reference.hasDocValues()) {
-            return null;
-        }
+
         switch (reference.valueType().id()) {
             case ByteType.ID:
             case ShortType.ID:

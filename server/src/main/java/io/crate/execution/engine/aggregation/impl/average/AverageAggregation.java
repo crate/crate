@@ -312,11 +312,8 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        Reference reference = aggregationReferences.get(0);
+        Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
-            return null;
-        }
-        if (!reference.hasDocValues()) {
             return null;
         }
         switch (reference.valueType().id()) {

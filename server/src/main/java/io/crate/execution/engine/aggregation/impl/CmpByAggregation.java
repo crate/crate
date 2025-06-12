@@ -48,6 +48,7 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -165,7 +166,7 @@ public final class CmpByAggregation extends AggregationFunction<CmpByAggregation
         if (searchField == null) {
             return null;
         }
-        if (!searchField.hasDocValues()) {
+        if (!searchField.hasDocValues() || searchField.granularity() != RowGranularity.DOC) {
             return null;
         }
 
