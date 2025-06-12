@@ -38,10 +38,15 @@ import io.crate.types.DataTypes;
 
 public class StatisticsTest extends ESTestCase {
 
+    final Map<ColumnIdent, ColumnStats<?>> columnStats = Map.of(
+        ColumnIdent.of("a"), new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of()),
+        ColumnIdent.of("b"), new ColumnStats<>(3.0D, 4.0D, 5.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of()),
+        ColumnIdent.of("c"), new ColumnStats<>(6.0D, 7.0D, 8.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of())
+    );
 
     @Test
     public void test_basic() {
-        Map<ColumnIdent, ColumnStats<?>> statsByColumn = columnStats();
+        Map<ColumnIdent, ColumnStats<?>> statsByColumn = columnStats;
         try (Statistics statistics = new Statistics(1L, 200L, statsByColumn)) {
             assertThat(statistics.numDocs()).isEqualTo(1);
             assertThat(statistics.sizeInBytes()).isEqualTo(200L);
@@ -54,7 +59,7 @@ public class StatisticsTest extends ESTestCase {
     public void test_streaming() throws IOException {
 
         try (BytesStreamOutput out = new BytesStreamOutput()) {
-            Statistics statistics = new Statistics(1L, 200L, columnStats());
+            Statistics statistics = new Statistics(1L, 200L, columnStats);
             statistics.write(out);
             Statistics fromStream = new Statistics(out.bytes().streamInput());
             assertThat(statistics.numDocs()).isEqualTo(fromStream.numDocs());
@@ -63,13 +68,5 @@ public class StatisticsTest extends ESTestCase {
             fromStream.close();
             statistics.close();
         }
-    }
-
-    static Map<ColumnIdent, ColumnStats<?>> columnStats() {
-        ColumnStats<?> columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
-        ColumnIdent a = ColumnIdent.of("a");
-        ColumnIdent b = ColumnIdent.of("b");
-        ColumnIdent c = ColumnIdent.of("c");
-        return Map.of(a, columnStats, b, columnStats, c, columnStats);
     }
 }
