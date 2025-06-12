@@ -23,6 +23,7 @@ package io.crate.statistics.arrow;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
@@ -37,11 +38,11 @@ import io.crate.statistics.MostCommonValues;
 import io.crate.types.DataTypes;
 
 public class StatisticsTest extends ESTestCase {
+    final ColumnStats<?> columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
+    final ColumnIdent ident = ColumnIdent.of("a");
 
     @Test
-    public void test_basic() throws Exception {
-        var columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
-        ColumnIdent ident = ColumnIdent.of("a");
+    public void test_basic() {
         try (RootAllocator allocator = new RootAllocator();
         ) {
             Statistics statistics = new Statistics(allocator, 1L, 200L, Map.of(ident, columnStats));
@@ -54,9 +55,7 @@ public class StatisticsTest extends ESTestCase {
     }
 
     @Test
-    public void test_streaming() throws Exception {
-        ColumnStats<?> columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
-        ColumnIdent ident = ColumnIdent.of("a");
+    public void test_streaming() throws IOException {
         try (
             BytesStreamOutput out = new BytesStreamOutput();
             RootAllocator allocator = new RootAllocator()

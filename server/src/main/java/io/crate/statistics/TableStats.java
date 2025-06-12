@@ -24,7 +24,6 @@ package io.crate.statistics;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -77,10 +76,6 @@ public class TableStats {
         } else {
             return stats.averageSizePerRowInBytes();
         }
-    }
-
-    public Map<RelationName, Stats> values() {
-        return Collections.unmodifiableMap(tableStats);
     }
 
     public Iterable<ColumnStatsEntry> statsEntries() {

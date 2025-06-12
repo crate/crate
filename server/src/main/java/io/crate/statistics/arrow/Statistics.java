@@ -75,9 +75,13 @@ public class Statistics {
         BigIntVector numDocsVector = (BigIntVector) root.getVector("numDocs");
         numDocsVector.allocateNew(1);
         numDocsVector.set(0, numDocs);
+        numDocsVector.setValueCount(1);
+
         BigIntVector sizeInBytesVector = (BigIntVector) root.getVector("sizeInBytes");
         sizeInBytesVector.allocateNew(1);
         sizeInBytesVector.set(0, sizeInBytes);
+        sizeInBytesVector.setValueCount(1);
+
         ListVector statsByColumnVector = (ListVector) root.getVector("statsByColumn");
         UnionListWriter listWriter = statsByColumnVector.getWriter();
         listWriter.startList();
@@ -86,14 +90,14 @@ public class Statistics {
             ColumnIdent columnIdent = columnIdentColumnStatsEntry.getKey();
             ColumnStats<?> columnStats = columnIdentColumnStatsEntry.getValue();
             listWriter.setPosition(index);
-            BaseWriter.StructWriter struct = listWriter.struct();
-            struct.start();
-            struct.varChar("columnIdent").writeVarChar(columnIdent.fqn());
-            struct.float8("nullFraction").writeFloat8(columnStats.nullFraction());
-            struct.float8("averageSizeInBytes").writeFloat8(columnStats.averageSizeInBytes());
-            struct.float8("approxDistinct").writeFloat8(columnStats.approxDistinct());
-            struct.integer("type").writeInt(columnStats.type().id());
-            struct.end();
+            BaseWriter.StructWriter structWriter = listWriter.struct();
+            structWriter.start();
+            structWriter.varChar("columnIdent").writeVarChar(columnIdent.fqn());
+            structWriter.float8("nullFraction").writeFloat8(columnStats.nullFraction());
+            structWriter.float8("averageSizeInBytes").writeFloat8(columnStats.averageSizeInBytes());
+            structWriter.float8("approxDistinct").writeFloat8(columnStats.approxDistinct());
+            structWriter.integer("type").writeInt(columnStats.type().id());
+            structWriter.end();
             index++;
         }
         listWriter.endList();
