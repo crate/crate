@@ -43,9 +43,8 @@ public class StatisticsTest extends ESTestCase {
 
     @Test
     public void test_basic() {
-        try (RootAllocator allocator = new RootAllocator();
-        ) {
-            Statistics statistics = new Statistics(allocator, 1L, 200L, Map.of(ident, columnStats));
+        try (Statistics statistics = new Statistics(1L, 200L, Map.of(ident, columnStats;)
+         {
             assertThat(statistics.numDocs()).isEqualTo(1);
             assertThat(statistics.sizeInBytes()).isEqualTo(200L);
             ColumnStats<?> result = statistics.getColumnStats(ident);
@@ -58,11 +57,12 @@ public class StatisticsTest extends ESTestCase {
     public void test_streaming() throws IOException {
         try (
             BytesStreamOutput out = new BytesStreamOutput();
-            RootAllocator allocator = new RootAllocator()
+            Statistics statistics = new Statistics(1L, 200L, Map.of(ident, columnStats));
         ) {
-            Statistics statistics = new Statistics(allocator, 1L, 200L, Map.of(ident, columnStats));
             statistics.write(out);
-            Statistics fromStream = new Statistics(allocator, out.bytes().streamInput());
+            try (
+            Statistics fromStream = new Statistics(out.bytes().streamInput());
+            )
             assertThat(statistics.numDocs()).isEqualTo(fromStream.numDocs());
             assertThat(statistics.sizeInBytes()).isEqualTo(fromStream.sizeInBytes());
             assertThat(statistics.statsByColumn()).isEqualTo(fromStream.statsByColumn());

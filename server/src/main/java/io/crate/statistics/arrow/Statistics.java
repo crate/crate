@@ -28,9 +28,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 
-import org.apache.arrow.memory.RootAllocator;
 import org.apache.arrow.vector.BigIntVector;
 import org.apache.arrow.vector.VectorLoader;
 import org.apache.arrow.vector.VectorSchemaRoot;
@@ -51,24 +49,35 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
+import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
 
+import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.ScopedSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.types.DataTypes;
+import io.crate.types.FixedWidthType;
 
-public class Statistics {
+public class Statistics implements AutoCloseable {
+
+    public static Statistics EMPTY = new Statistics();
 
     private final VectorSchemaRoot root;
 
-    public Statistics(RootAllocator rootAllocator,
-                      long numDocs,
+    private Statistics() {
+        this(-1, -1, Map.of());
+    }
+
+    public Statistics(long numDocs,
                       long sizeInBytes,
                       Map<ColumnIdent, ColumnStats<?>> statsByColumn) {
-        this.root = VectorSchemaRoot.create(schema(), rootAllocator);
+        this.root = VectorSchemaRoot.create(schema(), Allocator.INSTANCE);
 //        VarCharVector relationNameVector = (VarCharVector) root.getVector(RELATION_NAME);
 //        relationNameVector.allocateNew(1);
 //        relationNameVector.set(0, relationName.fqn().getBytes());
@@ -105,12 +114,12 @@ public class Statistics {
         root.setRowCount(1);
     }
 
-    public Statistics(RootAllocator allocator, InputStream in) throws IOException {
-        try (ArrowStreamReader reader = new ArrowStreamReader(in, allocator)) {
+    public Statistics(InputStream in) throws IOException {
+        try (ArrowStreamReader reader = new ArrowStreamReader(in, Allocator.INSTANCE)) {
             reader.loadNextBatch();
             try(VectorSchemaRoot source = reader.getVectorSchemaRoot()) {
             VectorUnloader unloader = new VectorUnloader(source);
-            VectorSchemaRoot copy = VectorSchemaRoot.create(source.getSchema(), allocator);
+            VectorSchemaRoot copy = VectorSchemaRoot.create(source.getSchema(), Allocator.INSTANCE);
                 VectorLoader loader = new VectorLoader(copy);
                 try(ArrowRecordBatch recordBatch = unloader.getRecordBatch()) {
                     loader.load(recordBatch);
@@ -182,20 +191,44 @@ public class Statistics {
         return new Schema(stats);
     }
 
+    public long averageSizePerRowInBytes() {
+        long numDocs = numDocs();
+        if (numDocs == -1) {
+            return -1;
+        } else if (numDocs == 0) {
+            return 0;
+        } else {
+            return sizeInBytes() / numDocs;
+        }
+    }
+
+    public long estimateSizeForColumns(Iterable<? extends Symbol> toCollect) {
+        long sum = 0L;
+        for (Symbol symbol : toCollect) {
+            ColumnStats<?> columnStats = null;
+            while (symbol instanceof AliasSymbol alias) {
+                symbol = alias.symbol();
+            }
+            if (symbol instanceof Reference ref) {
+                columnStats = statsByColumn().get(ref.column());
+            } else if (symbol instanceof ScopedSymbol scopedSymbol) {
+                columnStats = statsByColumn().get(scopedSymbol.column());
+            }
+            if (columnStats == null) {
+                if (symbol.valueType() instanceof FixedWidthType fixedWidthType) {
+                    sum += fixedWidthType.fixedSize();
+                } else {
+                    sum += RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
+                }
+            } else {
+                sum += (long) columnStats.averageSizeInBytes();
+            }
+        }
+        return sum;
+    }
+
     public void close() {
         this.root.close();
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        Statistics that = (Statistics) o;
-        return Objects.equals(root, that.root);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(root);
     }
 
     public void write(StreamOutput out) throws IOException {

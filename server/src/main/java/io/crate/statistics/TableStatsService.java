@@ -22,15 +22,9 @@
 package io.crate.statistics;
 
 
-import java.io.File;
-import java.io.FileOutputStream;
-import java.nio.file.Path;
-import java.util.Map;
 
-import org.apache.arrow.memory.BufferAllocator;
-import org.apache.arrow.memory.RootAllocator;
-import org.apache.arrow.vector.VectorSchemaRoot;
-import org.apache.arrow.vector.ipc.ArrowStreamWriter;
+import java.nio.file.Path;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -47,7 +41,6 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.metadata.RelationName;
 import io.crate.session.BaseResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
@@ -74,7 +67,7 @@ public class TableStatsService implements Runnable {
     private final ThreadPool threadPool;
     private final Sessions sessions;
 //    private final Path path;
-    private final String STATS_PATH = "_stats";
+//    private final String STATS_PATH = "_stats";
 
     private Session session;
 
@@ -89,7 +82,6 @@ public class TableStatsService implements Runnable {
                              ThreadPool threadPool,
                              ClusterService clusterService,
                              Sessions sessions
-//                             Path path
     ) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
