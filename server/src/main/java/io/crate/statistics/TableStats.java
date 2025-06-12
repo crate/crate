@@ -21,12 +21,10 @@
 
 package io.crate.statistics;
 
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
-import io.crate.statistics.arrow.Statistics;
+import io.crate.statistics.arrow.ArrowStats;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -37,14 +35,14 @@ import java.util.Set;
  */
 public class TableStats implements AutoCloseable {
 
-    private volatile Map<RelationName, Statistics> tableStats = new HashMap<>();
+    private volatile Map<RelationName, ArrowStats> tableStats = new HashMap<>();
 
     public void updateTableStats(Map<RelationName, Stats> tableStats) {
-        HashMap<RelationName, Statistics> update = new HashMap<>();
+        HashMap<RelationName, ArrowStats> update = new HashMap<>();
         for (Map.Entry<RelationName, Stats> entry : tableStats.entrySet()) {
             RelationName relationName = entry.getKey();
             Stats stats = entry.getValue();
-            Statistics statistics = new Statistics(stats.numDocs, stats.sizeInBytes, stats.statsByColumn());
+            ArrowStats statistics = new ArrowStats(stats.numDocs, stats.sizeInBytes, stats.statsByColumn());
             update.put(relationName, statistics);
 
         }
@@ -80,7 +78,7 @@ public class TableStats implements AutoCloseable {
      * for the given table an estimate (avg) based on the column types of the table.
      */
     public long estimatedSizePerRow(TableInfo tableInfo) {
-        Statistics stats = tableStats.get(tableInfo.ident());
+        ArrowStats stats = tableStats.get(tableInfo.ident());
         if (stats == null) {
             // if stats are not available we fall back to estimate the size based on
             // column types. Therefore we need to get the column information.
@@ -91,21 +89,18 @@ public class TableStats implements AutoCloseable {
     }
 
     public Iterable<ColumnStatsEntry> statsEntries() {
-        ArrayList<ColumnStatsEntry> result = new ArrayList<>();
-        Set<Map.Entry<RelationName, Statistics>> entries = tableStats.entrySet();
-        for (Map.Entry<RelationName, Statistics> tableEntry : entries) {
-            RelationName key = tableEntry.getKey();
-            Statistics value = tableEntry.getValue();
-            Map<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsMap = value.statsByColumn();
-            for (Map.Entry<ColumnIdent, ColumnStats<?>> entry : columnIdentColumnStatsMap.entrySet()) {
-                result.add(new ColumnStatsEntry(tableEntry.getKey(), entry.getKey(), entry.getValue()));
-            }
-        }
-        return result::iterator;
+        Set<Map.Entry<RelationName, ArrowStats>> entries = tableStats.entrySet();
+        return () -> entries.stream()
+            .flatMap(tableEntry -> {
+                ArrowStats stats = tableEntry.getValue();
+                return stats.statsByColumn().entrySet().stream()
+                    .map(columnEntry ->
+                        new ColumnStatsEntry(tableEntry.getKey(), columnEntry.getKey(), columnEntry.getValue()));
+            }).iterator();
     }
 
     public Stats getStats(RelationName relationName) {
-        Statistics statistics = tableStats.get(relationName);
+        ArrowStats statistics = tableStats.get(relationName);
         if (statistics == null) {
             return Stats.EMPTY;
         }
@@ -114,7 +109,7 @@ public class TableStats implements AutoCloseable {
 
     @Override
     public void close() throws Exception {
-        for (Statistics stats : tableStats.values()) {
+        for (ArrowStats stats : tableStats.values()) {
             stats.close();
         }
     }

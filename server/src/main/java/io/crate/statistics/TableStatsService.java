@@ -22,6 +22,10 @@
 package io.crate.statistics;
 
 
+import java.io.File;
+import java.io.FileOutputStream;
+
+import org.apache.arrow.vector.ipc.ArrowStreamWriter;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;

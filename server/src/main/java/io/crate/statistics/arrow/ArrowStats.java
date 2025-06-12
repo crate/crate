@@ -21,6 +21,9 @@
 
 package io.crate.statistics.arrow;
 
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.channels.Channels;
@@ -50,7 +53,6 @@ import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.Nullable;
 
 
 import io.crate.metadata.ColumnIdent;
@@ -58,17 +60,11 @@ import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.types.DataTypes;
 
-public class Statistics implements AutoCloseable {
-
-    public static Statistics EMPTY = new Statistics();
+public class ArrowStats implements AutoCloseable {
 
     private final VectorSchemaRoot root;
 
-    private Statistics() {
-        this(-1, -1, Map.of());
-    }
-
-    public Statistics(long numDocs,
+    public ArrowStats(long numDocs,
                       long sizeInBytes,
                       Map<ColumnIdent, ColumnStats<?>> statsByColumn) {
         this.root = VectorSchemaRoot.create(schema(), ArrowBufferAllocator.INSTANCE);
@@ -102,10 +98,15 @@ public class Statistics implements AutoCloseable {
         }
         listWriter.endList();
         listWriter.setValueCount(index);
+
         root.setRowCount(1);
     }
 
-    public Statistics(InputStream in) throws IOException {
+    private ArrowStats(VectorSchemaRoot root) throws IOException {
+        this.root = root;
+    }
+
+    public ArrowStats(InputStream in) throws IOException {
         try (ArrowStreamReader reader = new ArrowStreamReader(in, ArrowBufferAllocator.INSTANCE)) {
             reader.loadNextBatch();
             try (VectorSchemaRoot source = reader.getVectorSchemaRoot()) {
@@ -184,6 +185,31 @@ public class Statistics implements AutoCloseable {
             return 0;
         } else {
             return sizeInBytes() / numDocs;
+        }
+    }
+
+    public void write(File file) {
+        try (
+            FileOutputStream out = new FileOutputStream(file);
+            ArrowStreamWriter writer = new ArrowStreamWriter(this.root, null, out.getChannel());
+        ) {
+            writer.start();
+            writer.writeBatch();
+        } catch (Exception e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public static ArrowStats read(File file) {
+        try (
+            FileInputStream fileInputStreamForStream = new FileInputStream(file);
+            ArrowStreamReader reader = new ArrowStreamReader(fileInputStreamForStream, ArrowBufferAllocator.INSTANCE)
+        ) {
+            reader.loadNextBatch();
+            VectorSchemaRoot root = reader.getVectorSchemaRoot();
+            return new ArrowStats(root);
+        } catch (IOException e) {
+            throw new RuntimeException(e);
         }
     }
 

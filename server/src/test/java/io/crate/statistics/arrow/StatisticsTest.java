@@ -47,7 +47,7 @@ public class StatisticsTest extends ESTestCase {
     @Test
     public void test_basic() {
         Map<ColumnIdent, ColumnStats<?>> statsByColumn = columnStats;
-        try (Statistics statistics = new Statistics(1L, 200L, statsByColumn)) {
+        try (ArrowStats statistics = new ArrowStats(1L, 200L, statsByColumn)) {
             assertThat(statistics.numDocs()).isEqualTo(1);
             assertThat(statistics.sizeInBytes()).isEqualTo(200L);
             var result = statistics.statsByColumn();
@@ -59,9 +59,9 @@ public class StatisticsTest extends ESTestCase {
     public void test_streaming() throws IOException {
 
         try (BytesStreamOutput out = new BytesStreamOutput()) {
-            Statistics statistics = new Statistics(1L, 200L, columnStats);
+            ArrowStats statistics = new ArrowStats(1L, 200L, columnStats);
             statistics.write(out);
-            Statistics fromStream = new Statistics(out.bytes().streamInput());
+            ArrowStats fromStream = new ArrowStats(out.bytes().streamInput());
             assertThat(statistics.numDocs()).isEqualTo(fromStream.numDocs());
             assertThat(statistics.sizeInBytes()).isEqualTo(fromStream.sizeInBytes());
             assertThat(statistics.statsByColumn()).isEqualTo(fromStream.statsByColumn());
