@@ -25,6 +25,7 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.assumeFalse;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.util.Arrays;
 import java.util.List;
 
 import org.assertj.core.data.Offset;
@@ -102,6 +103,18 @@ public class GeoPointTypeTest extends DataTypeTestCase<Point> {
         Point value = DataTypes.GEO_POINT.implicitCast(new Integer[]{1, 2});
         assertThat(value.getX()).isEqualTo(1.0);
         assertThat(value.getY()).isEqualTo(2.0);
+    }
+
+    @Test
+    public void test_return_null_when_converting_values_containing_null_to_geo_point() {
+        Point value = DataTypes.GEO_POINT.implicitCast(new Integer[]{1, null});
+        assertThat(value).isNull();
+        value = DataTypes.GEO_POINT.implicitCast(Arrays.asList(null, 1));
+        assertThat(value).isNull();
+        value = DataTypes.GEO_POINT.implicitCast(new Double[]{null, 1.11});
+        assertThat(value).isNull();
+        value = DataTypes.GEO_POINT.sanitizeValue(Arrays.asList(null, 1));
+        assertThat(value).isNull();
     }
 
     @Test
