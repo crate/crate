@@ -55,3 +55,6 @@ Fixes
 
   The insert succeeded before, but now it will cause an
   ``IllegalArgumentException``.
+
+- Fixed ``NullPointerException`` thrown when casting an array containing
+  ``NULL`` to ``GEO_POINT``.
