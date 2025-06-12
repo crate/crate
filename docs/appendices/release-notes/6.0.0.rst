@@ -225,8 +225,8 @@ Breaking Changes
    must be used.
 
 - ``current_catalog`` has been added to the list of reserved keywords, because
-  of the addition of :ref:`scalar-current_catalog` function which works also as
-  a keyword without the ``()``. The whole list of keywords can be found
+  of the addition of :ref:`scalar-current_catalog` function which is called as a
+  keyword without the ``()``. The whole list of keywords can be found
   :ref:`here <sql_lexical_keywords_identifiers>`.
 
 Deprecations

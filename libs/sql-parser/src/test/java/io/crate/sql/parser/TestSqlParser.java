@@ -425,8 +425,7 @@ public class TestSqlParser {
     @Test
     public void testCurrentCatalogFunction() {
         assertInstanceOf("CURRENT_CATALOG", FunctionCall.class);
-        assertInstanceOf("CURRENT_CATALOG()", FunctionCall.class);
-        var stmt = SqlParser.createStatement("SELECT CURRENT_CATALOG AS CURRENT_CATALOG");
+        var stmt = SqlParser.createStatement("SELECT CURRENT_CATALOG AS \"current_catalog\"");
         assertThat(((QuerySpecification)((Query) stmt).getQueryBody()).getSelect().getSelectItems()).satisfiesExactly(
             s -> assertThat(((SingleColumn) s).getAlias()).isEqualTo("current_catalog")
         );
