@@ -60,7 +60,7 @@ import io.crate.types.DataTypes;
 
 public class Statistics implements AutoCloseable {
 
-//    public static Statistics EMPTY = new Statistics();
+    public static Statistics EMPTY = new Statistics();
 
     private final VectorSchemaRoot root;
 
@@ -71,7 +71,7 @@ public class Statistics implements AutoCloseable {
     public Statistics(long numDocs,
                       long sizeInBytes,
                       Map<ColumnIdent, ColumnStats<?>> statsByColumn) {
-        this.root = VectorSchemaRoot.create(schema(), Allocator.INSTANCE);
+        this.root = VectorSchemaRoot.create(schema(), ArrowBufferAllocator.INSTANCE);
         BigIntVector numDocsVector = (BigIntVector) root.getVector("numDocs");
         numDocsVector.allocateNew(1);
         numDocsVector.set(0, numDocs);
@@ -106,11 +106,11 @@ public class Statistics implements AutoCloseable {
     }
 
     public Statistics(InputStream in) throws IOException {
-        try (ArrowStreamReader reader = new ArrowStreamReader(in, Allocator.INSTANCE)) {
+        try (ArrowStreamReader reader = new ArrowStreamReader(in, ArrowBufferAllocator.INSTANCE)) {
             reader.loadNextBatch();
             try (VectorSchemaRoot source = reader.getVectorSchemaRoot()) {
                 VectorUnloader unloader = new VectorUnloader(source);
-                VectorSchemaRoot copy = VectorSchemaRoot.create(source.getSchema(), Allocator.INSTANCE);
+                VectorSchemaRoot copy = VectorSchemaRoot.create(source.getSchema(), ArrowBufferAllocator.INSTANCE);
                 VectorLoader loader = new VectorLoader(copy);
                 try (ArrowRecordBatch recordBatch = unloader.getRecordBatch()) {
                     loader.load(recordBatch);
@@ -156,11 +156,6 @@ public class Statistics implements AutoCloseable {
             }
         }
         return result;
-    }
-
-    @Nullable
-    public ColumnStats<?> getColumnStats(ColumnIdent column) {
-        return statsByColumn().get(column);
     }
 
     private static Schema schema() {

@@ -24,11 +24,12 @@ package io.crate.statistics.arrow;
 import org.apache.arrow.memory.BufferAllocator;
 import org.apache.arrow.memory.RootAllocator;
 
-public class Allocator {
+public class ArrowBufferAllocator {
 
     public static final BufferAllocator INSTANCE = new RootAllocator();
 
     public static void close() {
         INSTANCE.close();
     }
+
 }
