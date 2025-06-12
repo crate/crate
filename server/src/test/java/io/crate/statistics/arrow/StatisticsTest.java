@@ -41,28 +41,20 @@ public class StatisticsTest extends ESTestCase {
 
     @Test
     public void test_basic() {
-        ColumnStats<?> columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
-        ColumnIdent a = ColumnIdent.of("a");
-        ColumnIdent b = ColumnIdent.of("b");
-        ColumnIdent c = ColumnIdent.of("c");
-        Map<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsMap = Map.of(a, columnStats, b, columnStats, c, columnStats);
-        try (Statistics statistics = new Statistics(1L, 200L, columnIdentColumnStatsMap)) {
+        Map<ColumnIdent, ColumnStats<?>> statsByColumn = columnStats();
+        try (Statistics statistics = new Statistics(1L, 200L, statsByColumn)) {
             assertThat(statistics.numDocs()).isEqualTo(1);
             assertThat(statistics.sizeInBytes()).isEqualTo(200L);
             var result = statistics.statsByColumn();
-            assertThat(result).isEqualTo(columnIdentColumnStatsMap);
+            assertThat(result).isEqualTo(statsByColumn);
         }
     }
 
     @Test
     public void test_streaming() throws IOException {
-        ColumnStats<?> columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
-        ColumnIdent a = ColumnIdent.of("a");
-        ColumnIdent b = ColumnIdent.of("b");
-        ColumnIdent c = ColumnIdent.of("c");
-        Map<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsMap = Map.of(a, columnStats, b, columnStats, c, columnStats);
-        try (BytesStreamOutput out = new BytesStreamOutput();) {
-            Statistics statistics = new Statistics(1L, 200L, columnIdentColumnStatsMap);
+
+        try (BytesStreamOutput out = new BytesStreamOutput()) {
+            Statistics statistics = new Statistics(1L, 200L, columnStats());
             statistics.write(out);
             Statistics fromStream = new Statistics(out.bytes().streamInput());
             assertThat(statistics.numDocs()).isEqualTo(fromStream.numDocs());
@@ -71,5 +63,13 @@ public class StatisticsTest extends ESTestCase {
             fromStream.close();
             statistics.close();
         }
+    }
+
+    static Map<ColumnIdent, ColumnStats<?>> columnStats() {
+        ColumnStats<?> columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
+        ColumnIdent a = ColumnIdent.of("a");
+        ColumnIdent b = ColumnIdent.of("b");
+        ColumnIdent c = ColumnIdent.of("c");
+        return Map.of(a, columnStats, b, columnStats, c, columnStats);
     }
 }
