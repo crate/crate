@@ -27,7 +27,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.arrow.memory.RootAllocator;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
@@ -38,31 +37,34 @@ import io.crate.statistics.MostCommonValues;
 import io.crate.types.DataTypes;
 
 public class StatisticsTest extends ESTestCase {
-    final ColumnStats<?> columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
-    final ColumnIdent ident = ColumnIdent.of("a");
+
 
     @Test
     public void test_basic() {
-        try (Statistics statistics = new Statistics(1L, 200L, Map.of(ident, columnStats;)
-         {
+        ColumnStats<?> columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
+        ColumnIdent a = ColumnIdent.of("a");
+        ColumnIdent b = ColumnIdent.of("b");
+        ColumnIdent c = ColumnIdent.of("c");
+        Map<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsMap = Map.of(a, columnStats, b, columnStats, c, columnStats);
+        try (Statistics statistics = new Statistics(1L, 200L, columnIdentColumnStatsMap)) {
             assertThat(statistics.numDocs()).isEqualTo(1);
             assertThat(statistics.sizeInBytes()).isEqualTo(200L);
-            ColumnStats<?> result = statistics.getColumnStats(ident);
-            assertThat(result).isEqualTo(columnStats);
-            statistics.close();
+            var result = statistics.statsByColumn();
+            assertThat(result).isEqualTo(columnIdentColumnStatsMap);
         }
     }
 
     @Test
     public void test_streaming() throws IOException {
-        try (
-            BytesStreamOutput out = new BytesStreamOutput();
-            Statistics statistics = new Statistics(1L, 200L, Map.of(ident, columnStats));
-        ) {
+        ColumnStats<?> columnStats = new ColumnStats<>(1.0D, 2.0D, 3.0D, DataTypes.INTEGER, MostCommonValues.empty(), List.of());
+        ColumnIdent a = ColumnIdent.of("a");
+        ColumnIdent b = ColumnIdent.of("b");
+        ColumnIdent c = ColumnIdent.of("c");
+        Map<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsMap = Map.of(a, columnStats, b, columnStats, c, columnStats);
+        try (BytesStreamOutput out = new BytesStreamOutput();) {
+            Statistics statistics = new Statistics(1L, 200L, columnIdentColumnStatsMap);
             statistics.write(out);
-            try (
             Statistics fromStream = new Statistics(out.bytes().streamInput());
-            )
             assertThat(statistics.numDocs()).isEqualTo(fromStream.numDocs());
             assertThat(statistics.sizeInBytes()).isEqualTo(fromStream.sizeInBytes());
             assertThat(statistics.statsByColumn()).isEqualTo(fromStream.statsByColumn());

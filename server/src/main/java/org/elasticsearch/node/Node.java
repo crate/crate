@@ -219,6 +219,7 @@ import io.crate.role.Roles;
 import io.crate.role.RolesService;
 import io.crate.session.Sessions;
 import io.crate.statistics.TableStats;
+import io.crate.statistics.arrow.Allocator;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 
@@ -1253,7 +1254,7 @@ public class Node implements Closeable {
         // awaitClose if the node doesn't finish closing within the specified time.
         toClose.add(() -> stopWatch.stop());
 
-
+        Allocator.close();
 
         if (logger.isTraceEnabled()) {
             logger.trace("Close times for each service:\n{}", stopWatch.prettyPrint());

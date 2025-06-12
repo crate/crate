@@ -22,9 +22,6 @@
 package io.crate.statistics;
 
 
-
-import java.nio.file.Path;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
@@ -66,8 +63,6 @@ public class TableStatsService implements Runnable {
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final Sessions sessions;
-//    private final Path path;
-//    private final String STATS_PATH = "_stats";
 
     private Session session;
 
@@ -81,11 +76,9 @@ public class TableStatsService implements Runnable {
     public TableStatsService(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             Sessions sessions
-    ) {
+                             Sessions sessions) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
-//        this.path = path;
         this.sessions = sessions;
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);
         scheduledRefresh = scheduleNextRefresh(refreshInterval);
@@ -98,50 +91,6 @@ public class TableStatsService implements Runnable {
     public void run() {
         updateStats();
     }
-
-//    public void save(TableStats tableStats) {
-//        try (BufferAllocator rootAllocator = new RootAllocator()) {
-//            Map<RelationName, Stats> values = tableStats.values();
-//            for (Map.Entry<RelationName, Stats> entry : values.entrySet()) {
-//                RelationName relationName = entry.getKey();
-//                Stats stats = entry.getValue();
-//                File file = new File(relationName.fqn() + ".arrow");
-//                VectorSchemaRoot vectorSchemaRoot = stats.toVectorSchemaRoot(rootAllocator);
-//                try (
-//                    FileOutputStream out = new FileOutputStream(file);
-//                    ArrowStreamWriter writer = new ArrowStreamWriter(vectorSchemaRoot, null, out.getChannel());
-//                ) {
-//                    writer.start();
-//                    writer.writeBatch();
-//                } catch(Exception e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//        }
-//    }
-
-//    public void save(TableStatistics tableStats) {
-//                File file = new File("tablestats.arrow");
-//                VectorSchemaRoot vectorSchemaRoot = tableStats.
-//                try (
-//                    FileOutputStream out = new FileOutputStream(file);
-//                    ArrowStreamWriter writer = new ArrowStreamWriter(vectorSchemaRoot, null, out.getChannel());
-//                ) {
-//                    writer.start();
-//                    writer.writeBatch();
-//                } catch(Exception e) {
-//                    throw new RuntimeException(e);
-//                }
-//            }
-//        }
-
-
-//    public TableStats load() {
-//        Path statsPath = path.resolve(STATS_PATH);
-//        try (FileInputStream fileInputStream = new FileInputStream(statsPath.toFile()),
-//            ArrowFileReader reader = new ArrowFileReader(
-//            new ByteArrayReadableSeekableByteChannel(out.toByteArray()))) {
-//    }
 
     public void updateStats() {
         if (clusterService.localNode() == null) {

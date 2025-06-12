@@ -49,24 +49,18 @@ import org.apache.arrow.vector.types.pojo.ArrowType;
 import org.apache.arrow.vector.types.pojo.Field;
 import org.apache.arrow.vector.types.pojo.FieldType;
 import org.apache.arrow.vector.types.pojo.Schema;
-import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
 
-import io.crate.expression.symbol.AliasSymbol;
-import io.crate.expression.symbol.ScopedSymbol;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
 import io.crate.types.DataTypes;
-import io.crate.types.FixedWidthType;
 
 public class Statistics implements AutoCloseable {
 
-    public static Statistics EMPTY = new Statistics();
+//    public static Statistics EMPTY = new Statistics();
 
     private final VectorSchemaRoot root;
 
@@ -78,9 +72,6 @@ public class Statistics implements AutoCloseable {
                       long sizeInBytes,
                       Map<ColumnIdent, ColumnStats<?>> statsByColumn) {
         this.root = VectorSchemaRoot.create(schema(), Allocator.INSTANCE);
-//        VarCharVector relationNameVector = (VarCharVector) root.getVector(RELATION_NAME);
-//        relationNameVector.allocateNew(1);
-//        relationNameVector.set(0, relationName.fqn().getBytes());
         BigIntVector numDocsVector = (BigIntVector) root.getVector("numDocs");
         numDocsVector.allocateNew(1);
         numDocsVector.set(0, numDocs);
@@ -94,12 +85,12 @@ public class Statistics implements AutoCloseable {
         ListVector statsByColumnVector = (ListVector) root.getVector("statsByColumn");
         UnionListWriter listWriter = statsByColumnVector.getWriter();
         listWriter.startList();
+        listWriter.setPosition(0);
+        BaseWriter.StructWriter structWriter = listWriter.struct();
         int index = 0;
         for (Map.Entry<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsEntry : statsByColumn.entrySet()) {
             ColumnIdent columnIdent = columnIdentColumnStatsEntry.getKey();
             ColumnStats<?> columnStats = columnIdentColumnStatsEntry.getValue();
-            listWriter.setPosition(index);
-            BaseWriter.StructWriter structWriter = listWriter.struct();
             structWriter.start();
             structWriter.varChar("columnIdent").writeVarChar(columnIdent.fqn());
             structWriter.float8("nullFraction").writeFloat8(columnStats.nullFraction());
@@ -117,11 +108,11 @@ public class Statistics implements AutoCloseable {
     public Statistics(InputStream in) throws IOException {
         try (ArrowStreamReader reader = new ArrowStreamReader(in, Allocator.INSTANCE)) {
             reader.loadNextBatch();
-            try(VectorSchemaRoot source = reader.getVectorSchemaRoot()) {
-            VectorUnloader unloader = new VectorUnloader(source);
-            VectorSchemaRoot copy = VectorSchemaRoot.create(source.getSchema(), Allocator.INSTANCE);
+            try (VectorSchemaRoot source = reader.getVectorSchemaRoot()) {
+                VectorUnloader unloader = new VectorUnloader(source);
+                VectorSchemaRoot copy = VectorSchemaRoot.create(source.getSchema(), Allocator.INSTANCE);
                 VectorLoader loader = new VectorLoader(copy);
-                try(ArrowRecordBatch recordBatch = unloader.getRecordBatch()) {
+                try (ArrowRecordBatch recordBatch = unloader.getRecordBatch()) {
                     loader.load(recordBatch);
                     this.root = copy;
                 }
@@ -148,7 +139,7 @@ public class Statistics implements AutoCloseable {
             while (listReader.next()) {
                 BaseReader.StructReader structReader = listReader.reader();
                 VarCharReader columnIdenReader = structReader.reader("columnIdent");
-                ColumnIdent columnIdent  = ColumnIdent.of(columnIdenReader.readText().toString());
+                ColumnIdent columnIdent = ColumnIdent.of(columnIdenReader.readText().toString());
                 Float8Reader nullFraction = structReader.reader("nullFraction");
                 Float8Reader averageSizeInBytes = structReader.reader("averageSizeInBytes");
                 Float8Reader approxDistinct = structReader.reader("approxDistinct");
@@ -174,7 +165,6 @@ public class Statistics implements AutoCloseable {
 
     private static Schema schema() {
         List<Field> stats = new ArrayList<>();
-//        stats.add(Field.notNullable("relationName", new ArrowType.Utf8()));
         stats.add(Field.notNullable("numDocs", new ArrowType.Int(64, true)));
         stats.add(Field.notNullable("sizeInBytes", new ArrowType.Int(64, true)));
 
@@ -187,7 +177,7 @@ public class Statistics implements AutoCloseable {
 
         Field columnStatsStruct = new Field("statsByColumn", FieldType.nullable(new ArrowType.Struct()), columnStats);
         FieldType listType = new FieldType(true, new ArrowType.List(), null);
-        stats.add(new Field("statsByColumn",listType, List.of(columnStatsStruct)));
+        stats.add(new Field("statsByColumn", listType, List.of(columnStatsStruct)));
         return new Schema(stats);
     }
 
@@ -200,31 +190,6 @@ public class Statistics implements AutoCloseable {
         } else {
             return sizeInBytes() / numDocs;
         }
-    }
-
-    public long estimateSizeForColumns(Iterable<? extends Symbol> toCollect) {
-        long sum = 0L;
-        for (Symbol symbol : toCollect) {
-            ColumnStats<?> columnStats = null;
-            while (symbol instanceof AliasSymbol alias) {
-                symbol = alias.symbol();
-            }
-            if (symbol instanceof Reference ref) {
-                columnStats = statsByColumn().get(ref.column());
-            } else if (symbol instanceof ScopedSymbol scopedSymbol) {
-                columnStats = statsByColumn().get(scopedSymbol.column());
-            }
-            if (columnStats == null) {
-                if (symbol.valueType() instanceof FixedWidthType fixedWidthType) {
-                    sum += fixedWidthType.fixedSize();
-                } else {
-                    sum += RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
-                }
-            } else {
-                sum += (long) columnStats.averageSizeInBytes();
-            }
-        }
-        return sum;
     }
 
     public void close() {

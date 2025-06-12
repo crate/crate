@@ -21,10 +21,12 @@
 
 package io.crate.statistics;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.statistics.arrow.Statistics;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -58,7 +60,7 @@ public class TableStats implements AutoCloseable {
      * Returns -1 if the table isn't in the cache
      */
     public long numDocs(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Statistics.EMPTY).numDocs();
+        return tableStats.get(relationName).numDocs();
     }
 
     /**
@@ -70,7 +72,7 @@ public class TableStats implements AutoCloseable {
      * Returns -1 if the table isn't in the cache
      */
     public long estimatedSizePerRow(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Statistics.EMPTY).averageSizePerRowInBytes();
+        return tableStats.get(relationName).averageSizePerRowInBytes();
     }
 
     /**
@@ -89,14 +91,17 @@ public class TableStats implements AutoCloseable {
     }
 
     public Iterable<ColumnStatsEntry> statsEntries() {
+        ArrayList<ColumnStatsEntry> result = new ArrayList<>();
         Set<Map.Entry<RelationName, Statistics>> entries = tableStats.entrySet();
-        return () -> entries.stream()
-            .flatMap(tableEntry -> {
-                Statistics stats = tableEntry.getValue();
-                return stats.statsByColumn().entrySet().stream()
-                    .map(columnEntry ->
-                        new ColumnStatsEntry(tableEntry.getKey(), columnEntry.getKey(), columnEntry.getValue()));
-            }).iterator();
+        for (Map.Entry<RelationName, Statistics> tableEntry : entries) {
+            RelationName key = tableEntry.getKey();
+            Statistics value = tableEntry.getValue();
+            Map<ColumnIdent, ColumnStats<?>> columnIdentColumnStatsMap = value.statsByColumn();
+            for (Map.Entry<ColumnIdent, ColumnStats<?>> entry : columnIdentColumnStatsMap.entrySet()) {
+                result.add(new ColumnStatsEntry(tableEntry.getKey(), entry.getKey(), entry.getValue()));
+            }
+        }
+        return result::iterator;
     }
 
     public Stats getStats(RelationName relationName) {

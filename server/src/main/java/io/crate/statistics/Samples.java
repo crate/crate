@@ -34,8 +34,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
-import io.crate.statistics.arrow.Statistics;
 
 class Samples implements Writeable {
 
@@ -102,15 +100,6 @@ class Samples implements Writeable {
             s1.numTotalSizeInBytes + s2.numTotalSizeInBytes
         );
     }
-
-//    public Statistics createTableStats(RelationName relationName, List<Reference> primitiveColumns) {
-//        Map<ColumnIdent, ColumnStats<?>> statsByColumn = HashMap.newHashMap(primitiveColumns.size());
-//        for (int i = 0; i < primitiveColumns.size(); i++) {
-//            Reference primitiveColumn = primitiveColumns.get(i);
-//            statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toStats());
-//        }
-//        return new Statistics(numTotalDocs, numTotalSizeInBytes, statsByColumn);
-//    }
 
     public Stats createTableStats(List<Reference> primitiveColumns) {
         Map<ColumnIdent, ColumnStats<?>> statsByColumn = HashMap.newHashMap(primitiveColumns.size());
