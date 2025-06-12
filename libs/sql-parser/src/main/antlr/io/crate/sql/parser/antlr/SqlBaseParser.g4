@@ -913,7 +913,6 @@ nonReserved
     | CONNECTION
     | COPY
     | CURRENT
-    | CURRENT_CATALOG
     | CURRENT_DATE
     | CURRENT_SCHEMA
     | CURRENT_TIME

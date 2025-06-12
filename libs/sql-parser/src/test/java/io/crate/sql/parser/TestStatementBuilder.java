@@ -1246,13 +1246,10 @@ public class TestStatementBuilder {
         printStatement("select * from information_schema.tables where table_schema = current_schema()");
         printStatement("select * from information_schema.tables where table_schema = pg_catalog.current_schema()");
 
-        printStatement("select current_catalog");
-        printStatement("select current_catalog()");
-        printStatement("select pg_catalog.current_catalog()");
-
         printStatement("select current_database()");
         printStatement("select pg_catalog.current_database()");
 
+        printStatement("select current_catalog");
         printStatement("select current_user");
         printStatement("select current_role");
         printStatement("select user");

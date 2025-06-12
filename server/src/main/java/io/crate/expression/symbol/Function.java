@@ -322,6 +322,10 @@ public class Function implements Symbol, Cloneable {
                 builder.append(arguments.get(0).toString(style));
                 break;
 
+            case "current_catalog":
+                builder.append("CURRENT_CATALOG");
+                break;
+
             case "current_user":
                 builder.append("CURRENT_USER");
                 break;
