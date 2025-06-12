@@ -249,4 +249,21 @@ public class ObjectTypeTest extends DataTypeTestCase<Map<String, Object>> {
         );
         assertThat(valueBytes).isEqualTo(2504L);
     }
+
+    @Test
+    public void test_toString_on_nested_object_type() {
+        ObjectType objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
+            .setInnerType("a", DataTypes.STRING)
+            .setInnerType("oo", ObjectType.of(ColumnPolicy.DYNAMIC)
+                .setInnerType("aa", DataTypes.DOUBLE)
+                .build()
+            ).build();
+        assertThat(objectType.toString()).isEqualTo("object(text, object(double precision))");
+
+        objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
+            .setInnerType("oo", ObjectType.of(ColumnPolicy.DYNAMIC)
+                .build()
+            ).build();
+        assertThat(objectType.toString()).isEqualTo("object(object)");
+    }
 }
