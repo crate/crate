@@ -161,14 +161,11 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        Reference arg = aggregationReferences.get(0);
-        if (arg == null) {
+        Reference reference = getAggReference(aggregationReferences);
+        if (reference == null) {
             return null;
         }
-        if (!arg.hasDocValues()) {
-            return null;
-        }
-        var dataType = arg.valueType();
+        var dataType = reference.valueType();
         switch (dataType.id()) {
             case ByteType.ID:
             case ShortType.ID:
@@ -177,18 +174,18 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
             case TimestampType.ID_WITH_TZ:
             case TimestampType.ID_WITHOUT_TZ:
                 return new LongArbitraryDocValueAggregator<>(
-                    arg.storageIdent(),
+                    reference.storageIdent(),
                     dataType
                 );
             case FloatType.ID:
-                return new FloatArbitraryDocValueAggregator(arg.storageIdent());
+                return new FloatArbitraryDocValueAggregator(reference.storageIdent());
             case DoubleType.ID:
-                return new DoubleArbitraryDocValueAggregator(arg.storageIdent());
+                return new DoubleArbitraryDocValueAggregator(reference.storageIdent());
             case IpType.ID:
-                return new ArbitraryIPDocValueAggregator(arg.storageIdent());
+                return new ArbitraryIPDocValueAggregator(reference.storageIdent());
             case StringType.ID:
                 return new ArbitraryBinaryDocValueAggregator<>(
-                    arg.storageIdent(),
+                    reference.storageIdent(),
                     dataType
                 );
             default:

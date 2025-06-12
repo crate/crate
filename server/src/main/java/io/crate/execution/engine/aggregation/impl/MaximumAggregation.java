@@ -222,24 +222,19 @@ public abstract class MaximumAggregation extends AggregationFunction<Object, Obj
                                                            DocTableInfo table,
                                                            Version shardCreatedVersion,
                                                            List<Literal<?>> optionalParams) {
-            Reference reference = aggregationReferences.get(0);
-
+            Reference reference = getAggReference(aggregationReferences);
             if (reference == null) {
                 return null;
             }
-
-            if (!reference.hasDocValues()) {
-                return null;
-            }
-            DataType<?> arg = reference.valueType();
-            switch (arg.id()) {
+            DataType<?> valueType = reference.valueType();
+            switch (valueType.id()) {
                 case ByteType.ID:
                 case ShortType.ID:
                 case IntegerType.ID:
                 case LongType.ID:
                 case TimestampType.ID_WITH_TZ:
                 case TimestampType.ID_WITHOUT_TZ:
-                    return new LongMax(reference.storageIdent(), arg);
+                    return new LongMax(reference.storageIdent(), valueType);
 
                 case FloatType.ID:
                     return new FloatMax(reference.storageIdent());

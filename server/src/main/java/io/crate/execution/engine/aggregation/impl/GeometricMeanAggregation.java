@@ -308,7 +308,7 @@ public class GeometricMeanAggregation extends AggregationFunction<GeometricMeanA
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        Reference reference = aggregationReferences.get(0);
+        Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
             return null;
         }

@@ -62,3 +62,7 @@ Fixes
 - Fixed a regression introduced with :ref:`version_5.10.8` that caused a query
   to keep running even if a ``CircuitBreakerException`` was thrown while
   constructing the result set.
+
+- Fixed an issue that would cause :ref:`aggregation functions <aggregation>` on
+  columns used in the ``PARTITION BY()`` clause of a
+  :ref:`partitioned table <partitioned-tables>` to always return ``NULL``.

@@ -186,9 +186,12 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             Literal<?> value = optionalParams.getLast();
             precision = value == null ? HyperLogLogPlusPlus.DEFAULT_PRECISION : (int) value.value();
         }
-        Reference reference = aggregationReferences.get(0);
-        var dataType = reference.valueType();
-        switch (dataType.id()) {
+        Reference reference = getAggReference(aggregationReferences);
+        if (reference == null) {
+            return null;
+        }
+        DataType<?> valueType = reference.valueType();
+        switch (valueType.id()) {
             case ByteType.ID:
             case ShortType.ID:
             case IntegerType.ID:
@@ -197,8 +200,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             case TimestampType.ID_WITHOUT_TZ:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
-                        var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+                    (_, memoryManager, minNodeVersion) -> {
+                        var state = new HllState(valueType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
@@ -209,8 +212,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             case DoubleType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
-                        var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+                    (_, memoryManager, minNodeVersion) -> {
+                        var state = new HllState(valueType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
@@ -227,8 +230,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             case FloatType.ID:
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
-                    (ramAccounting, memoryManager, minNodeVersion) -> {
-                        var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+                    (_, memoryManager, minNodeVersion) -> {
+                        var state = new HllState(valueType, minNodeVersion.onOrAfter(Version.V_4_1_0));
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (values, state) -> {
@@ -243,7 +246,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 );
             case StringType.ID:
             case CharacterType.ID:
-                return new HllAggregator(reference.storageIdent(), dataType, precision) {
+                return new HllAggregator(reference.storageIdent(), valueType, precision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
@@ -257,7 +260,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     }
                 };
             case IpType.ID:
-                return new HllAggregator(reference.storageIdent(), dataType, precision) {
+                return new HllAggregator(reference.storageIdent(), valueType, precision) {
                     @Override
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
@@ -300,9 +303,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         public void loadDocValues(LeafReaderContext reader) throws IOException {
             values = DocValues.getSortedSet(reader.reader(), columnName);
         }
-
-        @Override
-        public abstract void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException;
 
         @Override
         public Object partialResult(RamAccounting ramAccounting, HllState state) {

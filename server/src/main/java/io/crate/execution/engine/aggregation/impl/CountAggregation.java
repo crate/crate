@@ -48,6 +48,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -257,7 +258,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     }
 
     private DocValueAggregator<?> getDocValueAggregator(Reference ref) {
-        if (!ref.hasDocValues()) {
+        if (!ref.hasDocValues() || ref.granularity() != RowGranularity.DOC) {
             return null;
         }
         switch (ref.valueType().id()) {
@@ -304,17 +305,16 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         if (aggregationReferences.size() != 1) {
             return null;
         }
-        Reference reference = aggregationReferences.get(0);
+        Reference reference = aggregationReferences.getFirst();
         if (reference == null) {
             return null;
         }
         if (reference.valueType().id() == ObjectType.ID) {
             // Count on object would require loading the source just to check if there is a value.
             // Try to count on a non-null sub-column to be able to utilize doc-values.
-            var aggregationRef = (Reference) aggregationReferences.get(0);
             for (var notNullCol : table.notNullColumns()) {
                 // the first seen not-null sub-column will be used
-                if (notNullCol.isChildOf(aggregationRef.column())) {
+                if (notNullCol.isChildOf(reference.column())) {
                     var notNullColRef = table.getReference(notNullCol);
                     if (notNullColRef == null) {
                         continue;
@@ -325,9 +325,6 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
                     }
                 }
             }
-        }
-        if (!reference.hasDocValues()) {
-            return null;
         }
         return getDocValueAggregator(reference);
     }
