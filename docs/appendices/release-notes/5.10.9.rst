@@ -58,3 +58,7 @@ Fixes
 
 - Fixed ``NullPointerException`` thrown when casting an array containing
   ``NULL`` to ``GEO_POINT``.
+
+- Fixed an issue that would cause :ref:`aggregation functions <aggregation>` on
+  columns used in the ``PARTITION BY()`` clause of a
+  :ref:`partitioned table <partitioned-tables>` to always return ``NULL``.
