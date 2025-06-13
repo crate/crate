@@ -66,7 +66,7 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
 
     @Override
     @Nullable
-    public CompletableFuture<Void> setNextRow(Row row) {
+    public CompletableFuture<Void> setNextRow(Row row) throws Exception {
         return delegate.setNextRow(row);
     }
 

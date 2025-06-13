@@ -38,7 +38,7 @@ public interface ResultReceiver<T> extends CompletionListenable<T> {
      *         calling `setNextRow` again.
      */
     @Nullable
-    CompletableFuture<Void> setNextRow(Row row);
+    CompletableFuture<Void> setNextRow(Row row) throws Exception;
 
     void batchFinished();
 
