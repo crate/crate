@@ -85,6 +85,7 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogStats;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -375,7 +376,8 @@ public abstract class Engine implements Closeable {
             return failure;
         }
 
-        void setTranslogLocation(Translog.Location translogLocation) {
+        @VisibleForTesting
+        public void setTranslogLocation(Translog.Location translogLocation) {
             if (freeze.get() == null) {
                 this.translogLocation = translogLocation;
             } else {
