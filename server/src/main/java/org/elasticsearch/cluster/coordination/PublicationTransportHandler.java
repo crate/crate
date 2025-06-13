@@ -161,7 +161,7 @@ public class PublicationTransportHandler {
                     ClusterState tempState = ClusterState.readFrom(input, transportService.getLocalNode());
                     if (in.getVersion().before(Version.V_6_0_0)) {
                         incomingState = ClusterState.builder(tempState)
-                            .metadata(metadataUpgradeService.addOrUpgradeRelationMetadata(tempState.metadata()))
+                            .metadata(metadataUpgradeService.upgradeMetadata(tempState.metadata()))
                             .build();
                     } else {
                         incomingState = tempState;
@@ -193,7 +193,7 @@ public class PublicationTransportHandler {
                         ClusterState tempState = diff.apply(lastSeen); // might throw IncompatibleClusterStateVersionException
                         if (in.getVersion().before(Version.V_6_0_0)) {
                             incomingState = ClusterState.builder(tempState)
-                                .metadata(metadataUpgradeService.addOrUpgradeRelationMetadata(tempState.metadata()))
+                                .metadata(metadataUpgradeService.upgradeMetadata(tempState.metadata()))
                                 .build();
                         } else {
                             incomingState = tempState;

@@ -221,16 +221,8 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        if (aggregationReferences.isEmpty()) {
-            return null;
-        }
-
-        Reference reference = aggregationReferences.getFirst();
+        Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
-            return null;
-        }
-
-        if (!reference.hasDocValues()) {
             return null;
         }
 

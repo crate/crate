@@ -22,15 +22,20 @@ package org.elasticsearch.cluster.metadata;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.function.LongSupplier;
+import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
@@ -80,6 +85,73 @@ public class MetadataUpgradeService {
     }
 
     /**
+     * Elasticsearch 2.0 removed several deprecated features and as well as support for Lucene 3.x. This method calls
+     * {@link MetadataUpgradeService} to makes sure that indices are compatible with the current version. The
+     * MetadataIndexUpgradeService might also update obsolete settings if needed.
+     *
+     * @return input <code>metadata</code> if no upgrade is needed or an upgraded metadata
+     */
+    public Metadata upgradeMetadata(Metadata metadata) {
+        boolean changed = false;
+        final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
+
+        // carries upgraded IndexTemplateMetadata to MetadataIndexUpgradeService.upgradeIndexMetadata
+        final Map<String, IndexTemplateMetadata> upgradedIndexTemplateMetadata = new HashMap<>();
+
+        // upgrade current templates
+        if (applyUpgrader(
+            metadata.templates(),
+            this::upgradeTemplates,
+            upgradedMetadata::removeTemplate,
+            (s, indexTemplateMetadata) -> {
+                upgradedIndexTemplateMetadata.put(s, indexTemplateMetadata);
+                upgradedMetadata.put(indexTemplateMetadata);
+            })) {
+            changed = true;
+        }
+
+        // upgrade index meta data
+        for (IndexMetadata indexMetadata : metadata) {
+            String indexName = indexMetadata.getIndex().getName();
+            IndexMetadata newMetadata = upgradeIndexMetadata(
+                indexMetadata,
+                IndexName.isPartitioned(indexName) ?
+                    upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
+                    null,
+                Version.CURRENT.minimumIndexCompatibilityVersion(),
+                metadata.custom(UserDefinedFunctionsMetadata.TYPE));
+            changed |= indexMetadata != newMetadata;
+            upgradedMetadata.put(newMetadata, false);
+        }
+
+        return changed
+            ? addOrUpgradeRelationMetadata(upgradedMetadata.build())
+            : addOrUpgradeRelationMetadata(metadata);
+    }
+
+    private static <Data> boolean applyUpgrader(ImmutableOpenMap<String, Data> existingData,
+                                                UnaryOperator<Map<String, Data>> upgrader,
+                                                Consumer<String> removeData,
+                                                BiConsumer<String, Data> putData) {
+        // collect current data
+        Map<String, Data> existingMap = new HashMap<>();
+        for (ObjectObjectCursor<String, Data> customCursor : existingData) {
+            existingMap.put(customCursor.key, customCursor.value);
+        }
+        // upgrade global custom meta data
+        Map<String, Data> upgradedCustoms = upgrader.apply(existingMap);
+        if (upgradedCustoms.equals(existingMap) == false) {
+            // remove all data first so a plugin can remove custom metadata or templates if needed
+            existingMap.keySet().forEach(removeData);
+            for (Map.Entry<String, Data> upgradedCustomEntry : upgradedCustoms.entrySet()) {
+                putData.accept(upgradedCustomEntry.getKey(), upgradedCustomEntry.getValue());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    /**
      * Checks that the index can be upgraded to the current version of the master node.
      *
      * <p>
@@ -113,7 +185,7 @@ public class MetadataUpgradeService {
      * {@link DocTableInfoFactory#create(RelationName, Metadata)}), then override them to set the settings that have
      * been upgraded on @link IndexMetadata} or {@link IndexTemplateMetadata}.
      */
-    public Metadata addOrUpgradeRelationMetadata(Metadata metadata) {
+    private Metadata addOrUpgradeRelationMetadata(Metadata metadata) {
         Metadata.Builder newMetadata = Metadata.builder(metadata);
 
         for (ObjectObjectCursor<String, IndexTemplateMetadata> entry : metadata.templates()) {
@@ -152,6 +224,7 @@ public class MetadataUpgradeService {
         }
 
         for (IndexMetadata indexMetadata : metadata) {
+            indexMetadata = upgradeIndexMetadata(indexMetadata, null, Version.V_5_0_0, null);
             DocTableInfo docTable = tableFactory.create(indexMetadata);
             String indexName = indexMetadata.getIndex().getName();
             IndexParts indexParts = IndexName.decode(indexName);
@@ -198,7 +271,7 @@ public class MetadataUpgradeService {
         return newMetadata.build();
     }
 
-    public Map<String, IndexTemplateMetadata> upgradeTemplates(Map<String, IndexTemplateMetadata> templates) {
+    private Map<String, IndexTemplateMetadata> upgradeTemplates(Map<String, IndexTemplateMetadata> templates) {
         return templateUpgrader.upgrade(templates);
     }
 
@@ -206,7 +279,7 @@ public class MetadataUpgradeService {
     /**
      * Checks if the index was already opened by this version of Elasticsearch and doesn't require any additional checks.
      */
-    boolean isUpgraded(IndexMetadata indexMetadata) {
+    private boolean isUpgraded(IndexMetadata indexMetadata) {
         return indexMetadata.getUpgradedVersion().onOrAfter(Version.CURRENT);
     }
 
@@ -261,7 +334,7 @@ public class MetadataUpgradeService {
         return IndexMetadata.builder(indexMetadata).settings(settings).build();
     }
 
-    IndexMetadata archiveBrokenIndexSettings(IndexMetadata indexMetadata) {
+    private IndexMetadata archiveBrokenIndexSettings(IndexMetadata indexMetadata) {
         final Settings settings = indexMetadata.getSettings();
         final Settings upgrade = indexScopedSettings.archiveUnknownOrInvalidSettings(
             settings,

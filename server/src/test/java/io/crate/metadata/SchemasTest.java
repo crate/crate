@@ -146,7 +146,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
                 .build(), true)
             .build();
-        metadata = metadataUpgradeService.addOrUpgradeRelationMetadata(metadata);
+        metadata = metadataUpgradeService.upgradeMetadata(metadata);
         assertThat(Schemas.getNewCurrentSchemas(metadata)).containsExactly("foo", "doc");
     }
 

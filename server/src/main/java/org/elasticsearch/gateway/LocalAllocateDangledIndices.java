@@ -179,7 +179,7 @@ public class LocalAllocateDangledIndices {
                     }
                     LOGGER.info("auto importing dangled indices {} from [{}]", sb.toString(), request.fromNode);
 
-                    Metadata metadata = metadataUpgradeService.addOrUpgradeRelationMetadata(metadataBuilder.build());
+                    Metadata metadata = metadataUpgradeService.upgradeMetadata(metadataBuilder.build());
 
                     RoutingTable routingTable = routingTableBuilder.build();
                     ClusterState updatedState = ClusterState.builder(currentState).metadata(metadata).blocks(blocks)
