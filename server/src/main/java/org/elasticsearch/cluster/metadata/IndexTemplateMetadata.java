@@ -50,7 +50,7 @@ import io.crate.metadata.RelationName;
  * Templates are deprecated and will be removed in a future version.
  * For now, they are still used to support backwards compatibility, any template received or stored will be
  * converted into a {@link RelationMetadata.Table} object.
- * See also {@link MetadataUpgradeService#addOrUpgradeRelationMetadata(Metadata)}
+ * See also {@link MetadataUpgradeService#upgradeMetadata(Metadata)}
  */
 @Deprecated(since = "6.0.0")
 public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadata> {

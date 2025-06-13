@@ -90,7 +90,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
             List.of(RelationName.fromIndexName("t2"))
         );
 
-        metadata = metadataUpgradeService.addOrUpgradeRelationMetadata(metadata);
+        metadata = metadataUpgradeService.upgradeMetadata(metadata);
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactly(RelationName.fromIndexName("t2"));
@@ -114,7 +114,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
             List.of(RelationName.fromIndexName("t2"))
         );
 
-        metadata = metadataUpgradeService.addOrUpgradeRelationMetadata(metadata);
+        metadata = metadataUpgradeService.upgradeMetadata(metadata);
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);
         assertThat(newPublication.tables()).containsExactlyInAnyOrder(
@@ -143,7 +143,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
             AlterPublication.Operation.DROP,
             List.of(RelationName.fromIndexName("t2"))
         );
-        metadata = metadataUpgradeService.addOrUpgradeRelationMetadata(metadata);
+        metadata = metadataUpgradeService.upgradeMetadata(metadata);
 
         var newPublication = TransportAlterPublication.updatePublication(request, metadata, oldPublication);
         assertThat(newPublication).isNotEqualTo(oldPublication);

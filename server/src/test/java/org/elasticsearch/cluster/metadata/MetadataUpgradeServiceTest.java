@@ -1,73 +1,110 @@
 /*
- * Licensed to Elasticsearch under one or more contributor
- * license agreements. See the NOTICE file distributed with
- * this work for additional information regarding copyright
- * ownership. Elasticsearch licenses this file to you under
- * the Apache License, Version 2.0 (the "License"); you may
- * not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
  *
- *    http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
- * Unless required by applicable law or agreed to in writing,
- * software distributed under the License is distributed on an
- * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
- * KIND, either express or implied.  See the License for the
- * specific language governing permissions and limitations
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
  * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package org.elasticsearch.gateway;
+package org.elasticsearch.cluster.metadata;
 
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.mockito.Mockito.mock;
 
+import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.IndexScopedSettings;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.TestCustomMetadata;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.common.unit.TimeValue;
-import io.crate.expression.udf.UserDefinedFunctionService;
+import io.crate.expression.udf.UdfUnitTest;
+import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.SearchPath;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 
-public class GatewayMetaStateTests extends ESTestCase {
+public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest {
 
     private final NodeContext nodeCtx = createNodeContext();
     private MetadataUpgradeService metadataUpgradeService;
 
     @Before
     public void setUpUpgradeService() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        e.udfService().registerLanguage(UdfUnitTest.DUMMY_LANG);
         metadataUpgradeService = new MetadataUpgradeService(
-            nodeCtx,
-            new IndexScopedSettings(Settings.EMPTY, Set.of()),
-            null
+            e.nodeCtx,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            e.udfService());
+    }
+
+
+    @Test
+    public void test_upgradeIndexMetadata_ensure_UDFs_are_loaded_before_checkMappingsCompatibility_is_called() throws IOException {
+        SQLExecutor e = SQLExecutor.of(clusterService);
+        e.udfService().registerLanguage(UdfUnitTest.DUMMY_LANG);
+        var metadataUpgradeService = new MetadataUpgradeService(
+            e.nodeCtx,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            e.udfService()
         );
+        metadataUpgradeService.upgradeIndexMetadata(
+            IndexMetadata.builder("test")
+                .settings(settings(Version.V_5_7_0))
+                .numberOfShards(1)
+                .numberOfReplicas(1)
+                .build(),
+            IndexTemplateMetadata.builder("test")
+                .patterns(List.of("*"))
+                .putMapping("{\"default\": {}}")
+                .build(),
+            Version.V_5_7_0,
+            UserDefinedFunctionsMetadata.of(new UserDefinedFunctionMetadata(
+                "custom",
+                "foo",
+                List.of(),
+                DataTypes.INTEGER,
+                "dummy",
+                "def foo(): return 1"
+            )));
+        FunctionImplementation functionImplementation = e.nodeCtx.functions().get(
+            "custom",
+            "foo",
+            List.of(),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
+        assertThat(functionImplementation).isNotNull();
     }
 
     @Test
     public void test_no_metadata_upgrade_build_relation_metadata() {
         Metadata metadata = randomMetadata(false, new CustomMetadata("data"));
-        Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, metadataUpgradeService);
+        Metadata upgrade = metadataUpgradeService.upgradeMetadata(metadata);
         assertThat(upgrade).isNotSameAs(metadata);
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
         for (IndexMetadata indexMetadata : upgrade) {
@@ -82,7 +119,7 @@ public class GatewayMetaStateTests extends ESTestCase {
     public void testCustomMetadataValidation() {
         Metadata metadata = randomMetadata(false, new CustomMetadata("data"));
         try {
-            GatewayMetaState.upgradeMetadata(metadata, metadataUpgradeService);
+            metadataUpgradeService.upgradeMetadata(metadata);
         } catch (IllegalStateException e) {
             assertThat(e.getMessage()).isEqualTo("custom meta data too old");
         }
@@ -91,7 +128,7 @@ public class GatewayMetaStateTests extends ESTestCase {
     @Test
     public void test_index_metadata_upgrade_and_build_relation_metadata() {
         Metadata metadata = randomMetadata(false);
-        Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, metadataUpgradeService);
+        Metadata upgrade = metadataUpgradeService.upgradeMetadata(metadata);
         assertThat(upgrade).isNotSameAs(metadata);
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
         for (IndexMetadata indexMetadata : upgrade) {
@@ -105,7 +142,7 @@ public class GatewayMetaStateTests extends ESTestCase {
     @Test
     public void test_index_metadata_upgrade_and_update_relation_metadata() {
         Metadata metadata = randomMetadata(true);
-        Metadata upgrade = GatewayMetaState.upgradeMetadata(metadata, metadataUpgradeService);
+        Metadata upgrade = metadataUpgradeService.upgradeMetadata(metadata);
         assertThat(upgrade).isNotSameAs(metadata);
         assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
         for (IndexMetadata indexMetadata : upgrade) {

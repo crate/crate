@@ -33,7 +33,7 @@ public interface TableInfoFactory<T extends TableInfo> {
     /**
      * Only needed for BWC to build {@link org.elasticsearch.cluster.metadata.RelationMetadata.Table} out of
      * old {@link IndexMetadata} entries.
-     * See {@link org.elasticsearch.cluster.metadata.MetadataUpgradeService#addOrUpgradeRelationMetadata}.
+     * See {@link org.elasticsearch.cluster.metadata.MetadataUpgradeService#upgradeMetadata(Metadata)}.
      *
      * @deprecated use {@link #create(RelationName, Metadata)} instead
      */

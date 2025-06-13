@@ -234,7 +234,7 @@ public class RestoreService implements ClusterStateApplier {
                     : List.of();
 
                 return repository.getSnapshotGlobalMetadata(snapshotId).thenCompose(globalMetadata -> {
-                    globalMetadata = metadataIndexUpgradeService.addOrUpgradeRelationMetadata(globalMetadata);
+                    globalMetadata = metadataIndexUpgradeService.upgradeMetadata(globalMetadata);
                     var metadataBuilder = Metadata.builder(globalMetadata);
                     var indexIdsInSnapshot = Lists.map(indicesInSnapshot, repositoryData::resolveIndexId);
                     List<RelationName> relationNames;
@@ -399,7 +399,7 @@ public class RestoreService implements ClusterStateApplier {
             this.indices = indices;
             this.standaloneRelationNames = standaloneRelationNames;
             // If older snapshot is restored, build RelationMetadata from IndexMetadata & IndexTemplateMetadata
-            this.snapshotMetadata = metadataIndexUpgradeService.addOrUpgradeRelationMetadata(snapshotMetadata);;
+            this.snapshotMetadata = metadataIndexUpgradeService.upgradeMetadata(snapshotMetadata);;
         }
 
         @Override
