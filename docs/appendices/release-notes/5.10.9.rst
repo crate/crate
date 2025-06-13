@@ -58,3 +58,7 @@ Fixes
 
 - Fixed ``NullPointerException`` thrown when casting an array containing
   ``NULL`` to ``GEO_POINT``.
+
+- Fixed a regression introduced with :ref:`version_5.10.8` that caused a query
+  to keep running even if a ``CircuitBreakerException`` was thrown while
+  constructing the result set.
