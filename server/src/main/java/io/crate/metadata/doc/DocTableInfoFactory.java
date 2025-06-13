@@ -497,31 +497,6 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                     );
                 }
             } else if (type != DataTypes.NOT_SUPPORTED) {
-                List<String> copyToColumns = Maps.get(columnProperties, "copy_to");
-                // TODO: copy_to is deprecated and has to be removed after 5.4
-                // extract columns this column is copied to, needed for indices
-                if (copyToColumns != null) {
-                    for (String copyToColumn : copyToColumns) {
-                        ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
-                        IndexReference.Builder builder = indexColumns.computeIfAbsent(
-                            targetIdent,
-                            k -> new IndexReference.Builder(refIdent)
-                        );
-                        builder.addColumn(new SimpleReference(
-                            refIdent,
-                            granularity,
-                            type,
-                            indexType,
-                            nullable,
-                            hasDocValues,
-                            position,
-                            oid,
-                            isDropped,
-                            defaultExpression
-                        ));
-                    }
-                }
-
                 var indicesKey = oid == COLUMN_OID_UNASSIGNED ? column.fqn() : Long.toString(oid);
                 if (indicesMap.containsKey(indicesKey)) {
                     List<String> sources = Maps.get(columnProperties, "sources");

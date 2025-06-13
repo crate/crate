@@ -489,7 +489,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
             )).thenApply(r ->
                 new Response(
-                    metadataUpgradeService.addOrUpgradeRelationMetadata(r.metadata()),
+                    metadataUpgradeService.upgradeMetadata(r.metadata()),
                     r.unknownPublications()
                 ));
     }
