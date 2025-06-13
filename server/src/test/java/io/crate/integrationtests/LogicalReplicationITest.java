@@ -671,6 +671,22 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                     "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication subscription.");
     }
 
+    @Test
+    public void test_num_docs_from_sys_shards_must_reflect_on_replicated_data() throws Exception {
+        executeOnPublisher("CREATE TABLE doc.t1 (id INT) WITH(" + defaultTableSettings() + ")");
+
+        createPublication("pub1", false, List.of("doc.t1"));
+        createSubscription("sub1", "pub1");
+
+        executeOnPublisher("INSERT INTO doc.t1 VALUES (1), (2)");
+
+        assertBusy(() -> {
+            executeOnSubscriber("REFRESH TABLE doc.t1");
+            var res = executeOnSubscriber("SELECT SUM(num_docs) FROM sys.shards WHERE schema_name = 'doc' AND table_name = 't1'");
+            assertThat(res).hasRows("2");
+        }, 10, TimeUnit.SECONDS);
+    }
+
     /**
      * Test a regression which resulting in a failed initial restore of the re-created subscription caused
      * not correctly removed retention leases while subscription is dropped.
