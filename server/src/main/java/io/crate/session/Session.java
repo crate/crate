@@ -783,8 +783,13 @@ public class Session implements AutoCloseable {
                 cells[0] = Row1.ERROR;
                 cells[1] = t;
             }
-            resultReceiver.setNextRow(row);
-            resultReceiver.allFinished();
+            try {
+                resultReceiver.setNextRow(row);
+            } catch (Exception e) {
+                // Ignore
+            } finally {
+                resultReceiver.allFinished();
+            }
         }
         jobsLogs.logExecutionEnd(jobId, null);
     }
