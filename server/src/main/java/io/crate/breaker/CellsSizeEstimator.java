@@ -24,6 +24,9 @@ package io.crate.breaker;
 import java.util.List;
 import java.util.function.IntFunction;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import io.crate.data.Row;
 import io.crate.types.DataType;
 
@@ -51,6 +54,24 @@ public abstract class CellsSizeEstimator {
                 for (int i = 0; i < valueCount; i++) {
                     DataType dataType = columnTypes.get(i);
                     size += dataType.valueBytes(values.apply(i));
+                }
+                return size;
+            }
+        };
+    }
+
+    public static CellsSizeEstimator estimateAsStrings() {
+        return new CellsSizeEstimator() {
+            @Override
+            protected long estimateSize(int valueCount, IntFunction<Object> values) {
+                long size = 0;
+                ObjectMapper mapper = new ObjectMapper();
+                for (int i = 0; i < valueCount; i++) {
+                    try {
+                        size += mapper.writeValueAsString(values.apply(i)).length();
+                    } catch (JsonProcessingException e) {
+                        throw new RuntimeException(e);
+                    }
                 }
                 return size;
             }
