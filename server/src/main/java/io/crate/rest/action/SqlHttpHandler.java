@@ -29,6 +29,7 @@ import static io.crate.session.Session.UNNAMED;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -56,8 +57,6 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;
-import io.crate.breaker.TypedRowAccounting;
-import io.crate.common.collections.Lists;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
@@ -259,14 +258,10 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
                 MAX_BLOCK_SIZE_IN_BYTES);
             resultReceiver = new RestResultSetReceiver(
-                JsonXContent.builder(),
+                new XContentBuilder(JsonXContent.JSON_XCONTENT, new RamAccountingOutputStream(ramAccounting)),
                 resultFields,
                 description.getFieldNames(),
                 startTimeInNs,
-                new TypedRowAccounting(
-                    Lists.map(resultFields, Symbol::valueType),
-                    ramAccounting
-                ),
                 includeTypes
             );
             resultReceiver.completionFuture().whenComplete((result, error) -> ramAccounting.close());
@@ -336,5 +331,33 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private static boolean bothProvided(@Nullable List<Object> args, @Nullable List<List<Object>> bulkArgs) {
         return args != null && !args.isEmpty() && bulkArgs != null && !bulkArgs.isEmpty();
+    }
+
+    static final class RamAccountingOutputStream extends ByteArrayOutputStream {
+
+        private final RamAccounting ramAccounting;
+
+        public RamAccountingOutputStream(RamAccounting ramAccounting) {
+            super();
+            this.ramAccounting = ramAccounting;
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) {
+            ramAccounting.addBytes(len);
+            super.write(b, off, len);
+        }
+
+        @Override
+        public void write(int b) {
+            ramAccounting.addBytes(1);
+            super.write(b);
+        }
+
+        @Override
+        public void close() throws IOException {
+            ramAccounting.release();
+            super.close();
+        }
     }
 }
