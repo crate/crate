@@ -4,7 +4,7 @@
 
 ----
 
-.. image:: https://github.com/crate/crate/workflows/CrateDB%20SQL/badge.svg?branch=master
+.. image:: https://github.com/crate/crate/actions/workflows/main.yml/badge.svg
     :target: https://github.com/crate/crate/actions?query=workflow%3A%22CrateDB+SQL%22
 
 .. image:: https://img.shields.io/badge/docs-latest-brightgreen.svg
