@@ -56,8 +56,7 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;
-import io.crate.breaker.TypedRowAccounting;
-import io.crate.common.collections.Lists;
+import io.crate.breaker.StringRowAccounting;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
@@ -263,10 +262,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 resultFields,
                 description.getFieldNames(),
                 startTimeInNs,
-                new TypedRowAccounting(
-                    Lists.map(resultFields, Symbol::valueType),
-                    ramAccounting
-                ),
+                new StringRowAccounting(ramAccounting),
                 includeTypes
             );
             resultReceiver.completionFuture().whenComplete((result, error) -> ramAccounting.close());
