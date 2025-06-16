@@ -273,7 +273,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 break;
             }
         }
-        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
+        return new WritePrimaryResult<>(request, shardResponse, translogLocation, indexShard);
     }
 
     private static boolean noItemsToIndexOnReplica(ShardUpsertRequest req) {
