@@ -278,12 +278,11 @@ public abstract class TransportReplicationAction<
     }
 
     protected void handleOperationRequest(final Request request, final TransportChannel channel) {
-        execute(request).whenComplete(new ChannelActionListener<>(channel, actionName, request));
+        execute(request).whenComplete(new ChannelActionListener<>(channel));
     }
 
     protected void handlePrimaryRequest(final ConcreteShardRequest<Request> request, final TransportChannel channel) {
-        new AsyncPrimaryAction(
-            request, new ChannelActionListener<>(channel, transportPrimaryAction, request)).run();
+        new AsyncPrimaryAction(request, new ChannelActionListener<>(channel)).run();
     }
 
     class AsyncPrimaryAction implements RejectableRunnable {
@@ -478,8 +477,7 @@ public abstract class TransportReplicationAction<
 
     protected void handleReplicaRequest(final ConcreteReplicaRequest<ReplicaRequest> replicaRequest,
                                         final TransportChannel channel) {
-        new AsyncReplicaAction(
-            replicaRequest, new ChannelActionListener<>(channel, transportReplicaAction, replicaRequest)).run();
+        new AsyncReplicaAction(replicaRequest, new ChannelActionListener<>(channel)).run();
     }
 
     public static class RetryOnReplicaException extends ElasticsearchException {

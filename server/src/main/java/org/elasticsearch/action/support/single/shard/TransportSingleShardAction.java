@@ -270,7 +270,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
         @Override
         public void messageReceived(Request request, final TransportChannel channel) throws Exception {
             // if we have a local operation, execute it on a thread since we don't spawn
-            execute(request).whenComplete(new ChannelActionListener<>(channel, actionName, request));
+            execute(request).whenComplete(new ChannelActionListener<>(channel));
         }
     }
 
@@ -281,9 +281,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
             if (logger.isTraceEnabled()) {
                 logger.trace("executing [{}] on shard [{}]", request, request.internalShardId);
             }
-            asyncShardOperation(request,
-                                request.internalShardId,
-                                new ChannelActionListener<>(channel, transportShardAction, request));
+            asyncShardOperation(request, request.internalShardId, new ChannelActionListener<>(channel));
         }
     }
 

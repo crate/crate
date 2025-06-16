@@ -156,7 +156,9 @@ public class InboundHandler {
         }
     }
 
-    private <T extends TransportRequest> void handleRequest(CloseableChannel channel, Header header, InboundMessage message) throws IOException {
+    private <T extends TransportRequest> void handleRequest(CloseableChannel channel,
+                                                            Header header,
+                                                            InboundMessage message) throws IOException {
         final String action = header.getActionName();
         final long requestId = header.getRequestId();
         final Version version = header.getVersion();
@@ -189,8 +191,16 @@ public class InboundHandler {
                 }
             }
         } else {
-            final TransportChannel transportChannel = new TcpTransportChannel(outboundHandler, channel, action, requestId, version,
-                header.isCompressed(), header.isHandshake(), message.takeBreakerReleaseControl());
+            final TransportChannel transportChannel = new TcpTransportChannel(
+                outboundHandler,
+                channel,
+                action,
+                requestId,
+                version,
+                header.isCompressed(),
+                header.isHandshake(),
+                message.takeBreakerReleaseControl()
+            );
             try {
                 messageListener.onRequestReceived(requestId, action);
                 if (message.isShortCircuit()) {
