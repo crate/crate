@@ -7,10 +7,6 @@
 Node-specific settings
 ======================
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 Basics
 ======

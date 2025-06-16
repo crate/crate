@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.IncompatibleClusterStateVersionException;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -71,6 +72,7 @@ public class PublicationTransportHandler {
 
     private final TransportService transportService;
     private final NamedWriteableRegistry namedWriteableRegistry;
+    private final MetadataUpgradeService metadataUpgradeService;
     private final Function<PublishRequest, PublishWithJoinResponse> handlePublishRequest;
 
     private final AtomicReference<ClusterState> lastSeenClusterState = new AtomicReference<>();
@@ -89,11 +91,14 @@ public class PublicationTransportHandler {
     //  and not log an error if it arrives after the timeout
     private final TransportRequestOptions stateRequestOptions = new TransportRequestOptions(null, Type.STATE);
 
-    public PublicationTransportHandler(TransportService transportService, NamedWriteableRegistry namedWriteableRegistry,
+    public PublicationTransportHandler(TransportService transportService,
+                                       NamedWriteableRegistry namedWriteableRegistry,
+                                       MetadataUpgradeService metadataUpgradeService,
                                        Function<PublishRequest, PublishWithJoinResponse> handlePublishRequest,
                                        BiConsumer<ApplyCommitRequest, ActionListener<Void>> handleApplyCommit) {
         this.transportService = transportService;
         this.namedWriteableRegistry = namedWriteableRegistry;
+        this.metadataUpgradeService = metadataUpgradeService;
         this.handlePublishRequest = handlePublishRequest;
 
         transportService.registerRequestHandler(
@@ -153,7 +158,14 @@ public class PublicationTransportHandler {
                 final ClusterState incomingState;
                 // Close early to release resources used by the de-compression as early as possible
                 try (StreamInput input = in) {
-                    incomingState = ClusterState.readFrom(input, transportService.getLocalNode());
+                    ClusterState tempState = ClusterState.readFrom(input, transportService.getLocalNode());
+                    if (in.getVersion().before(Version.V_6_0_0)) {
+                        incomingState = ClusterState.builder(tempState)
+                            .metadata(metadataUpgradeService.upgradeMetadata(tempState.metadata()))
+                            .build();
+                    } else {
+                        incomingState = tempState;
+                    }
                 } catch (Exception e) {
                     LOGGER.warn("unexpected error while deserializing an incoming cluster state", e);
                     throw e;
@@ -178,7 +190,14 @@ public class PublicationTransportHandler {
                         try (StreamInput input = in) {
                             diff = ClusterState.readDiffFrom(input, lastSeen.nodes().getLocalNode());
                         }
-                        incomingState = diff.apply(lastSeen); // might throw IncompatibleClusterStateVersionException
+                        ClusterState tempState = diff.apply(lastSeen); // might throw IncompatibleClusterStateVersionException
+                        if (in.getVersion().before(Version.V_6_0_0)) {
+                            incomingState = ClusterState.builder(tempState)
+                                .metadata(metadataUpgradeService.upgradeMetadata(tempState.metadata()))
+                                .build();
+                        } else {
+                            incomingState = tempState;
+                        }
                     } catch (IncompatibleClusterStateVersionException e) {
                         incompatibleClusterStateDiffReceivedCount.incrementAndGet();
                         throw e;

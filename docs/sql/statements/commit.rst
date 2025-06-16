@@ -5,12 +5,7 @@
 ``COMMIT``
 ==========
 
-Commit the current transaction
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
+Commit the current transaction.
 
 Synopsis
 ========

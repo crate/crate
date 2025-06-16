@@ -8,12 +8,6 @@
 
 Create a new table.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 .. _sql-create-table-synopsis:
 
 Synopsis

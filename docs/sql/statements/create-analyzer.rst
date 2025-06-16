@@ -7,11 +7,6 @@
 
 Define a new fulltext analyzer.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 
@@ -57,7 +52,7 @@ analyzer chain from scratch. For examples and detailed explanation see
 
 .. CAUTION::
 
-    If ``analyzer_name`` already exists, its definition is updated, but 
+    If ``analyzer_name`` already exists, its definition is updated, but
     existing tables will continue to use the old definition.
 
 Parameters
@@ -94,4 +89,3 @@ Parameters
 :custom_name:
   A custom unique name needed when defining custom
   tokenizers/token_filter/char_filter.
-

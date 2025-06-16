@@ -9,9 +9,6 @@
 
 Create a cursor.
 
-.. contents::
-   :local:
-
 .. _sql-declare-synopsis:
 
 Synopsis

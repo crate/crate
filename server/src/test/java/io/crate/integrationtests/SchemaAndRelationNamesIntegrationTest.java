@@ -62,7 +62,6 @@ public class SchemaAndRelationNamesIntegrationTest extends IntegTestCase {
         // check index/template names
         var meta = clusterService().state().metadata();
         assertThat(meta.indices().keysIt().next()).isEqualTo("_Abc..partitioned._T.04132");
-        assertThat(meta.templates().keysIt().next()).isEqualTo("_Abc..partitioned._T.");
 
         // check viewMetadata names as well as its target query
         ViewsMetadata viewsMetadata = meta.custom(ViewsMetadata.TYPE);

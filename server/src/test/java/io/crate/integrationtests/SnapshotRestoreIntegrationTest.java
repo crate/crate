@@ -27,7 +27,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -583,7 +582,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
                         "RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)"))
                 .hasPGError(INTERNAL_ERROR)
                 .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-                .hasMessageContaining(String.format("[%s..partitioned.employees.] template not found",
+                .hasMessageContaining(String.format("Relation [%s.employees] not found in snapshot",
                                                     sqlExecutor.getCurrentSchema()));
     }
 
@@ -1150,6 +1149,35 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             .isNotNull();
         assertThat((RelationMetadata.Table) metadata.getRelation(new RelationName("doc", "t_parted")))
             .isNotNull();
+    }
+
+    /**
+     * Ensure we can restore snapshots of version 5.0.x with old metadata structure.
+     * Snapshot was created with 5.0.3:
+     *  - CREATE TABLE t1 (i int);
+     *  - CREATE TABLE p1 (i int, p int) PARTITIONED BY (p);
+     *  - INSERT INTO t1 (i) VALUES (1), (2);
+     *  - INSERT INTO p1 (i, p) VALUES (1, 1), (2, 2);
+     *  - CREATE SNAPSHOT repo1.snap1 ALL WITH(wait_for_completion=true);
+     */
+    @Test
+    public void test_restore_5_0_snapshot() throws Exception {
+        File repoDir = TEMPORARY_FOLDER.newFolder().toPath().toAbsolutePath().toFile();
+        try (InputStream stream = Files.newInputStream(getDataPath("/repos/5.0.3_repo.zip"))) {
+            TestUtil.unzip(stream, repoDir.toPath());
+        }
+        execute(
+            "CREATE REPOSITORY repo1 TYPE \"fs\" with (location=?, readonly=true)",
+            new Object[]{repoDir.getAbsolutePath()}
+        );
+        // Ensure snapshot can be read and restored
+        execute("RESTORE SNAPSHOT repo1.snap1 ALL with (wait_for_completion=true)");
+
+        // Ensure tables are restored and data can be queried
+        execute("SELECT i FROM doc.t1");
+        assertThat(response).hasRows("1", "2");
+        execute("SELECT i, p FROM doc.p1");
+        assertThat(response).hasRows("1| 1", "2| 2");
     }
 
     private void execute_statements_that_restore_tables_with_different_fqn(boolean partitioned) throws Exception {

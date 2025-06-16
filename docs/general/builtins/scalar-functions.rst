@@ -10,11 +10,6 @@ Scalar functions
 Scalar functions are :ref:`functions <gloss-function>` that return
 :ref:`scalars <gloss-scalar>`.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _scalar-string:
 
@@ -4302,6 +4297,22 @@ Example::
 
 Returns the server start time as ``timestamp with time zone``.
 
+
+.. _scalar-current_catalog:
+
+``current_catalog``
+----------------------
+
+The ``current_catalog`` function returns the name of the current catalog, which
+in CrateDB will always be ``crate``::
+
+    cr> select current_catalog AS db;
+    +-------+
+    | db    |
+    +-------+
+    | crate |
+    +-------+
+    SELECT 1 row in set (... sec)
 
 .. _scalar-current_database:
 

@@ -8,11 +8,6 @@
 
 Explain or analyze the plan for a given statement.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

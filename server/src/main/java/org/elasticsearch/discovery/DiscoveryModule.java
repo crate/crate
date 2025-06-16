@@ -41,6 +41,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.Coordinator;
 import org.elasticsearch.cluster.coordination.ElectionStrategy;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -107,7 +108,8 @@ public class DiscoveryModule {
                            Path configFile,
                            GatewayMetaState gatewayMetaState,
                            RerouteService rerouteService,
-                           NodeHealthService nodeHealthService) {
+                           NodeHealthService nodeHealthService,
+                           MetadataUpgradeService metadataUpgradeService) {
         final Collection<BiConsumer<DiscoveryNode, ClusterState>> joinValidators = new ArrayList<>();
         final Map<String, Supplier<SeedHostsProvider>> hostProviders = new HashMap<>();
         hostProviders.put("settings", () -> new SettingsBasedSeedHostsProvider(settings, transportService));
@@ -179,7 +181,8 @@ public class DiscoveryModule {
             new Random(Randomness.get().nextLong()),
             rerouteService,
             electionStrategy,
-            nodeHealthService
+            nodeHealthService,
+            metadataUpgradeService
         );
         LOGGER.info("using discovery type [{}] and seed hosts providers {}", discoveryType, seedProviderNames);
     }

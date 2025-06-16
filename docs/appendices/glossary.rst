@@ -8,12 +8,6 @@ Glossary
 
 This glossary defines key terms used in the CrateDB reference manual.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 Terms
 =====
 

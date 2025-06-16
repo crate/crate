@@ -241,7 +241,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                             ))
                         .thenApply(r ->
                             new PublicationsStateAction.Response(
-                                metadataUpgradeService.addOrUpgradeRelationMetadata(r.metadata()),
+                                metadataUpgradeService.upgradeMetadata(r.metadata()),
                                 r.unknownPublications()
                             ))
                         .whenComplete((d, stateErr) -> {

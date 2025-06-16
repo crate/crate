@@ -37,14 +37,17 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
+import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
+import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -70,6 +73,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.TableInfoFactory;
 import io.crate.metadata.table.Operation;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
 import io.crate.server.xcontent.XContentHelper;
@@ -88,7 +92,7 @@ import io.crate.types.StorageSupport;
 import io.crate.types.StringType;
 import io.crate.types.UndefinedType;
 
-public class DocTableInfoFactory {
+public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
 
     private final NodeContext nodeCtx;
     private final ExpressionAnalyzer expressionAnalyzer;
@@ -116,10 +120,83 @@ public class DocTableInfoFactory {
         );
     }
 
-    public void validateSchema(IndexMetadata indexMetadata) {
+    @Override
+    public DocTableInfo create(RelationName relation, Metadata metadata) {
+        RelationMetadata relationMetadata = metadata.getRelation(relation);
+        if (relationMetadata == null) {
+            throw new RelationUnknown(relation);
+        }
+        PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
+        if (relationMetadata instanceof RelationMetadata.Table table) {
+            return tableFromRelationMetadata(table, publicationsMetadata);
+        }
+        throw new UnsupportedOperationException("Unsupported relation type: " + relationMetadata.getClass().getSimpleName());
+    }
+
+    private DocTableInfo tableFromRelationMetadata(RelationMetadata.Table table,
+                                                   @Nullable PublicationsMetadata publicationsMetadata) {
+        Map<ColumnIdent, Reference> columns = table.columns().stream()
+            .filter(ref -> !ref.isDropped())
+            .filter(ref -> !(ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty()))
+            .collect(Collectors.toMap(Reference::column, ref -> ref));
+        Map<ColumnIdent, IndexReference> indexColumns = table.columns().stream()
+            .filter(ref -> ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty())
+            .map(ref -> (IndexReference) ref)
+            .collect(Collectors.toMap(SimpleReference::column, ref -> ref));
+
+        var expressionAnalyzer = new ExpressionAnalyzer(
+            systemTransactionContext,
+            nodeCtx,
+            ParamTypeHints.EMPTY,
+            new TableReferenceResolver(columns, table.name()),
+            null
+        );
+        var expressionAnalysisContext = new ExpressionAnalysisContext(systemTransactionContext.sessionSettings());
+
+        Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings());
+        Version versionUpgraded = table.settings().getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
+        ColumnIdent routingColumn = table.routingColumn();
+        if (routingColumn == null) {
+            routingColumn = table.primaryKeys().size() == 1
+                ? table.primaryKeys().get(0)
+                : SysColumns.ID.COLUMN;
+        }
+        List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
+            expressionAnalyzer,
+            expressionAnalysisContext,
+            table.checkConstraints()
+        );
+        return new DocTableInfo(
+            table.name(),
+            columns,
+            indexColumns,
+            table.columns().stream()
+                .filter(Reference::isDropped)
+                .collect(Collectors.toSet()),
+            table.pkConstraintName(),
+            table.primaryKeys(),
+            checkConstraints,
+            routingColumn,
+            table.settings(),
+            table.partitionedBy(),
+            table.columnPolicy(),
+            versionCreated,
+            versionUpgraded,
+            table.state() == State.CLOSE,
+            Operation.buildFromIndexSettingsAndState(
+                table.settings(),
+                table.state(),
+                publicationsMetadata == null ? false : publicationsMetadata.isPublished(table.name())
+            ),
+            table.tableVersion()
+        );
+    }
+
+    @Nullable
+    public DocTableInfo create(IndexMetadata indexMetadata) {
         String indexName = indexMetadata.getIndex().getName();
         if (IndexName.isDangling(indexName)) {
-            return;
+            return null;
         }
         RelationName relationName = RelationName.fromIndexName(indexName);
         Settings tableParameters = indexMetadata.getSettings();
@@ -127,6 +204,70 @@ public class DocTableInfoFactory {
         Version versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
         MappingMetadata mapping = indexMetadata.mapping();
         Map<String, Object> mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
+        return create(
+            relationName,
+            mappingSource,
+            tableParameters,
+            versionCreated,
+            versionUpgraded,
+            indexMetadata.getState(),
+            indexMetadata.getVersion(),
+            false
+        );
+    }
+
+    /**
+     * Deprecated. Only used for upgrading old templates to new RelationMetadata.
+     */
+    @Deprecated
+    public DocTableInfo create(IndexTemplateMetadata indexTemplateMetadata, Metadata metadata) {
+        RelationName relationName = RelationName.fromIndexName(indexTemplateMetadata.name());
+        Map<String, Object> mappingSource = XContentHelper.toMap(
+            indexTemplateMetadata.mapping().compressedReference(),
+            XContentType.JSON
+        );
+        mappingSource = Maps.getOrDefault(mappingSource, "default", mappingSource);
+        Settings tableParameters = indexTemplateMetadata.settings();
+        Version versionCreated = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
+        // Versions up to 5.9.7 had a bug where ALTER TABLE on a partitioned table could change the `versionCreated` property on the template.
+        // See https://github.com/crate/crate/pull/17178
+        // To mitigate the impact, this looks through partitions and takes their lowest version:
+        Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(
+            metadata,
+            IndicesOptions.LENIENT_EXPAND_OPEN,
+            PartitionName.templatePrefix(relationName.schema(), relationName.name())
+        );
+        for (Index index : concreteIndices) {
+            IndexMetadata indexMetadata = metadata.index(index);
+            if (indexMetadata != null) {
+                versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
+            }
+        }
+        Version versionUpgraded = null;
+        boolean isClosed = Maps.getOrDefault(
+            Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
+        State state = isClosed ? State.CLOSE : State.OPEN;
+        Integer tableVersion = indexTemplateMetadata.version();
+        return create(
+            relationName,
+            mappingSource,
+            tableParameters,
+            versionCreated,
+            versionUpgraded,
+            state,
+            tableVersion == null ? 0 : tableVersion.longValue(),
+            true
+        );
+    }
+
+    private DocTableInfo create(RelationName relationName,
+                                Map<String, Object> mappingSource,
+                                Settings tableParameters,
+                                Version versionCreated,
+                                Version versionUpgraded,
+                                State state,
+                                long tableVersion,
+                                boolean fromTemplate) {
         final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
         final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
             Maps.getOrDefault(metaMap, "partitioned_by", List.of())
@@ -182,7 +323,16 @@ public class DocTableInfoFactory {
             Maps.get(metaMap, "check_constraints")
         );
         ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
-        new DocTableInfo(
+        if (fromTemplate && versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
+            // Due to https://github.com/crate/crate/pull/17178 the created version in the template
+            // can be wrong; inferring the correct version from partitions can also fail if old partitions
+            // are deleted.
+            // This is another safety mechanism. If a column doesn't have OIDs the table must be from < 5.5.0
+            if (references.values().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
+                versionCreated = Version.V_5_4_0;
+            }
+        }
+        return new DocTableInfo(
             relationName,
             references,
             indexColumns.entrySet().stream()
@@ -197,216 +347,9 @@ public class DocTableInfoFactory {
             ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
             versionCreated,
             versionUpgraded,
-            indexMetadata.getState() == IndexMetadata.State.CLOSE,
-            Operation.CLOSED_OPERATIONS,
-            0
-        );
-    }
-
-    public DocTableInfo create(RelationName relation, Metadata metadata) {
-        RelationMetadata relationMetadata = metadata.getRelation(relation);
-        PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
-        if (relationMetadata instanceof RelationMetadata.Table table) {
-            return tableFromRelationMetadata(table, publicationsMetadata);
-        }
-        String templateName = PartitionName.templateName(relation.schema(), relation.name());
-        IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-        Version versionCreated;
-        Version versionUpgraded;
-        Map<String, Object> mappingSource;
-        Settings tableParameters;
-        IndexMetadata.State state;
-        boolean strict = indexTemplateMetadata == null;
-        List<String> concreteIndices = metadata.getIndices(
-            relation,
-            List.of(),
-            strict,
-            imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null
-        );
-        long tableVersion;
-        if (indexTemplateMetadata == null) {
-            IndexMetadata index = metadata.index(relation.indexNameOrAlias());
-            if (index == null) {
-                throw new RelationUnknown(relation);
-            }
-            tableParameters = index.getSettings();
-            versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(tableParameters);
-            versionUpgraded = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
-            state = index.getState();
-            MappingMetadata mapping = index.mapping();
-            mappingSource = mapping == null ? Map.of() : mapping.sourceAsMap();
-            tableVersion = index.getVersion();
-            if (concreteIndices.isEmpty()) {
-                throw new RelationUnknown(relation);
-            }
-        } else {
-            mappingSource = XContentHelper.toMap(
-                indexTemplateMetadata.mapping().compressedReference(),
-                XContentType.JSON
-            );
-            mappingSource = Maps.getOrDefault(mappingSource, "default", mappingSource);
-            tableParameters = indexTemplateMetadata.settings();
-            versionCreated = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
-            // Versions up to 5.9.7 had a bug where ALTER TABLE on a partitioned table could change the `versionCreated` property on the template.
-            // See https://github.com/crate/crate/pull/17178
-            // To mitigate the impact, this looks through partitions and takes their lowest version:
-            for (String indexName : concreteIndices) {
-                IndexMetadata indexMetadata = metadata.index(indexName);
-                if (indexMetadata != null) {
-                    versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
-                }
-            }
-            versionUpgraded = null;
-            boolean isClosed = Maps.getOrDefault(
-                Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
-            state = isClosed ? State.CLOSE : State.OPEN;
-            tableVersion = indexTemplateMetadata.version() == null ? 0 : indexTemplateMetadata.version();
-        }
-        final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
-        final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
-            Maps.getOrDefault(metaMap, "partitioned_by", List.of())
-        );
-        List<ColumnIdent> primaryKeys = getPrimaryKeys(metaMap);
-        Set<ColumnIdent> notNullColumns = getNotNullColumns(metaMap);
-
-        Map<String, Object> indicesMap = Maps.getOrDefault(metaMap, "indices", Map.of());
-        Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
-        Map<ColumnIdent, Reference> references = new HashMap<>();
-        Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
-        Set<Reference> droppedColumns = new HashSet<>();
-
-        parseColumns(
-            expressionAnalyzer,
-            relation,
-            null,
-            indicesMap,
-            notNullColumns,
-            primaryKeys,
-            partitionedBy,
-            properties,
-            indexColumns,
-            references,
-            droppedColumns
-        );
-        var refExpressionAnalyzer = new ExpressionAnalyzer(
-            systemTransactionContext,
-            nodeCtx,
-            ParamTypeHints.EMPTY,
-            new TableReferenceResolver(references, relation),
-            null
-        );
-        var expressionAnalysisContext = new ExpressionAnalysisContext(systemTransactionContext.sessionSettings());
-        Map<String, String> generatedColumns = Maps.getOrDefault(metaMap, "generated_columns", Map.of());
-        for (Entry<String,String> entry : generatedColumns.entrySet()) {
-            ColumnIdent column = ColumnIdent.fromPath(entry.getKey());
-            String generatedExpressionStr = entry.getValue();
-            Reference reference = references.get(column);
-            Symbol generatedExpression = refExpressionAnalyzer.convert(
-                SqlParser.createExpression(generatedExpressionStr),
-                expressionAnalysisContext
-            ).cast(reference.valueType());
-            GeneratedReference generatedRef = new GeneratedReference(
-                reference,
-                generatedExpression
-            );
-            references.put(column, generatedRef);
-        }
-        List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
-            refExpressionAnalyzer,
-            expressionAnalysisContext,
-            Maps.get(metaMap, "check_constraints")
-        );
-        ColumnIdent clusteredBy = getClusteredBy(primaryKeys, Maps.get(metaMap, "routing"));
-        if (indexTemplateMetadata != null && versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
-            // Due to https://github.com/crate/crate/pull/17178 the created version in the template
-            // can be wrong; inferring the correct version from partitions can also fail if old partitions
-            // are deleted.
-            // This is another safety mechanism. If a column doesn't have OIDs the table must be from < 5.5.0
-            if (references.values().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
-                versionCreated = Version.V_5_4_0;
-            }
-        }
-        return new DocTableInfo(
-            relation,
-            references,
-            indexColumns.entrySet().stream()
-                .collect(Collectors.toMap(Entry::getKey, e -> e.getValue().build(references))),
-            droppedColumns,
-            Maps.get(metaMap, "pk_constraint_name"),
-            primaryKeys,
-            checkConstraints,
-            clusteredBy,
-            tableParameters,
-            partitionedBy,
-            ColumnPolicy.fromMappingValue(mappingSource.get("dynamic")),
-            versionCreated,
-            versionUpgraded,
             state == IndexMetadata.State.CLOSE,
-            Operation.buildFromIndexSettingsAndState(
-                tableParameters,
-                state,
-                publicationsMetadata == null ? false : publicationsMetadata.isPublished(relation)
-            ),
+            Operation.CLOSED_OPERATIONS,
             tableVersion
-        );
-    }
-
-    private DocTableInfo tableFromRelationMetadata(RelationMetadata.Table table,
-                                                   @Nullable PublicationsMetadata publicationsMetadata) {
-        Map<ColumnIdent, Reference> columns = table.columns().stream()
-            .filter(ref -> !ref.isDropped())
-            .filter(ref -> !(ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty()))
-            .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
-        Map<ColumnIdent, IndexReference> indexColumns = table.columns().stream()
-            .filter(ref -> ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty())
-            .map(ref -> (IndexReference) ref)
-            .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
-
-        var expressionAnalyzer = new ExpressionAnalyzer(
-            systemTransactionContext,
-            nodeCtx,
-            ParamTypeHints.EMPTY,
-            new TableReferenceResolver(columns, table.name()),
-            null
-        );
-        var expressionAnalysisContext = new ExpressionAnalysisContext(systemTransactionContext.sessionSettings());
-
-        Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings());
-        Version versionUpgraded = table.settings().getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null);
-        ColumnIdent routingColumn = table.routingColumn();
-        if (routingColumn == null) {
-            routingColumn = table.primaryKeys().size() == 1
-                ? table.primaryKeys().get(0)
-                : SysColumns.ID.COLUMN;
-        }
-        List<CheckConstraint<Symbol>> checkConstraints = getCheckConstraints(
-            expressionAnalyzer,
-            expressionAnalysisContext,
-            table.checkConstraints()
-        );
-        return new DocTableInfo(
-            table.name(),
-            columns,
-            indexColumns,
-            table.columns().stream()
-                .filter(Reference::isDropped)
-                .collect(Collectors.toSet()),
-            table.pkConstraintName(),
-            table.primaryKeys(),
-            checkConstraints,
-            routingColumn,
-            table.settings(),
-            table.partitionedBy(),
-            table.columnPolicy(),
-            versionCreated,
-            versionUpgraded,
-            table.state() == State.CLOSE,
-            Operation.buildFromIndexSettingsAndState(
-                table.settings(),
-                table.state(),
-                publicationsMetadata == null ? false : publicationsMetadata.isPublished(table.name())
-            ),
-            table.tableVersion()
         );
     }
 
@@ -487,7 +430,7 @@ public class DocTableInfoFactory {
                 : Booleans.parseBoolean(docValues.toString());
 
             int position = Maps.getOrDefault(columnProperties, "position", 0);
-            Number oidNum = Maps.getOrDefault(columnProperties, "oid", Metadata.COLUMN_OID_UNASSIGNED);
+            Number oidNum = Maps.getOrDefault(columnProperties, "oid", COLUMN_OID_UNASSIGNED);
             long oid = oidNum.longValue();
             DataType<?> elementType = ArrayType.unnest(type);
 
@@ -554,32 +497,7 @@ public class DocTableInfoFactory {
                     );
                 }
             } else if (type != DataTypes.NOT_SUPPORTED) {
-                List<String> copyToColumns = Maps.get(columnProperties, "copy_to");
-                // TODO: copy_to is deprecated and has to be removed after 5.4
-                // extract columns this column is copied to, needed for indices
-                if (copyToColumns != null) {
-                    for (String copyToColumn : copyToColumns) {
-                        ColumnIdent targetIdent = ColumnIdent.fromPath(copyToColumn);
-                        IndexReference.Builder builder = indexColumns.computeIfAbsent(
-                            targetIdent,
-                            k -> new IndexReference.Builder(refIdent)
-                        );
-                        builder.addColumn(new SimpleReference(
-                            refIdent,
-                            granularity,
-                            type,
-                            indexType,
-                            nullable,
-                            hasDocValues,
-                            position,
-                            oid,
-                            isDropped,
-                            defaultExpression
-                        ));
-                    }
-                }
-
-                var indicesKey = oid == Metadata.COLUMN_OID_UNASSIGNED ? column.fqn() : Long.toString(oid);
+                var indicesKey = oid == COLUMN_OID_UNASSIGNED ? column.fqn() : Long.toString(oid);
                 if (indicesMap.containsKey(indicesKey)) {
                     List<String> sources = Maps.get(columnProperties, "sources");
                     if (sources != null) {

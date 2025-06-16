@@ -4,11 +4,6 @@
 Logical replication
 ===================
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Logical replication is a method of data replication across multiple clusters.
 CrateDB uses a publish and subscribe model where subscribers pull data from the
 publications of the publisher they subscribed to.

@@ -8,12 +8,6 @@
 
 Alter an existing table.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 .. _sql-alter-table-synopsis:
 
 Synopsis

@@ -459,7 +459,7 @@ public abstract class TransportReplicationAction<
     public static class ReplicaResult {
         final Exception finalFailure;
 
-        public ReplicaResult(Exception finalFailure) {
+        public ReplicaResult(@Nullable Exception finalFailure) {
             this.finalFailure = finalFailure;
         }
 
