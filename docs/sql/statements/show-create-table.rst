@@ -8,11 +8,6 @@
 Shows the :ref:`sql-create-table` or :ref:`ref-create-foreign-table` statement
 that created the table.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

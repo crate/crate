@@ -466,15 +466,22 @@ public class InternalEngine extends Engine {
         translog.trimUnreferencedReaders();
     }
 
-    private Translog openTranslog(EngineConfig engineConfig, TranslogDeletionPolicy translogDeletionPolicy,
-                                  LongSupplier globalCheckpointSupplier, LongConsumer persistedSequenceNumberConsumer) throws IOException {
+    private Translog openTranslog(EngineConfig engineConfig,
+                                  TranslogDeletionPolicy translogDeletionPolicy,
+                                  LongSupplier globalCheckpointSupplier,
+                                  LongConsumer persistedSequenceNumberConsumer) throws IOException {
 
         final TranslogConfig translogConfig = engineConfig.getTranslogConfig();
         final Map<String, String> userData = store.readLastCommittedSegmentsInfo().getUserData();
         final String translogUUID = Objects.requireNonNull(userData.get(Translog.TRANSLOG_UUID_KEY));
         // We expect that this shard already exists, so it must already have an existing translog else something is badly wrong!
-        return new Translog(translogConfig, translogUUID, translogDeletionPolicy, globalCheckpointSupplier,
-            engineConfig.getPrimaryTermSupplier(), persistedSequenceNumberConsumer);
+        return new Translog(
+            translogConfig,
+            translogUUID,
+            translogDeletionPolicy,
+            globalCheckpointSupplier,
+            engineConfig.getPrimaryTermSupplier(),
+            persistedSequenceNumberConsumer);
     }
 
     // Package private for testing purposes only

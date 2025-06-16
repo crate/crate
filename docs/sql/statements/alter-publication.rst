@@ -14,12 +14,6 @@ update the list of published tables on the current cluster.
     :ref:`CREATE PUBLICATION <sql-create-publication>`
     :ref:`DROP PUBLICATION <sql-drop-publication>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-   :depth: 2
-
 
 .. _sql-alter-publication-synopsis:
 

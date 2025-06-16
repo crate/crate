@@ -195,13 +195,8 @@ public class SumAggregation<T extends Number> extends AggregationFunction<T, T> 
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        Reference reference = aggregationReferences.get(0);
-
+        Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
-            return null;
-        }
-
-        if (!reference.hasDocValues()) {
             return null;
         }
 

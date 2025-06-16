@@ -15,12 +15,6 @@ data to a file.
 
     :ref:`SQL syntax: COPY FROM <sql-copy-from>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-   :depth: 2
-
 
 .. _sql-copy-to-synopsis:
 
@@ -152,11 +146,11 @@ The ``WHERE`` clauses use the same syntax as ``SELECT`` statements, allowing
 partial exports. (see :ref:`sql_dql_where_clause` for more information).
 
 
-Example of using ``WHERE`` clause with 
+Example of using ``WHERE`` clause with
 :ref:`comparison operators <comparison-operators-where>` for partial export:
 
 ::
-  
+
   cr> COPY quotes WHERE category = 'philosophy' TO DIRECTORY '/tmp/';
   COPY OK, 3 rows affected ...
 

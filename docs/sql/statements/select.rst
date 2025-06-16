@@ -8,11 +8,6 @@
 
 Retrieve rows from a table.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _sql-select-synopsis:
 

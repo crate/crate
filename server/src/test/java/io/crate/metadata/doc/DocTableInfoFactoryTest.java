@@ -37,11 +37,15 @@ import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -50,6 +54,7 @@ import io.crate.metadata.RelationName;
 public class DocTableInfoFactoryTest extends ESTestCase {
 
     private NodeContext nodeCtx = createNodeContext();
+    private MetadataUpgradeService metadataUpgradeService;
 
     private String randomSchema() {
         if (randomBoolean()) {
@@ -57,6 +62,15 @@ public class DocTableInfoFactoryTest extends ESTestCase {
         } else {
             return randomAsciiLettersOfLength(3);
         }
+    }
+
+    @Before
+    public void setUpUpgradeService() throws Exception {
+        metadataUpgradeService = new MetadataUpgradeService(
+            nodeCtx,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            null
+        );
     }
 
     @Test
@@ -136,10 +150,11 @@ public class DocTableInfoFactoryTest extends ESTestCase {
                 .put(indexMetadataBuilder)
                 .put(template)
                 .build();
+        metadata = metadataUpgradeService.upgradeMetadata(metadata);
 
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
         DocTableInfo docTableInfo = docTableInfoFactory.create(tbl, metadata);
-        assertThat(docTableInfo.versionCreated()).isEqualTo(Version.V_5_9_6);
+        assertThat(docTableInfo.versionCreated()).isEqualTo(Version.V_5_7_5);
     }
 
     @Test
@@ -173,8 +188,73 @@ public class DocTableInfoFactoryTest extends ESTestCase {
         Metadata metadata = Metadata.builder()
                 .put(template)
                 .build();
+        metadata = metadataUpgradeService.upgradeMetadata(metadata);
+
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
         DocTableInfo docTableInfo = docTableInfoFactory.create(tbl, metadata);
         assertThat(docTableInfo.versionCreated()).isEqualTo(Version.V_5_4_0);
+    }
+
+    /**
+     * Tests a regression were the IndexColumn was created with the wrong identifier,
+     * the identifier was the column name using the copy_to instead of the index name.
+     * The actual upgrade happens inside the {@link MetadataUpgradeService} when the metadata is upgraded,
+     * but we want to ensure that the {@link DocTableInfoFactory} correctly parses the index column as well.
+     */
+    @Test
+    public void test_old_index_column_using_copy_to_is_parsed_correctly() {
+        String schema = randomSchema();
+        RelationName tbl = new RelationName(schema, "tbl");
+        String mapping = """
+            {
+              "default" : {
+                "dynamic" : "strict",
+                "_meta" : {
+                  "indices" : {
+                    "text_ft" : { }
+                  },
+                  "primary_keys" : [ "id" ]
+                },
+                "properties" : {
+                  "col_timestamp" : {
+                    "type" : "date",
+                    "position" : 2,
+                    "format" : "epoch_millis||strict_date_optional_time",
+                    "ignore_timezone" : true
+                  },
+                  "id" : {
+                    "type" : "keyword",
+                    "position" : 1
+                  },
+                  "text" : {
+                    "type" : "keyword",
+                    "position" : 3,
+                    "copy_to" : [ "text_ft" ]
+                  },
+                  "text_ft" : {
+                    "type" : "text",
+                    "position" : 4,
+                    "analyzer" : "standard"
+                  }
+                }
+              }
+            }
+            """;
+        IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(tbl.indexNameOrAlias())
+            .settings(Settings.builder().put("index.version.created", Version.V_5_0_0).build())
+            .numberOfReplicas(0)
+            .numberOfShards(5)
+            .putMapping(mapping);
+
+        Metadata metadata = Metadata.builder()
+            .put(indexMetadataBuilder)
+            .build();
+        metadata = metadataUpgradeService.upgradeMetadata(metadata);
+
+        DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(nodeCtx);
+        DocTableInfo docTableInfo = docTableInfoFactory.create(tbl, metadata);
+
+        assertThat(docTableInfo.indexColumn(ColumnIdent.of("text_ft")))
+            .isNotNull();
     }
 }

@@ -7,11 +7,6 @@
 
 A synonym for :ref:`ref-commit`.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

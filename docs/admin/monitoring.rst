@@ -6,11 +6,6 @@ JMX monitoring
 
 The JMX monitoring feature exposes query metrics via the `JMX`_ API.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Setup
 =====
 

@@ -493,7 +493,7 @@ public class IndicesService extends AbstractLifecycleComponent
             );
             closeables.add(() -> service.close("metadata verification", false));
             if (metadata.equals(metadataUpdate) == false) {
-                tableFactory.validateSchema(metadataUpdate);
+                tableFactory.create(metadataUpdate);
                 service.updateMetadata(metadata, metadataUpdate);
             }
         } finally {

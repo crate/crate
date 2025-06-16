@@ -7,10 +7,6 @@
 
 Alter an existing database user.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 Synopsis
 ========

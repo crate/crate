@@ -20,11 +20,6 @@ system collect additional data, we will clearly announce those changes.
 CrateDB is concerned about your privacy. We do not disclose any personally
 identifiable information.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Technical information
 =====================
 

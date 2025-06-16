@@ -5,11 +5,6 @@
 Constraints
 ===========
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 Table constraints
 =================

@@ -2633,19 +2633,25 @@ public class TranslogTests extends ESTestCase {
         Translog translog = createTranslog(config);
         translog.add(new Translog.Index("boom", 0, primaryTerm.get(), "boom".getBytes(Charset.forName("UTF-8"))));
         translog.close();
-        try {
-            new Translog(config, translog.getTranslogUUID(), createTranslogDeletionPolicy(),
-                () -> SequenceNumbers.NO_OPS_PERFORMED, primaryTerm::get, seqNo -> {}) {
+        try (var _ = new Translog(
+                config,
+                translog.getTranslogUUID(),
+                createTranslogDeletionPolicy(),
+                () -> SequenceNumbers.NO_OPS_PERFORMED,
+                primaryTerm::get,
+                _ -> {}
+            ) {
                 @Override
-                protected TranslogWriter createWriter(long fileGeneration, long initialMinTranslogGen, long initialGlobalCheckpoint,
-                                                      LongConsumer persistedSequenceNumberConsumer)
-                    throws IOException {
-                    throw new MockDirectoryWrapper.FakeIOException();
+                protected TranslogWriter createWriter(long fileGeneration,
+                                                      long initialMinTranslogGen,
+                                                      long initialGlobalCheckpoint,
+                                                      LongConsumer persistedSequenceNumberConsumer) {
+                    throw new TranslogException(shardId, "Failed to create translog", new MockDirectoryWrapper.FakeIOException());
                 }
-            };
+            }) {
             // if we have a LeakFS here we fail if not all resources are closed
             fail("should have been failed");
-        } catch (MockDirectoryWrapper.FakeIOException ex) {
+        } catch (TranslogException ex) {
             // all is well
         }
     }

@@ -47,6 +47,10 @@ import com.carrotsearch.hppc.ObjectContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.common.collections.Lists;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+
 /**
  * Meta data about snapshots that are currently executing
  */
@@ -97,7 +101,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                                      boolean includeGlobalState,
                                      boolean partial,
                                      List<IndexId> indices,
-                                     List<String> templates,
+                                     List<RelationName> relationNames,
                                      long startTime,
                                      long repositoryStateId,
                                      ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
@@ -108,7 +112,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             partial,
             completed(shards.values()) ? State.SUCCESS : State.STARTED,
             indices,
-            templates,
+            relationNames,
             startTime,
             repositoryStateId,
             shards,
@@ -124,7 +128,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
         private final boolean partial;
         private final ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards;
         private final List<IndexId> indices;
-        private final List<String> templates;
+        private final List<RelationName> relationNames;
         private final long startTime;
         private final long repositoryStateId;
         // see #useShardGenerations
@@ -137,7 +141,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                      boolean partial,
                      State state,
                      List<IndexId> indices,
-                     List<String> templates,
+                     List<RelationName> relationNames,
                      long startTime,
                      long repositoryStateId,
                      ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
@@ -148,7 +152,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             this.includeGlobalState = includeGlobalState;
             this.partial = partial;
             this.indices = indices;
-            this.templates = templates;
+            this.relationNames = relationNames;
             this.startTime = startTime;
             this.shards = shards;
             assert assertShardsConsistent(state, indices, shards);
@@ -163,10 +167,11 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             partial = in.readBoolean();
             state = State.fromValue(in.readByte());
             indices = in.readList(IndexId::new);
-            if (in.getVersion().after(Version.V_4_5_1)) {
-                templates = List.of(in.readStringArray());
+            if (in.getVersion().before(Version.V_6_0_0)) {
+                List<String> templates = List.of(in.readStringArray());
+                relationNames = Lists.map(templates, t -> PartitionName.fromIndexOrTemplate(t).relationName());
             } else {
-                templates = List.of();
+                relationNames = in.readList(RelationName::new);
             }
             startTime = in.readLong();
             shards = in.readImmutableMap(ShardId::new, ShardSnapshotStatus::new);
@@ -206,12 +211,12 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                      boolean partial,
                      State state,
                      List<IndexId> indices,
-                     List<String> templates,
+                     List<RelationName> relationNames,
                      long startTime,
                      long repositoryStateId,
                      ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards,
                      Version version) {
-            this(snapshot, includeGlobalState, partial, state, indices, templates, startTime, repositoryStateId, shards, null, version);
+            this(snapshot, includeGlobalState, partial, state, indices, relationNames, startTime, repositoryStateId, shards, null, version);
         }
 
         public Entry(Entry entry,
@@ -227,7 +232,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                 entry.partial,
                 state,
                 indices,
-                entry.templates,
+                entry.relationNames,
                 entry.startTime,
                 repositoryStateId, shards,
                 failure,
@@ -243,7 +248,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                 partial,
                 state,
                 indices,
-                templates,
+                relationNames,
                 startTime,
                 newRepoGen,
                 shards,
@@ -290,7 +295,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
                 partial,
                 state,
                 indices,
-                templates,
+                relationNames,
                 startTime,
                 repositoryStateId,
                 shards,
@@ -309,7 +314,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
          */
         public Entry withShardStates(ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
             if (completed(shards.values())) {
-                return new Entry(snapshot, includeGlobalState, partial, State.SUCCESS, indices, templates, startTime, repositoryStateId,
+                return new Entry(snapshot, includeGlobalState, partial, State.SUCCESS, indices, relationNames, startTime, repositoryStateId,
                     shards, failure, version);
             }
             return withStartedShards(shards);
@@ -320,7 +325,7 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
          * shard snapshots on data nodes for a running snapshot.
          */
         public Entry withStartedShards(ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards) {
-            final SnapshotsInProgress.Entry updated = new Entry(snapshot, includeGlobalState, partial, state, indices, templates,
+            final SnapshotsInProgress.Entry updated = new Entry(snapshot, includeGlobalState, partial, state, indices, relationNames,
                 startTime, repositoryStateId, shards, failure, version);
             assert updated.state().completed() == false && completed(updated.shards().values()) == false
                 : "Only running snapshots allowed but saw [" + updated + "]";
@@ -349,8 +354,8 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             return indices;
         }
 
-        public List<String> templates() {
-            return templates;
+        public List<RelationName> relationNames() {
+            return relationNames;
         }
 
         public boolean includeGlobalState() {
@@ -422,8 +427,10 @@ public class SnapshotsInProgress extends AbstractNamedDiffable<Custom> implement
             out.writeBoolean(partial);
             out.writeByte(state.value());
             out.writeList(indices);
-            if (out.getVersion().after(Version.V_4_5_1)) {
-                out.writeStringArray(templates.toArray(new String[0]));
+            if (out.getVersion().before(Version.V_6_0_0)) {
+                out.writeStringArray(new String[0]);
+            } else {
+                out.writeList(relationNames);
             }
             out.writeLong(startTime);
             out.writeMap(shards);

@@ -318,8 +318,8 @@
     <versions.annotations>26.0.2</versions.annotations>
     <versions.log4j>2.24.3</versions.log4j>
     <versions.assertj>3.27.3</versions.assertj>
-    <versions.junit5>5.12.2</versions.junit5>
-    <versions.junit-platform-commons>1.12.2</versions.junit-platform-commons>
+    <versions.junit5>5.13.1</versions.junit5>
+    <versions.junit-platform-commons>1.13.1</versions.junit-platform-commons>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.3</versions.randomizedrunner>
     <versions.jackson>2.19.0</versions.jackson>
@@ -335,9 +335,9 @@
     <versions.tdigest>3.3</versions.tdigest>
     <versions.datasketches>5.0.2</versions.datasketches>
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
-    <versions.caffeine>3.2.0</versions.caffeine>
+    <versions.caffeine>3.2.1</versions.caffeine>
     <versions.jodatime>2.14.0</versions.jodatime>
-    <versions.aws>1.12.783</versions.aws>
+    <versions.aws>1.12.786</versions.aws>
     <versions.opendal>0.47.6</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.commonscodec>1.18.0</versions.commonscodec>
@@ -358,12 +358,12 @@
     <versions.google.gson>1.43.1</versions.google.gson>
     <versions.google.errorprone>2.38.0</versions.google.errorprone>
     <versions.google.j2objc>3.0.0</versions.google.j2objc>
-    <versions.checkerframework>3.49.3</versions.checkerframework>
-    <versions.grpc>1.72.0</versions.grpc>
+    <versions.checkerframework>3.49.4</versions.checkerframework>
+    <versions.grpc>1.73.0</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>5.18.0</versions.mockito>
-    <versions.jdbc>42.7.5</versions.jdbc>
+    <versions.jdbc>42.7.7</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
     <versions.azure_keyvault>1.2.6</versions.azure_keyvault>
@@ -375,24 +375,24 @@
     <versions.plugin.dependency>3.8.1</versions.plugin.dependency>
     <versions.plugin.versions>2.18.0</versions.plugin.versions>
     <versions.plugin.enforcer>3.5.0</versions.plugin.enforcer>
-    <versions.plugin.clean>3.4.1</versions.plugin.clean>
+    <versions.plugin.clean>3.5.0</versions.plugin.clean>
     <versions.plugin.resources>3.3.1</versions.plugin.resources>
     <versions.plugin.install>3.1.4</versions.plugin.install>
     <versions.plugin.compiler>3.14.0</versions.plugin.compiler>
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
     <versions.plugin.surefire>3.5.3</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
-    <versions.plugin.puppycrawl>10.24.0</versions.plugin.puppycrawl>
+    <versions.plugin.puppycrawl>10.25.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.13</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.9</versions.plugin.forbiddenapis>
     <versions.plugin.jlink>3.1.0</versions.plugin.jlink>
     <versions.plugin.assembly>3.7.1</versions.plugin.assembly>
     <versions.plugin.download>1.13.0</versions.plugin.download>
-    <versions.plugin.git-commit>9.0.1</versions.plugin.git-commit>
+    <versions.plugin.git-commit>9.0.2</versions.plugin.git-commit>
     <versions.plugin.shade>3.6.0</versions.plugin.shade>
     <versions.plugin.jar>3.4.2</versions.plugin.jar>
-    <versions.plugin.build-helper>3.6.0</versions.plugin.build-helper>
+    <versions.plugin.build-helper>3.6.1</versions.plugin.build-helper>
     <versions.plugin.antlr>4.13.2</versions.plugin.antlr>
     <versions.plugin.os>1.7.0</versions.plugin.os>
   </properties>

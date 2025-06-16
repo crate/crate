@@ -7,11 +7,6 @@
 
 Alter an existing database user or role.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

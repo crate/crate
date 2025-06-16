@@ -8,11 +8,6 @@
 
 Restore a snapshot into the cluster.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _sql-restore-snapshot-synopsis:
 

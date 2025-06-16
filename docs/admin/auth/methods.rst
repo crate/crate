@@ -6,11 +6,6 @@ Authentication Methods
 
 There are multiple ways to authenticate against CrateDB.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 .. _auth_trust:
 
 Trust method

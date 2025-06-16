@@ -10,12 +10,6 @@ resiliency issues `exist in the Elasticsearch layer
 be tested by `Jepsen <https://github.com/jepsen-io/jepsen/tree/master/crate>`_.
 
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 Known issues
 ============
 

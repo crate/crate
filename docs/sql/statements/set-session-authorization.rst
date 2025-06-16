@@ -7,11 +7,6 @@
 
 Set the user of the current session.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

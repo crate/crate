@@ -4,11 +4,6 @@
 User-defined functions
 ======================
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _udf-create-replace:
 
@@ -243,13 +238,13 @@ JavaScript, objects that are normally accessible with a web browser
 (e.g. ``window``, ``console``, and so on) are not available.
 
 .. NOTE::
-    
-    GraalVM treats objects provided to JavaScript user-defined functions as 
-    close as possible to their respective counterparts and therefore by default 
-    only a subset of prototype functions are available in user-defined 
+
+    GraalVM treats objects provided to JavaScript user-defined functions as
+    close as possible to their respective counterparts and therefore by default
+    only a subset of prototype functions are available in user-defined
     functions. For CrateDB 4.6 and earlier the object prototype was disabled.
-    
-    Please refer to the `GraalVM JavaScript Compatibility FAQ`_ to learn more 
+
+    Please refer to the `GraalVM JavaScript Compatibility FAQ`_ to learn more
     about the compatibility.
 
 

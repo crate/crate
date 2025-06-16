@@ -11,10 +11,6 @@ All current applied cluster settings can be read by querying the
 cluster settings can be :ref:`changed at runtime
 <administration-runtime-config>`. This is documented at each setting.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 .. _applying-cluster-settings:
 
@@ -1356,8 +1352,8 @@ The following settings can be used to configure the behavior of the
   | *Default:*   ``-1``
   | *Runtime:*  ``no``
 
-  The setting ``gateway.expected_nodes`` defines the total number of nodes 
-  expected in the cluster. It is evaluated together with 
+  The setting ``gateway.expected_nodes`` defines the total number of nodes
+  expected in the cluster. It is evaluated together with
   ``gateway.recover_after_nodes``
   to decide if the cluster can start with recovery.
 
@@ -1373,7 +1369,7 @@ The following settings can be used to configure the behavior of the
   | *Runtime:*  ``no``
 
   The setting ``gateway.expected_data_nodes`` defines the total number of
-  data nodes expected in the cluster. It is evaluated together with 
+  data nodes expected in the cluster. It is evaluated together with
   ``gateway.recover_after_data_nodes``
   to decide if the cluster can start with recovery.
 
@@ -1383,19 +1379,19 @@ The following settings can be used to configure the behavior of the
   | *Default:*   ``5m``
   | *Runtime:*  ``no``
 
-  The ``gateway.recover_after_time`` setting defines the time to wait for 
-  the number of nodes set in ``gateway.expected_data_nodes`` (or 
-  ``gateway.expected_nodes``) to become available, before starting the 
-  recovery, once the number of nodes defined in 
+  The ``gateway.recover_after_time`` setting defines the time to wait for
+  the number of nodes set in ``gateway.expected_data_nodes`` (or
+  ``gateway.expected_nodes``) to become available, before starting the
+  recovery, once the number of nodes defined in
   ``gateway.recover_after_data_nodes`` (or ``gateway.recover_after_nodes``)
   has already been reached.
-  This setting is ignored if ``gateway.expected_data_nodes`` or 
+  This setting is ignored if ``gateway.expected_data_nodes`` or
   ``gateway.expected_nodes`` are set to 0 or 1.
   It also has no effect if ``gateway.recover_after_data_nodes`` is set equal
   to ``gateway.expected_data_nodes`` (or ``gateway.recover_after_nodes`` is
   set equal to ``gateway.expected_nodes``).
-  The cluster also proceeds to immediate recovery, and the default 5 minutes 
-  waiting time does not apply, if neither this setting nor ``expected_nodes`` and 
+  The cluster also proceeds to immediate recovery, and the default 5 minutes
+  waiting time does not apply, if neither this setting nor ``expected_nodes`` and
   ``expected_data_nodes`` are explicitly set.
 
 .. _gateway.recover_after_nodes:
@@ -1406,12 +1402,12 @@ The following settings can be used to configure the behavior of the
 
   The ``gateway.recover_after_nodes`` setting defines the number of nodes that
   need to join the cluster before the cluster state recovery can start.
-  If this setting is ``-1`` and ``gateway.expected_nodes`` is set, all nodes 
+  If this setting is ``-1`` and ``gateway.expected_nodes`` is set, all nodes
   will need to be started before the cluster state recovery can start.
   Please note that proceeding with recovery when not all nodes are available
-  could trigger the promotion of shards and the creation of new replicas, 
-  generating disk and network load, which may be unnecessary. You can use a 
-  combination of this setting with ``gateway.recovery_after_time`` to 
+  could trigger the promotion of shards and the creation of new replicas,
+  generating disk and network load, which may be unnecessary. You can use a
+  combination of this setting with ``gateway.recovery_after_time`` to
   mitigate this risk.
 
   .. CAUTION::
@@ -1427,13 +1423,13 @@ The following settings can be used to configure the behavior of the
 
   The ``gateway.recover_after_data_nodes`` setting defines the number of data
   nodes that need to be started before the cluster state recovery can start.
-  If this setting is ``-1`` and ``gateway.expected_data_nodes`` is set, all 
-  data nodes will need to be started before the cluster state recovery can 
+  If this setting is ``-1`` and ``gateway.expected_data_nodes`` is set, all
+  data nodes will need to be started before the cluster state recovery can
   start.
-  Please note that proceeding with recovery when not all data nodes are 
-  available could trigger the promotion of shards and the creation of new 
-  replicas, generating disk and network load, which may be unnecessary. You 
-  can use a combination of this setting with ``gateway.recovery_after_time`` 
+  Please note that proceeding with recovery when not all data nodes are
+  available could trigger the promotion of shards and the creation of new
+  replicas, generating disk and network load, which may be unnecessary. You
+  can use a combination of this setting with ``gateway.recovery_after_time``
   to mitigate this risk.
 
 Logical Replication

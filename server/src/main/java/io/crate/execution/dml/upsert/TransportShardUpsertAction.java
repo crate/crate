@@ -70,7 +70,6 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.Doc;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -243,7 +242,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     throw Exceptions.toRuntimeException(e);
                 }
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Failed to execute upsert on nodeName={}, shardId={} id={} error={}", clusterService.localNode().getName(), request.shardId(), item.id(), e);
+                    logger.debug(
+                        "Failed to execute upsert on nodeName={}, shardId={} id={} error={}",
+                        clusterService.localNode().getName(),
+                        request.shardId(),
+                        item.id(),
+                        e
+                    );
                 }
 
                 // *mark* the item as failed by setting the sequence number
@@ -269,7 +274,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 break;
             }
         }
-        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
+        return new WritePrimaryResult<>(request, shardResponse, translogLocation, indexShard);
     }
 
     private static boolean noItemsToIndexOnReplica(ShardUpsertRequest req) {
@@ -420,6 +425,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         VersionConflictEngineException lastException = null;
         Object[] insertValues = item.insertValues();
         boolean tryInsertFirst = insertValues != null;
+        boolean hasUpdate = item.updateAssignments() != null && item.updateAssignments().length > 0;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
                 boolean isRetry = retryCount > 0 || request.isRetry();
@@ -436,7 +442,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     }
                     assert updatingIndexer != null : "Dedicated indexer must be created for UPDATE or UPSERT";
                     assert updateToInsert != null;
-                    assert item.updateAssignments() != null && item.updateAssignments().length > 0;
+                    assert hasUpdate;
                     Doc doc = getDocument(
                         indexShard,
                         item.id(),
@@ -466,8 +472,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
                     return null;
                 }
-                Symbol[] updateAssignments = item.updateAssignments();
-                if (updateAssignments != null && updateAssignments.length > 0) {
+                if (hasUpdate) {
                     if (tryInsertFirst) {
                         // insert failed, document already exists, try update
                         tryInsertFirst = false;

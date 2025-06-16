@@ -13,11 +13,6 @@ columns into one result set.
 
     `Join (SQL)`_
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _cross-joins:
 

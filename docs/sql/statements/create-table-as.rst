@@ -8,12 +8,6 @@
 
 Define a new table from existing tables.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 Synopsis
 ========
 

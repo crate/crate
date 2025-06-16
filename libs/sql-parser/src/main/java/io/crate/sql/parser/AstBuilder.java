@@ -2150,6 +2150,11 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Override
+    public Node visitCurrentCatalog(SqlBaseParser.CurrentCatalogContext context) {
+        return new FunctionCall(QualifiedName.of("current_catalog"), List.of());
+    }
+
+    @Override
     public Node visitCurrentSchema(SqlBaseParser.CurrentSchemaContext context) {
         return new FunctionCall(QualifiedName.of("current_schema"), List.of());
     }

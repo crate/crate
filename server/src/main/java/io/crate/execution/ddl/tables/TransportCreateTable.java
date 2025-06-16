@@ -38,26 +38,21 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.collections.Lists;
 import io.crate.exceptions.RelationAlreadyExists;
-import io.crate.execution.ddl.Templates;
 import io.crate.execution.ddl.views.TransportCreateView;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
  * Action to perform creation of tables on the master but avoid race conditions with creating views.
@@ -80,16 +75,12 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
     }
 
     private final MetadataCreateIndexService createIndexService;
-    private final IndicesService indicesService;
     private final IndexScopedSettings indexScopedSettings;
-    private final DocTableInfoFactory docTableInfoFactory;
 
     @Inject
     public TransportCreateTable(TransportService transportService,
                                 ClusterService clusterService,
-                                NodeContext nodeContext,
                                 ThreadPool threadPool,
-                                IndicesService indicesService,
                                 IndexScopedSettings indexScopedSettings,
                                 MetadataCreateIndexService createIndexService) {
         super(
@@ -99,9 +90,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
             CreateTableRequest::new
         );
         this.createIndexService = createIndexService;
-        this.indicesService = indicesService;
         this.indexScopedSettings = indexScopedSettings;
-        this.docTableInfoFactory = new DocTableInfoFactory(nodeContext);
     }
 
     @Override
@@ -117,8 +106,6 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
     @Override
     protected ClusterBlockException checkBlock(CreateTableRequest request, ClusterState state) {
         var relationName = request.getTableName();
-        assert relationName != null : "relationName must not be null";
-
         var isPartitioned = request.partitionedBy().isEmpty() == false;
         if (isPartitioned) {
             return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
@@ -180,38 +167,14 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
 
             @Override
             public ClusterState execute(ClusterState currentState) throws Exception {
-                ClusterState newState;
-                if (isPartitioned) {
-                    newState = Templates.add(
-                        indicesService,
-                        createIndexService,
-                        currentState,
-                        request,
-                        normalizedSettings
-                    );
-                } else {
-                    newState = createIndexService.add(currentState, request, normalizedSettings);
-                }
+                String indexName = relationName.indexNameOrAlias();
+                MetadataCreateIndexService.validateIndexName(indexName, currentState);
 
-
-                List<String> indexUUIDs = newState.metadata().getIndices(
-                    relationName,
-                    List.of(),
-                    false,
-                    imd -> imd.getIndexUUID()
-                );
-
-                // To avoid assigning new oids this needs to use references from the already updated metadata
-                DocTableInfo docTable = docTableInfoFactory.create(relationName, newState.metadata());
-                List<Reference> columns = Lists.map(request.references(), ref -> {
-                    ColumnIdent column = ref.column();
-                    Reference reference = docTable.getReference(column);
-                    return reference != null ? reference : docTable.indexColumn(column);
-                });
-                Metadata.Builder newMetadata = Metadata.builder(newState.metadata())
+                ClusterState newState = ClusterState.builder(currentState).build();
+                Metadata newMetadata = Metadata.builder(newState.metadata())
                     .setTable(
                         relationName,
-                        columns,
+                        request.references(),
                         normalizedSettings,
                         request.routingColumn(),
                         request.tableColumnPolicy(),
@@ -220,10 +183,23 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                         request.primaryKeys(),
                         request.partitionedBy(),
                         State.OPEN,
-                        indexUUIDs,
+                        List.of(),
                         0
-                    );
-                return ClusterState.builder(newState).metadata(newMetadata).build();
+                    ).build();
+                RelationMetadata.Table table = newMetadata.getRelation(relationName);
+                assert table != null : "table must not be null";
+
+                newState = ClusterState.builder(newState).metadata(newMetadata).build();
+
+                if (!isPartitioned) {
+                    String newIndexUUID = UUIDs.randomBase64UUID();
+                    newState = createIndexService.add(newState, table, newIndexUUID, List.of(), Settings.EMPTY);
+                    Metadata.Builder mdBuilder = Metadata.builder(newState.metadata());
+                    newMetadata = mdBuilder.addIndexUUIDs(table, List.of(newIndexUUID)).build();
+                    newState = ClusterState.builder(newState).metadata(newMetadata).build();
+                }
+
+                return newState;
             }
         };
         clusterService.submitStateUpdateTask("create-table", createTableTask);

@@ -4,11 +4,6 @@
 Session settings
 ================
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Session settings only apply to the currently connected client session.
 
 
@@ -172,14 +167,14 @@ consumption for the particular query.
   | *Default:* ``ISO``
   | *Modifiable:* ``yes``
 
-  Shows the display format for date and time values. Only the ``ISO`` style is 
-  supported. Optionally provided pattern conventions for the order of date 
+  Shows the display format for date and time values. Only the ``ISO`` style is
+  supported. Optionally provided pattern conventions for the order of date
   parts (Day, Month, Year) are ignored.
 
   .. NOTE::
 
-     The session setting currently has no effect in CrateDB and exists for 
-     compatibility with ``PostgreSQL``. Trying to set this to a date format 
+     The session setting currently has no effect in CrateDB and exists for
+     compatibility with ``PostgreSQL``. Trying to set this to a date format
      style other than ``ISO`` will raise an exception.
 
 .. _conf-session-max_index_keys:

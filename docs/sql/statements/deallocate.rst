@@ -5,12 +5,7 @@
 ``DEALLOCATE``
 ==============
 
-Deallocate a prepared statement
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
+Deallocate a prepared statement.
 
 Synopsis
 ========

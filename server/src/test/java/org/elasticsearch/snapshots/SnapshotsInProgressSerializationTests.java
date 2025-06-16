@@ -91,7 +91,7 @@ public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireS
             partial,
             randomState(shards),
             indices,
-            templates,
+            List.of(),
             startTime,
             repositoryStateId,
             shards,

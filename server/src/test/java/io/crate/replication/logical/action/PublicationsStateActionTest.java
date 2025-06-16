@@ -450,7 +450,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             try (var in = out.bytes().streamInput()) {
                 in.setVersion(Version.V_5_10_0);
                 PublicationsStateAction.Response response1 = new PublicationsStateAction.Response(in);
-                Metadata metadata1 = metadataUpgradeService.addOrUpgradeRelationMetadata(response1.metadata());
+                Metadata metadata1 = metadataUpgradeService.upgradeMetadata(response1.metadata());
                 org.elasticsearch.cluster.metadata.RelationMetadata.Table table1 = metadata1.getRelation(relationName1);
                 assertThat(table1).isNotNull();
                 org.elasticsearch.cluster.metadata.RelationMetadata.Table table2 = metadata1.getRelation(relationName2);

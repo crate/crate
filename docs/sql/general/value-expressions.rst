@@ -10,11 +10,6 @@ A value :ref:`expression <gloss-expression>` is a combination of one or more
 values, :ref:`operators <gloss-operator>`, and functions that :ref:`evaluate
 <gloss-evaluation>` to a single value.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _sql-literal-value:
 

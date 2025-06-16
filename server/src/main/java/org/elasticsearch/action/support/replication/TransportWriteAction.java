@@ -19,7 +19,6 @@
 
 package org.elasticsearch.action.support.replication;
 
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.concurrent.atomic.AtomicReference;
 
@@ -122,48 +121,28 @@ public abstract class TransportWriteAction<
         public final IndexShard primary;
 
         public WritePrimaryResult(ReplicaRequest request,
-                                  @Nullable Response finalResponse,
+                                  Response finalResponse,
                                   @Nullable Location location,
-                                  @Nullable Exception operationFailure,
                                   IndexShard primary) {
-            super(request, finalResponse, operationFailure);
+            super(request, finalResponse);
             this.location = location;
             this.primary = primary;
-            assert location == null || operationFailure == null
-                    : "expected either failure to be null or translog location to be null, " +
-                    "but found: [" + location + "] translog location and [" + operationFailure + "] failure";
         }
 
         @Override
         public void runPostReplicationActions(ActionListener<Void> listener) {
-            if (finalFailure != null) {
-                listener.onFailure(finalFailure);
-            } else {
-                /*
-                 * We call this after replication because this might wait for a refresh and that can take a while.
-                 * This way we wait for the refresh in parallel on the primary and on the replica.
-                 */
-                new AsyncAfterWriteAction(primary, location, new RespondingWriteResult() {
-                    @Override
-                    public void onSuccess(boolean forcedRefresh) {
-                        // finalResponseIfSuccessful.setForcedRefresh(forcedRefresh);
-                        listener.onResponse(null);
-                    }
-
-                    @Override
-                    public void onFailure(Exception ex) {
-                        listener.onFailure(ex);
-                    }
-                }).run();
-            }
+            /*
+                * We call this after replication because this might wait for a refresh and that can take a while.
+                * This way we wait for the refresh in parallel on the primary and on the replica.
+                */
+            new AsyncAfterWriteAction(primary, location, listener).run();
         }
     }
 
     /**
      * Result of taking the action on the replica.
      */
-    protected static class WriteReplicaResult
-        extends ReplicaResult implements RespondingWriteResult {
+    protected static class WriteReplicaResult extends ReplicaResult {
         private final Location location;
         private final IndexShard replica;
 
@@ -177,31 +156,11 @@ public abstract class TransportWriteAction<
 
         @Override
         public void runPostReplicaActions(ActionListener<Void> listener) {
-            if (finalFailure != null) {
-                listener.onFailure(finalFailure);
+            if (finalFailure == null) {
+                new AsyncAfterWriteAction(replica, location, listener).run();
             } else {
-                new AsyncAfterWriteAction(replica, location, new RespondingWriteResult() {
-                    @Override
-                    public void onSuccess(boolean forcedRefresh) {
-                        listener.onResponse(null);
-                    }
-
-                    @Override
-                    public void onFailure(Exception ex) {
-                        listener.onFailure(ex);
-                    }
-                }).run();
+                listener.onFailure(finalFailure);
             }
-        }
-
-        @Override
-        public void onSuccess(boolean forcedRefresh) {
-
-        }
-
-        @Override
-        public void onFailure(Exception ex) {
-
         }
     }
 
@@ -216,23 +175,6 @@ public abstract class TransportWriteAction<
     }
 
     /**
-     * callback used by {@link AsyncAfterWriteAction} to notify that all post
-     * process actions have been executed
-     */
-    interface RespondingWriteResult {
-        /**
-         * Called on successful processing of all post write actions
-         * @param forcedRefresh <code>true</code> iff this write has caused a refresh
-         */
-        void onSuccess(boolean forcedRefresh);
-
-        /**
-         * Called on failure if a post action failed.
-         */
-        void onFailure(Exception ex);
-    }
-
-    /**
      * This class encapsulates post write actions like async waits for
      * translog syncs or waiting for a refresh to happen making the write operation
      * visible.
@@ -241,17 +183,16 @@ public abstract class TransportWriteAction<
         private final Location location;
         private final boolean sync;
         private final AtomicInteger pendingOps = new AtomicInteger(1);
-        private final AtomicBoolean refreshed = new AtomicBoolean(false);
         private final AtomicReference<Exception> syncFailure = new AtomicReference<>(null);
-        private final RespondingWriteResult respond;
+        private final ActionListener<Void> listener;
         private final IndexShard indexShard;
 
         AsyncAfterWriteAction(final IndexShard indexShard,
                              @Nullable final Translog.Location location,
-                             final RespondingWriteResult respond) {
+                             ActionListener<Void> listener) {
             this.indexShard = indexShard;
-            this.respond = respond;
             this.location = location;
+            this.listener = listener;
             if ((sync = indexShard.getTranslogDurability() == Translog.Durability.REQUEST && location != null)) {
                 pendingOps.incrementAndGet();
             }
@@ -262,10 +203,11 @@ public abstract class TransportWriteAction<
         private void maybeFinish() {
             final int numPending = pendingOps.decrementAndGet();
             if (numPending == 0) {
-                if (syncFailure.get() != null) {
-                    respond.onFailure(syncFailure.get());
+                Exception exception = syncFailure.get();
+                if (exception == null) {
+                    listener.onResponse(null);
                 } else {
-                    respond.onSuccess(refreshed.get());
+                    listener.onFailure(exception);
                 }
             }
             assert numPending >= 0 && numPending <= 2 : "numPending must either 2, 1 or 0 but was " + numPending;

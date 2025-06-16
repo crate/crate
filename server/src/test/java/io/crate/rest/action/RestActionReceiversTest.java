@@ -23,12 +23,14 @@ package io.crate.rest.action;
 
 import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.TestCircuitBreaker;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -152,7 +154,7 @@ public class RestActionReceiversTest extends ESTestCase {
     }
 
     @Test
-    public void test_result_reciever_future_completed_on_cbe() throws Exception {
+    public void test_result_reciever_future_is_not_completed_on_cbe() throws Exception {
         TestCircuitBreaker breaker = new TestCircuitBreaker();
         breaker.startBreaking();
         RamAccounting ramAccounting = new BlockBasedRamAccounting(
@@ -171,9 +173,10 @@ public class RestActionReceiversTest extends ESTestCase {
             false
         );
 
-        // Fails with CBE, resultReceiver's future must be completed, so that sys.jobs entry is cleared.
-        resultReceiver.setNextRow(rows.get(0));
-        assertThat(resultReceiver.completionFuture().isDone()).isTrue();
-        assertThat(resultReceiver.completionFuture().isCompletedExceptionally()).isTrue();
+        // Fails with CBE, resultReceiver's future must not be completed,
+        // it's handled by the consumer/response emitter which also closes iterator/clears sys.jobs entry
+        assertThatThrownBy(() -> resultReceiver.setNextRow(rows.get(0)))
+            .isExactlyInstanceOf(CircuitBreakingException.class);
+        assertThat(resultReceiver.completionFuture().isDone()).isFalse();
     }
 }
