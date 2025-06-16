@@ -243,7 +243,10 @@ public abstract class TransportWriteAction<
     class WriteActionReplicasProxy extends ReplicasProxy {
 
         @Override
-        public void failShardIfNeeded(ShardRouting replica, long primaryTerm, String message, Exception exception,
+        public void failShardIfNeeded(ShardRouting replica,
+                                      long primaryTerm,
+                                      String message,
+                                      Exception exception,
                                       ActionListener<Void> listener) {
             if (SQLExceptions.isShardNotAvailable(exception) == false) {
                 logger.warn(new ParameterizedMessage("[{}] {}", replica.shardId(), message), exception);
