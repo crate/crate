@@ -180,14 +180,14 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
 
         @Override
         public void messageReceived(final StartRecoveryRequest request, final TransportChannel channel) throws Exception {
-            recover(request, new ChannelActionListener<>(channel, Actions.START_RECOVERY, request));
+            recover(request, new ChannelActionListener<>(channel));
         }
     }
 
     class ReestablishRecoveryTransportRequestHandler implements TransportRequestHandler<ReestablishRecoveryRequest> {
         @Override
         public void messageReceived(ReestablishRecoveryRequest request, TransportChannel channel) throws Exception {
-            reestablish(request, new ChannelActionListener<>(channel, Actions.REESTABLISH_RECOVERY, request));
+            reestablish(request, new ChannelActionListener<>(channel));
         }
     }
 
