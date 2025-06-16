@@ -42,7 +42,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_green_no_tables() {
-        var healths = SysClusterHealth.compute(clusterService.state(), 0).join();
+        var healths = SysClusterHealth.compute(clusterService.state(), 0);
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.GREEN,
             "",
@@ -59,7 +59,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table doc.t1 (id int) with (number_of_replicas = 0)");
         executor.startShards("doc.t1");
 
-        var healths = SysClusterHealth.compute(clusterService.state(), 0).join();
+        var healths = SysClusterHealth.compute(clusterService.state(), 0);
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.GREEN,
             "",
@@ -85,7 +85,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         var newState = ClusterState.builder(clusterService.state())
             .blocks(ClusterBlocks.builder().addGlobalBlock(globalBlock))
             .build();
-        var healths = SysClusterHealth.compute(newState, 0).join();
+        var healths = SysClusterHealth.compute(newState, 0);
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.YELLOW,
             "cannot write metadata",
@@ -101,7 +101,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor executor = SQLExecutor.builder(clusterService).build()
             .addTable("create table doc.t1 (id int) with (number_of_replicas = 1)");
 
-        var healths = SysClusterHealth.compute(clusterService.state(), 0).join();
+        var healths = SysClusterHealth.compute(clusterService.state(), 0);
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.YELLOW,
             "One or more tables are missing shards",
@@ -113,7 +113,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
 
         executor.startShards("doc.t1");
 
-        healths = SysClusterHealth.compute(clusterService.state(), 0).join();
+        healths = SysClusterHealth.compute(clusterService.state(), 0);
         expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.YELLOW,
             "One or more tables have underreplicated shards",
@@ -143,7 +143,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         var newState = ClusterState.builder(clusterService.state())
             .blocks(ClusterBlocks.builder().addGlobalBlock(globalBlock))
             .build();
-        var healths = SysClusterHealth.compute(newState, 0).join();
+        var healths = SysClusterHealth.compute(newState, 0);
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.YELLOW,
             "Cannot write metadata",    // cluster level message takes precedence
@@ -172,7 +172,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         var newState = ClusterState.builder(clusterService.state())
                 .blocks(ClusterBlocks.builder().addGlobalBlock(globalBlock))
                 .build();
-        var healths = SysClusterHealth.compute(newState, 0).join();
+        var healths = SysClusterHealth.compute(newState, 0);
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.RED,
             "recovering",   // cluster level message takes precedence
@@ -190,7 +190,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
         executor.startShards("doc.t1");
         executor.failShards("doc.t1");
 
-        var healths = SysClusterHealth.compute(clusterService.state(), 0).join();
+        var healths = SysClusterHealth.compute(clusterService.state(), 0);
         var expected = new SysClusterHealth.ClusterHealth(
             TableHealth.Health.RED,
             "One or more tables are missing shards",
@@ -203,7 +203,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_pending_tasks() throws Exception {
-        var healths = SysClusterHealth.compute(clusterService.state(), 1).join();
+        var healths = SysClusterHealth.compute(clusterService.state(), 1);
         assertThat(healths).containsExactly(new SysClusterHealth.ClusterHealth(
             TableHealth.Health.GREEN,
             "",
@@ -212,7 +212,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
             1
         ));
 
-        healths = SysClusterHealth.compute(clusterService.state(), 0).join();
+        healths = SysClusterHealth.compute(clusterService.state(), 0);
         assertThat(healths).containsExactly(new SysClusterHealth.ClusterHealth(
             TableHealth.Health.GREEN,
             "",
