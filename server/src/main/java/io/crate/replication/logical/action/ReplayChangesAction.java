@@ -129,7 +129,6 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                     new Request(primary.shardId(), replicaOps, request.maxSeqNoOfUpdatesOrDeletes()),
                     new ReplicationResponse(),
                     location,
-                    null,
                     primary)
                 );
             }, listener::onFailure);
