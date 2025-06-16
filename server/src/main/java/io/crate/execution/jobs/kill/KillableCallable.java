@@ -23,10 +23,27 @@ package io.crate.execution.jobs.kill;
 
 import java.util.UUID;
 import java.util.concurrent.Callable;
+import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.concurrent.Killable;
 
-public interface KillableCallable<T> extends Callable<T>, Killable {
+public abstract class KillableCallable<T> implements Callable<T>, Killable {
 
-    UUID jobId();
+    final UUID jobId;
+    protected final AtomicBoolean killed = new AtomicBoolean(false);
+
+    public KillableCallable(UUID jobId) {
+        this.jobId = jobId;
+    }
+
+    public UUID jobId() {
+        return jobId;
+    }
+
+    @Override
+    public void kill(@Nullable Throwable t) {
+        killed.getAndSet(true);
+    }
 }

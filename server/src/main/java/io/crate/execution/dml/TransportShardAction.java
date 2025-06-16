@@ -40,8 +40,8 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.jobs.TasksService;
 import io.crate.execution.jobs.kill.KillAllListener;
@@ -97,14 +97,14 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             return;
         }
         try {
-            KillableWrapper<WritePrimaryResult<Request, ShardResponse>> callable =
-                new KillableWrapper<WritePrimaryResult<Request, ShardResponse>>(request.jobId()) {
-                    @Override
-                    public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
-                        return processRequestItems(primary, request, killed);
-                    }
-                };
-            listener.onResponse(wrapOperationInKillable(request, callable));
+            KillableCallable<WritePrimaryResult<Request, ShardResponse>> callable = new KillableCallable<>(request.jobId()) {
+
+                @Override
+                public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
+                    return processRequestItems(primary, request, killed);
+                }
+            };
+            listener.onResponse(withActiveOperation(request, callable));
         } catch (Exception ex) {
             listener.onFailure(ex);
         }
@@ -112,30 +112,26 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
 
     @Override
     protected WriteReplicaResult shardOperationOnReplica(Request replicaRequest, IndexShard indexShard) {
-        KillableWrapper<WriteReplicaResult> callable =
-            new KillableWrapper<>(replicaRequest.jobId()) {
-                @Override
-                public WriteReplicaResult call() throws Exception {
-                    return processRequestItemsOnReplica(indexShard, replicaRequest);
-                }
-            };
-        return wrapOperationInKillable(replicaRequest, callable);
+        KillableCallable<WriteReplicaResult> callable = new KillableCallable<>(replicaRequest.jobId()) {
+
+            @Override
+            public WriteReplicaResult call() throws Exception {
+                return processRequestItemsOnReplica(indexShard, replicaRequest);
+            }
+        };
+        return withActiveOperation(replicaRequest, callable);
     }
 
-    private <WrapperResponse> WrapperResponse wrapOperationInKillable(Request request, KillableCallable<WrapperResponse> callable) {
+    private <WrapperResponse> WrapperResponse withActiveOperation(Request request, KillableCallable<WrapperResponse> callable) {
         TaskId id = request.getParentTask();
         activeOperations.put(id, callable);
-        WrapperResponse response;
         try {
-            response = callable.call();
-        } catch (RuntimeException | Error err) {
-            throw err;
+            return callable.call();
         } catch (Throwable t) {
-            throw new RuntimeException(t);
+            throw Exceptions.toRuntimeException(t);
         } finally {
             activeOperations.remove(id, callable);
         }
-        return response;
     }
 
     @Override
@@ -166,23 +162,4 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
     protected abstract WritePrimaryResult<Request, ShardResponse> processRequestItems(IndexShard indexShard, Request request, AtomicBoolean killed) throws InterruptedException, IOException;
 
     protected abstract WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, Request replicaRequest) throws IOException;
-
-    abstract static class KillableWrapper<WrapperResponse> implements KillableCallable<WrapperResponse> {
-
-        protected final AtomicBoolean killed = new AtomicBoolean(false);
-        final UUID jobId;
-
-        KillableWrapper(UUID jobId) {
-            this.jobId = jobId;
-        }
-
-        public UUID jobId() {
-            return jobId;
-        }
-
-        @Override
-        public void kill(@Nullable Throwable t) {
-            killed.getAndSet(true);
-        }
-    }
 }
