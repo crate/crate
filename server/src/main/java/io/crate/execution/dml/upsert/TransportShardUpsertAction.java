@@ -295,7 +295,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             // this should mean that there are either no items to index, or that
             // all items on the primary errored out and so should be ignored.
             assert noItemsToIndexOnReplica(request);
-            return new WriteReplicaResult(null, null, indexShard);
+            return new WriteReplicaResult(null, indexShard);
         }
 
         Translog.Location location = null;
@@ -398,7 +398,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             assert result.getSeqNo() == item.seqNo() : "Result of replica index operation must have item seqNo";
             location = locationToSync(location, result.getTranslogLocation());
         }
-        return new WriteReplicaResult(location, null, indexShard);
+        return new WriteReplicaResult(location, indexShard);
     }
 
     /**

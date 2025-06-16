@@ -146,21 +146,14 @@ public abstract class TransportWriteAction<
         private final Location location;
         private final IndexShard replica;
 
-        public WriteReplicaResult(@Nullable Location location,
-                                  @Nullable Exception operationFailure,
-                                  IndexShard replica) {
-            super(operationFailure);
+        public WriteReplicaResult(@Nullable Location location, IndexShard replica) {
             this.location = location;
             this.replica = replica;
         }
 
         @Override
         public void runPostReplicaActions(ActionListener<Void> listener) {
-            if (finalFailure == null) {
-                new AsyncAfterWriteAction(replica, location, listener).run();
-            } else {
-                listener.onFailure(finalFailure);
-            }
+            new AsyncAfterWriteAction(replica, location, listener).run();
         }
     }
 

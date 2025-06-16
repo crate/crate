@@ -35,7 +35,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.repositories.RepositoriesService;
 
-import io.crate.session.Sessions;
 import io.crate.execution.engine.collect.files.SummitsIterable;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.expression.reference.StaticTableDefinition;
@@ -54,6 +53,7 @@ import io.crate.role.Securable;
 import io.crate.role.metadata.SysPrivilegesTableInfo;
 import io.crate.role.metadata.SysRolesTableInfo;
 import io.crate.role.metadata.SysUsersTableInfo;
+import io.crate.session.Sessions;
 
 public class SysTableDefinitions {
 
@@ -204,7 +204,7 @@ public class SysTableDefinitions {
             Map.entry(
                 SysHealth.IDENT,
                 new StaticTableDefinition<>(
-                    () -> TableHealth.compute(clusterService.state()),
+                    () -> completedFuture(TableHealth.compute(clusterService.state())),
                     SysHealth.INSTANCE.expressions(),
                     (user, tableHealth) -> roles.hasAnyPrivilege(user, Securable.TABLE, tableHealth.fqn()),
                     true
@@ -213,7 +213,7 @@ public class SysTableDefinitions {
             Map.entry(
                 SysClusterHealth.IDENT,
                 new StaticTableDefinition<>(
-                    () -> SysClusterHealth.compute(clusterService.state(), clusterService.getMasterService().numberOfPendingTasks()),
+                    () -> completedFuture(SysClusterHealth.compute(clusterService.state(), clusterService.getMasterService().numberOfPendingTasks())),
                     SysClusterHealth.INSTANCE.expressions(),
                     false
                 )
