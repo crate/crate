@@ -43,6 +43,7 @@ import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
 import org.elasticsearch.index.engine.Engine.Operation.Origin;
+import org.elasticsearch.index.engine.Engine.Result.Type;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.Uid;
@@ -373,7 +374,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
 
             ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item);
-
             Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
             boolean isRetry = false;
             Engine.Index index = new Engine.Index(
@@ -391,9 +391,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 SequenceNumbers.UNASSIGNED_PRIMARY_TERM
             );
             IndexResult result = indexShard.index(index);
-            assert result.getResultType() != Engine.Result.Type.MAPPING_UPDATE_REQUIRED
-                : "If parsedDoc.newColumns is empty there must be no mapping update requirement";
-            location = result.getTranslogLocation();
+            if (result.getResultType() != Type.SUCCESS) {
+                assert false : "doc-level index failure must not happen on replica";
+                throw Exceptions.toRuntimeException(result.getFailure());
+            }
+            assert result.getSeqNo() == item.seqNo() : "Result of replica index operation must have item seqNo";
+            location = locationToSync(location, result.getTranslogLocation());
         }
         return new WriteReplicaResult(location, null, indexShard);
     }
