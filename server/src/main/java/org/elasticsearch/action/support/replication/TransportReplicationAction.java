@@ -450,22 +450,12 @@ public abstract class TransportReplicationAction<
     }
 
     public static class ReplicaResult {
-        final Exception finalFailure;
-
-        public ReplicaResult(@Nullable Exception finalFailure) {
-            this.finalFailure = finalFailure;
-        }
 
         public ReplicaResult() {
-            this(null);
         }
 
         public void runPostReplicaActions(ActionListener<Void> listener) {
-            if (finalFailure != null) {
-                listener.onFailure(finalFailure);
-            } else {
-                listener.onResponse(null);
-            }
+            listener.onResponse(null);
         }
     }
 
