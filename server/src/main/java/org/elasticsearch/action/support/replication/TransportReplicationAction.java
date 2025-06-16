@@ -27,7 +27,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
@@ -386,11 +385,19 @@ public abstract class TransportReplicationAction<
                         onCompletionListener.onResponse(response);
                     }, e -> handleException(primaryShardReference, e));
 
-                    new ReplicationOperation<>(primaryRequest.getRequest(), primaryShardReference,
+                    var replicationOperation = new ReplicationOperation<>(
+                        primaryRequest.getRequest(),
+                        primaryShardReference,
                         responseListener.map(result -> result.finalResponseIfSuccessful),
-                        newReplicasProxy(), logger, threadPool, actionName, primaryRequest.getPrimaryTerm(), initialRetryBackoffBound,
-                        retryTimeout)
-                        .execute();
+                        newReplicasProxy(),
+                        logger,
+                        threadPool,
+                        actionName,
+                        primaryRequest.getPrimaryTerm(),
+                        initialRetryBackoffBound,
+                        retryTimeout
+                    );
+                    replicationOperation.execute();
                 }
             } catch (Exception e) {
                 Releasables.closeIgnoringException(primaryShardReference); // release shard operation lock before responding to caller
@@ -414,23 +421,14 @@ public abstract class TransportReplicationAction<
             implements ReplicationOperation.PrimaryResult<ReplicaRequest> {
         protected final ReplicaRequest replicaRequest;
         public final Response finalResponseIfSuccessful;
-        public final Exception finalFailure;
 
         /**
          * Result of executing a primary operation
          * expects <code>finalResponseIfSuccessful</code> or <code>finalFailure</code> to be not-null
          */
-        public PrimaryResult(ReplicaRequest replicaRequest, Response finalResponseIfSuccessful, Exception finalFailure) {
-            assert finalFailure != null ^ finalResponseIfSuccessful != null
-                    : "either a response or a failure has to be not null, " +
-                    "found [" + finalFailure + "] failure and [" + finalResponseIfSuccessful + "] response";
+        public PrimaryResult(ReplicaRequest replicaRequest, Response finalResponseIfSuccessful) {
             this.replicaRequest = replicaRequest;
             this.finalResponseIfSuccessful = finalResponseIfSuccessful;
-            this.finalFailure = finalFailure;
-        }
-
-        public PrimaryResult(ReplicaRequest replicaRequest, Response replicationResponse) {
-            this(replicaRequest, replicationResponse, null);
         }
 
         @Override
@@ -447,11 +445,7 @@ public abstract class TransportReplicationAction<
 
         @Override
         public void runPostReplicationActions(ActionListener<Void> listener) {
-            if (finalFailure != null) {
-                listener.onFailure(finalFailure);
-            } else {
-                listener.onResponse(null);
-            }
+            listener.onResponse(null);
         }
     }
 
@@ -877,13 +871,6 @@ public abstract class TransportReplicationAction<
 
         @Override
         public void perform(Request request, ActionListener<PrimaryResult<ReplicaRequest, Response>> listener) {
-            if (Assertions.ENABLED) {
-                listener = listener.map(result -> {
-                    assert result.replicaRequest() == null || result.finalFailure == null : "a replica request [" + result.replicaRequest()
-                        + "] with a primary failure [" + result.finalFailure + "]";
-                    return result;
-                });
-            }
             assert indexShard.getActiveOperationsCount() != 0 : "must perform shard operation under a permit";
             shardOperationOnPrimary(request, indexShard, listener);
         }
