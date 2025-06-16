@@ -21,9 +21,6 @@
 
 package io.crate.metadata.sys;
 
-import static java.util.concurrent.CompletableFuture.completedFuture;
-
-import java.util.concurrent.CompletableFuture;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.ClusterState;
@@ -45,13 +42,11 @@ class TableHealth {
         }
     }
 
-    public static CompletableFuture<Iterable<TableHealth>> compute(ClusterState clusterState) {
+    public static Iterable<TableHealth> compute(ClusterState clusterState) {
         var clusterHealth = new ClusterStateHealth(clusterState);
-        return completedFuture(
-            StreamSupport.stream(clusterHealth.spliterator(), false)
-                .filter(i -> IndexName.isDangling(i.getIndex()) == false)
-                .map(TableHealth::map)::iterator
-        );
+        return StreamSupport.stream(clusterHealth.spliterator(), false)
+            .filter(i -> IndexName.isDangling(i.getIndex()) == false)
+            .map(TableHealth::map)::iterator;
     }
 
     private static TableHealth map(ClusterIndexHealth indexHealth) {
