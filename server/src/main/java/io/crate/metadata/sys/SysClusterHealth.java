@@ -27,7 +27,6 @@ import static io.crate.types.DataTypes.STRING;
 
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
@@ -52,7 +51,7 @@ public class SysClusterHealth {
         .withRouting((state, ignored, ignored2) -> Routing.forMasterNode(IDENT, state))
         .build();
 
-    public static CompletableFuture<Iterable<ClusterHealth>> compute(ClusterState clusterState, long numPendingTasks) {
+    public static Iterable<ClusterHealth> compute(ClusterState clusterState, long numPendingTasks) {
         // Following implementation of {@link org.elasticsearch.cluster.health.ClusterStateHealth}
         Set<ClusterBlock> blocksRed = clusterState.blocks().global(RestStatus.SERVICE_UNAVAILABLE);
         if (!blocksRed.isEmpty()) {
@@ -64,34 +63,31 @@ public class SysClusterHealth {
                 -1,
                 numPendingTasks
             );
-            return CompletableFuture.completedFuture(List.of(clusterHealth));
+            return List.of(clusterHealth);
         }
         Set<ClusterBlock> blocksYellow = clusterState.blocks().global(ClusterBlockLevel.METADATA_WRITE);
         final TableHealth.Health clusterHealth = !blocksYellow.isEmpty() ? TableHealth.Health.YELLOW : TableHealth.Health.GREEN;
         final String description = !blocksYellow.isEmpty() ? blocksYellow.iterator().next().description() : "";
-        return TableHealth.compute(clusterState)
-            .thenApply((it) -> {
-                long missingShards = 0;
-                long underreplicatedShards = 0;
-                TableHealth.Health health = clusterHealth;
-                String finalDescription = description;
-                for (var tableHealth : it) {
-                    if (tableHealth.health().severity() > health.severity()) {
-                        health = tableHealth.health();
-                        // shard level health is only set to RED if there are missing primary shards that were
-                        // allocated before see {@link ClusterShardHealth#getInactivePrimaryHealth()}.
-                        // Otherwise, the table health is set to YELLOW.
-                        if (health == TableHealth.Health.RED || tableHealth.getMissingShards() > 0) {
-                            finalDescription = "One or more tables are missing shards";
-                        } else if (health == TableHealth.Health.YELLOW) {
-                            finalDescription = "One or more tables have underreplicated shards";
-                        }
-                    }
-                    missingShards += tableHealth.getMissingShards();
-                    underreplicatedShards += tableHealth.getUnderreplicatedShards();
+        long missingShards = 0;
+        long underreplicatedShards = 0;
+        TableHealth.Health health = clusterHealth;
+        String finalDescription = description;
+        for (var tableHealth : TableHealth.compute(clusterState)) {
+            if (tableHealth.health().severity() > health.severity()) {
+                health = tableHealth.health();
+                // shard level health is only set to RED if there are missing primary shards that were
+                // allocated before see {@link ClusterShardHealth#getInactivePrimaryHealth()}.
+                // Otherwise, the table health is set to YELLOW.
+                if (health == TableHealth.Health.RED || tableHealth.getMissingShards() > 0) {
+                    finalDescription = "One or more tables are missing shards";
+                } else if (health == TableHealth.Health.YELLOW) {
+                    finalDescription = "One or more tables have underreplicated shards";
                 }
-                return List.of(new ClusterHealth(health, finalDescription, missingShards, underreplicatedShards, numPendingTasks));
-            });
+            }
+            missingShards += tableHealth.getMissingShards();
+            underreplicatedShards += tableHealth.getUnderreplicatedShards();
+        }
+        return List.of(new ClusterHealth(health, finalDescription, missingShards, underreplicatedShards, numPendingTasks));
     }
 
     public record ClusterHealth(TableHealth.Health health,

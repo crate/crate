@@ -147,7 +147,7 @@ public class RetentionLeaseSyncAction extends
         Objects.requireNonNull(replica);
         replica.updateRetentionLeasesOnReplica(request.getRetentionLeases());
         replica.persistRetentionLeases();
-        return new WriteReplicaResult(null, null, replica);
+        return new WriteReplicaResult(null, replica);
     }
 
     @Override
