@@ -107,6 +107,8 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             listener.onResponse(withActiveOperation(request, callable));
         } catch (Exception ex) {
             listener.onFailure(ex);
+        } catch (Throwable t) {
+            t.printStackTrace();
         }
     }
 

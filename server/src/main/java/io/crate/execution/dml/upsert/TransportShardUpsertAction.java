@@ -346,13 +346,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
         for (ShardUpsertRequest.Item item : request.items()) {
             if (item.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
-                if (traceEnabled) {
-                    logger.trace(
-                        "[{} (R)] Document with id={}, marked as skip_on_replica",
-                        indexShard.shardId(),
-                        item.id()
-                    );
-                }
+                // if (traceEnabled) {
+                //     logger.trace(
+                //         "[{} (R)] Document with id={}, marked as skip_on_replica",
+                //         indexShard.shardId(),
+                //         item.id()
+                //     );
+                // }
                 continue;
             }
 
@@ -478,10 +478,10 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         tryInsertFirst = false;
                         continue;
                     } else if (item.retryOnConflict()) {
-                        if (logger.isTraceEnabled()) {
-                            logger.trace("[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
-                                indexShard.shardId(), item.id(), item.version(), retryCount);
-                        }
+                        // if (logger.isTraceEnabled()) {
+                        //     logger.trace("[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
+                        //         indexShard.shardId(), item.id(), item.version(), retryCount);
+                        // }
                         continue;
                     }
                 }

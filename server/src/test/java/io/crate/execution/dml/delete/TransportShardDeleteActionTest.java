@@ -108,7 +108,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardDeleteRequest, ShardResponse> result =
             transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
+        assertThat(result.response.failure()).isExactlyInstanceOf(InterruptedException.class);
         assertThat(request.skipFromLocation()).isEqualTo(1);
     }
 
@@ -136,8 +136,8 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardDeleteRequest, ShardResponse> result
             = transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        assertThat(result.finalResponseIfSuccessful.failures()).hasSize(1);
-        assertThat(result.finalResponseIfSuccessful.failures().getFirst().error().getMessage()).contains("deleteResult\" is null");
+        assertThat(result.response.failures()).hasSize(1);
+        assertThat(result.response.failures().getFirst().error().getMessage()).contains("deleteResult\" is null");
     }
 
     @Test

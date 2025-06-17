@@ -388,7 +388,7 @@ public abstract class TransportReplicationAction<
                     var replicationOperation = new ReplicationOperation<>(
                         primaryRequest.getRequest(),
                         primaryShardReference,
-                        responseListener.map(result -> result.finalResponseIfSuccessful),
+                        responseListener.map(result -> result.response),
                         newReplicasProxy(),
                         logger,
                         threadPool,
@@ -419,16 +419,17 @@ public abstract class TransportReplicationAction<
     public static class PrimaryResult<ReplicaRequest extends ReplicationRequest<ReplicaRequest>,
             Response extends ReplicationResponse>
             implements ReplicationOperation.PrimaryResult<ReplicaRequest> {
+
         protected final ReplicaRequest replicaRequest;
-        public final Response finalResponseIfSuccessful;
+        public final Response response;
 
         /**
          * Result of executing a primary operation
          * expects <code>finalResponseIfSuccessful</code> or <code>finalFailure</code> to be not-null
          */
-        public PrimaryResult(ReplicaRequest replicaRequest, Response finalResponseIfSuccessful) {
+        public PrimaryResult(ReplicaRequest replicaRequest, Response response) {
             this.replicaRequest = replicaRequest;
-            this.finalResponseIfSuccessful = finalResponseIfSuccessful;
+            this.response = response;
         }
 
         @Override
@@ -438,9 +439,7 @@ public abstract class TransportReplicationAction<
 
         @Override
         public void setShardInfo(ReplicationResponse.ShardInfo shardInfo) {
-            if (finalResponseIfSuccessful != null) {
-                finalResponseIfSuccessful.setShardInfo(shardInfo);
-            }
+            response.setShardInfo(shardInfo);
         }
 
         @Override

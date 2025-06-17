@@ -317,11 +317,18 @@ public class ReplicationOperation<
         if (waitForActiveShards.enoughShardsActive(shardRoutingTable)) {
             return null;
         } else {
-            final String resolvedShards = waitForActiveShards == ActiveShardCount.ALL ? Integer.toString(shardRoutingTable.shards().size())
-                                              : waitForActiveShards.toString();
-            logger.trace("[{}] not enough active copies to meet shard count of [{}] (have {}, needed {}), scheduling a retry. op [{}], " +
-                         "request [{}]", shardId, waitForActiveShards, shardRoutingTable.activeShards().size(),
-                         resolvedShards, opType, request);
+            final String resolvedShards = waitForActiveShards == ActiveShardCount.ALL
+                ? Integer.toString(shardRoutingTable.shards().size())
+                : waitForActiveShards.toString();
+            logger.trace(
+                "[{}] not enough active copies to meet shard count of [{}] (have {}, needed {}), scheduling a retry. op [{}],  request [{}]",
+                shardId,
+                waitForActiveShards,
+                shardRoutingTable.activeShards().size(),
+                resolvedShards,
+                opType,
+                request
+            );
             return "Not enough active copies to meet shard count of [" + waitForActiveShards + "] (have " +
                        shardRoutingTable.activeShards().size() + ", needed " + resolvedShards + ").";
         }
@@ -544,7 +551,7 @@ public class ReplicationOperation<
 
         /**
          * Run actions to be triggered post replication
-         * @param listener calllback that is invoked after post replication actions have completed
+         * @param listener callback that is invoked after post replication actions have completed
          * */
         void runPostReplicationActions(ActionListener<Void> listener);
     }

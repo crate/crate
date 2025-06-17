@@ -239,7 +239,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(VersionConflictEngineException.class);
+        assertThat(result.response.failure()).isExactlyInstanceOf(VersionConflictEngineException.class);
     }
 
     @Test
@@ -269,7 +269,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        ShardResponse response = result.finalResponseIfSuccessful;
+        ShardResponse response = result.response;
         assertThat(response.failures()).satisfiesExactly(
             f -> assertThat(f.error().getMessage()).isEqualTo(
                 "[1]: version conflict, document with id: 1 already exists in 'characters'"));
@@ -302,7 +302,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
+        assertThat(result.response.failure()).isExactlyInstanceOf(InterruptedException.class);
     }
 
     @Test
@@ -405,7 +405,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
+        assertThat(result.response.failure()).isExactlyInstanceOf(InterruptedException.class);
         assertThat(result.replicaRequest().items()).satisfiesExactly(
             item -> assertThat(item.seqNo()).isEqualTo(SequenceNumbers.SKIP_ON_REPLICA),
             item -> assertThat(item.seqNo()).isEqualTo(SequenceNumbers.SKIP_ON_REPLICA)

@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -45,6 +46,9 @@ import java.util.Map;
 import java.util.Properties;
 import java.util.Random;
 import java.util.UUID;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -52,6 +56,7 @@ import org.assertj.core.data.Offset;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.joda.time.Period;
 import org.junit.Rule;
 import org.junit.Test;
@@ -63,7 +68,9 @@ import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists;
+import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.dml.BulkResponse;
 import io.crate.sql.SqlFormatter;
 import io.crate.testing.Asserts;
 import io.crate.testing.DataTypeTesting;
@@ -2307,5 +2314,106 @@ public class TransportSQLActionTest extends IntegTestCase {
         assertThat(response).hasRows("192.168.0.1| 192.168.0.1");
         execute("SELECT _id, a FROM tbl_pk WHERE a = '::ffff:192.168.0.1'");
         assertThat(response).hasRows("192.168.0.1| 192.168.0.1");
+    }
+
+    @Test
+    @TestLogging("io.crate.execution.dml.upsert.TransportShardUpsertAction:TRACE")
+    public void test_foo() throws Exception {
+        execute(
+            """
+            create table tbl (
+                id integer primary key,
+                value text
+            ) clustered into 1 shards with (
+                number_of_replicas = 1,
+                refresh_interval = '1s'
+            )
+            """
+        );
+
+        int numRecords = 100000;
+        int updateSize = 10000;
+        int numThreads = 25;
+
+        Object[][] bulkArgs = new Object[numRecords][];
+        for (int i = 0; i < numRecords; i++) {
+            bulkArgs[i] = new Object[] { i, randomAlphaOfLength(10) };
+        }
+        String upsert =
+            """
+            INSERT INTO tbl (id, value)
+            VALUES (?, ?)
+            ON CONFLICT (id) DO UPDATE
+            SET value = EXCLUDED.value
+            """;
+        execute(upsert, bulkArgs, TimeValue.timeValueSeconds(60));
+        execute("refresh table tbl");
+
+        String driftStmt = """
+            SELECT
+                primary,
+                seq_no_stats['max_seq_no'],
+                seq_no_stats['global_checkpoint'],
+                seq_no_stats['local_checkpoint'],
+                seq_no_stats['max_seq_no'] - seq_no_stats['global_checkpoint'] drift
+            FROM sys.shards
+            ORDER BY 1
+            LIMIT 100
+            """;
+        while (true) {
+            var resp = execute(driftStmt);
+            long driftReplica = (long) resp.rows()[1][4];
+            if (driftReplica == 0) {
+                break;
+            }
+        }
+        AtomicBoolean driftDetected = new AtomicBoolean();
+        Thread t = new Thread(() -> {
+            try {
+                while (!driftDetected.get()) {
+                    var resp = execute(driftStmt);
+                    if (resp.rowCount() < 2) {
+                        return;
+                    }
+                    long driftPrimary = (long) resp.rows()[0][4];
+                    long driftReplica = (long) resp.rows()[1][4];
+                    int driftLimit = updateSize * numThreads;
+                    if (driftPrimary > driftLimit) {
+                        System.out.println("Drift detected: " + Arrays.toString(resp.rows()[0]));
+                        driftDetected.set(true);
+                    }
+                }
+            } catch (Throwable err) {
+                err.printStackTrace();
+                driftDetected.set(true);
+            }
+        }, "drift-detection");
+        t.start();
+        Object[][] updateArgs = new Object[updateSize][];
+        for (int j = 0; j < updateSize; j++) {
+            updateArgs[j] = new Object[] { randomInt(numRecords), randomAlphaOfLength(10) };
+        }
+        try (var executor = Executors.newFixedThreadPool(numThreads)) {
+            while (!driftDetected.get()) {
+                ArrayList<Future<BulkResponse>> futures = new ArrayList<>();
+                for (int i = 0; i < numThreads; i++) {
+                    Future<BulkResponse> future = executor.submit(() -> {
+                        return execute(upsert, updateArgs, TimeValue.timeValueSeconds(60));
+                    });
+                    futures.add(future);
+                }
+                for (var future : futures) {
+                    BulkResponse bulkResponse = future.get();
+                    for (int idx = 0; idx < bulkResponse.size(); idx++) {
+                        Throwable failure = bulkResponse.failure(idx);
+                        if (failure != null) {
+                            System.out.println("Failure=" + failure);
+                        }
+                        assertThat(failure).isNull();
+                    }
+                }
+            }
+        }
+        t.join();
     }
 }

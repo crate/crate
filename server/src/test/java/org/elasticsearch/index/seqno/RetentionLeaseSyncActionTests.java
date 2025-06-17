@@ -119,7 +119,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         // we should forward the request containing the current retention leases to the replica
         assertThat(result.replicaRequest()).isSameAs(request);
         // we should start with an empty replication response
-        assertThat(result.finalResponseIfSuccessful.getShardInfo()).isNull();
+        assertThat(result.response.getShardInfo()).isNull();
     }
 
     @Test
