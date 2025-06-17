@@ -35,9 +35,10 @@ import java.util.stream.Collectors;
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.snapshots.SnapshotsService;
@@ -118,7 +119,7 @@ public final class RepositoryData {
             Collections.unmodifiableMap(snapshotIds),
             Collections.unmodifiableMap(snapshotStates),
             Collections.unmodifiableMap(snapshotVersions),
-            Collections.unmodifiableMap(indexSnapshots.keySet().stream().collect(Collectors.toMap(IndexId::getId, Function.identity()))),
+            Collections.unmodifiableMap(indexSnapshots.keySet().stream().collect(Collectors.toMap(IndexId::getName, Function.identity()))),
             Collections.unmodifiableMap(indexSnapshots),
             shardGenerations,
             indexMetaDataGenerations
@@ -432,8 +433,8 @@ public final class RepositoryData {
      * Resolve the index name to the index id specific to the repository,
      * throwing an exception if the index could not be resolved.
      */
-    public IndexId resolveIndexId(final String indexUUID) {
-        return Objects.requireNonNull(indices.get(indexUUID), () -> "Tried to resolve unknown index [" + indexUUID + "]");
+    public IndexId resolveIndexId(final String index) {
+        return Objects.requireNonNull(indices.get(index), () -> "Tried to resolve unknown index [" + index + "]");
     }
 
     /**
@@ -443,15 +444,15 @@ public final class RepositoryData {
      * @param indicesToResolve names of indices to resolve
      * @param inFlightIds      name to index mapping for currently in-flight snapshots not yet in the repository data to fall back to
      */
-    public List<IndexId> resolveNewIndices(List<String> indicesToResolve, Map<String, IndexId> inFlightIds) {
+    public List<IndexId> resolveNewIndices(List<Index> indicesToResolve, Map<String, IndexId> inFlightIds) {
         List<IndexId> snapshotIndices = new ArrayList<>();
-        for (String indexUUID : indicesToResolve) {
-            IndexId indexId = indices.get(indexUUID);
+        for (Index index : indicesToResolve) {
+            IndexId indexId = indices.get(index.getName());
             if (indexId == null) {
-                indexId = inFlightIds.get(indexUUID);
+                indexId = inFlightIds.get(index.getName());
             }
             if (indexId == null) {
-                indexId = new IndexId(IndexMetadata.INDEX_NAME_NA_VALUE, indexUUID);
+                indexId = new IndexId(index.getName(), index.getUUID());
             }
             snapshotIndices.add(indexId);
         }

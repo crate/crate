@@ -19,12 +19,12 @@
 
 package org.elasticsearch.snapshots;
 
+import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_PATTERN;
 import static io.crate.analyze.SnapshotSettings.SCHEMA_RENAME_REPLACEMENT;
 import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_PATTERN;
 import static io.crate.analyze.SnapshotSettings.TABLE_RENAME_REPLACEMENT;
 import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
-import static org.elasticsearch.snapshots.SnapshotUtils.filterIndices;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -37,6 +37,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.function.BiConsumer;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
@@ -59,7 +60,6 @@ import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.cluster.RestoreInProgress.ShardRestoreStatus;
 import org.elasticsearch.cluster.SnapshotDeletionsInProgress;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
@@ -87,6 +87,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.ShardLimitValidator;
+import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.repositories.RepositoryData;
@@ -101,6 +102,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.PartitionAlreadyExistsException;
 import io.crate.exceptions.RelationAlreadyExists;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -140,7 +142,7 @@ public class RestoreService implements ClusterStateApplier {
 
     private final MetadataCreateIndexService createIndexService;
 
-    private final MetadataUpgradeService metadataIndexUpgradeService;
+    private final MetadataUpgradeService metadataUpgradeService;
 
     private final ClusterSettings clusterSettings;
 
@@ -152,14 +154,14 @@ public class RestoreService implements ClusterStateApplier {
                           RepositoriesService repositoriesService,
                           AllocationService allocationService,
                           MetadataCreateIndexService createIndexService,
-                          MetadataUpgradeService metadataIndexUpgradeService,
+                          MetadataUpgradeService metadataUpgradeService,
                           ClusterSettings clusterSettings,
                           ShardLimitValidator shardLimitValidator) {
         this.clusterService = clusterService;
         this.repositoriesService = repositoriesService;
         this.allocationService = allocationService;
         this.createIndexService = createIndexService;
-        this.metadataIndexUpgradeService = metadataIndexUpgradeService;
+        this.metadataUpgradeService = metadataUpgradeService;
         if (DiscoveryNode.isMasterEligibleNode(clusterService.getSettings())) {
             clusterService.addStateApplier(this);
         }
@@ -204,46 +206,31 @@ public class RestoreService implements ClusterStateApplier {
                 // Make sure that we can restore from this snapshot
                 validateSnapshotRestorable(repositoryName, snapshotInfo);
 
-                // Resolve the indices from the snapshot that need to be restored
-
-                List<String> resolvedIndices = new ArrayList<>();
-                List<String> resolvedTemplates = new ArrayList<>();
-
-                resolveIndices(
-                    request,
-                    tablesToRestore,
-                    snapshotInfo.indices(),
-                    resolvedIndices,
-                    resolvedTemplates
-                );
-
-                final List<RelationName> standaloneRelations = resolvedTemplates.stream()
-                    .map(t -> PartitionName.fromIndexOrTemplate(t).relationName())
-                    .toList();
-
-                // Empty list is resolved to "all indices" and we don't want break this behavior since RestoreService is used
-                // in other components (index recovery, logical replication).
-                // However, when restoring an empty partitioned table, there are no resolved indices
-                // but this should not be treated as "select all".
-                // In this case we force ignoring indices.
-                // See https://github.com/crate/crate/issues/14144
-                boolean includeIndices = request.includeTables() && !(resolvedIndices.isEmpty() && !tablesToRestore.isEmpty());
-
-                final List<String> indicesInSnapshot = includeIndices
-                    ? filterIndices(snapshotInfo.indices(), resolvedIndices, request.indicesOptions())
-                    : List.of();
 
                 return repository.getSnapshotGlobalMetadata(snapshotId).thenCompose(globalMetadata -> {
-                    globalMetadata = metadataIndexUpgradeService.upgradeMetadata(globalMetadata);
+                    globalMetadata = metadataUpgradeService.upgradeMetadata(globalMetadata);
                     var metadataBuilder = Metadata.builder(globalMetadata);
-                    var indexIdsInSnapshot = Lists.map(indicesInSnapshot, repositoryData::resolveIndexId);
-                    List<RelationName> relationNames;
-                    if (standaloneRelations.isEmpty() && tablesToRestore.isEmpty() && request.includeTables) {
-                        relationNames = globalMetadata.relations(RelationMetadata.Table.class).stream().map(RelationMetadata::name).toList();
-                    } else {
-                        relationNames = standaloneRelations;
-                    }
 
+                    // Resolve the indices from the snapshot that need to be restored
+                    Map<RelationName, RestoreRelation> restoreRelations = resolveRelations(
+                        tablesToRestore,
+                        request,
+                        globalMetadata,
+                        snapshotInfo
+                    );
+
+                    ArrayList<IndexId> indexIdsInSnapshot = new ArrayList<>();
+                    for (Map.Entry<RelationName, RestoreRelation> entry : restoreRelations.entrySet()) {
+                        RelationName relationName = entry.getKey();
+                        RestoreRelation restoreRelation = entry.getValue();
+                        restoreRelation.restoreIndices().forEach(
+                            restoreIndex -> {
+                                String sourceIndexName = restoreIndex.partitionValues().isEmpty()
+                                    ? relationName.indexNameOrAlias()
+                                    : new PartitionName(relationName, restoreIndex.partitionValues()).asIndexName();
+                                indexIdsInSnapshot.add(repositoryData.resolveIndexId(sourceIndexName));
+                            });
+                    }
 
                     var futureSnapshotIndexMetadata = repository.getSnapshotIndexMetadata(repositoryData, snapshotId, indexIdsInSnapshot);
                     return futureSnapshotIndexMetadata.thenAccept(snapshotIndexMetadata -> {
@@ -251,9 +238,6 @@ public class RestoreService implements ClusterStateApplier {
                             metadataBuilder.put(indexMetadata, false);
                         }
                         final Metadata metadata = metadataBuilder.build();
-                        // Apply renaming on index names, returning a map of names where
-                        // the key is the renamed index and the value is the original name
-                        final Map<String, String> indices = applyRenameToIndices(request, indicesInSnapshot);
 
                         // Now we can start the actual restore process by adding shards to be recovered in the cluster state
                         // and updating cluster metadata (global and index) as needed
@@ -264,8 +248,7 @@ public class RestoreService implements ClusterStateApplier {
                             snapshot,
                             listener,
                             request,
-                            indices,
-                            relationNames,
+                            restoreRelations,
                             metadata
                         );
                         clusterService.submitStateUpdateTask("restore_snapshot[" + snapshotName + ']', updateTask);
@@ -279,62 +262,85 @@ public class RestoreService implements ClusterStateApplier {
     }
 
     /**
-    * Resolves indices and templates from the request.
-    * @param resolvedIndices is used to accumulate all resolved indices (or empty list to indicate all indices).
-    * @param resolvedTemplates is used to accumulate all resolved templates (or "_all" to indicate all templates).
-    */
+     * Resolves indices and templates from the request.
+     * @param resolvedIndices is used to accumulate all resolved indices (or empty list to indicate all indices).
+     */
     @VisibleForTesting
-    static void resolveIndices(RestoreRequest request,
-                               List<TableOrPartition> tablesToRestore,
+    static void resolveIndices(List<TableOrPartition> tablesToRestore,
                                List<String> availableIndices,
-                               List<String> resolvedIndices,
-                               List<String> resolvedTemplates) {
+                               Metadata snapshotMetadata,
+                               List<String> resolvedIndices) {
         for (TableOrPartition tableOrPartition : tablesToRestore) {
-            String partitionTemplate = PartitionName.templateName(
-                tableOrPartition.table().schema(),
-                tableOrPartition.table().name()
-            );
-
-            if (tableOrPartition.partitionIdent() != null) {
-                resolvedIndices.add(
-                    IndexName.encode(tableOrPartition.table().schema(), tableOrPartition.table().name(), tableOrPartition.partitionIdent())
-                );
-                resolvedTemplates.add(partitionTemplate);
-            } else if (request.indicesOptions().ignoreUnavailable()) {
-                // If ignoreUnavailable is true, it's cheaper to simply
-                // return indexName and the partitioned wildcard instead
-                // checking if it's a partitioned table or not
-                resolvedIndices.add(tableOrPartition.table().indexNameOrAlias());
-                // For the case its a partitioned table we restore all partitions and the templates
-                resolvedIndices.add(partitionTemplate + "*");
-                resolvedTemplates.add(partitionTemplate);
-            } else {
-                String name = tableOrPartition.table().indexNameOrAlias();
-                boolean found = false;
-                for (String index : availableIndices) {
-                    if (name.equals(index)) {
-                        resolvedIndices.add(index);
-                        found = true;
-                        break;
-                    } else if (isIndexPartitionOfTable(index, tableOrPartition.table())) {
-                        // add a partitions wildcard
-                        // to match all partitions if a partitioned table was meant
-                        resolvedIndices.add(partitionTemplate + "*");
-                        resolvedTemplates.add(partitionTemplate);
-                        found = true;
-                        break;
-                    }
-                }
-                if (found == false) {
-                    resolvedTemplates.add(partitionTemplate);
-                }
-            }
+            List<String> partitionValues = tableOrPartition.partitionIdent() == null
+                ? List.of()
+                : PartitionName.decodeIdent(tableOrPartition.partitionIdent());
+            List<String> indexUUIDs = snapshotMetadata.getIndices(tableOrPartition.table(), partitionValues, true, IndexMetadata::getIndexUUID);
+            resolvedIndices.addAll(indexUUIDs);
         }
     }
 
-    public static boolean isIndexPartitionOfTable(String index, RelationName relationName) {
-        return IndexName.isPartitioned(index) &&
-            PartitionName.fromIndexOrTemplate(index).relationName().equals(relationName);
+    static Map<RelationName, RestoreRelation> resolveRelations(List<TableOrPartition> tablesToRestore,
+                                                               RestoreRequest request,
+                                                               Metadata snapshotMetadata,
+                                                               SnapshotInfo snapshotInfo) {
+        boolean strict = !IGNORE_UNAVAILABLE.get(request.settings);
+        HashMap<RelationName, RestoreRelation> restoreRelations = new HashMap<>();
+
+        BiConsumer<RelationName, List<String>> resolver = (relationName, partitionValues) -> {
+            List<RestoreIndex> restoreIndices;
+            try {
+                restoreIndices = snapshotMetadata.getIndices(
+                    relationName,
+                    partitionValues,
+                    strict,
+                    im -> new RestoreIndex(im.getIndexUUID(), im.partitionValues())
+                );
+            } catch (RelationUnknown e) {
+                throw new ResourceNotFoundException("Relation [{}] not found in snapshot", relationName);
+            }
+            RelationName renamedRelation = applyRenameToRelation(request, relationName);
+            restoreRelations.compute(relationName, (r, restoreRelation) -> {
+                if (restoreRelation == null) {
+                    restoreRelation = new RestoreRelation(renamedRelation, new ArrayList<>());
+                }
+                restoreRelation.add(restoreIndices);
+                return restoreRelation;
+            });
+        };
+
+        for (TableOrPartition tableOrPartition : tablesToRestore) {
+            List<String> partitionValues = tableOrPartition.partitionIdent() == null
+                ? List.of()
+                : PartitionName.decodeIdent(tableOrPartition.partitionIdent());
+            resolver.accept(tableOrPartition.table(), partitionValues);
+        }
+        // If no tables are specified, restore all relations from the snapshot
+        if (tablesToRestore.isEmpty() && request.includeTables()) {
+            // Before Version 6.0.0, no relations (and indices) are present in the snapshot metadata, we must use the
+            // indices from the snapshot info.
+            if (snapshotInfo.version().before(Version.V_6_0_0)) {
+                snapshotInfo.indices().forEach(indexName -> {
+                    IndexParts indexParts = IndexName.decode(indexName);
+                    List<String> partitionValues = indexParts.isPartitioned()
+                        ? PartitionName.decodeIdent(indexParts.partitionIdent())
+                        : List.of();
+                    RelationName relationName = RelationName.fromIndexName(indexName);
+                    RelationName renamedRelation = applyRenameToRelation(request, relationName);
+                    restoreRelations.compute(relationName, (r, restoreRelation) -> {
+                        if (restoreRelation == null) {
+                            restoreRelation = new RestoreRelation(renamedRelation, new ArrayList<>());
+                        }
+                        restoreRelation.add(List.of(new RestoreIndex(indexName, partitionValues)));
+                        return restoreRelation;
+                    });
+                });
+            } else {
+                for (RelationMetadata.Table relation : snapshotMetadata.relations(RelationMetadata.Table.class)) {
+                    resolver.accept(relation.name(), List.of());
+                }
+            }
+        }
+        return restoreRelations;
     }
 
     public static RestoreInProgress updateRestoreStateWithDeletedIndices(RestoreInProgress oldRestore, Set<Index> deletedIndices) {
@@ -374,8 +380,7 @@ public class RestoreService implements ClusterStateApplier {
         private final Snapshot snapshot;
         private final ActionListener<RestoreCompletionResponse> listener;
         private final RestoreRequest request;
-        private final Map<String, String> indices;
-        private final List<RelationName> standaloneRelationNames;
+        private final Map<RelationName, RestoreRelation> restoreRelations;
 
         private final Metadata snapshotMetadata;
         final String restoreUUID = UUIDs.randomBase64UUID();
@@ -387,8 +392,7 @@ public class RestoreService implements ClusterStateApplier {
                                           Snapshot snapshot,
                                           ActionListener<RestoreCompletionResponse> listener,
                                           RestoreRequest request,
-                                          Map<String, String> indices,
-                                          List<RelationName> standaloneRelationNames,
+                                          Map<RelationName, RestoreRelation> restoreRelations,
                                           Metadata snapshotMetadata) {
             this.snapshotInfo = snapshotInfo;
             this.snapshotId = snapshotId;
@@ -396,10 +400,9 @@ public class RestoreService implements ClusterStateApplier {
             this.snapshot = snapshot;
             this.listener = listener;
             this.request = request;
-            this.indices = indices;
-            this.standaloneRelationNames = standaloneRelationNames;
+            this.restoreRelations = restoreRelations;
             // If older snapshot is restored, build RelationMetadata from IndexMetadata & IndexTemplateMetadata
-            this.snapshotMetadata = metadataIndexUpgradeService.upgradeMetadata(snapshotMetadata);;
+            this.snapshotMetadata = metadataUpgradeService.upgradeMetadata(snapshotMetadata);;
         }
 
         @Override
@@ -417,152 +420,116 @@ public class RestoreService implements ClusterStateApplier {
             ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(currentState.blocks());
             RoutingTable.Builder rtBuilder = RoutingTable.builder(currentState.routingTable());
             ImmutableOpenMap<ShardId, RestoreInProgress.ShardRestoreStatus> shards;
-            Set<String> aliases = new HashSet<>();
 
             ImmutableOpenMap.Builder<ShardId, RestoreInProgress.ShardRestoreStatus> shardsBuilder =
                 ImmutableOpenMap.builder();
-            final Version minIndexCompatibilityVersion = currentState.nodes().getMaxNodeVersion()
-                .minimumIndexCompatibilityVersion();
+            boolean ignoreUnavailable = IGNORE_UNAVAILABLE.get(request.settings);
+            HashSet<String> restoreIndexNames = new HashSet<>();
 
-            HashMap<RelationName, List<String>> relationIndexUUIDs = new HashMap<>();
-            for (Map.Entry<String, String> indexEntry : indices.entrySet()) {
-                String indexName = indexEntry.getValue();
-                IndexParts indexParts = IndexName.decode(indexName);
-                RelationName relationName = indexParts.toRelationName();
+            for (Map.Entry<RelationName, RestoreRelation> entry : restoreRelations.entrySet()) {
+                RelationName relationName = entry.getKey();
+                RestoreRelation restoreRelation = entry.getValue();
+                RelationName targetName = restoreRelation.targetName();
 
-                ensureNotPartial(indexName);
-                SnapshotRecoverySource recoverySource = new SnapshotRecoverySource(
-                    restoreUUID,
-                    snapshot,
-                    snapshotInfo.version(),
-                    repositoryData.resolveIndexId(indexName)
-                );
-                IndexMetadata snapshotIndexMetadata = snapshotMetadata.index(indexName);
-                if (snapshotIndexMetadata == null) {
-                    throw new IndexNotFoundException(
-                        "Failed to find index '" + indexName + "' at the metadata of the current snapshot '" + snapshot + "'",
-                        indexName
+                List<String> newIndexUUIDs = new ArrayList<>();
+
+                for (RestoreIndex restoreIndex : restoreRelation.restoreIndices()) {
+                    String sourceIndexName = restoreIndex.partitionValues().isEmpty()
+                        ? relationName.indexNameOrAlias()
+                        : new PartitionName(relationName, restoreIndex.partitionValues()).asIndexName();
+                    String targetIndexName = restoreIndex.partitionValues().isEmpty()
+                        ? targetName.indexNameOrAlias()
+                        : new PartitionName(targetName, restoreIndex.partitionValues()).asIndexName();
+
+                    ensureNotPartial(targetIndexName);
+                    SnapshotRecoverySource recoverySource = new SnapshotRecoverySource(
+                        restoreUUID,
+                        snapshot,
+                        snapshotInfo.version(),
+                        repositoryData.resolveIndexId(sourceIndexName)
                     );
-                }
-                snapshotIndexMetadata = metadataIndexUpgradeService.upgradeIndexMetadata(
-                    snapshotIndexMetadata,
-                    IndexName.isPartitioned(indexName) ?
-                        currentMetadata.templates().get(PartitionName.templateName(indexName)) :
-                        null,
-                    minIndexCompatibilityVersion,
-                    null
-                );
-                // Check that the index is closed or doesn't exist
-                String renamedIndexName = indexEntry.getKey();
-                IndexMetadata currentIndexMetadata = currentMetadata.index(renamedIndexName);
-                final Index renamedIndex;
-                final String newIndexUUID;
-                if (currentIndexMetadata == null) {
-                    // Index doesn't exist - create it and start recovery
-                    // Make sure that the index we are about to create has a validate name
-                    IndexName.validate(renamedIndexName);
-                    createIndexService.validateIndexSettings(renamedIndexName, snapshotIndexMetadata.getSettings(), false);
-                    IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata)
-                        .state(IndexMetadata.State.OPEN)
-                        .indexUUID(renamedIndexName);
-
-                    if (request.hasNonDefaultRenamePatterns() && snapshotIndexMetadata.getAliases().isEmpty() == false) {
-                        // Partitioned tables are created with an alias.
-                        // A new index, created on top of an existing index with a different name,
-                        // must use renamed alias instead of the copied one to avoid restoring into the source tables instead of renamed ones.
-                        // Regular tables don't have AliasMetadata, so we reflect that for renamed indices.
-                        var renamedAlias = RelationName.fromIndexName(renamedIndexName).indexNameOrAlias();
-                        indexMdBuilder.removeAllAliases();
-                        indexMdBuilder.putAlias(new AliasMetadata(renamedAlias));
-                    }
-
-                    newIndexUUID = UUIDs.randomBase64UUID();
-                    Builder indexSettingsBuilder = Settings.builder()
-                        .put(snapshotIndexMetadata.getSettings())
-                        .put(IndexMetadata.SETTING_INDEX_UUID, newIndexUUID);
-                    if (snapshotIndexMetadata.getCreationVersion().onOrAfter(Version.V_5_1_0)
-                            || currentState.nodes().getMinNodeVersion().onOrAfter(Version.V_5_1_0)) {
-                        indexSettingsBuilder.put(IndexMetadata.SETTING_HISTORY_UUID, UUIDs.randomBase64UUID());
-                    }
-                    indexMdBuilder.settings(indexSettingsBuilder);
-
-                    shardLimitValidator.validateShardLimit(snapshotIndexMetadata.getSettings(), currentState);
-                    if (!request.includeTables() && !snapshotIndexMetadata.getAliases().isEmpty()) {
-                        // Remove all aliases - they shouldn't be restored
-                        indexMdBuilder.removeAllAliases();
+                    IndexMetadata snapshotIndexMetadata;
+                    if (snapshotInfo.version().before(Version.V_6_0_0)) {
+                        snapshotIndexMetadata = snapshotMetadata.getIndex(relationName, restoreIndex.partitionValues(), false, im -> im);
                     } else {
-                        for (ObjectCursor<String> alias : snapshotIndexMetadata.getAliases().keys()) {
-                            aliases.add(alias.value);
-                        }
+                        String indexUUID = restoreIndex.indexUUID;
+                        snapshotIndexMetadata = snapshotMetadata.index(indexUUID);
                     }
-                    IndexMetadata updatedIndexMetadata = indexMdBuilder.build();
-                    rtBuilder.addAsNewRestore(updatedIndexMetadata, recoverySource);
-                    blocks.addBlocks(updatedIndexMetadata);
-                    mdBuilder.put(updatedIndexMetadata, true);
-                    renamedIndex = updatedIndexMetadata.getIndex();
-                } else {
-                    validateExistingIndex(currentIndexMetadata, snapshotIndexMetadata, renamedIndexName);
-                    // Index exists and it's closed - open it in metadata and start recovery
-                    IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata).state(IndexMetadata.State.OPEN);
-                    indexMdBuilder.version(Math.max(snapshotIndexMetadata.getVersion(), 1 + currentIndexMetadata.getVersion()));
-                    indexMdBuilder.mappingVersion(Math.max(snapshotIndexMetadata.getMappingVersion(), 1 + currentIndexMetadata.getMappingVersion()));
-                    indexMdBuilder.settingsVersion(Math.max(snapshotIndexMetadata.getSettingsVersion(), 1 + currentIndexMetadata.getSettingsVersion()));
+
+                    if (snapshotIndexMetadata == null) {
+                        throw new IndexNotFoundException(
+                            "Failed to find index '" + targetIndexName + "' at the metadata of the current snapshot '" + snapshot + "'",
+                            targetIndexName
+                        );
+                    }
+                    // Check that the index is closed or doesn't exist
+                    IndexMetadata currentIndexMetadata = currentMetadata.getIndex(targetName, restoreIndex.partitionValues(), false, im -> im);
+                    final Index renamedIndex;
+                    final String newIndexUUID;
+                    if (currentIndexMetadata == null) {
+                        // Index doesn't exist - create it and start recovery
+                        // Make sure that the index we are about to create has a validate name
+                        IndexName.validate(targetIndexName);
+                        createIndexService.validateIndexSettings(targetIndexName, snapshotIndexMetadata.getSettings(), false);
+
+                        newIndexUUID = UUIDs.randomBase64UUID();
+                        IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata)
+                            .state(IndexMetadata.State.OPEN);
+                        newIndexUUIDs.add(newIndexUUID);
+
+                        Builder indexSettingsBuilder = Settings.builder()
+                            .put(snapshotIndexMetadata.getSettings())
+                            .put(IndexMetadata.SETTING_INDEX_UUID, newIndexUUID);
+                        if (snapshotIndexMetadata.getCreationVersion().onOrAfter(Version.V_5_1_0)
+                            || currentState.nodes().getMinNodeVersion().onOrAfter(Version.V_5_1_0)) {
+                            indexSettingsBuilder.put(IndexMetadata.SETTING_HISTORY_UUID, UUIDs.randomBase64UUID());
+                        }
+                        indexMdBuilder.settings(indexSettingsBuilder)
+                            .indexName(targetIndexName)
+                            .indexUUID(newIndexUUID);
+
+                        shardLimitValidator.validateShardLimit(snapshotIndexMetadata.getSettings(), currentState);
+                        IndexMetadata updatedIndexMetadata = indexMdBuilder.build();
+                        rtBuilder.addAsNewRestore(updatedIndexMetadata, recoverySource);
+                        blocks.addBlocks(updatedIndexMetadata);
+                        mdBuilder.put(updatedIndexMetadata, true);
+                        renamedIndex = updatedIndexMetadata.getIndex();
+                    } else {
+                        validateExistingIndex(currentIndexMetadata, snapshotIndexMetadata, targetIndexName);
+                        // Index exists and it's closed - open it in metadata and start recovery
+                        IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata).state(IndexMetadata.State.OPEN);
+                        indexMdBuilder.version(Math.max(snapshotIndexMetadata.getVersion(), 1 + currentIndexMetadata.getVersion()));
+                        indexMdBuilder.mappingVersion(Math.max(snapshotIndexMetadata.getMappingVersion(), 1 + currentIndexMetadata.getMappingVersion()));
+                        indexMdBuilder.settingsVersion(Math.max(snapshotIndexMetadata.getSettingsVersion(), 1 + currentIndexMetadata.getSettingsVersion()));
+
+                        for (int shard = 0; shard < snapshotIndexMetadata.getNumberOfShards(); shard++) {
+                            indexMdBuilder.primaryTerm(shard, Math.max(snapshotIndexMetadata.primaryTerm(shard), currentIndexMetadata.primaryTerm(shard)));
+                        }
+
+                        newIndexUUID = currentIndexMetadata.getIndexUUID();
+                        newIndexUUIDs.add(newIndexUUID);
+                        indexMdBuilder.settings(
+                            Settings.builder()
+                                .put(snapshotIndexMetadata.getSettings())
+                                .put(IndexMetadata.SETTING_INDEX_UUID, newIndexUUID));
+                        IndexMetadata updatedIndexMetadata = indexMdBuilder.indexName(targetIndexName).build();
+                        rtBuilder.addAsRestore(updatedIndexMetadata, recoverySource);
+                        blocks.updateBlocks(updatedIndexMetadata);
+                        mdBuilder.put(updatedIndexMetadata, true);
+                        renamedIndex = updatedIndexMetadata.getIndex();
+                    }
+                    restoreIndexNames.add(renamedIndex.getName());
 
                     for (int shard = 0; shard < snapshotIndexMetadata.getNumberOfShards(); shard++) {
-                        indexMdBuilder.primaryTerm(shard, Math.max(snapshotIndexMetadata.primaryTerm(shard), currentIndexMetadata.primaryTerm(shard)));
+                        shardsBuilder.put(
+                            new ShardId(renamedIndex, shard),
+                            new RestoreInProgress.ShardRestoreStatus(clusterService.state().nodes().getLocalNodeId()));
                     }
-
-                    if (!request.includeTables()) {
-                        // Remove all snapshot aliases
-                        if (!snapshotIndexMetadata.getAliases().isEmpty()) {
-                            indexMdBuilder.removeAllAliases();
-                        }
-                        // Add existing aliases
-                        for (ObjectCursor<AliasMetadata> alias : currentIndexMetadata.getAliases().values()) {
-                            indexMdBuilder.putAlias(alias.value);
-                        }
-                    } else {
-                        for (ObjectCursor<String> alias : snapshotIndexMetadata.getAliases().keys()) {
-                            aliases.add(alias.value);
-                        }
-                    }
-                    newIndexUUID = currentIndexMetadata.getIndexUUID();
-                    indexMdBuilder.settings(
-                        Settings.builder()
-                            .put(snapshotIndexMetadata.getSettings())
-                            .put(IndexMetadata.SETTING_INDEX_UUID, newIndexUUID));
-                    IndexMetadata updatedIndexMetadata = indexMdBuilder.indexUUID(renamedIndexName).build();
-                    rtBuilder.addAsRestore(updatedIndexMetadata, recoverySource);
-                    blocks.updateBlocks(updatedIndexMetadata);
-                    mdBuilder.put(updatedIndexMetadata, true);
-                    renamedIndex = updatedIndexMetadata.getIndex();
                 }
 
-                relationIndexUUIDs.compute(relationName, (_, indexUUIDs) -> {
-                    if (indexUUIDs == null) {
-                        indexUUIDs = new ArrayList<>();
-                    }
-                    indexUUIDs.add(newIndexUUID);
-                    return indexUUIDs;
-                });
-                for (int shard = 0; shard < snapshotIndexMetadata.getNumberOfShards(); shard++) {
-                    shardsBuilder.put(
-                        new ShardId(renamedIndex, shard),
-                        new RestoreInProgress.ShardRestoreStatus(clusterService.state().nodes().getLocalNodeId()));
-                }
+                restoreRelation(relationName, targetName, mdBuilder, currentMetadata, newIndexUUIDs, !ignoreUnavailable);
             }
 
-            boolean ignoreUnavailable = request.indicesOptions().ignoreUnavailable();
-
-            for (RelationName relationName : standaloneRelationNames) {
-                restoreRelation(relationName, mdBuilder, currentMetadata, List.of(), !ignoreUnavailable);
-            }
-
-            for (var entry : relationIndexUUIDs.entrySet()) {
-                RelationName relationName = entry.getKey();
-                List<String> indexUUIDs = entry.getValue();
-                restoreRelation(relationName, mdBuilder, currentMetadata, indexUUIDs, !ignoreUnavailable);
-            }
 
             shards = shardsBuilder.build();
             if (!shards.isEmpty()) {
@@ -570,7 +537,7 @@ public class RestoreService implements ClusterStateApplier {
                     restoreUUID,
                     snapshot,
                     overallState(RestoreInProgress.State.INIT, shards),
-                    List.copyOf(indices.keySet()),
+                    restoreIndexNames.stream().toList(),
                     shards
                 );
                 builder.putCustom(RestoreInProgress.TYPE, new RestoreInProgress.Builder(
@@ -614,7 +581,7 @@ public class RestoreService implements ClusterStateApplier {
 
             if (completed(shards)) {
                 // We don't have any indices to restore - we are done
-                restoreInfo = new RestoreInfo(snapshotId.getName(), Collections.unmodifiableList(new ArrayList<>(indices.keySet())), shards.size(), shards.size() - failedShards(shards));
+                restoreInfo = new RestoreInfo(snapshotId.getName(), restoreIndexNames.stream().toList(), shards.size(), shards.size() - failedShards(shards));
             }
 
             RoutingTable rt = rtBuilder.build();
@@ -623,20 +590,12 @@ public class RestoreService implements ClusterStateApplier {
         }
 
         private void restoreRelation(RelationName relationName,
+                                     RelationName targetName,
                                      Metadata.Builder mdBuilder,
                                      Metadata currentMetadata,
                                      List<String> indexUUIDs,
                                      boolean strict) {
-            String newSchema = relationName.schema().replaceAll(
-                request.schemaRenamePattern(),
-                request.schemaRenameReplacement()
-            );
-            String newTableName = relationName.name().replaceAll(
-                request.tableRenamePattern(),
-                request.tableRenameReplacement()
-            );
-            RelationName newName = new RelationName(newSchema, newTableName);
-            RelationMetadata existingRelation = currentMetadata.getRelation(newName);
+            RelationMetadata existingRelation = currentMetadata.getRelation(targetName);
             RelationMetadata snapshotRelation = snapshotMetadata.getRelation(relationName);
             if (snapshotRelation == null) {
                 if (strict) {
@@ -644,7 +603,6 @@ public class RestoreService implements ClusterStateApplier {
                 }
                 return;
             }
-
 
             if (existingRelation instanceof RelationMetadata.Table existingTable) {
                 // restoring into existing closed tables is allowed
@@ -657,10 +615,10 @@ public class RestoreService implements ClusterStateApplier {
                     : mdBuilder.columnOidSupplier();
                 mdBuilder.setTable(
                     columnOidSupplier,
-                    newName,
+                    targetName,
                     Lists.map(
                         table.columns(),
-                        ref -> ref.withReferenceIdent(new ReferenceIdent(newName, ref.column()))
+                        ref -> ref.withReferenceIdent(new ReferenceIdent(targetName, ref.column()))
                     ),
                     table.settings(),
                     table.routingColumn(),
@@ -681,10 +639,10 @@ public class RestoreService implements ClusterStateApplier {
                         : mdBuilder.columnOidSupplier();
                     mdBuilder.setTable(
                         columnOidSupplier,
-                        newName,
+                        targetName,
                         Lists.map(
                             table.columns(),
-                            ref -> ref.withReferenceIdent(new ReferenceIdent(newName, ref.column()))
+                            ref -> ref.withReferenceIdent(new ReferenceIdent(targetName, ref.column()))
                         ),
                         table.settings(),
                         table.routingColumn(),
@@ -703,7 +661,7 @@ public class RestoreService implements ClusterStateApplier {
                     Locale.ENGLISH,
                     "Cannot restore relation `%s` as `%s`, it conflicts with: %s",
                     relationName,
-                    newName,
+                    targetName,
                     existingRelation
                 ));
             }
@@ -1021,6 +979,21 @@ public class RestoreService implements ClusterStateApplier {
         return Collections.unmodifiableMap(renamedIndices);
     }
 
+    private static RelationName applyRenameToRelation(RestoreRequest request, RelationName relationName) {
+        boolean applyRenamePattern = request.hasNonDefaultRenamePatterns();
+        RelationName renamed = relationName;
+        // At least one non-default value is provided.
+        if (applyRenamePattern) {
+            String schema = relationName.schema();
+            String table = relationName.name();
+            table = table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement());
+            schema = schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement());
+
+            renamed = new RelationName(schema, table);
+        }
+        return renamed;
+    }
+
     /**
      * Checks that snapshots can be restored and have compatible version
      *
@@ -1118,6 +1091,15 @@ public class RestoreService implements ClusterStateApplier {
                 || TABLE_RENAME_REPLACEMENT.exists(settings)
                 || SCHEMA_RENAME_PATTERN.exists(settings)
                 || SCHEMA_RENAME_REPLACEMENT.exists(settings);
+        }
+    }
+
+    private record RestoreIndex(String indexUUID, List<String> partitionValues) {}
+
+    private record RestoreRelation(RelationName targetName, List<RestoreIndex> restoreIndices) {
+
+        public void add(List<RestoreIndex> newIndexUUIDs) {
+            restoreIndices.addAll(newIndexUUIDs);
         }
     }
 }

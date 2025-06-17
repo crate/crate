@@ -30,6 +30,7 @@ import java.util.List;
 import org.apache.logging.log4j.util.Strings;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -66,11 +67,10 @@ public class RestoreServiceTest {
         List<String> availableIndices = List.of("my_schema.table1", "my_schema.table2");
 
         resolveIndices(
-            restoreRequest,
             tablesToRestore,
             availableIndices,
-            resolvedIndices,
-            resolvedTemplates
+            Metadata.EMPTY_METADATA,
+            resolvedIndices
         );
 
         assertThat(resolvedIndices).containsAll(availableIndices);
@@ -100,11 +100,10 @@ public class RestoreServiceTest {
         // ignoreUnavailable code path doesn't filter anything and doesn't use available indices
         List<String> availableIndices = null;
         resolveIndices(
-            restoreRequest,
             tablesToRestore,
             availableIndices,
-            resolvedIndices,
-            resolvedTemplates
+            Metadata.EMPTY_METADATA,
+            resolvedIndices
         );
 
         assertThat(resolvedIndices).containsExactlyInAnyOrder(
@@ -134,11 +133,10 @@ public class RestoreServiceTest {
             new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
         );
         resolveIndices(
-            restoreRequest,
             tablesToRestore,
             List.of(".partitioned.restoreme.046jcchm6krj4e1g60o30c0"),
-            resolvedIndices,
-            resolvedTemplates
+            Metadata.EMPTY_METADATA,
+            resolvedIndices
         );
 
         String template = templateName(Schemas.DOC_SCHEMA_NAME, "restoreme");
@@ -166,11 +164,10 @@ public class RestoreServiceTest {
             new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
         );
         resolveIndices(
-            restoreRequest,
             tablesToRestore,
             List.of(""), // No available indices in the snapshot.
-            resolvedIndices,
-            resolvedTemplates
+            Metadata.EMPTY_METADATA,
+            resolvedIndices
         );
 
         assertThat(resolvedIndices).isEmpty();
@@ -202,11 +199,10 @@ public class RestoreServiceTest {
             new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), null)
         );
         resolveIndices(
-            restoreRequest,
             tablesToRestore,
             List.of(".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0", "my_table"),
-            resolvedIndices,
-            resolvedTemplates
+            Metadata.EMPTY_METADATA,
+            resolvedIndices
         );
 
         assertThat(resolvedIndices).containsExactlyInAnyOrder(

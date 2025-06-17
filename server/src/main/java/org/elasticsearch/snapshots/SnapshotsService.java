@@ -258,7 +258,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 ensureBelowConcurrencyLimit(repositoryName, snapshotName, snapshots, deletionsInProgress);
                 // Store newSnapshot here to be processed in clusterStateProcessed
 
-                HashSet<String> indices = new HashSet<>();
+                HashSet<Index> indices = new HashSet<>();
                 HashSet<RelationName> relationNames = new HashSet<>(request.relationNames());
 
                 List<RelationMetadata.Table> relationsMetadata;
@@ -274,11 +274,11 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 }
                 for (RelationMetadata.Table table : relationsMetadata) {
                     relationNames.add(table.name());
-                    List<String> relationIndices = currentState.metadata().getIndices(
+                    List<Index> relationIndices = currentState.metadata().getIndices(
                         table.name(),
                         List.of(),
                         false,
-                        IndexMetadata::getIndexUUID
+                        IndexMetadata::getIndex
                     );
                     indices.addAll(relationIndices);
                 }
@@ -286,11 +286,11 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 // Resolve indices of concrete partitions
                 for (PartitionName partitionName : request.partitionNames()) {
                     relationNames.add(partitionName.relationName());
-                    List<String> partitionIndices = currentState.metadata().getIndices(
+                    List<Index> partitionIndices = currentState.metadata().getIndices(
                         partitionName.relationName(),
                         partitionName.values(),
                         false,
-                        IndexMetadata::getIndexUUID
+                        IndexMetadata::getIndex
                     );
                     indices.addAll(partitionIndices);
                 }
@@ -302,7 +302,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         .filter(entry -> entry.repository().equals(repositoryName))
                         .flatMap(entry -> entry.indices().stream())
                         .distinct()
-                        .collect(Collectors.toMap(IndexId::getId, Function.identity()))
+                        .collect(Collectors.toMap(IndexId::getName, Function.identity()))
                 );
                 final Version version = minCompatibleVersion(currentState.nodes().getMinNodeVersion(), repositoryData, null);
                 ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards = shards(
@@ -448,6 +448,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         if (snapshot.includeGlobalState() == false) {
             // Remove global state from the cluster state
             builder = Metadata.builder();
+            List<String> allIndexUUIDs = new ArrayList<>();
             for (IndexId index : snapshot.indices()) {
                 final IndexMetadata indexMetadata = metadata.index(index.getId());
                 if (indexMetadata == null) {
@@ -455,10 +456,16 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 } else {
                     builder.put(indexMetadata, false);
                 }
+                allIndexUUIDs.add(index.getName());
             }
             for (RelationName relationName : snapshot.relationNames()) {
                 RelationMetadata relation = metadata.getRelation(relationName);
                 if (relation != null) {
+                    // Add relation only with the indexUIIDs that are part of the snapshot
+                    List<String> indexUUIDs = relation.indexUUIDs().stream()
+                        .filter(allIndexUUIDs::contains)
+                        .toList();
+                    relation = relation.withIndexUUIDs(indexUUIDs);
                     builder.setRelation(relation);
                 }
             }
@@ -936,7 +943,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             final String repositoryName = snapshot.getRepository();
             final SnapshotInfo snapshotInfo = new SnapshotInfo(
                 snapshot.getSnapshotId(),
-                shardGenerations.indices().stream().map(IndexId::getId).toList(),
+                shardGenerations.indices().stream().map(IndexId::getName).toList(),
                 entry.startTime(),
                 failure,
                 threadPool.absoluteTimeInMillis(),

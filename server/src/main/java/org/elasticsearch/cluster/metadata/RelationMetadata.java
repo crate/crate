@@ -63,6 +63,8 @@ public sealed interface RelationMetadata extends Writeable permits
         v.writeTo(out);
     }
 
+    RelationMetadata withIndexUUIDs(List<String> indexUUIDs);
+
     record BlobTable(RelationName name,
                      String indexUUID,
                      Settings settings,
@@ -94,6 +96,16 @@ public sealed interface RelationMetadata extends Writeable permits
         @Override
         public List<String> indexUUIDs() {
             return List.of(indexUUID);
+        }
+
+        @Override
+        public RelationMetadata withIndexUUIDs(List<String> indexUUIDs) {
+            return new BlobTable(
+                name,
+                indexUUIDs.getFirst(),
+                settings,
+                state
+            );
         }
     }
 
@@ -161,6 +173,24 @@ public sealed interface RelationMetadata extends Writeable permits
             out.writeEnum(state);
             out.writeStringCollection(indexUUIDs);
             out.writeLong(tableVersion);
+        }
+
+        @Override
+        public RelationMetadata withIndexUUIDs(List<String> indexUUIDs) {
+            return new Table(
+                name,
+                columns,
+                settings,
+                routingColumn,
+                columnPolicy,
+                pkConstraintName,
+                checkConstraints,
+                primaryKeys,
+                partitionedBy,
+                state,
+                indexUUIDs,
+                tableVersion
+            );
         }
     }
 }
