@@ -144,21 +144,14 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     public void testPersistTableStats() throws IOException {
-        SQLExecutor e = SQLExecutor.of(clusterService)
-            .addTable("create table a (x int)")
-            .addTable("create table b (y int)");
 
-        DocTableInfo aDoc = e.resolveTableInfo("a");
-        DocTableInfo bDoc = e.resolveTableInfo("b");
-
-        ColumnStats<Integer> xStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9));
-        ColumnStats<Integer> yStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1));
+        ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9));
 
         TableStats tableStats = new TableStats();
         tableStats.updateTableStats(
             Map.of(
-                aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of(ColumnIdent.of("x"), xStats)),
-                bDoc.ident(), new Stats(2L, 2 * DataTypes.INTEGER.fixedSize(), Map.of(ColumnIdent.of("y"), yStats))
+                TableStatsService.RELATION, new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(),
+                    Map.of(ColumnIdent.of("x"), columnStats, ColumnIdent.of("y"), columnStats))
             )
         );
 
@@ -178,7 +171,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             }
         }
     }
-
 
     private NodeEnvironment newNodeEnvironment(Path[] dataPaths) throws IOException {
         return newNodeEnvironment(Settings.builder()
