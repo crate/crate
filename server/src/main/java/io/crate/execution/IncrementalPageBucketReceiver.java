@@ -126,7 +126,11 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
 
     @Override
     public void consumeRows() {
-        processingFuture.complete(finisher.apply(state));
+        try {
+            processingFuture.complete(finisher.apply(state));
+        } catch (Exception e) {
+            processingFuture.completeExceptionally(e);
+        }
     }
 
     @Override

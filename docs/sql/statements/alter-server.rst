@@ -5,13 +5,7 @@
 ``ALTER SERVER``
 =================
 
-Alter an existing foreign server
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
+Alter an existing foreign server.
 
 Synopsis
 ========

@@ -61,7 +61,7 @@ public abstract class HandledTransportAction<Request extends TransportRequest, R
     class TransportHandler implements TransportRequestHandler<Request> {
         @Override
         public final void messageReceived(final Request request, final TransportChannel channel) throws Exception {
-            execute(request).whenComplete(new ChannelActionListener<>(channel, actionName, request));
+            execute(request).whenComplete(new ChannelActionListener<>(channel));
         }
     }
 }

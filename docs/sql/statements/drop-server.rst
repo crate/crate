@@ -8,11 +8,6 @@
 Drop a foreign server.
 
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

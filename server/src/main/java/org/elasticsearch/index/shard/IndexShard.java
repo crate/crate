@@ -1814,7 +1814,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             // we are the first primary, recover from the gateway
             // if its post api allocation, the index should exists
             assert shardRouting.primary() : "recover from local shards only makes sense if the shard is a primary shard";
-            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::validateSchema);
+            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::create);
             storeRecovery.recoverFromLocalShards(this, snapshots, recoveryListener);
             success = true;
         } finally {
@@ -1829,7 +1829,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         // if its post api allocation, the index should exists
         assert shardRouting.primary() : "recover from store only makes sense if the shard is a primary shard";
         assert shardRouting.initializing() : "can only start recovery on initializing shard";
-        StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::validateSchema);
+        StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::create);
         storeRecovery.recoverFromStore(this, listener);
     }
 
@@ -1838,7 +1838,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             assert shardRouting.primary() : "recover from store only makes sense if the shard is a primary shard";
             assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.SNAPSHOT : "invalid recovery type: " +
                 recoveryState.getRecoverySource();
-            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::validateSchema);
+            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::create);
             storeRecovery.recoverFromRepository(this, repository, listener);
         } catch (Exception e) {
             listener.onFailure(e);
@@ -2250,7 +2250,14 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     getPendingPrimaryTerm(),
                     retentionLeases.v2()
                 );
-                syncFuture.whenComplete((_, _) -> pendingRetentionLeaseBackgroundSync.compareAndSet(true, false));
+                syncFuture.whenComplete((_, err) -> {
+                    pendingRetentionLeaseBackgroundSync.compareAndSet(true, false);
+                    if (err == null) {
+                        listener.onResponse(new ReplicationResponse());
+                    } else {
+                        listener.onFailure(Exceptions.toException(err));
+                    }
+                });
             }
         }
     }
@@ -2711,17 +2718,14 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      * @return the wrapped listener
      */
     private ActionListener<Releasable> wrapPrimaryOperationPermitListener(final ActionListener<Releasable> listener) {
-        return ActionListener.delegateFailure(
-            listener,
-            (l, r) -> {
-                if (replicationTracker.isPrimaryMode()) {
-                    l.onResponse(r);
-                } else {
-                    r.close();
-                    l.onFailure(new ShardNotInPrimaryModeException(shardId, state));
-                }
+        return listener.withOnResponse((l, r) -> {
+            if (replicationTracker.isPrimaryMode()) {
+                l.onResponse(r);
+            } else {
+                r.close();
+                l.onFailure(new ShardNotInPrimaryModeException(shardId, state));
             }
-        );
+        });
     }
 
     private void asyncBlockOperations(ActionListener<Releasable> onPermitAcquired, long timeout, TimeUnit timeUnit) {
@@ -2897,32 +2901,29 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         // primary term update. Since indexShardOperationPermits doesn't guarantee that async submissions are executed
         // in the order submitted, combining both operations ensure that the term is updated before the operation is
         // executed. It also has the side effect of acquiring all the permits one time instead of two.
-        final ActionListener<Releasable> operationListener = ActionListener.delegateFailure(
-            onPermitAcquired,
-            (delegatedListener, releasable) -> {
-                if (opPrimaryTerm < getOperationPrimaryTerm()) {
+        final ActionListener<Releasable> operationListener = onPermitAcquired.withOnResponse((delegatedListener, releasable) -> {
+            if (opPrimaryTerm < getOperationPrimaryTerm()) {
+                releasable.close();
+                final String message = String.format(
+                    Locale.ROOT,
+                    "%s operation primary term [%d] is too old (current [%d])",
+                    shardId,
+                    opPrimaryTerm,
+                    getOperationPrimaryTerm());
+                delegatedListener.onFailure(new IllegalStateException(message));
+            } else {
+                assert assertReplicationTarget();
+                try {
+                    updateGlobalCheckpointOnReplica(globalCheckpoint, "operation");
+                    advanceMaxSeqNoOfUpdatesOrDeletes(maxSeqNoOfUpdatesOrDeletes);
+                } catch (Exception e) {
                     releasable.close();
-                    final String message = String.format(
-                        Locale.ROOT,
-                        "%s operation primary term [%d] is too old (current [%d])",
-                        shardId,
-                        opPrimaryTerm,
-                        getOperationPrimaryTerm());
-                    delegatedListener.onFailure(new IllegalStateException(message));
-                } else {
-                    assert assertReplicationTarget();
-                    try {
-                        updateGlobalCheckpointOnReplica(globalCheckpoint, "operation");
-                        advanceMaxSeqNoOfUpdatesOrDeletes(maxSeqNoOfUpdatesOrDeletes);
-                    } catch (Exception e) {
-                        releasable.close();
-                        delegatedListener.onFailure(e);
-                        return;
-                    }
-                    delegatedListener.onResponse(releasable);
+                    delegatedListener.onFailure(e);
+                    return;
                 }
+                delegatedListener.onResponse(releasable);
             }
-        );
+        });
         if (requirePrimaryTermUpdate(opPrimaryTerm, allowCombineOperationWithPrimaryTermUpdate)) {
             synchronized (mutex) {
                 if (requirePrimaryTermUpdate(opPrimaryTerm, allowCombineOperationWithPrimaryTermUpdate)) {

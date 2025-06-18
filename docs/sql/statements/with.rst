@@ -6,12 +6,6 @@
 ``WITH``
 ========
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-   :depth: 2
-
 Synopsis
 ========
 

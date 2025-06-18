@@ -846,7 +846,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         }));
 
         final Set<String> survivingIndexIds = newRepoData.getIndices().values().stream().map(IndexId::getId).collect(Collectors.toSet());
-        executor.execute(ActionRunnable.supply(groupedListener, () -> cleanupStaleIndices(foundIndices, survivingIndexIds)));
+        cleanupStaleIndices(foundIndices, survivingIndexIds, groupedListener);
     }
 
     // Finds all blobs directly under the repository root path that are not referenced by the current RepositoryData
@@ -913,28 +913,27 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         return Collections.emptyList();
     }
 
-    private long cleanupStaleIndices(Map<String, BlobContainer> foundIndices, Set<String> survivingIndexIds) {
-        long deleteResult = 0;
+    private void cleanupStaleIndices(Map<String, BlobContainer> foundIndices,
+                                     Set<String> survivingIndexIds,
+                                     ActionListener<Long> listener) {
         try {
+            final BlockingQueue<Map.Entry<String, BlobContainer>> staleIndicesToDelete = new LinkedBlockingQueue<>();
             for (Map.Entry<String, BlobContainer> indexEntry : foundIndices.entrySet()) {
-                final String indexSnId = indexEntry.getKey();
-                try {
-                    if (survivingIndexIds.contains(indexSnId) == false) {
-                        LOGGER.debug("[{}] Found stale index [{}]. Cleaning it up", metadata.name(), indexSnId);
-                        indexEntry.getValue().delete();
-                        //This is not the exact number of blobs, as the blob container could also have children.
-                        //However fetching the blobs before deletion is an expensive operation.
-                        //This is ok because currently the deletes are not used. BlobContainer.delete()
-                        //could return the number of blobs and the bytes deleted if we plan to use this
-                        //data somewhere.
-                        deleteResult++;
-                        LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
-                    }
-                } catch (Exception e) {
-                    LOGGER.warn(() -> new ParameterizedMessage(
-                        "[{}] index {} is no longer part of any snapshots in the repository, " +
-                        "but failed to clean up their index folders", metadata.name(), indexSnId), e);
+                if (survivingIndexIds.contains(indexEntry.getKey()) == false) {
+                    staleIndicesToDelete.put(indexEntry);
                 }
+            }
+            final ActionListener<Long> groupedListener = new MultiActionListener<>(
+                staleIndicesToDelete.size(), Collectors.summingLong(Long::longValue), listener);
+
+            // Start as many workers as fit into the snapshot pool at once at the most
+            final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
+            int maximumPoolSize = executor instanceof ThreadPoolExecutor
+                ? ((ThreadPoolExecutor) executor).getMaximumPoolSize()
+                : 1;
+            final int workers = Math.min(maximumPoolSize, staleIndicesToDelete.size());
+            for (int i = 0; i < workers; ++i) {
+                executeOneStaleIndexDelete(staleIndicesToDelete, groupedListener);
             }
         } catch (Exception e) {
             // TODO: We shouldn't be blanket catching and suppressing all exceptions here and instead handle them safely upstream.
@@ -943,7 +942,31 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             assert false : e;
             LOGGER.warn(new ParameterizedMessage("[{}] Exception during cleanup of stale indices", metadata.name()), e);
         }
-        return deleteResult;
+    }
+
+    private void executeOneStaleIndexDelete(BlockingQueue<Map.Entry<String, BlobContainer>> staleIndicesToDelete,
+                                            ActionListener<Long> listener) throws InterruptedException {
+        Map.Entry<String, BlobContainer> indexEntry = staleIndicesToDelete.poll(0L, TimeUnit.MILLISECONDS);
+        if (indexEntry != null) {
+            final String indexSnId = indexEntry.getKey();
+            threadPool.executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.supply(listener, () -> {
+                try {
+                    indexEntry.getValue().delete();
+                    LOGGER.debug("[{}] Cleaned up stale index [{}]", metadata.name(), indexSnId);
+                    executeOneStaleIndexDelete(staleIndicesToDelete, listener);
+                    return 1L;
+                } catch (IOException e) {
+                    LOGGER.warn(() -> new ParameterizedMessage(
+                        "[{}] index {} is no longer part of any snapshots in the repository, " +
+                            "but failed to clean up their index folders", metadata.name(), indexSnId), e);
+                    return 0L;
+                } catch (Exception e) {
+                    assert false : e;
+                    LOGGER.warn(new ParameterizedMessage("[{}] Exception during single stale index delete", metadata.name()), e);
+                    return 0L;
+                }
+            }));
+        }
     }
 
     /**
@@ -1956,8 +1979,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     public void restoreShard(Store store, SnapshotId snapshotId, IndexId indexId, ShardId snapshotShardId,
                              RecoveryState recoveryState, ActionListener<Void> listener) {
         final ShardId shardId = store.shardId();
-        final ActionListener<Void> restoreListener = ActionListener.delegateResponse(listener,
-            (l, e) -> l.onFailure(new IndexShardRestoreFailedException(shardId, "failed to restore snapshot [" + snapshotId + "]", e)));
+        final ActionListener<Void> restoreListener = listener.withOnFailure((l, e) -> l.onFailure(new IndexShardRestoreFailedException(shardId, "failed to restore snapshot [" + snapshotId + "]", e)));
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
         final BlobContainer container = shardContainer(indexId, snapshotShardId);
         executor.execute(ActionRunnable.wrap(restoreListener, l -> {
@@ -2065,7 +2087,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     private static ActionListener<Void> fileQueueListener(BlockingQueue<BlobStoreIndexShardSnapshot.FileInfo> files,
                                                           int workers,
                                                           ActionListener<Collection<Void>> listener) {
-        return ActionListener.delegateResponse(MultiActionListener.of(workers, listener), (l, e) -> {
+        return MultiActionListener.of(workers, listener).withOnFailure((l, e) -> {
             files.clear(); // Stop uploading the remaining files if we run into any exception
             l.onFailure(e);
         });

@@ -5,12 +5,7 @@
 ``CREATE FOREIGN TABLE``
 ========================
 
-Create a foreign table
-
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
+Create a foreign table.
 
 Synopsis
 ========

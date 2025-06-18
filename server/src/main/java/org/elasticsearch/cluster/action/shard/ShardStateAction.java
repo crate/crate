@@ -145,7 +145,7 @@ public class ShardStateAction {
         }
     }
 
-    private static Class[] MASTER_CHANNEL_EXCEPTIONS = new Class[]{
+    private static Class<?>[] MASTER_CHANNEL_EXCEPTIONS = new Class[]{
         NotMasterException.class,
         ConnectTransportException.class,
         FailedToCommitClusterStateException.class
@@ -395,7 +395,7 @@ public class ShardStateAction {
                 final String reason = String.format(Locale.ROOT, "[%d] unassigned shards after failing shards", numberOfUnassignedShards);
                 logger.trace("{}, scheduling a reroute", reason);
                 rerouteService.reroute(reason, Priority.NORMAL, ActionListener.wrap(
-                    r -> logger.trace("{}, reroute completed", reason),
+                    _ -> logger.trace("{}, reroute completed", reason),
                     e -> logger.debug(new ParameterizedMessage("{}, reroute failed", reason), e)));
             }
         }
@@ -602,9 +602,14 @@ public class ShardStateAction {
 
         @Override
         public void clusterStatePublished(ClusterChangedEvent clusterChangedEvent) {
-            rerouteService.reroute("reroute after starting shards", Priority.NORMAL, ActionListener.wrap(
-                r -> logger.trace("reroute after starting shards succeeded"),
-                e -> logger.debug("reroute after starting shards failed", e)));
+            rerouteService.reroute(
+                "reroute after starting shards",
+                Priority.NORMAL,
+                ActionListener.wrap(
+                    _ -> logger.trace("reroute after starting shards succeeded"),
+                    e -> logger.debug("reroute after starting shards failed", e)
+                )
+            );
         }
     }
 
@@ -667,7 +672,5 @@ public class ShardStateAction {
         public NoLongerPrimaryShardException(StreamInput in) throws IOException {
             super(in);
         }
-
     }
-
 }

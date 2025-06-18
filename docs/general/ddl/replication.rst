@@ -24,11 +24,6 @@ Replication can also improve read performance because any increase in the
 number of shards distributed across a cluster also increases the opportunities
 for CrateDB to `parallelize`_ query execution across multiple nodes.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _ddl-replication-config:
 

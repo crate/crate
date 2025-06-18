@@ -613,8 +613,8 @@ public class Node implements Closeable {
                 threadPool,
                 client,
                 clusterModule.getAllocationService(),
-                logicalReplicationSettings,
-                nodeContext
+                metadataIndexUpgradeService,
+                logicalReplicationSettings
             );
             resourcesToClose.add(logicalReplicationService);
 
@@ -628,6 +628,7 @@ public class Node implements Closeable {
                 transportService,
                 clusterService,
                 logicalReplicationService,
+                metadataIndexUpgradeService,
                 remoteClusters,
                 threadPool,
                 namedWriteableRegistry,
@@ -688,7 +689,8 @@ public class Node implements Closeable {
                 environment.configFile(),
                 gatewayMetaState,
                 rerouteService,
-                fsHealthService
+                fsHealthService,
+                metadataIndexUpgradeService
             );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
             DDLClusterStateService ddlClusterStateService = new DDLClusterStateService();

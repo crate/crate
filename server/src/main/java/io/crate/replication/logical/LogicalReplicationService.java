@@ -37,7 +37,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -51,7 +50,7 @@ import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Strings;
@@ -66,10 +65,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.concurrent.FutureActionListener;
-import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SubscriptionRestoreException;
-import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.UpdateSubscriptionAction;
@@ -89,6 +85,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     private final RemoteClusters remoteClusters;
     private final Client client;
     private final AtomicInteger activeOperations = new AtomicInteger(0);
+    private final MetadataUpgradeService metadataUpgradeService;
     private RepositoriesService repositoriesService;
     private RestoreService restoreService;
 
@@ -103,12 +100,13 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
                                      ThreadPool threadPool,
                                      Client client,
                                      AllocationService allocationService,
-                                     LogicalReplicationSettings replicationSettings,
-                                     NodeContext nodeContext) {
+                                     MetadataUpgradeService metadataUpgradeService,
+                                     LogicalReplicationSettings replicationSettings) {
         this.clusterService = clusterService;
         this.threadPool = threadPool;
         this.remoteClusters = remoteClusters;
         this.client = client;
+        this.metadataUpgradeService = metadataUpgradeService;
         this.metadataTracker = new MetadataTracker(
             settings,
             indexScopedSettings,
@@ -118,7 +116,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             remoteClusters::getClient,
             clusterService,
             allocationService,
-            nodeContext
+            metadataUpgradeService
         );
         clusterService.addListener(this);
     }
@@ -236,48 +234,28 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
             .whenComplete((client, err) -> {
                 if (err == null) {
                     client.execute(
-                        PublicationsStateAction.INSTANCE,
-                        new PublicationsStateAction.Request(
-                            publications,
-                            connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey())
-                        )
-                    ).whenComplete((d, stateErr) -> {
-                        if (stateErr == null) {
-                            finalFuture.complete(d);
-                        } else {
-                            onError.accept("Failed to request the publications state", stateErr);
-                        }
-                    });
+                            PublicationsStateAction.INSTANCE,
+                            new PublicationsStateAction.Request(
+                                publications,
+                                connectionInfo.settings().get(ConnectionInfo.USERNAME.getKey())
+                            ))
+                        .thenApply(r ->
+                            new PublicationsStateAction.Response(
+                                metadataUpgradeService.upgradeMetadata(r.metadata()),
+                                r.unknownPublications()
+                            ))
+                        .whenComplete((d, stateErr) -> {
+                            if (stateErr == null) {
+                                finalFuture.complete(d);
+                            } else {
+                                onError.accept("Failed to request the publications state", stateErr);
+                            }
+                        });
                 } else {
                     onError.accept("Failed to connect to the remote cluster", err);
                 }
             });
         return finalFuture;
-    }
-
-    public void verifyTablesDoNotExist(String subscriptionName,
-                                       PublicationsStateAction.Response stateResponse) {
-        var metadata = clusterService.state().metadata();
-        Consumer<RelationName> onExists = (relation) -> {
-            var message = String.format(
-                Locale.ENGLISH,
-                "Subscription '%s' cannot be created as included relation '%s' already exists",
-                subscriptionName,
-                relation
-            );
-            throw new RelationAlreadyExists(relation, message);
-        };
-        for (IndexMetadata indexMetadata : stateResponse.concreteIndices()) {
-            String indexName = indexMetadata.getIndex().getName();
-            if (metadata.hasIndex(indexName)) {
-                onExists.accept(RelationName.fromIndexName(indexName));
-            }
-        }
-        for (var template : stateResponse.concreteTemplates()) {
-            if (metadata.templates().containsKey(template)) {
-                onExists.accept(PartitionName.fromIndexOrTemplate(template).relationName());
-            }
-        }
     }
 
     /**

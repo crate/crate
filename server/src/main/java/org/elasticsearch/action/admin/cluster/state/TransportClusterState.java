@@ -50,7 +50,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class TransportClusterState extends TransportMasterNodeReadAction<ClusterStateRequest, ClusterStateResponse> {
@@ -109,11 +108,11 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
             : acceptableClusterStatePredicate.or(clusterState -> clusterState.nodes().isLocalNodeElectedMaster() == false);
 
         if (acceptableClusterStatePredicate.test(state)) {
-            ActionListener.completeWith(listener, () -> buildResponse(
-                request,
-                state,
-                logger
-            ));
+            try {
+                listener.onResponse(buildResponse(request, state, logger));
+            } catch (Exception ex) {
+                listener.onFailure(ex);
+            }
         } else {
             assert acceptableClusterStateOrNotMasterPredicate.test(state) == false;
             new ClusterStateObserver(state, clusterService.getClusterApplierService(), request.waitForTimeout(), logger)
@@ -122,11 +121,15 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
                     @Override
                     public void onNewClusterState(ClusterState newState) {
                         if (acceptableClusterStatePredicate.test(newState)) {
-                            ActionListener.completeWith(listener, () -> buildResponse(
-                                request,
-                                newState,
-                                logger
-                            ));
+                            try {
+                                listener.onResponse(buildResponse(
+                                    request,
+                                    newState,
+                                    logger
+                                ));
+                            } catch (Exception ex) {
+                                listener.onFailure(ex);
+                            }
                         } else {
                             listener.onFailure(new NotMasterException(
                                 "master stepped down waiting for metadata version " +
@@ -213,10 +216,6 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
                             if (indexMetadata != null) {
                                 mdBuilder.put(indexMetadata, false);
                             }
-                        }
-                        if (!table.partitionedBy().isEmpty()) {
-                            String templateName = PartitionName.templateName(relationName.schema(), relationName.name());
-                            mdBuilder.put(currentState.metadata().templates().get(templateName));
                         }
                     }
                 }

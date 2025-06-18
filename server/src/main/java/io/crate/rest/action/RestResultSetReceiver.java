@@ -22,6 +22,7 @@
 package io.crate.rest.action;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -69,8 +70,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
             rowCount++;
             return null;
         } catch (IOException e) {
-            fail(e);
-            return null;
+            throw new UncheckedIOException(e);
         }
     }
 

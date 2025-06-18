@@ -7,11 +7,6 @@
 Revokes a previously granted privilege on the whole cluster or on a specific
 object from a user or a role.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

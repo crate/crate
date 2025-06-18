@@ -21,13 +21,17 @@
 
 package io.crate.rest.action;
 
+import static io.crate.data.breaker.BlockBasedRamAccounting.MAX_BLOCK_SIZE_IN_BYTES;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
 
 import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.common.breaker.TestCircuitBreaker;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -37,15 +41,18 @@ import org.junit.Test;
 
 import io.crate.auth.AccessControl;
 import io.crate.breaker.TypedRowAccounting;
+import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
+import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
+import io.crate.session.ResultReceiver;
 import io.crate.types.DataTypes;
 
 public class RestActionReceiversTest extends ESTestCase {
@@ -144,5 +151,32 @@ public class RestActionReceiversTest extends ESTestCase {
         bulkRowCountReceiver.allFinished();
         assertThat(results[0].rowCount()).isEqualTo(1L);
         assertThat(results[0].error()).isNull();
+    }
+
+    @Test
+    public void test_result_reciever_future_is_not_completed_on_cbe() throws Exception {
+        TestCircuitBreaker breaker = new TestCircuitBreaker();
+        breaker.startBreaking();
+        RamAccounting ramAccounting = new BlockBasedRamAccounting(
+            b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
+            MAX_BLOCK_SIZE_IN_BYTES);
+
+        ResultReceiver<XContentBuilder> resultReceiver = new RestResultSetReceiver(
+            JsonXContent.builder(),
+            fields,
+            fieldNames,
+            System.currentTimeMillis(),
+            new TypedRowAccounting(
+                Lists.map(fields, Symbol::valueType),
+                ramAccounting
+            ),
+            false
+        );
+
+        // Fails with CBE, resultReceiver's future must not be completed,
+        // it's handled by the consumer/response emitter which also closes iterator/clears sys.jobs entry
+        assertThatThrownBy(() -> resultReceiver.setNextRow(rows.get(0)))
+            .isExactlyInstanceOf(CircuitBreakingException.class);
+        assertThat(resultReceiver.completionFuture().isDone()).isFalse();
     }
 }

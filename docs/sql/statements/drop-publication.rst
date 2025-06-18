@@ -10,11 +10,6 @@
 
     :ref:`CREATE PUBLICATION <sql-create-publication>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-   :depth: 2
 
 Synopsis
 ========

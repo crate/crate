@@ -7,11 +7,6 @@
 
 Drops a user mapping for a foreign server.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

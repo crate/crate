@@ -28,11 +28,6 @@ which is why clients should generally enable ``autocommit``.
     Write operations will still behave as if auto commit was enabled and commit
     or rollback calls are ignored.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _postgres-server-compat:
 

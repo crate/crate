@@ -39,11 +39,6 @@ For example::
 
         (SELECT aggregate_func(col) FROM (SELECT table_func(...) AS col) ...)
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _table-functions-scalar:
 

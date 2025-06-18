@@ -23,6 +23,7 @@ package io.crate.replication.logical.action;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
@@ -37,6 +38,7 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -45,11 +47,11 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.exceptions.Exceptions;
+import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.exceptions.SubscriptionAlreadyExistsException;
-import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
 import io.crate.replication.logical.metadata.SubscriptionsMetadata;
 import io.crate.role.Roles;
@@ -126,26 +128,34 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                     // We check published tables version and not publisher cluster's MinNodeVersion.
                     // Publisher cluster can have a higher version but contain old tables, restored from a snapshot,
                     // in this case subscription works fine.
-                    for (RelationMetadata relationMetadata: response.relationsInPublications().values()) {
-                        if (relationMetadata.template() != null) {
-                            checkVersionCompatibility(
-                                relationMetadata.name().fqn(),
-                                state.nodes().getMinNodeVersion(),
-                                relationMetadata.template().settings()
+
+                    Metadata metadata = state.metadata();
+                    Metadata publisherMetadata = response.metadata();
+                    for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
+                        if (metadata.getRelation(table.name()) != null) {
+                            var message = String.format(
+                                Locale.ENGLISH,
+                                "Subscription '%s' cannot be created as included relation '%s' already exists",
+                                request.name(),
+                                table.name()
                             );
+                            throw new RelationAlreadyExists(table.name(), message);
+
                         }
-                        if (!relationMetadata.indices().isEmpty()) {
-                            // All indices belong to the same table and has same metadata.
-                            IndexMetadata indexMetadata = relationMetadata.indices().get(0);
+                        checkVersionCompatibility(
+                            table.name().fqn(),
+                            state.nodes().getMinNodeVersion(),
+                            table.settings()
+                        );
+
+                        for (Settings settings : publisherMetadata.getIndices(table.name(), List.of(), false, IndexMetadata::getSettings)) {
                             checkVersionCompatibility(
-                                relationMetadata.name().fqn(),
+                                table.name().fqn(),
                                 state.nodes().getMinNodeVersion(),
-                                indexMetadata.getSettings()
+                                settings
                             );
                         }
                     }
-
-                    logicalReplicationService.verifyTablesDoNotExist(request.name(), response);
                     return submitClusterStateTask(request, response);
                 }
             )
@@ -190,9 +200,10 @@ public class TransportCreateSubscription extends TransportMasterNodeAction<Creat
                 }
 
                 HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
-                for (var relation : publicationsStateResponse.tables()) {
+                Metadata publisherMetadata = publicationsStateResponse.metadata();
+                for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
                     relations.put(
-                        relation,
+                        table.name(),
                         new Subscription.RelationState(Subscription.State.INITIALIZING, null)
                     );
                 }

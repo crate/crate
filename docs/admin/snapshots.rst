@@ -5,11 +5,6 @@
 Snapshots
 =========
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Snapshot
 --------
 
@@ -261,4 +256,3 @@ in the cluster state, so it's not accessible any more.
     DROP OK, 1 row affected (... sec)
     cr> DROP REPOSITORY where_my_snapshots_go;
     DROP OK, 1 row affected (... sec)
-

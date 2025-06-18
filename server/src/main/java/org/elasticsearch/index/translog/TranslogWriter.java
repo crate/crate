@@ -33,9 +33,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import java.util.function.LongConsumer;
 import java.util.function.LongSupplier;
 
-import com.carrotsearch.hppc.LongArrayList;
-import com.carrotsearch.hppc.procedures.LongProcedure;
-
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.BytesRefIterator;
@@ -52,6 +49,9 @@ import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
+
+import com.carrotsearch.hppc.LongArrayList;
+import com.carrotsearch.hppc.procedures.LongProcedure;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.Tuple;
@@ -94,20 +94,19 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
 
     private final Map<Long, Tuple<BytesReference, Exception>> seenSequenceNumbers;
 
-    private TranslogWriter(
-        final ShardId shardId,
-        final Checkpoint initialCheckpoint,
-        final FileChannel channel,
-        final FileChannel checkpointChannel,
-        final Path path,
-        final Path checkpointPath,
-        final ByteSizeValue bufferSize,
-        final LongSupplier globalCheckpointSupplier, LongSupplier minTranslogGenerationSupplier, TranslogHeader header,
-        final TragicExceptionHolder tragedy,
-        final LongConsumer persistedSequenceNumberConsumer,
-        final BigArrays bigArrays)
-            throws
-            IOException {
+    private TranslogWriter(final ShardId shardId,
+                           final Checkpoint initialCheckpoint,
+                           final FileChannel channel,
+                           final FileChannel checkpointChannel,
+                           final Path path,
+                           final Path checkpointPath,
+                           final ByteSizeValue bufferSize,
+                           final LongSupplier globalCheckpointSupplier,
+                           LongSupplier minTranslogGenerationSupplier,
+                           TranslogHeader header,
+                           final TragicExceptionHolder tragedy,
+                           final LongConsumer persistedSequenceNumberConsumer,
+                           final BigArrays bigArrays) throws IOException {
         super(initialCheckpoint.generation, channel, path, header);
         assert initialCheckpoint.offset == channel.position() :
             "initial checkpoint offset [" + initialCheckpoint.offset + "] is different than current channel position ["
@@ -131,12 +130,20 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
         this.tragedy = tragedy;
     }
 
-    public static TranslogWriter create(ShardId shardId, String translogUUID, long fileGeneration, Path file, ChannelFactory channelFactory,
-                                        ByteSizeValue bufferSize, final long initialMinTranslogGen, long initialGlobalCheckpoint,
-                                        final LongSupplier globalCheckpointSupplier, final LongSupplier minTranslogGenerationSupplier,
-                                        final long primaryTerm, TragicExceptionHolder tragedy,
-                                        final LongConsumer persistedSequenceNumberConsumer, final BigArrays bigArrays)
-        throws IOException {
+    public static TranslogWriter create(ShardId shardId,
+                                        String translogUUID,
+                                        long fileGeneration,
+                                        Path file,
+                                        ChannelFactory channelFactory,
+                                        ByteSizeValue bufferSize,
+                                        final long initialMinTranslogGen,
+                                        long initialGlobalCheckpoint,
+                                        final LongSupplier globalCheckpointSupplier,
+                                        final LongSupplier minTranslogGenerationSupplier,
+                                        final long primaryTerm,
+                                        TragicExceptionHolder tragedy,
+                                        final LongConsumer persistedSequenceNumberConsumer,
+                                        final BigArrays bigArrays) throws IOException {
         final Path checkpointFile = file.getParent().resolve(Translog.CHECKPOINT_FILE_NAME);
 
         final FileChannel channel = channelFactory.open(file);
@@ -159,8 +166,21 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
             } else {
                 writerGlobalCheckpointSupplier = globalCheckpointSupplier;
             }
-            return new TranslogWriter(shardId, checkpoint, channel, checkpointChannel, file, checkpointFile, bufferSize,
-                writerGlobalCheckpointSupplier, minTranslogGenerationSupplier, header, tragedy, persistedSequenceNumberConsumer, bigArrays);
+            return new TranslogWriter(
+                shardId,
+                checkpoint,
+                channel,
+                checkpointChannel,
+                file,
+                checkpointFile,
+                bufferSize,
+                writerGlobalCheckpointSupplier,
+                minTranslogGenerationSupplier,
+                header,
+                tragedy,
+                persistedSequenceNumberConsumer,
+                bigArrays
+            );
         } catch (Exception exception) {
             // if we fail to bake the file-generation into the checkpoint we stick with the file and once we recover and that
             // file exists we remove it. We only apply this logic to the checkpoint.generation+1 any other file with a higher generation
@@ -331,7 +351,7 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
         // Note: While this is not strictly needed as this method is called while blocking all ops on the translog,
         //       we do this to for correctness and preventing future issues.
         synchronized (syncLock) {
-            try (ReleasableLock toClose = writeLock.acquire()) {
+            try (ReleasableLock _ = writeLock.acquire()) {
                 synchronized (this) {
                     try {
                         sync(); // sync before we close..
@@ -368,7 +388,7 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
         // After the sync lock we acquire the write lock to avoid deadlocks with threads writing where
         // the write lock is acquired first followed by synchronize(this).
         synchronized (syncLock) {
-            try (ReleasableLock toClose = writeLock.acquire()) {
+            try (ReleasableLock _ = writeLock.acquire()) {
                 synchronized (this) {
                     ensureOpen();
                     try {
@@ -404,7 +424,7 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
                     final Checkpoint checkpointToSync;
                     final LongArrayList flushedSequenceNumbers;
                     final ReleasableBytesReference toWrite;
-                    try (ReleasableLock toClose = writeLock.acquire()) {
+                    try (ReleasableLock _ = writeLock.acquire()) {
                         synchronized (this) {
                             ensureOpen();
                             checkpointToSync = getCheckpoint();
@@ -467,7 +487,7 @@ public class TranslogWriter extends BaseTranslogReader implements Closeable {
     }
 
     private void writeAndReleaseOps(ReleasableBytesReference toWrite) throws IOException {
-        try (ReleasableBytesReference toClose = toWrite) {
+        try (ReleasableBytesReference _ = toWrite) {
             assert writeLock.isHeldByCurrentThread();
             ByteBuffer ioBuffer = DiskIoBufferPool.getIoBuffer();
 

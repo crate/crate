@@ -10,11 +10,6 @@
 
     :ref:`CREATE SUBSCRIPTION <sql-create-subscription>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-   :depth: 2
 
 Synopsis
 ========

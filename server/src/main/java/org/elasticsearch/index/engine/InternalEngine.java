@@ -466,15 +466,22 @@ public class InternalEngine extends Engine {
         translog.trimUnreferencedReaders();
     }
 
-    private Translog openTranslog(EngineConfig engineConfig, TranslogDeletionPolicy translogDeletionPolicy,
-                                  LongSupplier globalCheckpointSupplier, LongConsumer persistedSequenceNumberConsumer) throws IOException {
+    private Translog openTranslog(EngineConfig engineConfig,
+                                  TranslogDeletionPolicy translogDeletionPolicy,
+                                  LongSupplier globalCheckpointSupplier,
+                                  LongConsumer persistedSequenceNumberConsumer) throws IOException {
 
         final TranslogConfig translogConfig = engineConfig.getTranslogConfig();
         final Map<String, String> userData = store.readLastCommittedSegmentsInfo().getUserData();
         final String translogUUID = Objects.requireNonNull(userData.get(Translog.TRANSLOG_UUID_KEY));
         // We expect that this shard already exists, so it must already have an existing translog else something is badly wrong!
-        return new Translog(translogConfig, translogUUID, translogDeletionPolicy, globalCheckpointSupplier,
-            engineConfig.getPrimaryTermSupplier(), persistedSequenceNumberConsumer);
+        return new Translog(
+            translogConfig,
+            translogUUID,
+            translogDeletionPolicy,
+            globalCheckpointSupplier,
+            engineConfig.getPrimaryTermSupplier(),
+            persistedSequenceNumberConsumer);
     }
 
     // Package private for testing purposes only
@@ -1162,18 +1169,15 @@ public class InternalEngine extends Engine {
         indexWriter.addDocument(doc);
     }
 
-    protected static final class IndexingStrategy {
-        final boolean currentNotFoundOrDeleted;
-        final boolean useLuceneUpdateDocument;
-        final long versionForIndexing;
-        final boolean indexIntoLucene;
-        final boolean addStaleOpToLucene;
-        final int reservedDocs;
-        final IndexResult earlyResultOnPreFlightError;
+    protected record IndexingStrategy(boolean currentNotFoundOrDeleted,
+                                      boolean useLuceneUpdateDocument,
+                                      boolean indexIntoLucene,
+                                      boolean addStaleOpToLucene,
+                                      long versionForIndexing,
+                                      int reservedDocs,
+                                      IndexResult earlyResultOnPreFlightError) {
 
-        private IndexingStrategy(boolean currentNotFoundOrDeleted, boolean useLuceneUpdateDocument,
-                                 boolean indexIntoLucene, boolean addStaleOpToLucene,
-                                 long versionForIndexing, int reservedDocs, IndexResult earlyResultOnPreFlightError) {
+        protected IndexingStrategy {
             assert useLuceneUpdateDocument == false || indexIntoLucene :
                 "use lucene update is set to true, but we're not indexing into lucene";
             assert (indexIntoLucene && earlyResultOnPreFlightError != null) == false :
@@ -1181,21 +1185,15 @@ public class InternalEngine extends Engine {
                     "indexIntoLucene: " + indexIntoLucene
                     + "  earlyResultOnPreFlightError:" + earlyResultOnPreFlightError;
             assert reservedDocs == 0 || indexIntoLucene || addStaleOpToLucene : reservedDocs;
-            this.currentNotFoundOrDeleted = currentNotFoundOrDeleted;
-            this.useLuceneUpdateDocument = useLuceneUpdateDocument;
-            this.versionForIndexing = versionForIndexing;
-            this.indexIntoLucene = indexIntoLucene;
-            this.addStaleOpToLucene = addStaleOpToLucene;
-            this.reservedDocs = reservedDocs;
-            this.earlyResultOnPreFlightError = earlyResultOnPreFlightError;
         }
 
         static IndexingStrategy optimizedAppendOnly(long versionForIndexing, int reservedDocs) {
             return new IndexingStrategy(true, false, true, false, versionForIndexing, reservedDocs, null);
         }
 
-        public static IndexingStrategy skipDueToVersionConflict(
-                VersionConflictEngineException e, boolean currentNotFoundOrDeleted, long currentVersion) {
+        public static IndexingStrategy skipDueToVersionConflict(VersionConflictEngineException e,
+                                                                boolean currentNotFoundOrDeleted,
+                                                                long currentVersion) {
             final IndexResult result = new IndexResult(e, currentVersion);
             return new IndexingStrategy(
                 currentNotFoundOrDeleted,
@@ -1209,8 +1207,15 @@ public class InternalEngine extends Engine {
         }
 
         static IndexingStrategy processNormally(boolean currentNotFoundOrDeleted, long versionForIndexing, int reservedDocs) {
-            return new IndexingStrategy(currentNotFoundOrDeleted, currentNotFoundOrDeleted == false,
-                true, false, versionForIndexing, reservedDocs, null);
+            return new IndexingStrategy(
+                currentNotFoundOrDeleted,
+                currentNotFoundOrDeleted == false,
+                true,
+                false,
+                versionForIndexing,
+                reservedDocs,
+                null
+            );
         }
 
         public static IndexingStrategy processButSkipLucene(boolean currentNotFoundOrDeleted, long versionForIndexing) {

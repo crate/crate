@@ -9,10 +9,6 @@ Information schema
 are read-only and can be queried to get information about the state of the
 cluster.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 Access
 ======

@@ -47,7 +47,6 @@ import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.exceptions.PublicationUnknownException;
 import io.crate.replication.logical.metadata.Publication;
@@ -146,8 +145,7 @@ public class TransportAlterPublication extends TransportMasterNodeAction<Transpo
     static Publication updatePublication(Request request, Metadata currentMetadata, Publication oldPublication) {
         // Ensure tables exists
         for (var relation : request.tables) {
-            if (currentMetadata.hasIndex(relation.indexNameOrAlias()) == false
-                && currentMetadata.templates().containsKey(PartitionName.templateName(relation.schema(), relation.name())) == false) {
+            if (currentMetadata.getRelation(relation) == null) {
                 throw new RelationUnknown(relation);
             }
         }
