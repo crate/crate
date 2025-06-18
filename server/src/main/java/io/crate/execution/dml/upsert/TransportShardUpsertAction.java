@@ -57,7 +57,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumn;
@@ -456,7 +455,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         null,
                         doc -> {
                             if (doc == null) {
-                                throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
+                                throw new DocumentMissingException(indexShard.shardId(), id);
                             }
                             Update result = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                             item.seqNo(doc.getSeqNo());
