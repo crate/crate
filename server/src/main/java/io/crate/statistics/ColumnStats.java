@@ -108,6 +108,10 @@ public final class ColumnStats<T> implements Writeable {
         return histogram;
     }
 
+    public DataType<T> type() {
+        return type;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) {
