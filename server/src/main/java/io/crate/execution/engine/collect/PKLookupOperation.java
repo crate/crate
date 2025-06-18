@@ -47,6 +47,8 @@ import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.CheckedFunction;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.CompositeBatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -79,15 +81,24 @@ public final class PKLookupOperation {
         this.shardCollectSource = shardCollectSource;
     }
 
+    /// Loads a document to process it using `processDoc`.
+    ///
+    /// The document must be fully consumed within the process function,
+    /// because after this method returns the engine might get closed, causing any
+    /// further access on the document to possibly raise a `AlreadyClosedException`
+    ///
+    /// The [Doc] provided to the `processDoc` function can be `null` if the
+    /// document is missing.
     @Nullable
-    public static Doc lookupDoc(IndexShard shard,
+    public static <T> T withDoc(IndexShard shard,
                                 String id,
                                 long version,
                                 VersionType versionType,
                                 long seqNo,
                                 long primaryTerm,
                                 DocTableInfo table,
-                                List<Symbol> columns) {
+                                List<Symbol> columns,
+                                CheckedFunction<Doc, T, Exception> processDoc) {
         Term uidTerm = new Term(SysColumns.Names.ID, Uid.encodeId(id));
         Engine.Get get = new Engine.Get(id, uidTerm)
             .version(version)
@@ -98,24 +109,31 @@ public final class PKLookupOperation {
         try (Engine.GetResult getResult = shard.get(get)) {
             var docIdAndVersion = getResult.docIdAndVersion();
             if (docIdAndVersion == null) {
-                return null;
+                return processDoc.apply(null);
             }
-            StoredRowLookup storedRowLookup = StoredRowLookup.create(shard.getVersionCreated(), table, shard.shardId().getIndexName(), columns, getResult.fromTranslog());
-            try {
-                StoredRow storedRow
-                    = storedRowLookup.getStoredRow(new ReaderContext(docIdAndVersion.reader.getContext()), docIdAndVersion.docId);
-                return new Doc(
-                    docIdAndVersion.docId,
-                    shard.shardId().getIndexName(),
-                    id,
-                    docIdAndVersion.version,
-                    docIdAndVersion.seqNo,
-                    docIdAndVersion.primaryTerm,
-                    storedRow
-                );
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
+            StoredRowLookup storedRowLookup = StoredRowLookup.create(
+                shard.getVersionCreated(),
+                table,
+                shard.shardId().getIndexName(),
+                columns,
+                getResult.fromTranslog()
+            );
+            ReaderContext context = new ReaderContext(docIdAndVersion.reader.getContext());
+            StoredRow storedRow = storedRowLookup.getStoredRow(context, docIdAndVersion.docId);
+            Doc doc = new Doc(
+                docIdAndVersion.docId,
+                shard.shardId().getIndexName(),
+                id,
+                docIdAndVersion.version,
+                docIdAndVersion.seqNo,
+                docIdAndVersion.primaryTerm,
+                storedRow
+            );
+            return processDoc.apply(doc);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (Throwable t) {
+            throw Exceptions.toRuntimeException(t);
         }
     }
 
@@ -149,7 +167,7 @@ public final class PKLookupOperation {
             }
             assert table != null;
             Stream<Row> rowStream = idsByShardEntry.getValue().stream()
-                .map(pkAndVersion -> lookupDoc(
+                .map(pkAndVersion -> withDoc(
                     shard,
                     pkAndVersion.id(),
                     pkAndVersion.version(),
@@ -157,10 +175,10 @@ public final class PKLookupOperation {
                     pkAndVersion.seqNo(),
                     pkAndVersion.primaryTerm(),
                     table,
-                    columns
+                    columns,
+                    doc -> doc == null ? null : resultToRow.apply(doc)
                 ))
-                .filter(Objects::nonNull)
-                .map(resultToRow);
+                .filter(Objects::nonNull);
 
             if (projections.isEmpty()) {
                 final Iterable<Row> rowIterable = requiresScroll
