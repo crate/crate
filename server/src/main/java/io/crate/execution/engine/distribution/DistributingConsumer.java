@@ -23,6 +23,7 @@ package io.crate.execution.engine.distribution;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
@@ -32,10 +33,15 @@ import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.elasticsearch.threadpool.Scheduler.Cancellable;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.ConnectTransportException;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
@@ -67,6 +73,7 @@ public class DistributingConsumer implements RowConsumer {
     private final List<Downstream> downstreams;
     private final boolean traceEnabled;
     private final CompletableFuture<Void> completionFuture;
+    private final ThreadPool threadPool;
 
     @VisibleForTesting
     final long maxBytes;
@@ -84,7 +91,9 @@ public class DistributingConsumer implements RowConsumer {
                                 int bucketIdx,
                                 Collection<String> downstreamNodeIds,
                                 ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction,
-                                int pageSize) {
+                                int pageSize,
+                                ThreadPool threadPool) {
+        this.threadPool = threadPool;
         this.traceEnabled = LOGGER.isTraceEnabled();
         this.responseExecutor = responseExecutor;
         this.jobId = jobId;
@@ -160,6 +169,7 @@ public class DistributingConsumer implements RowConsumer {
                 NodeRequest<DistributedResultRequest> request = builder.build(downstream.nodeId);
                 var responseHandler = new ResponseHandler(
                     downstream,
+                    request,
                     it,
                     numActiveRequests,
                     true
@@ -203,6 +213,7 @@ public class DistributingConsumer implements RowConsumer {
             );
             var responseHandler = new ResponseHandler(
                 downstream,
+                request,
                 it,
                 numActiveRequests,
                 false
@@ -214,18 +225,23 @@ public class DistributingConsumer implements RowConsumer {
     class ResponseHandler implements BiConsumer<DistributedResultResponse, Throwable> {
 
         private final Downstream downstream;
+        private final NodeRequest<DistributedResultRequest> request;
         private final BatchIterator<Row> it;
         private final AtomicInteger numActiveRequests;
         private final boolean isFailureReq;
+        private final Iterator<TimeValue> retries;
 
         public ResponseHandler(Downstream downstream,
+                               NodeRequest<DistributedResultRequest> request,
                                BatchIterator<Row> it,
                                AtomicInteger numActiveRequests,
                                boolean isFailureReq) {
             this.downstream = downstream;
+            this.request = request;
             this.it = it;
             this.numActiveRequests = numActiveRequests;
             this.isFailureReq = isFailureReq;
+            this.retries = BackoffPolicy.exponentialBackoff().iterator();
         }
 
         @Override
@@ -247,6 +263,25 @@ public class DistributingConsumer implements RowConsumer {
                 downstream.nodeId,
                 err
             );
+            if (err instanceof ConnectTransportException && retries.hasNext()) {
+                LOGGER.trace("Retry sending result", err);
+                TimeValue delay = retries.next();
+                try {
+                    var cancellable = threadPool.scheduleUnlessShuttingDown(
+                        delay,
+                        ThreadPool.Names.SEARCH,
+                        () -> distributedResultAction.execute(request).whenComplete(this)
+                    );
+
+                    // shutting down; no retry
+                    if (cancellable == Cancellable.CANCELLED_NOOP) {
+                        handleFailure(err);
+                    }
+                } catch (EsRejectedExecutionException ex) {
+                    handleFailure(err);
+                }
+                return;
+            }
             handleFailure(err);
         }
 
