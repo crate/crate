@@ -363,6 +363,13 @@ JDBC
 Limitations
 '''''''''''
 
+- Versions ``42.7.5`` and ``42.7.6`` do not support metadata methods in general.
+  If possible, it is recommended to avoid these versions.
+
+- Version ``42.7.7`` and above only works with CrateDB ``6.0`` and above. If you are
+  using CrateDB below version ``6.0``, you must use driver version ``42.7.4`` or
+  below.
+
 - *Reflection* methods like ``conn.getMetaData().getTables(...)`` won't work
   since the required tables are unavailable in CrateDB.
 
