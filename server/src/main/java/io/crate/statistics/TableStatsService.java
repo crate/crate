@@ -22,9 +22,6 @@
 package io.crate.statistics;
 
 
-import static org.elasticsearch.gateway.PersistedClusterStateService.NODE_ID_KEY;
-import static org.elasticsearch.gateway.PersistedClusterStateService.NODE_VERSION_KEY;
-import static org.elasticsearch.gateway.PersistedClusterStateService.createIndexWriter;
 
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
@@ -37,6 +34,7 @@ import java.util.function.IntPredicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StringField;
@@ -44,7 +42,9 @@ import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -65,7 +65,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -117,10 +116,8 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     private final Path dataPath;
     private final String nodeId;
 
-    private static final String TYPE = "_stats";
-    private static final String STATS = "stats";
+    private static final String STATS = "_stats";
     private static final String RELATION_NAME = "relationName";
-    public static final RelationName RELATION = RelationName.fromIndexName("doc.uservisits");
 
 
     @Inject
@@ -138,7 +135,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                       Settings settings,
                       ThreadPool threadPool,
                       ClusterService clusterService,
-                      Sessions sessions) throws IOException {
+                      Sessions sessions){
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.sessions = sessions;
@@ -152,19 +149,35 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     }
 
     public Writer createWriter() throws IOException {
-        Path stats = dataPath.resolve(TYPE);
+        Path stats = dataPath.resolve(STATS);
         final Directory directory = createDirectory(stats);
         final IndexWriter indexWriter = createIndexWriter(directory, false);
         return new Writer(directory, indexWriter, nodeId);
     }
 
-    @Nullable
+    private static IndexWriter createIndexWriter(Directory directory, boolean openExisting) throws IOException {
+        final IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
+        // start empty since we re-write the whole cluster state to ensure it is all using the same format version
+        indexWriterConfig.setOpenMode(openExisting ? IndexWriterConfig.OpenMode.APPEND : IndexWriterConfig.OpenMode.CREATE);
+        // only commit when specifically instructed, we must not write any intermediate states
+        indexWriterConfig.setCommitOnClose(false);
+        // most of the data goes into stored fields which are not buffered, so we only really need a tiny buffer
+        indexWriterConfig.setRAMBufferSizeMB(1.0);
+        // merge on the write thread (e.g. while flushing)
+        indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
+
+        return new IndexWriter(directory, indexWriterConfig);
+    }
+
     public TableStats load() throws IOException {
-        String nodeId = null;
-        Version version = null;
-        Path stats = dataPath.resolve(TYPE);
-        if (Files.exists(stats)) {
-            try (Directory dir = new NIOFSDirectory(stats)) {
+        return null;
+    }
+
+    @Nullable
+    public Stats load(RelationName relationName) throws IOException {
+        Path path = dataPath.resolve(STATS);
+        if (Files.exists(path)) {
+            try (Directory dir = new NIOFSDirectory(path)) {
                 DirectoryReader reader;
                 try {
                     reader = DirectoryReader.open(dir);
@@ -172,21 +185,9 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                     LOGGER.debug("No table stats found");
                     return null;
                 }
-                final Map<String, String> userData = reader.getIndexCommit().getUserData();
-                assert userData.get(NODE_VERSION_KEY) != null;
-
-                final String thisNodeId = userData.get(NODE_ID_KEY);
-                assert thisNodeId != null;
-                if (nodeId != null && nodeId.equals(thisNodeId) == false) {
-                    //Do nothing, because the metadata does not belong to this node
-                } else if (nodeId == null) {
-                    nodeId = thisNodeId;
-                    version = Version.fromId(Integer.parseInt(userData.get(NODE_VERSION_KEY)));
-                }
                 IndexSearcher indexSearcher = new IndexSearcher(reader);
                 indexSearcher.setQueryCache(null);
-                Query query = new TermQuery(new Term(RELATION_NAME, RELATION.fqn()));
-                long start = System.currentTimeMillis();
+                Query query = new TermQuery(new Term(RELATION_NAME, relationName.fqn()));
                 Weight weight = indexSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
                 try (IndexReader indexReader = indexSearcher.getIndexReader()) {
                     for (LeafReaderContext leafReaderContext : indexReader.leaves()) {
@@ -199,16 +200,13 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                             while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                                 if (isLiveDoc.test(docIdSetIterator.docID())) {
                                     BytesRef binaryValue = storedFields.document(docIdSetIterator.docID()).getBinaryValue(STATS);
-                                    byte[] bytes = binaryValue.bytes;
-                                    var stream = new ByteArrayInputStream(bytes);
-                                    StreamInput streamInput = new InputStreamStreamInput(stream);
-                                    Stats loaded = new Stats(streamInput);
-                                    Map<RelationName, Stats> result = Map.of(RELATION, loaded);
-                                    TableStats tableStats = new TableStats();
-                                    tableStats.updateTableStats(result);
-                                    long timeToLoad = System.currentTimeMillis() - start;
-                                    LOGGER.debug("Time to load table stats " + timeToLoad + " ms");
-                                    return tableStats;
+                                    return new Stats(
+                                        new InputStreamStreamInput(
+                                            new ByteArrayInputStream(
+                                                binaryValue.bytes
+                                            )
+                                        )
+                                    );
                                 }
                             }
                         }
@@ -218,7 +216,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         }
         return null;
     }
-    
+
     @Override
     protected void doStart() {
 
@@ -250,8 +248,8 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             this.nodeId = nodeId;
         }
 
-        void updateDoc(Document tableStatsDoc) throws IOException {
-            indexWriter.updateDocument(new Term(RELATION_NAME, RELATION.fqn()), tableStatsDoc);
+        void updateDoc(RelationName relationName, Document statsDoc) throws IOException {
+            indexWriter.updateDocument(new Term(RELATION_NAME, relationName.fqn()), statsDoc);
         }
 
         void flush() throws IOException {
@@ -269,28 +267,25 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
         void prepareCommit(String nodeId) throws IOException {
             final Map<String, String> commitData = new HashMap<>();
-            commitData.put(NODE_VERSION_KEY, Integer.toString(Version.CURRENT.internalId));
-            commitData.put(NODE_ID_KEY, nodeId);
+//            commitData.put(NODE_VERSION_KEY, Integer.toString(Version.CURRENT.internalId));
+//            commitData.put(NODE_ID_KEY, nodeId);
             indexWriter.setLiveCommitData(commitData.entrySet());
             indexWriter.prepareCommit();
         }
 
 
-        public void writeAndCommit(TableStats tableStats) throws IOException {
+        public void writeAndCommit(RelationName relationName, Stats stats) throws IOException {
             try {
-                long start = System.currentTimeMillis();
-                commit(tableStats);
-                System.out.println("Write table stats " + RELATION_NAME + " " + (System.currentTimeMillis() - start) + " ms");
+                commit(relationName, stats);
             } finally {
                 close();
             }
         }
 
-        void commit(TableStats tableStats) throws IOException {
-            Stats stats = tableStats.getStats(RELATION);
-            Document tableStatsDoc = makeDocument(stats);
+        void commit(RelationName relationName, Stats stats) throws IOException {
+            Document tableStatsDoc = makeDocument(relationName, stats);
             try {
-                updateDoc(tableStatsDoc);
+                updateDoc(relationName, tableStatsDoc);
                 prepareCommit(nodeId);
                 flush();
                 commit();
@@ -307,11 +302,11 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             }
         }
 
-        private Document makeDocument(Stats stats) throws IOException {
+        private Document makeDocument(RelationName relationName, Stats stats) throws IOException {
             BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
             stats.writeTo(bytesStreamOutput);
             final Document document = new Document();
-            document.add(new StringField(RELATION_NAME, RELATION.fqn(), Field.Store.NO));
+            document.add(new StringField(RELATION_NAME, relationName.fqn(), Field.Store.YES));
             document.add(new StringField("stats", bytesStreamOutput.bytes().toBytesRef(), Field.Store.YES));
             return document;
         }
@@ -326,10 +321,10 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         updateStats();
     }
 
-    public void persist(TableStats tableStats) {
+    public void persist(RelationName relationName, Stats stats) {
         try (
             Writer writer = createWriter()) {
-            writer.writeAndCommit(tableStats);
+            writer.writeAndCommit(relationName, stats);
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
