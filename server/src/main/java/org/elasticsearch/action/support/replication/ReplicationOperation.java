@@ -61,6 +61,7 @@ public class ReplicationOperation<
             ReplicaRequest extends ReplicationRequest<ReplicaRequest>,
             PrimaryResultT extends ReplicationOperation.PrimaryResult<ReplicaRequest>
         > {
+
     private final Logger logger;
     private final ThreadPool threadPool;
     private final Request request;
@@ -92,10 +93,15 @@ public class ReplicationOperation<
 
     private final List<ReplicationResponse.ShardInfo.Failure> shardReplicaFailures = Collections.synchronizedList(new ArrayList<>());
 
-    public ReplicationOperation(Request request, Primary<Request, ReplicaRequest, PrimaryResultT> primary,
+    public ReplicationOperation(Request request,
+                                Primary<Request, ReplicaRequest, PrimaryResultT> primary,
                                 ActionListener<PrimaryResultT> listener,
                                 Replicas<ReplicaRequest> replicas,
-                                Logger logger, ThreadPool threadPool, String opType, long primaryTerm, TimeValue initialRetryBackoffBound,
+                                Logger logger,
+                                ThreadPool threadPool,
+                                String opType,
+                                long primaryTerm,
+                                TimeValue initialRetryBackoffBound,
                                 TimeValue retryTimeout) {
         this.replicasProxy = replicas;
         this.primary = primary;
@@ -164,9 +170,18 @@ public class ReplicationOperation<
             @Override
             public void onFailure(Exception e) {
                 logger.trace("[{}] op [{}] post replication actions failed for [{}]", primary.routingEntry().shardId(), opType, request);
-                // TODO: fail shard? This will otherwise have the local / global checkpoint info lagging, or possibly have replicas
-                // go out of sync with the primary
-                finishAsFailed(e);
+                try {
+                    // It can happen that the index/write operation succeeded
+                    // but the post action (refresh), didn't. In this case it
+                    // is still safe to update the checkpoints and we actually
+                    // need to, otherwise there'll be a gap between
+                    // primary/replica, and the replica will never catch up.
+                    //
+                    // In case the write operation/fsync did fail, the local checkpoint won't advance
+                    updateCheckPoints(primary.routingEntry(), primary::localCheckpoint, primary::globalCheckpoint);
+                } finally {
+                    finishAsFailed(e);
+                }
             }
         });
     }
@@ -196,8 +211,10 @@ public class ReplicationOperation<
         }
     }
 
-    private void performOnReplica(final ShardRouting shard, final ReplicaRequest replicaRequest,
-                                  final long globalCheckpoint, final long maxSeqNoOfUpdatesOrDeletes,
+    private void performOnReplica(final ShardRouting shard,
+                                  final ReplicaRequest replicaRequest,
+                                  final long globalCheckpoint,
+                                  final long maxSeqNoOfUpdatesOrDeletes,
                                   final PendingReplicationActions pendingReplicationActions) {
         if (logger.isTraceEnabled()) {
             logger.trace("[{}] sending op [{}] to replica {} for request [{}]", shard.shardId(), opType, shard, replicaRequest);
@@ -227,8 +244,12 @@ public class ReplicationOperation<
                         shard.shardId(), shard.currentNodeId(), replicaException, restStatus, false));
                 }
                 String message = String.format(Locale.ROOT, "failed to perform %s on replica %s", opType, shard);
-                replicasProxy.failShardIfNeeded(shard, primaryTerm, message, replicaException,
-                    ActionListener.wrap(r -> decPendingAndFinishIfNeeded(), ReplicationOperation.this::onNoLongerPrimary));
+                replicasProxy.failShardIfNeeded(
+                    shard,
+                    primaryTerm,
+                    message,
+                    replicaException,
+                    ActionListener.wrap(_ -> decPendingAndFinishIfNeeded(), ReplicationOperation.this::onNoLongerPrimary));
             }
 
             @Override
