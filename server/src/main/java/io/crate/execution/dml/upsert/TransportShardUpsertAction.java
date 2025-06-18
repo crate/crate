@@ -39,7 +39,6 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
 import org.elasticsearch.index.engine.Engine.Operation.Origin;
@@ -455,9 +454,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                         doc -> {
                             if (doc == null) {
                                 throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
-                            }
-                            if (doc.getSource() == null) {
-                                throw new DocumentSourceMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
                             }
                             return updateToInsert.convert(doc, item.updateAssignments(), insertValues);
                         }
