@@ -39,7 +39,6 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
 import org.elasticsearch.index.engine.Engine.Operation.Origin;
@@ -61,7 +60,6 @@ import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumnAction;
-import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.RawIndexer;
 import io.crate.execution.dml.ShardResponse;
@@ -69,7 +67,6 @@ import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
-import io.crate.expression.reference.Doc;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -434,18 +431,26 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     }
                     assert updatingIndexer != null : "Dedicated indexer must be created for UPDATE or UPSERT";
                     assert updateToInsert != null;
-                    assert item.updateAssignments() != null && item.updateAssignments().length > 0;
-                    Doc doc = getDocument(
+                    String id = item.id();
+                    UpdateToInsert.Update update = PKLookupOperation.withDoc(
                         indexShard,
-                        item.id(),
+                        id,
                         item.version(),
+                        VersionType.INTERNAL,
                         item.seqNo(),
                         item.primaryTerm(),
-                        actualTable);
-                    version = doc.getVersion();
-                    IndexItem indexItem = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
-                    item.pkValues(indexItem.pkValues());
-                    item.insertValues(indexItem.insertValues());
+                        actualTable,
+                        null,
+                        doc -> {
+                            if (doc == null) {
+                                throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
+                            }
+                            return updateToInsert.convert(doc, item.updateAssignments(), insertValues);
+                        }
+                    );
+                    version = update.version();
+                    item.pkValues(update.pkValues());
+                    item.insertValues(update.insertValues());
                     request.insertColumns(updatingIndexer.insertColumns(updatingIndexer.columns()));
                 }
                 return insert(
@@ -573,29 +578,5 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             default:
                 throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
         }
-    }
-
-    private static Doc getDocument(IndexShard indexShard,
-                                   String id,
-                                   long version,
-                                   long seqNo,
-                                   long primaryTerm,
-                                   DocTableInfo table) {
-        // when sequence versioning is used, this lookup will throw VersionConflictEngineException
-        Doc doc = PKLookupOperation.lookupDoc(
-                indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, table, null);
-        if (doc == null) {
-            throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
-        }
-        if (doc.getSource() == null) {
-            throw new DocumentSourceMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
-        }
-        if (version != Versions.MATCH_ANY && version != doc.getVersion()) {
-            throw new VersionConflictEngineException(
-                indexShard.shardId(),
-                id,
-                "Requested version: " + version + " but got version: " + doc.getVersion());
-        }
-        return doc;
     }
 }
