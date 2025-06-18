@@ -40,8 +40,6 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.auth.AccessControl;
-import io.crate.breaker.TypedRowAccounting;
-import io.crate.common.collections.Lists;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowN;
@@ -49,7 +47,6 @@ import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.session.ResultReceiver;
@@ -60,11 +57,11 @@ public class RestActionReceiversTest extends ESTestCase {
     private final List<RowN> rows = List.of(
         new RowN("foo", 1, true),
         new RowN("bar", 2, false),
-        new RowN("foobar", 3, null)
+        new RowN("abc", Long.MAX_VALUE, false)
     );
     private final List<Symbol> fields = List.of(
         new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_a"), DataTypes.STRING),
-        new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_b"), DataTypes.INTEGER),
+        new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_b"), DataTypes.LONG),
         new ScopedSymbol(new RelationName("doc", "dummy"), ColumnIdent.fromPath("doc.col_c"), DataTypes.BOOLEAN)
     );
     private final List<String> fieldNames = List.of("col_a", "col_b", "col_c");
@@ -104,7 +101,6 @@ public class RestActionReceiversTest extends ESTestCase {
             fields,
             fieldNames,
             0L,
-            new TypedRowAccounting(Symbols.typeView(fields), RamAccounting.NO_ACCOUNTING),
             true
         );
         for (Row row : rows) {
@@ -154,29 +150,61 @@ public class RestActionReceiversTest extends ESTestCase {
     }
 
     @Test
-    public void test_result_reciever_future_is_not_completed_on_cbe() throws Exception {
+    public void test_result_receiver_future_is_not_completed_on_cbe() throws Exception {
         TestCircuitBreaker breaker = new TestCircuitBreaker();
         breaker.startBreaking();
         RamAccounting ramAccounting = new BlockBasedRamAccounting(
             b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
             MAX_BLOCK_SIZE_IN_BYTES);
-
+        XContentBuilder jsonXContentBuilder = new XContentBuilder(
+            JsonXContent.JSON_XCONTENT, new SqlHttpHandler.RamAccountingOutputStream(ramAccounting));
         ResultReceiver<XContentBuilder> resultReceiver = new RestResultSetReceiver(
-            JsonXContent.builder(),
+            jsonXContentBuilder,
             fields,
             fieldNames,
             System.currentTimeMillis(),
-            new TypedRowAccounting(
-                Lists.map(fields, Symbol::valueType),
-                ramAccounting
-            ),
             false
         );
 
         // Fails with CBE, resultReceiver's future must not be completed,
         // it's handled by the consumer/response emitter which also closes iterator/clears sys.jobs entry
-        assertThatThrownBy(() -> resultReceiver.setNextRow(rows.get(0)))
+        assertThatThrownBy(() -> {
+            resultReceiver.setNextRow(rows.get(0));
+            jsonXContentBuilder.flush(); // flush the internal buffer to OutputStream to trigger ram-accounting
+        })
             .isExactlyInstanceOf(CircuitBreakingException.class);
         assertThat(resultReceiver.completionFuture().isDone()).isFalse();
+    }
+
+    @Test
+    public void test_ram_accounting_of_the_result_set_receiver() throws Exception {
+        RamAccounting ramAccounting = new BlockBasedRamAccounting(
+            b -> new TestCircuitBreaker().addEstimateBytesAndMaybeBreak(b, "http-result"),
+            MAX_BLOCK_SIZE_IN_BYTES);
+        SqlHttpHandler.RamAccountingOutputStream ramAccountingOutputStream = new SqlHttpHandler.RamAccountingOutputStream(ramAccounting);
+        XContentBuilder jsonXContentBuilder = new XContentBuilder(JsonXContent.JSON_XCONTENT, ramAccountingOutputStream);
+        ResultReceiver<XContentBuilder> resultReceiver = new RestResultSetReceiver(
+            jsonXContentBuilder,
+            fields,
+            fieldNames,
+            System.currentTimeMillis(),
+            false
+        );
+
+        resultReceiver.setNextRow(rows.get(0));
+        jsonXContentBuilder.flush(); // flush the internal buffer to OutputStream to trigger ram-accounting
+        long bytesFirstRow = ramAccounting.totalBytes();
+
+        resultReceiver.setNextRow(rows.get(1));
+        jsonXContentBuilder.flush();
+        long bytesSecondRow = ramAccounting.totalBytes() - bytesFirstRow;
+
+        resultReceiver.setNextRow(rows.get(2));
+        jsonXContentBuilder.flush();
+        long bytesThirdRow = ramAccounting.totalBytes() - bytesSecondRow - bytesFirstRow;
+
+        assertThat(bytesThirdRow - bytesSecondRow).isEqualTo(
+            String.valueOf(Long.MAX_VALUE).length() - String.valueOf(2L).length()
+        );
     }
 }
