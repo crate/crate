@@ -142,6 +142,9 @@ import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.FutureActionListener;
 import io.crate.concurrent.MultiActionListener;
 import io.crate.exceptions.InvalidArgumentException;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 
 
@@ -1044,8 +1047,15 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
 
             // write the index metadata for each index in the snapshot
             for (IndexId index : indices) {
+                // We must resolve the index using the wanted index name as the UUID maybe different from the one in the
+                // repository due to a drop table + restore operation that changes the index uuid.
+                IndexParts indexParts = IndexName.decode(index.getName());
+                List<String> partitionValues = indexParts.isPartitioned()
+                    ? PartitionName.decodeIdent(indexParts.partitionIdent())
+                    : List.of();
                 executor.execute(ActionRunnable.run(allMetaListener, () -> {
-                        final IndexMetadata indexMetaData = clusterMetadata.index(index.getId());
+                        final IndexMetadata indexMetaData = clusterMetadata.getIndex(indexParts.toRelationName(), partitionValues, true, im -> im);
+                        //final IndexMetadata indexMetaData = clusterMetadata.index(index.getId());
                         if (writeIndexGens) {
                             String identifiers = IndexMetaDataGenerations.buildUniqueIdentifier(indexMetaData);
                             IndexMetaDataGenerations existingIndexMetaGenerations = existingRepositoryData.indexMetaDataGenerations();

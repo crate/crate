@@ -451,8 +451,14 @@ public final class RepositoryData {
             if (indexId == null) {
                 indexId = inFlightIds.get(index.getName());
             }
-            if (indexId == null) {
+            /*
+            if (indexId == null || indexId.getId().equals(index.getUUID()) == false) {
                 indexId = new IndexId(index.getName(), index.getUUID());
+            }
+             */
+
+            if (indexId == null) {
+                indexId = new IndexId(index.getName(), UUIDs.randomBase64UUID());
             }
             snapshotIndices.add(indexId);
         }

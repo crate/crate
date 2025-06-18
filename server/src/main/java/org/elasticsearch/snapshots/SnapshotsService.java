@@ -107,6 +107,8 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
@@ -428,14 +430,14 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     private static ShardGenerations buildGenerations(SnapshotsInProgress.Entry snapshot, Metadata metadata) {
         ShardGenerations.Builder builder = ShardGenerations.builder();
         final Map<String, IndexId> indexLookup = new HashMap<>();
-        snapshot.indices().forEach(idx -> indexLookup.put(idx.getId(), idx));
+        snapshot.indices().forEach(idx -> indexLookup.put(idx.getName(), idx));
         snapshot.shards().forEach(c -> {
             if (metadata.index(c.key.getIndex()) == null) {
                 assert snapshot.partial() :
                     "Index [" + c.key.getIndex() + "] was deleted during a snapshot but snapshot was not partial.";
                 return;
             }
-            final IndexId indexId = indexLookup.get(c.key.getIndexUUID());
+            final IndexId indexId = indexLookup.get(c.key.getIndexName());
             if (indexId != null) {
                 builder.put(indexId, c.key.id(), c.value.generation());
             }
@@ -450,13 +452,20 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             builder = Metadata.builder();
             List<String> allIndexUUIDs = new ArrayList<>();
             for (IndexId index : snapshot.indices()) {
-                final IndexMetadata indexMetadata = metadata.index(index.getId());
+                // We must resolve the index using the wanted index name as the UUID maybe different from the one in the
+                // repository due to a drop table + restore operation that changes the index uuid.
+                IndexParts indexParts = IndexName.decode(index.getName());
+                List<String> partitionValues = indexParts.isPartitioned()
+                    ? PartitionName.decodeIdent(indexParts.partitionIdent())
+                    : List.of();
+                IndexMetadata indexMetadata = metadata.getIndex(indexParts.toRelationName(), partitionValues, true, im -> im);
+                //final IndexMetadata indexMetadata = metadata.index(index.getId());
                 if (indexMetadata == null) {
                     assert snapshot.partial() : "Index [" + index + "] was deleted during a snapshot but snapshot was not partial.";
                 } else {
                     builder.put(indexMetadata, false);
+                    allIndexUUIDs.add(indexMetadata.getIndexUUID());
                 }
-                allIndexUUIDs.add(index.getName());
             }
             for (RelationName relationName : snapshot.relationNames()) {
                 RelationMetadata relation = metadata.getRelation(relationName);
@@ -2081,13 +2090,21 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         final boolean readyToExecute = deletionsInProgress == null || deletionsInProgress.getEntries().stream()
             .noneMatch(entry -> entry.repository().equals(repoName) && entry.state() == SnapshotDeletionsInProgress.State.STARTED);
         for (IndexId index : indices) {
-            final String indexUUID = index.getId();
-            final boolean isNewIndex = repositoryData.getIndices().containsKey(indexUUID) == false;
-            IndexMetadata indexMetadata = metadata.index(indexUUID);
+            String indexUUID = index.getId();
+            final String indexName = index.getName();
+            final boolean isNewIndex = repositoryData.getIndices().containsKey(indexName) == false;
+            // We must resolve the index using the wanted index name as the UUID maybe different from the one in the
+            // repository due to a drop table + restore operation that changes the index uuid.
+            IndexParts indexParts = IndexName.decode(indexName);
+            List<String> partitionValues = indexParts.isPartitioned()
+                ? PartitionName.decodeIdent(indexParts.partitionIdent())
+                : List.of();
+            IndexMetadata indexMetadata = metadata.getIndex(indexParts.toRelationName(), partitionValues, true, im -> im);
             if (indexMetadata == null) {
                 // The index was deleted before we managed to start the snapshot - mark it as missing.
-                builder.put(new ShardId(index.getName(), indexUUID, 0), ShardSnapshotStatus.MISSING);
+                builder.put(new ShardId(indexName, indexUUID, 0), ShardSnapshotStatus.MISSING);
             } else {
+                indexUUID = indexMetadata.getIndexUUID();
                 final IndexRoutingTable indexRoutingTable = routingTable.index(indexUUID);
                 for (int i = 0; i < indexMetadata.getNumberOfShards(); i++) {
                     final ShardId shardId = indexRoutingTable.shard(i).shardId();
@@ -2142,7 +2159,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         for (final SnapshotsInProgress.Entry entry : snapshots.entries()) {
             if (entry.partial() == false) {
                 for (IndexId index : entry.indices()) {
-                    IndexMetadata indexMetadata = currentState.metadata().index(index.getId());
+                    IndexMetadata indexMetadata = currentState.metadata().index(index.getName());
                     if (indexMetadata != null && indicesToCheck.contains(indexMetadata.getIndex())) {
                         indices.add(indexMetadata.getIndex());
                     }

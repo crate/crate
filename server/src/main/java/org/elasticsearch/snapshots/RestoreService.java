@@ -450,7 +450,7 @@ public class RestoreService implements ClusterStateApplier {
                     );
                     IndexMetadata snapshotIndexMetadata;
                     if (snapshotInfo.version().before(Version.V_6_0_0)) {
-                        snapshotIndexMetadata = snapshotMetadata.getIndex(relationName, restoreIndex.partitionValues(), false, im -> im);
+                        snapshotIndexMetadata = snapshotMetadata.getIndex(relationName, restoreIndex.partitionValues(), !ignoreUnavailable, im -> im);
                     } else {
                         String indexUUID = restoreIndex.indexUUID;
                         snapshotIndexMetadata = snapshotMetadata.index(indexUUID);
