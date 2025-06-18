@@ -108,34 +108,32 @@ public final class PKLookupOperation {
 
         try (Engine.GetResult getResult = shard.get(get)) {
             var docIdAndVersion = getResult.docIdAndVersion();
-            try {
-                if (docIdAndVersion == null) {
-                    return processDoc.apply(null);
-                }
-                StoredRowLookup storedRowLookup = StoredRowLookup.create(
-                    shard.getVersionCreated(),
-                    table,
-                    shard.shardId().getIndexName(),
-                    columns,
-                    getResult.fromTranslog()
-                );
-                ReaderContext context = new ReaderContext(docIdAndVersion.reader.getContext());
-                StoredRow storedRow = storedRowLookup.getStoredRow(context, docIdAndVersion.docId);
-                Doc doc = new Doc(
-                    docIdAndVersion.docId,
-                    shard.shardId().getIndexName(),
-                    id,
-                    docIdAndVersion.version,
-                    docIdAndVersion.seqNo,
-                    docIdAndVersion.primaryTerm,
-                    storedRow
-                );
-                return processDoc.apply(doc);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            } catch (Throwable t) {
-                throw Exceptions.toRuntimeException(t);
+            if (docIdAndVersion == null) {
+                return processDoc.apply(null);
             }
+            StoredRowLookup storedRowLookup = StoredRowLookup.create(
+                shard.getVersionCreated(),
+                table,
+                shard.shardId().getIndexName(),
+                columns,
+                getResult.fromTranslog()
+            );
+            ReaderContext context = new ReaderContext(docIdAndVersion.reader.getContext());
+            StoredRow storedRow = storedRowLookup.getStoredRow(context, docIdAndVersion.docId);
+            Doc doc = new Doc(
+                docIdAndVersion.docId,
+                shard.shardId().getIndexName(),
+                id,
+                docIdAndVersion.version,
+                docIdAndVersion.seqNo,
+                docIdAndVersion.primaryTerm,
+                storedRow
+            );
+            return processDoc.apply(doc);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        } catch (Throwable t) {
+            throw Exceptions.toRuntimeException(t);
         }
     }
 
