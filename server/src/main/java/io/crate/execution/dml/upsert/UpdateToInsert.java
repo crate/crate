@@ -117,7 +117,7 @@ public final class UpdateToInsert {
     private final List<Reference> updateColumns;
     private final ArrayList<Reference> columns;
 
-    public record Update(List<String> pkValues, Object[] insertValues) {}
+    public record Update(List<String> pkValues, Object[] insertValues, long version) {}
 
     record Values(Doc doc, Object[] excludedValues) {
     }
@@ -237,7 +237,7 @@ public final class UpdateToInsert {
             }
             Maps.mergeInto(source, targetPath.name(), targetPath.path(), value);
         }
-        return new Update(Id.decode(table.primaryKey(), doc.getId()), insertValues);
+        return new Update(Id.decode(table.primaryKey(), doc.getId()), insertValues, doc.getVersion());
     }
 
     public List<Reference> columns() {
