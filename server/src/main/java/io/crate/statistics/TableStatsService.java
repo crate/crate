@@ -31,11 +31,8 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.List;
 import java.util.Map;
-import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.IntPredicate;
 
 import org.apache.logging.log4j.LogManager;
@@ -57,7 +54,6 @@ import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.Weight;
-import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.util.Bits;
@@ -133,11 +129,11 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                              ThreadPool threadPool,
                              ClusterService clusterService,
                              Sessions sessions) throws IOException {
-        this(nodeEnvironment.nodeDataPaths(), nodeEnvironment.nodeId(), settings, threadPool, clusterService, sessions);
+        this(nodeEnvironment.nodeDataPaths()[0], nodeEnvironment.nodeId(), settings, threadPool, clusterService, sessions);
     }
 
     @VisibleForTesting
-    TableStatsService(Path[] dataPaths,
+    TableStatsService(Path dataPath,
                       String nodeId,
                       Settings settings,
                       ThreadPool threadPool,
@@ -151,34 +147,21 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
-        this.dataPath = dataPaths[0];
+        this.dataPath = dataPath;
         this.nodeId = nodeId;
     }
 
     public Writer createWriter() throws IOException {
-        final List<TableStatsService.TableStatsWriter> writers = new ArrayList<>();
-        final List<Closeable> closeables = new ArrayList<>();
-        boolean success = false;
-        try {
-                Path stats = dataPath.resolve(TYPE);
-                final Directory directory = createDirectory(stats);
-                closeables.add(directory);
-                final IndexWriter indexWriter = createIndexWriter(directory, false);
-                closeables.add(indexWriter);
-                writers.add(new TableStatsService.TableStatsWriter(directory, indexWriter));
-            success = true;
-        } finally {
-            if (success == false) {
-                IOUtils.closeWhileHandlingException(closeables);
-            }
-        }
-        return new Writer(writers, nodeId);
+        Path stats = dataPath.resolve(TYPE);
+        final Directory directory = createDirectory(stats);
+        final IndexWriter indexWriter = createIndexWriter(directory, false);
+        return new Writer(directory, indexWriter, nodeId);
     }
 
     @Nullable
     public TableStats load() throws IOException {
         String nodeId = null;
-//        Version version = null;
+        Version version = null;
         Path stats = dataPath.resolve(TYPE);
         if (Files.exists(stats)) {
             try (Directory dir = new NIOFSDirectory(stats)) {
@@ -198,7 +181,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                     //Do nothing, because the metadata does not belong to this node
                 } else if (nodeId == null) {
                     nodeId = thisNodeId;
-//                    version = Version.fromId(Integer.parseInt(userData.get(NODE_VERSION_KEY)));
+                    version = Version.fromId(Integer.parseInt(userData.get(NODE_VERSION_KEY)));
                 }
                 IndexSearcher indexSearcher = new IndexSearcher(reader);
                 indexSearcher.setQueryCache(null);
@@ -224,7 +207,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                                     TableStats tableStats = new TableStats();
                                     tableStats.updateTableStats(result);
                                     long timeToLoad = System.currentTimeMillis() - start;
-                                    System.out.println("Time to load table stats " + timeToLoad + " ms");
+                                    LOGGER.debug("Time to load table stats " + timeToLoad + " ms");
                                     return tableStats;
                                 }
                             }
@@ -235,8 +218,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         }
         return null;
     }
-
-
+    
     @Override
     protected void doStart() {
 
@@ -257,14 +239,15 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     }
 
 
-    public static class TableStatsWriter implements Closeable {
+    public static class Writer implements Closeable {
+        final Directory directory;
+        final IndexWriter indexWriter;
+        final String nodeId;
 
-        private final Directory directory;
-        private final IndexWriter indexWriter;
-
-        TableStatsWriter(Directory directory, IndexWriter indexWriter) {
+        private Writer(Directory directory, IndexWriter indexWriter, String nodeId) {
             this.directory = directory;
             this.indexWriter = indexWriter;
+            this.nodeId = nodeId;
         }
 
         void updateDoc(Document tableStatsDoc) throws IOException {
@@ -275,14 +258,6 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             this.indexWriter.flush();
         }
 
-        void prepareCommit(String nodeId) throws IOException {
-            final Map<String, String> commitData = new HashMap<>();
-            commitData.put(NODE_VERSION_KEY, Integer.toString(Version.CURRENT.internalId));
-            commitData.put(NODE_ID_KEY, nodeId);
-            indexWriter.setLiveCommitData(commitData.entrySet());
-            indexWriter.prepareCommit();
-        }
-
         void commit() throws IOException {
             indexWriter.commit();
         }
@@ -291,50 +266,34 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         public void close() throws IOException {
             IOUtils.close(indexWriter, directory);
         }
-    }
 
-    public static class Writer implements Closeable {
-
-        private final List<TableStatsService.TableStatsWriter> tableStatsWriters;
-        private final String nodeId;
-        private final AtomicBoolean closed = new AtomicBoolean();
-
-        private Writer(List<TableStatsService.TableStatsWriter> tableStatsWriters, String nodeId) {
-            this.tableStatsWriters = tableStatsWriters;
-            this.nodeId = nodeId;
-        }
-
-        private void ensureOpen() {
-            if (closed.get()) {
-                throw new AlreadyClosedException("table stats writer is closed already");
-            }
-        }
-
-        public boolean isOpen() {
-            return closed.get() == false;
+        void prepareCommit(String nodeId) throws IOException {
+            final Map<String, String> commitData = new HashMap<>();
+            commitData.put(NODE_VERSION_KEY, Integer.toString(Version.CURRENT.internalId));
+            commitData.put(NODE_ID_KEY, nodeId);
+            indexWriter.setLiveCommitData(commitData.entrySet());
+            indexWriter.prepareCommit();
         }
 
 
         public void writeAndCommit(TableStats tableStats) throws IOException {
-            ensureOpen();
             try {
+                long start = System.currentTimeMillis();
                 commit(tableStats);
+                System.out.println("Write table stats " + RELATION_NAME + " " + (System.currentTimeMillis() - start) + " ms");
             } finally {
                 close();
             }
         }
 
         void commit(TableStats tableStats) throws IOException {
-            ensureOpen();
             Stats stats = tableStats.getStats(RELATION);
             Document tableStatsDoc = makeDocument(stats);
             try {
-                for (TableStatsService.TableStatsWriter tableStatsWriter : tableStatsWriters) {
-                    tableStatsWriter.updateDoc(tableStatsDoc);
-                    tableStatsWriter.prepareCommit(nodeId);
-                    tableStatsWriter.flush();
-                    tableStatsWriter.commit();
-                }
+                updateDoc(tableStatsDoc);
+                prepareCommit(nodeId);
+                flush();
+                commit();
             } catch (Exception e) {
                 try {
                     close();
@@ -345,13 +304,6 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                 throw e;
             } finally {
                 close();
-            }
-        }
-
-        @Override
-        public void close() throws IOException {
-            if (closed.compareAndSet(false, true)) {
-                IOUtils.close(tableStatsWriters);
             }
         }
 
@@ -375,7 +327,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     }
 
     public void persist(TableStats tableStats) {
-        try(
+        try (
             Writer writer = createWriter()) {
             writer.writeAndCommit(tableStats);
         } catch (IOException e) {
