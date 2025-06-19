@@ -89,7 +89,7 @@ import io.crate.data.Row;
  * Periodically refresh {@link TableStats} based on {@link #refreshInterval}.
  */
 @Singleton
-public class TableStatsService extends AbstractLifecycleComponent implements Runnable {
+public class TableStatsService implements Runnable {
 
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
@@ -203,28 +203,8 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         }
         return null;
     }
-
-    @Override
-    protected void doStart() {
-
-    }
-
-    @Override
-    protected void doStop() {
-        close();
-    }
-
-    @Override
-    public void close() {
-    }
-
-    @Override
-    protected void doClose() throws IOException {
-        close();
-    }
-
-
-    public static class Writer implements Closeable {
+    
+    private static class Writer implements Closeable {
         final Directory directory;
         final IndexWriter indexWriter;
 
