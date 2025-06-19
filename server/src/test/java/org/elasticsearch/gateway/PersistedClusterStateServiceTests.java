@@ -354,7 +354,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                 = new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), writableRegistry(), getBigArrays(),
                 new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L) {
                 @Override
-                public Directory createDirectory(Path path) throws IOException {
+                Directory createDirectory(Path path) throws IOException {
                     return new FilterDirectory(super.createDirectory(path)) {
                         @Override
                         public IndexOutput createOutput(String name, IOContext context) throws IOException {
@@ -392,7 +392,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                 = new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), writableRegistry(), getBigArrays(),
                 new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L) {
                 @Override
-                public Directory createDirectory(Path path) throws IOException {
+                Directory createDirectory(Path path) throws IOException {
                     return new FilterDirectory(super.createDirectory(path)) {
                         @Override
                         public void sync(Collection<String> names) {
@@ -438,7 +438,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                 = new PersistedClusterStateService(nodeEnvironment, xContentRegistry(), writableRegistry(), getBigArrays(),
                 new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS), () -> 0L) {
                 @Override
-                public Directory createDirectory(Path path) throws IOException {
+                Directory createDirectory(Path path) throws IOException {
                     return new FilterDirectory(super.createDirectory(path)) {
                         @Override
                         public void rename(String source, String dest) throws IOException {

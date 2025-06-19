@@ -1151,7 +1151,6 @@ public class Node implements Closeable {
         injector.getInstance(DanglingArtifactsService.class).stop();
         injector.getInstance(SslContextProviderService.class).stop();
         injector.getInstance(BlobService.class).stop();
-        injector.getInstance(TasksService.class).stop();
 
         if (UDCService.UDC_ENABLED_SETTING.get(settings)) {
             injector.getInstance(UDCService.class).stop();
