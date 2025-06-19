@@ -29,7 +29,6 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.replication.logical.repository.PublisherRestoreService;
-import io.crate.statistics.TableStatsService;
 
 public class CrateCommonModule extends AbstractModule {
 

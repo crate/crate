@@ -24,6 +24,7 @@ package io.crate.statistics;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
@@ -91,5 +92,9 @@ public class TableStats {
 
     public Stats getStats(RelationName relationName) {
         return tableStats.getOrDefault(relationName, Stats.EMPTY);
+    }
+
+    public Map<RelationName, Stats> values() {
+        return Collections.unmodifiableMap(tableStats);
     }
 }

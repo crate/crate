@@ -26,16 +26,12 @@ import static org.mockito.ArgumentMatchers.any;
 
 import java.io.IOException;
 import java.nio.file.Path;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
-import org.elasticsearch.env.NodeEnvironment;
 import org.junit.Test;
 import org.mockito.Answers;
 import org.mockito.ArgumentMatchers;
@@ -43,13 +39,11 @@ import org.mockito.Mockito;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
 import io.crate.common.unit.TimeValue;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
-import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
@@ -57,42 +51,50 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSettingsChanges() {
         // Initially disabled
-        try (TableStatsService statsService = new TableStatsService(
+        TableStatsService statsService = new TableStatsService(
             createDataPath(),
             Settings.builder().put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build(),
             THREAD_POOL,
             clusterService,
-            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS));
 
-            assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMinutes(0));
-            assertThat(statsService.scheduledRefresh).isNull();
-        }
+        assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMinutes(0));
+        assertThat(statsService.scheduledRefresh).isNull();
 
         // Default setting
-        try (TableStatsService statsService = new TableStatsService(
+        statsService = new TableStatsService(
             createDataPath(),
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
-            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS));
 
-            assertThat(statsService.refreshInterval)
-                .isEqualTo(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY));
-            assertThat(statsService.scheduledRefresh).isNotNull();
+        assertThat(statsService.refreshInterval)
+            .isEqualTo(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY));
+        assertThat(statsService.scheduledRefresh).isNotNull();
 
-            ClusterSettings clusterSettings = clusterService.getClusterSettings();
+        ClusterSettings clusterSettings = clusterService.getClusterSettings();
 
-            // Update setting
-            clusterSettings.applySettings(Settings.builder()
-                .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), "10m").build());
+        // Update setting
+        clusterSettings.applySettings(Settings.builder()
+            .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), "10m").build());
 
-            assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMinutes(10));
-            assertThat(statsService.scheduledRefresh).isNotNull();
+        assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMinutes(10));
+        assertThat(statsService.scheduledRefresh).isNotNull();
 
-            // Disable
-            clusterSettings.applySettings(Settings.builder()
-                .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build());
-        }
+        // Disable
+        clusterSettings.applySettings(Settings.builder()
+            .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build());
+
+        assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMillis(0));
+        assertThat(statsService.scheduledRefresh).isNull();
+
+        // Reset setting
+        clusterSettings.applySettings(Settings.builder().build());
+
+        assertThat(statsService.refreshInterval)
+            .isEqualTo(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY));
+        assertThat(statsService.scheduledRefresh).isNotNull();
     }
 
     @Test
@@ -100,20 +102,21 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         Sessions sqlOperations = Mockito.mock(Sessions.class);
         Session session = Mockito.mock(Session.class);
         Mockito.when(sqlOperations.newSystemSession()).thenReturn(session);
-        try (TableStatsService statsService = new TableStatsService(
+
+        TableStatsService statsService = new TableStatsService(
             createDataPath(),
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
             sqlOperations
-        )) {
-            statsService.run();
-            Mockito.verify(session, Mockito.times(1)).quickExec(ArgumentMatchers.eq(TableStatsService.STMT), ArgumentMatchers.any(), ArgumentMatchers.any());
-        }
+        );
+        statsService.run();
+
+        Mockito.verify(session, Mockito.times(1)).quickExec(ArgumentMatchers.eq(TableStatsService.STMT), ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
-    public void testNoUpdateIfLocalNodeNotAvailable() throws IOException {
+    public void testNoUpdateIfLocalNodeNotAvailable() {
         final ClusterService clusterService = Mockito.mock(ClusterService.class);
         Mockito.when(clusterService.localNode()).thenReturn(null);
         Mockito.when(clusterService.getClusterSettings()).thenReturn(this.clusterService.getClusterSettings());
@@ -124,17 +127,16 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             ArgumentMatchers.anyString(), any())
         ).thenReturn(session);
 
-        try (TableStatsService statsService = new TableStatsService(
+        TableStatsService statsService = new TableStatsService(
             createDataPath(),
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
             sqlOperations
-        )) {
+        );
 
-            statsService.run();
-            Mockito.verify(session, Mockito.times(0)).sync();
-        }
+        statsService.run();
+        Mockito.verify(session, Mockito.times(0)).sync();
     }
 
     public void testPersistAndLoadStats() throws IOException {
@@ -149,26 +151,26 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         RelationName relationName = RelationName.fromIndexName("doc.test");
         Path dataPath = createDataPath();
 
-        try (TableStatsService statsService = new TableStatsService(
+        TableStatsService statsService = new TableStatsService(
             dataPath,
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
-            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS));
 
-            statsService.persist(relationName, stats);
-        }
+        statsService.persist(relationName, stats);
 
-        try (TableStatsService statsService = new TableStatsService(
+
+        statsService = new TableStatsService(
             dataPath,
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
-            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS));
 
-            Stats loaded = statsService.loadStats(relationName);
-            assertThat(loaded).isEqualTo(stats);
-        }
+        Stats loaded = statsService.loadStats(relationName);
+        assertThat(loaded).isEqualTo(stats);
+
     }
 
     public static Path createDataPath() {

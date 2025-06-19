@@ -22,13 +22,11 @@
 package io.crate.statistics;
 
 
-
 import java.io.ByteArrayInputStream;
 import java.io.Closeable;
 import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.HashMap;
 import java.util.Map;
 import java.util.function.IntPredicate;
 
@@ -60,7 +58,6 @@ import org.apache.lucene.util.Bits;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -133,7 +130,7 @@ public class TableStatsService implements Runnable {
                       Settings settings,
                       ThreadPool threadPool,
                       ClusterService clusterService,
-                      Sessions sessions){
+                      Sessions sessions) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.sessions = sessions;
@@ -154,10 +151,6 @@ public class TableStatsService implements Runnable {
         indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
         IndexWriter indexWriter = new IndexWriter(directory, indexWriterConfig);
         return new Writer(directory, indexWriter);
-    }
-
-    public TableStats loadTableStats() throws IOException {
-        return null;
     }
 
     @Nullable
@@ -203,8 +196,8 @@ public class TableStatsService implements Runnable {
         }
         return null;
     }
-    
-    private static class Writer implements Closeable {
+
+    private static final class Writer implements Closeable {
         final Directory directory;
         final IndexWriter indexWriter;
 
@@ -234,35 +227,6 @@ public class TableStatsService implements Runnable {
             indexWriter.prepareCommit();
         }
 
-
-        public void writeAndCommit(RelationName relationName, Stats stats) throws IOException {
-            try {
-                commit(relationName, stats);
-            } finally {
-                close();
-            }
-        }
-
-        void commit(RelationName relationName, Stats stats) throws IOException {
-            Document tableStatsDoc = makeDocument(relationName, stats);
-            try {
-                updateDoc(relationName, tableStatsDoc);
-                prepareCommit();
-                flush();
-                commit();
-            } catch (Exception e) {
-                try {
-                    close();
-                } catch (Exception e2) {
-                    LOGGER.warn("failed on closing table stats writer", e2);
-                    e.addSuppressed(e2);
-                }
-                throw e;
-            } finally {
-                close();
-            }
-        }
-
         private Document makeDocument(RelationName relationName, Stats stats) throws IOException {
             BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
             stats.writeTo(bytesStreamOutput);
@@ -278,10 +242,34 @@ public class TableStatsService implements Runnable {
         updateStats();
     }
 
+    public void persist(TableStats tableStats) {
+        try {
+            try (Writer writer = createWriter()) {
+                Map<RelationName, Stats> values = tableStats.values();
+                for (Map.Entry<RelationName, Stats> entry : values.entrySet()) {
+                    RelationName relationName = entry.getKey();
+                    Stats stats = entry.getValue();
+                    Document doc = writer.makeDocument(relationName, stats);
+                    writer.updateDoc(relationName, doc);
+                }
+                writer.prepareCommit();
+                writer.flush();
+                writer.commit();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
     public void persist(RelationName relationName, Stats stats) {
-        try (
-            Writer writer = createWriter()) {
-            writer.writeAndCommit(relationName, stats);
+        try {
+            try (Writer writer = createWriter()) {
+                Document doc = writer.makeDocument(relationName, stats);
+                writer.updateDoc(relationName, doc);
+                writer.prepareCommit();
+                writer.flush();
+                writer.commit();
+            }
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
