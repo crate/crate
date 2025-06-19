@@ -24,7 +24,6 @@ package io.crate.statistics;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
-import java.nio.file.Path;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -35,20 +34,7 @@ import java.util.Set;
  */
 public class TableStats {
 
-    private final Path dataPath;
-
-    private static final String STATS_LOCATION = "_stats";
-    private static final String RELATION_NAME_FIELD = "relationName";
-
     private volatile Map<RelationName, Stats> tableStats = new HashMap<>();
-
-    public TableStats() {
-        this(null);
-    }
-
-    public TableStats(Path dataPath) {
-        this.dataPath = dataPath;
-    }
 
     public void updateTableStats(Map<RelationName, Stats> tableStats) {
         this.tableStats = tableStats;

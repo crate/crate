@@ -385,9 +385,7 @@ public class Node implements Closeable {
             resourcesToClose.add(clusterService);
 
             final Roles roles = new RolesService(clusterService);
-            // add path for persistence
             final TableStats tableStats = new TableStats();
-
             final NodeContext nodeContext = NodeContext.of(environment, clusterService, functions, roles, tableStats);
             final var udfService = new UserDefinedFunctionService(clusterService, nodeContext);
 
@@ -1249,7 +1247,6 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(BlobService.class));
         toClose.add(() -> stopWatch.stop().start("netty_bootstrap"));
         toClose.add(injector.getInstance(NettyBootstrap.class));
-        toClose.add(injector.getInstance(TasksService.class));
 
         for (LifecycleComponent plugin : pluginLifecycleComponents) {
             toClose.add(() -> stopWatch.stop().start("plugin(" + plugin.getClass().getName() + ")"));
