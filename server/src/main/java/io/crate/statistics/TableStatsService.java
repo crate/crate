@@ -114,10 +114,9 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     volatile Scheduler.ScheduledCancellable scheduledRefresh;
 
     private final Path dataPath;
-    private final String nodeId;
 
-    private static final String STATS = "_stats";
-    private static final String RELATION_NAME = "relationName";
+    private static final String STATS_LOCATION = "_stats";
+    private static final String RELATION_NAME_FIELD = "relationName";
 
 
     @Inject
@@ -126,12 +125,11 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                              ThreadPool threadPool,
                              ClusterService clusterService,
                              Sessions sessions) throws IOException {
-        this(nodeEnvironment.nodeDataPaths()[0], nodeEnvironment.nodeId(), settings, threadPool, clusterService, sessions);
+        this(nodeEnvironment.nodeDataPaths()[0], settings, threadPool, clusterService, sessions);
     }
 
     @VisibleForTesting
     TableStatsService(Path dataPath,
-                      String nodeId,
                       Settings settings,
                       ThreadPool threadPool,
                       ClusterService clusterService,
@@ -145,37 +143,26 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
         this.dataPath = dataPath;
-        this.nodeId = nodeId;
     }
 
-    public Writer createWriter() throws IOException {
-        Path stats = dataPath.resolve(STATS);
-        final Directory directory = createDirectory(stats);
-        final IndexWriter indexWriter = createIndexWriter(directory, false);
-        return new Writer(directory, indexWriter, nodeId);
-    }
-
-    private static IndexWriter createIndexWriter(Directory directory, boolean openExisting) throws IOException {
-        final IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
-        // start empty since we re-write the whole cluster state to ensure it is all using the same format version
-        indexWriterConfig.setOpenMode(openExisting ? IndexWriterConfig.OpenMode.APPEND : IndexWriterConfig.OpenMode.CREATE);
-        // only commit when specifically instructed, we must not write any intermediate states
-        indexWriterConfig.setCommitOnClose(false);
-        // most of the data goes into stored fields which are not buffered, so we only really need a tiny buffer
+    private Writer createWriter() throws IOException {
+        Path path = dataPath.resolve(STATS_LOCATION);
+        Directory directory = new NIOFSDirectory(path);
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
+        indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
         indexWriterConfig.setRAMBufferSizeMB(1.0);
-        // merge on the write thread (e.g. while flushing)
         indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-
-        return new IndexWriter(directory, indexWriterConfig);
+        IndexWriter indexWriter = new IndexWriter(directory, indexWriterConfig);
+        return new Writer(directory, indexWriter);
     }
 
-    public TableStats load() throws IOException {
+    public TableStats loadTableStats() throws IOException {
         return null;
     }
 
     @Nullable
-    public Stats load(RelationName relationName) throws IOException {
-        Path path = dataPath.resolve(STATS);
+    public Stats loadStats(RelationName relationName) throws IOException {
+        Path path = dataPath.resolve(STATS_LOCATION);
         if (Files.exists(path)) {
             try (Directory dir = new NIOFSDirectory(path)) {
                 DirectoryReader reader;
@@ -187,7 +174,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                 }
                 IndexSearcher indexSearcher = new IndexSearcher(reader);
                 indexSearcher.setQueryCache(null);
-                Query query = new TermQuery(new Term(RELATION_NAME, relationName.fqn()));
+                Query query = new TermQuery(new Term(RELATION_NAME_FIELD, relationName.fqn()));
                 Weight weight = indexSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
                 try (IndexReader indexReader = indexSearcher.getIndexReader()) {
                     for (LeafReaderContext leafReaderContext : indexReader.leaves()) {
@@ -199,7 +186,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                             StoredFields storedFields = leafReaderContext.reader().storedFields();
                             while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                                 if (isLiveDoc.test(docIdSetIterator.docID())) {
-                                    BytesRef binaryValue = storedFields.document(docIdSetIterator.docID()).getBinaryValue(STATS);
+                                    BytesRef binaryValue = storedFields.document(docIdSetIterator.docID()).getBinaryValue(STATS_LOCATION);
                                     return new Stats(
                                         new InputStreamStreamInput(
                                             new ByteArrayInputStream(
@@ -240,16 +227,14 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     public static class Writer implements Closeable {
         final Directory directory;
         final IndexWriter indexWriter;
-        final String nodeId;
 
-        private Writer(Directory directory, IndexWriter indexWriter, String nodeId) {
+        private Writer(Directory directory, IndexWriter indexWriter) {
             this.directory = directory;
             this.indexWriter = indexWriter;
-            this.nodeId = nodeId;
         }
 
         void updateDoc(RelationName relationName, Document statsDoc) throws IOException {
-            indexWriter.updateDocument(new Term(RELATION_NAME, relationName.fqn()), statsDoc);
+            indexWriter.updateDocument(new Term(RELATION_NAME_FIELD, relationName.fqn()), statsDoc);
         }
 
         void flush() throws IOException {
@@ -265,11 +250,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             IOUtils.close(indexWriter, directory);
         }
 
-        void prepareCommit(String nodeId) throws IOException {
-            final Map<String, String> commitData = new HashMap<>();
-//            commitData.put(NODE_VERSION_KEY, Integer.toString(Version.CURRENT.internalId));
-//            commitData.put(NODE_ID_KEY, nodeId);
-            indexWriter.setLiveCommitData(commitData.entrySet());
+        void prepareCommit() throws IOException {
             indexWriter.prepareCommit();
         }
 
@@ -286,7 +267,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             Document tableStatsDoc = makeDocument(relationName, stats);
             try {
                 updateDoc(relationName, tableStatsDoc);
-                prepareCommit(nodeId);
+                prepareCommit();
                 flush();
                 commit();
             } catch (Exception e) {
@@ -305,15 +286,11 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         private Document makeDocument(RelationName relationName, Stats stats) throws IOException {
             BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
             stats.writeTo(bytesStreamOutput);
-            final Document document = new Document();
-            document.add(new StringField(RELATION_NAME, relationName.fqn(), Field.Store.YES));
-            document.add(new StringField("stats", bytesStreamOutput.bytes().toBytesRef(), Field.Store.YES));
+            Document document = new Document();
+            document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.YES));
+            document.add(new StringField(STATS_LOCATION, bytesStreamOutput.bytes().toBytesRef(), Field.Store.YES));
             return document;
         }
-    }
-
-    Directory createDirectory(Path path) throws IOException {
-        return new NIOFSDirectory(path);
     }
 
     @Override

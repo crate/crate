@@ -42,6 +42,7 @@ import org.mockito.ArgumentMatchers;
 import org.mockito.Mockito;
 
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
@@ -54,65 +55,60 @@ import io.crate.types.DataTypes;
 public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void testSettingsChanges() throws IOException {
+    public void testSettingsChanges() {
         // Initially disabled
-        try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
-            try (TableStatsService statsService = new TableStatsService(
-                nodeEnvironment,
-                Settings.builder().put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build(),
-                THREAD_POOL,
-                clusterService,
-                Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
+        try (TableStatsService statsService = new TableStatsService(
+            createDataPath(),
+            Settings.builder().put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build(),
+            THREAD_POOL,
+            clusterService,
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
 
-                assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMinutes(0));
-                assertThat(statsService.scheduledRefresh).isNull();
-            }
+            assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMinutes(0));
+            assertThat(statsService.scheduledRefresh).isNull();
+        }
 
-            // Default setting
-            try (TableStatsService statsService = new TableStatsService(
-                nodeEnvironment,
-                Settings.EMPTY,
-                THREAD_POOL,
-                clusterService,
-                Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
+        // Default setting
+        try (TableStatsService statsService = new TableStatsService(
+            createDataPath(),
+            Settings.EMPTY,
+            THREAD_POOL,
+            clusterService,
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
 
-                assertThat(statsService.refreshInterval)
-                    .isEqualTo(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY));
-                assertThat(statsService.scheduledRefresh).isNotNull();
+            assertThat(statsService.refreshInterval)
+                .isEqualTo(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY));
+            assertThat(statsService.scheduledRefresh).isNotNull();
 
-                ClusterSettings clusterSettings = clusterService.getClusterSettings();
+            ClusterSettings clusterSettings = clusterService.getClusterSettings();
 
-                // Update setting
-                clusterSettings.applySettings(Settings.builder()
-                    .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), "10m").build());
+            // Update setting
+            clusterSettings.applySettings(Settings.builder()
+                .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), "10m").build());
 
-                assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMinutes(10));
-                assertThat(statsService.scheduledRefresh).isNotNull();
+            assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMinutes(10));
+            assertThat(statsService.scheduledRefresh).isNotNull();
 
-                // Disable
-                clusterSettings.applySettings(Settings.builder()
-                    .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build());
-            }
+            // Disable
+            clusterSettings.applySettings(Settings.builder()
+                .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build());
         }
     }
 
     @Test
-    public void testStatsQueriesCorrectly() throws IOException {
+    public void testStatsQueriesCorrectly() {
         Sessions sqlOperations = Mockito.mock(Sessions.class);
         Session session = Mockito.mock(Session.class);
         Mockito.when(sqlOperations.newSystemSession()).thenReturn(session);
-        try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
-            try (TableStatsService statsService = new TableStatsService(
-                nodeEnvironment,
-                Settings.EMPTY,
-                THREAD_POOL,
-                clusterService,
-                sqlOperations
-            )) {
-                statsService.run();
-
-                Mockito.verify(session, Mockito.times(1)).quickExec(ArgumentMatchers.eq(TableStatsService.STMT), ArgumentMatchers.any(), ArgumentMatchers.any());
-            }
+        try (TableStatsService statsService = new TableStatsService(
+            createDataPath(),
+            Settings.EMPTY,
+            THREAD_POOL,
+            clusterService,
+            sqlOperations
+        )) {
+            statsService.run();
+            Mockito.verify(session, Mockito.times(1)).quickExec(ArgumentMatchers.eq(TableStatsService.STMT), ArgumentMatchers.any(), ArgumentMatchers.any());
         }
     }
 
@@ -128,64 +124,55 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             ArgumentMatchers.anyString(), any())
         ).thenReturn(session);
 
-        try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
-            try (TableStatsService statsService = new TableStatsService(
-                nodeEnvironment,
-                Settings.EMPTY,
-                THREAD_POOL,
-                clusterService,
-                sqlOperations
-            )) {
+        try (TableStatsService statsService = new TableStatsService(
+            createDataPath(),
+            Settings.EMPTY,
+            THREAD_POOL,
+            clusterService,
+            sqlOperations
+        )) {
 
-                statsService.run();
-                Mockito.verify(session, Mockito.times(0)).sync();
-            }
+            statsService.run();
+            Mockito.verify(session, Mockito.times(0)).sync();
         }
     }
 
-    public void testPersistTableStats() throws IOException {
-
-        ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9));
-
-        TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(
-            Map.of(
-                TableStatsService.RELATION, new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(),
-                    Map.of(ColumnIdent.of("x"), columnStats, ColumnIdent.of("y"), columnStats))
-            )
+    public void testPersistAndLoadStats() throws IOException {
+        ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(
+            DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9)
         );
 
-        Path[] dataPaths = createDataPaths();
-        try (NodeEnvironment nodeEnvironment = newNodeEnvironment(dataPaths)) {
-            Path[] dataPaths1 = nodeEnvironment.nodeDataPaths();
-            try (TableStatsService statsService = new TableStatsService(
-                dataPaths1,
-                nodeEnvironment.nodeId(),
-                Settings.EMPTY,
-                THREAD_POOL,
-                clusterService,
-                Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
-                statsService.persist(tableStats);
-                TableStats loadedStats = statsService.load();
-                assertThat(loadedStats).isEqualTo(tableStats);
-            }
+        Stats stats = new Stats(9L, 9L * DataTypes.INTEGER.fixedSize(), Map.of(
+            ColumnIdent.of("x"), columnStats,
+            ColumnIdent.of("y"), columnStats)
+        );
+        RelationName relationName = RelationName.fromIndexName("doc.test");
+        Path dataPath = createDataPath();
+
+        try (TableStatsService statsService = new TableStatsService(
+            dataPath,
+            Settings.EMPTY,
+            THREAD_POOL,
+            clusterService,
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
+
+            statsService.persist(relationName, stats);
+        }
+
+        try (TableStatsService statsService = new TableStatsService(
+            dataPath,
+            Settings.EMPTY,
+            THREAD_POOL,
+            clusterService,
+            Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS))) {
+
+            Stats loaded = statsService.loadStats(relationName);
+            assertThat(loaded).isEqualTo(stats);
         }
     }
 
-    private NodeEnvironment newNodeEnvironment(Path[] dataPaths) throws IOException {
-        return newNodeEnvironment(Settings.builder()
-            .putList(Environment.PATH_DATA_SETTING.getKey(),
-                Arrays.stream(dataPaths).map(Path::toString).collect(Collectors.toList()))
-            .build());
+    public static Path createDataPath() {
+        return createTempDir();
     }
-
-    public static Path[] createDataPaths() {
-        final Path[] dataPaths = new Path[randomIntBetween(1, 4)];
-        for (int i = 0; i < dataPaths.length; i++) {
-            dataPaths[i] = createTempDir();
-        }
-        return dataPaths;
-    }
-
 
 }

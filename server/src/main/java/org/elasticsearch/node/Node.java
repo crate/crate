@@ -749,11 +749,6 @@ public class Node implements Closeable {
                 clusterService,
                 sessions);
 
-            TableStats persistedTableStats = tableStatsService.load();
-            if (persistedTableStats != null) {
-                tableStats.updateTableStats(persistedTableStats.tableStats());
-            }
-
             final HttpServerTransport httpServerTransport = newHttpTransport(
                 networkService,
                 bigArrays,
