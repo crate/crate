@@ -219,6 +219,7 @@ import io.crate.role.Roles;
 import io.crate.role.RolesService;
 import io.crate.session.Sessions;
 import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 
@@ -741,6 +742,14 @@ public class Node implements Closeable {
                 clusterService,
                 sessionSettingRegistry
             );
+
+            final TableStatsService tableStatsService = new TableStatsService(
+                nodeEnvironment,
+                settings,
+                threadPool,
+                clusterService,
+                sessions);
+
             final HttpServerTransport httpServerTransport = newHttpTransport(
                 networkService,
                 bigArrays,
@@ -836,6 +845,7 @@ public class Node implements Closeable {
                     b.bind(PgCatalogSchemaInfo.class).toInstance((PgCatalogSchemaInfo) schemas.getSystemSchema(PgCatalogSchemaInfo.NAME));
                     b.bind(InformationSchemaInfo.class).toInstance((InformationSchemaInfo) schemas.getSystemSchema(InformationSchemaInfo.NAME));
                     b.bind(BlobSchemaInfo.class).toInstance((BlobSchemaInfo) schemas.getSystemSchema(BlobSchemaInfo.NAME));
+                    b.bind(TableStatsService.class).toInstance(tableStatsService);
                 }
             );
             injector = modules.createInjector();

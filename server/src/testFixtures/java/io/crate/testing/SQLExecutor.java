@@ -319,6 +319,7 @@ public class SQLExecutor {
             }
             addNodesToClusterState(clusterService, numNodes);
             final Settings settings = Settings.EMPTY;
+            // add node path
             var tableStats = new TableStats();
             var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
             AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
@@ -500,7 +501,7 @@ public class SQLExecutor {
         this.fulltextAnalyzerResolver = fulltextAnalyzerResolver;
         this.udfService = udfService;
         this.tableStats = tableStats;
-        this.planStats = new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats);
+        this.planStats = new PlanStats(nodeCtx, coordinatorTxnCtx, tableStats::getStats);
         this.foreignDataWrappers = foreignDataWrappers;
         this.createTableAnalyzer = new CreateTableStatementAnalyzer(nodeCtx);
         this.createBlobTableAnalyzer = new CreateBlobTableAnalyzer(schemas, nodeCtx);

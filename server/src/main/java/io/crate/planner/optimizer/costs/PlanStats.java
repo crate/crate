@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.costs;
 
 import java.util.List;
 import java.util.Map;
+import java.util.function.Function;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -31,6 +32,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.operators.AbstractJoinPlan;
 import io.crate.planner.operators.Collect;
@@ -56,21 +58,23 @@ import io.crate.planner.selectivity.SelectivityFunctions;
 import io.crate.sql.tree.JoinType;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 
 public class PlanStats {
 
-    private final TableStats tableStats;
+    private final Function<RelationName, Stats> tableStats;
     private final StatsVisitor visitor;
     private final NodeContext nodeContext;
     private final TransactionContext txnCtx;
 
-    public PlanStats(NodeContext nodeContext, TransactionContext txnCtx, TableStats tableStats) {
+    public PlanStats(NodeContext nodeContext, TransactionContext txnCtx, Function<RelationName, Stats> tableStats) {
         this(nodeContext, txnCtx, tableStats, null);
     }
 
-    public PlanStats(NodeContext nodeContext, TransactionContext txnCtx, TableStats tableStats, @Nullable Memo memo) {
+    public PlanStats(NodeContext nodeContext,
+                     TransactionContext txnCtx,
+                     Function<RelationName, Stats> tableStats,
+                     @Nullable Memo memo) {
         this.nodeContext = nodeContext;
         this.txnCtx = txnCtx;
         this.tableStats = tableStats;
@@ -89,12 +93,15 @@ public class PlanStats {
 
         private final NodeContext nodeContext;
         private final TransactionContext txnCtx;
-        private final TableStats tableStats;
+        private final Function<RelationName, Stats> tableStats;
 
         @Nullable
         private final Memo memo;
 
-        public StatsVisitor(NodeContext nodeContext, TransactionContext txnCtx, TableStats tableStats, @Nullable Memo memo) {
+        public StatsVisitor(NodeContext nodeContext,
+                            TransactionContext txnCtx,
+                            Function<RelationName, Stats> tableStats,
+                            @Nullable Memo memo) {
             this.nodeContext = nodeContext;
             this.txnCtx = txnCtx;
             this.tableStats = tableStats;
@@ -211,7 +218,7 @@ public class PlanStats {
 
         @Override
         public Stats visitCollect(Collect collect, Void context) {
-            var stats = tableStats.getStats(collect.relation().tableInfo().ident());
+            var stats = tableStats.apply(collect.relation().tableInfo().ident());
             if (stats.equals(Stats.EMPTY)) {
                 return stats;
             } else {
@@ -236,7 +243,7 @@ public class PlanStats {
 
         @Override
         public Stats visitGet(Get get, Void context) {
-            Stats stats = tableStats.getStats(get.table().relationName());
+            Stats stats = tableStats.apply(get.table().relationName());
             return stats.withNumDocs(get.numExpectedRows());
         }
 

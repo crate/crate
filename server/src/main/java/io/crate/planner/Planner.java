@@ -231,7 +231,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             params,
             cursors,
             transactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats),
+            new PlanStats(nodeCtx, txnCtx, tableStats::getStats),
             this.logicalPlanner::optimize,
             timeoutToken
         );

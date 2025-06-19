@@ -22,22 +22,61 @@
 package io.crate.statistics;
 
 
+import java.io.ByteArrayInputStream;
+import java.io.Closeable;
+import java.io.IOException;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+import java.util.function.IntPredicate;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.analysis.core.KeywordAnalyzer;
+import org.apache.lucene.document.Document;
+import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
+import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.DirectoryReader;
+import org.apache.lucene.index.IndexNotFoundException;
+import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.index.IndexWriter;
+import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.index.SerialMergeScheduler;
+import org.apache.lucene.index.StoredFields;
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
+import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.NIOFSDirectory;
+import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+
+import io.crate.common.io.IOUtils;
+import io.crate.metadata.RelationName;
 import io.crate.session.BaseResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
@@ -72,11 +111,27 @@ public class TableStatsService implements Runnable {
     @VisibleForTesting
     volatile Scheduler.ScheduledCancellable scheduledRefresh;
 
+    private final Path dataPath;
+
+    private static final String STATS_LOCATION = "_stats";
+    private static final String RELATION_NAME_FIELD = "relationName";
+
+
     @Inject
-    public TableStatsService(Settings settings,
+    public TableStatsService(NodeEnvironment nodeEnvironment,
+                             Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
-                             Sessions sessions) {
+                             Sessions sessions) throws IOException {
+        this(nodeEnvironment.nodeDataPaths()[0], settings, threadPool, clusterService, sessions);
+    }
+
+    @VisibleForTesting
+    TableStatsService(Path dataPath,
+                      Settings settings,
+                      ThreadPool threadPool,
+                      ClusterService clusterService,
+                      Sessions sessions) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.sessions = sessions;
@@ -85,6 +140,135 @@ public class TableStatsService implements Runnable {
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
+        this.dataPath = dataPath;
+    }
+
+    private Writer createWriter() throws IOException {
+        Path path = dataPath.resolve(STATS_LOCATION);
+        Directory directory = new NIOFSDirectory(path);
+        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
+        indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE);
+        indexWriterConfig.setRAMBufferSizeMB(1.0);
+        indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
+        IndexWriter indexWriter = new IndexWriter(directory, indexWriterConfig);
+        return new Writer(directory, indexWriter);
+    }
+
+    @Nullable
+    public Stats loadStats(RelationName relationName) throws IOException {
+        Path path = dataPath.resolve(STATS_LOCATION);
+        if (Files.exists(path)) {
+            try (Directory dir = new NIOFSDirectory(path)) {
+                DirectoryReader reader;
+                try {
+                    reader = DirectoryReader.open(dir);
+                } catch (IndexNotFoundException e) {
+                    LOGGER.debug("No table stats found for " + relationName.fqn());
+                    return null;
+                }
+                IndexSearcher indexSearcher = new IndexSearcher(reader);
+                indexSearcher.setQueryCache(null);
+                Query query = new TermQuery(new Term(RELATION_NAME_FIELD, relationName.fqn()));
+                Weight weight = indexSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+                try (IndexReader indexReader = indexSearcher.getIndexReader()) {
+                    for (LeafReaderContext leafReaderContext : indexReader.leaves()) {
+                        final Scorer scorer = weight.scorer(leafReaderContext);
+                        if (scorer != null) {
+                            final Bits liveDocs = leafReaderContext.reader().getLiveDocs();
+                            final IntPredicate isLiveDoc = liveDocs == null ? i -> true : liveDocs::get;
+                            final DocIdSetIterator docIdSetIterator = scorer.iterator();
+                            StoredFields storedFields = leafReaderContext.reader().storedFields();
+                            while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                if (isLiveDoc.test(docIdSetIterator.docID())) {
+                                    BytesRef binaryValue = storedFields.document(docIdSetIterator.docID()).getBinaryValue(STATS_LOCATION);
+                                    return new Stats(
+                                        new InputStreamStreamInput(
+                                            new ByteArrayInputStream(
+                                                binaryValue.bytes
+                                            )
+                                        )
+                                    );
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return null;
+    }
+
+    private static final class Writer implements Closeable {
+        final Directory directory;
+        final IndexWriter indexWriter;
+
+        private Writer(Directory directory, IndexWriter indexWriter) {
+            this.directory = directory;
+            this.indexWriter = indexWriter;
+        }
+
+        void updateDoc(RelationName relationName, Document statsDoc) throws IOException {
+            indexWriter.updateDocument(new Term(RELATION_NAME_FIELD, relationName.fqn()), statsDoc);
+        }
+
+        void flush() throws IOException {
+            this.indexWriter.flush();
+        }
+
+        void commit() throws IOException {
+            indexWriter.commit();
+        }
+
+        @Override
+        public void close() throws IOException {
+            IOUtils.close(indexWriter, directory);
+        }
+
+        void prepareCommit() throws IOException {
+            indexWriter.prepareCommit();
+        }
+
+        private Document makeDocument(RelationName relationName, Stats stats) throws IOException {
+            BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
+            stats.writeTo(bytesStreamOutput);
+            Document document = new Document();
+            document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
+            document.add(new StoredField(STATS_LOCATION, bytesStreamOutput.bytes().toBytesRef()));
+            return document;
+        }
+    }
+
+    public void writeToDisk(TableStats tableStats) {
+        try {
+            try (Writer writer = createWriter()) {
+                Map<RelationName, Stats> values = tableStats.values();
+                for (Map.Entry<RelationName, Stats> entry : values.entrySet()) {
+                    RelationName relationName = entry.getKey();
+                    Stats stats = entry.getValue();
+                    Document doc = writer.makeDocument(relationName, stats);
+                    writer.updateDoc(relationName, doc);
+                }
+                writer.prepareCommit();
+                writer.flush();
+                writer.commit();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    public void writeToDisk(RelationName relationName, Stats stats) {
+        try {
+            try (Writer writer = createWriter()) {
+                Document doc = writer.makeDocument(relationName, stats);
+                writer.updateDoc(relationName, doc);
+                writer.prepareCommit();
+                writer.flush();
+                writer.commit();
+            }
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
     }
 
     @Override
