@@ -35,6 +35,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexNotFoundException;
@@ -162,7 +163,7 @@ public class TableStatsService implements Runnable {
                 try {
                     reader = DirectoryReader.open(dir);
                 } catch (IndexNotFoundException e) {
-                    LOGGER.debug("No table stats found");
+                    LOGGER.debug("No table stats found for " + relationName.fqn());
                     return null;
                 }
                 IndexSearcher indexSearcher = new IndexSearcher(reader);
@@ -231,8 +232,8 @@ public class TableStatsService implements Runnable {
             BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
             stats.writeTo(bytesStreamOutput);
             Document document = new Document();
-            document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.YES));
-            document.add(new StringField(STATS_LOCATION, bytesStreamOutput.bytes().toBytesRef(), Field.Store.YES));
+            document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
+            document.add(new StoredField(STATS_LOCATION, bytesStreamOutput.bytes().toBytesRef()));
             return document;
         }
     }
