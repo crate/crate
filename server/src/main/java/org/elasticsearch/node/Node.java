@@ -385,6 +385,7 @@ public class Node implements Closeable {
             resourcesToClose.add(clusterService);
 
             final Roles roles = new RolesService(clusterService);
+            // add path for persistence
             final TableStats tableStats = new TableStats();
 
             final NodeContext nodeContext = NodeContext.of(environment, clusterService, functions, roles, tableStats);

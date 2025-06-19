@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.junit.Test;
@@ -37,6 +38,7 @@ import io.crate.exceptions.JobKilledException;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.Order;
@@ -49,13 +51,14 @@ import io.crate.planner.optimizer.rule.MergeFilters;
 import io.crate.planner.optimizer.rule.MoveFilterBeneathOrder;
 import io.crate.planner.optimizer.tracer.OptimizerTracer;
 import io.crate.session.Session;
-import io.crate.statistics.TableStats;
+import io.crate.statistics.Stats;
 
 public class IterativeOptimizerTest {
 
     private final NodeContext nodeCtx = createNodeContext();
     private final CoordinatorTxnCtx ctx = CoordinatorTxnCtx.systemTransactionContext();
-    private final PlanStats planStats = new PlanStats(nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new TableStats());
+    private final Map<RelationName, Stats> tableStats = Map.of();
+    private final PlanStats planStats = new PlanStats(nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), tableStats::get);
 
     @Test
     public void test_match_single_rule_merge_filters() {

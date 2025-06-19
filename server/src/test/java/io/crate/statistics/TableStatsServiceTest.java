@@ -158,7 +158,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS));
 
-        statsService.persist(relationName, stats);
+        statsService.writeToDisk(relationName, stats);
 
 
         statsService = new TableStatsService(

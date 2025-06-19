@@ -119,7 +119,7 @@ public final class TransportAnalyzeAction {
             new NodeActionRequestHandler<PublishTableStatsRequest, AcknowledgedResponse>(
                 req -> {
                     tableStats.updateTableStats(req.tableStats());
-                    tableStatsService.persist(tableStats);
+                    tableStatsService.writeToDisk(tableStats);
                     return completedFuture(new AcknowledgedResponse(true));
                 }
             )

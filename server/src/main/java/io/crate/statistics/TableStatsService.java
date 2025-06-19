@@ -238,12 +238,7 @@ public class TableStatsService implements Runnable {
         }
     }
 
-    @Override
-    public void run() {
-        updateStats();
-    }
-
-    public void persist(TableStats tableStats) {
+    public void writeToDisk(TableStats tableStats) {
         try {
             try (Writer writer = createWriter()) {
                 Map<RelationName, Stats> values = tableStats.values();
@@ -262,7 +257,7 @@ public class TableStatsService implements Runnable {
         }
     }
 
-    public void persist(RelationName relationName, Stats stats) {
+    public void writeToDisk(RelationName relationName, Stats stats) {
         try {
             try (Writer writer = createWriter()) {
                 Document doc = writer.makeDocument(relationName, stats);
@@ -274,6 +269,11 @@ public class TableStatsService implements Runnable {
         } catch (IOException e) {
             throw new RuntimeException(e);
         }
+    }
+
+    @Override
+    public void run() {
+        updateStats();
     }
 
     public void updateStats() {
