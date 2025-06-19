@@ -24,34 +24,16 @@ package io.crate.statistics;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 import java.util.Set;
-
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.
  */
-public class TableStats implements Writeable {
+public class TableStats {
 
     private volatile Map<RelationName, Stats> tableStats = new HashMap<>();
-
-    public TableStats() {
-    }
-
-    public TableStats(StreamInput in) throws IOException {
-        int size = in.readInt();
-        for (int i = 0; i < size; i++) {
-            RelationName relationName = new RelationName(in);
-            Stats stats = new Stats(in);
-            tableStats.put(relationName, stats);
-        }
-    }
 
     public void updateTableStats(Map<RelationName, Stats> tableStats) {
         this.tableStats = tableStats;
@@ -110,32 +92,4 @@ public class TableStats implements Writeable {
     public Stats getStats(RelationName relationName) {
         return tableStats.getOrDefault(relationName, Stats.EMPTY);
     }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        int size = tableStats.size();
-        out.writeInt(size);
-        for (Map.Entry<RelationName, Stats> relationNameStatsEntry : tableStats.entrySet()) {
-            relationNameStatsEntry.getKey().writeTo(out);
-            relationNameStatsEntry.getValue().writeTo(out);
-        }
-    }
-
-    public Map<RelationName, Stats> tableStats() {
-        return tableStats;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        TableStats that = (TableStats) o;
-        return Objects.equals(tableStats, that.tableStats);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(tableStats);
-    }
-
-
 }
