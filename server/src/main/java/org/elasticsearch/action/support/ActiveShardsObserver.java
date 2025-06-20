@@ -58,12 +58,12 @@ public class ActiveShardsObserver {
             ActionListener<T> delegate,
             TimeValue timeout,
             Runnable onShardsNotAcknowledged,
-            Supplier<String[]> getIndexNames) {
+            Supplier<String[]> getIndexUUIDs) {
         return ActionListener.wrap(
             resp -> {
                 if (resp.isAcknowledged()) {
                     waitForActiveShards(
-                        getIndexNames.get(),
+                        getIndexUUIDs.get(),
                         ActiveShardCount.DEFAULT,
                         timeout,
                         shardsAcknowledged -> {

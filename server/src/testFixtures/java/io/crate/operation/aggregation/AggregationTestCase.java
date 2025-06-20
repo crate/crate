@@ -670,6 +670,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             "collect",
             new Routing(Map.of()),
             RowGranularity.SHARD,
+            false,
             toCollectRefs,
             projections,
             WhereClause.MATCH_ALL.queryOrFallback(),

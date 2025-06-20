@@ -21,7 +21,7 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_OLD_NAME;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_NAME;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -376,7 +376,6 @@ public class MetadataCreateIndexService {
             }
             indexSettingsBuilder
                 .put(SETTING_INDEX_UUID, resizedIndexUUID)
-                .put(SETTING_OLD_NAME, sourceIndex.getIndex().getName())
                 .put(SETTING_CREATION_DATE, Instant.now().toEpochMilli())
                 .put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), indexVersionCreated)
                 .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME.getKey(), sourceIndex.getIndex().getName())
@@ -416,9 +415,8 @@ public class MetadataCreateIndexService {
             }
 
             IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(resizedIndexUUID)
-                .indexName(sourceIndex.getIndex().getName())
-                .settings(indexSettingsBuilder)
                 .indexName(resizedIndexName)
+                .settings(indexSettingsBuilder)
                 .partitionValues(sourceIndex.partitionValues())
                 .setRoutingNumShards(routingNumShards);
 

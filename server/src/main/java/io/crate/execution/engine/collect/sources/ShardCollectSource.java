@@ -343,7 +343,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
-                    if (IndexName.isPartitioned(indexUUID)) {
+                    if (IndexName.isPartitioned(index.getName())) {
                         break;
                     }
                     throw e;
@@ -415,13 +415,13 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         Metadata metadata = clusterService.state().metadata();
         List<CompletableFuture<BatchIterator<Row>>> iterators = new ArrayList<>();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
-            String indexName = entry.getKey();
-            IndexMetadata indexMD = metadata.index(indexName);
+            String indexUUID = entry.getKey();
+            IndexMetadata indexMD = metadata.index(indexUUID);
             if (indexMD == null) {
-                if (IndexName.isPartitioned(indexName)) {
+                if (collectPhase.onPartitionedTable()) {
                     continue;
                 }
-                throw new IndexNotFoundException(indexName);
+                throw new IndexNotFoundException(indexUUID);
             }
             Index index = indexMD.getIndex();
             for (IntCursor shardCursor: entry.getValue()) {
@@ -454,8 +454,8 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
 
 
         for (Map.Entry<String, IntIndexedContainer> indexShards : indexShardsMap.entrySet()) {
-            String indexName = indexShards.getKey();
-            IndexMetadata indexMetadata = metadata.index(indexName);
+            String indexUUID = indexShards.getKey();
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
                 continue;
             }

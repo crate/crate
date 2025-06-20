@@ -152,7 +152,7 @@ public final class IndexScopedSettings extends AbstractScopedSettings {
             case MergePolicyConfig.INDEX_MERGE_ENABLED:
             case IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY:
             case IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY:
-            case IndexMetadata.SETTING_OLD_NAME:
+            case IndexMetadata.SETTING_INDEX_NAME:
                 return true;
             default:
                 return IndexMetadata.INDEX_ROUTING_INITIAL_RECOVERY_GROUP_SETTING.getRawKey().match(key);

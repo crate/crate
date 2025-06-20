@@ -49,7 +49,7 @@ public class IndexUUID {
                 .maximumSize(20)
                 .build(key -> {
                     List<String> indexUUIDS = metadata.getIndices(relationName, key, true, IndexMetadata::getIndexUUID);
-                    return indexUUIDS.isEmpty() ? new PartitionName(relationName, key).asIndexName() : indexUUIDS.getFirst();
+                    return indexUUIDS.isEmpty() ? null : indexUUIDS.getFirst();
                 });
             return () -> {
                 // copy because the values of the inputs are mutable
@@ -61,7 +61,7 @@ public class IndexUUID {
 
         return () ->  {
             List<String> indexUUIDS = metadata.getIndices(relationName, partitionedBy, true, IndexMetadata::getIndexUUID);
-            return indexUUIDS.isEmpty() ? new PartitionName(relationName, partitionedBy).asIndexName() : indexUUIDS.getFirst();
+            return indexUUIDS.isEmpty() ? null : indexUUIDS.getFirst();
         };
     }
 }

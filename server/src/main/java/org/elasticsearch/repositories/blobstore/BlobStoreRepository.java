@@ -1055,7 +1055,6 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                     : List.of();
                 executor.execute(ActionRunnable.run(allMetaListener, () -> {
                         final IndexMetadata indexMetaData = clusterMetadata.getIndex(indexParts.toRelationName(), partitionValues, true, im -> im);
-                        //final IndexMetadata indexMetaData = clusterMetadata.index(index.getId());
                         if (writeIndexGens) {
                             String identifiers = IndexMetaDataGenerations.buildUniqueIdentifier(indexMetaData);
                             IndexMetaDataGenerations existingIndexMetaGenerations = existingRepositoryData.indexMetaDataGenerations();
@@ -1069,7 +1068,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                             indexMetas.put(index, identifiers);
                         } else {
                             INDEX_METADATA_FORMAT.write(
-                                clusterMetadata.index(index.getId()), indexContainer(index), snapshotId.getUUID(), compress);
+                                indexMetaData, indexContainer(index), snapshotId.getUUID(), compress);
                         }
                     }
                 ));

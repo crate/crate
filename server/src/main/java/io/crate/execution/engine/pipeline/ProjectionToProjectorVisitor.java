@@ -36,7 +36,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Predicate;
-import java.util.function.Supplier;
 import java.util.stream.Collector;
 
 import org.elasticsearch.client.Client;
@@ -414,8 +413,6 @@ public class ProjectionToProjectorVisitor
         }
         Input<?> sourceInput = ctx.add(projection.rawSource());
         ClusterState state = clusterService.state();
-        Supplier<String> indexUUIDResolver =
-            IndexUUID.createResolver(state.metadata(), projection.tableIdent(), projection.partitionIdent(), partitionedByInputs);
         DocTableInfo tableInfo = nodeCtx.schemas().getTableInfo(projection.tableIdent());
 
         int targetTableNumShards = tableInfo.numberOfShards();
@@ -446,7 +443,8 @@ public class ProjectionToProjectorVisitor
             targetTableNumShards,
             targetTableNumReplicas,
             elasticsearchClient,
-            indexUUIDResolver,
+            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
+            IndexUUID.createResolver(state.metadata(), projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             projection.rawSourceReference(),
             projection.primaryKeys(),
             projection.ids(),
@@ -509,6 +507,7 @@ public class ProjectionToProjectorVisitor
             state.metadata().settings(),
             targetTableNumShards,
             targetTableNumReplicas,
+            IndexName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             IndexUUID.createResolver(state.metadata(), projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             elasticsearchClient,
             projection.primaryKeys(),

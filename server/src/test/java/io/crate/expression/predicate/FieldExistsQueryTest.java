@@ -229,6 +229,7 @@ public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
 
     @Test
     public void test_is_null_on_columns_without_doc_values() throws Exception {
+        int idx = 0;
         for (var type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
             StorageSupport<?> storageSupport = type.storageSupport();
             if (storageSupport == null || !storageSupport.supportsDocValuesOff()) {
@@ -238,7 +239,8 @@ public class FieldExistsQueryTest extends LuceneQueryBuilderTest {
             Object val1 = dataGenerator.get();
             var extendedType = DataTypeTesting.extendedType(type, val1);
             String typeDefinition = SqlFormatter.formatSql(extendedType.toColumnType(null));
-            String stmt = "create table tbl (id int primary key, x " + typeDefinition + " storage with (columnstore = false))";
+            String tableName = "tbl_" + idx++;
+            String stmt = "create table " + tableName + " (id int primary key, x " + typeDefinition + " storage with (columnstore = false))";
             QueryTester.Builder builder = new QueryTester.Builder(
                 THREAD_POOL,
                 clusterService,

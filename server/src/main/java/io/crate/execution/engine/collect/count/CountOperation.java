@@ -94,13 +94,13 @@ public class CountOperation {
         List<CompletableFuture<Supplier<Long>>> futureSuppliers = new ArrayList<>();
         Metadata metadata = clusterService.state().metadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
-            String indexName = entry.getKey();
-            IndexMetadata indexMetadata = metadata.index(indexName);
+            String indexUUID = entry.getKey();
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
-                if (IndexName.isPartitioned(indexName)) {
-                    continue;
-                }
-                throw new IndexNotFoundException(indexName);
+                //if (IndexName.isPartitioned(indexUUID)) {
+                continue;
+                //}
+                //throw new IndexNotFoundException(indexUUID);
             }
             final Index index = indexMetadata.getIndex();
             for (IntCursor shardCursor : entry.getValue()) {

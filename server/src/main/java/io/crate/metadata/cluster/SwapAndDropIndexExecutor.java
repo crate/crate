@@ -33,7 +33,10 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAndDropIndexRequest> {
 
@@ -49,8 +52,12 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
         String resizedIndexName = request.source();
         String originalIndexName = request.target();
 
-        PartitionName originalPartitionName = PartitionName.fromIndexOrTemplate(originalIndexName);
-        List<IndexMetadata> indices = currentState.metadata().getIndices(originalPartitionName.relationName(), originalPartitionName.values(), true, im -> im);
+        IndexParts indexParts = IndexName.decode(originalIndexName);
+        RelationName relationName = indexParts.toRelationName();
+        List<String> partitionValues = indexParts.isPartitioned()
+            ? PartitionName.decodeIdent(indexParts.partitionIdent())
+            : List.of();
+        List<IndexMetadata> indices = currentState.metadata().getIndices(relationName, partitionValues, true, im -> im);
 
         IndexMetadata resizedIndex = null;
         IndexMetadata originalIndex = null;
@@ -93,7 +100,7 @@ public class SwapAndDropIndexExecutor extends DDLClusterStateTaskExecutor<SwapAn
         routingBuilder.addAsFromCloseToOpen(newIndexMetadata);
         blocksBuilder.addBlocks(newIndexMetadata);
 
-        RelationMetadata relation = metadata.getRelation(originalPartitionName.relationName());
+        RelationMetadata relation = metadata.getRelation(relationName);
         if (relation instanceof RelationMetadata.Table table) {
             String originalUUID = originalIndex.getIndexUUID();
             List<String> newUUIDs = table.indexUUIDs().stream().filter(s -> s.equals(originalUUID) == false).toList();

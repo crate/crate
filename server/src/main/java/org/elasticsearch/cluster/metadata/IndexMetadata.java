@@ -205,7 +205,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         new Setting<>(SETTING_DATA_PATH, "", Function.identity(), DataTypes.STRING, Property.IndexScope);
     public static final String INDEX_UUID_NA_VALUE = "_na_";
 
-    public static final String SETTING_OLD_NAME = "index.old.name";
+    public static final String SETTING_INDEX_NAME = "index.name";
     public static final String INDEX_NAME_NA_VALUE = "_na_";
 
     public static final String INDEX_ROUTING_REQUIRE_GROUP_PREFIX = "index.routing.allocation.require";
@@ -1041,9 +1041,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
         public IndexMetadata build() {
             final ImmutableOpenMap.Builder<String, AliasMetadata> tmpAliases = aliases;
+            indexName = indexName == null ? indexUUID : indexName;
             final Settings tmpSettings = Settings.builder()
                 .put(settings)
-                .put(SETTING_OLD_NAME, indexName)
+                .put(SETTING_INDEX_NAME, indexName)
                 .build();
 
             if (indexUUID == null || indexUUID.isEmpty()) {
@@ -1277,10 +1278,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
             String indexUUID = builder.settings.get(SETTING_INDEX_UUID, INDEX_UUID_NA_VALUE);
             builder.indexUUID(indexUUID);
-            builder.settings(Settings.builder()
-                .put(builder.settings)
-                .build());
-
             return builder.build();
         }
     }

@@ -268,7 +268,6 @@ public class MetadataUpgradeService {
                 // If RelationMetadata exist in the cluster state, make sure to override them with
                 // the upgraded settings which currently takes place on IndexTemplateMetadata
                 .put(indexMetadata.getSettings())
-                .put(SETTING_VERSION_UPGRADED, Version.CURRENT)
                 .build();
             if (relation == null) {
                 newMetadata.setTable(

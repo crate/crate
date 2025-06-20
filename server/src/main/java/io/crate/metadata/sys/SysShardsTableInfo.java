@@ -52,7 +52,6 @@ import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -248,7 +247,7 @@ public class SysShardsTableInfo {
                                      CoordinatorSessionSettings sessionSettings,
                                      Roles roles) {
         String[] concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllIndices())
-            .filter(index -> !IndexName.isDangling(index))
+            //.filter(index -> !IndexName.isDangling(index))
             .toArray(String[]::new);
         Role user = sessionSettings != null ? sessionSettings.sessionUser() : null;
         if (user != null) {
@@ -258,7 +257,7 @@ public class SysShardsTableInfo {
                 if (table == null) {
                     throw new IndexNotFoundException(indexUUID);
                 }
-                String tableName = table.name().indexNameOrAlias();
+                String tableName = table.name().fqn();
                 if (roles.hasAnyPrivilege(user, Securable.TABLE, tableName)) {
                     accessibleTables.add(indexUUID);
                 }
