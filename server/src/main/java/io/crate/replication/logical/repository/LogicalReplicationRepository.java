@@ -180,12 +180,12 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 true,
                 resp.metadata().relations(RelationMetadata.Table.class).stream().map(RelationMetadata.Table::name).toList()))
             .thenApply(remoteClusterStateResp -> {
-                ClusterState remoteClusterState = remoteClusterStateResp.getState();
-                var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
+                Metadata remoteMetadata = metadataUpgradeService.upgradeMetadata(remoteClusterStateResp.getState().metadata());
+                var metadataBuilder = Metadata.builder(remoteMetadata);
 
                 // We update all tables with the subscription setting, not only the partitioned ones,
                 // as in getSnapshotIndexMetadata() we don't have access to the whole `Metadata` object.
-                for (var table : remoteClusterState.metadata().relations(RelationMetadata.Table.class)) {
+                for (var table : remoteMetadata.relations(RelationMetadata.Table.class)) {
                     metadataBuilder.setTable(
                         table.name(),
                         table.columns(),
