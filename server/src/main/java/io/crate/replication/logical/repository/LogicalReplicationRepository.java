@@ -73,6 +73,7 @@ import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
@@ -468,9 +469,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return getRemoteClusterState(false, true, Arrays.asList(remoteRelationNames));
     }
 
-    private CompletableFuture<ClusterStateResponse> getRemoteClusterState(boolean includeNodes,
-                                                                          boolean includeRouting,
-                                                                          List<RelationName> relationNames) {
+    @VisibleForTesting
+    CompletableFuture<ClusterStateResponse> getRemoteClusterState(boolean includeNodes,
+                                                                  boolean includeRouting,
+                                                                  List<RelationName> relationNames) {
         Client remoteClient = getRemoteClient();
         var clusterStateRequest = new ClusterStateRequest()
             .relationNames(relationNames)
@@ -478,7 +480,12 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .nodes(includeNodes)
             .routingTable(includeRouting)
             .waitForTimeout(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC));
-        return remoteClient.state(clusterStateRequest);
+        return remoteClient.state(clusterStateRequest)
+            .thenApply(r -> new ClusterStateResponse(
+                r.getClusterName(),
+                ClusterState.builder(r.getState())
+                    .metadata(metadataUpgradeService.upgradeMetadata(r.getState().metadata())).build(),
+                r.isWaitForTimedOut()));
     }
 
     private CompletableFuture<Response> getPublicationsState() {
