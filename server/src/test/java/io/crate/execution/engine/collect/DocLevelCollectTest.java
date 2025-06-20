@@ -178,12 +178,17 @@ public class DocLevelCollectTest extends IntegTestCase {
     }
 
     private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {
+        return getCollectNode(toCollect, routing, whereClause, false);
+    }
+
+    private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause, boolean onPartitionedTable) {
         return new RoutedCollectPhase(
             UUID.randomUUID(),
             1,
             "docCollect",
             routing,
             RowGranularity.DOC,
+            onPartitionedTable,
             toCollect,
             List.of(),
             whereClause.queryOrFallback(),
@@ -211,7 +216,8 @@ public class DocLevelCollectTest extends IntegTestCase {
                 tableInfo.getReference(ColumnIdent.of("date"))
             ),
             routing,
-            WhereClause.MATCH_ALL
+            WhereClause.MATCH_ALL,
+            true
         );
 
         Bucket result = collect(collectNode);

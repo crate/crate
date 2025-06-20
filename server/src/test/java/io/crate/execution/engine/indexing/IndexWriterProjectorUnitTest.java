@@ -112,6 +112,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             1,
             mock(Client.class),
             IndexName.createResolver(BULK_IMPORT_IDENT),
+            IndexName.createResolver(BULK_IMPORT_IDENT),
             RAW_SOURCE_REFERENCE,
             Collections.singletonList(ID_IDENT),
             Collections.<Symbol>singletonList(new InputColumn(1)),

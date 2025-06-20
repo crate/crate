@@ -1082,7 +1082,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_relationnames_order_in_nested_loop_join() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
+        resetClusterService(); // drop existing tables
+        var e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
             .addTable("CREATE TABLE doc.t1 (a INT)")
@@ -1094,12 +1095,12 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), new Stats(10, 10, Map.of()));
         rowCountByTable.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "t2"), new Stats(200, 200, Map.of()));
-        executor.updateTableStats(rowCountByTable);
+        e.updateTableStats(rowCountByTable);
 
         QueriedSelectRelation mss = e.analyze(
             "Select * from t1 INNER JOIN t2 on t1.a = t2.b INNER JOIN T3 on t2.b = t3.c");
 
-        var plannerCtx = executor.getPlannerContext();
+        var plannerCtx = e.getPlannerContext();
         plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
         NestedLoopJoin result = (NestedLoopJoin) buildLogicalPlan(mss, plannerCtx);
 
@@ -1119,14 +1120,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_push_constant_join_conditions_beneath_outer_joins() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
+        resetClusterService(); // drop existing tables
+        var e = SQLExecutor.builder(clusterService)
             .build()
             .addTable("CREATE TABLE doc.t1 (a INT)")
             .addTable("CREATE TABLE doc.t2 (b INT)");
 
         QueriedSelectRelation mss = e.analyze("SELECT * FROM t1 RIGHT JOIN t2 ON t1.a = t2.b AND t1.a > 1");
 
-        var plannerCtx = executor.getPlannerContext();
+        var plannerCtx = e.getPlannerContext();
         plannerCtx.transactionContext().sessionSettings().setHashJoinEnabled(false);
         var result = buildLogicalPlan(mss, plannerCtx);
 
@@ -1139,14 +1141,15 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_right_outer_join_rewrite_to_left_outer_join() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
+        resetClusterService(); // drop existing tables
+        var e = SQLExecutor.builder(clusterService)
             .build()
             .addTable("CREATE TABLE doc.t1 (a INT)")
             .addTable("CREATE TABLE doc.t2 (b INT)");
 
         QueriedSelectRelation mss = e.analyze("SELECT * FROM t1 RIGHT JOIN t2 ON t1.a = t2.b");
 
-        var plannerCtx = executor.getPlannerContext();
+        var plannerCtx = e.getPlannerContext();
         var result = buildLogicalPlan(mss, plannerCtx);
 
         assertThat(result).hasOperators(
@@ -1159,7 +1162,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_many_mized_implicit_and_explicit_joins() throws Exception {
-        var executor = SQLExecutor.builder(clusterService)
+        resetClusterService(); // drop existing tables
+        var e = SQLExecutor.builder(clusterService)
             .build()
             .addTable("CREATE TABLE doc.t1(a integer)")
             .addTable("CREATE TABLE doc.t2(b integer)")
@@ -1169,8 +1173,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE doc.t6(f integer)");
 
 
-        QueriedSelectRelation mss = e.analyze("SELECT * FROM doc.t1 right join doc.t2 on true, doc.t3, doc.t4, t5, t6");
-        var plannerCtx = executor.getPlannerContext();
+        QueriedSelectRelation mss = e.analyze("SELECT * FROM doc.t1 right join doc.t2 on true, doc.t3, doc.t4, doc.t5, doc.t6");
+        var plannerCtx = e.getPlannerContext();
         var result = buildLogicalPlan(mss, plannerCtx);
 
         assertThat(result).hasOperators(

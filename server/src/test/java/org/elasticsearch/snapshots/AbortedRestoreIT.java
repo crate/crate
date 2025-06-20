@@ -75,11 +75,11 @@ public class AbortedRestoreIT extends AbstractSnapshotIntegTestCase {
             new Object[0][]
         );
 
-        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "tbl");
-        String indexUUID = clusterService().state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        RelationName relationName = new RelationName("doc", "tbl");
 
         assertBusy(() -> {
             ClusterService clusterService = cluster().getInstance(ClusterService.class);
+            String indexUUID = clusterService().state().metadata().getIndex(relationName, List.of(), false, IndexMetadata::getIndexUUID);
             IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);
             assertThat(indexMetadata).isNotNull();
             var index = new Index(relationName.indexNameOrAlias(), indexMetadata.getIndexUUID());

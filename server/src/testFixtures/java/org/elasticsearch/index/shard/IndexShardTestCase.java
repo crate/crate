@@ -351,6 +351,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 .put(settings)
                 .build();
         IndexMetadata.Builder metadata = IndexMetadata.builder(shardRouting.getIndexUUID())
+            .indexName(shardRouting.getIndexName())
             .settings(indexSettings)
             .primaryTerm(0, primaryTerm)
             .putMapping("{ \"properties\": {} }");

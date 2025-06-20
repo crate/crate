@@ -1921,24 +1921,32 @@ public abstract class IntegTestCase extends ESTestCase {
         return false;
     }
 
-    public RelationName resolveRelationName(String indexName) {
-        IndexParts indexParts = IndexName.decode(indexName);
-        String schema = indexParts.schema();
-        if (indexName.contains(schema) == false) {
-            schema = sqlExecutor.getCurrentSchema();
-        }
-        return new RelationName(schema, indexParts.table());
-    }
-
     public Index resolveIndex(String indexName) {
-        return resolveIndex(indexName, List.of());
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
+        return resolveIndex(indexName, sqlExecutor.getCurrentSchema(), clusterService.state().metadata());
     }
 
     public Index resolveIndex(String indexName, List<String> partitionValues) {
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
+        return resolveIndex(indexName, partitionValues, sqlExecutor.getCurrentSchema(), clusterService.state().metadata());
+    }
 
-        RelationName relationName = resolveRelationName(indexName);
-        return clusterService.state().metadata()
+    public static RelationName resolveRelationName(String indexName, String currentSchema) {
+        IndexParts indexParts = IndexName.decode(indexName);
+        String schema = indexParts.schema();
+        if (indexName.contains(schema) == false) {
+            schema = currentSchema;
+        }
+        return new RelationName(schema, indexParts.table());
+    }
+
+    public static Index resolveIndex(String indexName, String currentSchema, Metadata metadata) {
+        return resolveIndex(indexName, List.of(), currentSchema, metadata);
+    }
+
+    public static Index resolveIndex(String indexName, List<String> partitionValues, String currentSchema, Metadata metadata) {
+        RelationName relationName = resolveRelationName(indexName, currentSchema);
+        return metadata
             .getIndex(relationName, partitionValues, true, IndexMetadata::getIndex);
     }
 }

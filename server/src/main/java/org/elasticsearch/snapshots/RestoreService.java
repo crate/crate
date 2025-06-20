@@ -267,7 +267,6 @@ public class RestoreService implements ClusterStateApplier {
      */
     @VisibleForTesting
     static void resolveIndices(List<TableOrPartition> tablesToRestore,
-                               List<String> availableIndices,
                                Metadata snapshotMetadata,
                                List<String> resolvedIndices) {
         for (TableOrPartition tableOrPartition : tablesToRestore) {

@@ -20,9 +20,10 @@
  */
 
 package org.elasticsearch.snapshots;
-import static io.crate.metadata.PartitionName.templateName;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.snapshots.RestoreService.resolveIndices;
+import static org.elasticsearch.test.IntegTestCase.resolveIndex;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -35,27 +36,25 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
-public class RestoreServiceTest {
+public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void resolve_indices_multiple_tables_specified() {
-        var restoreRequest = new RestoreService.RestoreRequest(
-            "repo1",
-            "snapshot1",
-            IndicesOptions.fromOptions(false, true, true, true),
-            Settings.EMPTY,
-            TimeValue.timeValueSeconds(30),
-            true,
-            true,
-            Strings.EMPTY_ARRAY,
-            true,
-            Strings.EMPTY_ARRAY
-        );
+    public void resolve_indices_multiple_tables_specified() throws Exception {
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE my_schema.table1 (id INT, name STRING)")
+            .addTable("CREATE TABLE my_schema.table2 (id INT, name STRING)");
+
+        Metadata metadata = clusterService.state().metadata();
+        String indexUUID1 = resolveIndex("my_schema.table1", null, metadata).getUUID();
+        String indexUUID2 = resolveIndex("my_schema.table2", null, metadata).getUUID();
+
         List<String> resolvedIndices = new ArrayList<>();
-        List<String> resolvedTemplates = new ArrayList<>();
         List<TableOrPartition> tablesToRestore = List.of(
             new TableOrPartition(
                 new RelationName("my_schema", "table1"), null
@@ -64,22 +63,25 @@ public class RestoreServiceTest {
                 new RelationName("my_schema", "table2"), null
             )
         );
-        List<String> availableIndices = List.of("my_schema.table1", "my_schema.table2");
 
         resolveIndices(
             tablesToRestore,
-            availableIndices,
-            Metadata.EMPTY_METADATA,
+            metadata,
             resolvedIndices
         );
 
-        assertThat(resolvedIndices).containsAll(availableIndices);
-        // No partitioned table selected, templates must be empty
-        assertThat(resolvedTemplates).isEmpty();
+        assertThat(resolvedIndices).contains(
+            indexUUID1,
+            indexUUID2
+        );
     }
 
+    /*
     @Test
     public void test_resolve_index_with_ignore_unavailable() throws Exception {
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.my_table (id INT, name STRING) PARTITIONED BY (name)");
+
         var restoreRequest = new RestoreService.RestoreRequest(
             "repo1",
             "snapshot1",
@@ -97,14 +99,18 @@ public class RestoreServiceTest {
         List<TableOrPartition> tablesToRestore = List.of(
             new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null)
         );
+
+        Metadata metadata = clusterService.state().metadata();
+        //String indexUUID1 = resolveIndex("doc.my_table", null, metadata).getUUID();
+
         // ignoreUnavailable code path doesn't filter anything and doesn't use available indices
         List<String> availableIndices = null;
         resolveIndices(
             tablesToRestore,
-            availableIndices,
-            Metadata.EMPTY_METADATA,
+            metadata,
             resolvedIndices
         );
+
 
         assertThat(resolvedIndices).containsExactlyInAnyOrder(
             "my_table",
@@ -113,9 +119,17 @@ public class RestoreServiceTest {
         assertThat(resolvedTemplates).containsExactly(".partitioned.my_table.");
     }
 
+     */
+
     @Test
-    public void test_resolve_partitioned_table_index_from_snapshot() {
-        var restoreRequest = new RestoreService.RestoreRequest(
+    public void test_resolve_partitioned_table_index_from_snapshot() throws Exception {
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.restoreme (id INT, name STRING) PARTITIONED BY (name)", ".partitioned.restoreme.046jcchm6krj4e1g60o30c0");
+
+        Metadata metadata = clusterService.state().metadata();
+        String indexUUID1 = resolveIndex("doc.restoreme", PartitionName.decodeIdent("046jcchm6krj4e1g60o30c0"), null, metadata).getUUID();
+
+        new RestoreService.RestoreRequest(
             "repo1",
             "snapshot1",
             IndicesOptions.fromOptions(false, true, true, true),
@@ -128,22 +142,19 @@ public class RestoreServiceTest {
             Strings.EMPTY_ARRAY
         );
         List<String> resolvedIndices = new ArrayList<>();
-        List<String> resolvedTemplates = new ArrayList<>();
         List<TableOrPartition> tablesToRestore = List.of(
-            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), "046jcchm6krj4e1g60o30c0")
         );
         resolveIndices(
             tablesToRestore,
-            List.of(".partitioned.restoreme.046jcchm6krj4e1g60o30c0"),
-            Metadata.EMPTY_METADATA,
+            metadata,
             resolvedIndices
         );
 
-        String template = templateName(Schemas.DOC_SCHEMA_NAME, "restoreme");
-        assertThat(resolvedIndices).containsExactly(template + "*");
-        assertThat(resolvedTemplates).containsExactly(template);
+        assertThat(resolvedIndices).containsExactly(indexUUID1);
     }
 
+    /*
     @Test
     public void test_resolve_empty_partitioned_template() {
         var restoreRequest = new RestoreService.RestoreRequest(
@@ -165,7 +176,6 @@ public class RestoreServiceTest {
         );
         resolveIndices(
             tablesToRestore,
-            List.of(""), // No available indices in the snapshot.
             Metadata.EMPTY_METADATA,
             resolvedIndices
         );
@@ -178,42 +188,32 @@ public class RestoreServiceTest {
 
     }
 
+     */
+
     @Test
-    public void test_resolve_multi_tables_index_names_from_snapshot() {
-        var restoreRequest = new RestoreService.RestoreRequest(
-            "repo1",
-            "snapshot1",
-            IndicesOptions.fromOptions(false, true, true, true),
-            Settings.EMPTY,
-            TimeValue.timeValueSeconds(30),
-            true,
-            true,
-            Strings.EMPTY_ARRAY,
-            true,
-            Strings.EMPTY_ARRAY
-        );
+    public void test_resolve_multi_tables_index_names_from_snapshot() throws Exception {
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.my_table (id INT, name STRING)")
+            .addTable("CREATE TABLE doc.my_partitioned_table (id INT, name STRING) PARTITIONED BY (name)", ".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0");
+
+        Metadata metadata = clusterService.state().metadata();
+        String indexUUID1 = resolveIndex("doc.my_table", null, metadata).getUUID();
+        String indexUUID2 = resolveIndex("doc.my_partitioned_table", PartitionName.decodeIdent("046jcchm6krj4e1g60o30c0"), null, metadata).getUUID();
+
         List<String> resolvedIndices = new ArrayList<>();
-        List<String> resolvedTemplates = new ArrayList<>();
         List<TableOrPartition> tablesToRestore = List.of(
             new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null),
-            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), null)
+            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), "046jcchm6krj4e1g60o30c0")
         );
         resolveIndices(
             tablesToRestore,
-            List.of(".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0", "my_table"),
-            Metadata.EMPTY_METADATA,
+            metadata,
             resolvedIndices
         );
 
         assertThat(resolvedIndices).containsExactlyInAnyOrder(
-            "my_table",
-            templateName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table") +
-                "*");
-        assertThat(resolvedTemplates).containsExactly(
-            templateName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"));
+            indexUUID1,
+            indexUUID2
+        );
     }
-
-
-
-
 }

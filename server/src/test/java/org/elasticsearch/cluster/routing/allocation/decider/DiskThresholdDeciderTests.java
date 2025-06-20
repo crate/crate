@@ -516,7 +516,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         ImmutableOpenMap<String, DiskUsage> usages = usagesBuilder.build();
 
         ImmutableOpenMap.Builder<String, Long> shardSizesBuilder = ImmutableOpenMap.builder();
-        shardSizesBuilder.put("[_na_/test][0][p]", 10L); // 10 bytes
+        shardSizesBuilder.put("[test/test][0][p]", 10L); // 10 bytes
         ImmutableOpenMap<String, Long> shardSizes = shardSizesBuilder.build();
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
 

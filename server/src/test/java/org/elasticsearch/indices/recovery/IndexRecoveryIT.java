@@ -614,7 +614,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         RecoverySource.SnapshotRecoverySource recoverySource = new RecoverySource.SnapshotRecoverySource(
             ((RecoverySource.SnapshotRecoverySource)recoveryState.getRecoverySource()).restoreUUID(),
             new Snapshot(REPO_NAME, snapshotId),
-            Version.CURRENT, repositoryData.resolveIndexId(indexUUID));
+            Version.CURRENT, repositoryData.resolveIndexId(index.getName()));
         assertRecoveryState(recoveryState, 0, recoverySource, true, RecoveryState.Stage.DONE, null, nodeA);
         validateIndexRecoveryState(recoveryState.getIndex());
     }

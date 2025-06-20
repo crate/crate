@@ -75,7 +75,7 @@ import io.crate.common.unit.TimeValue;
 public class ReplicaShardAllocatorTests extends ESAllocationTestCase {
     private static final org.apache.lucene.util.Version MIN_SUPPORTED_LUCENE_VERSION = org.elasticsearch.Version.CURRENT
         .minimumIndexCompatibilityVersion().luceneVersion;
-    private final ShardId shardId = new ShardId( "_na_", "test", 0);
+    private final ShardId shardId = new ShardId( "test", "test", 0);
     private final DiscoveryNode node1 = newNode("node1");
     private final DiscoveryNode node2 = newNode("node2");
     private final DiscoveryNode node3 = newNode("node3");

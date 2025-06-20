@@ -1436,13 +1436,15 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_indexing_geo_shape_results_in_same_fields_as_document_mapper() throws Exception {
         var sqlExecutor = SQLExecutor.of(clusterService);
+        int idx = 0;
         for (var indexType : List.of(TREE_GEOHASH, TREE_QUADTREE, TREE_LEGACY_QUADTREE, TREE_BKD)) {
-            sqlExecutor.addTable("create table tbl (x geo_shape index using " + indexType + ")");
+            String tableName = "tbl_" + idx++;
+            sqlExecutor.addTable("create table " + tableName + " (x geo_shape index using " + indexType + ")");
 
             Supplier<Map<String, Object>> dataGenerator = DataTypeTesting.getDataGenerator(GeoShapeType.INSTANCE);
-            DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
+            DocTableInfo table = sqlExecutor.resolveTableInfo(tableName);
 
-            Indexer indexer = getIndexer(sqlExecutor, "tbl", "x");
+            Indexer indexer = getIndexer(sqlExecutor, tableName, "x");
             Map<String, Object> value = dataGenerator.get();
             ParsedDocument doc = indexer.index(item(value));
 
