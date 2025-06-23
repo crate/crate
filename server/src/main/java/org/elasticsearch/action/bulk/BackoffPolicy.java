@@ -32,8 +32,8 @@ import io.crate.common.unit.TimeValue;
 /// Provides backoff policies for anything doing retries
 /// The policies are exposed as `Iterables` in order to be consumed multiple times.
 ///
-/// - Use [Iterator#hasNext()] to see if another retry is possible
-/// - Use [Iterator#next()] to get the next delay
+/// - Use [java.util.Iterator#hasNext()] to see if another retry is possible
+/// - Use [java.util.Iterator#next()] to get the next delay
 public final class BackoffPolicy {
 
     private BackoffPolicy() {
@@ -42,12 +42,12 @@ public final class BackoffPolicy {
     private static final int DEFAULT_RETRY_LIMIT = 10;
 
     public static Iterable<TimeValue> unlimitedDynamic(ConcurrencyLimit concurrencyLimit) {
-        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLongRtt(TimeUnit.NANOSECONDS)))
+        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLastRtt(TimeUnit.NANOSECONDS)))
             .iterator();
     }
 
     public static Iterable<TimeValue> limitedDynamic(ConcurrencyLimit concurrencyLimit) {
-        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLongRtt(TimeUnit.NANOSECONDS)))
+        return () -> Stream.generate(() -> TimeValue.timeValueNanos(concurrencyLimit.getLastRtt(TimeUnit.NANOSECONDS)))
             .limit(DEFAULT_RETRY_LIMIT)
             .iterator();
     }
@@ -119,7 +119,7 @@ public final class BackoffPolicy {
     /**
      * Creates an new exponential backoff policy with the provided configuration.
      *
-     * @param initialDelay       The initial delay defines how long to wait for the first retry attempt. Must not be null.
+     * @param initialDelayMs     The initial delay defines how long to wait for the first retry attempt. Must not be null.
      *                           Must be &lt;= <code>Integer.MAX_VALUE</code> ms.
      * @param maxNumberOfRetries The maximum number of retries. Must be a non-negative number.
      * @param maxDelayMs maximum value that {@code initialDelay} may grow to - once hit the delay is constant until {@code}maxNumberOfRetries is reached.
