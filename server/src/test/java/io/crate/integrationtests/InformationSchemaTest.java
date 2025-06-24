@@ -571,7 +571,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1025);
+        assertThat(response.rowCount()).isEqualTo(1029);
     }
 
     @Test
@@ -833,8 +833,7 @@ public class InformationSchemaTest extends IntegTestCase {
     public void testGlobalAggregation() {
         execute("select max(ordinal_position) from information_schema.columns");
         assertThat(response.rowCount()).isEqualTo(1);
-
-        assertThat(response.rows()[0][0]).isEqualTo(122);
+        assertThat(response.rows()[0][0]).isEqualTo(126);
 
         execute("create table t1 (id integer, col1 string)");
         execute("select max(ordinal_position) from information_schema.columns where table_schema = ?",
