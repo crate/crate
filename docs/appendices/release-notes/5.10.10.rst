@@ -69,3 +69,7 @@ Fixes
 - Fixed the table parameter namings of the :ref:`ref-show-create-table`
   statement output, some parameters were wrongly prefixed with
   ``index.``.
+
+- Fixed an issue that allowed columns of tables create by
+  :ref`logical replication <administration-logical-replication>` subscriptions
+  to be renamed, dropped or added.

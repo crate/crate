@@ -140,7 +140,7 @@ public class TableBlocksIntegrationTest extends IntegTestCase {
             .hasHTTPError(BAD_REQUEST, 4007)
             .hasMessageContaining(String.format(
                 Locale.ENGLISH,
-                "The relation \"%s.t1\" doesn't support or allow ALTER operations",
+                "The relation \"%s.t1\" doesn't support or allow ALTER SET operations",
                 sqlExecutor.getCurrentSchema())
             );
     }

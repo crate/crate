@@ -174,7 +174,7 @@ public class AlterTablePlan implements Plan {
         if (blockSettings.containsAll(tableSettings.keySet())) {
             Operation.blockedRaiseException(tableInfo, Operation.ALTER_BLOCKS);
         } else {
-            Operation.blockedRaiseException(tableInfo, Operation.ALTER);
+            Operation.blockedRaiseException(tableInfo, Operation.ALTER_SET);
         }
     }
 }
