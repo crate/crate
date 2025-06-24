@@ -29,7 +29,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.routing.allocation.decider.FilterAllocationDecider;
 import org.elasticsearch.common.settings.ClusterSettings;
@@ -91,7 +90,7 @@ public final class CrateSettings {
 
     private static final List<String> EXPOSED_SETTING_NAMES = EXPOSED_SETTINGS.stream()
         .map(Setting::getKey)
-        .collect(Collectors.toList());
+        .toList();
 
     public static boolean isValidSetting(String name) {
         return isLoggingSetting(name) ||
