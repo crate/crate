@@ -42,34 +42,19 @@ import io.crate.types.DataTypes;
 
 public class SysClusterTableInfo {
 
+    private SysClusterTableInfo() {}
+
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "cluster");
 
-    public static class LoggerEntry {
-
-        private final String loggerName;
-        private final String level;
-
-        public LoggerEntry(String loggerName, String level) {
-            this.loggerName = loggerName;
-            this.level = level;
-        }
-
-        public String loggerName() {
-            return loggerName;
-        }
-
-        public String level() {
-            return level;
-        }
-    }
+    public record LoggerEntry(String loggerName, String level) {}
 
     public static SystemTable<Void> of(ClusterService clusterService) {
         Settings settings = clusterService.getSettings();
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
         var relBuilder = SystemTable.<Void>builder(IDENT)
-            .add("id", DataTypes.STRING, nothing -> clusterService.state().metadata().clusterUUID())
-            .add("name", DataTypes.STRING, nothing -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value())
-            .add("master_node", DataTypes.STRING, nothing -> clusterService.state().nodes().getMasterNodeId())
+            .add("id", DataTypes.STRING, _ -> clusterService.state().metadata().clusterUUID())
+            .add("name", DataTypes.STRING, _ -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value())
+            .add("master_node", DataTypes.STRING, _ -> clusterService.state().nodes().getMasterNodeId())
             .startObject("license", ignored -> true)
                 .add("expiry_date", DataTypes.TIMESTAMPZ, ignored -> null)
                 .add("issued_to", DataTypes.STRING, ignored -> null)
@@ -104,7 +89,7 @@ public class SysClusterTableInfo {
         //
         //
         // To make it easier to build the objects
-        var rootNode = toTree(CrateSettings.EXPOSED_SETTINGS);
+        var rootNode = toTree();
 
         for (var child : rootNode.children) {
             addSetting(clusterSettings, settingsBuilder, child);
@@ -114,6 +99,7 @@ public class SysClusterTableInfo {
             .build();
     }
 
+    @SuppressWarnings("unchecked")
     private static void addSetting(ClusterSettings clusterSettings,
                                    ObjectBuilder<Void, ? extends Builder<Void>> settingsBuilder,
                                    Node<Setting<?>> element) {
@@ -127,9 +113,8 @@ public class SysClusterTableInfo {
                 x -> valueType.implicitCast(clusterSettings.get(setting))
             );
         } else {
-            var node = (Node<Setting<?>>) element;
-            var objectSetting = settingsBuilder.startObject(node.name);
-            for (var c : node.children) {
+            var objectSetting = settingsBuilder.startObject(element.name);
+            for (var c : element.children) {
                 addSetting(clusterSettings, objectSetting, c);
             }
             objectSetting.endObject();
@@ -137,7 +122,7 @@ public class SysClusterTableInfo {
     }
 
     private static Function<Void, List<LoggerEntry>> extractLoggers(ClusterSettings clusterSettings) {
-        return x -> {
+        return _ -> {
             ArrayList<LoggerEntry> loggers = new ArrayList<>();
             Settings loggerSettings = clusterSettings.getLoggerSettings();
             for (var settingName : loggerSettings.keySet()) {
@@ -148,24 +133,24 @@ public class SysClusterTableInfo {
     }
 
 
-    static Node<Setting<?>> toTree(List<Setting<?>> builtInSettings) {
+    private static Node<Setting<?>> toTree() {
         Node<Setting<?>> rootNode = new Node<>("root");
-        for (var setting : builtInSettings) {
+        for (var setting : CrateSettings.EXPOSED_SETTINGS) {
             rootNode.add(setting.path(), setting);
         }
         return rootNode;
     }
 
-    static class Node<T> {
+    private static class Node<T> {
 
         final String name;
-        final ArrayList<Node<T>> children = new ArrayList<>();
+        private final ArrayList<Node<T>> children = new ArrayList<>();
 
-        public Node(String name) {
+        private Node(String name) {
             this.name = name;
         }
 
-        public void add(List<String> path, T value) {
+        private void add(List<String> path, T value) {
             switch (path.size()) {
                 case 0:
                     throw new IllegalArgumentException("Path must not be empty");
@@ -190,11 +175,11 @@ public class SysClusterTableInfo {
         }
     }
 
-    static class Leaf<T> extends Node<T> {
+    private static class Leaf<T> extends Node<T> {
 
-        final T value;
+        private final T value;
 
-        public Leaf(String name, T value) {
+        private Leaf(String name, T value) {
             super(name);
             this.value = value;
         }
