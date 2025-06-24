@@ -23,11 +23,18 @@ import static java.util.Objects.requireNonNull;
 
 import java.lang.management.ManagementFactory;
 import java.lang.management.MemoryMXBean;
+import java.lang.management.MemoryNotificationInfo;
+import java.lang.management.MemoryPoolMXBean;
+import java.lang.management.MemoryType;
+import java.lang.management.MemoryUsage;
 import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+
+import javax.management.NotificationEmitter;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -78,6 +85,7 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     public static final String BREAKING_EXCEPTION_MESSAGE =
         "[query] Data too large, data for [%s] would be larger than limit of [%d/%s]";
 
+
     private volatile BreakerSettings queryBreakerSettings;
     private volatile BreakerSettings logJobsBreakerSettings;
     private volatile BreakerSettings logOperationsBreakerSettings;
@@ -88,6 +96,10 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
 
     // Tripped count for when redistribution was attempted but wasn't successful
     private final AtomicLong parentTripCount = new AtomicLong(0);
+
+    private final AtomicBoolean lowMemory = new AtomicBoolean(false);
+
+    private final MemoryPoolMXBean tenuredGen;
 
     public HierarchyCircuitBreakerService(Settings settings, ClusterSettings clusterSettings) {
         this.inFlightRequestsSettings = new BreakerSettings(
@@ -143,6 +155,32 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
             (newLimit) ->
                 setBreakerLimit(logOperationsBreakerSettings, OPERATIONS_LOG, s -> this.logOperationsBreakerSettings = s, newLimit));
+
+        // tenured/old gen is the only one with usageThreshold support
+        //
+        // Objects in young gen that can't be freed will be promoted to old gen.
+        // Old gen collection usage threshold events are triggered if the used memory after a GC is still > threshold
+        tenuredGen = ManagementFactory.getMemoryPoolMXBeans().stream()
+            .filter(pool -> pool.getType() == MemoryType.HEAP)
+            .filter(MemoryPoolMXBean::isUsageThresholdSupported)
+            .findFirst()
+            .orElseThrow(() -> new IllegalStateException(
+                "Can't find tenured generation MemoryPoolMXBean"));
+        long maxUsage = tenuredGen.getUsage().getMax();
+        if (maxUsage > 0) {
+            tenuredGen.setCollectionUsageThreshold(Math.round(0.98 * maxUsage));
+            if (tenuredGen instanceof NotificationEmitter notify) {
+                notify.addNotificationListener(
+                    (notification, _) -> {
+                        if (MemoryNotificationInfo.MEMORY_COLLECTION_THRESHOLD_EXCEEDED.equals(notification.getType())) {
+                            lowMemory.set(true);
+                        }
+                    },
+                    null,
+                    null
+                );
+            }
+        }
     }
 
     public static String breakingExceptionMessage(String label, long limit) {
@@ -242,6 +280,15 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
         long totalUsed = parentUsed(newBytesReserved);
         long parentLimit = this.parentSettings.bytesLimit();
         if (totalUsed > parentLimit) {
+            if (lowMemory.get()) {
+                MemoryUsage usage = tenuredGen.getUsage();
+                if (usage.getUsed() >= Math.round(0.95 * usage.getMax())) {
+                    this.parentTripCount.incrementAndGet();
+                    throw new CircuitBreakingException(newBytesReserved, totalUsed, parentLimit, "parent: " + label);
+                } else {
+                    lowMemory.set(false);
+                }
+            }
             long breakersTotalUsed = breakers.values().stream()
                 .mapToLong(CircuitBreaker::getUsed)
                 .sum();
@@ -250,8 +297,17 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
             if ((breakersTotalUsed + newBytesReserved) < (parentLimit * PARENT_BREAKER_ESCAPE_HATCH_PERCENTAGE)) {
                 return;
             }
+
             this.parentTripCount.incrementAndGet();
             throw new CircuitBreakingException(newBytesReserved, totalUsed, parentLimit, "parent: " + label);
+        } else if (lowMemory.get()) {
+            MemoryUsage usage = tenuredGen.getUsage();
+            if (usage.getUsed() >= Math.round(0.95 * usage.getMax())) {
+                this.parentTripCount.incrementAndGet();
+                throw new CircuitBreakingException(newBytesReserved, totalUsed, parentLimit, "parent: " + label);
+            } else {
+                lowMemory.set(false);
+            }
         }
     }
 
