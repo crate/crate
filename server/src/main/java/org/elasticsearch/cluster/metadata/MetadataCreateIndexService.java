@@ -173,14 +173,14 @@ public class MetadataCreateIndexService {
         );
     }
 
-    public CompletableFuture<ResizeResponse> resizeIndex(ResizeRequest request, IndicesStatsResponse indicesStats) {
-        String sourceIndexUUID = clusterService.state().metadata().getIndex(request.table(), request.partitionValues(), true, IndexMetadata::getIndexUUID);
+    public CompletableFuture<ResizeResponse> resizeIndex(ResizeRequest request, String sourceIndexUUID, String resizeIndexUUID, IndicesStatsResponse indicesStats) {
         IndexStats indexStats = indicesStats.getIndex(sourceIndexUUID);
         Map<Integer, IndexShardStats> indexShards = indexStats.getIndexShards();
         ResizeIndexTask resizeIndexTask = new ResizeIndexTask(
             allocationService,
             request,
             sourceIndexUUID,
+            resizeIndexUUID,
             indicesService,
             shardId -> {
                 IndexShardStats indexShardStats = indexShards.get(shardId.id());
@@ -311,6 +311,7 @@ public class MetadataCreateIndexService {
         ResizeIndexTask(AllocationService allocationService,
                         ResizeRequest request,
                         String sourceIndexUUID,
+                        String resizedIndexUUID,
                         IndicesService indicesService,
                         ToLongFunction<ShardId> getNumDocs,
                         ShardLimitValidator validator,
@@ -324,7 +325,7 @@ public class MetadataCreateIndexService {
             this.indexScopedSettings = indexScopedSettings;
 
             this.sourceIndexUUID = sourceIndexUUID;
-            this.resizedIndexUUID = UUIDs.randomBase64UUID();
+            this.resizedIndexUUID = resizedIndexUUID;
         }
 
         public String resizedIndex() {
@@ -449,24 +450,24 @@ public class MetadataCreateIndexService {
                     .put(table.settings())
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, newNumShards)
                     .build();
+                metadataBuilder.setTable(
+                    table.name(),
+                    table.columns(),
+                    settings,
+                    table.routingColumn(),
+                    table.columnPolicy(),
+                    table.pkConstraintName(),
+                    table.checkConstraints(),
+                    table.primaryKeys(),
+                    table.partitionedBy(),
+                    table.state(),
+                    table.indexUUIDs(),
+                    table.tableVersion() + 1
+                );
             }
-            List<String> indexUUIDs = new ArrayList<>(table.indexUUIDs());
-            indexUUIDs.add(resizedIndexUUID);
+            //List<String> indexUUIDs = new ArrayList<>(table.indexUUIDs());
+            //indexUUIDs.add(resizedIndexUUID);
 
-            metadataBuilder.setTable(
-                table.name(),
-                table.columns(),
-                settings,
-                table.routingColumn(),
-                table.columnPolicy(),
-                table.pkConstraintName(),
-                table.checkConstraints(),
-                table.primaryKeys(),
-                table.partitionedBy(),
-                table.state(),
-                indexUUIDs,
-                table.tableVersion() + 1
-            );
             IndexMetadata tmpImd = tmpImdBuilder.build();
 
             validator.validateShardLimit(tmpImd.getSettings(), currentState);
