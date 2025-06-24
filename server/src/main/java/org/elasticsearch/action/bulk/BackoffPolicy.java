@@ -63,7 +63,7 @@ public final class BackoffPolicy {
 
     private static Stream<TimeValue> exponential(TimeValue initialDelay) {
         long initialDelayMs = initialDelay.millis();
-        return LongStream.iterate(1, i -> i + 1)
+        return LongStream.iterate(0, i -> i + 1)
             .mapToObj(i -> TimeValue.timeValueMillis(exp(initialDelayMs, i)));
     }
 
@@ -127,7 +127,7 @@ public final class BackoffPolicy {
      * iterator created from it should only be used by a single thread.
      */
     public static Iterable<TimeValue> exponentialBackoff(int initialDelayMs, int maxNumberOfRetries, int maxDelayMs) {
-        return () -> LongStream.iterate(1, i -> i + 1)
+        return () -> LongStream.iterate(0, i -> i + 1)
             .mapToObj(i -> TimeValue.timeValueMillis(Math.min(exp(initialDelayMs, i), maxDelayMs)))
             .limit(maxNumberOfRetries)
             .iterator();
