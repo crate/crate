@@ -27,6 +27,7 @@ import static io.crate.metadata.table.Operation.ALTER_BLOCKS;
 import static io.crate.metadata.table.Operation.ALTER_CLOSE;
 import static io.crate.metadata.table.Operation.ALTER_OPEN;
 import static io.crate.metadata.table.Operation.ALTER_REROUTE;
+import static io.crate.metadata.table.Operation.ALTER_SET;
 import static io.crate.metadata.table.Operation.COPY_TO;
 import static io.crate.metadata.table.Operation.CREATE_SNAPSHOT;
 import static io.crate.metadata.table.Operation.DELETE;
@@ -61,13 +62,13 @@ public class OperationTest extends ESTestCase {
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true).build(), IndexMetadata.State.OPEN, false))
             .containsExactlyInAnyOrder(
-                UPDATE, INSERT, DELETE, DROP, ALTER, ALTER_OPEN, ALTER_CLOSE,
+                UPDATE, INSERT, DELETE, DROP, ALTER, ALTER_SET, ALTER_OPEN, ALTER_CLOSE,
                 ALTER_BLOCKS, REFRESH, OPTIMIZE, ALTER_REROUTE);
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
                 .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN, false))
             .containsExactlyInAnyOrder(
-                READ, ALTER, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS, SHOW_CREATE,
+                READ, ALTER, ALTER_SET, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS, SHOW_CREATE,
                 REFRESH, OPTIMIZE, COPY_TO, CREATE_SNAPSHOT, ALTER_REROUTE);
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
@@ -83,7 +84,7 @@ public class OperationTest extends ESTestCase {
                 .put(IndexMetadata.SETTING_BLOCKS_READ, true)
                 .put(IndexMetadata.SETTING_BLOCKS_WRITE, true).build(), IndexMetadata.State.OPEN, false))
             .containsExactlyInAnyOrder(
-                ALTER, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS,
+                ALTER, ALTER_SET, ALTER_OPEN, ALTER_CLOSE, ALTER_BLOCKS,
                 REFRESH, OPTIMIZE, ALTER_REROUTE);
 
         assertThat(Operation.buildFromIndexSettingsAndState(Settings.builder()
@@ -107,7 +108,7 @@ public class OperationTest extends ESTestCase {
         assertThat(
             Operation.buildFromIndexSettingsAndState(replicatedIndexSettings, IndexMetadata.State.OPEN, false))
             .containsExactlyInAnyOrder(
-                READ, ALTER, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE);
+                READ, ALTER_SET, ALTER_BLOCKS, ALTER_REROUTE, OPTIMIZE, REFRESH, COPY_TO, SHOW_CREATE);
     }
 
     @Test
