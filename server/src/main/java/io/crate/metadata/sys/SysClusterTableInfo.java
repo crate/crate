@@ -39,6 +39,7 @@ import io.crate.metadata.SystemTable.ObjectBuilder;
 import io.crate.metadata.settings.CrateSettings;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class SysClusterTableInfo {
 
@@ -99,7 +100,6 @@ public class SysClusterTableInfo {
             .build();
     }
 
-    @SuppressWarnings("unchecked")
     private static void addSetting(ClusterSettings clusterSettings,
                                    ObjectBuilder<Void, ? extends Builder<Void>> settingsBuilder,
                                    Node<Setting<?>> element) {
@@ -107,11 +107,16 @@ public class SysClusterTableInfo {
             Leaf<Setting<?>> leaf = (Leaf<Setting<?>>) element;
             var setting = leaf.value;
             var valueType = (DataType<Object>) leaf.value.dataType();
-            settingsBuilder.add(
-                leaf.name,
-                valueType,
-                x -> valueType.implicitCast(clusterSettings.get(setting))
-            );
+            Object settingValue = clusterSettings.get(setting);
+            if (settingValue instanceof Settings groupSetting &&
+                valueType.id() == ObjectType.ID) {
+                settingsBuilder.addDynamicObject(leaf.name, DataTypes.STRING, _ -> groupSetting.getAsStructuredMap());
+            } else {
+                settingsBuilder.add(
+                    leaf.name,
+                    valueType,
+                    _ -> valueType.implicitCast(clusterSettings.get(setting)));
+            }
         } else {
             var objectSetting = settingsBuilder.startObject(element.name);
             for (var c : element.children) {
