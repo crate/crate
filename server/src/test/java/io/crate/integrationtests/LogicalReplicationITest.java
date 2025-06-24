@@ -671,6 +671,38 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                     "The relation \"doc.t1\" doesn't allow DROP operations, because it is included in a logical replication subscription.");
     }
 
+    @Test
+    public void test_drop_column_on_subscribed_table_is_not_allowed() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT, x INT) WITH(" + defaultTableSettings() + ")");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        assertThatThrownBy(() -> executeOnSubscriber("alter table t1 drop column x"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessageContaining(
+                "The relation \"doc.t1\" doesn't allow ALTER operations, because it is included in a logical replication subscription.");
+    }
+
+    @Test
+    public void test_rename_subscribed_table_is_not_allowed() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (id INT) WITH(" + defaultTableSettings() + ")");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        assertThatThrownBy(() -> executeOnSubscriber("ALTER TABLE t1 rename to t2"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessageContaining(
+                "The relation \"doc.t1\" doesn't allow ALTER RENAME operations, because it is included in a logical replication subscription.");
+
+        assertThatThrownBy(() -> executeOnSubscriber("ALTER TABLE t1 rename column id to id2"))
+            .isExactlyInstanceOf(OperationOnInaccessibleRelationException.class)
+            .hasMessageContaining(
+                "The relation \"doc.t1\" doesn't allow ALTER operations, because it is included in a logical replication subscription.");
+    }
+
+
     /**
      * Test a regression which resulting in a failed initial restore of the re-created subscription caused
      * not correctly removed retention leases while subscription is dropped.
