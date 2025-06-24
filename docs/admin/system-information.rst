@@ -132,6 +132,10 @@ information about the currently applied cluster settings.
     | settings['cluster']['routing']                                                    | object       |
     | settings['cluster']['routing']['allocation']                                      | object       |
     | settings['cluster']['routing']['allocation']['allow_rebalance']                   | text         |
+    | settings['cluster']['routing']['allocation']['awareness']                         | object       |
+    | settings['cluster']['routing']['allocation']['awareness']['attributes']           | text_array   |
+    | settings['cluster']['routing']['allocation']['awareness']['force']                | object       |
+    | settings['cluster']['routing']['allocation']['awareness']['force']['']            | object       |
     | settings['cluster']['routing']['allocation']['balance']                           | object       |
     | settings['cluster']['routing']['allocation']['balance']['index']                  | real         |
     | settings['cluster']['routing']['allocation']['balance']['shard']                  | real         |

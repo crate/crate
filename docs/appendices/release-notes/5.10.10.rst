@@ -47,6 +47,11 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would prevent the
+  :ref:`cluster.routing.allocation.awareness.attributes` and
+  :ref:`cluster.routing.allocation.awareness.force.\*.values` to be shown under
+  the ``settings`` column of the :ref:`sys-cluster` table.
+
 - Fixed a race condition that could lead to ``INSERT INTO`` statements with a
   ``ON CONFLICT`` clause to either take much longer than necessary or get stuck
   unless other activity caused cluster change events.

@@ -47,6 +47,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.ByteBufferStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentParser;
@@ -221,6 +222,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
                                         BiFunction<DataType<?>, Object, Object> innerType) {
         if (value instanceof String str) {
             value = mapFromJSON(str);
+        }
+        if (value instanceof Settings settings) {
+            value = settings.getAsStructuredMap();
         }
         Map<String, Object> map = (Map<String, Object>) value;
         if (map == null || innerTypes == null) {
