@@ -47,5 +47,13 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a race condition that could lead to ``INSERT INTO`` statements with a
+  ``ON CONFLICT`` clause to either take much longer than necessary or get stuck
+  unless other activity caused cluster change events.
+
 - Fixed an issue that caused queries with aggregations to get stuck under
   memory pressure.
+
+- Fixed an issue that caused RAM under-accounting, potentially leading to an
+  ``OutOfMemoryError`` when result sets contained numeric values with large
+  digit counts. The issue affected ``HTTP`` requests only.
