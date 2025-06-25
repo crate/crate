@@ -207,12 +207,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         Object[][] insertValues = updateToInsert == null ? null : new Object[numItems][];
         for (int i = 0; i < numItems; i++) {
             Item item = items.get(i);
+            assert item.seqNo() != SequenceNumbers.SKIP_ON_REPLICA
+                : "Initial item seqNo must never be SKIP_ON_REPLICA";
             seqNos[i] = item.seqNo();
             if (insertValues != null) {
                 insertValues[i] = item.insertValues();
             }
         }
-        for (ShardUpsertRequest.Item item : items) {
+        for (int i = 0; i < numItems; i++) {
+            Item item = items.get(i);
             if (shardResponse.failure() != null) {
                 // Skip all remaining items on replica
                 item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
@@ -249,13 +252,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
             } catch (Exception e) {
                 if (retryPrimaryException(e)) {
-                    for (int i = 0; i < numItems; i++) {
-                        Item iItem = items.get(i);
-                        if (iItem.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
-                            iItem.seqNo(seqNos[i]);
+                    for (int j = 0; j < i; j++) {
+                        Item prevItem = items.get(j);
+                        if (prevItem.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
+                            prevItem.seqNo(seqNos[i]);
                         }
                         if (insertValues != null) {
-                            iItem.insertValues(insertValues[i]);
+                            prevItem.insertValues(insertValues[i]);
                         }
                     }
                     throw Exceptions.toRuntimeException(e);
