@@ -60,21 +60,21 @@ public final class InFlightShardSnapshotStates {
             }
             for (ObjectObjectCursor<ShardId, SnapshotsInProgress.ShardSnapshotStatus> shard : runningSnapshot.shards()) {
                 final ShardId sid = shard.key;
-                addStateInformation(generations, busyIds, shard.value, sid.id(), sid.getIndexUUID());
+                addStateInformation(generations, busyIds, shard.value, sid.id(), sid.getIndexName());
             }
         }
         return new InFlightShardSnapshotStates(generations, busyIds);
     }
 
     private static void addStateInformation(Map<String, Map<Integer, String>> generations, Map<String, Set<Integer>> busyIds,
-                                            SnapshotsInProgress.ShardSnapshotStatus shardState, int shardId, String indexUUID) {
+                                            SnapshotsInProgress.ShardSnapshotStatus shardState, int shardId, String indexName) {
         if (shardState.isActive()) {
-            busyIds.computeIfAbsent(indexUUID, k -> new HashSet<>()).add(shardId);
-            assert assertGenerationConsistency(generations, indexUUID, shardId, shardState.generation());
+            busyIds.computeIfAbsent(indexName, k -> new HashSet<>()).add(shardId);
+            assert assertGenerationConsistency(generations, indexName, shardId, shardState.generation());
         } else if (shardState.state() == SnapshotsInProgress.ShardState.SUCCESS) {
-            assert busyIds.getOrDefault(indexUUID, Collections.emptySet()).contains(shardId) == false :
+            assert busyIds.getOrDefault(indexName, Collections.emptySet()).contains(shardId) == false :
                 "Can't have a successful operation queued after an in-progress operation";
-            generations.computeIfAbsent(indexUUID, k -> new HashMap<>()).put(shardId, shardState.generation());
+            generations.computeIfAbsent(indexName, k -> new HashMap<>()).put(shardId, shardState.generation());
         }
     }
 
@@ -95,9 +95,9 @@ public final class InFlightShardSnapshotStates {
         this.activeShardIds = activeShardIds;
     }
 
-    private static boolean assertGenerationConsistency(Map<String, Map<Integer, String>> generations, String indexUUID,
+    private static boolean assertGenerationConsistency(Map<String, Map<Integer, String>> generations, String indexName,
                                                        int shardId, @Nullable String activeGeneration) {
-        final String bestGeneration = generations.getOrDefault(indexUUID, Collections.emptyMap()).get(shardId);
+        final String bestGeneration = generations.getOrDefault(indexName, Collections.emptyMap()).get(shardId);
         assert bestGeneration == null || activeGeneration == null || activeGeneration.equals(bestGeneration);
         return true;
     }
@@ -105,12 +105,12 @@ public final class InFlightShardSnapshotStates {
     /**
      * Check if a given shard currently has an actively executing shard operation.
      *
-     * @param indexUUID uuid of the shard's index
+     * @param indexName uuid of the shard's index
      * @param shardId   shard id of the shard
      * @return true if shard has an actively executing shard operation
      */
-    boolean isActive(String indexUUID, int shardId) {
-        return activeShardIds.getOrDefault(indexUUID, Collections.emptySet()).contains(shardId);
+    boolean isActive(String indexName, int shardId) {
+        return activeShardIds.getOrDefault(indexName, Collections.emptySet()).contains(shardId);
     }
 
     /**
@@ -125,7 +125,7 @@ public final class InFlightShardSnapshotStates {
      */
     @Nullable
     String generationForShard(IndexId indexId, int shardId, ShardGenerations shardGenerations) {
-        final String inFlightBest = generations.getOrDefault(indexId.getId(), Collections.emptyMap()).get(shardId);
+        final String inFlightBest = generations.getOrDefault(indexId.getName(), Collections.emptyMap()).get(shardId);
         if (inFlightBest != null) {
             return inFlightBest;
         }

@@ -2099,7 +2099,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             List<String> partitionValues = indexParts.isPartitioned()
                 ? PartitionName.decodeIdent(indexParts.partitionIdent())
                 : List.of();
-            IndexMetadata indexMetadata = metadata.getIndex(indexParts.toRelationName(), partitionValues, true, im -> im);
+            IndexMetadata indexMetadata = metadata.getIndex(indexParts.toRelationName(), partitionValues, false, im -> im);
             if (indexMetadata == null) {
                 // The index was deleted before we managed to start the snapshot - mark it as missing.
                 builder.put(new ShardId(indexName, indexUUID, 0), ShardSnapshotStatus.MISSING);
@@ -2123,7 +2123,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     }
                     final ShardSnapshotStatus shardSnapshotStatus;
                     ShardRouting primary = indexRoutingTable.shard(i).primaryShard();
-                    if (readyToExecute == false || inFlightShardStates.isActive(indexUUID, i)) {
+                    if (readyToExecute == false || inFlightShardStates.isActive(indexName, i)) {
                         shardSnapshotStatus = ShardSnapshotStatus.UNASSIGNED_QUEUED;
                     } else if (primary == null || !primary.assignedToNode()) {
                         shardSnapshotStatus = new ShardSnapshotStatus(null, ShardState.MISSING,
