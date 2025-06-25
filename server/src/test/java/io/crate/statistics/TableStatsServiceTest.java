@@ -43,8 +43,8 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSettingsChanges() {
         // Initially disabled
-        UpdateTableStatsService statsService = new UpdateTableStatsService(
-            Settings.builder().put(UpdateTableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build(),
+        TableStatsService statsService = new TableStatsService(
+            Settings.builder().put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build(),
             THREAD_POOL,
             clusterService,
             Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS));
@@ -53,28 +53,28 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(statsService.scheduledRefresh).isNull();
 
         // Default setting
-        statsService = new UpdateTableStatsService(
+        statsService = new TableStatsService(
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
             Mockito.mock(Sessions.class, Answers.RETURNS_MOCKS));
 
         assertThat(statsService.refreshInterval)
-            .isEqualTo(UpdateTableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY));
+            .isEqualTo(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY));
         assertThat(statsService.scheduledRefresh).isNotNull();
 
         ClusterSettings clusterSettings = clusterService.getClusterSettings();
 
         // Update setting
         clusterSettings.applySettings(Settings.builder()
-            .put(UpdateTableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), "10m").build());
+            .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), "10m").build());
 
         assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMinutes(10));
         assertThat(statsService.scheduledRefresh).isNotNull();
 
         // Disable
         clusterSettings.applySettings(Settings.builder()
-            .put(UpdateTableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build());
+            .put(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), 0).build());
 
         assertThat(statsService.refreshInterval).isEqualTo(TimeValue.timeValueMillis(0));
         assertThat(statsService.scheduledRefresh).isNull();
@@ -83,7 +83,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         clusterSettings.applySettings(Settings.builder().build());
 
         assertThat(statsService.refreshInterval)
-            .isEqualTo(UpdateTableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY));
+            .isEqualTo(TableStatsService.STATS_SERVICE_REFRESH_INTERVAL_SETTING.getDefault(Settings.EMPTY));
         assertThat(statsService.scheduledRefresh).isNotNull();
     }
 
@@ -93,7 +93,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         Session session = Mockito.mock(Session.class);
         Mockito.when(sqlOperations.newSystemSession()).thenReturn(session);
 
-        UpdateTableStatsService statsService = new UpdateTableStatsService(
+        TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,
@@ -101,7 +101,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         );
         statsService.run();
 
-        Mockito.verify(session, Mockito.times(1)).quickExec(ArgumentMatchers.eq(UpdateTableStatsService.STMT), ArgumentMatchers.any(), ArgumentMatchers.any());
+        Mockito.verify(session, Mockito.times(1)).quickExec(ArgumentMatchers.eq(TableStatsService.STMT), ArgumentMatchers.any(), ArgumentMatchers.any());
     }
 
     @Test
@@ -116,7 +116,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             ArgumentMatchers.anyString(), any())
         ).thenReturn(session);
 
-        UpdateTableStatsService statsService = new UpdateTableStatsService(
+        TableStatsService statsService = new TableStatsService(
             Settings.EMPTY,
             THREAD_POOL,
             clusterService,

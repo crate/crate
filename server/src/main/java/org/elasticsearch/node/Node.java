@@ -218,7 +218,7 @@ import io.crate.role.RoleManagerService;
 import io.crate.role.Roles;
 import io.crate.role.RolesService;
 import io.crate.session.Sessions;
-import io.crate.statistics.TableStatsService;
+import io.crate.statistics.CachedTableStatsService;
 import io.crate.statistics.TableStatsPersistenceService;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
@@ -388,7 +388,7 @@ public class Node implements Closeable {
             final TableStatsPersistenceService tableStatsPersistenceService = new TableStatsPersistenceService(
                 nodeEnvironment.nodeDataPaths()[0]
             );
-            final TableStatsService tableStats = new TableStatsService(tableStatsPersistenceService);
+            final CachedTableStatsService tableStats = new CachedTableStatsService(tableStatsPersistenceService);
             final NodeContext nodeContext = NodeContext.of(environment, clusterService, functions, roles, tableStats);
             final var udfService = new UserDefinedFunctionService(clusterService, nodeContext);
 
@@ -761,7 +761,7 @@ public class Node implements Closeable {
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
                     b.bind(NodeContext.class).toInstance(nodeContext);
-                    b.bind(TableStatsService.class).toInstance(tableStats);
+                    b.bind(CachedTableStatsService.class).toInstance(tableStats);
                     b.bind(Analyzer.class).toInstance(analyzer);
                     b.bind(Sessions.class).toInstance(sessions);
                     b.bind(Planner.class).toInstance(planner);

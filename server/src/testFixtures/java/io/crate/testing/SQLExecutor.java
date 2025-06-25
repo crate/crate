@@ -188,7 +188,6 @@ import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.StubTableStats;
 import io.crate.statistics.TableStats;
-import io.crate.statistics.TableStatsService;
 
 /**
  * Lightweight alternative to {@link SQLTransportExecutor}.

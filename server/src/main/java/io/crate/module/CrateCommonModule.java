@@ -29,7 +29,7 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.replication.logical.ShardReplicationService;
 import io.crate.replication.logical.repository.PublisherRestoreService;
-import io.crate.statistics.UpdateTableStatsService;
+import io.crate.statistics.TableStatsService;
 
 public class CrateCommonModule extends AbstractModule {
 
@@ -37,7 +37,7 @@ public class CrateCommonModule extends AbstractModule {
     protected void configure() {
         bind(FulltextAnalyzerResolver.class).asEagerSingleton();
         bind(PostgresNetty.class).asEagerSingleton();
-        bind(UpdateTableStatsService.class).asEagerSingleton();
+        bind(TableStatsService.class).asEagerSingleton();
         bind(MemoryManagerFactory.class).asEagerSingleton();
         bind(DanglingArtifactsService.class).asEagerSingleton();
         bind(PublisherRestoreService.class).asEagerSingleton();

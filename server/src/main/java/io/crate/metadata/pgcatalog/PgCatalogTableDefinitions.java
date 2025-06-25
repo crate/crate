@@ -49,7 +49,7 @@ import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
-import io.crate.statistics.TableStatsService;
+import io.crate.statistics.CachedTableStatsService;
 
 public final class PgCatalogTableDefinitions {
 
@@ -58,7 +58,7 @@ public final class PgCatalogTableDefinitions {
     @Inject
     public PgCatalogTableDefinitions(InformationSchemaIterables informationSchemaIterables,
                                      Sessions sessions,
-                                     TableStatsService tableStats,
+                                     CachedTableStatsService tableStats,
                                      PgCatalogSchemaInfo pgCatalogSchemaInfo,
                                      SessionSettingRegistry sessionSettingRegistry,
                                      NodeContext nodeContext,

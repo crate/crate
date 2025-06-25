@@ -41,7 +41,7 @@ import io.crate.data.Paging;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStatsService;
+import io.crate.statistics.CachedTableStatsService;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.types.DataTypes;
@@ -370,7 +370,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("insert into t (x) values (1), (2)");
         execute("refresh table t");
 
-        for (TableStatsService tableStats : cluster().getInstances(TableStatsService.class)) {
+        for (CachedTableStatsService tableStats : cluster().getInstances(CachedTableStatsService.class)) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(
                 new RelationName(sqlExecutor.getCurrentSchema(), "t"),
