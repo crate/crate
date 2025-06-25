@@ -529,7 +529,6 @@ public final class MetadataTracker implements Closeable {
                 boolean publisherContainsIndex = publisherTable.indexUUIDs().contains(indexUUID);
                 if (!publisherContainsIndex) {
                     partitionsToRemove.add(concreteIndex.getIndex());
-                    updatedMetadataBuilder.removeIndexUUIDs(subscriberTable, List.of(concreteIndex.getIndexUUID()));
                 }
             }
         }

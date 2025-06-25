@@ -33,7 +33,6 @@ import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -90,11 +89,7 @@ public class TransportDropPartitionsAction extends AbstractDDLTransportAction<Dr
                 if (indices.isEmpty()) {
                     return currentState;
                 } else {
-                    ClusterState newState = deleteIndexService.deleteIndices(currentState, indices);
-                    Metadata newMetadata = Metadata.builder(newState.metadata())
-                        .removeIndexUUIDs(table, indices.stream().map(Index::getUUID).toList())
-                        .build();
-                    return ClusterState.builder(newState).metadata(newMetadata).build();
+                    return deleteIndexService.deleteIndices(currentState, indices);
                 }
             }
         };

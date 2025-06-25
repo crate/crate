@@ -215,7 +215,7 @@ public class SQLTransportExecutor {
         try {
             try (Session session = newSession()) {
                 sessionList.forEach(setting -> exec(setting, session));
-                return FutureUtils.get(execute(stmt, args, session), timeout.millis(), TimeUnit.MINUTES);
+                return FutureUtils.get(execute(stmt, args, session), timeout.millis(), TimeUnit.MILLISECONDS);
             }
         } catch (ElasticsearchTimeoutException ex) {
             Throwable cause = ex.getCause();

@@ -187,7 +187,7 @@ public class ExplainPlan implements Plan {
                 Function<String, String> uuidToIndexName = indexUUID -> {
                     RelationMetadata relation = dependencies.clusterService().state().metadata().getRelation(indexUUID);
                     if (relation != null) {
-                        return relation.name().indexNameOrAlias();
+                        return relation.name().sqlFqn();
                     }
                     throw new IllegalStateException("RelationMetadata for " + indexUUID + " is not available");
                 };

@@ -105,7 +105,7 @@ public final class InFlightShardSnapshotStates {
     /**
      * Check if a given shard currently has an actively executing shard operation.
      *
-     * @param indexName uuid of the shard's index
+     * @param indexName name of the shard's index
      * @param shardId   shard id of the shard
      * @return true if shard has an actively executing shard operation
      */

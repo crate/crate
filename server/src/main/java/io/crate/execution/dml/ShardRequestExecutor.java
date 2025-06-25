@@ -52,9 +52,7 @@ import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
 import io.crate.data.RowN;
 import io.crate.execution.support.OneRowActionListener;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
@@ -156,9 +154,7 @@ public class ShardRequestExecutor<Req> {
             }
             String routing = docKey.getRouting(txnCtx, nodeCtx, parameters, subQueryResults);
             List<String> partitionValues = docKey.getPartitionValues(txnCtx, nodeCtx, parameters, subQueryResults);
-            final String indexUUID;
-            List<String> indicesUUIDS = metadata.getIndices(table.ident(), partitionValues, false, IndexMetadata::getIndexUUID);
-            indexUUID = indicesUUIDS.getFirst();
+            final String indexUUID = metadata.getIndex(table.ident(), partitionValues, false, IndexMetadata::getIndexUUID);
             final ShardId shardId;
             try {
                 shardId = getShardId(clusterService, indexUUID, id, routing);

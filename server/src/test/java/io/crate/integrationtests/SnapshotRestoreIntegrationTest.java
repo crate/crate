@@ -59,7 +59,6 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.MockKeywordPlugin;
-import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
@@ -220,7 +219,6 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
             .hasMessageContaining(String.format(Locale.ENGLISH, "[%s] missing", repository));
     }
 
-    @TestLogging("org.elasticsearch.snapshots:TRACE")
     @Test
     public void testCreateSnapshot() throws Exception {
         createTable("backmeup", false);
@@ -228,7 +226,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(1L);
 
         execute("select name, \"repository\", concrete_indices, state from sys.snapshots order by 2");
-         assertThat(response).hasRows(
+        assertThat(response).hasRows(
             String.format("my_snapshot| my_repo| [%s.backmeup]| SUCCESS", sqlExecutor.getCurrentSchema()),
             // shows up twice because both repos have the same data path
             String.format("my_snapshot| my_repo_ro| [%s.backmeup]| SUCCESS", sqlExecutor.getCurrentSchema()));

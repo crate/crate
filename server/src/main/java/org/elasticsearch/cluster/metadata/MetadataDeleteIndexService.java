@@ -21,7 +21,11 @@ package org.elasticsearch.cluster.metadata;
 
 import static java.util.stream.Collectors.toSet;
 
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Set;
 
 import org.apache.logging.log4j.LogManager;
@@ -86,12 +90,42 @@ public class MetadataDeleteIndexService {
 
         final IndexGraveyard.Builder graveyardBuilder = IndexGraveyard.builder(metadataBuilder.indexGraveyard());
         final int previousGraveyardSize = graveyardBuilder.tombstones().size();
+        Map<RelationMetadata.Table, List<String>> relationIndexUUIDs = new HashMap<>();
         for (final Index index : indicesToDelete) {
             String indexUUID = index.getUUID();
             LOGGER.info("{} deleting index", index);
             routingTableBuilder.remove(indexUUID);
             clusterBlocksBuilder.removeIndexBlocks(indexUUID);
             metadataBuilder.remove(indexUUID);
+
+            RelationMetadata relation = meta.getRelation(indexUUID);
+            if (relation instanceof RelationMetadata.Table table) {
+                List<String> indexUUIDs = relationIndexUUIDs.computeIfAbsent(table, k -> new ArrayList<>());
+                indexUUIDs.add(index.getUUID());
+            } else {
+                LOGGER.warn("No table relation found for index [{}] while deleting it", index);
+            }
+        }
+        for (var entry : relationIndexUUIDs.entrySet()) {
+            RelationMetadata.Table table = entry.getKey();
+            List<String> indexUUIDs = entry.getValue();
+            List<String> newIndexUUIDs = table.indexUUIDs().stream()
+                .filter(x -> !indexUUIDs.contains(x))
+                .toList();
+            metadataBuilder.setTable(
+                table.name(),
+                table.columns(),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                newIndexUUIDs,
+                table.tableVersion() + 1
+            );
         }
 
         // add tombstones to the cluster state for each deleted index

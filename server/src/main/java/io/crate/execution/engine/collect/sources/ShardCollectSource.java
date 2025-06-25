@@ -315,6 +315,9 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
             String indexUUID = entry.getKey();
             IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
+                if (collectPhase.onPartitionedTable()) {
+                    continue;
+                }
                 throw new IndexNotFoundException(indexUUID);
             }
             Index index = indexMetadata.getIndex();

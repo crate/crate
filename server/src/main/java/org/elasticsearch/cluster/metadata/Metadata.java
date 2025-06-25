@@ -1231,27 +1231,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             setRelation(updatedTable);
             return this;
         }
-
-        public Builder removeIndexUUIDs(RelationMetadata.Table table, List<String> indexUUIDs) {
-            List<String> updatedUUIDS = new ArrayList<>(table.indexUUIDs());
-            updatedUUIDS.removeAll(indexUUIDs);
-            RelationMetadata.Table updatedTable = new RelationMetadata.Table(
-                table.name(),
-                table.columns(),
-                table.settings(),
-                table.routingColumn(),
-                table.columnPolicy(),
-                table.pkConstraintName(),
-                table.checkConstraints(),
-                table.primaryKeys(),
-                table.partitionedBy(),
-                table.state(),
-                updatedUUIDS,
-                table.tableVersion() + 1
-            );
-            setRelation(updatedTable);
-            return this;
-        }
     }
 
     public static class UnknownGatewayOnlyCustom implements Custom {

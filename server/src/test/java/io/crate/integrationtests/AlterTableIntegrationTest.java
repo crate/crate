@@ -42,7 +42,6 @@ import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseJdbc;
 import io.crate.testing.UseNewCluster;
 
 public class AlterTableIntegrationTest extends IntegTestCase {
@@ -396,7 +395,6 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("bar");
     }
 
-    @UseJdbc(0)
     @Test
     public void test_increase_num_shards_does_not_delete_source_index_on_alloc_failures() throws Exception {
         execute("create table tbl (x int, p int) clustered into 1 shards partitioned by (p) with (\"routing.allocation.total_shards_per_node\" = 2)");

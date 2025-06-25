@@ -603,11 +603,10 @@ public class InsertFromValues implements LogicalPlan {
                                                   OperationRouting operationRouting,
                                                   ClusterState state) {
         Metadata metadata = state.metadata();
-        List<String> indexUUIDs = metadata.getIndices(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
-        if (indexUUIDs.isEmpty()) {
+        String indexUUID = metadata.getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
+        if (indexUUID == null) {
             throw new IndexNotFoundException(partitionName.asIndexName());
         }
-        String indexUUID = indexUUIDs.getFirst();
         ShardIterator shardIterator = operationRouting.indexShards(
             state,
             indexUUID,
@@ -783,7 +782,6 @@ public class InsertFromValues implements LogicalPlan {
                                                                             Client client,
                                                                             Set<PartitionName> partitions,
                                                                             ClusterService clusterService) {
-        Metadata metadata = clusterService.state().metadata();
         List<PartitionName> partitionsToCreate = new ArrayList<>();
         for (var partition : partitions) {
             if (tableInfo.getPartition(partition) == null) {

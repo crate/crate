@@ -75,7 +75,7 @@ public class CountOperationTest extends IntegTestCase {
         Map<String, IntIndexedContainer> indexShards = Map.of(index.getUUID(), shards);
 
         {
-            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE);
+            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE, false);
             assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(3L);
         }
 
@@ -87,7 +87,7 @@ public class CountOperationTest extends IntegTestCase {
 
         Symbol filter = sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'"));
         {
-            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, filter);
+            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, filter, false);
             assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(1L);
         }
     }
@@ -111,7 +111,8 @@ public class CountOperationTest extends IntegTestCase {
             indexService,
             indexShard,
             txnCtx,
-            Literal.BOOLEAN_TRUE
+            Literal.BOOLEAN_TRUE,
+            true
         );
         assertThat(count).isEqualTo(0);
     }

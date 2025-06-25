@@ -184,7 +184,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         when(tableInfo.versionCreated()).thenReturn(Version.CURRENT);
         when(schemas.getTableInfo(any(RelationName.class))).thenReturn(tableInfo);
 
-
         var dynamicLongColRef = new SimpleReference(
                 new ReferenceIdent(TABLE_IDENT,"dynamic_long_col"),
                 RowGranularity.DOC,

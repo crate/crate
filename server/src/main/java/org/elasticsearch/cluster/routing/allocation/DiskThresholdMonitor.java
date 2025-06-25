@@ -352,7 +352,8 @@ public class DiskThresholdMonitor {
 
     protected void updateIndicesReadOnly(Set<String> indicesToUpdate,
                                          Function<String, IndexMetadata> indexMetadataResolver,
-                                         ActionListener<Void> listener, boolean readOnly) {
+                                         ActionListener<Void> listener,
+                                         boolean readOnly) {
         // set read-only block but don't block on the response
         ActionListener<Void> wrappedListener = ActionListener.wrap(r -> {
             setLastRunTimeMillis();

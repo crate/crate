@@ -48,7 +48,6 @@ import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 
 public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TItem extends ShardRequest.Item>

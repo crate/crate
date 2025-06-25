@@ -21,17 +21,20 @@
 
 package org.elasticsearch.snapshots;
 
+import static io.crate.analyze.SnapshotSettings.IGNORE_UNAVAILABLE;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.snapshots.RestoreService.resolveIndices;
+import static org.elasticsearch.snapshots.RestoreService.resolveRelations;
 import static org.elasticsearch.test.IntegTestCase.resolveIndex;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.util.Strings;
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
@@ -54,38 +57,22 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
         String indexUUID1 = resolveIndex("my_schema.table1", null, metadata).getUUID();
         String indexUUID2 = resolveIndex("my_schema.table2", null, metadata).getUUID();
 
-        List<String> resolvedIndices = new ArrayList<>();
+        RelationName relationName1 = new RelationName("my_schema", "table1");
+        RelationName relationName2 = new RelationName("my_schema", "table2");
         List<TableOrPartition> tablesToRestore = List.of(
-            new TableOrPartition(
-                new RelationName("my_schema", "table1"), null
-            ),
-            new TableOrPartition(
-                new RelationName("my_schema", "table2"), null
-            )
+            new TableOrPartition(relationName1, null),
+            new TableOrPartition(relationName2, null)
         );
 
-        resolveIndices(
-            tablesToRestore,
-            metadata,
-            resolvedIndices
+        SnapshotInfo snapshotInfo = new SnapshotInfo(
+            new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),
+            List.of(),
+            SnapshotState.SUCCESS
         );
-
-        assertThat(resolvedIndices).contains(
-            indexUUID1,
-            indexUUID2
-        );
-    }
-
-    /*
-    @Test
-    public void test_resolve_index_with_ignore_unavailable() throws Exception {
-        SQLExecutor.builder(clusterService).build()
-            .addTable("CREATE TABLE doc.my_table (id INT, name STRING) PARTITIONED BY (name)");
-
-        var restoreRequest = new RestoreService.RestoreRequest(
+        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(
             "repo1",
-            "snapshot1",
-            IndicesOptions.fromOptions(true, true, true, true),
+            snapshotInfo.snapshotId().getUUID(),
+            IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.EMPTY,
             TimeValue.timeValueSeconds(30),
             true,
@@ -94,32 +81,61 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             true,
             Strings.EMPTY_ARRAY
         );
-        List<String> resolvedIndices = new ArrayList<>();
-        List<String> resolvedTemplates = new ArrayList<>();
+
+        Map<RelationName, RestoreService.RestoreRelation> restoreRelations = resolveRelations(
+            tablesToRestore,
+            restoreRequest,
+            metadata,
+            snapshotInfo
+        );
+
+        RestoreService.RestoreRelation relation1 = restoreRelations.get(relationName1);
+        assertThat(relation1).isNotNull();
+        assertThat(relation1.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID1, List.of()));
+        RestoreService.RestoreRelation relation2 = restoreRelations.get(relationName2);
+        assertThat(relation2).isNotNull();
+        assertThat(relation2.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID2, List.of()));
+    }
+
+    @Test
+    public void test_resolve_index_with_ignore_unavailable() throws Exception {
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.my_table (id INT, name STRING) PARTITIONED BY (name)");
+
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table");
+        SnapshotInfo snapshotInfo = new SnapshotInfo(
+            new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),
+            List.of(),
+            SnapshotState.SUCCESS
+        );
+        var restoreRequest = new RestoreService.RestoreRequest(
+            "repo1",
+            snapshotInfo.snapshotId().getName(),
+            IndicesOptions.LENIENT_EXPAND_OPEN,
+            Settings.builder().put(IGNORE_UNAVAILABLE.getKey(), true).build(),
+            TimeValue.timeValueSeconds(30),
+            true,
+            true,
+            Strings.EMPTY_ARRAY,
+            true,
+            Strings.EMPTY_ARRAY
+        );
         List<TableOrPartition> tablesToRestore = List.of(
-            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null)
+            new TableOrPartition(relationName, "046jcchm6krj4e1g60o30c0")
         );
 
         Metadata metadata = clusterService.state().metadata();
-        //String indexUUID1 = resolveIndex("doc.my_table", null, metadata).getUUID();
-
-        // ignoreUnavailable code path doesn't filter anything and doesn't use available indices
-        List<String> availableIndices = null;
-        resolveIndices(
+        Map<RelationName, RestoreService.RestoreRelation> restoreRelations = resolveRelations(
             tablesToRestore,
+            restoreRequest,
             metadata,
-            resolvedIndices
+            snapshotInfo
         );
 
-
-        assertThat(resolvedIndices).containsExactlyInAnyOrder(
-            "my_table",
-            templateName(Schemas.DOC_SCHEMA_NAME, "my_table") + "*"
-        );
-        assertThat(resolvedTemplates).containsExactly(".partitioned.my_table.");
+        RestoreService.RestoreRelation relation = restoreRelations.get(relationName);
+        // Since the concrete partition does not exist, the relation itself should not be resolved as well
+        assertThat(relation).isNull();
     }
-
-     */
 
     @Test
     public void test_resolve_partitioned_table_index_from_snapshot() throws Exception {
@@ -127,12 +143,19 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE doc.restoreme (id INT, name STRING) PARTITIONED BY (name)", ".partitioned.restoreme.046jcchm6krj4e1g60o30c0");
 
         Metadata metadata = clusterService.state().metadata();
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme");
         String indexUUID1 = resolveIndex("doc.restoreme", PartitionName.decodeIdent("046jcchm6krj4e1g60o30c0"), null, metadata).getUUID();
 
-        new RestoreService.RestoreRequest(
+        SnapshotInfo snapshotInfo = new SnapshotInfo(
+            new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),
+            List.of(),
+            SnapshotState.SUCCESS
+        );
+
+        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(
             "repo1",
-            "snapshot1",
-            IndicesOptions.fromOptions(false, true, true, true),
+            snapshotInfo.snapshotId().getName(),
+            IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.EMPTY,
             TimeValue.timeValueSeconds(30),
             true,
@@ -141,26 +164,40 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             true,
             Strings.EMPTY_ARRAY
         );
-        List<String> resolvedIndices = new ArrayList<>();
         List<TableOrPartition> tablesToRestore = List.of(
-            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), "046jcchm6krj4e1g60o30c0")
+            new TableOrPartition(relationName, "046jcchm6krj4e1g60o30c0")
         );
-        resolveIndices(
+
+        Map<RelationName, RestoreService.RestoreRelation> restoreRelations = resolveRelations(
             tablesToRestore,
+            restoreRequest,
             metadata,
-            resolvedIndices
+            snapshotInfo
         );
 
-        assertThat(resolvedIndices).containsExactly(indexUUID1);
+        RestoreService.RestoreRelation relation = restoreRelations.get(relationName);
+        assertThat(relation).isNotNull();
+        assertThat(relation.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID1, List.of("626572800000")));
     }
 
-    /*
     @Test
-    public void test_resolve_empty_partitioned_template() {
-        var restoreRequest = new RestoreService.RestoreRequest(
+    public void test_resolve_empty_partitioned_table() throws Exception{
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.restoreme (id INT, name STRING) PARTITIONED BY (name)");
+
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme");
+        Metadata metadata = clusterService.state().metadata();
+
+        SnapshotInfo snapshotInfo = new SnapshotInfo(
+            new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),
+            List.of(),
+            SnapshotState.SUCCESS
+        );
+
+        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(
             "repo1",
-            "snapshot1",
-            IndicesOptions.fromOptions(false, true, true, true),
+            snapshotInfo.snapshotId().getName(),
+            IndicesOptions.LENIENT_EXPAND_OPEN,
             Settings.EMPTY,
             TimeValue.timeValueSeconds(30),
             true,
@@ -169,26 +206,23 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             true,
             Strings.EMPTY_ARRAY
         );
-        List<String> resolvedIndices = new ArrayList<>();
-        List<String> resolvedTemplates = new ArrayList<>();
         List<TableOrPartition> tablesToRestore = List.of(
-            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme"), null)
+            new TableOrPartition(relationName, null)
         );
-        resolveIndices(
+
+        Map<RelationName, RestoreService.RestoreRelation> restoreRelations = resolveRelations(
             tablesToRestore,
-            Metadata.EMPTY_METADATA,
-            resolvedIndices
+            restoreRequest,
+            metadata,
+            snapshotInfo
         );
 
-        assertThat(resolvedIndices).isEmpty();
-        // If the snapshot doesn't contain any index which belongs to the table, it could be that the user
-        // restores an empty partitioned table. For that case we attempt to restore the table template.
-        assertThat(resolvedTemplates).containsExactly(
-            templateName(Schemas.DOC_SCHEMA_NAME, "restoreme"));
-
+        RestoreService.RestoreRelation relation = restoreRelations.get(relationName);
+        assertThat(relation).isNotNull();
+        assertThat(relation.targetName()).isEqualTo(relationName);
+        assertThat(relation.restoreIndices()).isEmpty();
     }
 
-     */
 
     @Test
     public void test_resolve_multi_tables_index_names_from_snapshot() throws Exception {
@@ -196,24 +230,47 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE doc.my_table (id INT, name STRING)")
             .addTable("CREATE TABLE doc.my_partitioned_table (id INT, name STRING) PARTITIONED BY (name)", ".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0");
 
+        RelationName relationName1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table");
+        RelationName relationName2 = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table");
         Metadata metadata = clusterService.state().metadata();
         String indexUUID1 = resolveIndex("doc.my_table", null, metadata).getUUID();
         String indexUUID2 = resolveIndex("doc.my_partitioned_table", PartitionName.decodeIdent("046jcchm6krj4e1g60o30c0"), null, metadata).getUUID();
 
         List<String> resolvedIndices = new ArrayList<>();
         List<TableOrPartition> tablesToRestore = List.of(
-            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table"), null),
-            new TableOrPartition(new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"), "046jcchm6krj4e1g60o30c0")
+            new TableOrPartition(relationName1, null),
+            new TableOrPartition(relationName2, "046jcchm6krj4e1g60o30c0")
         );
-        resolveIndices(
-            tablesToRestore,
-            metadata,
-            resolvedIndices
+        SnapshotInfo snapshotInfo = new SnapshotInfo(
+            new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),
+            List.of(),
+            SnapshotState.SUCCESS
+        );
+        RestoreService.RestoreRequest restoreRequest = new RestoreService.RestoreRequest(
+            "repo1",
+            snapshotInfo.snapshotId().getUUID(),
+            IndicesOptions.LENIENT_EXPAND_OPEN,
+            Settings.EMPTY,
+            TimeValue.timeValueSeconds(30),
+            true,
+            true,
+            Strings.EMPTY_ARRAY,
+            true,
+            Strings.EMPTY_ARRAY
         );
 
-        assertThat(resolvedIndices).containsExactlyInAnyOrder(
-            indexUUID1,
-            indexUUID2
+        Map<RelationName, RestoreService.RestoreRelation> restoreRelations = resolveRelations(
+            tablesToRestore,
+            restoreRequest,
+            metadata,
+            snapshotInfo
         );
+
+        RestoreService.RestoreRelation relation1 = restoreRelations.get(relationName1);
+        assertThat(relation1).isNotNull();
+        assertThat(relation1.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID1, List.of()));
+        RestoreService.RestoreRelation relation2 = restoreRelations.get(relationName2);
+        assertThat(relation2).isNotNull();
+        assertThat(relation2.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID2, List.of("626572800000")));
     }
 }

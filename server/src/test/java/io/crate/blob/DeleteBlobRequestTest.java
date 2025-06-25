@@ -23,8 +23,6 @@ package io.crate.blob;
 
 import static io.crate.testing.Asserts.assertThat;
 
-import java.util.UUID;
-
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.index.shard.ShardId;

@@ -125,7 +125,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
-        ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexUUID = request.index();
         RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(indexUUID);
         if (relationMetadata == null) {
@@ -211,6 +210,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             );
         }
 
+        ShardResponse shardResponse = new ShardResponse(request.returnValues());
         Translog.Location translogLocation = null;
         for (ShardUpsertRequest.Item item : request.items()) {
             if (shardResponse.failure() != null) {

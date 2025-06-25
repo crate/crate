@@ -206,6 +206,13 @@ public class PartitionNameTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void testSplitInvalid3() throws Exception {
+        assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate("lalala"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Trying to create partition name from the name of a non-partitioned table lalala");
+    }
+
+    @Test
     public void testSplitInvalid4() throws Exception {
         String indexOrTemplate = IndexName.PARTITIONED_TABLE_PART + "lalala";
         assertThatThrownBy(() -> PartitionName.fromIndexOrTemplate(indexOrTemplate))

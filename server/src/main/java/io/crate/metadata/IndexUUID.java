@@ -59,7 +59,7 @@ public class IndexUUID {
         }
         List<String> partitionedBy = PartitionName.decodeIdent(partitionIdent);
 
-        return () ->  {
+        return () -> {
             List<String> indexUUIDS = metadata.getIndices(relationName, partitionedBy, true, IndexMetadata::getIndexUUID);
             return indexUUIDS.isEmpty() ? null : indexUUIDS.getFirst();
         };

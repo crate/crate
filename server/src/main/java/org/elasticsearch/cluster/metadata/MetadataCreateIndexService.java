@@ -21,7 +21,6 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_CREATION_DATE;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_NAME;
 
 import java.io.IOException;
 import java.nio.file.Path;
@@ -143,7 +142,12 @@ public class MetadataCreateIndexService {
         return ActionListener.wrap(
             resp -> {
                 if (resp.isAcknowledged()) {
-                    List<String> indexUUIDs = clusterService.state().metadata().getIndices(relationName, List.of(), false, IndexMetadata::getIndexUUID);
+                    List<String> indexUUIDs = clusterService.state().metadata().getIndices(
+                        relationName,
+                        List.of(),
+                        false,
+                        IndexMetadata::getIndexUUID
+                    );
                     activeShardsObserver.waitForActiveShards(
                         indexUUIDs.toArray(new String[0]),
                         waitForActiveShards,
@@ -173,7 +177,10 @@ public class MetadataCreateIndexService {
         );
     }
 
-    public CompletableFuture<ResizeResponse> resizeIndex(ResizeRequest request, String sourceIndexUUID, String resizeIndexUUID, IndicesStatsResponse indicesStats) {
+    public CompletableFuture<ResizeResponse> resizeIndex(ResizeRequest request,
+                                                         String sourceIndexUUID,
+                                                         String resizeIndexUUID,
+                                                         IndicesStatsResponse indicesStats) {
         IndexStats indexStats = indicesStats.getIndex(sourceIndexUUID);
         Map<Integer, IndexShardStats> indexShards = indexStats.getIndexShards();
         ResizeIndexTask resizeIndexTask = new ResizeIndexTask(
@@ -351,8 +358,6 @@ public class MetadataCreateIndexService {
                 throw new IllegalStateException("index " + sourceIndex + " must be read-only to resize index. use \"index.blocks.write=true\"");
             }
 
-            String resizedIndexName = AlterTableClient.RESIZE_PREFIX + sourceIndex.getIndex().getName();
-
             final int routingNumShards;
             Settings sourceSettings = sourceIndex.getSettings();
             Version indexVersionCreated = currentState.nodes().getSmallestNonClientNodeVersion();
@@ -415,6 +420,7 @@ public class MetadataCreateIndexService {
                 }
             }
 
+            String resizedIndexName = AlterTableClient.RESIZE_PREFIX + sourceIndex.getIndex().getName();
             IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(resizedIndexUUID)
                 .indexName(resizedIndexName)
                 .settings(indexSettingsBuilder)
@@ -444,16 +450,14 @@ public class MetadataCreateIndexService {
                 throw new IllegalArgumentException("Cannot resize index for missing table: " + request.table());
             }
 
-            Settings settings = table.settings();
             if (request.partitionValues().isEmpty()) {
-                settings = Settings.builder()
-                    .put(table.settings())
-                    .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, newNumShards)
-                    .build();
                 metadataBuilder.setTable(
                     table.name(),
                     table.columns(),
-                    settings,
+                    Settings.builder()
+                        .put(table.settings())
+                        .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, newNumShards)
+                        .build(),
                     table.routingColumn(),
                     table.columnPolicy(),
                     table.pkConstraintName(),
@@ -465,8 +469,6 @@ public class MetadataCreateIndexService {
                     table.tableVersion() + 1
                 );
             }
-            //List<String> indexUUIDs = new ArrayList<>(table.indexUUIDs());
-            //indexUUIDs.add(resizedIndexUUID);
 
             IndexMetadata tmpImd = tmpImdBuilder.build();
 

@@ -264,11 +264,6 @@ public class MetadataUpgradeService {
             LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
                 ? NO_OID_COLUMN_OID_SUPPLIER
                 : newMetadata.columnOidSupplier();
-            Settings settings = Settings.builder()
-                // If RelationMetadata exist in the cluster state, make sure to override them with
-                // the upgraded settings which currently takes place on IndexTemplateMetadata
-                .put(indexMetadata.getSettings())
-                .build();
             if (relation == null) {
                 newMetadata.setTable(
                     columnOidSupplier,
@@ -276,7 +271,7 @@ public class MetadataUpgradeService {
                     docTable.allReferences(),
                     // If RelationMetadata exist in the cluster state, make sure to override them with
                     // the upgraded settings which currently takes place on IndexMetadata
-                    settings,
+                    indexMetadata.getSettings(),
                     docTable.clusteredBy(),
                     docTable.columnPolicy(),
                     docTable.pkConstraintName(),

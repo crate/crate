@@ -27,7 +27,6 @@ import static org.mockito.Mockito.when;
 
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;

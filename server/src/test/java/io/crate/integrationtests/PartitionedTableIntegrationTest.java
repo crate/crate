@@ -1604,9 +1604,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         this.setup.setUpLocations();
         execute("refresh table locations");
 
-        execute("select count(*) from locations");
-        assertThat(response.rows()[0][0]).isEqualTo(13L);
-
         execute("select name from locations order by id");
         assertThat(response.rowCount()).isEqualTo(13L);
         String firstName = (String) response.rows()[0][0];

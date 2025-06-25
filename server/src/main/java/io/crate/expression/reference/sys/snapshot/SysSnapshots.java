@@ -102,13 +102,6 @@ public class SysSnapshots {
     private static SysSnapshot toSysSnapshot(Repository repository,
                                              SnapshotId snapshotId,
                                              SnapshotInfo snapshotInfo,
-                                             List<String> partedTables) {
-        return toSysSnapshot(repository, snapshotId, snapshotInfo, snapshotInfo.indices(), partedTables);
-    }
-
-    private static SysSnapshot toSysSnapshot(Repository repository,
-                                             SnapshotId snapshotId,
-                                             SnapshotInfo snapshotInfo,
                                              List<String> concreteIndices,
                                              List<String> partedTables) {
         Version version = snapshotInfo.version();
@@ -157,12 +150,6 @@ public class SysSnapshots {
                     .filter(t -> !t.partitionedBy().isEmpty())
                     .map(t -> t.name().fqn())
                     .toList();
-                /*
-                List<String> concreteIndices = snapshotInfo.indices().stream()
-                    .map(indexUUID -> metadata.index(indexUUID).getIndex().getName())
-                    .toList();
-
-                 */
                 List<String> concreteIndices = snapshotInfo.indices();
                 return SysSnapshots.toSysSnapshot(repository, snapshotId, snapshotInfo, concreteIndices, partedTables);
             }).exceptionally(t -> {

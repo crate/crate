@@ -29,7 +29,6 @@ import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -261,23 +260,6 @@ public class RestoreService implements ClusterStateApplier {
         });
     }
 
-    /**
-     * Resolves indices and templates from the request.
-     * @param resolvedIndices is used to accumulate all resolved indices (or empty list to indicate all indices).
-     */
-    @VisibleForTesting
-    static void resolveIndices(List<TableOrPartition> tablesToRestore,
-                               Metadata snapshotMetadata,
-                               List<String> resolvedIndices) {
-        for (TableOrPartition tableOrPartition : tablesToRestore) {
-            List<String> partitionValues = tableOrPartition.partitionIdent() == null
-                ? List.of()
-                : PartitionName.decodeIdent(tableOrPartition.partitionIdent());
-            List<String> indexUUIDs = snapshotMetadata.getIndices(tableOrPartition.table(), partitionValues, true, IndexMetadata::getIndexUUID);
-            resolvedIndices.addAll(indexUUIDs);
-        }
-    }
-
     static Map<RelationName, RestoreRelation> resolveRelations(List<TableOrPartition> tablesToRestore,
                                                                RestoreRequest request,
                                                                Metadata snapshotMetadata,
@@ -296,6 +278,11 @@ public class RestoreService implements ClusterStateApplier {
                 );
             } catch (RelationUnknown e) {
                 throw new ResourceNotFoundException("Relation [{}] not found in snapshot", relationName);
+            }
+            if (partitionValues.isEmpty() == false && restoreIndices.isEmpty()) {
+                // Partition wasn't found in the snapshot but IGNORE_UNAVAILABLE/strict is set to true
+                // so we don't restore anything, especially not the relation itself.
+                return;
             }
             RelationName renamedRelation = applyRenameToRelation(request, relationName);
             restoreRelations.compute(relationName, (r, restoreRelation) -> {
@@ -946,38 +933,6 @@ public class RestoreService implements ClusterStateApplier {
         return failedShards;
     }
 
-    private Map<String, String> applyRenameToIndices(RestoreRequest request, List<String> indices) {
-
-        Map<String, String> renamedIndices = new HashMap<>();
-        boolean applyRenamePattern = request.hasNonDefaultRenamePatterns();
-        for (String index : indices) {
-            String renamed = index;
-            // At least one non-default value is provided.
-            if (applyRenamePattern) {
-                IndexParts indexParts = IndexName.decode(renamed);
-                String schema = indexParts.schema();
-                String table = indexParts.table();
-                table = table.replaceAll(request.tableRenamePattern(), request.tableRenameReplacement());
-                schema = schema.replaceAll(request.schemaRenamePattern(), request.schemaRenameReplacement());
-
-                // Use intermediate RelationName to do some validations
-                // and also handle blob/doc schemas for non-partitioned tables
-                RelationName renamedIdent = new RelationName(schema, table);
-                if (indexParts.isPartitioned()) {
-                    renamed = IndexName.encode(renamedIdent.schema(), renamedIdent.name(), indexParts.partitionIdent());
-                } else {
-                    renamed = renamedIdent.indexNameOrAlias();
-                }
-            }
-            String previous = renamedIndices.put(renamed, index);
-            if (previous != null) {
-                throw new SnapshotRestoreException(request.repositoryName, request.snapshotName,
-                    "indices [" + index + "] and [" + previous + "] are renamed into the same index [" + renamed + "]");
-            }
-        }
-        return Collections.unmodifiableMap(renamedIndices);
-    }
-
     private static RelationName applyRenameToRelation(RestoreRequest request, RelationName relationName) {
         boolean applyRenamePattern = request.hasNonDefaultRenamePatterns();
         RelationName renamed = relationName;
@@ -1093,9 +1048,11 @@ public class RestoreService implements ClusterStateApplier {
         }
     }
 
-    private record RestoreIndex(String indexUUID, List<String> partitionValues) {}
+    @VisibleForTesting
+    record RestoreIndex(String indexUUID, List<String> partitionValues) {}
 
-    private record RestoreRelation(RelationName targetName, List<RestoreIndex> restoreIndices) {
+    @VisibleForTesting
+    record RestoreRelation(RelationName targetName, List<RestoreIndex> restoreIndices) {
 
         public void add(List<RestoreIndex> newIndexUUIDs) {
             restoreIndices.addAll(newIndexUUIDs);
