@@ -30,6 +30,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;
+
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 
 import org.jetbrains.annotations.NotNull;
@@ -98,7 +99,13 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
             } else {
                 currentlyAccumulating = currentlyAccumulating.whenComplete((r, t) -> {
                     if (t == null) {
-                        processRows(rows);
+                        try {
+                            processRows(rows);
+                        } catch (Exception e) {
+                            var runtimeErr = Exceptions.toRuntimeException(t);
+                            processingFuture.completeExceptionally(runtimeErr);
+                            throw runtimeErr;
+                        }
                     } else {
                         var runtimeErr = Exceptions.toRuntimeException(t);
                         processingFuture.completeExceptionally(runtimeErr);
