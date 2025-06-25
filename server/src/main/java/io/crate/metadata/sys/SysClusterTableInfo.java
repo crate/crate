@@ -110,7 +110,13 @@ public class SysClusterTableInfo {
             settingsBuilder.add(
                 leaf.name,
                 valueType,
-                x -> valueType.implicitCast(clusterSettings.get(setting))
+                _ -> {
+                    var settingValue = clusterSettings.get(setting);
+                    if (settingValue instanceof Settings groupSetting) {
+                        return groupSetting.getAsStructuredMap();
+                    }
+                    return valueType.implicitCast(settingValue);
+                }
             );
         } else {
             var objectSetting = settingsBuilder.startObject(element.name);
