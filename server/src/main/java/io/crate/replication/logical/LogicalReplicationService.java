@@ -200,7 +200,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     }
 
     public Map<String, Subscription> subscriptions() {
-        return currentSubscriptionsMetadata.subscription();
+        return Map.copyOf(currentSubscriptionsMetadata.subscription());
     }
 
     public Map<String, Publication> publications() {
