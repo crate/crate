@@ -45,6 +45,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.engine.Engine.IndexResult;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
@@ -60,6 +61,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
+import org.mockito.invocation.InvocationOnMock;
+import org.mockito.stubbing.Answer;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.TransportAddColumn;
@@ -158,6 +161,16 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         when(indicesService.indexServiceSafe(charactersIndex)).thenReturn(indexService);
         when(indicesService.indexServiceSafe(partitionIndex)).thenReturn(indexService);
         indexShard = mock(IndexShard.class, Answers.RETURNS_MOCKS);
+        when(indexShard.index(any(Engine.Index.class))).thenAnswer(new Answer<>() {
+
+            @Override
+            public IndexResult answer(InvocationOnMock arg0) throws Throwable {
+                Engine.Index index = arg0.getArgument(0);
+                IndexResult indexResult = new IndexResult(1, index.primaryTerm(), index.seqNo(), true);
+                indexResult.setTranslogLocation(new Translog.Location(1, 1, 1));
+                return indexResult;
+            }
+        });
         when(indexService.getShard(0)).thenReturn(indexShard);
 
         // Avoid null pointer exceptions
@@ -226,7 +239,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(VersionConflictEngineException.class);
+        assertThat(result.response.failure()).isExactlyInstanceOf(VersionConflictEngineException.class);
     }
 
     @Test
@@ -256,7 +269,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        ShardResponse response = result.finalResponseIfSuccessful;
+        ShardResponse response = result.response;
         assertThat(response.failures()).satisfiesExactly(
             f -> assertThat(f.error().getMessage()).isEqualTo(
                 "[1]: version conflict, document with id: 1 already exists in 'characters'"));
@@ -289,7 +302,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
+        assertThat(result.response.failure()).isExactlyInstanceOf(InterruptedException.class);
     }
 
     @Test
@@ -392,7 +405,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<ShardUpsertRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
-        assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
+        assertThat(result.response.failure()).isExactlyInstanceOf(InterruptedException.class);
         assertThat(result.replicaRequest().items()).satisfiesExactly(
             item -> assertThat(item.seqNo()).isEqualTo(SequenceNumbers.SKIP_ON_REPLICA),
             item -> assertThat(item.seqNo()).isEqualTo(SequenceNumbers.SKIP_ON_REPLICA)

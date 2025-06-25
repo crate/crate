@@ -93,21 +93,17 @@ public class TransportResyncReplicationAction extends TransportWriteAction<Resyn
                                            IndexShard primary,
                                            ActionListener<PrimaryResult<ResyncReplicationRequest, ReplicationResponse>> listener) {
         try {
-            listener.onResponse(new WritePrimaryResult<>(performOnPrimary(request), new ReplicationResponse(), null, null, primary));
+            listener.onResponse(new WritePrimaryResult<>(request, new ReplicationResponse(), null, primary));
         } catch (Exception ex) {
             listener.onFailure(ex);
         }
-    }
-
-    public static ResyncReplicationRequest performOnPrimary(ResyncReplicationRequest request) {
-        return request;
     }
 
     @Override
     protected WriteReplicaResult shardOperationOnReplica(ResyncReplicationRequest request,
                                                          IndexShard replica) throws Exception {
         Translog.Location location = performOnReplica(request, replica);
-        return new WriteReplicaResult(location, null, replica);
+        return new WriteReplicaResult(location, replica);
     }
 
     public static Translog.Location performOnReplica(ResyncReplicationRequest request, IndexShard replica) throws Exception {

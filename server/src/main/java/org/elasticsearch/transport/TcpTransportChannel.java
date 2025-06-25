@@ -100,5 +100,10 @@ public final class TcpTransportChannel implements TransportChannel {
     public CloseableChannel getChannel() {
         return channel;
     }
+
+    @Override
+    public String toString() {
+        return "TcpTransportChannel{action=" + action + ", channel=" + channel + "}";
+    }
 }
 

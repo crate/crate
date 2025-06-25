@@ -40,7 +40,6 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.ShardResponse;
@@ -103,7 +102,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                             logger.debug("shardId={} failed to execute delete for id={}, doc not found",
                                 request.shardId(), item.id());
                         }
-                        Throwable ex = new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, item.id());
+                        Throwable ex = new DocumentMissingException(indexShard.shardId(), item.id());
                         shardResponse.add(location, item.id(), ex, false);
                     }
                 } else {
@@ -136,7 +135,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
             }
         }
 
-        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
+        return new WritePrimaryResult<>(request, shardResponse, translogLocation, indexShard);
     }
 
     @Override
@@ -166,7 +165,7 @@ public class TransportShardDeleteAction extends TransportShardAction<ShardDelete
                 }
             }
         }
-        return new WriteReplicaResult(translogLocation, null, indexShard);
+        return new WriteReplicaResult(translogLocation, indexShard);
     }
 
     private Engine.DeleteResult shardDeleteOperationOnPrimary(ShardDeleteRequest.Item item, IndexShard indexShard) throws IOException {

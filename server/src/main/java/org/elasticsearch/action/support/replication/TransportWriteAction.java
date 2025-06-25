@@ -121,29 +121,21 @@ public abstract class TransportWriteAction<
         public final IndexShard primary;
 
         public WritePrimaryResult(ReplicaRequest request,
-                                  @Nullable Response finalResponse,
+                                  Response finalResponse,
                                   @Nullable Location location,
-                                  @Nullable Exception operationFailure,
                                   IndexShard primary) {
-            super(request, finalResponse, operationFailure);
+            super(request, finalResponse);
             this.location = location;
             this.primary = primary;
-            assert location == null || operationFailure == null
-                    : "expected either failure to be null or translog location to be null, " +
-                    "but found: [" + location + "] translog location and [" + operationFailure + "] failure";
         }
 
         @Override
         public void runPostReplicationActions(ActionListener<Void> listener) {
-            if (finalFailure != null) {
-                listener.onFailure(finalFailure);
-            } else {
-                /*
-                 * We call this after replication because this might wait for a refresh and that can take a while.
-                 * This way we wait for the refresh in parallel on the primary and on the replica.
-                 */
-                new AsyncAfterWriteAction(primary, location, listener).run();
-            }
+            /*
+                * We call this after replication because this might wait for a refresh and that can take a while.
+                * This way we wait for the refresh in parallel on the primary and on the replica.
+                */
+            new AsyncAfterWriteAction(primary, location, listener).run();
         }
     }
 
@@ -154,21 +146,14 @@ public abstract class TransportWriteAction<
         private final Location location;
         private final IndexShard replica;
 
-        public WriteReplicaResult(@Nullable Location location,
-                                  @Nullable Exception operationFailure,
-                                  IndexShard replica) {
-            super(operationFailure);
+        public WriteReplicaResult(@Nullable Location location, IndexShard replica) {
             this.location = location;
             this.replica = replica;
         }
 
         @Override
         public void runPostReplicaActions(ActionListener<Void> listener) {
-            if (finalFailure == null) {
-                new AsyncAfterWriteAction(replica, location, listener).run();
-            } else {
-                listener.onFailure(finalFailure);
-            }
+            new AsyncAfterWriteAction(replica, location, listener).run();
         }
     }
 
@@ -251,7 +236,10 @@ public abstract class TransportWriteAction<
     class WriteActionReplicasProxy extends ReplicasProxy {
 
         @Override
-        public void failShardIfNeeded(ShardRouting replica, long primaryTerm, String message, Exception exception,
+        public void failShardIfNeeded(ShardRouting replica,
+                                      long primaryTerm,
+                                      String message,
+                                      Exception exception,
                                       ActionListener<Void> listener) {
             if (SQLExceptions.isShardNotAvailable(exception) == false) {
                 logger.warn(new ParameterizedMessage("[{}] {}", replica.shardId(), message), exception);

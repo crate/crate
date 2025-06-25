@@ -39,10 +39,10 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
-import org.elasticsearch.index.engine.DocumentSourceMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.Engine.IndexResult;
 import org.elasticsearch.index.engine.Engine.Operation.Origin;
+import org.elasticsearch.index.engine.Engine.Result.Type;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.mapper.Uid;
@@ -57,7 +57,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.Constants;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumn;
@@ -66,10 +65,9 @@ import io.crate.execution.dml.RawIndexer;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.dml.upsert.UpdateToInsert.Update;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
-import io.crate.expression.reference.Doc;
-import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -242,7 +240,13 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     throw Exceptions.toRuntimeException(e);
                 }
                 if (logger.isDebugEnabled()) {
-                    logger.debug("Failed to execute upsert on nodeName={}, shardId={} id={} error={}", clusterService.localNode().getName(), request.shardId(), item.id(), e);
+                    logger.debug(
+                        "Failed to execute upsert on nodeName={}, shardId={} id={} error={}",
+                        clusterService.localNode().getName(),
+                        request.shardId(),
+                        item.id(),
+                        e
+                    );
                 }
 
                 // *mark* the item as failed by setting the sequence number
@@ -268,7 +272,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 break;
             }
         }
-        return new WritePrimaryResult<>(request, shardResponse, translogLocation, null, indexShard);
+        return new WritePrimaryResult<>(request, shardResponse, translogLocation, indexShard);
     }
 
     private static boolean noItemsToIndexOnReplica(ShardUpsertRequest req) {
@@ -289,7 +293,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             // this should mean that there are either no items to index, or that
             // all items on the primary errored out and so should be ignored.
             assert noItemsToIndexOnReplica(request);
-            return new WriteReplicaResult(null, null, indexShard);
+            return new WriteReplicaResult(null, indexShard);
         }
 
         Translog.Location location = null;
@@ -368,7 +372,6 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             }
 
             ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item);
-
             Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
             boolean isRetry = false;
             Engine.Index index = new Engine.Index(
@@ -386,11 +389,14 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 SequenceNumbers.UNASSIGNED_PRIMARY_TERM
             );
             IndexResult result = indexShard.index(index);
-            assert result.getResultType() != Engine.Result.Type.MAPPING_UPDATE_REQUIRED
-                : "If parsedDoc.newColumns is empty there must be no mapping update requirement";
-            location = result.getTranslogLocation();
+            if (result.getResultType() != Type.SUCCESS) {
+                assert false : "doc-level index failure must not happen on replica";
+                throw Exceptions.toRuntimeException(result.getFailure());
+            }
+            assert result.getSeqNo() == item.seqNo() : "Result of replica index operation must have item seqNo";
+            location = locationToSync(location, result.getTranslogLocation());
         }
-        return new WriteReplicaResult(location, null, indexShard);
+        return new WriteReplicaResult(location, indexShard);
     }
 
     /**
@@ -417,6 +423,9 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         VersionConflictEngineException lastException = null;
         Object[] insertValues = item.insertValues();
         boolean tryInsertFirst = insertValues != null;
+        boolean hasUpdate = item.updateAssignments() != null && item.updateAssignments().length > 0;
+        long seqNo = item.seqNo();
+        long primaryTerm = item.primaryTerm();
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
                 boolean isRetry = retryCount > 0 || request.isRetry();
@@ -433,16 +442,28 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     }
                     assert updatingIndexer != null : "Dedicated indexer must be created for UPDATE or UPSERT";
                     assert updateToInsert != null;
-                    assert item.updateAssignments() != null && item.updateAssignments().length > 0;
-                    Doc doc = getDocument(
+                    assert hasUpdate;
+                    String id = item.id();
+                    UpdateToInsert.Update update = PKLookupOperation.withDoc(
                         indexShard,
-                        item.id(),
+                        id,
                         item.version(),
-                        item.seqNo(),
-                        item.primaryTerm(),
-                        actualTable);
-                    version = doc.getVersion();
-                    UpdateToInsert.Update update = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
+                        VersionType.INTERNAL,
+                        seqNo,
+                        primaryTerm,
+                        actualTable,
+                        null,
+                        doc -> {
+                            if (doc == null) {
+                                throw new DocumentMissingException(indexShard.shardId(), id);
+                            }
+                            Update result = updateToInsert.convert(doc, item.updateAssignments(), insertValues);
+                            item.seqNo(doc.getSeqNo());
+                            item.primaryTerm(doc.getPrimaryTerm());
+                            return result;
+                        }
+                    );
+                    version = update.version();
                     item.pkValues(update.pkValues());
                     item.insertValues(update.insertValues());
                     request.insertColumns(updatingIndexer.insertColumns(updatingIndexer.columns()));
@@ -463,13 +484,12 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                     item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
                     return null;
                 }
-                Symbol[] updateAssignments = item.updateAssignments();
-                if (updateAssignments != null && updateAssignments.length > 0) {
+                if (hasUpdate) {
                     if (tryInsertFirst) {
                         // insert failed, document already exists, try update
                         tryInsertFirst = false;
                         continue;
-                    } else if (item.retryOnConflict()) {
+                    } else if (seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && item.version() == Versions.MATCH_ANY) {
                         if (logger.isTraceEnabled()) {
                             logger.trace("[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
                                 indexShard.shardId(), item.id(), item.version(), retryCount);
@@ -538,8 +558,8 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             startTime,
             item.autoGeneratedTimestamp(),
             isRetry,
-            SequenceNumbers.UNASSIGNED_SEQ_NO,
-            SequenceNumbers.UNASSIGNED_PRIMARY_TERM
+            item.seqNo(),
+            item.primaryTerm()
         );
         IndexResult result = indexShard.index(index);
         switch (result.getResultType()) {
@@ -562,29 +582,5 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
             default:
                 throw new AssertionError("IndexResult must either succeed or fail. Required mapping updates must have been handled.");
         }
-    }
-
-    private static Doc getDocument(IndexShard indexShard,
-                                   String id,
-                                   long version,
-                                   long seqNo,
-                                   long primaryTerm,
-                                   DocTableInfo table) {
-        // when sequence versioning is used, this lookup will throw VersionConflictEngineException
-        Doc doc = PKLookupOperation.lookupDoc(
-                indexShard, id, Versions.MATCH_ANY, VersionType.INTERNAL, seqNo, primaryTerm, table, null);
-        if (doc == null) {
-            throw new DocumentMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
-        }
-        if (doc.getSource() == null) {
-            throw new DocumentSourceMissingException(indexShard.shardId(), Constants.DEFAULT_MAPPING_TYPE, id);
-        }
-        if (version != Versions.MATCH_ANY && version != doc.getVersion()) {
-            throw new VersionConflictEngineException(
-                indexShard.shardId(),
-                id,
-                "Requested version: " + version + " but got version: " + doc.getVersion());
-        }
-        return doc;
     }
 }

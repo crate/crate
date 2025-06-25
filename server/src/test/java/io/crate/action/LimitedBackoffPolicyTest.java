@@ -50,23 +50,23 @@ public class LimitedBackoffPolicyTest extends ESTestCase {
     public void testStartValue() throws Exception {
         Iterable<TimeValue> policy = BackoffPolicy.exponentialBackoff(100, 3, Integer.MAX_VALUE);
         assertThat(policy).containsExactly(
+            TimeValue.timeValueMillis(100),
             TimeValue.timeValueMillis(110),
-            TimeValue.timeValueMillis(130),
-            TimeValue.timeValueMillis(200)
+            TimeValue.timeValueMillis(130)
         );
     }
 
     @Test
     public void test_exp_backoff_defaults_to_8_retries() throws Exception {
         assertThat(BackoffPolicy.exponentialBackoff()).containsExactly(
+            TimeValue.timeValueMillis(50),
             TimeValue.timeValueMillis(60),
             TimeValue.timeValueMillis(80),
             TimeValue.timeValueMillis(150),
             TimeValue.timeValueMillis(280),
             TimeValue.timeValueMillis(580),
             TimeValue.timeValueMillis(1250),
-            TimeValue.timeValueMillis(2740),
-            TimeValue.timeValueMillis(6050)
+            TimeValue.timeValueMillis(2740)
         );
     }
 
@@ -89,10 +89,10 @@ public class LimitedBackoffPolicyTest extends ESTestCase {
     public void test_timeout_limit() throws Exception {
         Iterable<TimeValue> policy = BackoffPolicy.exponentialBackoff(TimeValue.timeValueMillis(50), TimeValue.timeValueMillis(300));
         assertThat(policy).containsExactly(
+            TimeValue.timeValueMillis(50),
             TimeValue.timeValueMillis(60),
             TimeValue.timeValueMillis(80),
-            TimeValue.timeValueMillis(150),
-            TimeValue.timeValueMillis(280)
+            TimeValue.timeValueMillis(150)
         );
     }
 }
