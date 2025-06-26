@@ -89,6 +89,8 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     private RepositoriesService repositoriesService;
     private RestoreService restoreService;
 
+    private final AtomicInteger temp = new AtomicInteger(0);
+
     private volatile SubscriptionsMetadata currentSubscriptionsMetadata = new SubscriptionsMetadata();
     private volatile PublicationsMetadata currentPublicationsMetadata = new PublicationsMetadata();
     private final MetadataTracker metadataTracker;
@@ -144,6 +146,7 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
         boolean subscriptionsChanged = prevSubscriptionsMetadata.equals(newSubscriptionsMetadata) == false;
         if (subscriptionsChanged) {
+            temp.incrementAndGet();
             currentSubscriptionsMetadata = newSubscriptionsMetadata;
             addAndRemoveRepositories(prevSubscriptionsMetadata, newSubscriptionsMetadata);
         }
@@ -201,6 +204,10 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
 
     public Map<String, Subscription> subscriptions() {
         return Map.copyOf(currentSubscriptionsMetadata.subscription());
+    }
+
+    public int count() {
+        return temp.get();
     }
 
     public Map<String, Publication> publications() {
