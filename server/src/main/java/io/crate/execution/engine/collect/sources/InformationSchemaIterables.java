@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect.sources;
 
+import static io.crate.common.collections.Iterables.sequentialStream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Stream.concat;
 import static java.util.stream.StreamSupport.stream;
@@ -267,10 +268,6 @@ public class InformationSchemaIterables {
     public static Stream<TableInfo> tablesStream(Schemas schemas) {
         return sequentialStream(schemas)
             .flatMap(s -> sequentialStream(s.getTables()));
-    }
-
-    private static <T> Stream<T> sequentialStream(Iterable<T> iterable) {
-        return stream(iterable.spliterator(), false);
     }
 
     public Iterable<SchemaInfo> schemas() {

@@ -375,7 +375,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             newStats.put(
                 new RelationName(sqlExecutor.getCurrentSchema(), "t"),
                 new Stats(100, 64, Map.of()));
-            tableStats.updateTableStats(newStats);
+            tableStats.updateTableStats(newStats::get);
         }
 
         // Left table is expected to be one row, due to the single row subselect in the where clause.
