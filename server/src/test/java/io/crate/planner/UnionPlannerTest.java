@@ -224,7 +224,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(-1, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(1, 0, Map.of()));
-        tableStats.updateTableStats(rowCountByTable);
+        tableStats.updateTableStats(rowCountByTable::get);
 
         var context = e.getPlannerContext();
         var logicalPlanner = new LogicalPlanner(
@@ -237,7 +237,7 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(e.getStats(union).numDocs()).isEqualTo(-1L);
         rowCountByTable.put(USER_TABLE_IDENT, new Stats(1, 0, Map.of()));
         rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(-1, 0, Map.of()));
-        tableStats.updateTableStats(rowCountByTable);
+        tableStats.updateTableStats(rowCountByTable::get);
         plan = logicalPlanner.plan(e.analyze(stmt), context);
         union = (Union) plan.sources().get(0);
         assertThat(e.getStats(union).numDocs()).isEqualTo(-1L);

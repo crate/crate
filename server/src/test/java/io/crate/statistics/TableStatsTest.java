@@ -76,7 +76,7 @@ public class TableStatsTest extends ESTestCase {
     @Test
     public void test_estimating_row_size_with_with_stats() {
         TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(docTableInfo.ident(), new Stats(1L, 1000L, Map.of())));
+        tableStats.updateTableStats(Map.of(docTableInfo.ident(), new Stats(1L, 1000L, Map.of()))::get);
         long sizeEstimate = tableStats.estimatedSizePerRow(docTableInfo.ident());
         assertThat(sizeEstimate).isEqualTo(1000L);
     }

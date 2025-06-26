@@ -77,7 +77,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                                  WhereClause.MATCH_ALL);
 
         TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, DataTypes.INTEGER.fixedSize(), Map.of())));
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, DataTypes.INTEGER.fixedSize(), Map.of()))::get);
 
         var memo = new Memo(source);
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
@@ -98,7 +98,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var groupReference = new GroupReference(1, source.outputs(), Set.of());
 
         TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, DataTypes.INTEGER.fixedSize(), Map.of())));
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(1, DataTypes.INTEGER.fixedSize(), Map.of()))::get);
 
         var memo = new Memo(source);
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, memo);
@@ -118,7 +118,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         var source = new Collect(new DocTableRelation(a), List.of(x), WhereClause.MATCH_ALL);
 
         TableStats tableStats = new TableStats();
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1, Map.of())));
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(10L, 1, Map.of()))::get);
 
         var limit = new Limit(source, Literal.of(5), Literal.of(0));
 
@@ -130,7 +130,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
                                                                 "  └ Collect[doc.a | [x] | true] (rows=10)");
 
         // now the source is smaller than the limit
-        tableStats.updateTableStats(Map.of(a.ident(), new Stats(3L, 1, Map.of())));
+        tableStats.updateTableStats(Map.of(a.ident(), new Stats(3L, 1, Map.of()))::get);
 
         result = planStats.get(limit);
         assertThat(result.numDocs()).isEqualTo(3L);
@@ -159,7 +159,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
             Map.of(
                 aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of()),
                 bDoc.ident(), new Stats(1L, 1 * DataTypes.INTEGER.fixedSize(), Map.of())
-            )
+            )::get
         );
 
         var union = new Union(lhs, rhs, List.of());
@@ -212,7 +212,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
             Map.of(
                 aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), columnStats),
                 bDoc.ident(), new Stats(1L, 1 * DataTypes.INTEGER.fixedSize(), columnStats)
-            )
+            )::get
         );
 
         var hashjoin = new HashJoin(lhs, rhs, joinCondition, JoinType.INNER);
@@ -247,7 +247,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
             Map.of(
                 aDoc.ident(), new Stats(9L, 9 * DataTypes.INTEGER.fixedSize(), Map.of(ColumnIdent.of("x"), xStats)),
                 bDoc.ident(), new Stats(2L, 2 * DataTypes.INTEGER.fixedSize(), Map.of(ColumnIdent.of("y"), yStats))
-            )
+            )::get
         );
 
         var nestedLoopJoin = new NestedLoopJoin(lhs, rhs, JoinType.INNER, Literal.BOOLEAN_TRUE, false, false, false, AbstractJoinPlan.LookUpJoin.NONE);
@@ -298,7 +298,7 @@ public class PlanStatsTest extends CrateDummyClusterServiceUnitTest {
         tableStats.updateTableStats(Map.of(
             tbl.ident(),
             new Stats(5_000, 5_000 * DataTypes.INTEGER.fixedSize(), columnStats)
-        ));
+        )::get);
 
         PlanStats planStats = new PlanStats(nodeContext, txnCtx, tableStats, null);
         Stats stats = planStats.get(filter);

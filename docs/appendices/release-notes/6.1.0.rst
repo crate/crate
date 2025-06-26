@@ -87,7 +87,9 @@ None
 Administration and Operations
 -----------------------------
 
-None
+- Added persistence for the :ref:`pg_catalog.pg_stats <pg_stats>` table. After
+  running ``ANALYZE``, table statistics are now written to disk and remain
+  available after a cluster restart.
 
 Client interfaces
 -----------------
