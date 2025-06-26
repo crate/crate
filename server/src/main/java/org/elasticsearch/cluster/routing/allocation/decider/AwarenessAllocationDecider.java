@@ -90,10 +90,15 @@ public class AwarenessAllocationDecider extends AllocationDecider {
             Function.identity(),
             DataTypes.STRING_ARRAY,
             Property.Dynamic,
-            Property.NodeScope);
+            Property.NodeScope,
+            Property.Exposed);
 
     public static final Setting<Settings> CLUSTER_ROUTING_ALLOCATION_AWARENESS_FORCE_GROUP_SETTING =
-        Setting.groupSetting("cluster.routing.allocation.awareness.force.", Property.Dynamic, Property.NodeScope);
+        Setting.groupSetting(
+            "cluster.routing.allocation.awareness.force.",
+            Property.Dynamic,
+            Property.NodeScope,
+            Property.Exposed);
 
     private volatile List<String> awarenessAttributes;
 
