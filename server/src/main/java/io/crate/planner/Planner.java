@@ -168,7 +168,6 @@ import io.crate.role.RoleManager;
 import io.crate.session.Cursors;
 import io.crate.session.Session;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
-import io.crate.statistics.TableStats;
 
 @Singleton
 public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
@@ -176,7 +175,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     private static final Logger LOGGER = LogManager.getLogger(Planner.class);
 
     private final ClusterService clusterService;
-    private final TableStats tableStats;
     private final LogicalPlanner logicalPlanner;
     private final NumberOfShards numberOfShards;
     private final CreateTableClient tableCreator;
@@ -191,7 +189,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     public Planner(Settings settings,
                    ClusterService clusterService,
                    NodeContext nodeCtx,
-                   TableStats tableStats,
                    NumberOfShards numberOfShards,
                    CreateTableClient tableCreator,
                    RoleManager roleManager,
@@ -199,7 +196,6 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
                    SessionSettingRegistry sessionSettingRegistry) {
         this.clusterService = clusterService;
         this.nodeCtx = nodeCtx;
-        this.tableStats = tableStats;
         this.logicalPlanner = new LogicalPlanner(
             nodeCtx,
             foreignDataWrappers,
@@ -231,7 +227,7 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
             params,
             cursors,
             transactionState,
-            new PlanStats(nodeCtx, txnCtx, tableStats),
+            new PlanStats(nodeCtx, txnCtx, nodeCtx.tableStats()),
             this.logicalPlanner::optimize,
             timeoutToken
         );
