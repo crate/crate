@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -56,8 +55,7 @@ import io.crate.types.DataTypes;
 public class JoinIntegrationTest extends IntegTestCase {
 
     @After
-    public void resetStatsAndBreakerSettings() {
-        resetTableStats();
+    public void resetBreakerSettings() {
         execute("reset global indices");
     }
 
@@ -907,12 +905,6 @@ public class JoinIntegrationTest extends IntegTestCase {
             "0| 1",
             "2| 3",
             "2| 3");
-    }
-
-    private void resetTableStats() {
-        for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
-            tableStats.updateTableStats(new HashMap<>());
-        }
     }
 
     @Test
