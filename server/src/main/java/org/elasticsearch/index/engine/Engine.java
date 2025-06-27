@@ -84,6 +84,7 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogStats;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -1136,20 +1137,14 @@ public abstract class Engine implements Closeable {
         }
 
 
+        @VisibleForTesting
         public Index(Term uid, long primaryTerm, ParsedDocument doc) {
-            this(uid, primaryTerm, doc, Versions.MATCH_ANY);
-        } // TEST ONLY
-
-        Index(Term uid,
-              long primaryTerm,
-              ParsedDocument doc,
-              long version) {
             this(
                 uid,
                 doc,
                 UNASSIGNED_SEQ_NO,
                 primaryTerm,
-                version,
+                Versions.MATCH_ANY,
                 VersionType.INTERNAL,
                 Origin.PRIMARY,
                 System.nanoTime(),
@@ -1158,7 +1153,7 @@ public abstract class Engine implements Closeable {
                 UNASSIGNED_SEQ_NO,
                 0
             );
-        } // TEST ONLY
+        }
 
         public ParsedDocument parsedDoc() {
             return this.doc;
@@ -1241,6 +1236,7 @@ public abstract class Engine implements Closeable {
             this.ifPrimaryTerm = ifPrimaryTerm;
         }
 
+        @VisibleForTesting
         public Delete(String id, Term uid, long primaryTerm) {
             this(
                 id,
