@@ -65,6 +65,7 @@ import io.crate.execution.dml.RawIndexer;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.TransportShardAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
+import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.execution.dml.upsert.UpdateToInsert.Update;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
@@ -120,7 +121,7 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
     protected WritePrimaryResult<ShardUpsertRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                         ShardUpsertRequest request,
                                                                                         AtomicBoolean killed) {
-        ShardResponse shardResponse = new ShardResponse(request.returnValues());
+        final ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.index();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
@@ -200,7 +201,21 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
         }
 
         Translog.Location translogLocation = null;
-        for (ShardUpsertRequest.Item item : request.items()) {
+        List<Item> items = request.items();
+        int numItems = items.size();
+        long[] seqNos = new long[numItems];
+        Object[][] insertValues = updateToInsert == null ? null : new Object[numItems][];
+        for (int i = 0; i < numItems; i++) {
+            Item item = items.get(i);
+            assert item.seqNo() != SequenceNumbers.SKIP_ON_REPLICA
+                : "Initial item seqNo must never be SKIP_ON_REPLICA";
+            seqNos[i] = item.seqNo();
+            if (insertValues != null) {
+                insertValues[i] = item.insertValues();
+            }
+        }
+        for (int i = 0; i < numItems; i++) {
+            Item item = items.get(i);
             if (shardResponse.failure() != null) {
                 // Skip all remaining items on replica
                 item.seqNo(SequenceNumbers.SKIP_ON_REPLICA);
@@ -237,6 +252,15 @@ public class TransportShardUpsertAction extends TransportShardAction<ShardUpsert
                 }
             } catch (Exception e) {
                 if (retryPrimaryException(e)) {
+                    for (int j = 0; j < i; j++) {
+                        Item prevItem = items.get(j);
+                        if (prevItem.seqNo() == SequenceNumbers.SKIP_ON_REPLICA) {
+                            prevItem.seqNo(seqNos[i]);
+                        }
+                        if (insertValues != null) {
+                            prevItem.insertValues(insertValues[i]);
+                        }
+                    }
                     throw Exceptions.toRuntimeException(e);
                 }
                 if (logger.isDebugEnabled()) {

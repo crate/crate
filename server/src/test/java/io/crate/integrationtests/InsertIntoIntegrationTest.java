@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -954,7 +955,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
     @Test
     public void testBulkInsertWithMultiValue() throws Exception {
-        execute("create table t (x int)");
+        execute("create table t (x int) clustered into 1 shards");
         Object[][] bulkArgs = {
             new Object[]{10, 11},
             new Object[]{20, 21},
