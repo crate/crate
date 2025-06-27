@@ -26,6 +26,7 @@ import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.REGCLASS;
 import static io.crate.types.DataTypes.STRING;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import io.crate.metadata.RelationName;
@@ -51,6 +52,14 @@ public class PgSubscriptionRelTable {
 
     public static Iterable<PgSubscriptionRelTable.PgSubscriptionRelRow> rows(LogicalReplicationService logicalReplicationService) {
         return () -> {
+            if (logicalReplicationService.subscriptions().isEmpty()) {
+                return List.of(new PgSubscriptionRelRow(
+                    -1,
+                    new Regclass(OidHash.relationOid(OidHash.Type.TABLE, new RelationName("foo", "bar")), new RelationName("foo", "bar").fqn()),
+                    "foo",
+                    Subscription.State.FAILED.pg_state(),
+                    "count: " + logicalReplicationService.count())).iterator();
+            }
             Stream<PgSubscriptionRelTable.PgSubscriptionRelRow> s = logicalReplicationService.subscriptions().entrySet().stream()
                 .mapMulti(
                     (e, c) -> {
