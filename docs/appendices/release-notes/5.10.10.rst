@@ -61,3 +61,7 @@ Fixes
 - Fixed an issue that caused queries with aggregations to continue despite
   ``CircuitBreakerException`` being thrown and return incorrect (partial)
   results under memory pressure.
+
+- Fixed the table parameter namings of the :ref:`ref-show-create-table`
+  statement output, some parameters were wrongly prefixed with
+  ``index.``.
