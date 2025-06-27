@@ -22,6 +22,8 @@
 package io.crate.analyze;
 
 
+import static io.crate.analyze.TableParameters.stripIndexPrefix;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -305,7 +307,7 @@ public class TableInfoToAST {
     private GenericProperties<Expression> extractTableProperties() {
         // WITH ( key = value, ... )
         Map<String, Expression> properties = new HashMap<>();
-        String numberOfReplicasKey = TableParameters.stripIndexPrefix(NumberOfReplicas.SETTING.getKey());
+        String numberOfReplicasKey = stripIndexPrefix(NumberOfReplicas.SETTING.getKey());
         if (tableInfo instanceof DocTableInfo docTable) {
             Expression numReplicas = new StringLiteral(docTable.numberOfReplicas());
             properties.put(numberOfReplicasKey, numReplicas);
@@ -326,7 +328,7 @@ public class TableInfoToAST {
                 for (String namespace : namespaces) {
                     String key = prefix + namespace;
                     Object value = affixSetting.getConcreteSetting(key).get(parameters);
-                    properties.put(key, literalOfSettingValue(value));
+                    properties.put(stripIndexPrefix(key), literalOfSettingValue(value));
                 }
             } else if (parameters.hasValue(setting.getKey())) {
                 Object value = setting.get(parameters);
