@@ -45,6 +45,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
@@ -79,7 +81,7 @@ public class SysShardsTest extends IntegTestCase {
 
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
         Metadata metadata = clusterService.state().metadata();
-        IndexMetadata index = metadata.index(".blob_b2");
+        IndexMetadata index = metadata.getIndex(new RelationName(BlobSchemaInfo.NAME, "b2"), List.of(), true, im -> im);
         String indexUUID = index.getIndexUUID();
 
         // b2

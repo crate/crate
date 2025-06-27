@@ -46,6 +46,8 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.table.TableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.PlannerContext;
@@ -104,11 +106,14 @@ public class Count implements LogicalPlan {
             boundWhere,
             RoutingProvider.ShardSelection.ANY,
             plannerContext.transactionContext().sessionSettings());
+        TableInfo tableInfo = tableRelation.tableInfo();
+        boolean onPartitionedTable = tableInfo instanceof DocTableInfo docTableInfo && docTableInfo.isPartitioned();
         CountPhase countPhase = new CountPhase(
             plannerContext.nextExecutionPhaseId(),
             routing,
             Optimizer.optimizeCasts(boundWhere.queryOrFallback(), plannerContext),
-            DistributionInfo.DEFAULT_BROADCAST
+            DistributionInfo.DEFAULT_BROADCAST,
+            onPartitionedTable
         );
         MergePhase mergePhase = new MergePhase(
             plannerContext.jobId(),

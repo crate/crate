@@ -84,7 +84,7 @@ public class FixCorruptedMetadataCommandITest extends IntegTestCase {
         );
         execute("insert into m1.t1 values (null), ('x'), ('y')"); // just in case...
         execute("refresh table m1.t1");
-        execute("select * from m1.t1");
+        execute("select * from m1.t1 ORDER BY s NULLS FIRST");
         assertThat(printedTable(response.rows())).isEqualTo("NULL\nNULL\nNULL\nx\ny\n");
 
         verify_drop_create_insert_select("m1", List.of("t1", "s1"));

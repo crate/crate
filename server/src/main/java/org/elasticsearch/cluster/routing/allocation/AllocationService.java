@@ -281,19 +281,19 @@ public class AllocationService {
             final Metadata.Builder metadataBuilder = Metadata.builder(clusterState.metadata());
             for (Map.Entry<Integer, List<String>> entry : autoExpandReplicaChanges.entrySet()) {
                 final int numberOfReplicas = entry.getKey();
-                final String[] indices = entry.getValue().toArray(new String[entry.getValue().size()]);
+                final String[] indicesUUIDs = entry.getValue().toArray(new String[entry.getValue().size()]);
                 // we do *not* update the in sync allocation ids as they will be removed upon the first index
                 // operation which make these copies stale
-                routingTableBuilder.updateNumberOfReplicas(numberOfReplicas, indices);
-                metadataBuilder.updateNumberOfReplicas(numberOfReplicas, indices);
+                routingTableBuilder.updateNumberOfReplicas(numberOfReplicas, indicesUUIDs);
+                metadataBuilder.updateNumberOfReplicas(numberOfReplicas, indicesUUIDs);
                 // update settings version for each index
-                for (final String index : indices) {
-                    final IndexMetadata indexMetadata = metadataBuilder.get(index);
+                for (final String indexUUID : indicesUUIDs) {
+                    final IndexMetadata indexMetadata = metadataBuilder.get(indexUUID);
                     final IndexMetadata.Builder indexMetadataBuilder =
                             new IndexMetadata.Builder(indexMetadata).settingsVersion(1 + indexMetadata.getSettingsVersion());
                     metadataBuilder.put(indexMetadataBuilder);
                 }
-                LOGGER.info("updating number_of_replicas to [{}] for indices {}", numberOfReplicas, indices);
+                LOGGER.info("updating number_of_replicas to [{}] for indices {}", numberOfReplicas, indicesUUIDs);
             }
             final ClusterState fixedState = ClusterState.builder(clusterState).routingTable(routingTableBuilder.build())
                 .metadata(metadataBuilder).build();

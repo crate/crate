@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.test.TestCustomMetadata;
 import org.junit.Before;
@@ -144,7 +145,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         Metadata metadata = randomMetadata(true);
         Metadata upgrade = metadataUpgradeService.upgradeMetadata(metadata);
         assertThat(upgrade).isNotSameAs(metadata);
-        assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isFalse();
+        assertThat(Metadata.isGlobalStateEquals(upgrade, metadata)).isTrue();
         for (IndexMetadata indexMetadata : upgrade) {
             assertThat(metadata.hasIndexMetadata(indexMetadata)).isTrue();
             RelationName relationName = IndexName.decode(indexMetadata.getIndex().getName()).toRelationName();
@@ -184,9 +185,11 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         }
         for (int i = 0; i < randomIntBetween(1, 5); i++) {
             String indexName = randomAlphaOfLength(10);
+            String indexUUID = UUIDs.randomBase64UUID();
             builder.put(
-                IndexMetadata.builder(indexName)
+                IndexMetadata.builder(indexUUID)
                     .settings(settings(Version.CURRENT))
+                    .indexName(indexName)
                     .numberOfReplicas(randomIntBetween(0, 3))
                     .numberOfShards(randomIntBetween(1, 5))
             );
@@ -194,7 +197,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                 builder.setTable(
                     IndexName.decode(indexName).toRelationName(),
                     List.of(),
-                    builder.get(indexName).getSettings(),
+                    builder.get(indexUUID).getSettings(),
                     null,
                     ColumnPolicy.STRICT,
                     null,
@@ -202,7 +205,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                     List.of(),
                     List.of(),
                     IndexMetadata.State.OPEN,
-                    List.of(),
+                    List.of(indexUUID),
                     0
                 );
             }

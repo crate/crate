@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.stream.Collectors.toList;
 import static org.assertj.core.api.Assertions.as;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.routing.allocation.DiskThresholdSettings.CLUSTER_ROUTING_ALLOCATION_REROUTE_INTERVAL_SETTING;
 

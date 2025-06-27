@@ -39,6 +39,7 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -47,7 +48,7 @@ import io.crate.types.DataType;
 
 public class RawIndexer {
 
-    private final String indexName;
+    private final PartitionName partitionName;
     private final DocTableInfo table;
     private final TransactionContext txnCtx;
     private final NodeContext nodeCtx;
@@ -61,14 +62,14 @@ public class RawIndexer {
     private Indexer currentRowIndexer;
     private IndexItem.StaticItem currentItem;
 
-    public RawIndexer(String indexName,
+    public RawIndexer(PartitionName partitionName,
                       DocTableInfo table,
                       Version shardVersionCreated,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
                       Symbol[] returnValues,
                       @NotNull List<Reference> nonDeterministicSynthetics) {
-        this.indexName = indexName;
+        this.partitionName = partitionName;
         this.table = table;
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
@@ -100,7 +101,7 @@ public class RawIndexer {
             targetRefs.addAll(nonDeterministicSynthetics);
 
             return new Indexer(
-                indexName,
+                partitionName,
                 table,
                 shardVersionCreated,
                 txnCtx,

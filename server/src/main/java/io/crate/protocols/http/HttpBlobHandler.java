@@ -49,6 +49,7 @@ import io.crate.blob.exceptions.MissingHTTPEndpointException;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobShard;
 import io.crate.blob.v2.BlobsDisabledException;
+import io.crate.exceptions.RelationUnknown;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.Channel;
@@ -271,7 +272,9 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             || cause instanceof IllegalArgumentException) {
             status = HttpResponseStatus.BAD_REQUEST;
             body = String.format(Locale.ENGLISH, "Invalid request sent: %s", cause.getMessage());
-        } else if (cause instanceof DigestNotFoundException || cause instanceof IndexNotFoundException) {
+        } else if (cause instanceof DigestNotFoundException
+            || cause instanceof IndexNotFoundException
+            || cause instanceof RelationUnknown) {
             status = HttpResponseStatus.NOT_FOUND;
         } else if (cause instanceof EsRejectedExecutionException) {
             status = HttpResponseStatus.TOO_MANY_REQUESTS;

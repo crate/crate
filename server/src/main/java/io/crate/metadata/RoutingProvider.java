@@ -103,8 +103,8 @@ public final class RoutingProvider {
         throw new AssertionError("Cannot find a master or data node with given random index " + randomIdx);
     }
 
-    public ShardRouting forId(ClusterState state, String index, String id, @Nullable String routing) {
-        IndexMetadata indexMetadata = indexMetadata(state, index);
+    public ShardRouting forId(ClusterState state, String indexUUID, String id, @Nullable String routing) {
+        IndexMetadata indexMetadata = indexMetadata(state, indexUUID);
         ShardId shardId = new ShardId(indexMetadata.getIndex(), generateShardId(indexMetadata, id, routing));
         IndexShardRoutingTable routingTable = state.routingTable().shardRoutingTable(shardId);
         ShardRouting shardRouting;
@@ -119,14 +119,14 @@ public final class RoutingProvider {
     }
 
     public Routing forIndices(ClusterState state,
-                              String[] concreteIndices,
+                              String[] concreteIndicesUUIDs,
                               Set<String> routingValues,
                               boolean ignoreMissingShards,
                               ShardSelection shardSelection) {
 
         Set<IndexShardRoutingTable> shards;
         try {
-            shards = computeTargetedShards(state, concreteIndices, routingValues);
+            shards = computeTargetedShards(state, concreteIndicesUUIDs, routingValues);
         } catch (IndexNotFoundException e) {
             return new Routing(Collections.emptyMap());
         }
@@ -178,11 +178,11 @@ public final class RoutingProvider {
             locations.put(shardRouting.currentNodeId(), nodeMap);
         }
 
-        String indexName = shardRouting.getIndexName();
-        IntIndexedContainer shards = nodeMap.get(indexName);
+        String indexUUID = shardRouting.getIndexUUID();
+        IntIndexedContainer shards = nodeMap.get(indexUUID);
         if (shards == null) {
             shards = new IntArrayList();
-            nodeMap.put(indexName, shards);
+            nodeMap.put(indexUUID, shards);
         }
         shards.add(shardRouting.id());
     }
@@ -191,9 +191,9 @@ public final class RoutingProvider {
                                                                      String[] concreteIndices,
                                                                      Set<String> routingValues) {
         LinkedHashSet<IndexShardRoutingTable> set = new LinkedHashSet<>();
-        for (String index : concreteIndices) {
-            final IndexRoutingTable indexRouting = indexRoutingTable(clusterState, index);
-            final IndexMetadata indexMetadata = indexMetadata(clusterState, index);
+        for (String indexUUID : concreteIndices) {
+            final IndexRoutingTable indexRouting = indexRoutingTable(clusterState, indexUUID);
+            final IndexMetadata indexMetadata = indexMetadata(clusterState, indexUUID);
             if (!routingValues.isEmpty()) {
                 for (String r : routingValues) {
                     final int routingPartitionSize = indexMetadata.getRoutingPartitionSize();
@@ -210,10 +210,10 @@ public final class RoutingProvider {
         return set;
     }
 
-    private static IndexRoutingTable indexRoutingTable(ClusterState clusterState, String index) {
-        IndexRoutingTable indexRouting = clusterState.routingTable().index(index);
+    private static IndexRoutingTable indexRoutingTable(ClusterState clusterState, String indexUUID) {
+        IndexRoutingTable indexRouting = clusterState.routingTable().index(indexUUID);
         if (indexRouting == null) {
-            throw new IndexNotFoundException(index);
+            throw new IndexNotFoundException(indexUUID);
         }
         return indexRouting;
     }

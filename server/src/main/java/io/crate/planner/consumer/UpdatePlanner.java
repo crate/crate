@@ -322,12 +322,15 @@ public final class UpdatePlanner {
         var sessionSettings = plannerCtx.transactionContext().sessionSettings();
         Routing routing = plannerCtx.allocateRouting(
             tableInfo, where, RoutingProvider.ShardSelection.PRIMARIES, sessionSettings);
+        boolean onPartitionedTable = tableInfo instanceof DocTableInfo docTableInfo &&
+            docTableInfo.isPartitioned();
         RoutedCollectPhase collectPhase = new RoutedCollectPhase(
             plannerCtx.jobId(),
             plannerCtx.nextExecutionPhaseId(),
             "collect",
             routing,
             tableInfo.rowGranularity(),
+            onPartitionedTable,
             List.of(idReference),
             singletonList(updateProjection),
             Optimizer.optimizeCasts(where.queryOrFallback(), plannerCtx),

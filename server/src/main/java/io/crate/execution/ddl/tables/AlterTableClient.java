@@ -191,9 +191,17 @@ public class AlterTableClient {
         String sourceIndexName = partitionName == null
             ? table.ident().indexNameOrAlias()
             : partitionName.asIndexName();
-
         final ClusterState currentState = clusterService.state();
-        final IndexMetadata sourceIndexMetadata = currentState.metadata().index(sourceIndexName);
+        List<String> partitionValues = partitionName == null
+            ? List.of()
+            : partitionName.values();
+        String sourceIndexUUID = currentState.metadata().getIndex(table.ident(), partitionValues, true, IndexMetadata::getIndexUUID);
+        if (sourceIndexUUID == null) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "Table/Partition '%s' does not exist", table.ident().fqn()));
+        }
+
+        final IndexMetadata sourceIndexMetadata = currentState.metadata().index(sourceIndexUUID);
         final int targetNumberOfShards = getNumberOfShards(analysis.settings());
         validateNumberOfShardsForResize(sourceIndexMetadata, targetNumberOfShards);
         validateReadOnlyIndexForResize(sourceIndexMetadata);

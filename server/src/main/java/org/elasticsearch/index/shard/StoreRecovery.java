@@ -504,16 +504,16 @@ final class StoreRecovery {
             indexShard.prepareForIndexRecovery();
             final ShardId snapshotShardId;
             final IndexId indexId = restoreSource.index();
-            if (shardId.getIndexName().equals(indexId.getName())) {
+            if (shardId.getIndexUUID().equals(indexId.getId())) {
                 snapshotShardId = shardId;
             } else {
-                snapshotShardId = new ShardId(indexId.getName(), IndexMetadata.INDEX_UUID_NA_VALUE, shardId.id());
+                snapshotShardId = new ShardId(indexId.getName(), indexId.getId(), shardId.id());
             }
             final StepListener<IndexId> indexIdListener = new StepListener<>();
             // If the index UUID was not found in the recovery source we will have to load RepositoryData and resolve it by index name
             if (indexId.getId().equals(IndexMetadata.INDEX_UUID_NA_VALUE)) {
                 // BwC path, running against an old version master that did not add the IndexId to the recovery source
-                repository.getRepositoryData().whenComplete(indexIdListener.map(repositoryData -> repositoryData.resolveIndexId(indexId.getName())));
+                repository.getRepositoryData().whenComplete(indexIdListener.map(repositoryData -> repositoryData.resolveIndexId(indexId.getId())));
             } else {
                 indexIdListener.onResponse(indexId);
             }

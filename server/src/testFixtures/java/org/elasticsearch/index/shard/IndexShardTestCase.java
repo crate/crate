@@ -350,7 +350,8 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 randomBoolean() ? IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.get(Settings.EMPTY) : between(0, 1000))
                 .put(settings)
                 .build();
-        IndexMetadata.Builder metadata = IndexMetadata.builder(shardRouting.getIndexName())
+        IndexMetadata.Builder metadata = IndexMetadata.builder(shardRouting.getIndexUUID())
+            .indexName(shardRouting.getIndexName())
             .settings(indexSettings)
             .primaryTerm(0, primaryTerm)
             .putMapping("{ \"properties\": {} }");

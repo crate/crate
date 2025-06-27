@@ -33,6 +33,7 @@ import org.apache.lucene.analysis.TokenStream;
 import org.apache.lucene.analysis.hunspell.Dictionary;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.logging.DeprecationLogger;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -67,7 +68,8 @@ import io.crate.common.collections.MapBuilder;
 public final class AnalysisModule {
 
     static {
-        IndexMetadata metadata = IndexMetadata.builder("_na_")
+        IndexMetadata metadata = IndexMetadata.builder(UUIDs.randomBase64UUID())
+            .indexName("_na_")
             .settings(Settings.builder()
                 .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                 .put(IndexMetadata .SETTING_NUMBER_OF_REPLICAS, 1)
