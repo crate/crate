@@ -69,6 +69,10 @@ public final class TimestampType extends DataType<Long>
         Precedence.TIMESTAMP);
 
     private static final StorageSupport<Long> STORAGE = new StorageSupport<>(true, true, new LongEqQuery()) {
+        @Override
+        public Long decode(long input) {
+            return input;
+        }
 
         @Override
         public ValueIndexer<Long> valueIndexer(RelationName table,
