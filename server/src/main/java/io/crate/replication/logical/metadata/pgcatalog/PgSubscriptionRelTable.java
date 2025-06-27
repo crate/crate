@@ -26,6 +26,7 @@ import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.REGCLASS;
 import static io.crate.types.DataTypes.STRING;
 
+import java.util.List;
 import java.util.stream.Stream;
 
 import io.crate.metadata.RelationName;
@@ -33,6 +34,7 @@ import io.crate.metadata.SystemTable;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.replication.logical.LogicalReplicationService;
+import io.crate.replication.logical.metadata.Subscription;
 import io.crate.types.Regclass;
 
 public class PgSubscriptionRelTable {
@@ -50,10 +52,27 @@ public class PgSubscriptionRelTable {
 
     public static Iterable<PgSubscriptionRelTable.PgSubscriptionRelRow> rows(LogicalReplicationService logicalReplicationService) {
         return () -> {
+            if (logicalReplicationService.subscriptions().isEmpty()) {
+                return List.of(new PgSubscriptionRelRow(
+                    -1,
+                    new Regclass(OidHash.relationOid(OidHash.Type.TABLE, new RelationName("foo", "bar")), new RelationName("foo", "bar").fqn()),
+                    "foo",
+                    Subscription.State.FAILED.pg_state(),
+                    "count: " + logicalReplicationService.count())).iterator();
+            }
             Stream<PgSubscriptionRelTable.PgSubscriptionRelRow> s = logicalReplicationService.subscriptions().entrySet().stream()
                 .mapMulti(
                     (e, c) -> {
                         var sub = e.getValue();
+                        if (sub.relations().isEmpty()) {
+                            c.accept(
+                                new PgSubscriptionRelRow(
+                                    OidHash.subscriptionOid(e.getKey(), sub),
+                                    new Regclass(OidHash.relationOid(OidHash.Type.TABLE, new RelationName("foo", "bar")), new RelationName("foo", "bar").fqn()),
+                                    sub.owner(),
+                                    Subscription.State.FAILED.pg_state(),
+                                    "count: " + logicalReplicationService.count()));
+                        }
                         sub.relations().forEach(
                             (r, rs) -> c.accept(
                                 new PgSubscriptionRelRow(
