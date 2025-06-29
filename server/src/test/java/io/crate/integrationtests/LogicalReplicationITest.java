@@ -761,4 +761,43 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
             assertThat(res).hasRows("sub1| t1| r| NULL");
         }, 30, TimeUnit.SECONDS);
     }
+
+    @Test
+    public void test_alter_columns_on_published_table_are_replicated_to_subscribed_table() throws Exception {
+        executeOnPublisher("CREATE TABLE t1 (x INT) WITH(" + defaultTableSettings() + ")");
+
+        createPublication("pub1", false, List.of("t1"));
+        createSubscription("sub1", "pub1");
+
+        assertBusy(
+            () -> {
+                var res = executeOnSubscriber("SELECT * FROM t1");
+                assertThat(res).hasColumns("x");
+            }
+        );
+
+        executeOnPublisher("ALTER TABLE t1 ADD COLUMN y INT");
+        assertBusy(
+            () -> {
+                var res = executeOnSubscriber("SELECT * FROM t1");
+                assertThat(res).hasColumns("x", "y");
+            }
+        );
+
+        executeOnPublisher("ALTER TABLE t1 DROP COLUMN x");
+        assertBusy(
+            () -> {
+                var res = executeOnSubscriber("SELECT * FROM t1");
+                assertThat(res).hasColumns("y");
+            }
+        );
+
+        executeOnPublisher("ALTER TABLE t1 RENAME COLUMN y TO z");
+        assertBusy(
+            () -> {
+                var res = executeOnSubscriber("SELECT * FROM t1");
+                assertThat(res).hasColumns("z");
+            }
+        );
+    }
 }
