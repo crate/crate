@@ -107,17 +107,16 @@ public class SysClusterTableInfo {
             Leaf<Setting<?>> leaf = (Leaf<Setting<?>>) element;
             var setting = leaf.value;
             var valueType = (DataType<Object>) leaf.value.dataType();
-            settingsBuilder.add(
-                leaf.name,
-                valueType,
-                _ -> {
-                    var settingValue = clusterSettings.get(setting);
-                    if (settingValue instanceof Settings groupSetting) {
-                        return groupSetting.getAsStructuredMap();
-                    }
-                    return valueType.implicitCast(settingValue);
-                }
-            );
+            Object settingValue = clusterSettings.get(setting);
+            if (settingValue instanceof Settings groupSetting) {
+                settingsBuilder.addDynamicObject(leaf.name, valueType, _ -> groupSetting.getAsStructuredMap());
+            } else {
+                settingsBuilder.add(
+                    leaf.name,
+                    valueType,
+                    _ -> valueType.implicitCast(settingValue)
+                );
+            }
         } else {
             var objectSetting = settingsBuilder.startObject(element.name);
             for (var c : element.children) {
