@@ -32,11 +32,14 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -51,12 +54,17 @@ import io.crate.execution.jobs.kill.KillableCallable;
  * Base class for performing Crate-specific TransportWriteActions like Delete or Upsert.
  * @param <Request> The ShardRequest implementation including a replicated write request
  */
-public abstract class TransportShardAction<Request extends ShardRequest<Request, Item>, Item extends ShardRequest.Item>
-        extends TransportWriteAction<Request, Request, ShardResponse>
+public abstract class TransportShardAction<
+            Request extends ShardRequest<Request, Item>,
+            ReplicaReq extends ShardRequest<ReplicaReq, ReplicaItem>,
+            Item extends ShardRequest.Item,
+            ReplicaItem extends ShardRequest.Item>
+        extends TransportWriteAction<Request, ReplicaReq, ShardResponse>
         implements KillAllListener {
 
     private final ConcurrentHashMap<TaskId, KillableCallable<?>> activeOperations = new ConcurrentHashMap<>();
     private final TasksService tasksService;
+    private final CircuitBreakerService circuitBreakerService;
 
     protected TransportShardAction(Settings settings,
                                    String actionName,
@@ -66,7 +74,9 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
                                    TasksService tasksService,
                                    ThreadPool threadPool,
                                    ShardStateAction shardStateAction,
-                                   Writeable.Reader<Request> reader) {
+                                   CircuitBreakerService circuitBreakerService,
+                                   Writeable.Reader<Request> reader,
+                                   Writeable.Reader<ReplicaReq> replicaReader) {
         super(
             settings,
             actionName,
@@ -76,10 +86,11 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             threadPool,
             shardStateAction,
             reader,
-            reader,
+            replicaReader,
             ThreadPool.Names.WRITE,
             false
         );
+        this.circuitBreakerService = circuitBreakerService;
         this.tasksService = tasksService;
     }
 
@@ -88,32 +99,32 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         return new ShardResponse(in);
     }
 
+
     @Override
     protected void shardOperationOnPrimary(Request request,
                                            IndexShard primary,
-                                           ActionListener<PrimaryResult<Request, ShardResponse>> listener) {
+                                           ActionListener<PrimaryResult<ReplicaReq, ShardResponse>> listener) {
         if (tasksService.recentlyFailed(request.jobId())) {
             listener.onFailure(JobKilledException.of(JobKilledException.MESSAGE));
             return;
         }
-        ActionListener.completeWith(
-            listener,
-            () -> {
-                KillableCallable<WritePrimaryResult<Request, ShardResponse>> callable = new KillableCallable<>(request.jobId()) {
+        try {
+            KillableCallable<WritePrimaryResult<ReplicaReq, ShardResponse>> callable = new KillableCallable<>(request.jobId()) {
 
-                    @Override
-                    public WritePrimaryResult<Request, ShardResponse> call() throws Exception {
-                        return processRequestItems(primary, request, killed);
-                    }
-                };
-                return withActiveOperation(request, callable);
-            }
-        );
+                @Override
+                public WritePrimaryResult<ReplicaReq, ShardResponse> call() throws Exception {
+                    return processRequestItems(primary, request, killed);
+                }
+            };
+            listener.onResponse(withActiveOperation(request, callable));
+        } catch (Throwable t) {
+            listener.onFailure(Exceptions.toRuntimeException(t));
+        }
     }
 
     @Override
-    protected WriteReplicaResult shardOperationOnReplica(Request replicaRequest, IndexShard indexShard) {
-        KillableCallable<WriteReplicaResult> callable = new KillableCallable<WriteReplicaResult>(replicaRequest.jobId()) {
+    protected WriteReplicaResult shardOperationOnReplica(ReplicaReq replicaRequest, IndexShard indexShard) {
+        KillableCallable<WriteReplicaResult> callable = new KillableCallable<>(replicaRequest.jobId()) {
 
             @Override
             public WriteReplicaResult call() throws Exception {
@@ -123,7 +134,13 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         return withActiveOperation(replicaRequest, callable);
     }
 
-    private <WrapperResponse> WrapperResponse withActiveOperation(Request request, KillableCallable<WrapperResponse> callable) {
+    private <WrapperResponse> WrapperResponse withActiveOperation(ShardRequest<?, ?> request,
+                                                                  KillableCallable<WrapperResponse> callable) {
+        CircuitBreaker breaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+        // Request is already accounted by the transport layer, but we account extra to account for the replica request copy
+        long ramBytesUsed = request.ramBytesUsed();
+        breaker.addEstimateBytesAndMaybeBreak(ramBytesUsed, "upsert request");
+
         TaskId id = request.getParentTask();
         activeOperations.put(id, callable);
         try {
@@ -132,6 +149,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
             throw Exceptions.toRuntimeException(t);
         } finally {
             activeOperations.remove(id, callable);
+            breaker.addWithoutBreaking(- ramBytesUsed);
         }
     }
 
@@ -160,7 +178,7 @@ public abstract class TransportShardAction<Request extends ShardRequest<Request,
         }
     }
 
-    protected abstract WritePrimaryResult<Request, ShardResponse> processRequestItems(IndexShard indexShard, Request request, AtomicBoolean killed) throws InterruptedException, IOException;
+    protected abstract WritePrimaryResult<ReplicaReq, ShardResponse> processRequestItems(IndexShard indexShard, Request request, AtomicBoolean killed) throws InterruptedException, IOException;
 
-    protected abstract WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, Request replicaRequest) throws IOException;
+    protected abstract WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, ReplicaReq replicaRequest) throws IOException;
 }
