@@ -741,7 +741,12 @@ public class Indexer {
         }
 
         TranslogWriter translogWriter = new XContentTranslogWriter();
-        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(translogWriter, synthetics::get, columnConstraints, tableVersionCreated);
+        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(
+            translogWriter,
+            synthetics::get,
+            columnConstraints,
+            tableVersionCreated
+        );
         Object[] values = item.insertValues();
 
         for (int i = 0; i < values.length; i++) {
@@ -885,15 +890,11 @@ public class Indexer {
         };
     }
 
-    public boolean hasUndeterministicSynthetics() {
-        return !undeterministic.isEmpty();
-    }
-
     public List<Reference> columns() {
         return columns;
     }
 
-    public Collection<Reference> insertColumns(List<Reference> columns) {
+    public List<Reference> insertColumns() {
         if (undeterministic.isEmpty()) {
             return columns;
         }
@@ -919,9 +920,11 @@ public class Indexer {
         return newColumns;
     }
 
-    @SuppressWarnings("unchecked")
     public Object[] addGeneratedValues(IndexItem item) {
         Object[] insertValues = item.insertValues();
+        if (undeterministic.isEmpty()) {
+            return insertValues;
+        }
         //  We don't know in advance how many values we will add: we can have multiple generated sub-columns.
         //  Some of them can have their root listed in the insert/upsert targets (and thus not causing array expansion) and some not.
         List<Object> extendedValues = new ArrayList<>(insertValues.length);
@@ -958,5 +961,9 @@ public class Indexer {
             }
         }
         return extendedValues.toArray();
+    }
+
+    public boolean hasReturnValues() {
+        return returnValueInputs != null;
     }
 }
