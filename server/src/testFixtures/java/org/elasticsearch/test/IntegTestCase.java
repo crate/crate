@@ -1488,9 +1488,11 @@ public abstract class IntegTestCase extends ESTestCase {
     public SQLResponse systemExecute(String stmt, @Nullable String schema, String node) {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
         Roles roles = cluster().getInstance(Roles.class, node);
+        SQLResponse response;
         try (Session session = sqlOperations.newSession(
             new ConnectionProperties(null, null, Protocol.HTTP, null), schema, roles.getUser("crate"))) {
             response = sqlExecutor.exec(stmt, session);
+            this.response = response;
         }
         return response;
     }
@@ -1504,7 +1506,8 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse execute(String stmt, Object[] args) {
         try {
-            this.response = sqlExecutor.exec(testExecutionConfig(), stmt, args);
+            SQLResponse response = sqlExecutor.exec(testExecutionConfig(), stmt, args);
+            this.response = response;
             return response;
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
@@ -1523,7 +1526,8 @@ public abstract class IntegTestCase extends ESTestCase {
      */
     public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
         try {
-            response = sqlExecutor.exec(testExecutionConfig(), stmt, args, timeout);
+            SQLResponse response = sqlExecutor.exec(testExecutionConfig(), stmt, args, timeout);
+            this.response = response;
             return response;
         } catch (ElasticsearchTimeoutException e) {
             LOGGER.error("Timeout on SQL statement: {} {}", stmt, e);
@@ -1688,7 +1692,8 @@ public abstract class IntegTestCase extends ESTestCase {
         Sessions sqlOperations = cluster().getInstance(Sessions.class, node);
         try (Session session = sqlOperations.newSession(
             new ConnectionProperties(null, null, Protocol.HTTP, null), sqlExecutor.getCurrentSchema(), Role.CRATE_USER)) {
-            this.response = sqlExecutor.exec(stmt, args, session, timeout);
+            SQLResponse response = sqlExecutor.exec(stmt, args, session, timeout);
+            this.response = response;
             return response;
         }
     }
