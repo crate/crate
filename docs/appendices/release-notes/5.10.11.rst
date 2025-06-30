@@ -47,6 +47,11 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could cause streaming errors, leading to shard failures
+  and re-replication if using ``INSERT INTO`` statements with ``ON CONFLICT``
+  clause combined with bulk requests if some operations ran into a conflict
+  while others didn't.
+
 - Fixed an issue that caused analysis errors of SQL batch/bulk statements to be
   wrongly reported as runtime errors, resulting in an error per batch instead of
   a single error for the whole batch operation. Both client interfaces,
