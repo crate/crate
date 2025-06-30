@@ -47,4 +47,6 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed incorrect JSON response formatting for bulk operations with a single
+  argument that results in a runtime error. The response now follows the
+  structure specified in :ref:`bulk-errors <http-bulk-errors>`.

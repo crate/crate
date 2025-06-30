@@ -292,7 +292,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         var sessionSettings = session.sessionSettings();
         AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
         return session.sync()
-            .thenApply(ignored -> {
+            .handle((_, _) -> {
                 try {
                     return ResultToXContentBuilder.builder(JsonXContent.builder())
                         .cols(emptyList())
