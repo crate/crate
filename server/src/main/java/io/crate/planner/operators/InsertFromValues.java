@@ -427,10 +427,7 @@ public class InsertFromValues implements LogicalPlan {
                     bulkIndices.add(bulkIdx);
                 }
             } catch (Throwable t) {
-                for (int i = 0; i < bulkResponse.size(); i++) {
-                    bulkResponse.setFailure(i, t);
-                }
-                result.complete(bulkResponse);
+                result.completeExceptionally(t);
                 return result;
             }
         }
