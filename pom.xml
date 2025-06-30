@@ -4,7 +4,7 @@
 
   <groupId>io.crate</groupId>
   <artifactId>crate</artifactId>
-  <version>5.10.10</version>
+  <version>5.10.11</version>
   <packaging>pom</packaging>
 
   <build>
