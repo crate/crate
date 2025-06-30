@@ -47,6 +47,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
@@ -90,7 +91,8 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
             indicesService,
             mock(TasksService.class),
             mock(ThreadPool.class),
-            mock(ShardStateAction.class)
+            mock(ShardStateAction.class),
+            new NoneCircuitBreakerService()
         );
     }
 
@@ -109,7 +111,7 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
             transportShardDeleteAction.processRequestItems(indexShard, request, new AtomicBoolean(true));
 
         assertThat(result.finalResponseIfSuccessful.failure()).isExactlyInstanceOf(InterruptedException.class);
-        assertThat(request.skipFromLocation()).isEqualTo(1);
+        assertThat(result.replicaRequest().skipFromLocation()).isEqualTo(1);
     }
 
     @Test

@@ -35,7 +35,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.exceptions.ConversionException;
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -165,11 +164,7 @@ public class RawIndexer {
         return parsedDoc;
     }
 
-    public boolean hasUndeterministicSynthetics() {
-        return currentRowIndexer.hasUndeterministicSynthetics();
-    }
-
-    public Object[] addGeneratedValues(ShardUpsertRequest.Item item) {
+    public Object[] addGeneratedValues(IndexItem item) {
         return currentRowIndexer.addGeneratedValues(item);
     }
 }

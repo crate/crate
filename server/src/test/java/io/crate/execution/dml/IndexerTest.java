@@ -30,6 +30,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -1064,7 +1065,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(source).containsKeys("o", "z");
         assertThat((Map<String, ?>) source.get("o")).containsKeys("x", "y");
 
-        assertThat(indexer.hasUndeterministicSynthetics()).isTrue();
         Object[] insertValues = indexer.addGeneratedValues(item);
         assertThat(insertValues).hasSize(2);
         assertThat((Map<String, ?>) insertValues[0]).containsKeys("x", "y");
@@ -1090,7 +1090,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = getIndexer(e, "tbl", "a");
         IndexItem item = item(1);
 
-        assertThat(indexer.hasUndeterministicSynthetics()).isTrue();
         Object[] insertValues = indexer.addGeneratedValues(item);
         assertThat(insertValues).hasSize(2);
         Map<String, Object> object = (Map<String, Object>) insertValues[1];
