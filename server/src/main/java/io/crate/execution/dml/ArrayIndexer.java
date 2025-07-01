@@ -187,7 +187,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     private void handleNullArrayUpcast(List<?> values,
                                        Consumer<? super Reference> onDynamicColumn,
                                        Synthetics synthetics) throws IOException {
-        DataType<?> type = DataTypes.valueFromList(values, true);
+        DataType<?> type = DataTypes.typeFromList(values, true);
         if (DataTypes.isArrayOfNulls(type)) {
             return;
         }
@@ -200,8 +200,11 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         onDynamicColumn.accept(ref);
         StorageSupport<?> storageSupport = type.storageSupport();
         assert storageSupport != null;  // null storage will have thrown an exception in buildReference
+
+        // The reference resolver passed in to the new type must return `NULL` as the (child) columns are not present
+        // yet. They will be added later in the schema update process.
         ValueIndexer<Object> indexer
-            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.ident().tableIdent(), ref, _ -> ref);
+            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.ident().tableIdent(), ref, _ -> null);
         indexer.collectSchemaUpdates(values, onDynamicColumn, synthetics);
     }
 

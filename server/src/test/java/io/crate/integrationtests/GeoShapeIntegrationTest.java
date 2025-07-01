@@ -40,18 +40,19 @@ import io.crate.types.JsonType;
 
 public class GeoShapeIntegrationTest extends IntegTestCase {
 
+
     private static final Map<String, Object> GEO_SHAPE1 = Map.of(
-        "coordinates", new double[][]{
-            {0, 0},
-            {1, 1}
-        },
+        "coordinates", List.of(
+            List.of(0.0, 0.0),
+            List.of(1.0, 1.0)
+        ),
         "type", "LineString"
     );
     private static final Map<String, Object> GEO_SHAPE2 = Map.of(
-        "coordinates", new double[][]{
-            {2, 2},
-            {3, 3}
-        },
+        "coordinates", List.of(
+            List.of(2.0, 2.0),
+            List.of(3.0, 3.0)
+        ),
         "type", "LineString"
     );
 
