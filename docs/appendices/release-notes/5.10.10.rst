@@ -62,8 +62,3 @@ Fixes
 - Fixed the table parameter namings of the :ref:`ref-show-create-table`
   statement output, some parameters were wrongly prefixed with
   ``index.``.
-
-- Fixed an issue that caused analysis errors of SQL batch/bulk statements to be
-  wrongly reported as runtime errors, resulting in an error per batch instead of
-  a single error for the whole batch operation. Both client interfaces,
-  :ref:`HTTP<interface-http>` and :ref:`PG<interface-postgresql>`, are affected.
