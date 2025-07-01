@@ -50,6 +50,7 @@ import org.locationtech.spatial4j.shape.jts.JtsPoint;
 
 import io.crate.Streamer;
 import io.crate.sql.tree.BitString;
+import io.crate.sql.tree.ColumnPolicy;
 
 public final class DataTypes {
 
@@ -311,9 +312,17 @@ public final class DataTypes {
     public static DataType<?> guessType(Object value) {
         return switch (value) {
             case null -> UNDEFINED;
-            case Map<?, ?> map -> UNTYPED_OBJECT;
-            case List<?> list -> valueFromList(list, false);
-            case Object[] array -> valueFromList(Arrays.asList(array), false);
+            case Map<?, ?> map -> {
+                ObjectType.Builder builder = ObjectType.of(ColumnPolicy.DYNAMIC);
+                for (var entry : map.entrySet()) {
+                    Object key = entry.getKey();
+                    Object val = entry.getValue();
+                    builder.setInnerType(key.toString(), guessType(val));
+                }
+                yield builder.build();
+            }
+            case List<?> list -> typeFromList(list, false);
+            case Object[] array -> typeFromList(Arrays.asList(array), false);
             case float[] values -> new FloatVectorType(values.length);
             case BigDecimal bigDecimal -> new NumericType(bigDecimal.precision(), bigDecimal.scale());
             default -> {
@@ -365,22 +374,14 @@ public final class DataTypes {
      * @param upcast    if true, then use the widest possible compatible numeric type
      *                  e.g. a list of integers produces array(long)
      */
-    public static DataType<?> valueFromList(List<?> value, boolean upcast) {
+    public static DataType<?> typeFromList(List<?> value, boolean upcast) {
         DataType<?> highest = DataTypes.UNDEFINED;
         for (Object o : value) {
             if (o == null) {
                 continue;
             }
             DataType<?> current = guessType(o);
-            // JSON libraries tend to optimize things like [ 0.0, 1.2 ] to [ 0, 1.2 ]; so we allow mixed types
-            // in such cases.
-            if (!current.equals(highest) && !safeConversionPossible(current, highest)) {
-                throw new IllegalArgumentException(
-                    "Mixed dataTypes inside a list are not supported. Found " + highest + " and " + current);
-            }
-            if (current.precedes(highest)) {
-                highest = current;
-            }
+            highest = DataTypes.merge(highest, current);
         }
         if (upcast) {
             highest = upcast(highest);

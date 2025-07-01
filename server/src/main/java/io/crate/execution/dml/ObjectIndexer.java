@@ -186,6 +186,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 var type = child.reference.valueType();
                 try {
                     innerValue = type.sanitizeValue(innerValue);
+                } catch (ConversionException e) {
+                    throw e;
                 } catch (ClassCastException | IllegalArgumentException e) {
                     throw new ConversionException(innerValue, type);
                 }

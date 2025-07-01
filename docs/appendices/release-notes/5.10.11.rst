@@ -52,3 +52,8 @@ Fixes
   a single error for the whole batch operation. Both client interfaces,
   :ref:`HTTP<interface-http>` and :ref:`PG<interface-postgresql>`, are affected.
 
+- Fixed an issue which caused inserts of object arrays with columns having
+  mixed types to partially fail. It used the type of the first value seen, and
+  failed for the values with a different type.
+  The new behavior is that it will use the type with the higher precendence,
+  and cast the other values if possible.
