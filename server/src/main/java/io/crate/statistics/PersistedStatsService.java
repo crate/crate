@@ -29,6 +29,8 @@ import java.nio.file.Path;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -65,6 +67,7 @@ import io.crate.metadata.RelationName;
 
 public final class PersistedStatsService implements StatsService {
 
+    private static final Logger LOGGER = LogManager.getLogger(PersistedStatsService.class);
     private static final String STATS = "_stats";
     private static final String DATA_FIELD = "data";
     private static final String RELATION_NAME_FIELD = "relationName";
@@ -130,6 +133,7 @@ public final class PersistedStatsService implements StatsService {
                     try {
                         reader = DirectoryReader.open(dir);
                     } catch (IndexNotFoundException e) {
+                        LOGGER.warn("Try to load Stats from %s but no index exists %s", path.toString(), e.getMessage());
                         return null;
                     }
                     IndexSearcher indexSearcher = new IndexSearcher(reader);
@@ -142,7 +146,7 @@ public final class PersistedStatsService implements StatsService {
                             if (scorer != null) {
                                 DocIdSetIterator docIdSetIterator = scorer.iterator();
                                 StoredFields storedFields = leafReaderContext.reader().storedFields();
-                                while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                                if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                                     Document doc = storedFields.document(docIdSetIterator.docID());
                                     BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
                                     ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
