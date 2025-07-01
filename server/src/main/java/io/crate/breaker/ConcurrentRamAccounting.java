@@ -21,13 +21,11 @@
 
 package io.crate.breaker;
 
-import java.util.Locale;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongConsumer;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
-import org.elasticsearch.common.unit.ByteSizeValue;
 
 import io.crate.common.annotations.ThreadSafe;
 import io.crate.data.breaker.RamAccounting;
@@ -66,29 +64,7 @@ public final class ConcurrentRamAccounting implements RamAccounting {
 
     @Override
     public void addBytes(long bytes) {
-        if (bytes == 0) {
-            return;
-        }
-        long currentUsedBytes = usedBytes.addAndGet(bytes);
-        if (operationMemoryLimit > 0 && currentUsedBytes > operationMemoryLimit) {
-            usedBytes.addAndGet(- bytes);
-            throw new CircuitBreakingException(String.format(Locale.ENGLISH,
-                "\"%s\" reached operation memory limit. Used: %s, Limit: %s",
-                label,
-                new ByteSizeValue(currentUsedBytes),
-                new ByteSizeValue(operationMemoryLimit)
-            ));
-        }
-        try {
-            if (bytes > 0) {
-                reserveBytes.accept(bytes);
-            } else {
-                releaseBytes.accept(- bytes);
-            }
-        } catch (Exception e) {
-            usedBytes.addAndGet(- bytes);
-            throw e;
-        }
+        throw new CircuitBreakingException("dummy");
     }
 
     @Override
