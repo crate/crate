@@ -48,7 +48,7 @@ public class PersistedStatsServiceTest extends CrateDummyClusterServiceUnitTest 
             ColumnIdent.of("y"), columnStats)
         );
         RelationName relationName = RelationName.fromIndexName("doc.test");
-        Path dataPath = createDataPath();
+        Path dataPath = createTempDir();
 
         PersistedStatsService statsService = new PersistedStatsService(dataPath);
         statsService.add(relationName, stats);
@@ -80,7 +80,7 @@ public class PersistedStatsServiceTest extends CrateDummyClusterServiceUnitTest 
             table2, stats2
         );
 
-        Path dataPath = createDataPath();
+        Path dataPath = createTempDir();
 
         PersistedStatsService statsService = new PersistedStatsService(dataPath);
         statsService.add(tableStats);
@@ -112,7 +112,7 @@ public class PersistedStatsServiceTest extends CrateDummyClusterServiceUnitTest 
             table2, stats2
         );
 
-        Path dataPath = createDataPath();
+        Path dataPath = createTempDir();
 
         PersistedStatsService statsService = new PersistedStatsService(dataPath);
         statsService.add(tableStats);
@@ -134,7 +134,7 @@ public class PersistedStatsServiceTest extends CrateDummyClusterServiceUnitTest 
             ColumnIdent.of("y"), columnStats)
         );
         RelationName relationName = RelationName.fromIndexName("doc.test");
-        Path dataPath = createDataPath();
+        Path dataPath = createTempDir();
 
         PersistedStatsService statsService = new PersistedStatsService(dataPath);
         statsService.add(relationName, stats);
@@ -145,8 +145,5 @@ public class PersistedStatsServiceTest extends CrateDummyClusterServiceUnitTest 
 
 
 
-    public static Path createDataPath() {
-        return createTempDir();
-    }
 
 }
