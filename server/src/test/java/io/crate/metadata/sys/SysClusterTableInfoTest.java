@@ -62,6 +62,11 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 s -> assertThat(s).isEqualTo("{attributes=[zone], force={={zone=a,b,c}}}"),
                 s -> assertThat(s).isEqualTo("{force={={zone=a,b,c}}, attributes=[zone]}")
             );
+        awareness = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
+            "settings",
+            List.of("cluster", "routing", "allocation", "awareness", "force", "", "zone"))));
+        awareness.setNextRow(null);
+        assertThat(awareness.value().toString()).isEqualTo("a,b,c");
     }
 
     @Test
