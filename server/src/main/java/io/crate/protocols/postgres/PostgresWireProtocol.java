@@ -757,7 +757,7 @@ public class PostgresWireProtocol {
         }
         try {
             ReadyForQueryCallback readyForQueryCallback = new ReadyForQueryCallback(channel, session.transactionState());
-            session.sync().whenComplete(readyForQueryCallback);
+            session.sync(false).whenComplete(readyForQueryCallback);
         } catch (Throwable t) {
             channel.discardDelayedWrites();
             Messages.sendErrorResponse(channel, getAccessControl.apply(session.sessionSettings()), t);
@@ -846,7 +846,7 @@ public class PostgresWireProtocol {
                 );
                 session.execute("", 0, resultSetReceiver);
             }
-            return session.sync();
+            return session.sync(false);
         } catch (Throwable t) {
             channel.discardDelayedWrites();
             Messages.sendErrorResponse(channel, accessControl, t);

@@ -61,3 +61,7 @@ Fixes
   failed for the values with a different type.
   The new behavior is that it will use the type with the higher precendence,
   and cast the other values if possible.
+
+- Fixed incorrect JSON response formatting for bulk operations with a single
+  argument that results in a runtime error. The response now follows the
+  structure specified in :ref:`bulk-errors <http-bulk-errors>`.
