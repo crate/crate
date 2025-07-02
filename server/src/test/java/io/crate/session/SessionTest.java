@@ -149,7 +149,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         var activeExecution = session.activeExecution;
         assertThat(activeExecution).isNotNull();
 
-        CompletableFuture<?> sync = session.sync();
+        CompletableFuture<?> sync = session.sync(false);
         assertThat(sync).isSameAs(activeExecution);
     }
 
@@ -326,7 +326,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.bind("P_1", "S_1", List.of(), null);
         session.execute("P_1", 0, new BaseResultReceiver());
 
-        session.sync().get(5, TimeUnit.SECONDS);
+        session.sync(false).get(5, TimeUnit.SECONDS);
         assertThat(sqlExecutor.jobsLogs.metrics().iterator().next().totalCount()).isEqualTo(2L);
         assertThat(sqlExecutor.jobsLogs.activeJobs().iterator().hasNext()).isFalse();
     }
@@ -389,7 +389,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
         session.parse("S_1", "SELECT 1", List.of());
         session.bind("P_1", "S_1", List.of(), null);
         session.execute("P_1", 0, new BaseResultReceiver());
-        session.sync();
+        session.sync(false);
 
         verify(client, times(1))
             .execute(eq(KillJobsNodeAction.INSTANCE), any(KillJobsNodeRequest.class));
@@ -437,7 +437,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             session.parse("S_1", "SELECT 1", List.of());
             session.bind("P_1", "S_1", List.of(), null);
             session.execute("P_1", 0, new BaseResultReceiver());
-            session.sync();
+            session.sync(false);
         }
 
         BlockingQueue<Runnable> queue = ((ScheduledThreadPoolExecutor) THREAD_POOL.scheduler()).getQueue();
@@ -556,7 +556,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             session.execute(UNNAMED, 0, new BaseResultReceiver());
         }
 
-        session.sync();
+        session.sync(false);
         assertThat(sqlExecutor.jobsLogs.activeJobs().iterator().hasNext()).isFalse();
     }
 

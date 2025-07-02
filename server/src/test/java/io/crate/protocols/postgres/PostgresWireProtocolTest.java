@@ -850,9 +850,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
 
         if (failure != null) {
-            when(session.sync()).thenThrow(failure);
+            when(session.sync(false)).thenThrow(failure);
         } else {
-            when(session.sync()).thenReturn(CompletableFuture.completedFuture(null));
+            when(session.sync(false)).thenReturn(CompletableFuture.completedFuture(null));
         }
 
         sendStartupMessage(channel);
