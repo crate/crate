@@ -227,4 +227,23 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         // The last error message must not be available in the response
         assertThat(response.body()).contains("{\"rowcount\":-2}");
     }
+
+    /**
+     * https://github.com/crate/crate/issues/18066
+     */
+    @Test
+    public void test_response_formatting_when_single_arg_bulk_operation_threw_runtime_error() throws Exception {
+        execute("CREATE TABLE doc.insert_test (id INT PRIMARY KEY) CLUSTERED INTO 1 SHARDS");
+        var body = """
+            {
+              "stmt": "INSERT INTO doc.insert_test(id) VALUES(?)",
+              "bulk_args": [[1]]
+            }
+            """;
+        post(body);
+        var response = post(body);
+        assertThat(response.statusCode()).isEqualTo(200);
+        assertThat(response.body()).contains(
+            "\"results\":[{\"rowcount\":-2,\"error\":{\"code\":4091,\"message\":\"DuplicateKeyException[A document with the same primary key exists already]\"}}]}");
+    }
 }
