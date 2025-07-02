@@ -702,7 +702,6 @@ public class LogicalReplicationITest extends LogicalReplicationITestCase {
                 "The relation \"doc.t1\" doesn't allow ALTER operations, because it is included in a logical replication subscription.");
     }
 
-
     /**
      * Test a regression which resulting in a failed initial restore of the re-created subscription caused
      * not correctly removed retention leases while subscription is dropped.
