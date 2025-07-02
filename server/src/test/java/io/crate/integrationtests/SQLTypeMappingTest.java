@@ -500,6 +500,15 @@ public class SQLTypeMappingTest extends IntegTestCase {
         execute("insert into t (a, x) values (1, [])");
         execute("insert into t (a, x) values (2, [{y=1},{y=2}])");
         execute("refresh table t");
+
+        // Ensure correct type is stored into the table's metadata
+        execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 't' ORDER BY ordinal_position");
+        assertThat(response).hasRows(
+            "a| integer",
+            "x| object_array",
+            "x['y']| bigint"
+        );
+
         assertBusy(() -> {
             execute("select * from t order by a");
             assertThat(response).hasRows("1| []", "2| [{y=1}, {y=2}]");
@@ -609,5 +618,34 @@ public class SQLTypeMappingTest extends IntegTestCase {
         SQLResponse response = execute("select ts from ts_table order by ts asc");
         assertThat((Long) response.rows()[0][0]).isEqualTo(1000L);
         assertThat((Long) response.rows()[1][0]).isEqualTo(2016L);
+    }
+
+    @Test
+    public void test_insert_bulk_dynamic_array_of_objects_with_different_child_typed_values() {
+        execute("create table t (a OBJECT)");
+
+        int numRows = 10;
+        Object[][] values = new Object[numRows][1];
+        for (int i = 0; i < numRows; i++) {
+            values[i] = new Object[]{ Map.of(
+                "x", i + 1,
+                "y", List.of(Map.of("z", 2.0), Map.of("z", i + 1))
+            )};
+        }
+
+        execute("insert into t (a) values (?)", values);
+        execute("refresh table t");
+
+        execute("SELECT count(*) FROM t");
+        assertThat(response).hasRows(String.valueOf(numRows));
+
+        // Ensure correct type is stored into the table's metadata
+        execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 't' ORDER BY ordinal_position");
+        assertThat(response).hasRows(
+            "a| object",
+            "a['x']| bigint",
+            "a['y']| object_array",
+            "a['y']['z']| double precision"
+        );
     }
 }

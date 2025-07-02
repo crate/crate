@@ -1,17 +1,10 @@
 .. _version_5.10.10:
 
-============================
-Version 5.10.10 - Unreleased
-============================
+===============
+Version 5.10.10
+===============
 
-
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 5.10.10 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2025-06-30.
 
 .. NOTE::
 
@@ -47,9 +40,25 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would cause error to be thrown when selecting a column
+  of :ref:`type-timestamp-without-tz` or :ref:`type-timestamp-with-tz` for
+  which, the :ref:`ddl-storage-columnstore` is disabled.
+
 - Fixed a race condition that could lead to ``INSERT INTO`` statements with a
   ``ON CONFLICT`` clause to either take much longer than necessary or get stuck
   unless other activity caused cluster change events.
 
 - Fixed an issue that caused queries with aggregations to get stuck under
   memory pressure.
+
+- Fixed an issue that caused RAM under-accounting, potentially leading to an
+  ``OutOfMemoryError`` when result sets contained numeric values with large
+  digit counts. The issue affected ``HTTP`` requests only.
+
+- Fixed an issue that caused queries with aggregations to continue despite
+  ``CircuitBreakerException`` being thrown and return incorrect (partial)
+  results under memory pressure.
+
+- Fixed the table parameter namings of the :ref:`ref-show-create-table`
+  statement output, some parameters were wrongly prefixed with
+  ``index.``.

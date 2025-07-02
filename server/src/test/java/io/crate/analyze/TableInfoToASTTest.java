@@ -393,4 +393,29 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
         assertThat(geoRef.precision()).isEqualTo("1m");
         assertThat(geoRef.distanceErrorPct()).isEqualTo(0.25);
     }
+
+    /**
+     * Ensures that the index prefix for table parameters, including group settings, is stripped
+     * when printing the table definition.
+     */
+    @Test
+    public void test_table_parameters_index_prefix_stripped() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("CREATE TABLE t1 (id int) CLUSTERED INTO 1 SHARDS " +
+                "WITH (\"blocks.read_only_allow_delete\" = true, \"routing.allocation.exclude._name\" = 'node-1')");
+        DocTableInfo table = e.resolveTableInfo("t1");
+        var node = new TableInfoToAST(table).toStatement();
+        assertThat(SqlFormatter.formatSql(node)).isEqualTo("""
+              CREATE TABLE IF NOT EXISTS "doc"."t1" (
+                 "id" INTEGER
+              )
+              CLUSTERED INTO 1 SHARDS
+              WITH (
+                 "blocks.read_only_allow_delete" = true,
+                 column_policy = 'strict',
+                 number_of_replicas = '0-1',
+                 "routing.allocation.exclude._name" = 'node-1'
+              )""");
+
+    }
 }

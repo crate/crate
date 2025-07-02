@@ -178,6 +178,25 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         );
     }
 
+    /**
+     * On an analysis error, the request should fail with a 400 status code and a proper error message instead of
+     * an error payload for each bulk argument.
+     */
+    @Test
+    public void test_insert_with_failing_bulk_args_analysis_error() throws Exception {
+        execute("CREATE TABLE doc.t1 (id INT PRIMARY KEY)");
+
+        var body = """
+            {
+              "stmt": "INSERT INTO doc.t1 (id) VALUES(?)",
+              "bulk_args": [["abc"], [6]]
+            }
+            """;
+        var response = post(body);
+        assertThat(response.statusCode()).isEqualTo(400);
+        assertThat(response.body()).contains("\"error\":{\"message\":\"SQLParseException[Cannot cast value `abc` to type `integer`]\",\"code\":4000}");
+    }
+
     @Test
     public void test_failing_upsert_bulk_response_errors_are_truncated() throws Exception {
         execute("CREATE TABLE doc.insert_test (id INT PRIMARY KEY) CLUSTERED INTO 1 SHARDS");
