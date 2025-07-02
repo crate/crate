@@ -326,7 +326,7 @@ public class DeleteIntegrationTest extends IntegTestCase {
             // execute the prepared statement to delete the inserted value
             session.bind("portalName", "preparedStatement", List.of(), null);
             session.execute("portalName", 0, new BaseResultReceiver());
-            session.sync().get();
+            session.sync(false).get();
         }
         execute("refresh table doc.t");
 

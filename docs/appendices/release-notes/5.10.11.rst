@@ -61,3 +61,6 @@ Fixes
   a single error for the whole batch operation. Both client interfaces,
   :ref:`HTTP<interface-http>` and :ref:`PG<interface-postgresql>`, are affected.
 
+- Fixed incorrect JSON response formatting for bulk operations with a single
+  argument that results in a runtime error. The response now follows the
+  structure specified in :ref:`bulk-errors <http-bulk-errors>`.
