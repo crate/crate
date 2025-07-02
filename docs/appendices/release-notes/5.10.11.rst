@@ -56,6 +56,10 @@ Fixes
   :ref`logical replication <administration-logical-replication>` subscriptions
   to be renamed, dropped or added.
 
+- Fixed an issue that wrongly allowed tables created by
+  :ref:`logical replication <administration-logical-replication>` publications
+  to be :ref:`swapped<alter_cluster_swap_table>`.
+
 - Fixed an issue that could cause streaming errors, leading to shard failures
   and re-replication if using ``INSERT INTO`` statements with ``ON CONFLICT``
   clause combined with bulk requests if some operations ran into a conflict
