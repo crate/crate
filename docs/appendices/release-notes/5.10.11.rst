@@ -56,14 +56,18 @@ Fixes
   :ref:`cluster.routing.allocation.awareness.force.\*.values` to be shown under
   the ``settings`` column of the :ref:`sys-cluster` table.
 
+- Fixed an issue that wrongly allowed columns of tables created by
+  :ref:`logical replication <administration-logical-replication>` subscriptions
+  to be renamed, dropped or added.
+
+- Fixed an issue that wrongly allowed tables created by
+  :ref:`logical replication <administration-logical-replication>` publications
+  to be :ref:`swapped<alter_cluster_swap_table>`.
+
 - Fixed an issue that could cause streaming errors, leading to shard failures
   and re-replication if using ``INSERT INTO`` statements with ``ON CONFLICT``
   clause combined with bulk requests if some operations ran into a conflict
   while others didn't.
-
-- Fixed an issue that allowed columns of tables create by
-  :ref`logical replication <administration-logical-replication>` subscriptions
-  to be renamed, dropped or added.
 
 - Fixed an issue that caused analysis errors of SQL batch/bulk statements to be
   wrongly reported as runtime errors, resulting in an error per batch instead of
