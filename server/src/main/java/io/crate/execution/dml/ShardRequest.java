@@ -146,6 +146,14 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             primaryTerm = in.readLong();
         }
 
+        public void writeTo(StreamOutput out) throws IOException {
+            out.writeString(id);
+            out.writeLong(version);
+            out.writeInt(location);
+            out.writeLong(seqNo);
+            out.writeLong(primaryTerm);
+        }
+
         @Override
         public long ramBytesUsed() {
             return RamUsageEstimator.sizeOf(id)
@@ -163,10 +171,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             return version;
         }
 
-        public void version(long version) {
-            this.version = version;
-        }
-
         public void location(int location) {
             this.location = location;
         }
@@ -179,24 +183,8 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
             return seqNo;
         }
 
-        public void seqNo(long seqNo) {
-            this.seqNo = seqNo;
-        }
-
         public long primaryTerm() {
             return primaryTerm;
-        }
-
-        public void primaryTerm(long primaryTerm) {
-            this.primaryTerm = primaryTerm;
-        }
-
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeString(id);
-            out.writeLong(version);
-            out.writeInt(location);
-            out.writeLong(seqNo);
-            out.writeLong(primaryTerm);
         }
 
         @Override

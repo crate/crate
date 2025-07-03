@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -2048,14 +2049,37 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             ) with (number_of_replicas = 1)""");
 
         ensureGreen();
-        execute("INSERT INTO tbl (id, value) " +
-            "VALUES (1, 99999) " +
-            "ON CONFLICT (id) DO UPDATE SET value = excluded.value");
+        execute(
+            """
+            INSERT INTO tbl (id, value) VALUES (1, 99999)
+            ON CONFLICT (id) DO UPDATE SET value = excluded.value
+            """
+        );
         assertThat(response.rowCount()).isEqualTo(1);
         execute("refresh table tbl");
 
         execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
-        assertThat(response).hasRows("0"); // Used to be > 0 because of class cast exception caused by column->value mismatch in the request
+
+        // Used to be > 0 because of class cast exception caused by column->value mismatch in the request
+        assertThat(response)
+            .as("No underreplicated/failed shards due to streaming errors")
+            .hasRows("0");
+
+        execute(
+            """
+            INSERT INTO tbl (id, value) VALUES (?, ?)
+            ON CONFLICT (id) DO UPDATE SET value = excluded.value
+            """,
+            new Object[][] {
+                new Object[] { 1, 200 }, // conflict
+                new Object[] { 2, 300 }  // no conflict
+            }
+        );
+        assertThat(response.rowCount()).isEqualTo(1);
+        execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
+        assertThat(response)
+            .as("No underreplicated/failed shards due to streaming errors")
+            .hasRows("0");
     }
 
     @Test

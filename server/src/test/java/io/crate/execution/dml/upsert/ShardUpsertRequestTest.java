@@ -54,13 +54,13 @@ public class ShardUpsertRequestTest extends ESTestCase {
 
     private static final RelationName CHARACTERS_IDENTS = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
 
-    private static final SimpleReference ID_REF = new SimpleReference(
+    public static final SimpleReference ID_REF = new SimpleReference(
         new ReferenceIdent(CHARACTERS_IDENTS, "id"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
         1,
         null);
-    private static final SimpleReference NAME_REF = new SimpleReference(
+    public static final SimpleReference NAME_REF = new SimpleReference(
         new ReferenceIdent(CHARACTERS_IDENTS, "name"),
         RowGranularity.DOC,
         DataTypes.STRING,

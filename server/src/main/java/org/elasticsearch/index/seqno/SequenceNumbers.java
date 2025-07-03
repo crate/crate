@@ -37,6 +37,10 @@ public class SequenceNumbers {
      */
     public static final long NO_OPS_PERFORMED = -1L;
 
+    /**
+     * @deprecated Instead of flagging items as skip, 5.10.11+ only includes items to index in replica request
+     **/
+    @Deprecated
     public static final long SKIP_ON_REPLICA = -3L;
 
     /**
