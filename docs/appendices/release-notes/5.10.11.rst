@@ -64,3 +64,9 @@ Fixes
 - Fixed incorrect JSON response formatting for bulk operations with a single
   argument that results in a runtime error. The response now follows the
   structure specified in :ref:`bulk-errors <http-bulk-errors>`.
+
+- Fixed an issue that caused a user to have duplicate roles granted by
+  different grantors.
+
+- Fixed an issue that prevented the superuser ``crate`` from revoking granted
+  roles.
