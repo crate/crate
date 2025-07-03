@@ -23,12 +23,14 @@ package io.crate.integrationtests.disruption.seqno;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.disruption.NetworkDisruption;
@@ -36,7 +38,7 @@ import org.junit.Test;
 
 import io.crate.auth.Protocol;
 import io.crate.integrationtests.disruption.discovery.AbstractDisruptionTestCase;
-import io.crate.metadata.IndexName;
+import io.crate.metadata.RelationName;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.session.Session;
@@ -110,9 +112,10 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         String nonIsolatedDataNodeId = firstDataNodeHasPrimary ? secondDataNodeId : firstDataNodeId;
         logger.info("wait for replica on the partition with the master to be promoted to primary");
         assertBusy(() -> {
-            String index = IndexName.encode(schema, "registers", null);
-            ShardRouting primaryShard = client(masterNodeName).state(new ClusterStateRequest()).get().getState().routingTable()
-                .index(index).shard(0).primaryShard();
+            ClusterState state = client(masterNodeName).state(new ClusterStateRequest()).get().getState();
+            String indexUUID = state.metadata()
+                .getIndex(new RelationName(schema, "registers"), List.of(), true, IndexMetadata::getIndexUUID);
+            ShardRouting primaryShard = state.routingTable().index(indexUUID).shard(0).primaryShard();
             // the node that's part of the same partition as master is now the primary for the table shard
             assertThat(primaryShard.currentNodeId()).isEqualTo(nonIsolatedDataNodeId);
             assertThat(primaryShard.active()).isTrue();

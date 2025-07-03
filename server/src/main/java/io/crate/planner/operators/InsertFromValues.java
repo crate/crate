@@ -231,6 +231,7 @@ public class InsertFromValues implements LogicalPlan {
             indexItem,
             indexUUID,
             tableInfo,
+            PartitionName.decodeIdent(writerProjection.partitionIdent()),
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
             validatorsCache,
@@ -397,6 +398,7 @@ public class InsertFromValues implements LogicalPlan {
             indexItem,
             indexUUID,
             tableInfo,
+            PartitionName.decodeIdent(writerProjection.partitionIdent()),
             plannerContext.transactionContext(),
             plannerContext.nodeContext(),
             validatorsCache,
@@ -525,6 +527,7 @@ public class InsertFromValues implements LogicalPlan {
     public static void checkConstraints(@Nullable IndexItem indexItem,
                                         String indexUUID,
                                         DocTableInfo tableInfo,
+                                        List<String> partitionValues,
                                         TransactionContext txnCtx,
                                         NodeContext nodeCtx,
                                         Map<String, Consumer<IndexItem>> validatorsCache,
@@ -535,8 +538,8 @@ public class InsertFromValues implements LogicalPlan {
         var validator = validatorsCache.computeIfAbsent(
             indexUUID,
             index -> Indexer.createConstraintCheck(
-                indexUUID,
                 tableInfo,
+                partitionValues,
                 txnCtx,
                 nodeCtx,
                 targetColumns
@@ -781,7 +784,9 @@ public class InsertFromValues implements LogicalPlan {
                                                                             ClusterService clusterService) {
         List<PartitionName> partitionsToCreate = new ArrayList<>();
         for (var partition : partitions) {
-            if (tableInfo.getPartition(partition) == null) {
+            String indexUUID = clusterService.state().metadata()
+                .getIndex(tableInfo.ident(), partition.values(), true, IndexMetadata::getIndexUUID);
+            if (indexUUID == null) {
                 partitionsToCreate.add(partition);
             }
         }
