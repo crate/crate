@@ -53,8 +53,6 @@ import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexName;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -256,16 +254,6 @@ public class Get implements LogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitGet(this, context);
-    }
-
-    public static String indexName(DocTableInfo tableInfo, @Nullable List<String> partitionValues) {
-        RelationName relation = tableInfo.ident();
-        if (tableInfo.isPartitioned()) {
-            assert partitionValues != null : "values must not be null";
-            return IndexName.encode(relation, PartitionName.encodeIdent(partitionValues));
-        } else {
-            return relation.indexNameOrAlias();
-        }
     }
 
     @Override

@@ -72,9 +72,8 @@ public final class IndexEnv implements AutoCloseable {
                     DocTableInfo table,
                     ClusterState clusterState,
                     Version indexVersion) throws IOException {
-        String indexName = table.ident().indexNameOrAlias();
         Index index = clusterState.metadata().getIndex(table.ident(), List.of(), true, IndexMetadata::getIndex);
-        assert index != null : "ClusterState must contain the index: " + indexName;
+        assert index != null : "ClusterState must contain the index: " + table.ident().fqn();
 
         Path tempDir = CrateLuceneTestCase.createTempDir();
         Settings nodeSettings = Settings.builder()
@@ -89,7 +88,7 @@ public final class IndexEnv implements AutoCloseable {
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, List.of(), Collections.emptyMap());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
         luceneReferenceResolver = new LuceneReferenceResolver(
-            indexName,
+            List.of(),
             table.partitionedByColumns(),
             table.primaryKey(),
             indexVersion,

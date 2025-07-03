@@ -158,8 +158,6 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
         execute("create table t (id int primary key, x string) clustered into 1 shards " +
                 "with (number_of_replicas = 0)", null, randomFrom(nonPreferredNodes));
 
-        String indexUUID = resolveIndex("t").getUUID();
-
         cluster().clearDisruptionScheme(false);
         cluster().setDisruptionScheme(isolateAllNodes);
 
@@ -173,6 +171,7 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
 
         final ClusterState state = client().state(new ClusterStateRequest()).get().getState();
 
+        String indexUUID = resolveIndex("t").getUUID();
         if (state.metadata().hasIndex(indexUUID) == false) {
             fail("index 'test' was lost. current cluster state: " + state);
         }

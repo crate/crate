@@ -25,14 +25,15 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.shard.ShardId;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
-import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 
 public class SysSnapshotRestoreInProgress {
 
@@ -42,13 +43,13 @@ public class SysSnapshotRestoreInProgress {
     private final String state;
     private final List<ShardRestoreInfo> shards;
 
-    public static SysSnapshotRestoreInProgress of(RestoreInProgress.Entry entry) {
+    public static SysSnapshotRestoreInProgress of(RestoreInProgress.Entry entry, ClusterState currentState) {
         return new SysSnapshotRestoreInProgress(
             entry.uuid(),
             entry.snapshot().getSnapshotId().getName(),
             entry.snapshot().getRepository(),
             entry.state().name(),
-            ShardRestoreInfo.of(entry.shards())
+            ShardRestoreInfo.of(entry.shards(), currentState)
         );
     }
 
@@ -107,15 +108,22 @@ public class SysSnapshotRestoreInProgress {
 
     public static class ShardRestoreInfo {
 
-        public static List<ShardRestoreInfo> of(ImmutableOpenMap<ShardId, RestoreInProgress.ShardRestoreStatus> shards) {
+        public static List<ShardRestoreInfo> of(ImmutableOpenMap<ShardId, RestoreInProgress.ShardRestoreStatus> shards,
+                                                ClusterState currentState) {
             var shardsRestoreInfo = new ArrayList<ShardRestoreInfo>(shards.size());
             for (ObjectObjectCursor<ShardId, RestoreInProgress.ShardRestoreStatus> shardEntry : shards) {
                 ShardId shardId = shardEntry.key;
                 RestoreInProgress.ShardRestoreStatus status = shardEntry.value;
+                PartitionName partitionName = currentState.metadata().getPartitionName(shardId.getIndexUUID());
+                IndexParts indexParts = new IndexParts(
+                    partitionName.relationName().schema(),
+                    partitionName.relationName().name(),
+                    partitionName.ident()
+                );
                 shardsRestoreInfo.add(
                     new ShardRestoreInfo(
                         shardId.id(),
-                        IndexName.decode(shardId.getIndexName()),
+                        indexParts,
                         status.state())
                 );
             }

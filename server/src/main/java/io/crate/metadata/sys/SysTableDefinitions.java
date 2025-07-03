@@ -180,7 +180,8 @@ public class SysTableDefinitions {
                 SysSnapshotRestoreTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     () -> completedFuture(SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(
-                        clusterService.state().custom(RestoreInProgress.TYPE))),
+                        clusterService.state().custom(RestoreInProgress.TYPE),
+                        clusterService.state())),
                     SysSnapshotRestoreTableInfo.INSTANCE.expressions(),
                     true
                 )

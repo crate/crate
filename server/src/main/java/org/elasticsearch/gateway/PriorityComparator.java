@@ -49,7 +49,7 @@ public final class PriorityComparator implements Comparator<ShardRouting> {
             final Settings settingsO2 = metadata.getIndexSafe(o2.index()).getSettings();
             int cmp = Long.compare(timeCreated(settingsO2), timeCreated(settingsO1));
             if (cmp == 0) {
-                return o2.getIndexName().compareTo(o1.getIndexName());
+                return o2.index().getName().compareTo(o1.index().getName());
             }
             return cmp;
         }
