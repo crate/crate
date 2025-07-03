@@ -97,6 +97,7 @@ public final class PKLookupOperation {
                                 long seqNo,
                                 long primaryTerm,
                                 DocTableInfo table,
+                                List<String> partitionValues,
                                 List<Symbol> columns,
                                 CheckedFunction<Doc, T, Exception> processDoc) {
         Term uidTerm = new Term(SysColumns.Names.ID, Uid.encodeId(id));
@@ -114,7 +115,7 @@ public final class PKLookupOperation {
             StoredRowLookup storedRowLookup = StoredRowLookup.create(
                 shard.getVersionCreated(),
                 table,
-                shard.shardId().getIndexName(),
+                partitionValues,
                 columns,
                 getResult.fromTranslog()
             );
@@ -122,7 +123,7 @@ public final class PKLookupOperation {
             StoredRow storedRow = storedRowLookup.getStoredRow(context, docIdAndVersion.docId);
             Doc doc = new Doc(
                 docIdAndVersion.docId,
-                shard.shardId().getIndexName(),
+                partitionValues,
                 id,
                 docIdAndVersion.version,
                 docIdAndVersion.seqNo,
@@ -147,6 +148,7 @@ public final class PKLookupOperation {
                                      boolean requiresScroll,
                                      Function<Doc, Row> resultToRow,
                                      DocTableInfo table,
+                                     List<String> partitionValues,
                                      List<Symbol> columns) {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
         for (Map.Entry<ShardId, SequencedSet<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
@@ -165,7 +167,7 @@ public final class PKLookupOperation {
                 }
                 throw new ShardNotFoundException(shardId);
             }
-            assert table != null;
+            assert table != null : "table must not be null for PKLookupOperation";
             Stream<Row> rowStream = idsByShardEntry.getValue().stream()
                 .map(pkAndVersion -> withDoc(
                     shard,
@@ -175,6 +177,7 @@ public final class PKLookupOperation {
                     pkAndVersion.seqNo(),
                     pkAndVersion.primaryTerm(),
                     table,
+                    partitionValues,
                     columns,
                     doc -> doc == null ? null : resultToRow.apply(doc)
                 ))

@@ -117,9 +117,11 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.MemoryManagerFactory;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.planner.distribution.DistributionType;
 import io.crate.planner.operators.PKAndVersion;
@@ -634,6 +636,17 @@ public class JobSetup {
                 consumerMemoryManager,
                 projectorFactory
             );
+
+            var shardIt = idsByShardId.keySet().iterator();
+            DocTableInfo docTableInfo = null;
+            List<String> partitionValues = List.of();
+            if (shardIt.hasNext()) {
+                String indexUUID = shardIt.next().getIndexUUID();
+                PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexUUID);
+                partitionValues = partitionName.values();
+                docTableInfo = schemas.getTableInfo(partitionName.relationName());
+            }
+
             context.registerSubContext(new PKLookupTask(
                 pkLookupPhase.jobId(),
                 pkLookupPhase.phaseId(),
@@ -642,7 +655,8 @@ public class JobSetup {
                 memoryManagerFactory,
                 ramAccountingBlockSizeInBytes,
                 context.transactionContext,
-                schemas,
+                docTableInfo,
+                partitionValues,
                 inputFactory,
                 pkLookupOperation,
                 pkLookupPhase.partitionedByColumns(),

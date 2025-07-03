@@ -745,6 +745,9 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("create table t1 (a object, c object)");
         execute("insert into t1 (a, c) values ({ b = 1 }, { d = { e = 2 }})");
         execute("refresh table t1");
+        execute("select a['b'], c['d']['e'] from t1");
+        assertThat(response).hasRows(
+            "1| 2");
         execute("select a['b'], c['d']['e'] from (select * from t1) t2");
         assertThat(response).hasRows(
             "1| 2");

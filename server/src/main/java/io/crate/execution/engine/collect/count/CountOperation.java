@@ -57,7 +57,7 @@ import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -157,13 +157,12 @@ public class CountOperation {
             }
         };
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
-            String indexName = indexShard.shardId().getIndexName();
-            var relationName = RelationName.fromIndexName(indexName);
-            DocTableInfo table = schemas.getTableInfo(relationName);
+            PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
+            DocTableInfo table = schemas.getTableInfo(partitionName.relationName());
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 filter,
                 txnCtx,
-                indexName,
+                partitionName.values(),
                 indexService.indexAnalyzers(),
                 table,
                 indexShard.getVersionCreated(),

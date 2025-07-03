@@ -33,7 +33,6 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -48,7 +47,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
 
     private static final RelationName RELATION_NAME = new RelationName("s", "t");
     private static final LuceneReferenceResolver LUCENE_REFERENCE_RESOLVER = new LuceneReferenceResolver(
-        RELATION_NAME.indexNameOrAlias(),
+        List.of(),
         List.of(),
         List.of(ColumnIdent.of("key")),
         Version.CURRENT,
@@ -97,7 +96,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
             new ReferenceIdent(RELATION_NAME, "key"), RowGranularity.DOC, DataTypes.STRING, 0, null
         );
         LuceneReferenceResolver resolver = new LuceneReferenceResolver(
-            RELATION_NAME.indexNameOrAlias(),
+            List.of(),
             List.of(),
             List.of(ColumnIdent.of("key")),
             Version.V_5_10_0,
@@ -140,9 +139,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
             );
         DocTableInfo table = e.resolveTableInfo("tbl");
         table.partitionedByColumns();
-        PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("2023"));
         LuceneReferenceResolver refResolver = new LuceneReferenceResolver(
-            partitionName.asIndexName(),
+            List.of("2023"),
             table.partitionedByColumns(),
             table.primaryKey(),
             Version.CURRENT,

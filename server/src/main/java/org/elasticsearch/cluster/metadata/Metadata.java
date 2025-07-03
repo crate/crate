@@ -29,6 +29,7 @@ import java.util.EnumSet;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
@@ -1321,6 +1322,24 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return relations.getFirst();
         }
         return null;
+    }
+
+    public PartitionName getPartitionName(String indexUUID) {
+        RelationMetadata relationMetadata = getRelation(indexUUID);
+        if (relationMetadata == null) {
+            throw new RelationUnknown(
+                String.format(Locale.ENGLISH, "Relation not found for indexUUID=%s", indexUUID));
+        }
+        return getPartitionName(relationMetadata.name(), indexUUID);
+    }
+
+    public PartitionName getPartitionName(RelationName relationName, String indexUUID) {
+        IndexMetadata indexMetadata = index(indexUUID);
+        if (indexMetadata == null) {
+            throw new IndexNotFoundException(
+                String.format(Locale.ENGLISH, "Index metadata not found for indexUUID=%s", indexUUID));
+        }
+        return new PartitionName(relationName, indexMetadata.partitionValues());
     }
 
     public <T extends RelationMetadata> List<T> relations(Class<T> clazz) {

@@ -32,7 +32,6 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.ArrayType;
@@ -57,25 +56,25 @@ import io.crate.types.TimestampType;
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
     private final List<Reference> partitionColumns;
-    private final String indexName;
+    private final List<String> partitionValues;
     private final Predicate<Reference> isParentRefIgnored;
     private final Predicate<ColumnIdent> isSingletonPrimaryKey;
     private final Version shardVersion;
 
-    public LuceneReferenceResolver(final String indexName,
+    public LuceneReferenceResolver(final List<String> partitionValues,
                                    final List<Reference> partitionColumns,
                                    final List<ColumnIdent> primaryKey,
                                    Version shardVersion,
                                    Predicate<Reference> isParentRefIgnored) {
-        this.indexName = indexName;
+        this.partitionValues = partitionValues;
         this.partitionColumns = partitionColumns;
         this.isParentRefIgnored = isParentRefIgnored;
         this.shardVersion = shardVersion;
         this.isSingletonPrimaryKey = primaryKey.size() == 1 ? c -> primaryKey.getFirst().equals(c) : _ -> false;
     }
 
-    public String getIndexName() {
-        return indexName;
+    public List<String> getPartitionValues() {
+        return partitionValues;
     }
 
     @Override
@@ -121,7 +120,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
                 int partitionPos = Reference.indexOf(partitionColumns, column);
                 if (partitionPos >= 0) {
                     return new LiteralValueExpression(
-                        ref.valueType().implicitCast(PartitionName.fromIndexOrTemplate(indexName).values().get(partitionPos))
+                        ref.valueType().implicitCast(partitionValues.get(partitionPos))
                     );
                 }
                 return typeSpecializedExpression(ref, isParentRefIgnored);

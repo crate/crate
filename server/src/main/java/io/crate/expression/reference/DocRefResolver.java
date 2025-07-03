@@ -30,7 +30,6 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.SysColumns;
 
@@ -82,7 +81,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                         final int idx = i;
                         return forFunction(
                             getResp -> ref.valueType().implicitCast(
-                                PartitionName.fromIndexOrTemplate(getResp.getIndex()).values().get(idx))
+                                getResp.getPartitionValues().get(idx))
                         );
                     } else if (pColumn.isChildOf(column)) {
                         final int idx = i;
@@ -90,8 +89,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
                             if (response == null) {
                                 return null;
                             }
-                            var partitionName = PartitionName.fromIndexOrTemplate(response.getIndex());
-                            var partitionValue = partitionName.values().get(idx);
+                            var partitionValue = response.getPartitionValues().get(idx);
                             var source = response.getSource();
                             Maps.mergeInto(source, pColumn.name(), pColumn.path(), partitionValue);
                             Object value = StoredRow.extractValue(source, column);
