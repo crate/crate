@@ -23,7 +23,6 @@ package io.crate.expression.reference.sys.shard;
 
 import org.elasticsearch.index.engine.Segment;
 
-import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 
 public class ShardSegment {
@@ -34,9 +33,9 @@ public class ShardSegment {
     private final boolean primary;
 
 
-    ShardSegment(int shardId, String indexName, Segment segment, boolean primary) {
+    ShardSegment(int shardId, IndexParts indexParts, Segment segment, boolean primary) {
         this.shardId = shardId;
-        this.indexParts = IndexName.decode(indexName);
+        this.indexParts = indexParts;
         this.segment = segment;
         this.primary = primary;
     }

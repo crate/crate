@@ -21,6 +21,7 @@
 
 package io.crate.execution.engine.collect;
 
+import static io.crate.operation.aggregation.AggregationTestCase.PARTITION_NAME;
 import static io.crate.operation.aggregation.AggregationTestCase.closeShard;
 import static io.crate.operation.aggregation.AggregationTestCase.createCollectPhase;
 import static io.crate.operation.aggregation.AggregationTestCase.createCollectTask;
@@ -237,12 +238,13 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
         var it = GroupByOptimizedIterator.tryOptimizeSingleStringKey(
             shard,
             mock(DocTableInfo.class),
+            PARTITION_NAME.values(),
             new LuceneQueryBuilder(nodeCtx),
             mock(BigArrays.class),
             new InputFactory(nodeCtx),
             new DocInputFactory(
                 nodeCtx,
-                new LuceneReferenceResolver(shard.shardId().getIndexName(), List.of(), List.of(), Version.CURRENT, (_) -> false)
+                new LuceneReferenceResolver(PARTITION_NAME.values(), List.of(), List.of(), Version.CURRENT, (_) -> false)
             ),
             collectPhase,
             collectTask

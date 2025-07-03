@@ -198,8 +198,6 @@ public final class ReservoirSampler {
                     continue;
                 }
 
-                String indexName = indexService.index().getName();
-
                 for (IndexShard indexShard : indexService) {
                     ShardRouting routingEntry = indexShard.routingEntry();
                     if (!routingEntry.primary() || !routingEntry.active()) {
@@ -208,8 +206,8 @@ public final class ReservoirSampler {
                     try {
                         Engine.Searcher searcher = indexShard.acquireSearcher("update-table-statistics");
                         List<? extends LuceneCollectorExpression<?>> expressions
-                            = getCollectorExpressions(indexName, docTable, indexShard.getVersionCreated(), columns);
-                        searchersToRelease.add(new ShardExpressions(indexShard, indexName, searcher, docTable, expressions));
+                            = getCollectorExpressions(indexMetadata.partitionValues(), docTable, indexShard.getVersionCreated(), columns);
+                        searchersToRelease.add(new ShardExpressions(indexShard, indexMetadata.partitionValues(), searcher, docTable, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
                         totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
                         // We do the sampling in 2 phases. First we get the docIds;
@@ -248,13 +246,13 @@ public final class ReservoirSampler {
     }
 
     private static List<? extends LuceneCollectorExpression<?>> getCollectorExpressions(
-        String indexName,
+        List<String> partitionValues,
         DocTableInfo docTable,
         Version shardCreatedVersion,
         List<Reference> columns
     ) {
         LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
-            indexName,
+            partitionValues,
             docTable.partitionedByColumns(),
             docTable.primaryKey(),
             shardCreatedVersion,
@@ -293,7 +291,7 @@ public final class ReservoirSampler {
     }
 
     private record ShardExpressions(IndexShard indexShard,
-                                    String indexName,
+                                    List<String> partitionValues,
                                     Engine.Searcher searcher,
                                     DocTableInfo tableInfo,
                                     List<? extends LuceneCollectorExpression<?>> expressions) {
@@ -303,7 +301,7 @@ public final class ReservoirSampler {
             CollectorContext context = new CollectorContext(() -> StoredRowLookup.create(
                 indexShard.getVersionCreated(),
                 tableInfo,
-                indexName));
+                partitionValues));
             for (int i = 0; i < collectors.size(); i++) {
                 LuceneCollectorExpression<?> expression = expressions.get(i);
                 expression.startCollect(context);

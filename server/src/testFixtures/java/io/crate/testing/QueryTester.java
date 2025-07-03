@@ -139,7 +139,7 @@ public final class QueryTester implements AutoCloseable {
         public Builder indexValue(String column, Object value) throws IOException {
             IndexMetadata indexMetadata = plannerContext.clusterState().metadata().getIndex(table.ident(), List.of(), true, im -> im);
             Indexer indexer = new Indexer(
-                new PartitionName(table.ident(), indexMetadata.partitionValues()),
+                indexMetadata.partitionValues(),
                 table,
                 indexVersion,
                 plannerContext.transactionContext(),
@@ -156,7 +156,7 @@ public final class QueryTester implements AutoCloseable {
         public Builder indexValues(List<String> columns, Object ... values) throws IOException {
             IndexMetadata indexMetadata = plannerContext.clusterState().metadata().getIndex(table.ident(), List.of(), true, im -> im);
             Indexer indexer = new Indexer(
-                new PartitionName(table.ident(), indexMetadata.partitionValues()),
+                indexMetadata.partitionValues(),
                 table,
                 indexVersion,
                 plannerContext.transactionContext(),
@@ -187,7 +187,7 @@ public final class QueryTester implements AutoCloseable {
                 query,
                 null,
                 false,
-                new CollectorContext(() -> StoredRowLookup.create(indexVersion, table, indexEnv.luceneReferenceResolver().getIndexName())),
+                new CollectorContext(() -> StoredRowLookup.create(indexVersion, table, indexEnv.luceneReferenceResolver().getPartitionValues())),
                 Collections.singletonList(input),
                 ctx.expressions()
             );
@@ -196,6 +196,7 @@ public final class QueryTester implements AutoCloseable {
         public QueryTester build() throws IOException {
             indexEnv.writer().commit();
             CoordinatorTxnCtx systemTxnCtx = CoordinatorTxnCtx.systemTransactionContext();
+            PartitionName partitionName = plannerContext.clusterState().metadata().getPartitionName(indexEnv.indexService().indexUUID());
             return new QueryTester(
                 this::getIterator,
                 (expr, params) -> {
@@ -215,7 +216,7 @@ public final class QueryTester implements AutoCloseable {
                 symbol -> queryBuilder.convert(
                     Optimizer.optimizeCasts(symbol,plannerContext),
                     systemTxnCtx,
-                    indexEnv.indexService().index().getName(),
+                    partitionName.values(),
                     indexEnv.indexService().indexAnalyzers(),
                     table,
                     indexVersion,

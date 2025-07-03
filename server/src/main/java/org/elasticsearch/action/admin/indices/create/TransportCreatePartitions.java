@@ -141,8 +141,11 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                                    final ActionListener<AcknowledgedResponse> listener) throws ElasticsearchException {
         createIndices(request, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
-                List<String> indexNames = request.indexNames();
-                activeShardsObserver.waitForActiveShards(indexNames.toArray(String[]::new), ActiveShardCount.DEFAULT, request.ackTimeout(),
+                final String[] indices = request.partitionValuesList().stream()
+                    .map(partitionValues -> clusterService.state().metadata()
+                        .getIndex(request.relationName(), partitionValues, false, IndexMetadata::getIndexUUID))
+                    .toArray(String[]::new);
+                activeShardsObserver.waitForActiveShards(indices, ActiveShardCount.DEFAULT, request.ackTimeout(),
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
                             RelationName relationName = request.relationName();

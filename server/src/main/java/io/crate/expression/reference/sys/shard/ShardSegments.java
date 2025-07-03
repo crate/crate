@@ -27,21 +27,30 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.apache.lucene.store.AlreadyClosedException;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.engine.Segment;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
+import io.crate.exceptions.RelationUnknown;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+
 @Singleton
 public class ShardSegments implements Iterable<ShardSegment> {
 
     private final IndicesService indicesService;
+    private final ClusterService clusterService;
 
     @Inject
-    public ShardSegments(IndicesService indicesService) {
+    public ShardSegments(IndicesService indicesService, ClusterService clusterService) {
         this.indicesService = indicesService;
+        this.clusterService = clusterService;
     }
 
     @Override
@@ -57,12 +66,16 @@ public class ShardSegments implements Iterable<ShardSegment> {
         try {
             List<Segment> segments = indexShard.segments();
             ShardId shardId = indexShard.shardId();
+            PartitionName partitionName = clusterService.state().metadata().getPartitionName(shardId.getIndexUUID());
+            RelationName relationName = partitionName.relationName();
+            IndexParts indexParts = new IndexParts(relationName.schema(), relationName.name(), partitionName.ident());
             return segments.stream().map(
-                sgmt -> new ShardSegment(shardId.id(),
-                                         shardId.getIndexName(),
-                                         sgmt,
-                                         indexShard.routingEntry().primary()));
-        } catch (AlreadyClosedException ignored) {
+                sgmt -> new ShardSegment(
+                    shardId.id(),
+                    indexParts,
+                    sgmt,
+                    indexShard.routingEntry().primary()));
+        } catch (AlreadyClosedException | RelationUnknown | IndexNotFoundException ignored) {
             return Stream.empty();
         }
     }

@@ -27,6 +27,7 @@ import static io.crate.types.DataTypes.STRING;
 import java.util.Collections;
 import java.util.stream.StreamSupport;
 
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
 import org.jetbrains.annotations.Nullable;
 
@@ -60,10 +61,11 @@ public class SysSnapshotRestoreTableInfo {
         .build();
 
     public static Iterable<SysSnapshotRestoreInProgress> snapshotsRestoreInProgress(
-        @Nullable RestoreInProgress restoreInProgress) {
+        @Nullable RestoreInProgress restoreInProgress,
+        ClusterState currentState) {
         if (restoreInProgress != null) {
             return () -> StreamSupport.stream(restoreInProgress.spliterator(), false)
-                .map(SysSnapshotRestoreInProgress::of)
+                .map(e -> SysSnapshotRestoreInProgress.of(e, currentState))
                 .iterator();
         } else {
             return Collections::emptyIterator;

@@ -35,6 +35,7 @@ import java.util.Map;
 import java.util.UUID;
 
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
@@ -63,10 +64,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest {
@@ -78,7 +81,13 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
 
 
     @Before
-    public void prepare() {
+    public void prepare() throws Exception {
+        // Create the table so it's metadata is available for the test
+        RelationName relationName = new RelationName("doc", "t1");
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.t1 (id INT)");
+        String indexUUID = clusterService.state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
         nodeCtx = createNodeContext();
         memoryManager = new OnHeapMemoryManager(usedBytes -> {});
         projectorFactory = new ProjectionToProjectorVisitor(
@@ -97,7 +106,7 @@ public class ProjectingRowConsumerTest extends CrateDummyClusterServiceUnitTest 
                 null),
             t -> null,
             t -> null,
-            new ShardId("dummy", UUID.randomUUID().toString(), 0),
+            new ShardId(relationName.indexNameOrAlias(), indexUUID, 0),
             Map.of(LocalFsFileOutputFactory.NAME, new LocalFsFileOutputFactory())
         );
     }

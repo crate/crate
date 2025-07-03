@@ -387,7 +387,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                                                                               boolean requiresScroll) {
         err = SQLExceptions.unwrap(err);
         if (err instanceof IndexNotFoundException) {
-            if (IndexName.isPartitioned(shardId.getIndexName())) {
+            if (collectPhase.onPartitionedTable()) {
                 return CompletableFuture.completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
             }
             throw Exceptions.toRuntimeException(err);

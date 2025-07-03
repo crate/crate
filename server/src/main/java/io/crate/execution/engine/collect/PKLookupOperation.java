@@ -66,6 +66,7 @@ import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -98,6 +99,7 @@ public final class PKLookupOperation {
                                 long seqNo,
                                 long primaryTerm,
                                 DocTableInfo table,
+                                List<String> partitionValues,
                                 List<Symbol> columns,
                                 CheckedFunction<Doc, T, Exception> processDoc) {
         Term uidTerm = new Term(SysColumns.Names.ID, Uid.encodeId(id));
@@ -115,7 +117,7 @@ public final class PKLookupOperation {
             StoredRowLookup storedRowLookup = StoredRowLookup.create(
                 shard.getVersionCreated(),
                 table,
-                shard.shardId().getIndexName(),
+                partitionValues,
                 columns,
                 getResult.fromTranslog()
             );
@@ -123,7 +125,7 @@ public final class PKLookupOperation {
             StoredRow storedRow = storedRowLookup.getStoredRow(context, docIdAndVersion.docId);
             Doc doc = new Doc(
                 docIdAndVersion.docId,
-                shard.shardId().getIndexName(),
+                partitionValues,
                 id,
                 docIdAndVersion.version,
                 docIdAndVersion.seqNo,
@@ -148,6 +150,7 @@ public final class PKLookupOperation {
                                      boolean requiresScroll,
                                      Function<Doc, Row> resultToRow,
                                      Function<RelationName, DocTableInfo> getTableInfo,
+                                     Function<String, PartitionName> getPartitionName,
                                      List<Symbol> columns) {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
         for (Map.Entry<ShardId, SequencedSet<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
@@ -167,10 +170,9 @@ public final class PKLookupOperation {
                 throw new ShardNotFoundException(shardId);
             }
 
-            String indexName = shardId.getIndexName();
-            RelationName relationName = RelationName.fromIndexName(indexName);
-            DocTableInfo table = getTableInfo.apply(relationName);
-            assert table != null : "Table for index " + indexName + " must not be null";
+            String indexUUID = shardId.getIndexUUID();
+            PartitionName partitionName = getPartitionName.apply(indexUUID);
+            DocTableInfo table = getTableInfo.apply(partitionName.relationName());
 
             Stream<Row> rowStream = idsByShardEntry.getValue().stream()
                 .map(pkAndVersion -> withDoc(
@@ -181,6 +183,7 @@ public final class PKLookupOperation {
                     pkAndVersion.seqNo(),
                     pkAndVersion.primaryTerm(),
                     table,
+                    partitionName.values(),
                     columns,
                     doc -> doc == null ? null : resultToRow.apply(doc)
                 ))

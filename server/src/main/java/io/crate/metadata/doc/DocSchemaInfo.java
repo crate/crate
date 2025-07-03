@@ -52,7 +52,6 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
@@ -331,14 +330,6 @@ public class DocSchemaInfo implements SchemaInfo {
         IndexMetadata indexMetadata = metadata.index(index);
         if (indexMetadata != null) {
             invalidateAliases(indexMetadata.getAliases());
-        }
-    }
-
-    private String getIndexName(String tableName) {
-        if (schemaName.equals(Schemas.DOC_SCHEMA_NAME)) {
-            return tableName;
-        } else {
-            return schemaName + "." + tableName;
         }
     }
 
