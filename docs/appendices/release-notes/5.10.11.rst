@@ -47,8 +47,8 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue that allowed columns of tables create by
-  :ref`logical replication <administration-logical-replication>` subscriptions
+- Fixed an issue that wrongly allowed columns of tables created by
+  :ref:`logical replication <administration-logical-replication>` subscriptions
   to be renamed, dropped or added.
 
 - Fixed an issue that wrongly allowed tables created by
