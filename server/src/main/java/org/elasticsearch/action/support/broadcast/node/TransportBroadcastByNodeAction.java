@@ -117,7 +117,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             if (responses.get(i) instanceof FailedNodeException exception) {
                 totalShards += nodes.get(exception.nodeId()).size();
                 for (ShardRouting shard : nodes.get(exception.nodeId())) {
-                    exceptions.add(new DefaultShardOperationFailedException(shard.getIndexName(), shard.getId(), exception));
+                    exceptions.add(new DefaultShardOperationFailedException(shard.index().toString(), shard.getId(), exception));
                 }
             } else {
                 NodeResponse response = (NodeResponse) responses.get(i);

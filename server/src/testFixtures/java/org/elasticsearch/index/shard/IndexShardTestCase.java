@@ -205,7 +205,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                           String source,
                                           XContentType xContentType) throws IOException {
         SourceToParse sourceToParse = new SourceToParse(
-            shard.shardId().getIndexName(), id, new BytesArray(source), xContentType);
+            shard.shardId().getIndexUUID(), id, new BytesArray(source), xContentType);
         Engine.IndexResult result;
         if (shard.routingEntry().primary()) {
             result = shard.applyIndexOperationOnPrimary(
@@ -351,7 +351,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 .put(settings)
                 .build();
         IndexMetadata.Builder metadata = IndexMetadata.builder(shardRouting.getIndexUUID())
-            .indexName(shardRouting.getIndexName())
+            .indexName(shardRouting.index().getName())
             .settings(indexSettings)
             .primaryTerm(0, primaryTerm)
             .putMapping("{ \"properties\": {} }");

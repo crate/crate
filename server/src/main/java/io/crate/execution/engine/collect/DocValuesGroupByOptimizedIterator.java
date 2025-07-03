@@ -89,6 +89,7 @@ final class DocValuesGroupByOptimizedIterator {
                                           LuceneReferenceResolver referenceResolver,
                                           IndexShard indexShard,
                                           DocTableInfo table,
+                                          List<String> partitionValues,
                                           LuceneQueryBuilder luceneQueryBuilder,
                                           DocInputFactory docInputFactory,
                                           RoutedCollectPhase collectPhase,
@@ -140,15 +141,15 @@ final class DocValuesGroupByOptimizedIterator {
 
         InputFactory.Context<? extends LuceneCollectorExpression<?>> docCtx
             = docInputFactory.getCtx(collectTask.txnCtx());
-        String indexName = indexShard.shardId().getIndexName();
         List<LuceneCollectorExpression<?>> keyExpressions = new ArrayList<>();
         for (var keyRef : columnKeyRefs) {
             keyExpressions.add((LuceneCollectorExpression<?>) docCtx.add(keyRef));
         }
+
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexName,
+            partitionValues,
             indexService.indexAnalyzers(),
             table,
             shardCreatedVersion,
@@ -166,7 +167,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, indexName))
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues))
             );
         } else {
             return GroupByIterator.forManyKeys(
@@ -178,7 +179,7 @@ final class DocValuesGroupByOptimizedIterator {
                 collectTask.memoryManager(),
                 collectTask.minNodeVersion(),
                 queryContext.query(),
-                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, indexName))
+                new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues))
             );
         }
     }

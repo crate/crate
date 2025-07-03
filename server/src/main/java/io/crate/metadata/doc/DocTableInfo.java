@@ -190,7 +190,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final List<CheckConstraint<Symbol>> checkConstraints;
     private final ColumnIdent clusteredBy;
     private final List<ColumnIdent> partitionedBy;
-    private final Map<String, PartitionName> partitions;
     private final int numberOfShards;
     private final String numberOfReplicas;
     private final Settings tableParameters;
@@ -215,7 +214,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         ColumnIdent clusteredBy,
                         Settings tableParameters,
                         List<ColumnIdent> partitionedBy,
-                        Map<String, PartitionName> partitions,
                         ColumnPolicy columnPolicy,
                         Version versionCreated,
                         @Nullable Version versionUpgraded,
@@ -280,7 +278,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.tableParameters = tableParameters;
         isPartitioned = !partitionedByColumns.isEmpty();
         this.partitionedBy = partitionedBy;
-        this.partitions = partitions;
         this.columnPolicy = columnPolicy;
         assert versionCreated.after(Version.V_EMPTY) : "Table must have a versionCreated";
         this.versionCreated = versionCreated;
@@ -576,22 +573,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         });
     }
 
-    @Nullable
-    public PartitionName getPartition(String indexUUID) {
-        return partitions.get(indexUUID);
-    }
-
-    @Nullable
-    public String getPartition(PartitionName partitionName) {
-        for (Entry<String, PartitionName> entry : partitions.entrySet()) {
-            if (entry.getValue().equals(partitionName)) {
-                return entry.getKey();
-            }
-        }
-        return null;
-    }
-
-
     /**
      * returns <code>true</code> if this table is a partitioned table,
      * <code>false</code> otherwise
@@ -867,7 +848,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             clusteredBy,
             tableParameters,
             partitionedBy,
-            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,
@@ -940,7 +920,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             clusteredBy,
             tableParameters,
             partitionedBy,
-            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,
@@ -1045,7 +1024,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             renamedClusteredBy,
             tableParameters,
             renamedPartitionedBy,
-            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,
@@ -1308,7 +1286,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             clusteredBy,
             newSettingsBuilder.build(),
             partitionedBy,
-            partitions,
             columnPolicy,
             versionCreated,
             versionUpgraded,

@@ -29,6 +29,7 @@ import java.util.concurrent.CompletableFuture;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.index.shard.ShardId;
@@ -56,18 +57,21 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
     private final Transports transports;
     private final TasksService tasksService;
     private final JobSetup jobSetup;
+    private final ClusterService clusterService;
 
     @Inject
     public TransportJobAction(TransportService transportService,
                               IndicesService indicesService,
                               Transports transports,
                               TasksService tasksService,
-                              JobSetup jobSetup) {
+                              JobSetup jobSetup,
+                              ClusterService clusterService) {
         super(JobAction.NAME);
         this.indicesService = indicesService;
         this.transports = transports;
         this.tasksService = tasksService;
         this.jobSetup = jobSetup;
+        this.clusterService = clusterService;
         transportService.registerRequestHandler(
             JobAction.NAME,
             ThreadPool.Names.SEARCH,
@@ -121,7 +125,7 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
     private SharedShardContexts maybeInstrumentProfiler(boolean enableProfiling, RootTask.Builder contextBuilder) {
         if (enableProfiling) {
             var profilers = new HashMap<ShardId, QueryProfiler>();
-            ProfilingContext profilingContext = new ProfilingContext(profilers);
+            ProfilingContext profilingContext = new ProfilingContext(profilers, clusterService.state());
             contextBuilder.profilingContext(profilingContext);
 
             return new SharedShardContexts(

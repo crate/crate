@@ -29,12 +29,15 @@ import java.util.function.Supplier;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
 import io.crate.common.collections.Tuple;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.PartitionName;
 
 public class NodeInfo implements NodeInfoMXBean {
 
@@ -97,12 +100,17 @@ public class NodeInfo implements NodeInfoMXBean {
             if (localNodeId.equals(shardRouting.currentNodeId())) {
                 var shardStateAndSize = shardStateAndSizeProvider.apply(shardId);
                 if (shardStateAndSize != null) {
-                    var indexParts = IndexName.decode(shardId.getIndexName());
+                    PartitionName partitionName;
+                    try {
+                        partitionName = cs.metadata().getPartitionName(shardId.getIndexUUID());
+                    } catch (RelationUnknown | IndexNotFoundException e) {
+                        continue; // skip shards of indices that are not in the metadata
+                    }
                     result.add(new ShardInfo(
                         shardId.id(),
-                        indexParts.schema(),
-                        indexParts.table(),
-                        indexParts.partitionIdent(),
+                        partitionName.relationName().schema(),
+                        partitionName.relationName().name(),
+                        partitionName.ident() == null ? "" : partitionName.ident(),
                         shardRouting.state().name(),
                         shardStateAndSize.v1().name(),
                         shardStateAndSize.v2())

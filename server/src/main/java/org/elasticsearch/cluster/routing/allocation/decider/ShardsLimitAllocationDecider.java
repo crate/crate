@@ -19,6 +19,8 @@
 
 package org.elasticsearch.cluster.routing.allocation.decider;
 
+import java.util.function.BiPredicate;
+
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -28,8 +30,6 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-
-import java.util.function.BiPredicate;
 
 /**
  * This {@link AllocationDecider} limits the number of shards per node on a per
@@ -132,7 +132,7 @@ public class ShardsLimitAllocationDecider extends AllocationDecider {
             if (decider.test(indexShardCount, indexShardLimit)) {
                 return allocation.decision(Decision.NO, NAME,
                     "too many shards [%d] allocated to this node for index [%s], index setting [%s=%d]",
-                    indexShardCount, shardRouting.getIndexName(), INDEX_TOTAL_SHARDS_PER_NODE_SETTING.getKey(), indexShardLimit);
+                    indexShardCount, shardRouting.index(), INDEX_TOTAL_SHARDS_PER_NODE_SETTING.getKey(), indexShardLimit);
             }
         }
         return allocation.decision(Decision.YES, NAME,

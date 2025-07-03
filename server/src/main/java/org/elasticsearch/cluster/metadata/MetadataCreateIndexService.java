@@ -44,7 +44,6 @@ import org.apache.lucene.index.IndexWriter;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
-import org.elasticsearch.action.admin.indices.alias.Alias;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
 import org.elasticsearch.action.admin.indices.stats.IndexShardStats;
@@ -291,7 +290,6 @@ public class MetadataCreateIndexService {
                     indexUUID,
                     indexMetadata,
                     new MappingMetadata(Map.of()),
-                    List.of(),
                     calculateNumRoutingShards(numShards, versionCreated)
                 );
                 // ensure table can be parsed
@@ -481,7 +479,6 @@ public class MetadataCreateIndexService {
                 resizedIndexUUID,
                 indexService.getMetadata(),
                 sourceIndex.mapping(),
-                request.partitionValues().isEmpty() ? List.of() : List.of(new Alias(request.table().indexNameOrAlias())),
                 routingNumShards
             ));
         }
@@ -650,7 +647,6 @@ public class MetadataCreateIndexService {
                 newIndexUUID,
                 tmpImd,
                 mapping,
-                List.of(),
                 routingNumShards
             );
             SchemaInfo docSchemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(tableName.schema());
@@ -666,7 +662,6 @@ public class MetadataCreateIndexService {
                                          String indexUUID,
                                          IndexMetadata tmpImd,
                                          MappingMetadata mapping,
-                                         Iterable<Alias> aliases,
                                          int routingNumShards) {
         final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
             .indexName(tmpImd.getIndex().getName())
@@ -678,10 +673,6 @@ public class MetadataCreateIndexService {
 
         for (int shardId = 0; shardId < tmpImd.getNumberOfShards(); shardId++) {
             indexMetadataBuilder.primaryTerm(shardId, tmpImd.primaryTerm(shardId));
-        }
-        for (Alias alias : aliases) {
-            AliasMetadata aliasMetadata = new AliasMetadata(alias.name());
-            indexMetadataBuilder.putAlias(aliasMetadata);
         }
         final IndexMetadata indexMetadata = indexMetadataBuilder.build();
         indexService.getIndexEventListener().beforeIndexAddedToCluster(

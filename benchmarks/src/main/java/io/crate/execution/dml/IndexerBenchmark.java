@@ -49,7 +49,6 @@ import io.crate.execution.dml.IndexItem.StaticItem;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.session.BaseResultReceiver;
@@ -92,7 +91,7 @@ public class IndexerBenchmark {
         DocTableInfo table = nodeContext.schemas().getTableInfo(new RelationName("doc", "tbl"));
 
         indexer = new Indexer(
-            new PartitionName(table.ident(), List.of()),
+            List.of(),
             table,
             table.versionCreated(),
             new CoordinatorTxnCtx(session.sessionSettings()),

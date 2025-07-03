@@ -148,7 +148,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 item.id(),
-                "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\'');
+                "document with id: " + item.id() + " already exists in '" + request.shardId() + '\'');
         }
     }
 
@@ -285,7 +285,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardResponse response = result.response;
         assertThat(response.failures()).satisfiesExactly(
             f -> assertThat(f.error().getMessage()).isEqualTo(
-                "[1]: version conflict, document with id: 1 already exists in 'characters'"));
+                "[1]: version conflict, document with id: 1 already exists in '[characters/%s][0]'", charactersIndexUUID));
     }
 
     @Test
