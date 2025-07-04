@@ -226,7 +226,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         nodePageSizeHint = in.readOptionalVInt();
 
         orderBy = in.readOptionalWriteable(OrderBy::new);
-        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+        if (in.getVersion().onOrAfter(Version.V_6_1_0)) {
             ignoreUnavailableIndex = in.readBoolean();
         } else {
             ignoreUnavailableIndex = false;
@@ -247,7 +247,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
         out.writeOptionalVInt(nodePageSizeHint);
         out.writeOptionalWriteable(orderBy);
-        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+        if (out.getVersion().onOrAfter(Version.V_6_1_0)) {
             out.writeBoolean(ignoreUnavailableIndex);
         }
     }

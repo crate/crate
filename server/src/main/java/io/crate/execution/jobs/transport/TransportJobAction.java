@@ -21,14 +21,18 @@
 
 package io.crate.execution.jobs.transport;
 
+import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -39,6 +43,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.concurrent.CompletableFutures;
+import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.jobs.InstrumentedIndexSearcher;
 import io.crate.execution.jobs.JobSetup;
@@ -48,6 +53,8 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.execution.support.NodeRequest;
 import io.crate.execution.support.Transports;
+import io.crate.metadata.IndexUUID;
+import io.crate.metadata.upgrade.NodeOperationsUpgrader;
 import io.crate.profile.ProfilingContext;
 
 @Singleton
@@ -81,9 +88,34 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
 
     @Override
     public void doExecute(NodeRequest<JobRequest> request, ActionListener<JobResponse> listener) {
+        final String nodeId = request.nodeId();
+        ClusterState clusterState = clusterService.state();
+        DiscoveryNode receiverNode = clusterState.nodes().get(nodeId);
+        if (receiverNode == null) {
+            listener.onFailure(new IllegalArgumentException("Unknown node: " + nodeId));
+            return;
+        }
+        Version receiverVersion = receiverNode.getVersion();
+        // The upgrade does a version check as well, but we do it here to avoid re-creating the request if not needed
+        if (receiverVersion.before(IndexUUID.INDICES_RESOLVED_BY_UUID_VERSION)) {
+            JobRequest jobRequest = request.innerRequest();
+            request = JobRequest.of(
+                nodeId,
+                jobRequest.jobId(),
+                jobRequest.sessionSettings(),
+                jobRequest.coordinatorNodeId(),
+                NodeOperationsUpgrader.downgrade(
+                    jobRequest.nodeOperations(),
+                    receiverVersion,
+                    clusterState.metadata()
+                ),
+                jobRequest.enableProfiling()
+            );
+        }
+
         transports.sendRequest(
             JobAction.NAME,
-            request.nodeId(),
+            nodeId,
             request.innerRequest(),
             listener,
             new ActionListenerResponseHandler<>(JobAction.NAME, listener, JobResponse::new)
@@ -100,9 +132,15 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
 
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(request.enableProfiling(), contextBuilder);
 
+        Collection<? extends NodeOperation> nodeOperations = NodeOperationsUpgrader.upgrade(
+            request.nodeOperations(),
+            request.senderVersion(),
+            clusterService.state().metadata()
+        );
+
         List<CompletableFuture<StreamBucket>> directResponseFutures = jobSetup.prepareOnRemote(
             request.sessionSettings(),
-            request.nodeOperations(),
+            nodeOperations,
             contextBuilder,
             sharedShardContexts
         );

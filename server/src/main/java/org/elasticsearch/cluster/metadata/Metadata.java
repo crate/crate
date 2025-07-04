@@ -736,6 +736,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
+        public Builder putWithIndexName(IndexMetadata indexMetadata) {
+            indices.put(indexMetadata.getIndex().getName(), indexMetadata);
+            return this;
+        }
+
         public IndexMetadata get(String indexUUID) {
             return indices.get(indexUUID);
         }
