@@ -37,6 +37,7 @@ import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfiguration;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -44,12 +45,14 @@ import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.compress.CompressorFactory;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
@@ -233,5 +236,96 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         assertThat(table2).isNotNull();
         assertThat(table2.columns()).containsAll(table.columns());
         assertThat(table2.partitionedBy()).containsAll(table.partitionedBy());
+    }
+
+    @Test
+    public void test_cluster_index_blocks_from_5_are_upgraded_to_index_uuids() throws Exception {
+        DeterministicTaskQueue deterministicTaskQueue =
+            new DeterministicTaskQueue(Settings.builder().put(Node.NODE_NAME_SETTING.getKey(), "test").build(), random());
+        ClusterSettings clusterSettings = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
+        DiscoveryNode localNode = new DiscoveryNode("localNode", buildNewFakeTransportAddress(), Version.CURRENT);
+        CapturingTransport capturingTransport = new CapturingTransport();
+        TransportService localTransportService = capturingTransport.createTransportService(
+            Settings.EMPTY,
+            deterministicTaskQueue.getThreadPool(),
+            x -> localNode,
+            clusterSettings
+        );
+
+        AtomicReference<PublishRequest> publishRequestRef = new AtomicReference<>();
+
+        MetadataUpgradeService metadataUpgradeService = new MetadataUpgradeService(createNodeContext(), IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, null);
+        new PublicationTransportHandler(
+            localTransportService,
+            writableRegistry(),
+            metadataUpgradeService,
+            pu -> {
+                publishRequestRef.set(pu);
+                return new PublishWithJoinResponse(new PublishResponse(pu.getAcceptedState().term(), pu.getAcceptedState().version()), Optional.empty());
+            },
+            (pu, l) -> {}
+        );
+        localTransportService.start();
+        localTransportService.acceptIncomingRequests();
+
+        RelationName relationName = new RelationName("my_schema", "my_table");
+
+        String indexUUID = UUIDs.randomBase64UUID();
+        IndexMetadata indexMetadata = IndexMetadata.builder(indexUUID)
+            .indexName(relationName.indexNameOrAlias())
+            .settings(
+                Settings.builder()
+                    .put(IndexMetadata.SETTING_INDEX_UUID, indexUUID)
+                    .put(IndexMetadata.INDEX_READ_ONLY_SETTING.getKey(), true)
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.V_5_10_0)
+                    .build()
+                )
+            .numberOfShards(1)
+            .numberOfReplicas(0)
+            .build();
+
+        // Metadata will not write out any templates anymore as templates should not be used since 6.0.0.
+        // But for nodes < 6.0.0, any partitioned table will be written out as a template, so this test is actually
+        // testing both directions, writing out relations as templates and reading them back in as relations.
+        // Thus, we will add a table here and not a template.
+        ClusterState clusterState = ClusterState.builder(new ClusterName("test"))
+            .metadata(Metadata.builder()
+                .put(indexMetadata, false)
+                .build())
+            .blocks(ClusterBlocks.builder().addIndexBlock(indexMetadata.getIndex().getName(), IndexMetadata.INDEX_READ_ONLY_BLOCK))
+            .build();
+
+        // Index block is registered by the index name.
+        assertThat(clusterState.blocks().hasIndexBlock(relationName.indexNameOrAlias(), IndexMetadata.INDEX_READ_ONLY_BLOCK))
+            .isTrue();
+        assertThat(clusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK))
+            .isFalse();
+
+        BytesStreamOutput bStream = new BytesStreamOutput();
+        try (StreamOutput stream = new OutputStreamStreamOutput(CompressorFactory.COMPRESSOR.threadLocalOutputStream(bStream))) {
+            stream.setVersion(Version.V_5_10_0);
+            stream.writeBoolean(true);
+            clusterState.writeTo(stream);
+        }
+        BytesReference serializedState = bStream.bytes();
+
+        RequestHandlerRegistry<BytesTransportRequest> publishHandler = capturingTransport.getRequestHandlers().getHandler(PUBLISH_STATE_ACTION_NAME);
+        publishHandler.processMessageReceived(new BytesTransportRequest(serializedState, Version.V_5_10_0), new TestTransportChannel(new ActionListener<>() {
+            @Override
+            public void onResponse(TransportResponse transportResponse) {
+            }
+
+            @Override
+            public void onFailure(Exception e) {
+            }
+        }));
+
+        ClusterState recievedClusterState = publishRequestRef.get().getAcceptedState();
+
+        // Index block is registered by the index UUID now.
+        assertThat(recievedClusterState.blocks().hasIndexBlock(relationName.indexNameOrAlias(), IndexMetadata.INDEX_READ_ONLY_BLOCK))
+            .isFalse();
+        assertThat(recievedClusterState.blocks().hasIndexBlock(indexUUID, IndexMetadata.INDEX_READ_ONLY_BLOCK))
+            .isTrue();
     }
 }
