@@ -32,14 +32,13 @@ import org.elasticsearch.index.shard.ShardId;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
-import io.crate.metadata.IndexName;
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 
 public class SysAllocation {
 
     private final ShardId shardId;
     private final ShardRoutingState currentState;
-    private final IndexParts indexParts;
+    private final PartitionName partitionName;
     private final Supplier<ShardAllocationDecision> computeDecision;
     private final String nodeId;
     private final boolean primary;
@@ -51,26 +50,27 @@ public class SysAllocation {
                          ShardRoutingState routingState,
                          Supplier<ShardAllocationDecision> computeDecision,
                          @Nullable String nodeId,
-                         boolean isPrimary) {
+                         boolean isPrimary,
+                         PartitionName partitionName) {
         this.shardId = shardId;
         this.currentState = routingState;
-        this.indexParts = IndexName.decode(shardId.getIndexName());
+        this.partitionName = partitionName;
         this.computeDecision = computeDecision;
         this.nodeId = nodeId;
         this.primary = isPrimary;
     }
 
     public String tableSchema() {
-        return indexParts.schema();
+        return partitionName.relationName().schema();
     }
 
     public String tableName() {
-        return indexParts.table();
+        return partitionName.relationName().name();
     }
 
     @Nullable
     public String partitionIdent() {
-        return indexParts.isPartitioned() ? indexParts.partitionIdent() : null;
+        return partitionName.ident();
     }
 
     public int shardId() {
@@ -125,7 +125,7 @@ public class SysAllocation {
     }
 
     public String fqn() {
-        return indexParts.toFullyQualifiedName();
+        return partitionName.relationName().fqn();
     }
 
     public static class SysAllocationNodeDecision {

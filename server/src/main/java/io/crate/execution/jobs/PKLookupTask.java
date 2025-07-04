@@ -48,8 +48,6 @@ import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.PKAndVersion;
@@ -75,6 +73,7 @@ public final class PKLookupTask extends AbstractTask {
 
     @Nullable
     private final DocTableInfo table;
+    private final List<String> partitionValues;
 
     PKLookupTask(UUID jobId,
                  int phaseId,
@@ -83,7 +82,8 @@ public final class PKLookupTask extends AbstractTask {
                  Function<RamAccounting, MemoryManager> memoryManagerFactory,
                  int ramAccountingBlockSizeInBytes,
                  TransactionContext txnCtx,
-                 Schemas schemas,
+                 DocTableInfo docTableInfo,
+                 List<String> partitionValues,
                  InputFactory inputFactory,
                  PKLookupOperation pkLookupOperation,
                  List<ColumnIdent> partitionedByColumns,
@@ -103,6 +103,8 @@ public final class PKLookupTask extends AbstractTask {
         this.memoryManagerFactory = memoryManagerFactory;
         this.ramAccountingBlockSizeInBytes = ramAccountingBlockSizeInBytes;
         this.toCollect = toCollect;
+        this.table = docTableInfo;
+        this.partitionValues = partitionValues;
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
@@ -110,14 +112,6 @@ public final class PKLookupTask extends AbstractTask {
         InputFactory.Context<CollectExpression<Doc, ?>> ctx = inputFactory.ctxForRefs(txnCtx, docRefResolver);
         ctx.add(toCollect);
 
-        var shardIt = idsByShard.keySet().iterator();
-        if (shardIt.hasNext()) {
-            String indexName = shardIt.next().getIndexName();
-            var relationName = RelationName.fromIndexName(indexName);
-            this.table = schemas.getTableInfo(relationName);
-        } else {
-            this.table = null;
-        }
 
         expressions = ctx.expressions();
         inputRow = new InputRow(ctx.topLevelInputs());
@@ -136,6 +130,7 @@ public final class PKLookupTask extends AbstractTask {
             consumer.requiresScroll(),
             this::resultToRow,
             table,
+            partitionValues,
             toCollect
         );
         consumer.accept(rowBatchIterator, null);

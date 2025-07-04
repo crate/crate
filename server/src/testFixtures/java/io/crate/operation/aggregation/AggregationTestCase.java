@@ -21,7 +21,6 @@
 
 package io.crate.operation.aggregation;
 
-import static io.crate.metadata.RelationName.fromIndexName;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
@@ -120,11 +119,13 @@ import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -139,6 +140,7 @@ import io.crate.types.StorageSupport;
 public abstract class AggregationTestCase extends ESTestCase {
 
     protected static final RamAccounting RAM_ACCOUNTING = RamAccounting.NO_ACCOUNTING;
+    public static final PartitionName PARTITION_NAME = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "index"), List.of());
 
     protected NodeContext nodeCtx;
     protected MemoryManager memoryManager;
@@ -216,7 +218,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         List<Reference> targetColumns = toReference(actualArgumentTypes);
         var shard = newStartedPrimaryShard(nodeCtx, targetColumns, threadPool);
         var refResolver = new LuceneReferenceResolver(
-            shard.shardId().getIndexName(),
+            PARTITION_NAME.values(),
             List.of(),
             List.of(),
             Version.CURRENT,
@@ -327,9 +329,7 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         var toCollectRefs = new ArrayList<Symbol>(argumentTypes.size());
         for (int i = 0; i < argumentTypes.size(); i++) {
-            ReferenceIdent ident = new ReferenceIdent(
-                fromIndexName(shard.routingEntry().getIndexName()),
-                Integer.toString(i));
+            ReferenceIdent ident = new ReferenceIdent(PARTITION_NAME.relationName(), Integer.toString(i));
             toCollectRefs.add(
                 new SimpleReference(
                     ident,
@@ -359,6 +359,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             refResolver,
             shard,
             mock(DocTableInfo.class),
+            PARTITION_NAME.values(),
             new LuceneQueryBuilder(nodeCtx),
             collectPhase,
             collectTask
@@ -378,9 +379,8 @@ public abstract class AggregationTestCase extends ESTestCase {
     private void insertDataIntoShard(IndexShard shard,
                                      Object[][] data,
                                      List<Reference> targetColumns) throws IOException {
-
         DocTableInfo table = new DocTableInfo(
-            new RelationName("doc", shard.shardId().getIndexName()),
+            PARTITION_NAME.relationName(),
             targetColumns.stream().collect(Collectors.toMap(Reference::column, r -> r)),
             Map.of(),
             Set.of(),
@@ -400,7 +400,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             0
         );
         Indexer indexer = new Indexer(
-            shard.shardId().getIndexName(),
+            PARTITION_NAME.values(),
             table,
             Version.CURRENT,
             CoordinatorTxnCtx.systemTransactionContext(),
@@ -499,7 +499,7 @@ public abstract class AggregationTestCase extends ESTestCase {
      */
     private static IndexShard newPrimaryShard(NodeContext nodeCtx, XContentBuilder mapping, ThreadPool threadPool) throws IOException {
         ShardRouting routing = TestShardRouting.newShardRouting(
-            new ShardId("index", UUIDs.base64UUID(), 0),
+            new ShardId(PARTITION_NAME.relationName().indexNameOrAlias(), UUIDs.base64UUID(), 0),
             randomAlphaOfLength(10),
             true,
             ShardRoutingState.INITIALIZING,
@@ -511,7 +511,8 @@ public abstract class AggregationTestCase extends ESTestCase {
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .put(Settings.EMPTY)
             .build();
-        var indexMetadata = IndexMetadata.builder(routing.getIndexName())
+        var indexMetadata = IndexMetadata.builder(routing.getIndexUUID())
+            .indexName(routing.index().getName())
             .settings(indexSettings)
             .primaryTerm(0, 1)
             .putMapping(Strings.toString(mapping))
@@ -625,7 +626,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             StorageSupport<?> storageSupport = type.storageSupportSafe();
             references.add(
                 new SimpleReference(
-                    new ReferenceIdent(new RelationName(null, "dummy"), Integer.toString(i)),
+                    new ReferenceIdent(PARTITION_NAME.relationName(), Integer.toString(i)),
                     RowGranularity.DOC,
                     type,
                     IndexType.PLAIN,
@@ -668,6 +669,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             "collect",
             new Routing(Map.of()),
             RowGranularity.SHARD,
+            false,
             toCollectRefs,
             projections,
             WhereClause.MATCH_ALL.queryOrFallback(),

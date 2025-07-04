@@ -29,6 +29,7 @@ import org.elasticsearch.action.support.master.TransportMasterNodeAction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -82,7 +83,7 @@ public class TransportCreateSnapshot extends TransportMasterNodeAction<CreateSna
         }
         String[] indices = request.relationNames().stream()
             .map(r ->
-                state.metadata().getIndices(r, List.of(), false, im -> im.getIndex().getName()))
+                state.metadata().getIndices(r, List.of(), false, IndexMetadata::getIndexUUID))
             .flatMap(Collection::stream)
             .toArray(String[]::new);
         return state.blocks()

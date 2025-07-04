@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.routing.allocation.allocator.BalancedShardsAllocator;
 import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.routing.allocation.decider.MaxRetryAllocationDecider;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.IndicesService;
@@ -103,16 +104,19 @@ public class MetadataCreateIndexServiceTest extends CrateDummyClusterServiceUnit
         var state = clusterService.state();
         var allocationService = createAllocationService();
         var routingTable = allocationService.reroute(state, "reroute").routingTable();
+        RelationName tbl = new RelationName("doc", "srctbl");
+        String indexUUID = state.metadata().getIndex(tbl, List.of(), true, IndexMetadata::getIndexUUID);
         ClusterState startedShardsState = allocationService.applyStartedShards(
             state,
-            routingTable.index("srctbl").shardsWithState(ShardRoutingState.INITIALIZING)
+            routingTable.index(indexUUID).shardsWithState(ShardRoutingState.INITIALIZING)
         );
 
-        RelationName tbl = new RelationName("doc", "srctbl");
         int newNumShards = 1;
         var resizeIndexTask = new MetadataCreateIndexService.ResizeIndexTask(
             Mockito.mock(AllocationService.class),
             new ResizeRequest(tbl, List.of(), newNumShards),
+            indexUUID,
+            UUIDs.randomBase64UUID(),
             Mockito.mock(IndicesService.class),
             _ -> Integer.MAX_VALUE,
             new ShardLimitValidator(Settings.EMPTY, clusterService),

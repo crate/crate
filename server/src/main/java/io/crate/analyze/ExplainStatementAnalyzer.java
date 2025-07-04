@@ -24,6 +24,8 @@ package io.crate.analyze;
 import java.util.EnumSet;
 import java.util.Map;
 
+import org.elasticsearch.cluster.service.ClusterService;
+
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.planner.node.management.ExplainPlan;
 import io.crate.profile.ProfilingContext;
@@ -40,9 +42,11 @@ public class ExplainStatementAnalyzer {
     private static final EnumSet<Explain.Option> ONLY_ANALYZE = EnumSet.of(Explain.Option.ANALYZE);
 
     private final Analyzer analyzer;
+    private final ClusterService clusterService;
 
-    ExplainStatementAnalyzer(Analyzer analyzer) {
+    ExplainStatementAnalyzer(Analyzer analyzer, ClusterService clusterService) {
         this.analyzer = analyzer;
+        this.clusterService = clusterService;
     }
 
     public ExplainAnalyzedStatement analyze(Explain node, Analysis analysis) {
@@ -67,7 +71,7 @@ public class ExplainStatementAnalyzer {
         } else if (isAnalyzeActivated && isVerboseActivated) {
             throw new IllegalArgumentException("The ANALYZE and VERBOSE options are not allowed together");
         } else if (isAnalyzeActivated) {
-            var profilingContext = new ProfilingContext(Map.of());
+            var profilingContext = new ProfilingContext(Map.of(), clusterService.state());
             var timer = profilingContext.createAndStartTimer(ExplainPlan.Phase.Analyze.name());
             var subStatement = analyzer.analyzedStatement(statement, analysis);
             profilingContext.stopTimerAndStoreDuration(timer);

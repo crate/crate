@@ -19,11 +19,15 @@
 
 package org.elasticsearch.gateway;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -32,9 +36,7 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.common.settings.ClusterSettings;
 
-import java.util.Map;
-
-import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 public class ClusterStateUpdaters {
 
@@ -91,6 +93,20 @@ public class ClusterStateUpdaters {
         return ClusterState.builder(state).blocks(blocks).build();
     }
 
+    /**
+     * Mainly used to upgrade cluster index blocks to switch from using the indexName to the indexUUID.
+     */
+    public static ClusterBlocks upgradeClusterBlocks(final ClusterState state) {
+        final ClusterBlocks.Builder builder = ClusterBlocks.builder();
+        for (ClusterBlock block : state.blocks().global()) {
+            builder.addGlobalBlock(block);
+        }
+        for (final IndexMetadata indexMetadata : state.metadata()) {
+            builder.addBlocks(indexMetadata);
+        }
+        return builder.build();
+    }
+
     static ClusterState updateRoutingTable(final ClusterState state) {
         // initialize all index routing tables as empty
         final RoutingTable.Builder routingTableBuilder = RoutingTable.builder(state.routingTable());
@@ -143,7 +159,7 @@ public class ClusterStateUpdaters {
             blocks.removeGlobalBlock(Metadata.CLUSTER_READ_ONLY_BLOCK);
             blocks.removeGlobalBlock(Metadata.CLUSTER_READ_ONLY_ALLOW_DELETE_BLOCK);
             for (IndexMetadata indexMetadata: state.metadata()) {
-                blocks.removeIndexBlocks(indexMetadata.getIndex().getName());
+                blocks.removeIndexBlocks(indexMetadata.getIndex().getUUID());
             }
             final Metadata metadata = Metadata.builder()
                     .clusterUUID(state.metadata().clusterUUID())

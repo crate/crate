@@ -61,8 +61,19 @@ public class ShardId implements Writeable, Comparable<ShardId> {
         return index;
     }
 
+    /**
+     * Any indexName usage is deprecated, it may even be removed in the future.
+     * All index resolving must be done using the index UUID instead.
+     *
+     * @deprecated Use {@link {@link #getIndexUUID()} instead.
+     */
+    @Deprecated
     public String getIndexName() {
         return index.getName();
+    }
+
+    public String getIndexUUID() {
+        return index.getUUID();
     }
 
     public int id() {
@@ -71,7 +82,7 @@ public class ShardId implements Writeable, Comparable<ShardId> {
 
     @Override
     public String toString() {
-        return "[" + index.getName() + "][" + shardId + "]";
+        return "[" + index.getName() + "/" + index.getUUID() + "][" + shardId + "]";
     }
 
     @Override
@@ -96,11 +107,11 @@ public class ShardId implements Writeable, Comparable<ShardId> {
     @Override
     public int compareTo(ShardId o) {
         if (o.id() == shardId) {
-            int compare = index.getName().compareTo(o.getIndex().getName());
+            int compare = index.getUUID().compareTo(o.getIndex().getUUID());
             if (compare != 0) {
                 return compare;
             }
-            return index.getUUID().compareTo(o.getIndex().getUUID());
+            return index.getName().compareTo(o.getIndex().getName());
         }
         return Integer.compare(shardId, o.id());
     }

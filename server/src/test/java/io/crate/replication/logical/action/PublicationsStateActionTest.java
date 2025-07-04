@@ -145,7 +145,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
-            .addTable("CREATE TABLE doc.t3 (id int)")
+            .addTable("CREATE TABLE doc.t2 (id int)")
             .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", true, List.of());
 

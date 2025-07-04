@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
@@ -140,8 +141,9 @@ public class DocTableInfoFactoryTest extends ESTestCase {
             .putMapping(mapping)
             .putAlias(new AliasMetadata(tbl.indexNameOrAlias()))
             .build();
-        IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(p1.asIndexName())
+        IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(UUIDs.randomBase64UUID())
             .settings(Settings.builder().put("index.version.created", Version.V_5_7_5).build())
+            .indexName(p1.asIndexName())
             .numberOfReplicas(0)
             .numberOfShards(5)
             .putMapping(

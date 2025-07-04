@@ -103,7 +103,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         mostAvailableUsage.put("node_1", new DiskUsage("node_1", "node_1", "_na_", 100, randomIntBetween(0, 10)));
 
         ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
-        shardSizes.put("[test][0][p]", 10L); // 10 bytes
+        shardSizes.put("[_na_/test][0][p]", 10L); // 10 bytes
         final ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(),
             mostAvailableUsage.build(), shardSizes.build(), ImmutableOpenMap.of(),  ImmutableOpenMap.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
@@ -161,7 +161,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
         // way bigger than available space
         final long shardSize = randomIntBetween(110, 1000);
-        shardSizes.put("[test][0][p]", shardSize);
+        shardSizes.put("[test/test][0][p]", shardSize);
         ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(), mostAvailableUsage.build(),
             shardSizes.build(), ImmutableOpenMap.of(),  ImmutableOpenMap.of());
         RoutingAllocation allocation = new RoutingAllocation(new AllocationDeciders(Collections.singleton(decider)),
@@ -240,9 +240,9 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         mostAvailableUsage.put("node_1", new DiskUsage("node_1", "node_1", "/node1/most", 100, 90)); // 10% used
 
         ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
-        shardSizes.put("[test][0][p]", 10L); // 10 bytes
-        shardSizes.put("[test][1][p]", 10L);
-        shardSizes.put("[test][2][p]", 10L);
+        shardSizes.put("[_na_/test][0][p]", 10L); // 10 bytes
+        shardSizes.put("[_na_/test][1][p]", 10L);
+        shardSizes.put("[_na_/test][2][p]", 10L);
 
         final ClusterInfo clusterInfo = new ClusterInfo(leastAvailableUsages.build(), mostAvailableUsage.build(),
             shardSizes.build(), shardRoutingMap.build(), ImmutableOpenMap.of());
@@ -286,20 +286,28 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
     @Test
     public void testShardSizeAndRelocatingSize() {
         ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
-        shardSizes.put("[test][0][r]", 10L);
-        shardSizes.put("[test][1][r]", 100L);
-        shardSizes.put("[test][2][r]", 1000L);
-        shardSizes.put("[other][0][p]", 10000L);
+        shardSizes.put("[test/1234][0][r]", 10L);
+        shardSizes.put("[test/1234][1][r]", 100L);
+        shardSizes.put("[test/1234][2][r]", 1000L);
+        shardSizes.put("[other/5678][0][p]", 10000L);
         ClusterInfo info = new DevNullClusterInfo(ImmutableOpenMap.of(), ImmutableOpenMap.of(), shardSizes.build());
         Metadata.Builder metaBuilder = Metadata.builder();
-        metaBuilder.put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)
-                                                                   .put("index.uuid", "1234")).numberOfShards(3).numberOfReplicas(1));
-        metaBuilder.put(IndexMetadata.builder("other").settings(settings(Version.CURRENT)
-                                                                    .put("index.uuid", "5678")).numberOfShards(1).numberOfReplicas(1));
+        metaBuilder.put(IndexMetadata.builder("1234")
+            .settings(settings(Version.CURRENT)
+                .put("index.uuid", "1234"))
+            .indexName("test")
+            .numberOfShards(3)
+            .numberOfReplicas(1));
+        metaBuilder.put(IndexMetadata.builder("5678")
+            .settings(settings(Version.CURRENT)
+                .put("index.uuid", "5678"))
+            .indexName("other")
+            .numberOfShards(1)
+            .numberOfReplicas(1));
         Metadata metadata = metaBuilder.build();
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
-        routingTableBuilder.addAsNew(metadata.index("test"));
-        routingTableBuilder.addAsNew(metadata.index("other"));
+        routingTableBuilder.addAsNew(metadata.index("1234"));
+        routingTableBuilder.addAsNew(metadata.index("5678"));
         ClusterState clusterState = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING
             .getDefault(Settings.EMPTY)).metadata(metadata).routingTable(routingTableBuilder.build()).build();
         RoutingAllocation allocation = new RoutingAllocation(null, null, clusterState, info, null, 0);
@@ -385,29 +393,47 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
     @Test
     public void testSizeShrinkIndex() {
         ImmutableOpenMap.Builder<String, Long> shardSizes = ImmutableOpenMap.builder();
-        shardSizes.put("[test][0][p]", 10L);
-        shardSizes.put("[test][1][p]", 100L);
-        shardSizes.put("[test][2][p]", 500L);
-        shardSizes.put("[test][3][p]", 500L);
+        shardSizes.put("[test/1234][0][p]", 10L);
+        shardSizes.put("[test/1234][1][p]", 100L);
+        shardSizes.put("[test/1234][2][p]", 500L);
+        shardSizes.put("[test/1234][3][p]", 500L);
+
+        final Index index = new Index("test", "1234");
 
         ClusterInfo info = new DevNullClusterInfo(ImmutableOpenMap.of(), ImmutableOpenMap.of(), shardSizes.build());
+
+        // Setting the creation date is important here as shards of newer indices are allocated first, see PriorityComparator
+        // Shards of the source index must be allocated first, so set the highest creation date
         Metadata.Builder metaBuilder = Metadata.builder();
-        metaBuilder.put(IndexMetadata.builder("test").settings(settings(Version.CURRENT).put("index.uuid", "1234"))
-                            .numberOfShards(4).numberOfReplicas(0));
-        metaBuilder.put(IndexMetadata.builder("target").settings(settings(Version.CURRENT).put("index.uuid", "5678")
-                                                                     .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test").put(
-                        IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, "1234"))
-                            .numberOfShards(1)
-                            .numberOfReplicas(0));
-        metaBuilder.put(IndexMetadata.builder("target2").settings(settings(Version.CURRENT).put("index.uuid", "9101112")
-                                                                      .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test").put(
-                        IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, "1234"))
-                            .numberOfShards(2).numberOfReplicas(0));
+        metaBuilder.put(IndexMetadata.builder(index.getUUID())
+            .settings(settings(Version.CURRENT)
+                .put("index.uuid", index.getUUID())
+                .put(IndexMetadata.SETTING_CREATION_DATE, 3))
+            .indexName(index.getName())
+            .numberOfShards(4)
+            .numberOfReplicas(0));
+        metaBuilder.put(IndexMetadata.builder("5678")
+            .settings(settings(Version.CURRENT)
+                .put("index.uuid", "5678")
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test")
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, "1234")
+                .put(IndexMetadata.SETTING_CREATION_DATE, 2))
+            .indexName("target")
+            .numberOfShards(1)
+            .numberOfReplicas(0));
+        metaBuilder.put(IndexMetadata.builder("9101112")
+            .settings(settings(Version.CURRENT).put("index.uuid", "9101112")
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_NAME_KEY, "test")
+                .put(IndexMetadata.INDEX_RESIZE_SOURCE_UUID_KEY, index.getUUID())
+                .put(IndexMetadata.SETTING_CREATION_DATE, 1))
+            .indexName("target2")
+            .numberOfShards(2)
+            .numberOfReplicas(0));
         Metadata metadata = metaBuilder.build();
         RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
-        routingTableBuilder.addAsNew(metadata.index("test"));
-        routingTableBuilder.addAsNew(metadata.index("target"));
-        routingTableBuilder.addAsNew(metadata.index("target2"));
+        routingTableBuilder.addAsNew(metadata.index(index.getUUID()));
+        routingTableBuilder.addAsNew(metadata.index("5678"));
+        routingTableBuilder.addAsNew(metadata.index("9101112"));
         ClusterState clusterState = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING
                                                              .getDefault(Settings.EMPTY)).metadata(metadata).routingTable(routingTableBuilder.build()).build();
 
@@ -417,11 +443,10 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         clusterState = allocationService.reroute(clusterState, "foo");
 
         clusterState = startShardsAndReroute(allocationService, clusterState,
-            clusterState.routingTable().index("test").shardsWithState(ShardRoutingState.UNASSIGNED));
+            clusterState.routingTable().index(index.getUUID()).shardsWithState(ShardRoutingState.UNASSIGNED));
 
         RoutingAllocation allocation = new RoutingAllocation(null, clusterState.getRoutingNodes(), clusterState, info, null,0);
 
-        final Index index = new Index("test", "1234");
         ShardRouting test_0 = ShardRouting.newUnassigned(new ShardId(index, 0), true,
                                                          LocalShardsRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));
         test_0 = ShardRoutingHelper.initialize(test_0, "node1");
@@ -458,8 +483,8 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
         // check that the DiskThresholdDecider still works even if the source index has been deleted
         ClusterState clusterStateWithMissingSourceIndex = ClusterState.builder(clusterState)
-            .metadata(Metadata.builder(metadata).remove("test"))
-            .routingTable(RoutingTable.builder(clusterState.routingTable()).remove("test").build())
+            .metadata(Metadata.builder(metadata).remove(index.getUUID()))
+            .routingTable(RoutingTable.builder(clusterState.routingTable()).remove(index.getUUID()).build())
             .build();
 
         allocationService.reroute(clusterState, "foo");

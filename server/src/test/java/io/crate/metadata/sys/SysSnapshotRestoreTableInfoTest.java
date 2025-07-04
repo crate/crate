@@ -26,7 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.List;
 import java.util.UUID;
 
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.Snapshot;
@@ -34,39 +36,48 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.junit.Test;
 
 import io.crate.expression.reference.sys.snapshot.SysSnapshotRestoreInProgress;
+import io.crate.metadata.RelationName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
-public class SysSnapshotRestoreTableInfoTest {
+public class SysSnapshotRestoreTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
-    public void test_convert_restore_in_progress_to_sys_restore_snapshot_info() {
+    public void test_convert_restore_in_progress_to_sys_restore_snapshot_info() throws Exception {
+        // Create table so it's metadata can be resolved by the index uuid
+        RelationName relationName = new RelationName("doc", "t1");
+        SQLExecutor.builder(clusterService).build()
+            .addTable("create table doc.t1 (id int)");
+        String indexUuid = clusterService.state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
         ImmutableOpenMap.Builder<ShardId, RestoreInProgress.ShardRestoreStatus> shardsBuilder
             = ImmutableOpenMap.builder();
         shardsBuilder.put(
-            new ShardId("index", "_uuid", 0),
+            new ShardId(relationName.indexNameOrAlias(), indexUuid, 0),
             new RestoreInProgress.ShardRestoreStatus("nodeId", RestoreInProgress.State.STARTED)
         );
         RestoreInProgress.Entry entry = new RestoreInProgress.Entry(
-            "_uuid",
+            indexUuid,
             new Snapshot(
                 "repository",
                 new SnapshotId("snapshot", UUID.randomUUID().toString())),
             RestoreInProgress.State.SUCCESS,
-            List.of("index"),
+            List.of(relationName.indexNameOrAlias()),
             shardsBuilder.build()
         );
 
         var restoreInProgressIt = SysSnapshotRestoreTableInfo
-            .snapshotsRestoreInProgress(new RestoreInProgress.Builder().add(entry).build())
+            .snapshotsRestoreInProgress(new RestoreInProgress.Builder().add(entry).build(), clusterService.state())
             .iterator();
 
         assertThat(restoreInProgressIt.hasNext()).isTrue();
-        assertThat(restoreInProgressIt.next()).isEqualTo(SysSnapshotRestoreInProgress.of(entry));
+        assertThat(restoreInProgressIt.next()).isEqualTo(SysSnapshotRestoreInProgress.of(entry, clusterService.state()));
         assertThat(restoreInProgressIt.hasNext()).isFalse();
     }
 
     @Test
     public void test_convert_null_restore_in_progress_returns_empty_iterator() {
-        var restoreInProgressIt = SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(null).iterator();
+        var restoreInProgressIt = SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(null, ClusterState.EMPTY_STATE).iterator();
         assertThat(restoreInProgressIt.hasNext()).isFalse();
     }
 }

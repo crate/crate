@@ -71,6 +71,7 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
             "collect",
             routing,
             RowGranularity.DOC,
+            false,
             List.of(),
             List.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),

@@ -85,6 +85,7 @@ public class RemoteCollectorTest extends CrateDummyClusterServiceUnitTest {
             "remoteCollect",
             new Routing(Map.of("remoteNode", Map.of("dummyTable", IntArrayList.from(1)))),
             RowGranularity.DOC,
+            false,
             Collections.singletonList(createReference("name", DataTypes.STRING)),
             Collections.emptyList(),
             WhereClause.MATCH_ALL.queryOrFallback(),
