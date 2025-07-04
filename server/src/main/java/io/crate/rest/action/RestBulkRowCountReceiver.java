@@ -46,9 +46,10 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     @Nullable
     public CompletableFuture<Void> setNextRow(Row row) {
         rowCount = (long) row.get(0);
-        // Can be an optimized bulk request with only 1 bulk arg/operation which carries only 1 column (row count).
-        if (results.length > 1) {
+        try {
             failure = (Throwable) row.get(1);
+        } catch (IndexOutOfBoundsException e) {
+            // Optimized bulk operations with 1 arg can succeed (row-count only) or fail (both row-count and failure)
         }
         return null;
     }

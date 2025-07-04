@@ -267,7 +267,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resultReceiver.completionFuture().whenComplete((result, error) -> ramAccounting.close());
         }
         session.execute(UNNAMED, 0, resultReceiver);
-        return session.sync()
+        return session.sync(false)
             .thenCompose(ignored -> resultReceiver.completionFuture());
     }
 
@@ -291,8 +291,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
         var sessionSettings = session.sessionSettings();
         AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
-        return session.sync()
-            .thenApply(ignored -> {
+        return session.sync(true)
+            .thenApply(_ -> {
                 try {
                     return ResultToXContentBuilder.builder(JsonXContent.builder())
                         .cols(emptyList())

@@ -623,12 +623,12 @@ public class Session implements AutoCloseable {
         // before any further messages are sent to clients.
         // E.g. PostgresWireProtocol would otherwise send a `ReadyForQuery` message too
         // early.
-        activeExecution = triggerDeferredExecutions();
+        activeExecution = triggerDeferredExecutions(false);
     }
 
-    public CompletableFuture<?> sync() {
+    public CompletableFuture<?> sync(boolean forceBulk) {
         if (activeExecution == null) {
-            return triggerDeferredExecutions();
+            return triggerDeferredExecutions(forceBulk);
         } else {
             var result = activeExecution;
             activeExecution = null;
@@ -678,7 +678,7 @@ public class Session implements AutoCloseable {
         result.whenComplete((_, _) -> schedule.cancel(false));
     }
 
-    private CompletableFuture<?> triggerDeferredExecutions() {
+    private CompletableFuture<?> triggerDeferredExecutions(boolean forceBulk) {
         switch (deferredExecutionsByStmt.size()) {
             case 0:
                 LOGGER.debug("method=sync deferredExecutions=0");
@@ -686,7 +686,7 @@ public class Session implements AutoCloseable {
             case 1: {
                 var deferredExecutions = deferredExecutionsByStmt.values().iterator().next();
                 deferredExecutionsByStmt.clear();
-                return exec(deferredExecutions);
+                return exec(deferredExecutions, forceBulk);
             }
             default: {
                 // Mix of different defered execution is PG specific.
@@ -696,13 +696,13 @@ public class Session implements AutoCloseable {
                 for (var entry : deferredExecutionsByStmt.entrySet()) {
                     var deferredExecutions = entry.getValue();
                     if (allCompleted == null) {
-                        allCompleted = exec(deferredExecutions);
+                        allCompleted = exec(deferredExecutions, forceBulk);
                     } else {
                         allCompleted = allCompleted
                             // individual rowReceiver will receive failure; must not break execution chain due to failures.
                             // No need to log execution and as it's handled in the exec() call.
                             .exceptionally(_ -> null)
-                            .thenCompose(_ -> exec(deferredExecutions));
+                            .thenCompose(_ -> exec(deferredExecutions, forceBulk));
                     }
                 }
                 deferredExecutionsByStmt.clear();
@@ -711,8 +711,8 @@ public class Session implements AutoCloseable {
         }
     }
 
-    private CompletableFuture<?> exec(List<DeferredExecution> executions) {
-        if (executions.size() == 1) {
+    private CompletableFuture<?> exec(List<DeferredExecution> executions, boolean forceBulk) {
+        if (executions.size() == 1 && !forceBulk) {
             var toExec = executions.get(0);
             return singleExec(toExec.portal(), toExec.resultReceiver(), toExec.maxRows());
         } else {

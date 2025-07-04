@@ -124,6 +124,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
         );
 
         statsService.run();
-        Mockito.verify(session, Mockito.times(0)).sync();
+        Mockito.verify(session, Mockito.times(0)).sync(false);
     }
 }
