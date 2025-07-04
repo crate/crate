@@ -33,16 +33,20 @@ import org.elasticsearch.index.Index;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.DropTableRequest;
 import io.crate.metadata.RelationName;
+import io.crate.statistics.TableStats;
 
 public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecutor<DropTableRequest> {
 
     private final MetadataDeleteIndexService deleteIndexService;
     private final DDLClusterStateService ddlClusterStateService;
+    private final TableStats tableStats;
 
     public DropTableClusterStateTaskExecutor(MetadataDeleteIndexService deleteIndexService,
-                                             DDLClusterStateService ddlClusterStateService) {
+                                             DDLClusterStateService ddlClusterStateService,
+                                             TableStats tableStats) {
         this.deleteIndexService = deleteIndexService;
         this.ddlClusterStateService = ddlClusterStateService;
+        this.tableStats = tableStats;
     }
 
     @Override
@@ -70,6 +74,7 @@ public class DropTableClusterStateTaskExecutor extends DDLClusterStateTaskExecut
 
         // call possible modifiers
         currentState = ddlClusterStateService.onDropTable(currentState, relationName);
+        tableStats.remove(relationName);
 
         return currentState;
     }

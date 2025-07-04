@@ -72,6 +72,7 @@ import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.role.Role;
+import io.crate.statistics.StubStatsService;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -221,11 +222,12 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext(Schemas schemas, List<Role> roles) {
+
         return new NodeContext(
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
             () -> roles,
             nodeContext -> schemas,
-            new TableStats()
+            new TableStats(new StubStatsService())
         );
     }
 
