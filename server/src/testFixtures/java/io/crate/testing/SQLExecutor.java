@@ -607,6 +607,26 @@ public class SQLExecutor {
         return (T) plan;
     }
 
+    public <T> T buildPlan(LogicalPlan logicalPlan) {
+        return (T) logicalPlan.build(
+            dependencyMock,
+            getPlannerContext(),
+            Set.of(),
+            new ProjectionBuilder(nodeCtx),
+            LimitAndOffset.NO_LIMIT,
+            0,
+            null,
+            null,
+            Row.EMPTY,
+            new SubQueryResults(emptyMap()) {
+                @Override
+                public Object getSafe(SelectSymbol key) {
+                    return null;
+                }
+            }
+        );
+    }
+
     @SuppressWarnings("unchecked")
     public <T extends LogicalPlan> T logicalPlan(String statement) {
         AnalyzedStatement stmt = analyze(statement, ParamTypeHints.EMPTY);

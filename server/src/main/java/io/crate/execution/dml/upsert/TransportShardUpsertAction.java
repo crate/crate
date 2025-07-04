@@ -135,7 +135,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
         String indexUUID = indexShard.shardId().getIndexUUID();
         RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(indexUUID);
         if (relationMetadata == null) {
-            throw new RelationUnknown("RelationMetadata for index " + indexUUID + " not found in cluster state");
+            throw new RelationUnknown("RelationMetadata for index '" + indexUUID + "' not found in cluster state");
         }
         DocTableInfo tableInfo = schemas.getTableInfo(relationMetadata.name());
         IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);

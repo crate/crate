@@ -24,6 +24,7 @@ package io.crate.metadata;
 import java.util.List;
 import java.util.function.Supplier;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.jetbrains.annotations.Nullable;
@@ -36,6 +37,8 @@ import io.crate.data.Input;
 import io.crate.types.DataTypes;
 
 public class IndexUUID {
+
+    public static Version INDICES_RESOLVED_BY_UUID_VERSION = Version.V_6_1_0;
 
     public static Supplier<String> createResolver(Metadata metadata,
                                                   RelationName relationName,

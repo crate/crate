@@ -114,7 +114,7 @@ public class CountPhase implements UpstreamPhase {
         routing = new Routing(in);
         where = Symbol.fromStream(in);
         distributionInfo = new DistributionInfo(in);
-        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+        if (in.getVersion().onOrAfter(Version.V_6_1_0)) {
             ignoreUnavailableIndex = in.readBoolean();
         } else {
             ignoreUnavailableIndex = false;
@@ -127,7 +127,7 @@ public class CountPhase implements UpstreamPhase {
         routing.writeTo(out);
         Symbol.toStream(where, out);
         distributionInfo.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+        if (out.getVersion().onOrAfter(Version.V_6_1_0)) {
             out.writeBoolean(ignoreUnavailableIndex);
         }
     }
