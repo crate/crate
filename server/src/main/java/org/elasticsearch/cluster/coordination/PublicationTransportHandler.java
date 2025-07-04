@@ -52,6 +52,7 @@ import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.gateway.ClusterStateUpdaters;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.BytesTransportRequest;
 import org.elasticsearch.transport.TransportChannel;
@@ -163,6 +164,7 @@ public class PublicationTransportHandler {
                     if (in.getVersion().before(Version.V_6_0_0)) {
                         incomingState = ClusterState.builder(tempState)
                             .metadata(metadataUpgradeService.upgradeMetadata(tempState.metadata()))
+                            .blocks(ClusterStateUpdaters.upgradeClusterBlocks(tempState))
                             .build();
                     } else {
                         incomingState = tempState;
