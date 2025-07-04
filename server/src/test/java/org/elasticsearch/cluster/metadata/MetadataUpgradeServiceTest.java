@@ -21,7 +21,6 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
@@ -40,7 +39,6 @@ import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.IndexName;
-import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SearchPath;
 import io.crate.sql.tree.ColumnPolicy;
@@ -50,7 +48,6 @@ import io.crate.types.DataTypes;
 
 public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest {
 
-    private final NodeContext nodeCtx = createNodeContext();
     private MetadataUpgradeService metadataUpgradeService;
 
     @Before
@@ -153,6 +150,40 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         }
     }
 
+    @Test
+    public void test_index_metadata_only_upgrade_when_not_on_current_version() {
+        IndexMetadata indexMetadata = IndexMetadata.builder("old_index")
+            .settings(settings(Version.V_5_7_0))
+            .numberOfShards(1)
+            .numberOfReplicas(1)
+            .build();
+        IndexMetadata indexMetadataAlreadyUpgraded = IndexMetadata.builder("already_upgraded")
+            .settings(settings(Version.V_5_7_0).put(IndexMetadata.SETTING_VERSION_UPGRADED, Version.CURRENT))
+            .numberOfShards(1)
+            .numberOfReplicas(1)
+            .build();
+        IndexMetadata indexMetadataCreatedOnCurrentVersion = IndexMetadata.builder("created_on_current")
+            .settings(settings(Version.CURRENT))
+            .numberOfShards(1)
+            .numberOfReplicas(1)
+            .build();
+        Metadata metadata = Metadata.builder()
+            .put(indexMetadata, false)
+            .put(indexMetadataAlreadyUpgraded, false)
+            .put(indexMetadataCreatedOnCurrentVersion, false)
+            .build();
+        Metadata upgrade = metadataUpgradeService.upgradeMetadata(metadata);
+
+        IndexMetadata upgradedIndexMetadata = upgrade.index("old_index");
+        assertThat(upgradedIndexMetadata).isNotEqualTo(indexMetadata);
+        assertThat(upgradedIndexMetadata.getSettings().getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, Version.V_5_7_0).equals(Version.CURRENT));
+
+        IndexMetadata alreadyUpgraded = upgrade.index("already_upgraded");
+        assertThat(alreadyUpgraded).isEqualTo(indexMetadataAlreadyUpgraded);
+
+        IndexMetadata createdOnCurrentVersion = upgrade.index("created_on_current");
+        assertThat(createdOnCurrentVersion).isEqualTo(indexMetadataCreatedOnCurrentVersion);
+    }
 
     private static class CustomMetadata extends TestCustomMetadata {
         public static final String TYPE = "custom_md_1";
