@@ -218,7 +218,15 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         for (var roleNameToApply : newGrantedRolesChange.roleNames()) {
 
             if (newGrantedRolesChange.policy() == Policy.GRANT) {
-                if (grantedRoles.add(new GrantedRole(roleNameToApply, newGrantedRolesChange.grantor()))) {
+                boolean roleAlreadyGranted = false;
+                for (GrantedRole grantedRole : grantedRoles) {
+                    if (grantedRole.roleName().equals(roleNameToApply)) {
+                        roleAlreadyGranted = true;
+                        break;
+                    }
+                }
+                if (!roleAlreadyGranted) {
+                    grantedRoles.add(new GrantedRole(roleNameToApply, newGrantedRolesChange.grantor()));
                     affectedCount++;
                 }
             } else if (newGrantedRolesChange.policy() == Policy.REVOKE) {

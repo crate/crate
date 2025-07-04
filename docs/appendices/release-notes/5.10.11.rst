@@ -61,3 +61,5 @@ Fixes
   a single error for the whole batch operation. Both client interfaces,
   :ref:`HTTP<interface-http>` and :ref:`PG<interface-postgresql>`, are affected.
 
+- Fixed an issue that caused a user to have duplicate roles granted by
+  different grantors.
