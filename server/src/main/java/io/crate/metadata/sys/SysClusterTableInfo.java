@@ -56,10 +56,10 @@ public class SysClusterTableInfo {
             .add("id", DataTypes.STRING, _ -> clusterService.state().metadata().clusterUUID())
             .add("name", DataTypes.STRING, _ -> ClusterName.CLUSTER_NAME_SETTING.get(settings).value())
             .add("master_node", DataTypes.STRING, _ -> clusterService.state().nodes().getMasterNodeId())
-            .startObject("license", ignored -> true)
-                .add("expiry_date", DataTypes.TIMESTAMPZ, ignored -> null)
-                .add("issued_to", DataTypes.STRING, ignored -> null)
-                .add("max_nodes", DataTypes.INTEGER, ignored -> null)
+            .startObject("license", _ -> true)
+                .add("expiry_date", DataTypes.TIMESTAMPZ, _ -> null)
+                .add("issued_to", DataTypes.STRING, _ -> null)
+                .add("max_nodes", DataTypes.INTEGER, _ -> null)
             .endObject();
 
         var settingsBuilder = relBuilder.startObject("settings")
@@ -102,14 +102,12 @@ public class SysClusterTableInfo {
 
     private static void addSetting(ClusterSettings clusterSettings,
                                    ObjectBuilder<Void, ? extends Builder<Void>> settingsBuilder,
-                                   Node<Setting<?>> element) {
-        if (element instanceof Leaf<?>) {
-            Leaf<Setting<?>> leaf = (Leaf<Setting<?>>) element;
+                                   Node element) {
+        if (element instanceof Leaf leaf) {
             var setting = leaf.value;
             var valueType = (DataType<Object>) leaf.value.dataType();
             Object settingValue = clusterSettings.get(setting);
-            if (settingValue instanceof Settings groupSetting &&
-                valueType.id() == ObjectType.ID) {
+            if (settingValue instanceof Settings groupSetting && valueType.id() == ObjectType.ID) {
                 settingsBuilder.addDynamicObject(leaf.name, DataTypes.STRING, _ -> groupSetting.getAsStructuredMap());
             } else {
                 settingsBuilder.add(
@@ -128,40 +126,41 @@ public class SysClusterTableInfo {
 
     private static Function<Void, List<LoggerEntry>> extractLoggers(ClusterSettings clusterSettings) {
         return _ -> {
-            ArrayList<LoggerEntry> loggers = new ArrayList<>();
             Settings loggerSettings = clusterSettings.getLoggerSettings();
+            ArrayList<LoggerEntry> loggers = new ArrayList<>(loggerSettings.size());
             for (var settingName : loggerSettings.keySet()) {
-                loggers.add(new LoggerEntry(settingName, loggerSettings.get(settingName).toUpperCase(Locale.ENGLISH)));
+                String level = loggerSettings.get(settingName).toUpperCase(Locale.ENGLISH);
+                loggers.add(new LoggerEntry(settingName, level));
             }
             return loggers;
         };
     }
 
 
-    private static Node<Setting<?>> toTree() {
-        Node<Setting<?>> rootNode = new Node<>("root");
+    private static Node toTree() {
+        Node rootNode = new Node("root");
         for (var setting : CrateSettings.EXPOSED_SETTINGS) {
             rootNode.add(setting.path(), setting);
         }
         return rootNode;
     }
 
-    private static class Node<T> {
+    private static sealed class Node permits Leaf {
 
         final String name;
-        private final ArrayList<Node<T>> children = new ArrayList<>();
+        private final ArrayList<Node> children = new ArrayList<>();
 
         private Node(String name) {
             this.name = name;
         }
 
-        private void add(List<String> path, T value) {
+        private void add(List<String> path, Setting<?> value) {
             switch (path.size()) {
                 case 0:
                     throw new IllegalArgumentException("Path must not be empty");
 
                 case 1:
-                    children.add(new Leaf<>(path.get(0), value));
+                    children.add(new Leaf(path.get(0), value));
                     break;
 
                 default:
@@ -172,7 +171,7 @@ public class SysClusterTableInfo {
                             return;
                         }
                     }
-                    Node<T> newChild = new Node<>(valueName);
+                    Node newChild = new Node(valueName);
                     children.add(newChild);
                     newChild.add(path.subList(1, path.size()), value);
                     break;
@@ -180,11 +179,11 @@ public class SysClusterTableInfo {
         }
     }
 
-    private static class Leaf<T> extends Node<T> {
+    private static final class Leaf extends Node {
 
-        private final T value;
+        private final Setting<?> value;
 
-        private Leaf(String name, T value) {
+        private Leaf(String name, Setting<?> value) {
             super(name);
             this.value = value;
         }
