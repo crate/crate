@@ -56,6 +56,7 @@ import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -166,11 +167,14 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     }
 
 
-
     public DiscoveryNode getLocalNode() {
         return localNode;
     }
 
+    @VisibleForTesting
+    public Transport.ResponseHandlers getResponseHandlers() {
+        return responseHandlers;
+    }
 
     /**
      * The executor service for this transport service.

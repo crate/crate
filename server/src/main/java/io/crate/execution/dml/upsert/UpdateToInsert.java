@@ -34,6 +34,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.Id;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
+import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.BaseImplementationSymbolVisitor;
@@ -57,7 +58,35 @@ import io.crate.metadata.doc.DocTableInfo;
  * <p>
  * It doesn't re-generate values for generated columns and doesn't handle check constraints.
  * This is left to the {@link Indexer} which should be used on the result.
+ *
+ * Despite this, it does include undeterministic synthetic columns within {@link #columns()}
+ * This is necessary to ensure that in upsert statements, both the INSERT and the UPDATE case
+ * have the same column ordering, which is:
+ *
+ * <ol>
+ *   <li>Insert columns</li>
+ *   <li>Undeterministic generated columns</li>
+ *   <li>All remaining columns (update only)</li>
+ * </ol>
+ *
+ * <p>
+ * Otherwise in bulk operations like follows the payload/column order could get mixed up
+ * between insert/update:
  * </p>
+ *
+ * <p>
+ * Table with id, value, x, y, rnd_val
+ * </p>
+ *
+ * <pre>
+ *   INSERT INTO tbl (id, value) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET x = x + 1
+ * </pre>
+ *
+ * <pre>
+ * Bulk args:
+ *  [1, 1] -> [x] conflict  -> payload: [id, value, rnd_val, x, y]  -> [1, 1, 42, 10, 20]
+ *  [2, 2] -> [ ] conflict  -> payload: [id, value, rnd_val]        -> [2, 2, 23]
+ * </pre>
  *
  * <p>
  * Examples:
@@ -117,6 +146,7 @@ public final class UpdateToInsert {
     private final List<Reference> updateColumns;
     private final ArrayList<Reference> columns;
 
+
     public record Update(List<String> pkValues, Object[] insertValues, long version) {}
 
     record Values(Doc doc, Object[] excludedValues) {
@@ -156,15 +186,23 @@ public final class UpdateToInsert {
         this.eval = new Evaluator(nodeCtx, txnCtx, refResolver);
         this.updateColumns = new ArrayList<>(updateColumns.length);
         this.columns = new ArrayList<>();
+        List<String> updateColumnList = Arrays.asList(updateColumns);
         boolean errorOnUnknownObjectKey = txnCtx.sessionSettings().errorOnUnknownObjectKey();
+
         if (insertColumns != null) {
             this.columns.addAll(insertColumns);
         }
-        List<String> updateColumnList = Arrays.asList(updateColumns);
+        for (var ref : table.defaultExpressionColumns()) {
+            if (!ref.defaultExpression().isDeterministic() && !this.columns.contains(ref)) {
+                this.columns.add(ref);
+            }
+        }
+        for (var ref : table.generatedColumns()) {
+            if (!ref.isDeterministic() && !this.columns.contains(ref)) {
+                this.columns.add(ref);
+            }
+        }
         for (var ref : table.rootColumns()) {
-            // The Indexer later on injects the generated column values
-            // We only include them here if they are provided in the `updateColumns` to validate
-            // that users provided the right value (otherwise they'd get ignored and we'd generate them later)
             if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                 continue;
             }
@@ -200,7 +238,7 @@ public final class UpdateToInsert {
     }
 
     @SuppressWarnings("unchecked")
-    public Update convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
+    public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
         Values values = new Values(doc, excludedValues);
         Object[] insertValues = new Object[columns.size()];
         Iterator<Reference> it = columns.iterator();
@@ -213,6 +251,10 @@ public final class UpdateToInsert {
                 assert ref.column().isRoot()
                     : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                 insertValues[i] = value;
+            } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
+                insertValues[i] = null;
+            } else if (ref.defaultExpression() != null && !ref.defaultExpression().isDeterministic()) {
+                insertValues[i] = null;
             } else {
                 insertValues[i] = ref.accept(eval, values).value();
             }
@@ -237,7 +279,13 @@ public final class UpdateToInsert {
             }
             Maps.mergeInto(source, targetPath.name(), targetPath.path(), value);
         }
-        return new Update(Id.decode(table.primaryKey(), doc.getId()), insertValues, doc.getVersion());
+        return new IndexItem.StaticItem(
+            doc.getId(),
+            Id.decode(table.primaryKey(), doc.getId()),
+            insertValues,
+            doc.getSeqNo(),
+            doc.getPrimaryTerm()
+        );
     }
 
     public List<Reference> columns() {

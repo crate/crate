@@ -165,6 +165,11 @@ public interface Transport extends LifecycleComponent {
         public String action() {
             return this.action;
         }
+
+        @Override
+        public String toString() {
+            return "ResponseContext{action=" + action + ", connection=" + connection + "}";
+        }
     }
 
     /**
@@ -239,6 +244,11 @@ public interface Transport extends LifecycleComponent {
             } else {
                 return context.handler();
             }
+        }
+
+        @Override
+        public String toString() {
+            return "ResponseHandlers{" + handlers + "}";
         }
     }
 
