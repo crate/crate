@@ -1788,7 +1788,7 @@ public class IndexShardTests extends IndexShardTestCase {
                         ThreadPool.Names.WRITE,
                         ""
                     ))
-                .hasCauseInstanceOf(AssertionError.class)
+                .isExactlyInstanceOf(AssertionError.class)
                 .hasMessageContaining("in primary mode cannot be a replication target");
         }
 

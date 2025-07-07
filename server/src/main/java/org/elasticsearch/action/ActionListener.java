@@ -61,23 +61,7 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
      * Create a new ActionListener that maps the result using the given mapping function.
      **/
     default <T, E extends Exception> ActionListener<T> map(CheckedFunction<? super T, Response, E> fn) {
-        ActionListener<Response> delegate = this;
-        return new ActionListener<T>() {
-
-            @Override
-            public void onResponse(T response) {
-                try {
-                    delegate.onResponse(fn.apply(response));
-                } catch (Throwable t) {
-                    delegate.onFailure(Exceptions.toException(t));
-                }
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                delegate.onFailure(e);
-            }
-        };
+        return withOnResponse((l, response) -> l.onResponse(fn.apply(response)));
     }
 
     /**
@@ -91,64 +75,71 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
      */
     static <Response> ActionListener<Response> wrap(CheckedConsumer<Response, ? extends Exception> onResponse,
                                                     Consumer<Exception> onFailure) {
-        return new ActionListener<>() {
-            @Override
-            public void onResponse(Response response) {
+        return new SimpleListener<>(onResponse, onFailure);
+    }
+
+
+    static class SimpleListener<T> implements ActionListener<T> {
+
+        private final CheckedConsumer<T, ? extends Exception> onResponse;
+        private final Consumer<Exception> onFailure;
+
+        private SimpleListener(CheckedConsumer<T, ? extends Exception> onResponse,
+                               Consumer<Exception> onFailure) {
+            this.onResponse = onResponse;
+            this.onFailure = onFailure;
+        }
+
+        @Override
+        public void accept(T response, Throwable throwable) {
+            if (throwable == null) {
                 try {
                     onResponse.accept(response);
-                } catch (Exception e) {
-                    onFailure(e);
+                    return;
+                } catch (Throwable t) {
+                    throwable = t;
                 }
             }
+            onFailure.accept(Exceptions.toException(SQLExceptions.unwrap(throwable)));
+        }
 
-            @Override
-            public void onFailure(Exception e) {
-                onFailure.accept(e);
+
+        @Override
+        public void onResponse(T response) {
+            try {
+                onResponse.accept(response);
+            } catch (Exception e) {
+                onFailure(e);
             }
-        };
+        }
+
+        @Override
+        public void onFailure(Exception e) {
+            onFailure.accept(e);
+        }
     }
 
     /// Return a new listener that uses the provided `onResponse` consumer instead of calling the original `onResponse`.
     /// The original listener is used on failures.
     default <T> ActionListener<T> withOnResponse(CheckedBiConsumer<ActionListener<Response>, T, Exception> onResponse) {
         ActionListener<Response> original = this;
-        return new ActionListener<T>() {
-
-            @Override
-            public void onResponse(T response) {
-                try {
-                    onResponse.accept(original, response);
-                } catch (Throwable t) {
-                    original.onFailure(Exceptions.toException(t));
-                }
-            }
-
-            @Override
-            public void onFailure(Exception e) {
-                original.onFailure(e);
-            }
-        };
+        return wrap(response -> onResponse.accept(original, response), original::onFailure);
     }
 
     /// Return a new listener that calls `onFailure` in case of a failure.
     /// The original listener is used for `onResponse` or as fallback in case the new `onFailure` consumer fails itself.
     default ActionListener<Response> withOnFailure(CheckedBiConsumer<ActionListener<Response>, Exception, Exception> onFailure) {
         ActionListener<Response> original = this;
-        return new ActionListener<>() {
-            @Override
-            public void onResponse(Response response) {
-                original.onResponse(response);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
+        return wrap(
+            original::onResponse,
+            ex -> {
                 try {
-                    onFailure.accept(original, e);
+                    onFailure.accept(original, ex);
                 } catch (Exception onFailureEx) {
                     original.onFailure(onFailureEx);
                 }
             }
-        };
+        );
     }
 
     /**
