@@ -1011,7 +1011,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             versionUpgraded,
             closed,
             supportedOperations,
-            tableVersion
+            tableVersion + 1
         );
     }
 

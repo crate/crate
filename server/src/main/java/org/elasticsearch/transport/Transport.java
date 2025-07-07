@@ -240,6 +240,11 @@ public interface Transport extends LifecycleComponent {
                 return context.handler();
             }
         }
+
+        @Override
+        public String toString() {
+            return "ResponseHandlers{" + handlers + "}";
+        }
     }
 
     final class RequestHandlers {
