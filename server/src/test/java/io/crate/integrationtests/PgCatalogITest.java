@@ -222,7 +222,7 @@ public class PgCatalogITest extends IntegTestCase {
     @UseJdbc(0)
     @UseRandomizedSchema(random = false)
     @UseHashJoins(0)
-    public void testPgSettingsTable() {
+    public void testPgSettingsTable() throws Exception {
         // The default timeout is set via system property and is different between local/jenkins and GHA
         // -> Use a fixed timeout to have deterministic output
         TimeValue timeout = TimeValue.timeValueSeconds(10);
