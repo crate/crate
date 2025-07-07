@@ -303,7 +303,7 @@ public class SQLTransportExecutor {
                     listener, describeResult.getFields(), describeResult.getFieldNames());
                 session.execute(UNNAMED, 0, resultReceiver);
             }
-            session.sync();
+            session.sync(false);
         } catch (Throwable t) {
             listener.onFailure(Exceptions.toException(t));
         }
@@ -340,7 +340,7 @@ public class SQLTransportExecutor {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");
             }
-            session.sync().whenComplete((Object result, Throwable t) -> {
+            session.sync(false).whenComplete((Object result, Throwable t) -> {
                 if (t == null) {
                     listener.onResponse(bulkResponse);
                 } else {
