@@ -121,6 +121,7 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
         logger.info("wait for cluster to get into a green state");
         ensureGreen();
 
+        execute("refresh table registers");
         execute("select value, _seq_no, _primary_term from registers where id = 1", null, masterNodeName);
         String finalValue = (String) response.rows()[0][0];
         long finalSequenceNumber = (long) response.rows()[0][1];
