@@ -165,6 +165,11 @@ public interface Transport extends LifecycleComponent {
         public String action() {
             return this.action;
         }
+
+        @Override
+        public String toString() {
+            return "ResponseContext{action=" + action + ", connection=" + connection + "}";
+        }
     }
 
     /**
