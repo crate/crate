@@ -44,6 +44,7 @@ import java.lang.reflect.Method;
 import java.net.InetSocketAddress;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.sql.SQLException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -1524,7 +1525,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * @param timeout internal timeout of the statement
      * @return the SQLResponse
      */
-    public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) {
+    public SQLResponse execute(String stmt, Object[] args, TimeValue timeout) throws SQLException {
         try {
             SQLResponse response = sqlExecutor.exec(testExecutionConfig(), stmt, args, timeout);
             this.response = response;
