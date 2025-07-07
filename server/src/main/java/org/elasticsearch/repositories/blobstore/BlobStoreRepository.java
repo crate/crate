@@ -1463,20 +1463,21 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 final Map<SnapshotId, Version> updatedVersionMap = new ConcurrentHashMap<>();
                 final ActionListener<Void> loadAllVersionsListener = MultiActionListener.of(
                     snapshotIdsWithoutVersion.size(),
-                    ActionListener.runAfter(
-                        new ActionListener<Collection<Void>>() {
-                            @Override
-                            public void onResponse(Collection<Void> voids) {
-                                LOGGER.info("Successfully loaded all snapshot's version information for {} from snapshot metadata",
-                                    AllocationService.firstListElementsToCommaDelimitedString(
-                                        snapshotIdsWithoutVersion, SnapshotId::toString, LOGGER.isDebugEnabled()));
-                            }
+                    new ActionListener<Collection<Void>>() {
+                        @Override
+                        public void onResponse(Collection<Void> voids) {
+                            LOGGER.info("Successfully loaded all snapshot's version information for {} from snapshot metadata",
+                                AllocationService.firstListElementsToCommaDelimitedString(
+                                    snapshotIdsWithoutVersion, SnapshotId::toString, LOGGER.isDebugEnabled()));
+                            filterRepositoryDataStep.onResponse(repositoryData.withVersions(updatedVersionMap));
+                        }
 
-                            @Override
-                            public void onFailure(Exception e) {
-                                LOGGER.warn("Failure when trying to load missing version information from snapshot metadata", e);
-                            }
-                        }, () -> filterRepositoryDataStep.onResponse(repositoryData.withVersions(updatedVersionMap)))
+                        @Override
+                        public void onFailure(Exception e) {
+                            LOGGER.warn("Failure when trying to load missing version information from snapshot metadata", e);
+                            filterRepositoryDataStep.onResponse(repositoryData.withVersions(updatedVersionMap));
+                        }
+                    }
                 );
                 for (SnapshotId snapshotId : snapshotIdsWithoutVersion) {
                     threadPool().executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.run(

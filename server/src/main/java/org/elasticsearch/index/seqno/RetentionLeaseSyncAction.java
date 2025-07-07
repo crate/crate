@@ -92,7 +92,10 @@ public class RetentionLeaseSyncAction extends
         assert false : "use RetentionLeaseSyncAction#sync";
     }
 
-    final void sync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases,
+    final void sync(ShardId shardId,
+                    String primaryAllocationId,
+                    long primaryTerm,
+                    RetentionLeases retentionLeases,
                     ActionListener<ReplicationResponse> listener) {
         final Request request = new Request(shardId, retentionLeases);
         transportService.sendRequest(

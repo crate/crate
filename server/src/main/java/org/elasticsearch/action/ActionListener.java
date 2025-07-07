@@ -123,14 +123,14 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
     /// The original listener is used on failures.
     default <T> ActionListener<T> withOnResponse(CheckedBiConsumer<ActionListener<Response>, T, Exception> onResponse) {
         ActionListener<Response> original = this;
-        return wrap(response -> onResponse.accept(original, response), original::onFailure);
+        return new SimpleListener<>(response -> onResponse.accept(original, response), original::onFailure);
     }
 
     /// Return a new listener that calls `onFailure` in case of a failure.
     /// The original listener is used for `onResponse` or as fallback in case the new `onFailure` consumer fails itself.
     default ActionListener<Response> withOnFailure(CheckedBiConsumer<ActionListener<Response>, Exception, Exception> onFailure) {
         ActionListener<Response> original = this;
-        return wrap(
+        return new SimpleListener<>(
             original::onResponse,
             ex -> {
                 try {
@@ -151,7 +151,7 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
      * @return a listener that listens for responses and invokes the runnable when received
      */
     static <Response> ActionListener<Response> wrap(Runnable runnable) {
-        return wrap(r -> runnable.run(), e -> runnable.run());
+        return new SimpleListener<>(_ -> runnable.run(), _ -> runnable.run());
     }
 
     /**
@@ -192,59 +192,55 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
     }
 
     /**
-     * Wraps a given listener and returns a new listener which executes the provided {@code runAfter}
+     * Returns a new wrapped listener which executes the provided {@code runAfter}
      * callback when the listener is notified via either {@code #onResponse} or {@code #onFailure}.
      */
-    static <Response> ActionListener<Response> runAfter(ActionListener<Response> delegate, Runnable runAfter) {
-        return new ActionListener<>() {
-            @Override
-            public void onResponse(Response response) {
+    default ActionListener<Response> runAfter(Runnable runAfter) {
+        ActionListener<Response> original = this;
+        return new SimpleListener<>(
+            response -> {
                 try {
-                    delegate.onResponse(response);
+                    original.onResponse(response);
+                } finally {
+                    runAfter.run();
+                }
+            },
+            err -> {
+                try {
+                    original.onFailure(err);
                 } finally {
                     runAfter.run();
                 }
             }
-
-            @Override
-            public void onFailure(Exception e) {
-                try {
-                    delegate.onFailure(e);
-                } finally {
-                    runAfter.run();
-                }
-            }
-        };
+        );
     }
 
     /**
-     * Wraps a given listener and returns a new listener which executes the provided {@code runBefore}
+     * Returns a new wrapped listener which executes the provided {@code runBefore}
      * callback before the listener is notified via either {@code #onResponse} or {@code #onFailure}.
      * If the callback throws an exception then it will be passed to the listener's {@code #onFailure} and its {@code #onResponse} will
      * not be executed.
      */
-    static <Response> ActionListener<Response> runBefore(ActionListener<Response> delegate, CheckedRunnable<?> runBefore) {
-        return new ActionListener<>() {
-            @Override
-            public void onResponse(Response response) {
+    default ActionListener<Response> runBefore(CheckedRunnable<?> runBefore) {
+        ActionListener<Response> original = this;
+        return new SimpleListener<>(
+            response -> {
                 try {
                     runBefore.run();
                 } catch (Exception ex) {
-                    delegate.onFailure(ex);
+                    original.onFailure(ex);
                     return;
                 }
-                delegate.onResponse(response);
-            }
-
-            @Override
-            public void onFailure(Exception e) {
+                original.onResponse(response);
+            },
+            err -> {
                 try {
                     runBefore.run();
                 } catch (Exception ex) {
-                    e.addSuppressed(ex);
+                    err.addSuppressed(ex);
                 }
-                delegate.onFailure(e);
+                original.onFailure(err);
             }
-        };
+        );
     }
 }
