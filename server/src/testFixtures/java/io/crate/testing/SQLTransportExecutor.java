@@ -210,10 +210,12 @@ public class SQLTransportExecutor {
                 args,
                 pgUrl,
                 random,
-                sessionList);
+                sessionList,
+                timeout);
         }
         try {
             try (Session session = newSession()) {
+                session.sessionSettings().statementTimeout(timeout);
                 sessionList.forEach(setting -> exec(setting, session));
                 return FutureUtils.get(execute(stmt, args, session), timeout.millis(), TimeUnit.MILLISECONDS);
             }
@@ -356,12 +358,14 @@ public class SQLTransportExecutor {
                                       @Nullable Object[] args,
                                       String pgUrl,
                                       Random random,
-                                      List<String> setSessionStatementsList) {
+                                      List<String> setSessionStatementsList,
+                                      TimeValue timeout) {
         try {
             Properties properties = new Properties();
             if (random.nextBoolean()) {
                 properties.setProperty("prepareThreshold", "-1"); // always use prepared statements
             }
+            properties.put("option", "-c statement_timeout=" + timeout.millis());
             properties.put("user", Role.CRATE_USER.name());
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
