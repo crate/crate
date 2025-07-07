@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -33,6 +34,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.auth.Protocol;
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -221,7 +223,10 @@ public class PgCatalogITest extends IntegTestCase {
     @UseRandomizedSchema(random = false)
     @UseHashJoins(0)
     public void testPgSettingsTable() {
-        execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings");
+        // The default timeout is set via system property and is different between local/jenkins and GHA
+        // -> Use a fixed timeout to have deterministic output
+        TimeValue timeout = TimeValue.timeValueSeconds(10);
+        execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings", new Object[] {}, timeout);
         assertThat(response).hasRows(
             "application_name| NULL| Optional application name. Can be set by a client to identify the application which created the connection| NULL| NULL",
             "datestyle| ISO| Display format for date and time values.| NULL| NULL",
@@ -271,7 +276,7 @@ public class PgCatalogITest extends IntegTestCase {
             "server_version| 14.0| Reports the emulated PostgreSQL version number| NULL| NULL",
             "server_version_num| 140000| Reports the emulated PostgreSQL version number| NULL| NULL",
             "standard_conforming_strings| on| Causes '...' strings to treat backslashes literally.| NULL| NULL",
-            "statement_timeout| 0s| The maximum duration of any statement before it gets killed. Infinite/disabled if 0| NULL| NULL"
+            "statement_timeout| 10s| The maximum duration of any statement before it gets killed. Infinite/disabled if 0| NULL| NULL"
         );
     }
 
