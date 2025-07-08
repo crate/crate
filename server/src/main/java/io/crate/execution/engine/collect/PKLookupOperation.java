@@ -66,6 +66,7 @@ import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Symbol;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
@@ -146,7 +147,7 @@ public final class PKLookupOperation {
                                      Collection<? extends Projection> projections,
                                      boolean requiresScroll,
                                      Function<Doc, Row> resultToRow,
-                                     DocTableInfo table,
+                                     Function<RelationName, DocTableInfo> getTableInfo,
                                      List<Symbol> columns) {
         ArrayList<BatchIterator<Row>> iterators = new ArrayList<>(idsByShard.size());
         for (Map.Entry<ShardId, SequencedSet<PKAndVersion>> idsByShardEntry : idsByShard.entrySet()) {
@@ -165,7 +166,12 @@ public final class PKLookupOperation {
                 }
                 throw new ShardNotFoundException(shardId);
             }
-            assert table != null;
+
+            String indexName = shardId.getIndexName();
+            RelationName relationName = RelationName.fromIndexName(indexName);
+            DocTableInfo table = getTableInfo.apply(relationName);
+            assert table != null : "Table for index " + indexName + " must not be null";
+
             Stream<Row> rowStream = idsByShardEntry.getValue().stream()
                 .map(pkAndVersion -> withDoc(
                     shard,

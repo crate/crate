@@ -1024,6 +1024,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = new TreeMap<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 IndexMetadata indexMetadata = cursor.value;
+                if (indexMetadata.getCreationVersion().onOrAfter(Version.V_6_0_0)) {
+                    // aliases are deprecated and only needed to be built for old indices, aliases will be removed once
+                    // the metadata is fully migrated/upgraded to schemas/relations.
+                    continue;
+                }
+
                 AliasOrIndex existing = aliasAndIndexLookup.put(indexMetadata.getIndex().getName(), new AliasOrIndex.Index(indexMetadata));
                 assert existing == null : "duplicate for " + indexMetadata.getIndex();
 

@@ -31,7 +31,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -71,10 +70,8 @@ public final class PKLookupTask extends AbstractTask {
     private final Function<RamAccounting, MemoryManager> memoryManagerFactory;
     private final int ramAccountingBlockSizeInBytes;
     private final ArrayList<MemoryManager> memoryManagers = new ArrayList<>();
+    private final Function<RelationName, DocTableInfo> getTableInfo;
     private long totalBytes = -1;
-
-    @Nullable
-    private final DocTableInfo table;
 
     PKLookupTask(UUID jobId,
                  int phaseId,
@@ -103,21 +100,13 @@ public final class PKLookupTask extends AbstractTask {
         this.memoryManagerFactory = memoryManagerFactory;
         this.ramAccountingBlockSizeInBytes = ramAccountingBlockSizeInBytes;
         this.toCollect = toCollect;
+        this.getTableInfo = schemas::getTableInfo;
 
         this.ignoreMissing = !partitionedByColumns.isEmpty();
         DocRefResolver docRefResolver = new DocRefResolver(partitionedByColumns);
 
         InputFactory.Context<CollectExpression<Doc, ?>> ctx = inputFactory.ctxForRefs(txnCtx, docRefResolver);
         ctx.add(toCollect);
-
-        var shardIt = idsByShard.keySet().iterator();
-        if (shardIt.hasNext()) {
-            String indexName = shardIt.next().getIndexName();
-            var relationName = RelationName.fromIndexName(indexName);
-            this.table = schemas.getTableInfo(relationName);
-        } else {
-            this.table = null;
-        }
 
         expressions = ctx.expressions();
         inputRow = new InputRow(ctx.topLevelInputs());
@@ -135,7 +124,7 @@ public final class PKLookupTask extends AbstractTask {
             shardProjections,
             consumer.requiresScroll(),
             this::resultToRow,
-            table,
+            getTableInfo,
             toCollect
         );
         consumer.accept(rowBatchIterator, null);
