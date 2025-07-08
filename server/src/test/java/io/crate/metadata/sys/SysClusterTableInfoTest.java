@@ -24,6 +24,12 @@ package io.crate.metadata.sys;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
+import org.elasticsearch.cluster.routing.allocation.decider.AwarenessAllocationDecider;
+import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.settings.ClusterSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
@@ -32,6 +38,44 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
+
+    @Test
+    public void test_routing_allocation_awareness_settings() {
+        var clusterService = new ClusterService(
+            Settings.EMPTY,
+            new ClusterSettings(
+                Settings.builder()
+                    .put(AwarenessAllocationDecider.CLUSTER_ROUTING_ALLOCATION_AWARENESS_ATTRIBUTE_SETTING.getKey(), List.of("zone"))
+                    .put("cluster.routing.allocation.awareness", "force", new String[] {"zone"}, new String[] {"a,b,c"})
+                    .build(),
+                ClusterSettings.BUILT_IN_CLUSTER_SETTINGS),
+            THREAD_POOL);
+        var clusterTable = SysClusterTableInfo.of(clusterService);
+
+        StaticTableReferenceResolver<Void> refResolver = new StaticTableReferenceResolver<>(clusterTable.expressions());
+        NestableCollectExpression<Void, ?> awareness = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
+            "settings",
+                List.of("cluster", "routing", "allocation", "awareness"))));
+        awareness.setNextRow(null);
+        assertThat(awareness.value().toString())
+            .satisfiesAnyOf(
+                s -> assertThat(s).isEqualTo("{attributes=[zone], force={={zone=a,b,c}}}"),
+                s -> assertThat(s).isEqualTo("{force={={zone=a,b,c}}, attributes=[zone]}")
+            );
+
+        awareness = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
+            "settings",
+            List.of("cluster", "routing", "allocation", "awareness", "force", ""))));
+        awareness.setNextRow(null);
+        assertThat(awareness.value().toString()).isEqualTo("{zone=a,b,c}");
+
+        awareness = refResolver.getImplementation(clusterTable.getReference(ColumnIdent.of(
+            "settings",
+            List.of("cluster", "routing", "allocation", "awareness", "force", "", "zone"))));
+        awareness.setNextRow(null);
+        assertThat(awareness.value().toString()).isEqualTo("a,b,c");
+
+    }
 
     @Test
     public void test_license_data_can_be_selected() {
@@ -56,4 +100,5 @@ public class SysClusterTableInfoTest extends CrateDummyClusterServiceUnitTest {
         maxNodes.setNextRow(null);
         assertThat(maxNodes.value()).isNull();
     }
+
 }

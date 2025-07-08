@@ -2313,14 +2313,20 @@ public final class TestCluster implements Closeable {
                 .collect(Collectors.joining(",", "[", "]"));
             CircuitBreaker inFlightRequestsBreaker = getInstance(CircuitBreakerService.class, nodeAndClient.name)
                 .getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
+
+            TransportService transportService = getInstance(TransportService.class, nodeAndClient.name);
             try {
                 // see #ensureEstimatedStats()
                 assertBusy(() -> {
                     // ensure that our size accounting on transport level is reset properly
                     long bytesUsed = inFlightRequestsBreaker.getUsed();
+                    String asMsg =
+                        "All incoming requests on node [" + nodeAndClient.name + "] should have finished. "
+                        + "in_flight_requests-bytesUsed=" + bytesUsed
+                        + ", pendingTasks=" + pendingTasks
+                        + ", responseHandlers=" + transportService.getResponseHandlers();
                     assertThat(bytesUsed)
-                        .as("All incoming requests on node [" + nodeAndClient.name + "] should have finished. " +
-                            "Expected 0 but got " + bytesUsed + "; pending tasks [" + pendingTasks + "]")
+                        .as(asMsg)
                         .isEqualTo(0L);
                 }, 1, TimeUnit.MINUTES);
             } catch (Exception e) {

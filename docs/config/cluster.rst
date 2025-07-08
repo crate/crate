@@ -277,7 +277,7 @@ about its usage.
 .. _udc.url:
 
 **udc.url**
-  | *Default:*  ``https://udc.crate.io``
+  | *Default:*  ``https://udc.crate.io/``
   | *Runtime:*  ``no``
 
   The URL the ping is sent to.

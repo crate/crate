@@ -210,10 +210,12 @@ public class SQLTransportExecutor {
                 args,
                 pgUrl,
                 random,
-                sessionList);
+                sessionList,
+                timeout);
         }
         try {
             try (Session session = newSession()) {
+                session.sessionSettings().statementTimeout(timeout);
                 sessionList.forEach(setting -> exec(setting, session));
                 return FutureUtils.get(execute(stmt, args, session), timeout.millis(), TimeUnit.MILLISECONDS);
             }
@@ -301,7 +303,7 @@ public class SQLTransportExecutor {
                     listener, describeResult.getFields(), describeResult.getFieldNames());
                 session.execute(UNNAMED, 0, resultReceiver);
             }
-            session.sync();
+            session.sync(false);
         } catch (Throwable t) {
             listener.onFailure(Exceptions.toException(t));
         }
@@ -338,7 +340,7 @@ public class SQLTransportExecutor {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");
             }
-            session.sync().whenComplete((Object result, Throwable t) -> {
+            session.sync(false).whenComplete((Object result, Throwable t) -> {
                 if (t == null) {
                     listener.onResponse(bulkResponse);
                 } else {
@@ -356,12 +358,14 @@ public class SQLTransportExecutor {
                                       @Nullable Object[] args,
                                       String pgUrl,
                                       Random random,
-                                      List<String> setSessionStatementsList) {
+                                      List<String> setSessionStatementsList,
+                                      TimeValue timeout) {
         try {
             Properties properties = new Properties();
             if (random.nextBoolean()) {
                 properties.setProperty("prepareThreshold", "-1"); // always use prepared statements
             }
+            properties.put("option", "-c statement_timeout=" + timeout.millis());
             properties.put("user", Role.CRATE_USER.name());
             try (Connection conn = DriverManager.getConnection(pgUrl, properties)) {
                 conn.setAutoCommit(true);
