@@ -25,8 +25,3 @@ auth:
       99:
         method: password
 
-
-node.attr.zone: a
-cluster.routing.allocation.awareness.attributes: zone
-cluster.routing.allocation.awareness.force.zone.values: a,b,c
-cluster.routing.allocation.cluster_concurrent_rebalance: 99
