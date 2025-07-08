@@ -37,6 +37,8 @@ import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -66,7 +68,13 @@ public class TransportSyncRetentionLeasesAction extends TransportBroadcastByNode
     }
 
     @Override
-    protected BroadcastResponse newResponse(SyncRetentionLeasesRequest request, int totalShards, int successfulShards, int failedShards, List<ReplicationResponse> replicationResponses, List<DefaultShardOperationFailedException> shardFailures, ClusterState clusterState) {
+    protected BroadcastResponse newResponse(SyncRetentionLeasesRequest request,
+                                            int totalShards,
+                                            int successfulShards,
+                                            int failedShards,
+                                            List<ReplicationResponse> replicationResponses,
+                                            List<DefaultShardOperationFailedException> shardFailures,
+                                            ClusterState clusterState) {
         return new BroadcastResponse(totalShards, successfulShards, failedShards, shardFailures);
     }
 
@@ -76,8 +84,12 @@ public class TransportSyncRetentionLeasesAction extends TransportBroadcastByNode
     }
 
     @Override
-    protected void shardOperation(SyncRetentionLeasesRequest request, ShardRouting shardRouting, ActionListener<ReplicationResponse> listener) throws IOException {
-        IndexShard indexShard = indicesService.indexServiceSafe(shardRouting.shardId().getIndex()).getShard(shardRouting.shardId().id());
+    protected void shardOperation(SyncRetentionLeasesRequest request,
+                                  ShardRouting shardRouting,
+                                  ActionListener<ReplicationResponse> listener) throws IOException {
+        Index index = shardRouting.shardId().getIndex();
+        IndexService indexService = indicesService.indexServiceSafe(index);
+        IndexShard indexShard = indexService.getShard(shardRouting.shardId().id());
         indexShard.runUnderPrimaryPermit(
             () -> indexShard.syncRetentionLeases(true, listener),
             e -> {

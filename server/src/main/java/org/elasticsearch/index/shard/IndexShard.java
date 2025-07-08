@@ -610,7 +610,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                             replicationTracker.startRelocationHandoff(targetAllocationId);
                         // make sure we release all permits before we resolve the final listener
                         final ActionListener<Void> wrappedInnerListener =
-                            ActionListener.runBefore(listener, Releasables.releaseOnce(releasable)::close);
+                            listener.runBefore(Releasables.releaseOnce(releasable)::close);
                         final ActionListener<Void> wrappedListener = new ActionListener<>() {
                             @Override
                             public void onResponse(Void unused) {
@@ -1805,7 +1805,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         assert shardRouting.primary() : "recover from local shards only makes sense if the shard is a primary shard";
         assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.LOCAL_SHARDS : "invalid recovery type: " + recoveryState.getRecoverySource();
         final List<LocalShardSnapshot> snapshots = new ArrayList<>();
-        final ActionListener<Boolean> recoveryListener = ActionListener.runBefore(listener, () -> IOUtils.close(snapshots));
+        final ActionListener<Boolean> recoveryListener = listener.runBefore(() -> IOUtils.close(snapshots));
         boolean success = false;
         try {
             for (IndexShard shard : localShards) {
