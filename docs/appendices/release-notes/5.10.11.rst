@@ -51,6 +51,11 @@ Fixes
   more columns than the limit defined by the
   :ref:`sql-create-table-mapping-total-fields-limit` setting.
 
+- Fixed an issue that would prevent the
+  :ref:`cluster.routing.allocation.awareness.attributes` and
+  :ref:`cluster.routing.allocation.awareness.force.\*.values` to be shown under
+  the ``settings`` column of the :ref:`sys-cluster` table.
+
 - Fixed an issue that could cause streaming errors, leading to shard failures
   and re-replication if using ``INSERT INTO`` statements with ``ON CONFLICT``
   clause combined with bulk requests if some operations ran into a conflict
