@@ -47,6 +47,11 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that would prevent the
+  :ref:`cluster.routing.allocation.awareness.attributes` and
+  :ref:`cluster.routing.allocation.awareness.force.\*.values` to be shown under
+  the ``settings`` column of the :ref:`sys-cluster` table.
+
 - Fixed an issue that allowed columns of tables create by
   :ref`logical replication <administration-logical-replication>` subscriptions
   to be renamed, dropped or added.
