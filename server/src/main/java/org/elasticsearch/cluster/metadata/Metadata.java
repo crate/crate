@@ -652,8 +652,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             // we know its a new one, increment the version and store
             indexMetadataBuilder.version(indexMetadataBuilder.version() + 1);
             IndexMetadata indexMetadata = indexMetadataBuilder.build();
-            assert indices.containsKey(indexMetadata.getIndexUUID()) == false :
-                "An index with the same UUID already exists: [" + indexMetadata.getIndexUUID() + "]";
             indices.put(indexMetadata.getIndex().getName(), indexMetadata);
             return this;
         }
