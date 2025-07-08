@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -119,6 +120,19 @@ public class TableSettingsTest extends IntegTestCase {
         execute("select * from information_schema.tables " +
                 "where settings['routing']['allocation']['total_shards_per_node'] >= 10");
         assertThat(response.rowCount()).isEqualTo(1);
+    }
+
+    @Test
+    public void testCreateTableWithTotalFieldsLimit() {
+        var msg = String.format(Locale.ENGLISH,
+            "Limit of total columns [2] in table [%s.test] exceeded", sqlExecutor.getCurrentSchema());
+
+        assertSQLError(() -> execute(
+            "CREATE TABLE test (a int, b long, c string) " +
+                "with (\"mapping.total_fields.limit\"=2)"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4000)
+            .hasMessageContaining(msg);
     }
 
     @Test
