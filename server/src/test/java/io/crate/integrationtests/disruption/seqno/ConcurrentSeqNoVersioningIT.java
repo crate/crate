@@ -36,6 +36,9 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -238,7 +241,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
         public void run() {
             while (stop == false) {
                 try {
-                    roundBarrier.await(70, TimeUnit.SECONDS);
+                    roundBarrier.await(timeoutSeconds + 1, TimeUnit.SECONDS);
 
                     int numberOfUpdates = randomIntBetween(3, 13) * partitions.size();
                     for (int i = 0; i < numberOfUpdates; ++i) {
@@ -270,10 +273,18 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
                         Consumer<HistoryOutput> historyResponse = partition.invoke(version);
                         try {
                             logger.debug("update id={} using seq_no={} and primary_term={}", partition.id, version.seqNo, version.primaryTerm);
-                            SQLResponse response = execute("update t set x = ? where id = ? and _seq_no = ? and _primary_term = ? returning _primary_term, _seq_no",
-                                                           new Object[]{random.nextInt(), partition.id, version.seqNo, version.primaryTerm},
-                                                           TimeValue.timeValueSeconds(timeoutSeconds));
-
+                            SQLResponse response;
+                            try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+                                final Version currentVersion = version;
+                                Future<SQLResponse> submit = executor.submit(() -> execute(
+                                    "update t set x = ? where id = ? and _seq_no = ? and _primary_term = ? returning _primary_term, _seq_no",
+                                    new Object[]{random.nextInt(), partition.id, currentVersion.seqNo, currentVersion.primaryTerm},
+                                    TimeValue.timeValueSeconds(timeoutSeconds)
+                                ));
+                                response = submit.get(timeoutSeconds, TimeUnit.SECONDS);
+                            } catch (ExecutionException e) {
+                                throw Exceptions.toRuntimeException(e);
+                            }
                             if (response.rowCount() == 1) {
                                 long primaryTerm = (long) response.rows()[0][0];
                                 long seqNo = (long) response.rows()[0][1];
@@ -338,7 +349,7 @@ public class ConcurrentSeqNoVersioningIT extends AbstractDisruptionTestCase {
 
         void await() {
             try {
-                join(60000);
+                join(TimeValue.timeValueSeconds(timeoutSeconds + 2).millis());
             } catch (InterruptedException e) {
                 Thread.currentThread().interrupt();
             }
