@@ -100,6 +100,7 @@ public sealed interface RelationMetadata extends Writeable permits
 
         @Override
         public RelationMetadata withIndexUUIDs(List<String> indexUUIDs) {
+            assert indexUUIDs.size() == 1 : "Must have exactly one index linked with blob table";
             return new BlobTable(
                 name,
                 indexUUIDs.getFirst(),

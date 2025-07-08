@@ -63,6 +63,6 @@ public class CountPhaseTest extends ESTestCase {
         assertThat(streamedNode.nodeIds()).containsExactlyInAnyOrder("n1", "n2");
         assertThat(streamedNode.routing()).isEqualTo(routing);
         assertThat(streamedNode.distributionInfo()).isEqualTo(DistributionInfo.DEFAULT_BROADCAST);
-        assertThat(streamedNode.onPartitionedTable()).isEqualTo(countPhase.onPartitionedTable());
+        assertThat(streamedNode.ignoreUnavailableIndex()).isEqualTo(countPhase.ignoreUnavailableIndex());
     }
 }

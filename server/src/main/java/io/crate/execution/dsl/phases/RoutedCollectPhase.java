@@ -53,7 +53,12 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     private final List<Symbol> toCollect;
     private final RowGranularity maxRowGranularity;
     private final Symbol where;
-    private final boolean onPartitionedTable;
+
+    /**
+     * Whether to throw an exception if an index is not available or not.
+     * Should be set to true on partitioned tables
+     */
+    private final boolean ignoreUnavailableIndex;
 
     private DistributionInfo distributionInfo;
 
@@ -68,7 +73,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                               String name,
                               Routing routing,
                               RowGranularity maxRowGranularity,
-                              boolean onPartitionedTable,
+                              boolean ignoreUnavailableIndex,
                               List<Symbol> toCollect,
                               Collection<? extends Projection> projections,
                               Symbol where,
@@ -86,7 +91,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         this.maxRowGranularity = maxRowGranularity;
         this.toCollect = toCollect;
         this.distributionInfo = distributionInfo;
-        this.onPartitionedTable = onPartitionedTable;
+        this.ignoreUnavailableIndex = ignoreUnavailableIndex;
         this.outputTypes = extractOutputTypes(toCollect, this.projections);
     }
 
@@ -198,8 +203,8 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         return maxRowGranularity;
     }
 
-    public boolean onPartitionedTable() {
-        return onPartitionedTable;
+    public boolean ignoreUnavailableIndex() {
+        return ignoreUnavailableIndex;
     }
 
     @Override
@@ -222,9 +227,9 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
 
         orderBy = in.readOptionalWriteable(OrderBy::new);
         if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
-            onPartitionedTable = in.readBoolean();
+            ignoreUnavailableIndex = in.readBoolean();
         } else {
-            onPartitionedTable = false;
+            ignoreUnavailableIndex = false;
         }
     }
 
@@ -243,7 +248,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
         out.writeOptionalVInt(nodePageSizeHint);
         out.writeOptionalWriteable(orderBy);
         if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
-            out.writeBoolean(onPartitionedTable);
+            out.writeBoolean(ignoreUnavailableIndex);
         }
     }
 
@@ -263,7 +268,7 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
                Objects.equals(toCollect, that.toCollect) &&
                maxRowGranularity == that.maxRowGranularity &&
                Objects.equals(where, that.where) &&
-               Objects.equals(onPartitionedTable, that.onPartitionedTable) &&
+               Objects.equals(ignoreUnavailableIndex, that.ignoreUnavailableIndex) &&
                Objects.equals(distributionInfo, that.distributionInfo) &&
                Objects.equals(nodePageSizeHint, that.nodePageSizeHint) &&
                Objects.equals(orderBy, that.orderBy);
@@ -272,6 +277,6 @@ public class RoutedCollectPhase extends AbstractProjectionsPhase implements Coll
     @Override
     public int hashCode() {
         return Objects.hash(
-            super.hashCode(), routing, toCollect, maxRowGranularity, where, onPartitionedTable, distributionInfo, nodePageSizeHint, orderBy);
+            super.hashCode(), routing, toCollect, maxRowGranularity, where, ignoreUnavailableIndex, distributionInfo, nodePageSizeHint, orderBy);
     }
 }

@@ -1324,12 +1324,17 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     @Nullable
     public RelationMetadata getRelation(String indexUUID) {
         List<RelationMetadata> relations = relations(r -> r.indexUUIDs().contains(indexUUID), Function.identity());
+        assert relations.size() < 2 : "indexUUID must be unique";
         if (!relations.isEmpty()) {
             return relations.getFirst();
         }
         return null;
     }
 
+    /**
+     * @throws RelationUnknown
+     * @throws IndexNotFoundException
+     **/
     public PartitionName getPartitionName(String indexUUID) {
         RelationMetadata relationMetadata = getRelation(indexUUID);
         if (relationMetadata == null) {
@@ -1339,6 +1344,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return getPartitionName(relationMetadata.name(), indexUUID);
     }
 
+    /**
+     * @throws IndexNotFoundException
+     **/
     public PartitionName getPartitionName(RelationName relationName, String indexUUID) {
         IndexMetadata indexMetadata = index(indexUUID);
         if (indexMetadata == null) {
@@ -1349,16 +1357,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     public <T extends RelationMetadata> List<T> relations(Class<T> clazz) {
-        ArrayList<T> relations = new ArrayList<>();
-        for (ObjectCursor<SchemaMetadata> cursor : schemas.values()) {
-            for (ObjectCursor<RelationMetadata> relationCursor : cursor.value.relations().values()) {
-                RelationMetadata relationMetadata = relationCursor.value;
-                if (clazz.isInstance(relationMetadata)) {
-                    relations.add(clazz.cast(relationMetadata));
-                }
-            }
-        }
-        return relations;
+        return relations(clazz::isInstance, clazz::cast);
     }
 
     public <T extends RelationMetadata> List<T> relations(String schemaName, Class<T> clazz) {
@@ -1376,12 +1375,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return relations;
     }
 
-    public List<RelationMetadata> relations(Predicate<RelationMetadata> predicate, Function<RelationMetadata, RelationMetadata> as) {
-        ArrayList<RelationMetadata> relations = new ArrayList<>();
+    public <T> List<T> relations(Predicate<RelationMetadata> predicate, Function<RelationMetadata, T> as) {
+        ArrayList<T> relations = new ArrayList<>();
         for (ObjectCursor<SchemaMetadata> cursor : schemas.values()) {
             for (ObjectCursor<RelationMetadata> relationCursor : cursor.value.relations().values()) {
                 if (predicate.test(relationCursor.value)) {
-                    relations.add(relationCursor.value);
+                    relations.add(as.apply(relationCursor.value));
                 }
             }
         }
