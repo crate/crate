@@ -139,8 +139,8 @@ public class RetentionLeaseSyncAction extends
             Objects.requireNonNull(primary);
             primary.persistRetentionLeases();
             listener.onResponse(new WritePrimaryResult<>(request, new ReplicationResponse(), null, primary));
-        } catch (Exception ex) {
-            listener.onFailure(ex);
+        } catch (Throwable ex) {
+            listener.onFailure(Exceptions.toException(ex));
         }
     }
 
