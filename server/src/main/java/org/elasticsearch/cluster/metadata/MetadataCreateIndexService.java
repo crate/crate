@@ -93,6 +93,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
 /**
@@ -784,7 +785,8 @@ public class MetadataCreateIndexService {
                 List.of(),
                 routingNumShards
             );
-            new DocTableInfoFactory(nodeContext).create(tableName, updatedState.metadata());
+            DocTableInfo docTable = new DocTableInfoFactory(nodeContext).create(tableName, updatedState.metadata());
+            DocTableInfo.checkTotalColumnsLimit(docTable.ident(), docTable.parameters(), docTable.allColumns().stream());
             return updatedState;
         });
     }

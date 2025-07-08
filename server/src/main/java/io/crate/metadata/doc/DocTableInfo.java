@@ -1213,6 +1213,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                                    IntArrayList pKeyIndices,
                                    Map<String, String> newCheckConstraints) {
         newColumns.forEach(ref -> ref.column().validForCreate());
+        checkTotalColumnsLimit(ident, tableParameters, Stream.concat(allColumns.values().stream(), newColumns.stream()));
         long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(tableParameters);
         int numSysColumns = SysColumns.COLUMN_IDENTS.size();
         if (newColumns.size() + allColumns.size() - numSysColumns > allowedTotalColumns) {
@@ -1295,4 +1296,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         );
     }
 
+    public static void checkTotalColumnsLimit(RelationName name,
+                                              Settings indexSettings,
+                                              Stream<Reference> columns) {
+        long numColumns = columns.filter(col -> !col.column().isSystemColumn()).count();
+        long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexSettings);
+        if (numColumns > allowedTotalColumns) {
+            throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + name + "] exceeded");
+        }
+    }
 }
