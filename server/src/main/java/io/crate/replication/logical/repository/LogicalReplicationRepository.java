@@ -157,16 +157,16 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         return getPublicationsState()
             .thenApply(stateResponse -> {
-                List<String> indicesNames = new ArrayList<>();
+                List<String> indexUUIDs = new ArrayList<>();
                 for (var container : stateResponse.metadata().indices().values()) {
                     IndexMetadata im = container.value;
                     if (REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings())) {
-                        indicesNames.add(im.getIndex().getUUID());
+                        indexUUIDs.add(im.getIndex().getUUID());
                     }
                 }
                 return new SnapshotInfo(
                     snapshotId,
-                    indicesNames,
+                    indexUUIDs,
                     SnapshotState.SUCCESS,
                     Version.CURRENT
                 );

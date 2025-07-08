@@ -78,10 +78,10 @@ public class BlobSchemaInfo implements SchemaInfo {
 
     @Override
     public Iterable<TableInfo> getTables() {
-        return clusterService.state().metadata().relations(RelationMetadata.BlobTable.class)
-            .stream()
-            .map(b -> getTableInfo(b.name().name()))
-            ::iterator;
+        return clusterService.state().metadata().relations(
+            RelationMetadata.BlobTable.class::isInstance,
+            blobTable -> getTableInfo(blobTable.name().name())
+        );
     }
 
     @Override

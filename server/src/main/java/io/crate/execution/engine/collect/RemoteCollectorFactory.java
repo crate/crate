@@ -184,7 +184,7 @@ public class RemoteCollectorFactory {
             collectPhase.name(),
             routing,
             collectPhase.maxRowGranularity(),
-            collectPhase.onPartitionedTable(),
+            collectPhase.ignoreUnavailableIndex(),
             collectPhase.toCollect(),
             Projections.shardProjections(collectPhase.projections()),
             collectPhase.where(),

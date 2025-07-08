@@ -43,18 +43,18 @@ public class CountPhase implements UpstreamPhase {
     private final Routing routing;
     private final Symbol where;
     private DistributionInfo distributionInfo;
-    private final boolean onPartitionedTable;
+    private final boolean ignoreUnavailableIndex;
 
     public CountPhase(int executionPhaseId,
                       Routing routing,
                       Symbol where,
                       DistributionInfo distributionInfo,
-                      boolean onPartitionedTable) {
+                      boolean ignoreUnavailableIndex) {
         this.executionPhaseId = executionPhaseId;
         this.routing = routing;
         this.where = where;
         this.distributionInfo = distributionInfo;
-        this.onPartitionedTable = onPartitionedTable;
+        this.ignoreUnavailableIndex = ignoreUnavailableIndex;
     }
 
     @Override
@@ -100,8 +100,8 @@ public class CountPhase implements UpstreamPhase {
         this.distributionInfo = distributionInfo;
     }
 
-    public boolean onPartitionedTable() {
-        return onPartitionedTable;
+    public boolean ignoreUnavailableIndex() {
+        return ignoreUnavailableIndex;
     }
 
     @Override
@@ -115,9 +115,9 @@ public class CountPhase implements UpstreamPhase {
         where = Symbol.fromStream(in);
         distributionInfo = new DistributionInfo(in);
         if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
-            onPartitionedTable = in.readBoolean();
+            ignoreUnavailableIndex = in.readBoolean();
         } else {
-            onPartitionedTable = false;
+            ignoreUnavailableIndex = false;
         }
     }
 
@@ -128,7 +128,7 @@ public class CountPhase implements UpstreamPhase {
         Symbol.toStream(where, out);
         distributionInfo.writeTo(out);
         if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
-            out.writeBoolean(onPartitionedTable);
+            out.writeBoolean(ignoreUnavailableIndex);
         }
     }
 
@@ -145,11 +145,11 @@ public class CountPhase implements UpstreamPhase {
                Objects.equals(routing, that.routing) &&
                Objects.equals(where, that.where) &&
                Objects.equals(distributionInfo, that.distributionInfo) &&
-               onPartitionedTable == that.onPartitionedTable;
+               ignoreUnavailableIndex == that.ignoreUnavailableIndex;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(executionPhaseId, routing, where, distributionInfo, onPartitionedTable);
+        return Objects.hash(executionPhaseId, routing, where, distributionInfo, ignoreUnavailableIndex);
     }
 }

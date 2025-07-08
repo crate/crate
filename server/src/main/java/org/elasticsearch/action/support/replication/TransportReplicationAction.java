@@ -623,56 +623,57 @@ public abstract class TransportReplicationAction<
                 } else {
                     finishAsFailed(blockException);
                 }
-            } else {
-                final IndexMetadata indexMetadata = state.metadata().index(request.shardId().getIndex());
-                if (indexMetadata == null) {
-                    // ensure that the cluster state on the node is at least as high as the node that decided that the index was there
-                    if (state.version() < request.routedBasedOnClusterVersion()) {
-                        logger.trace("failed to find index [{}] for request [{}] despite sender thinking it would be here. " +
-                                "Local cluster state version [{}]] is older than on sending node (version [{}]), scheduling a retry...",
-                            request.shardId().getIndex(), request, state.version(), request.routedBasedOnClusterVersion());
-                        retry(new IndexNotFoundException("failed to find index as current cluster state with version [" + state.version() +
-                            "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]",
-                            request.shardId().getIndex().toString()));
-                        return;
-                    } else {
-                        finishAsFailed(new IndexNotFoundException(request.shardId().getIndex()));
-                        return;
-                    }
-                }
+                return;
+            }
 
-                if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-                    finishAsFailed(new IndexClosedException(indexMetadata.getIndex()));
+            final IndexMetadata indexMetadata = state.metadata().index(request.shardId().getIndex());
+            if (indexMetadata == null) {
+                // ensure that the cluster state on the node is at least as high as the node that decided that the index was there
+                if (state.version() < request.routedBasedOnClusterVersion()) {
+                    logger.trace("failed to find index [{}] for request [{}] despite sender thinking it would be here. " +
+                            "Local cluster state version [{}]] is older than on sending node (version [{}]), scheduling a retry...",
+                        request.shardId().getIndex(), request, state.version(), request.routedBasedOnClusterVersion());
+                    retry(new IndexNotFoundException("failed to find index as current cluster state with version [" + state.version() +
+                        "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]",
+                        request.shardId().getIndex().toString()));
                     return;
-                }
-
-                if (request.waitForActiveShards() == ActiveShardCount.DEFAULT) {
-                    // if the wait for active shard count has not been set in the request,
-                    // resolve it from the index settings
-                    request.waitForActiveShards(indexMetadata.getWaitForActiveShards());
-                    assert request.waitForActiveShards() != ActiveShardCount.DEFAULT :
-                        "request waitForActiveShards must be set in resolveRequest";
-                }
-
-                final ShardRouting primary = state.routingTable().shardRoutingTable(request.shardId()).primaryShard();
-                if (primary == null || primary.active() == false) {
-                    logger.trace("primary shard [{}] is not yet active, scheduling a retry: action [{}], request [{}], "
-                        + "cluster state version [{}]", request.shardId(), actionName, request, state.version());
-                    retryBecauseUnavailable(request.shardId(), "primary shard is not active");
-                    return;
-                }
-                if (state.nodes().nodeExists(primary.currentNodeId()) == false) {
-                    logger.trace("primary shard [{}] is assigned to an unknown node [{}], scheduling a retry: action [{}], request [{}], "
-                        + "cluster state version [{}]", request.shardId(), primary.currentNodeId(), actionName, request, state.version());
-                    retryBecauseUnavailable(request.shardId(), "primary shard isn't assigned to a known node.");
-                    return;
-                }
-                final DiscoveryNode node = state.nodes().get(primary.currentNodeId());
-                if (primary.currentNodeId().equals(state.nodes().getLocalNodeId())) {
-                    performLocalAction(state, primary, node, indexMetadata);
                 } else {
-                    performRemoteAction(state, primary, node);
+                    finishAsFailed(new IndexNotFoundException(request.shardId().getIndex()));
+                    return;
                 }
+            }
+
+            if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+                finishAsFailed(new IndexClosedException(indexMetadata.getIndex()));
+                return;
+            }
+
+            if (request.waitForActiveShards() == ActiveShardCount.DEFAULT) {
+                // if the wait for active shard count has not been set in the request,
+                // resolve it from the index settings
+                request.waitForActiveShards(indexMetadata.getWaitForActiveShards());
+                assert request.waitForActiveShards() != ActiveShardCount.DEFAULT :
+                    "request waitForActiveShards must be set in resolveRequest";
+            }
+
+            final ShardRouting primary = state.routingTable().shardRoutingTable(request.shardId()).primaryShard();
+            if (primary == null || primary.active() == false) {
+                logger.trace("primary shard [{}] is not yet active, scheduling a retry: action [{}], request [{}], "
+                    + "cluster state version [{}]", request.shardId(), actionName, request, state.version());
+                retryBecauseUnavailable(request.shardId(), "primary shard is not active");
+                return;
+            }
+            if (state.nodes().nodeExists(primary.currentNodeId()) == false) {
+                logger.trace("primary shard [{}] is assigned to an unknown node [{}], scheduling a retry: action [{}], request [{}], "
+                    + "cluster state version [{}]", request.shardId(), primary.currentNodeId(), actionName, request, state.version());
+                retryBecauseUnavailable(request.shardId(), "primary shard isn't assigned to a known node.");
+                return;
+            }
+            final DiscoveryNode node = state.nodes().get(primary.currentNodeId());
+            if (primary.currentNodeId().equals(state.nodes().getLocalNodeId())) {
+                performLocalAction(state, primary, node, indexMetadata);
+            } else {
+                performRemoteAction(state, primary, node);
             }
         }
 

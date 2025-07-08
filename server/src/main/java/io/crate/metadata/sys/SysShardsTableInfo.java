@@ -30,30 +30,26 @@ import static io.crate.types.DataTypes.STRING;
 import static java.util.Map.entry;
 
 import java.util.ArrayList;
-import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.GroupShardsIterator;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardId;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntIndexedContainer;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -248,32 +244,24 @@ public class SysShardsTableInfo {
     public static Routing getRouting(ClusterState clusterState,
                                      CoordinatorSessionSettings sessionSettings,
                                      Roles roles) {
-        List<String> concreteIndices = new ArrayList<>();
-        for (ObjectCursor<IndexMetadata> c : clusterState.metadata().indices().values()) {
-            IndexMetadata im = c.value;
-            if (!IndexName.isDangling(im.getIndex().getName())) {
-                concreteIndices.add(im.getIndex().getUUID());
-            }
-        }
+        Metadata metadata = clusterState.metadata();
+        ArrayList<String> indexUUIDs = new ArrayList<>();
         Role user = sessionSettings != null ? sessionSettings.sessionUser() : null;
         if (user != null) {
-            List<String> accessibleTables = new ArrayList<>(concreteIndices.size());
-            for (String indexUUID : concreteIndices) {
-                RelationMetadata table = clusterState.metadata().getRelation(indexUUID);
-                if (table == null) {
-                    throw new IndexNotFoundException(indexUUID);
-                }
-                String tableName = table.name().fqn();
-                if (roles.hasAnyPrivilege(user, Securable.TABLE, tableName)) {
-                    accessibleTables.add(indexUUID);
+            for (var table : metadata.relations(RelationMetadata.Table.class)) {
+                if (roles.hasAnyPrivilege(user, Securable.TABLE, table.name().fqn())) {
+                    indexUUIDs.addAll(table.indexUUIDs());
                 }
             }
-            concreteIndices = accessibleTables;
+            for (var blobTable : metadata.relations(RelationMetadata.BlobTable.class)) {
+                if (roles.hasAnyPrivilege(user, Securable.TABLE, blobTable.name().fqn())) {
+                    indexUUIDs.add(blobTable.indexUUID());
+                }
+            }
         }
-
         Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
         GroupShardsIterator<ShardIterator> groupShardsIterator =
-            clusterState.routingTable().allAssignedShardsGrouped(concreteIndices.toArray(String[]::new), true);
+            clusterState.routingTable().allAssignedShardsGrouped(indexUUIDs.toArray(String[]::new), true);
         for (final ShardIterator shardIt : groupShardsIterator) {
             final ShardRouting shardRouting = shardIt.nextOrNull();
             processShardRouting(clusterState.nodes().getLocalNodeId(), locations, shardRouting, shardIt.shardId());
