@@ -2328,7 +2328,24 @@ public final class TestCluster implements Closeable {
                     assertThat(bytesUsed)
                         .as(asMsg)
                         .isEqualTo(0L);
-                }, 1, TimeUnit.MINUTES);
+                }, 30, TimeUnit.SECONDS);
+            } catch (AssertionError e) {
+                Map<Thread, StackTraceElement[]> allStackTraces = Thread.getAllStackTraces();
+                StringBuilder sb = new StringBuilder();
+                for (var entry : allStackTraces.entrySet()) {
+                    Thread thread = entry.getKey();
+                    sb.append("\n");
+                    sb.append(thread.getName());
+                    sb.append("\n");
+                    StackTraceElement[] stacktrace = entry.getValue();
+                    for (StackTraceElement stackTraceElement : stacktrace) {
+                        sb.append("    at")
+                          .append(stackTraceElement)
+                          .append("\n");
+                    }
+                }
+                logger.error(sb);
+                throw e;
             } catch (Exception e) {
                 logger.error("Could not assert finished requests within timeout", e);
                 fail("Could not assert finished requests within timeout on node [" + nodeAndClient.name + "]");

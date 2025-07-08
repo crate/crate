@@ -353,7 +353,7 @@ public class IndicesClusterStateService extends AbstractLifecycleComponent imple
                             // to the master. If we can't acquire the locks here immediately there might be a shard of this index still
                             // holding on to the lock due to a "currently canceled recovery" or so. The shard will delete itself BEFORE the
                             // lock is released so it's guaranteed to be deleted by the time we get the lock
-                            indicesService.processPendingDeletes(index, indexSettings, new TimeValue(30, TimeUnit.MINUTES));
+                            indicesService.processPendingDeletes(index, indexSettings, new TimeValue(30, TimeUnit.SECONDS));
                         } catch (ShardLockObtainFailedException exc) {
                             LOGGER.warn("[{}] failed to lock all shards for index - timed out after 30 seconds", index);
                         } catch (InterruptedException e) {

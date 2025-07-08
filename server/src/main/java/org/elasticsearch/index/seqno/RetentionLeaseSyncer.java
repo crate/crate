@@ -33,17 +33,17 @@ public class RetentionLeaseSyncer {
 
     @Inject
     public RetentionLeaseSyncer(RetentionLeaseSyncAction syncAction, RetentionLeaseBackgroundSyncAction backgroundSyncAction) {
-        this(syncAction::sync, backgroundSyncAction::backgroundSync);
+        this(syncAction, backgroundSyncAction::backgroundSync);
     }
 
-    public RetentionLeaseSyncer(SyncAction syncAction, BackgroundSyncAction backgroundSyncAction) {
+    private RetentionLeaseSyncer(SyncAction syncAction, BackgroundSyncAction backgroundSyncAction) {
         this.syncAction = Objects.requireNonNull(syncAction);
         this.backgroundSyncAction = Objects.requireNonNull(backgroundSyncAction);
     }
 
     public static final RetentionLeaseSyncer EMPTY = new RetentionLeaseSyncer(
-        (shardId, primaryAllocationId, primaryTerm, retentionLeases, listener) -> listener.onResponse(new ReplicationResponse()),
-        (shardId, primaryAllocationId, primaryTerm, retentionLeases) -> CompletableFuture.completedFuture(null));
+        (_, _, _, _, listener) -> listener.onResponse(new ReplicationResponse()),
+        (_, _, _, _) -> CompletableFuture.completedFuture(null));
 
     public void sync(ShardId shardId,
                      String primaryAllocationId,
@@ -62,8 +62,11 @@ public class RetentionLeaseSyncer {
      * or removed on the primary. The specified listener is invoked when the syncing completes with success or failure.
      */
     public interface SyncAction {
-        void sync(ShardId shardId, String primaryAllocationId, long primaryTerm,
-                  RetentionLeases retentionLeases, ActionListener<ReplicationResponse> listener);
+        void sync(ShardId shardId,
+                  String primaryAllocationId,
+                  long primaryTerm,
+                  RetentionLeases retentionLeases,
+                  ActionListener<ReplicationResponse> listener);
     }
 
     /**

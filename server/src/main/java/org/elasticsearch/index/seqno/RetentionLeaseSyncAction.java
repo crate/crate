@@ -34,6 +34,7 @@ import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.StopWatch;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -56,7 +57,8 @@ import io.crate.common.exceptions.Exceptions;
  * a retention lease sync then that shard will be marked as stale.
  */
 public class RetentionLeaseSyncAction extends
-        TransportWriteAction<RetentionLeaseSyncAction.Request, RetentionLeaseSyncAction.Request, ReplicationResponse> {
+        TransportWriteAction<RetentionLeaseSyncAction.Request, RetentionLeaseSyncAction.Request, ReplicationResponse>
+        implements RetentionLeaseSyncer.SyncAction {
 
     public static final String ACTION_NAME = "indices:admin/seq_no/retention_lease_sync";
     private static final Logger LOGGER = LogManager.getLogger(RetentionLeaseSyncAction.class);
@@ -92,11 +94,12 @@ public class RetentionLeaseSyncAction extends
         assert false : "use RetentionLeaseSyncAction#sync";
     }
 
-    final void sync(ShardId shardId,
-                    String primaryAllocationId,
-                    long primaryTerm,
-                    RetentionLeases retentionLeases,
-                    ActionListener<ReplicationResponse> listener) {
+    @Override
+    public final void sync(ShardId shardId,
+                           String primaryAllocationId,
+                           long primaryTerm,
+                           RetentionLeases retentionLeases,
+                           ActionListener<ReplicationResponse> listener) {
         final Request request = new Request(shardId, retentionLeases);
         transportService.sendRequest(
             clusterService.localNode(),
@@ -137,7 +140,11 @@ public class RetentionLeaseSyncAction extends
             assert request.waitForActiveShards().equals(ActiveShardCount.NONE) : request.waitForActiveShards();
             Objects.requireNonNull(request);
             Objects.requireNonNull(primary);
+            StopWatch watch = new StopWatch("retention-leases primary");
+            watch.start("persist retention leases");
             primary.persistRetentionLeases();
+            watch.stop();
+            logger.error(watch.prettyPrint());
             listener.onResponse(new WritePrimaryResult<>(request, new ReplicationResponse(), null, primary));
         } catch (Throwable ex) {
             listener.onFailure(Exceptions.toException(ex));
@@ -148,8 +155,14 @@ public class RetentionLeaseSyncAction extends
     protected WriteReplicaResult shardOperationOnReplica(final Request request, final IndexShard replica) throws WriteStateException {
         Objects.requireNonNull(request);
         Objects.requireNonNull(replica);
+        StopWatch watch = new StopWatch("retention-leases replica");
+        watch.start("update retention leases on replica");
         replica.updateRetentionLeasesOnReplica(request.getRetentionLeases());
+        watch.stop();
+        watch.start("persist retention leases");
         replica.persistRetentionLeases();
+        watch.stop();
+        logger.error(watch.prettyPrint());
         return new WriteReplicaResult(null, replica);
     }
 

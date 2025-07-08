@@ -61,7 +61,7 @@ import io.crate.common.exceptions.Exceptions;
 public class RetentionLeaseBackgroundSyncAction extends TransportReplicationAction<
         RetentionLeaseBackgroundSyncAction.Request,
         RetentionLeaseBackgroundSyncAction.Request,
-        ReplicationResponse> {
+        ReplicationResponse> implements RetentionLeaseSyncer.BackgroundSyncAction {
 
     public static final String ACTION_NAME = "indices:admin/seq_no/retention_lease_background_sync";
     private static final Logger LOGGER = LogManager.getLogger(RetentionLeaseSyncAction.class);
@@ -96,7 +96,11 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
         assert false : "use RetentionLeaseBackgroundSyncAction#backgroundSync";
     }
 
-    final CompletableFuture<Void> backgroundSync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases) {
+    @Override
+    public final CompletableFuture<Void> backgroundSync(ShardId shardId,
+                                                        String primaryAllocationId,
+                                                        long primaryTerm,
+                                                        RetentionLeases retentionLeases) {
         final Request request = new Request(shardId, retentionLeases);
         CompletableFuture<Void> result = new CompletableFuture<>();
         transportService.sendRequest(

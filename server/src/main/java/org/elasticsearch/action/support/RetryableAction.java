@@ -146,7 +146,7 @@ public abstract class RetryableAction<Response> {
                 TimeValue currentDelay = delay.next();
                 addException(e);
                 if (isDone.get() == false) {
-                    logger.debug("Retrying action that failed in delay={} err={}", currentDelay, e);
+                    logger.error("Retrying action that failed in delay={} err={}", currentDelay, e);
                     try {
                         retryTask = scheduler.schedule(runnable, currentDelay.millis(), TimeUnit.MILLISECONDS);
                     } catch (EsRejectedExecutionException ree) {
