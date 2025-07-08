@@ -37,9 +37,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 
 @Singleton
 public class ShardSegments implements Iterable<ShardSegment> {
@@ -67,12 +65,10 @@ public class ShardSegments implements Iterable<ShardSegment> {
             List<Segment> segments = indexShard.segments();
             ShardId shardId = indexShard.shardId();
             PartitionName partitionName = clusterService.state().metadata().getPartitionName(shardId.getIndexUUID());
-            RelationName relationName = partitionName.relationName();
-            IndexParts indexParts = new IndexParts(relationName.schema(), relationName.name(), partitionName.ident());
             return segments.stream().map(
                 sgmt -> new ShardSegment(
                     shardId.id(),
-                    indexParts,
+                    partitionName,
                     sgmt,
                     indexShard.routingEntry().primary()));
         } catch (AlreadyClosedException | RelationUnknown | IndexNotFoundException ignored) {

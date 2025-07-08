@@ -41,7 +41,6 @@ import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.jetbrains.annotations.NotNull;
@@ -322,14 +321,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                 info.ident(),
                 "The relation " + info.ident().sqlFqn() + " doesn't support the operation");
         }
-    }
-
-    public <T extends TableInfo> T getTableInfo(String indexUUID) {
-        RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(indexUUID);
-        if (relationMetadata == null) {
-            throw new IllegalStateException("RelationMetadata for index " + indexUUID + " not found in cluster state");
-        }
-        return getTableInfo(relationMetadata.name());
     }
 
     public SchemaInfo getOrCreateSchemaInfo(String schemaName) {
