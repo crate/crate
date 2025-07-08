@@ -23,19 +23,19 @@ package io.crate.expression.reference.sys.shard;
 
 import org.elasticsearch.index.engine.Segment;
 
-import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 
 public class ShardSegment {
 
     private final int shardId;
-    private final IndexParts indexParts;
+    private final PartitionName partitionName;
     private final Segment segment;
     private final boolean primary;
 
 
-    ShardSegment(int shardId, IndexParts indexParts, Segment segment, boolean primary) {
+    ShardSegment(int shardId, PartitionName partitionName, Segment segment, boolean primary) {
         this.shardId = shardId;
-        this.indexParts = indexParts;
+        this.partitionName = partitionName;
         this.segment = segment;
         this.primary = primary;
     }
@@ -44,8 +44,8 @@ public class ShardSegment {
         return shardId;
     }
 
-    public IndexParts getIndexParts() {
-        return indexParts;
+    public PartitionName getPartitionName() {
+        return partitionName;
     }
 
     public Segment getSegment() {

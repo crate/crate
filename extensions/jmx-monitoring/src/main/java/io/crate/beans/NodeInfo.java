@@ -29,11 +29,13 @@ import java.util.function.Supplier;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
 import io.crate.common.collections.Tuple;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 
@@ -101,7 +103,7 @@ public class NodeInfo implements NodeInfoMXBean {
                     PartitionName partitionName;
                     try {
                         partitionName = cs.metadata().getPartitionName(shardId.getIndexUUID());
-                    } catch (Exception e) {
+                    } catch (RelationUnknown | IndexNotFoundException e) {
                         continue; // skip shards of indices that are not in the metadata
                     }
                     result.add(new ShardInfo(

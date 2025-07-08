@@ -206,7 +206,7 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
         var tableName = partitionName.asIndexName();
         SQLExecutor.builder(clusterService).build()
             .addTable("CREATE TABLE doc.parted (id INT, p TEXT) PARTITIONED BY (p) " +
-                      "CLUSTERED INTO 3 SHARDS WITH (number_of_replicas = 2)", tableName);
+                      "CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 2)", tableName);
 
         var indexUUID = clusterService.state().metadata()
             .getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
