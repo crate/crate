@@ -101,4 +101,18 @@ public class StorageOptionsITest extends IntegTestCase {
                 "2",
                 "1");
     }
+
+    @Test
+    public void test_timestamp_with_columnstore_false() throws Exception {
+        execute("""
+            create table tbl (
+                ts timestamp without time zone storage with (columnstore=false),
+                tsz timestamp with time zone storage with (columnstore=false)
+            )""");
+        execute("insert into tbl (ts, tsz) values (?, ?)", new Object[]{"2025-06-27 11:22:33.987", "2025-06-27 11:22:33.987+02:00"});
+        execute("refresh table tbl");
+        execute("select ts, tsz from tbl limit 1");
+        assertThat((long) response.rows()[0][0]).isGreaterThan(0L); // Rough check due to randomized tz
+        assertThat((long) response.rows()[0][1]).isEqualTo(1751016153987L);
+    }
 }

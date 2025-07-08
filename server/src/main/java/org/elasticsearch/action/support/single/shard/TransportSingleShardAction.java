@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.support.ChannelActionListener;
@@ -164,27 +165,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
                     clusterService.localNode(),
                     transportShardAction,
                     request,
-                    new TransportResponseHandler<Response>() {
-                        @Override
-                        public Response read(StreamInput in) throws IOException {
-                            return reader.read(in);
-                        }
-
-                        @Override
-                        public String executor() {
-                            return ThreadPool.Names.SAME;
-                        }
-
-                        @Override
-                        public void handleResponse(final Response response) {
-                            listener.onResponse(response);
-                        }
-
-                        @Override
-                        public void handleException(TransportException exp) {
-                            listener.onFailure(exp);
-                        }
-                    }
+                    new ActionListenerResponseHandler<>(transportShardAction, listener, reader)
                 );
             } else {
                 perform(null);

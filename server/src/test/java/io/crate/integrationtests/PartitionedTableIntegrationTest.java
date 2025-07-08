@@ -2267,7 +2267,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             // execute the prepared statement
             session.bind("portalName", "preparedStatement", List.of(), null);
             session.execute("portalName", 0, new BaseResultReceiver());
-            session.sync().get();
+            session.sync(false).get();
         }
         execute("refresh table doc.t2");
 

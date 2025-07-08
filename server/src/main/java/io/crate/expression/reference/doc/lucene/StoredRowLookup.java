@@ -44,6 +44,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -59,13 +60,14 @@ public abstract class StoredRowLookup implements StoredRow {
 
     public static final Version PARTIAL_STORED_SOURCE_VERSION = Version.V_5_10_0;
 
-    protected final PartitionValueInjector partitionValueInjector;
+    private final PartitionName partitionName;
     protected final DocTableInfo table;
 
     protected int doc;
     protected ReaderContext readerContext;
     protected boolean docVisited = false;
     protected Map<String, Object> parsedSource = null;
+
 
     public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, String indexName) {
         return create(shardCreatedVersion, table, indexName, List.of(), false);
@@ -79,8 +81,19 @@ public abstract class StoredRowLookup implements StoredRow {
     }
 
     private StoredRowLookup(DocTableInfo table, String indexName) {
-        this.partitionValueInjector = PartitionValueInjector.create(indexName, table.partitionedByColumns());
         this.table = table;
+        this.partitionName = table.isPartitioned() ? PartitionName.fromIndexOrTemplate(indexName) : null;
+        assert partitionName == null || partitionName.values().size() == table.partitionedBy().size()
+            : "PartitionName must have values for each partitionedBy column";
+    }
+
+    protected Map<String, Object> injectPartitionValues(Map<String, Object> input) {
+        List<ColumnIdent> partitionedBy = table.partitionedBy();
+        for (int i = 0; i < partitionedBy.size(); i++) {
+            ColumnIdent columnIdent = partitionedBy.get(i);
+            Maps.mergeInto(input, columnIdent.name(), columnIdent.path(), partitionName.values().get(i));
+        }
+        return input;
     }
 
     public final StoredRow getStoredRow(ReaderContext context, int doc) {
@@ -159,7 +172,7 @@ public abstract class StoredRowLookup implements StoredRow {
         @Override
         public Map<String, Object> asMap() {
             if (parsedSource == null) {
-                parsedSource = partitionValueInjector.injectValues(sourceParser.parse(loadStoredFields()));
+                parsedSource = injectPartitionValues(sourceParser.parse(loadStoredFields()));
             }
             return parsedSource;
         }
@@ -292,7 +305,7 @@ public abstract class StoredRowLookup implements StoredRow {
                     Maps.mergeInto(docMap, expr.ident.name(), expr.ident.path(), value);
                 }
             }
-            docMap = partitionValueInjector.injectValues(docMap);
+            docMap = injectPartitionValues(docMap);
             docVisited = true;
             return docMap;
         }

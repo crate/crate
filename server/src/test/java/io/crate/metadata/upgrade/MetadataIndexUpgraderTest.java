@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.Version;
@@ -41,6 +42,7 @@ import org.elasticsearch.test.VersionUtils;
 import org.junit.Test;
 
 import io.crate.Constants;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class MetadataIndexUpgraderTest extends ESTestCase {
@@ -283,5 +285,21 @@ public class MetadataIndexUpgraderTest extends ESTestCase {
 
         assertThat(a).containsExactlyEntriesOf(Map.of("position", 3));
         assertThat(b).containsExactlyEntriesOf(Map.of("position", 4));
+    }
+
+    @Test
+    public void test_upgrade_adds_partition_values() {
+        RelationName relationName = new RelationName("doc", "users");
+        PartitionName partitionName = new PartitionName(relationName, List.of("2023-10-01"));
+        IndexMetadata indexMetadata = IndexMetadata.builder(partitionName.asIndexName())
+            .settings(Settings.builder().put("index.version.created", Version.V_5_10_10))
+            .numberOfShards(1)
+            .numberOfReplicas(0)
+            .build();
+        assertThat(indexMetadata.partitionValues()).isEmpty();
+
+        MetadataIndexUpgrader metadataIndexUpgrader = new MetadataIndexUpgrader();
+        IndexMetadata updatedMetadata = metadataIndexUpgrader.upgrade(indexMetadata, null);
+        assertThat(updatedMetadata.partitionValues()).contains("2023-10-01");
     }
 }

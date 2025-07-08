@@ -334,7 +334,6 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
     public void testDoNotCancelRecoveryForBrokenNode() throws Exception {
         cluster().startMasterOnlyNode();
         String nodeWithPrimary = cluster().startDataOnlyNode();
-        String indexName = "test";
 
         execute("""
             create table doc.test (x int)
@@ -381,15 +380,18 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             execute(
                 "select seq_no_stats['global_checkpoint'], seq_no_stats['max_seq_no'], retention_leases['leases'] from sys.shards where table_name = ?",
                 new Object[]{indexName});
-            long globalCheckPoint = (long) response.rows()[0][0];
-            long maxSeqNo = (long) response.rows()[0][1];
-            assertThat(globalCheckPoint).isEqualTo(maxSeqNo);
-            List<Map<String, Object>> rentetionLease = (List<Map<String, Object>>) response.rows()[0][2];
-            assertThat(rentetionLease).hasSize(activeRetentionLeaseIds.size());
-            for (var activeRetentionLease : rentetionLease) {
-                assertThat(
-                    DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no"), CoordinatorTxnCtx.systemTransactionContext().sessionSettings()))
-                    .isEqualTo(globalCheckPoint + 1L);
+            assertThat(response.rowCount()).isGreaterThan(0);
+            for (Object[] row : response.rows()) {
+                Long globalCheckPoint = (Long) row[0];
+                Long maxSeqNo = (Long) row[1];
+                assertThat(globalCheckPoint).isEqualTo(maxSeqNo);
+                List<Map<String, Object>> rentetionLease = (List<Map<String, Object>>) row[2];
+                assertThat(rentetionLease).hasSize(activeRetentionLeaseIds.size());
+                for (var activeRetentionLease : rentetionLease) {
+                    assertThat(
+                        DataTypes.LONG.explicitCast(activeRetentionLease.get("retaining_seq_no"), CoordinatorTxnCtx.systemTransactionContext().sessionSettings()))
+                        .isEqualTo(globalCheckPoint + 1L);
+                }
             }
         });
     }
