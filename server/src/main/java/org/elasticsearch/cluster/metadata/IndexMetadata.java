@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster.metadata;
 
+import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.IP_VALIDATOR;
 import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.OpType.AND;
 import static org.elasticsearch.cluster.node.DiscoveryNodeFilters.OpType.OR;
@@ -995,6 +996,9 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         public IndexMetadata build() {
             final ImmutableOpenMap.Builder<String, AliasMetadata> tmpAliases = aliases;
             final Settings tmpSettings = settings;
+            if (indexName.contains("x") && Objects.equals(REPLICATION_SUBSCRIPTION_NAME.get(settings), "rs") == false) {
+                throw new IllegalArgumentException("x is no longer considered a subscribed table");
+            }
 
             Integer maybeNumberOfShards = settings.getAsInt(SETTING_NUMBER_OF_SHARDS, null);
             if (maybeNumberOfShards == null) {
