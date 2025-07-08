@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
@@ -33,8 +34,6 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
-
-import io.crate.testing.Asserts;
 
 public class CreateTableIntegrationTest extends IntegTestCase {
 
@@ -154,7 +153,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_enforce_soft_deletes() {
-        Asserts.assertSQLError(
+        assertSQLError(
             () -> execute("create table test(t timestamp) with (\"soft_deletes.enabled\" = false)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
@@ -171,7 +170,7 @@ public class CreateTableIntegrationTest extends IntegTestCase {
                     col2 INT GENERATED ALWAYS AS col1*2 CONSTRAINT gt_zero CHECK (col2 > 0)
                 )
                 """);
-        Asserts.assertSQLError(
+        assertSQLError(
             () -> execute("INSERT INTO test(col1) VALUES(0)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4000)
