@@ -85,7 +85,6 @@ public class TransportCreateBlobTable extends TransportMasterNodeAction<CreateBl
 
     @Override
     protected ClusterBlockException checkBlock(CreateBlobTableRequest request, ClusterState state) {
-        String indexName = request.name().indexNameOrAlias();
-        return state.blocks().indexBlockedException(ClusterBlockLevel.METADATA_WRITE, indexName);
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }

@@ -105,16 +105,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
 
     @Override
     protected ClusterBlockException checkBlock(CreateTableRequest request, ClusterState state) {
-        var relationName = request.getTableName();
-        var isPartitioned = request.partitionedBy().isEmpty() == false;
-        if (isPartitioned) {
-            return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
-        } else {
-            return state.blocks().indexBlockedException(
-                ClusterBlockLevel.METADATA_WRITE,
-                relationName.indexNameOrAlias()
-            );
-        }
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 
     @Override
