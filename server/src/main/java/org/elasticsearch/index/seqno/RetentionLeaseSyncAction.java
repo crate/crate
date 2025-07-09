@@ -92,7 +92,10 @@ public class RetentionLeaseSyncAction extends
         assert false : "use RetentionLeaseSyncAction#sync";
     }
 
-    final void sync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases,
+    final void sync(ShardId shardId,
+                    String primaryAllocationId,
+                    long primaryTerm,
+                    RetentionLeases retentionLeases,
                     ActionListener<ReplicationResponse> listener) {
         final Request request = new Request(shardId, retentionLeases);
         transportService.sendRequest(
@@ -136,8 +139,8 @@ public class RetentionLeaseSyncAction extends
             Objects.requireNonNull(primary);
             primary.persistRetentionLeases();
             listener.onResponse(new WritePrimaryResult<>(request, new ReplicationResponse(), null, primary));
-        } catch (Exception ex) {
-            listener.onFailure(ex);
+        } catch (Throwable ex) {
+            listener.onFailure(Exceptions.toException(ex));
         }
     }
 

@@ -254,4 +254,61 @@ public class RolesMetadataTest extends ESTestCase {
         assertThat(affectedRolePrivileges).isEqualTo(1);
         assertThat(rolesMetadata.roles().get("Ford").privileges().size()).isEqualTo(1);
     }
+
+    @Test
+    public void test_cannot_grant_already_granted_role_by_different_grantor() {
+        var rolesMetadata = new RolesMetadata();
+        rolesMetadata.roles().put("Ford", userOf(
+            "Ford",
+            Set.of(),
+            Set.of(),
+            getSecureHash("fords-pwd"))
+        );
+        rolesMetadata.roles().put("role1", roleOf("role1"));
+        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford"), new GrantedRolesChange(
+            Policy.GRANT,
+            Set.of("role1"),
+            "theGrantor1"));
+        assertThat(affectedRolePrivileges).isEqualTo(1);
+
+        // try re-granting 'role1' by the same grantor, 'theGrantor1'
+        affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford"), new GrantedRolesChange(
+            Policy.GRANT,
+            Set.of("role1"),
+            "theGrantor1"));
+        assertThat(affectedRolePrivileges).isEqualTo(0);
+        assertThat(rolesMetadata.roles().get("Ford").grantedRoles()).containsExactly(new GrantedRole("role1", "theGrantor1"));
+
+        // try re-granting 'role1' by a different grantor, 'theGrantor2'
+        affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford"), new GrantedRolesChange(
+            Policy.GRANT,
+            Set.of("role1"),
+            "theGrantor2"));
+        assertThat(affectedRolePrivileges).isEqualTo(0);
+        assertThat(rolesMetadata.roles().get("Ford").grantedRoles()).containsExactly(new GrantedRole("role1", "theGrantor1"));
+    }
+
+    @Test
+    public void test_superuser_crate_can_revoke_any_granted_roles() {
+        var rolesMetadata = new RolesMetadata();
+        rolesMetadata.roles().put("Ford", userOf(
+            "Ford",
+            Set.of(),
+            Set.of(),
+            getSecureHash("fords-pwd"))
+        );
+        rolesMetadata.roles().put("role1", roleOf("role1"));
+        rolesMetadata.applyRolePrivileges(List.of("Ford"), new GrantedRolesChange(
+            Policy.GRANT,
+            Set.of("role1"),
+            "theGrantor1"));
+        assertThat(rolesMetadata.roles().get("Ford").grantedRoles()).containsExactly(new GrantedRole("role1", "theGrantor1"));
+
+        var affectedRolePrivileges = rolesMetadata.applyRolePrivileges(List.of("Ford"), new GrantedRolesChange(
+            Policy.REVOKE,
+            Set.of("role1"),
+            Role.CRATE_USER.name()));
+        assertThat(affectedRolePrivileges).isEqualTo(1);
+        assertThat(rolesMetadata.roles().get("Ford").grantedRoles()).isEmpty();
+    }
 }
