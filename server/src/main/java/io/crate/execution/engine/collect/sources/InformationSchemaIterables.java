@@ -270,7 +270,7 @@ public class InformationSchemaIterables {
             .flatMap(s -> sequentialStream(s.getTables()));
     }
 
-    private static <T> Stream<T> sequentialStream(Iterable<T> iterable) {
+    public static <T> Stream<T> sequentialStream(Iterable<T> iterable) {
         return stream(iterable.spliterator(), false);
     }
 

@@ -189,6 +189,7 @@ import io.crate.session.Session;
 import io.crate.session.Sessions;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -1342,6 +1343,13 @@ public abstract class IntegTestCase extends ESTestCase {
     @After
     public void resetPageSize() {
         Paging.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
+    }
+
+    @After
+    private void resetTableStats() {
+        for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
+            tableStats.clear();
+        }
     }
 
     public IntegTestCase(SQLTransportExecutor sqlExecutor) {
