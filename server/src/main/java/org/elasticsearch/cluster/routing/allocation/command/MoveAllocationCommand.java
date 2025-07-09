@@ -117,7 +117,7 @@ public class MoveAllocationCommand implements AllocationCommand {
         }
 
         for (ShardRouting shardRouting : fromRoutingNode) {
-            if (!shardRouting.shardId().getIndexName().equals(index)) {
+            if (!shardRouting.shardId().getIndexUUID().equals(index)) {
                 continue;
             }
             if (shardRouting.shardId().id() != shardId) {

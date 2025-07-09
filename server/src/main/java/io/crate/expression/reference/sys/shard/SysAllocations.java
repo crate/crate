@@ -36,9 +36,12 @@ import org.elasticsearch.cluster.routing.allocation.decider.AllocationDeciders;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.snapshots.SnapshotsInfoService;
 
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.PartitionName;
 
 @Singleton
 public class SysAllocations implements Iterable<SysAllocation> {
@@ -77,7 +80,6 @@ public class SysAllocations implements Iterable<SysAllocation> {
         );
         return allocation.routingTable().allShards()
             .stream()
-            .filter(shardRouting -> !IndexName.isDangling(shardRouting.getIndexName()))
             .map(shardRouting -> createSysAllocations(allocation, shardRouting))
             .iterator();
     }
@@ -91,12 +93,20 @@ public class SysAllocations implements Iterable<SysAllocation> {
                 return allocationService.explainShardAllocation(shardRouting, allocation);
             }
         };
+        PartitionName partitionName;
+        try {
+            partitionName = clusterService.state().metadata().getPartitionName(shardRouting.getIndexUUID());
+        } catch (RelationUnknown | IndexNotFoundException e) {
+            // Must be an orphaned partition
+            partitionName = IndexName.decode(shardRouting.index().getName()).toPartitionName();
+        }
         return new SysAllocation(
             shardRouting.shardId(),
             shardRouting.state(),
             shardDecision,
             shardRouting.currentNodeId(),
-            shardRouting.primary()
+            shardRouting.primary(),
+            partitionName
         );
     }
 }

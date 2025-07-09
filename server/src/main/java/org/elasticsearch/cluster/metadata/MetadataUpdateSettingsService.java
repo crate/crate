@@ -142,7 +142,7 @@ public class MetadataUpdateSettingsService {
 
         List<String> openIndices = indexes.stream()
             .filter(im -> im.getState() == IndexMetadata.State.OPEN)
-            .map(im -> im.getIndex().getName())
+            .map(im -> im.getIndex().getUUID())
             .toList();
         if (!skippedSettings.isEmpty() && !openIndices.isEmpty()) {
             throw new IllegalArgumentException(String.format(Locale.ROOT,
@@ -247,11 +247,11 @@ public class MetadataUpdateSettingsService {
         if (setting.exists(openSettings)) {
             final boolean updateBlock = setting.get(openSettings);
             for (IndexMetadata im : indexes) {
-                String index = im.getIndex().getName();
+                String indexUUID = im.getIndex().getUUID();
                 if (updateBlock) {
-                    blocks.addIndexBlock(index, block);
+                    blocks.addIndexBlock(indexUUID, block);
                 } else {
-                    blocks.removeIndexBlock(index, block);
+                    blocks.removeIndexBlock(indexUUID, block);
                 }
             }
         }

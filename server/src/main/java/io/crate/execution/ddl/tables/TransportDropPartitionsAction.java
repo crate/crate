@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MetadataDeleteIndexService;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -41,6 +42,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.cluster.DDLClusterStateTaskExecutor;
@@ -78,6 +80,10 @@ public class TransportDropPartitionsAction extends AbstractDDLTransportAction<Dr
         executor = new DDLClusterStateTaskExecutor<>() {
             @Override
             protected ClusterState execute(ClusterState currentState, DropPartitionsRequest request) {
+                RelationMetadata.Table table = currentState.metadata().getRelation(request.relationName());
+                if (table == null) {
+                    throw new RelationUnknown(request.relationName());
+                }
                 Collection<Index> indices = getIndices(currentState, request, IndexMetadata::getIndex);
 
                 if (indices.isEmpty()) {

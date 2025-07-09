@@ -40,6 +40,7 @@ import java.util.stream.Collector;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
@@ -634,6 +635,9 @@ public class JobSetup {
                 consumerMemoryManager,
                 projectorFactory
             );
+
+            Metadata metadata = clusterService.state().metadata();
+
             context.registerSubContext(new PKLookupTask(
                 pkLookupPhase.jobId(),
                 pkLookupPhase.phaseId(),
@@ -642,7 +646,8 @@ public class JobSetup {
                 memoryManagerFactory,
                 ramAccountingBlockSizeInBytes,
                 context.transactionContext,
-                schemas,
+                schemas::getTableInfo,
+                metadata::getPartitionName,
                 inputFactory,
                 pkLookupOperation,
                 pkLookupPhase.partitionedByColumns(),

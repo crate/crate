@@ -46,7 +46,7 @@ import io.crate.types.DataType;
 
 public class RawIndexer {
 
-    private final String indexName;
+    private final List<String> partitionValues;
     private final DocTableInfo table;
     private final TransactionContext txnCtx;
     private final NodeContext nodeCtx;
@@ -60,14 +60,14 @@ public class RawIndexer {
     private Indexer currentRowIndexer;
     private IndexItem.StaticItem currentItem;
 
-    public RawIndexer(String indexName,
+    public RawIndexer(List<String> partitionValues,
                       DocTableInfo table,
                       Version shardVersionCreated,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
                       Symbol[] returnValues,
                       @NotNull List<Reference> nonDeterministicSynthetics) {
-        this.indexName = indexName;
+        this.partitionValues = partitionValues;
         this.table = table;
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
@@ -99,7 +99,7 @@ public class RawIndexer {
             targetRefs.addAll(nonDeterministicSynthetics);
 
             return new Indexer(
-                indexName,
+                partitionValues,
                 table,
                 shardVersionCreated,
                 txnCtx,

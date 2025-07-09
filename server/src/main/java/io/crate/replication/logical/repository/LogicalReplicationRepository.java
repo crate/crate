@@ -157,16 +157,16 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         return getPublicationsState()
             .thenApply(stateResponse -> {
-                List<String> indicesNames = new ArrayList<>();
+                List<String> indexUUIDs = new ArrayList<>();
                 for (var container : stateResponse.metadata().indices().values()) {
                     IndexMetadata im = container.value;
                     if (REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings())) {
-                        indicesNames.add(im.getIndex().getName());
+                        indexUUIDs.add(im.getIndex().getUUID());
                     }
                 }
                 return new SnapshotInfo(
                     snapshotId,
-                    indicesNames,
+                    indexUUIDs,
                     SnapshotState.SUCCESS,
                     Version.CURRENT
                 );
@@ -380,7 +380,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             ClusterState publisherClusterState = resp.getState();
             var publisherShardRouting = publisherClusterState.routingTable()
                 .shardRoutingTable(
-                    snapshotShardId.getIndexName(),
+                    snapshotShardId.getIndexUUID(),
                     snapshotShardId.id()
                 )
                 .primaryShard();
@@ -388,7 +388,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             // Get the index UUID of the publisher cluster for the metadata request
             var shardId = new ShardId(
                 snapshotShardId.getIndexName(),
-                publisherClusterState.metadata().index(indexId.getName()).getIndexUUID(),
+                indexId.getId(),
                 snapshotShardId.id()
             );
             var restoreUUID = UUIDs.randomBase64UUID();

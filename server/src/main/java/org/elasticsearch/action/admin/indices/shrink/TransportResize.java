@@ -20,6 +20,7 @@ package org.elasticsearch.action.admin.indices.shrink;
 
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
@@ -28,8 +29,10 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -37,7 +40,6 @@ import org.elasticsearch.transport.TransportService;
 
 import io.crate.execution.ddl.index.SwapAndDropIndexRequest;
 import io.crate.execution.ddl.index.TransportSwapAndDropIndexName;
-import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
 import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
 import io.crate.metadata.PartitionName;
@@ -95,7 +97,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
             request.table(),
             request.partitionValues(),
             false,
-            idxMd -> idxMd.getIndex().getName()
+            idxMd -> idxMd.getIndex().getUUID()
         ).toArray(String[]::new);
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_WRITE, indices);
     }
@@ -104,20 +106,20 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
     protected void masterOperation(final ResizeRequest request,
                                    final ClusterState state,
                                    final ActionListener<ResizeResponse> listener) {
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_6_0_0) == false) {
+            throw new IllegalStateException("Cannot resize a table/partition until all nodes are upgraded to 6.0");
+        }
 
-        String sourceIndex = request.partitionValues().isEmpty()
-            ? request.table().indexNameOrAlias()
-            : new PartitionName(request.table(), request.partitionValues()).asIndexName();
+        final String sourceIndexUUID = state.metadata().getIndex(request.table(), request.partitionValues(), true, IndexMetadata::getIndexUUID);
+        final String resizedIndexUUID = UUIDs.randomBase64UUID();
 
-        // there is no need to fetch docs stats for split but we keep it simple and do it anyway for simplicity of the code
-        final String resizedIndex = AlterTableClient.RESIZE_PREFIX + sourceIndex;
         client.stats(new IndicesStatsRequest(new PartitionName(request.table(), request.partitionValues()))
             .clear()
             .docs(true))
-            .thenCompose(statsResponse -> createIndexService.resizeIndex(request, statsResponse))
+            .thenCompose(statsResponse -> createIndexService.resizeIndex(request, sourceIndexUUID, resizedIndexUUID, statsResponse))
             .thenCompose(resizeResp -> {
                 if (resizeResp.isAcknowledged() && resizeResp.isShardsAcknowledged()) {
-                    SwapAndDropIndexRequest req = new SwapAndDropIndexRequest(resizedIndex, sourceIndex);
+                    SwapAndDropIndexRequest req = new SwapAndDropIndexRequest(resizedIndexUUID, sourceIndexUUID);
                     return swapAndDropIndexAction.execute(req).thenApply(ignored -> resizeResp);
                 } else {
                     return gcDanglingArtifactsAction.execute(GCDanglingArtifactsRequest.INSTANCE).handle(
@@ -127,6 +129,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
                         });
                 }
             })
+
             .whenComplete(listener);
     }
 }

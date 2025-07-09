@@ -126,15 +126,15 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         if (relationMetadata == null) {
             throw new RelationUnknown(relation);
         }
-        PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
         if (relationMetadata instanceof RelationMetadata.Table table) {
-            return tableFromRelationMetadata(table, publicationsMetadata);
+            return tableFromRelationMetadata(table, metadata);
         }
         throw new UnsupportedOperationException("Unsupported relation type: " + relationMetadata.getClass().getSimpleName());
     }
 
     private DocTableInfo tableFromRelationMetadata(RelationMetadata.Table table,
-                                                   @Nullable PublicationsMetadata publicationsMetadata) {
+                                                   Metadata metadata) {
+        PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
         Map<ColumnIdent, Reference> columns = table.columns().stream()
             .filter(ref -> !ref.isDropped())
             .filter(ref -> !(ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty()))
@@ -166,6 +166,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             expressionAnalysisContext,
             table.checkConstraints()
         );
+
         return new DocTableInfo(
             table.name(),
             columns,
@@ -243,6 +244,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
             }
         }
+
         Version versionUpgraded = null;
         boolean isClosed = Maps.getOrDefault(
             Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
@@ -332,6 +334,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 versionCreated = Version.V_5_4_0;
             }
         }
+
         return new DocTableInfo(
             relationName,
             references,
