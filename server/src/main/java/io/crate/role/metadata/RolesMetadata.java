@@ -27,6 +27,7 @@ import java.util.Collection;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -218,12 +219,28 @@ public class RolesMetadata extends AbstractNamedDiffable<Metadata.Custom> implem
         for (var roleNameToApply : newGrantedRolesChange.roleNames()) {
 
             if (newGrantedRolesChange.policy() == Policy.GRANT) {
-                if (grantedRoles.add(new GrantedRole(roleNameToApply, newGrantedRolesChange.grantor()))) {
+                boolean roleAlreadyGranted = false;
+                for (GrantedRole grantedRole : grantedRoles) {
+                    if (grantedRole.roleName().equals(roleNameToApply)) {
+                        roleAlreadyGranted = true;
+                        break;
+                    }
+                }
+                if (!roleAlreadyGranted) {
+                    grantedRoles.add(new GrantedRole(roleNameToApply, newGrantedRolesChange.grantor()));
                     affectedCount++;
                 }
             } else if (newGrantedRolesChange.policy() == Policy.REVOKE) {
-                if (grantedRoles.remove(new GrantedRole(roleNameToApply, newGrantedRolesChange.grantor()))) {
-                    affectedCount++;
+                Iterator<GrantedRole> iterator = grantedRoles.iterator();
+                while (iterator.hasNext()) {
+                    GrantedRole grantedRole = iterator.next();
+                    if (grantedRole.roleName().equals(roleNameToApply) &&
+                        (grantedRole.grantor().equals(newGrantedRolesChange.grantor()) || Role.CRATE_USER.name().equals(newGrantedRolesChange.grantor()))) {
+                        iterator.remove();
+                        affectedCount++;
+                        // search all granted roles because duplicate roles could be granted due to a bug
+                        // https://github.com/crate/crate/issues/18099
+                    }
                 }
             }
         }

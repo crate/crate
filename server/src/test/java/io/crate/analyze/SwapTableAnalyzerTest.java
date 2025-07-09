@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -38,7 +39,10 @@ public class SwapTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void setUpExecutorWithT1AndT2() throws Exception {
         e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (x int)")
-            .addTable("create table t2 (x long)");
+            .addTable("create table t2 (x long)")
+            .addView(new RelationName("doc", "v1"), "select * from t1")
+            .addTable("create table t3 (x int)")
+            .addPublication("pub1", false, new RelationName("doc", "t3"));
     }
 
     @Test
@@ -70,6 +74,20 @@ public class SwapTableAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testSwapTableDoesNotWorkOnSystemTables() {
         assertThatThrownBy(() -> e.analyze("alter cluster swap table sys.cluster to t2"))
-            .hasMessage("The relation \"sys.cluster\" doesn't support or allow ALTER operations");
+            .hasMessage("The relation \"sys.cluster\" doesn't support or allow ALTER RENAME operations");
+    }
+
+    @Test
+    public void test_swap_table_does_not_work_on_views() {
+        assertThatThrownBy(() -> e.analyze("alter cluster swap table v1 to t2"))
+            .hasMessage("The relation \"v1\" doesn't support or allow ALTER RENAME operations");
+        assertThatThrownBy(() -> e.analyze("alter cluster swap table t2 to v1"))
+            .hasMessage("The relation \"v1\" doesn't support or allow ALTER RENAME operations");
+    }
+
+    @Test
+    public void test_swap_table_does_not_work_on_logical_replication_published_table() {
+        assertThatThrownBy(() -> e.analyze("alter cluster swap table t1 to t3"))
+            .hasMessage("The relation \"doc.t3\" doesn't allow ALTER RENAME operations, because it is included in a logical replication publication.");
     }
 }
