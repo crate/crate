@@ -53,7 +53,7 @@ import io.crate.metadata.RelationName;
  * Tests relating to the loss of the master.
  */
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
-//@IntegTestCase.Slow
+@IntegTestCase.Slow
 public class MasterDisruptionIT extends AbstractDisruptionTestCase {
 
     /**

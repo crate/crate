@@ -20,6 +20,7 @@ package org.elasticsearch.action.admin.indices.shrink;
 
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.admin.indices.stats.IndicesStatsRequest;
@@ -105,8 +106,9 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
     protected void masterOperation(final ResizeRequest request,
                                    final ClusterState state,
                                    final ActionListener<ResizeResponse> listener) {
-
-
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_6_0_0) == false) {
+            throw new IllegalStateException("Cannot resize a table/partition until all nodes are upgraded to 6.0");
+        }
 
         final String sourceIndexUUID = state.metadata().getIndex(request.table(), request.partitionValues(), true, IndexMetadata::getIndexUUID);
         final String resizedIndexUUID = UUIDs.randomBase64UUID();
