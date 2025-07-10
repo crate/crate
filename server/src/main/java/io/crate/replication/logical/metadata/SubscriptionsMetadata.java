@@ -81,10 +81,16 @@ public class SubscriptionsMetadata extends AbstractNamedDiffable<Metadata.Custom
 
     @Nullable
     public Subscription get(String subscriptionName) {
+        if (subscriptionByName.values().stream().anyMatch(s -> s.relations().isEmpty())) {
+            throw new IllegalStateException("subscriptions without relations");
+        }
         return subscriptionByName.get(subscriptionName);
     }
 
     public Map<String, Subscription> subscription() {
+        if (subscriptionByName.values().stream().anyMatch(s -> s.relations().isEmpty())) {
+            throw new IllegalStateException("subscriptions without relations");
+        }
         return subscriptionByName;
     }
 
