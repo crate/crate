@@ -340,7 +340,7 @@ public class SQLTransportExecutor {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");
             }
-            session.sync(false).whenComplete((Object result, Throwable t) -> {
+            session.sync(false).whenComplete((Object _, Throwable t) -> {
                 if (t == null) {
                     listener.onResponse(bulkResponse);
                 } else {

@@ -29,6 +29,8 @@ import io.crate.metadata.Schemas;
 
 public final class TableDefinitions {
 
+    private TableDefinitions() {}
+
     public static final RelationName USER_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
     public static final String USER_TABLE_DEFINITION =

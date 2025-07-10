@@ -27,6 +27,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.assertj.core.api.AbstractAssert;
+import org.assertj.core.api.Assertions;
 import org.assertj.core.api.ObjectAssert;
 import org.jetbrains.annotations.Nullable;
 
@@ -255,6 +256,6 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
     }
 
     public ObjectAssert<Object> extracting(String property) {
-        return super.extracting(property, t -> assertThat(t));
+        return super.extracting(property, Assertions::assertThat);
     }
 }
