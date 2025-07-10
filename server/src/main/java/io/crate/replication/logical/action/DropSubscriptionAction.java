@@ -102,7 +102,11 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                 mdBuilder.put(templateBuilder.settings(settingsBuilder.build()).build());
             }
         }
-        return ClusterState.builder(currentState).metadata(mdBuilder).build();
+        try {
+            return ClusterState.builder(currentState).metadata(mdBuilder).build();
+        } finally {
+            throw new IllegalStateException("Any drop subscriptions are wrong, because I won't trigger it");
+        }
     }
 
     @Singleton

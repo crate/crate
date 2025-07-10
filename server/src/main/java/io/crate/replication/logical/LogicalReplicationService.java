@@ -419,6 +419,9 @@ public class LogicalReplicationService implements ClusterStateListener, Closeabl
     private CompletableFuture<Boolean> updateSubscriptionState(String subscriptionName,
                                                                Subscription subscription,
                                                                Map<RelationName, Subscription.RelationState> relations) {
+        if (subscription.relations().size() != relations.size()) {
+            throw new IllegalStateException("SubscriptionState counts must stay the same");
+        }
         var newSubscription = new Subscription(
             subscription.owner(),
             subscription.connectionInfo(),
