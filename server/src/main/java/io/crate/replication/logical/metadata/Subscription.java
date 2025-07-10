@@ -99,6 +99,9 @@ public class Subscription implements Writeable {
         this.publications = publications;
         this.settings = settings;
         this.relations = relations;
+        if (relations.isEmpty()) {
+            relations.put(new RelationName("doc", "x"), new RelationState(State.FAILED, "when is this every empty?"));
+        }
     }
 
     public Subscription(StreamInput in) throws IOException {
