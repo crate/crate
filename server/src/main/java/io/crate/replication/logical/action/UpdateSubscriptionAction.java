@@ -65,6 +65,9 @@ public class UpdateSubscriptionAction extends ActionType<AcknowledgedResponse> {
 
     @VisibleForTesting
     static Subscription updateSubscription(Subscription oldSubscription, Subscription newSubscription) {
+        if (oldSubscription.relations().size() != newSubscription.relations().size()) {
+            throw new IllegalStateException("Subscription relations counts must match!!");
+        }
         HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
         for (var entry : newSubscription.relations().entrySet()) {
             var relationName = entry.getKey();
