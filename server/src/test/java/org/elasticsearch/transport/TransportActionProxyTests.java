@@ -37,7 +37,9 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
@@ -77,11 +79,10 @@ public class TransportActionProxyTests extends ESTestCase {
     }
 
     @Override
+    @After
     public void tearDown() throws Exception {
         super.tearDown();
-        IOUtils.close(serviceA, serviceB, serviceC, nettyBootstrap, () -> {
-            terminate(threadPool);
-        });
+        IOUtils.close(serviceA, serviceB, serviceC, nettyBootstrap, () -> terminate(threadPool));
     }
 
     private MockTransportService buildService(final Version version) {
@@ -89,14 +90,13 @@ public class TransportActionProxyTests extends ESTestCase {
         service.start();
         service.acceptIncomingRequests();
         return service;
-
     }
 
-
+    @Test
     public void testSendMessage() throws InterruptedException {
         serviceA.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertThat("TS_A").isEqualTo(request.sourceNode);
+                                            assertThat(request.sourceNode).isEqualTo("TS_A");
                                             SimpleTestResponse response = new SimpleTestResponse("TS_A");
                                             channel.sendResponse(response);
                                         });
@@ -105,7 +105,7 @@ public class TransportActionProxyTests extends ESTestCase {
 
         serviceB.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertThat("TS_A").isEqualTo(request.sourceNode);
+                                            assertThat(request.sourceNode).isEqualTo("TS_A");
                                             SimpleTestResponse response = new SimpleTestResponse("TS_B");
                                             channel.sendResponse(response);
                                         });
@@ -113,7 +113,7 @@ public class TransportActionProxyTests extends ESTestCase {
         AbstractSimpleTransportTestCase.connectToNode(serviceB, nodeC);
         serviceC.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertThat("TS_A").isEqualTo(request.sourceNode);
+                                            assertThat(request.sourceNode).isEqualTo("TS_A");
                                             SimpleTestResponse response = new SimpleTestResponse("TS_C");
                                             channel.sendResponse(response);
                                         });
@@ -153,10 +153,11 @@ public class TransportActionProxyTests extends ESTestCase {
         latch.await();
     }
 
+    @Test
     public void testException() throws InterruptedException {
         serviceA.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertThat("TS_A").isEqualTo(request.sourceNode);
+                                            assertThat(request.sourceNode).isEqualTo("TS_A");
                                             SimpleTestResponse response = new SimpleTestResponse("TS_A");
                                             channel.sendResponse(response);
                                         });
@@ -165,14 +166,14 @@ public class TransportActionProxyTests extends ESTestCase {
 
         serviceB.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
                                         (request, channel) -> {
-                                            assertThat("TS_A").isEqualTo(request.sourceNode);
+                                            assertThat(request.sourceNode).isEqualTo("TS_A");
                                             SimpleTestResponse response = new SimpleTestResponse("TS_B");
                                             channel.sendResponse(response);
                                         });
         TransportActionProxy.registerProxyAction(serviceB, "internal:test", SimpleTestResponse::new);
         AbstractSimpleTransportTestCase.connectToNode(serviceB, nodeC);
         serviceC.registerRequestHandler("internal:test", ThreadPool.Names.SAME, SimpleTestRequest::new,
-                                        (request, channel) -> {
+                                        (_, _) -> {
                                             throw new ElasticsearchException("greetings from TS_C");
                                         });
         TransportActionProxy.registerProxyAction(serviceC, "internal:test", SimpleTestResponse::new);
@@ -249,6 +250,7 @@ public class TransportActionProxyTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testGetAction() {
         String action = "foo/bar";
         String proxyAction = TransportActionProxy.getProxyAction(action);
@@ -256,12 +258,14 @@ public class TransportActionProxyTests extends ESTestCase {
         assertThat(proxyAction).isEqualTo("internal:transport/proxy/foo/bar");
     }
 
+    @Test
     public void testUnwrap() {
         TransportRequest transportRequest = TransportActionProxy.wrapRequest(nodeA, TransportService.HandshakeRequest.INSTANCE);
         assertThat(transportRequest instanceof TransportActionProxy.ProxyRequest).isTrue();
         assertThat(TransportActionProxy.unwrapRequest(transportRequest)).isSameAs(TransportService.HandshakeRequest.INSTANCE);
     }
 
+    @Test
     public void testIsProxyAction() {
         String action = "foo/bar";
         String proxyAction = TransportActionProxy.getProxyAction(action);
@@ -269,6 +273,7 @@ public class TransportActionProxyTests extends ESTestCase {
         assertThat(TransportActionProxy.isProxyAction(action)).isFalse();
     }
 
+    @Test
     public void testIsProxyRequest() {
         assertThat(TransportActionProxy.isProxyRequest(new TransportActionProxy.ProxyRequest<>(TransportRequest.Empty.INSTANCE, null))).isTrue();
         assertThat(TransportActionProxy.isProxyRequest(TransportRequest.Empty.INSTANCE)).isFalse();
