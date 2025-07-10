@@ -54,7 +54,7 @@ import org.junit.After;
 import org.junit.Before;
 
 import io.crate.common.Hex;
-import io.crate.test.utils.Blobs;
+import io.crate.test.utils.BlobsUtil;
 
 public abstract class SQLHttpIntegrationTest extends IntegTestCase {
 
@@ -177,7 +177,7 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
 
     protected URI upload(String table, String content) throws Exception {
         String digest = blobDigest(content);
-        URI uri = Blobs.url(usesSSL, address, table, digest);
+        URI uri = BlobsUtil.url(usesSSL, address, table, digest);
         HttpRequest request = HttpRequest.newBuilder(uri)
             .PUT(BodyPublishers.ofString(content))
             .build();
@@ -188,6 +188,6 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
     }
 
     protected String blobDigest(String content) {
-        return Hex.encodeHexString(Blobs.digest(content));
+        return Hex.encodeHexString(BlobsUtil.digest(content));
     }
 }

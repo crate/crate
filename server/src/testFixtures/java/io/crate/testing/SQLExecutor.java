@@ -676,7 +676,7 @@ public class SQLExecutor {
                                                             Settings settings,
                                                             @Nullable Map<String, Object> mapping,
                                                             Version smallestNodeVersion) throws IOException {
-        Settings indexSettings = buildSettings(true, settings, smallestNodeVersion);
+        Settings indexSettings = buildSettings(settings, smallestNodeVersion);
         IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
             .settings(indexSettings);
         if (mapping != null) {
@@ -686,7 +686,7 @@ public class SQLExecutor {
         return metaBuilder;
     }
 
-    private static Settings buildSettings(boolean isIndex, Settings settings, Version smallestNodeVersion) {
+    private static Settings buildSettings(Settings settings, Version smallestNodeVersion) {
         Settings.Builder builder = Settings.builder()
             .put(settings);
         if (settings.get(SETTING_VERSION_CREATED) == null) {
@@ -695,7 +695,7 @@ public class SQLExecutor {
         if (settings.get(SETTING_CREATION_DATE) == null) {
             builder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
         }
-        if (isIndex && settings.get(SETTING_INDEX_UUID) == null) {
+        if (settings.get(SETTING_INDEX_UUID) == null) {
             builder.put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
         }
 
@@ -929,6 +929,7 @@ public class SQLExecutor {
         return this;
     }
 
+    @SuppressWarnings("unchecked")
     public SQLExecutor addBlobTable(String createBlobTableStmt) throws IOException {
         CreateBlobTable<Expression> stmt = (CreateBlobTable<Expression>) SqlParser.createStatement(createBlobTableStmt);
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
@@ -968,9 +969,9 @@ public class SQLExecutor {
                                  String owner,
                                  Settings options) throws Exception {
         CreateServerRequest request = new CreateServerRequest(
-            "pg",
-            "jdbc",
-            "crate",
+            serverName,
+            fdw,
+            owner,
             true,
             options
         );

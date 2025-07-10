@@ -113,6 +113,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         doReferenceResolveTest(arrayType, "array(" + dataDef.definition + ")", values);
     }
 
+    @SuppressWarnings("unchecked")
     protected <D> void doReferenceResolveTest(DataType<D> type, String definition, D data) throws Exception {
 
         StorageSupport<? super D> storageSupport = type.storageSupport();

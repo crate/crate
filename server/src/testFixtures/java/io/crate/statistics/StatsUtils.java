@@ -27,6 +27,8 @@ import io.crate.types.DataType;
 
 public final class StatsUtils {
 
+    private StatsUtils() {}
+
     public static <T> ColumnStats<T> statsFromValues(DataType<T> dataType, Collection<T> values) {
         ColumnSketchBuilder<T> builder = dataType.columnStatsSupport().sketchBuilder();
         builder.addAll(values);
@@ -41,5 +43,4 @@ public final class StatsUtils {
         }
         return builder.toStats();
     }
-
 }
