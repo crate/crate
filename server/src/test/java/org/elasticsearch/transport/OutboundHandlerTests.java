@@ -72,6 +72,7 @@ public class OutboundHandlerTests extends ESTestCase {
     private DiscoveryNode node;
     private EmbeddedChannel embeddedChannel;
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -91,9 +92,9 @@ public class OutboundHandlerTests extends ESTestCase {
         final LongSupplier millisSupplier = () -> TimeValue.nsecToMSec(System.nanoTime());
         final InboundDecoder decoder = new InboundDecoder(PageCacheRecycler.NON_RECYCLING_INSTANCE);
         final Supplier<CircuitBreaker> breaker = () -> new NoopCircuitBreaker("test");
-        final InboundAggregator aggregator = new InboundAggregator(breaker, (Predicate<String>) action -> true);
+        final InboundAggregator aggregator = new InboundAggregator(breaker, (Predicate<String>) _ -> true);
         pipeline = new InboundPipeline(statsTracker, millisSupplier, decoder, aggregator,
-            (c, m) -> {
+            (_, m) -> {
                 try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
                     Streams.copy(m.openOrGetStreamInput(), streamOutput);
                     message.set(new Tuple<>(m.getHeader(), streamOutput.bytes()));
@@ -103,6 +104,7 @@ public class OutboundHandlerTests extends ESTestCase {
             });
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
@@ -116,7 +118,7 @@ public class OutboundHandlerTests extends ESTestCase {
         ChannelFuture future1 = handler.sendBytes(channel, bytes);
         ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
         assertThat(Unpooled.wrappedBuffer(bytes)).isEqualTo(msg);
-        assertThat(future1.get(5, TimeUnit.SECONDS));
+        assertThat(future1).succeedsWithin(5, TimeUnit.SECONDS);
 
         embeddedChannel.disconnect();
         ChannelFuture future2 = handler.sendBytes(channel, bytes);
@@ -126,7 +128,7 @@ public class OutboundHandlerTests extends ESTestCase {
 
     @Test
     public void testSendRequest() throws IOException {
-        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());;
+        Version version = randomFrom(Version.CURRENT, Version.CURRENT.minimumCompatibilityVersion());
         String action = "handshake";
         long requestId = randomLongBetween(0, 300);
         boolean isHandshake = randomBoolean();
@@ -275,7 +277,7 @@ public class OutboundHandlerTests extends ESTestCase {
 
         RemoteTransportException remoteException = tuple.v2().streamInput().readException();
         assertThat(remoteException.getCause()).isInstanceOf(ElasticsearchException.class);
-        assertThat("boom").isEqualTo(remoteException.getCause().getMessage());
+        assertThat(remoteException.getCause().getMessage()).isEqualTo("boom");
         assertThat(remoteException.action()).isEqualTo(action);
         assertThat(remoteException.address().address()).isEqualTo(channel.getLocalAddress());
     }

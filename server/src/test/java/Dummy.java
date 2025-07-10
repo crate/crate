@@ -17,5 +17,11 @@
  * under the License.
  */
 
+import org.elasticsearch.test.test.LoggingListenerTests;
+
+/**
+ * Used in {@link LoggingListenerTests}
+ */
+@SuppressWarnings("unused")
 class Dummy {
 }

@@ -110,7 +110,6 @@ public class TransportServiceDeserializationFailureTests extends ESTestCase {
         }
 
         {
-
             transportService.sendRequest(otherNode, testActionName, TransportRequest.Empty.INSTANCE,
                     TransportRequestOptions.EMPTY, new TransportResponseHandler<TransportResponse.Empty>() {
                         @Override
@@ -146,5 +145,4 @@ public class TransportServiceDeserializationFailureTests extends ESTestCase {
             assertThat(handler.toString()).endsWith("test handler with parent");
         }
     }
-
 }
