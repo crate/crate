@@ -42,7 +42,6 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.junit.Test;
 import org.mockito.Mockito;
 
-import io.crate.common.collections.Tuple;
 import io.crate.common.unit.TimeValue;
 import io.netty.channel.ChannelFuture;
 import io.netty.channel.embedded.EmbeddedChannel;
@@ -106,9 +105,9 @@ public class TransportKeepAliveTests extends ESTestCase {
         keepAlive.registerNodeConnection(Arrays.asList(channel1, channel2), connectionProfile);
 
         assertThat(threadPool.scheduledTasks.size()).isEqualTo(1);
-        Tuple<TimeValue, Runnable> taskTuple = threadPool.scheduledTasks.poll();
-        assertThat(taskTuple.v1()).isEqualTo(pingInterval);
-        Runnable keepAliveTask = taskTuple.v2();
+        var taskTuple = threadPool.scheduledTasks.poll();
+        assertThat(taskTuple.timeValue()).isEqualTo(pingInterval);
+        Runnable keepAliveTask = taskTuple.runnable();
         assertThat(threadPool.scheduledTasks.size()).isEqualTo(0);
         keepAliveTask.run();
 
@@ -117,8 +116,8 @@ public class TransportKeepAliveTests extends ESTestCase {
 
         // Test that the task has rescheduled itself
         assertThat(threadPool.scheduledTasks.size()).isEqualTo(1);
-        Tuple<TimeValue, Runnable> rescheduledTask = threadPool.scheduledTasks.poll();
-        assertThat(rescheduledTask.v1()).isEqualTo(pingInterval);
+        var rescheduledTask = threadPool.scheduledTasks.poll();
+        assertThat(rescheduledTask.timeValue()).isEqualTo(pingInterval);
     }
 
     @Test
@@ -143,12 +142,12 @@ public class TransportKeepAliveTests extends ESTestCase {
         keepAlive.registerNodeConnection(Collections.singletonList(channel2), connectionProfile2);
 
         assertThat(threadPool.scheduledTasks.size()).isEqualTo(2);
-        Tuple<TimeValue, Runnable> taskTuple1 = threadPool.scheduledTasks.poll();
-        Tuple<TimeValue, Runnable> taskTuple2 = threadPool.scheduledTasks.poll();
-        assertThat(taskTuple1.v1()).isEqualTo(pingInterval1);
-        assertThat(taskTuple2.v1()).isEqualTo(pingInterval2);
-        Runnable keepAliveTask1 = taskTuple1.v2();
-        Runnable keepAliveTask2 = taskTuple1.v2();
+        var taskTuple1 = threadPool.scheduledTasks.poll();
+        var taskTuple2 = threadPool.scheduledTasks.poll();
+        assertThat(taskTuple1.timeValue()).isEqualTo(pingInterval1);
+        assertThat(taskTuple2.timeValue()).isEqualTo(pingInterval2);
+        Runnable keepAliveTask1 = taskTuple1.runnable();
+        Runnable keepAliveTask2 = taskTuple1.runnable();
 
         assertThat(threadPool.scheduledTasks.size()).isEqualTo(0);
         keepAliveTask1.run();
@@ -173,7 +172,7 @@ public class TransportKeepAliveTests extends ESTestCase {
 
         channel1.close();
 
-        Runnable task = threadPool.scheduledTasks.poll().v2();
+        Runnable task = threadPool.scheduledTasks.poll().runnable();
         task.run();
 
         verify(pingSender, times(0)).apply(same(channel1), eq(expectedPingMessage));
@@ -213,13 +212,13 @@ public class TransportKeepAliveTests extends ESTestCase {
         channel2.markAccessed(threadPool.relativeTimeInMillis());
         keepAlive.registerNodeConnection(Arrays.asList(channel1, channel2), connectionProfile);
 
-        Tuple<TimeValue, Runnable> taskTuple = threadPool.scheduledTasks.poll();
-        taskTuple.v2().run();
+        var taskTuple = threadPool.scheduledTasks.poll();
+        taskTuple.runnable().run();
 
         channel1.markAccessed(threadPool.relativeTimeInMillis() + (pingInterval.millis() / 2));
 
         taskTuple = threadPool.scheduledTasks.poll();
-        taskTuple.v2().run();
+        taskTuple.runnable().run();
 
         verify(pingSender, times(1)).apply(same(channel1), eq(expectedPingMessage));
         verify(pingSender, times(2)).apply(same(channel2), eq(expectedPingMessage));
@@ -227,7 +226,7 @@ public class TransportKeepAliveTests extends ESTestCase {
 
     private class CapturingThreadPool extends TestThreadPool {
 
-        private final Deque<Tuple<TimeValue, Runnable>> scheduledTasks = new ArrayDeque<>();
+        private final Deque<Task> scheduledTasks = new ArrayDeque<>();
 
         private CapturingThreadPool() {
             super(getTestName());
@@ -235,8 +234,10 @@ public class TransportKeepAliveTests extends ESTestCase {
 
         @Override
         public ScheduledCancellable schedule(Runnable task, TimeValue delay, String executor) {
-            scheduledTasks.add(new Tuple<>(delay, task));
+            scheduledTasks.add(new Task(delay, task));
             return null;
         }
     }
+
+    private record Task(TimeValue timeValue, Runnable runnable) {}
 }
