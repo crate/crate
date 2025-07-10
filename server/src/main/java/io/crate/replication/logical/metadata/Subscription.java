@@ -117,6 +117,9 @@ public class Subscription implements Writeable {
             relations.put(relationName, relationState);
         }
         this.relations = relations;
+        if (relations.isEmpty()) {
+            relations.put(new RelationName("doc", "x"), new RelationState(State.FAILED, "when is this every empty??"));
+        }
     }
 
     public String owner() {
