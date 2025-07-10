@@ -37,7 +37,7 @@ import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
 import io.crate.common.Hex;
-import io.crate.test.utils.Blobs;
+import io.crate.test.utils.BlobsUtil;
 
 public class BlobContainerTest {
 
@@ -83,6 +83,6 @@ public class BlobContainerTest {
     }
 
     private static String digest(String content) {
-        return Hex.encodeHexString(Blobs.digest(content));
+        return Hex.encodeHexString(BlobsUtil.digest(content));
     }
 }

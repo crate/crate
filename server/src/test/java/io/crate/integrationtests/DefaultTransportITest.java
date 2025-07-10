@@ -36,8 +36,8 @@ import org.junit.Test;
 
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
-import io.crate.test.utils.ConnectionTest;
-import io.crate.test.utils.ConnectionTest.ProbeResult;
+import io.crate.test.utils.ConnectionTestUtil;
+import io.crate.test.utils.ConnectionTestUtil.ProbeResult;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, supportsDedicatedMasters = false, numClientNodes = 0)
 public class DefaultTransportITest extends IntegTestCase {
@@ -75,7 +75,7 @@ public class DefaultTransportITest extends IntegTestCase {
         for (var transport : cluster().getInstances(Transport.class)) {
             var publishAddress = transport.boundAddress().publishAddress();
             var address = publishAddress.address();
-            ProbeResult probeResult = ConnectionTest.probeSSL(sslContext, address);
+            ProbeResult probeResult = ConnectionTestUtil.probeSSL(sslContext, address);
             assertThat(probeResult).isEqualTo(ProbeResult.SSL_MISSING);
         }
     }

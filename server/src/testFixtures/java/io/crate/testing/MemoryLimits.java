@@ -30,6 +30,8 @@ import com.sun.management.ThreadMXBean;
 
 public final class MemoryLimits {
 
+    private MemoryLimits() {}
+
     /**
      * Asserts that `supplier.get` doesn't allocate more than `bytes` bytes.
      * This is limited to the current thread and cannot account for memory accounted in other threads.
