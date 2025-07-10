@@ -29,7 +29,9 @@ import org.elasticsearch.test.ESTestCase;
 import java.util.Collections;
 import java.util.concurrent.atomic.AtomicInteger;
 
-public class DiscoveryNodes {
+public final class DiscoveryNodes {
+
+    private DiscoveryNodes() {}
 
     // Use high initial value to avoid conflict with ESTestCase#portGenerator
     private static final AtomicInteger PORT_GENERATOR = new AtomicInteger(100);

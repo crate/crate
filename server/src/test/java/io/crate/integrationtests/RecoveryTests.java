@@ -51,7 +51,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
-import io.crate.test.utils.Blobs;
+import io.crate.test.utils.BlobsUtil;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 0, numClientNodes = 0)
 @ThreadLeakFilters(filters = {RecoveryTests.RecoveryTestThreadFilter.class})
@@ -80,7 +80,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
     }
 
     private String uploadFile(Client client, String content) {
-        byte[] digest = Blobs.digest(content);
+        byte[] digest = BlobsUtil.digest(content);
         String digestString = Hex.encodeHexString(digest);
         byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
         logger.trace("Uploading {} digest {}", content, digestString);

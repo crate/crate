@@ -19,31 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-
 package io.crate.test.utils;
 
 import java.net.InetSocketAddress;
+import java.net.URI;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
+import java.util.Locale;
 
-import javax.net.ssl.SSLContext;
+public final class BlobsUtil {
 
+    private BlobsUtil() {}
 
-public final class ConnectionTest {
-
-    public enum ProbeResult {
-        SSL_AVAILABLE,
-        SSL_MISSING,
+    public static byte[] digest(String content) {
+        try {
+            MessageDigest digest = MessageDigest.getInstance("SHA-1");
+            digest.reset();
+            digest.update(content.getBytes(StandardCharsets.UTF_8));
+            return digest.digest();
+        } catch (NoSuchAlgorithmException _) {
+            return null;
+        }
     }
 
-    public static ProbeResult probeSSL(SSLContext sslContext, InetSocketAddress address) {
-        var socketFactory = sslContext.getSocketFactory();
-        try (var socket = socketFactory.createSocket(address.getHostName(), address.getPort())) {
-            // need to write something to trigger SSL handshake
-            var out = socket.getOutputStream(); // Closed by outer try-with-resources.
-            out.write(1);
+    public static URI url(boolean https, InetSocketAddress address, String table, String digest) {
+        return url(https, address, table + "/" + digest);
+    }
 
-            return ProbeResult.SSL_AVAILABLE;
-        } catch (Exception ignored) {
-            return ProbeResult.SSL_MISSING;
-        }
+    public static URI url(boolean https, InetSocketAddress address, String tableAndDigest) {
+        String protocol = https ? "https" : "http";
+        return URI.create(String.format(Locale.ENGLISH, "%s://%s:%s/_blobs/%s",
+            protocol, address.getHostName(), address.getPort(), tableAndDigest));
     }
 }
