@@ -31,11 +31,13 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 public class InboundDecoderTests extends ESTestCase {
 
     @Override
+    @Before
     public void setUp() throws Exception {
         super.setUp();
     }

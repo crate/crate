@@ -46,6 +46,7 @@ import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 import io.crate.common.collections.Tuple;
 import io.crate.common.io.Streams;
@@ -56,11 +57,12 @@ public class InboundPipelineTests extends ESTestCase {
 
     private static final int BYTE_THRESHOLD = 128 * 1024;
 
+    @Test
     public void testPipelineHandling() throws IOException {
         final List<Tuple<MessageData, Exception>> expected = new ArrayList<>();
         final List<Tuple<MessageData, Exception>> actual = new ArrayList<>();
         final List<ReleasableBytesReference> toRelease = new ArrayList<>();
-        final BiConsumer<CloseableChannel, InboundMessage> messageHandler = (c, m) -> {
+        final BiConsumer<CloseableChannel, InboundMessage> messageHandler = (_, m) -> {
             try {
                 final Header header = m.getHeader();
                 final MessageData actualData;
@@ -178,13 +180,14 @@ public class InboundPipelineTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testDecodeExceptionIsPropagated() throws IOException {
-        BiConsumer<CloseableChannel, InboundMessage> messageHandler = (c, m) -> {};
+        BiConsumer<CloseableChannel, InboundMessage> messageHandler = (_, _) -> {};
         final StatsTracker statsTracker = new StatsTracker();
         final LongSupplier millisSupplier = () -> TimeValue.nsecToMSec(System.nanoTime());
         final InboundDecoder decoder = new InboundDecoder(PageCacheRecycler.NON_RECYCLING_INSTANCE);
         final Supplier<CircuitBreaker> breaker = () -> new NoopCircuitBreaker("test");
-        final InboundAggregator aggregator = new InboundAggregator(breaker, (Predicate<String>) action -> true);
+        final InboundAggregator aggregator = new InboundAggregator(breaker, (Predicate<String>) _ -> true);
         final InboundPipeline pipeline = new InboundPipeline(statsTracker, millisSupplier, decoder, aggregator, messageHandler);
 
         try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
@@ -202,13 +205,14 @@ public class InboundPipelineTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testEnsureBodyIsNotPrematurelyReleased() throws IOException {
-        BiConsumer<CloseableChannel, InboundMessage> messageHandler = (c, m) -> {};
+        BiConsumer<CloseableChannel, InboundMessage> messageHandler = (_, _) -> {};
         final StatsTracker statsTracker = new StatsTracker();
         final LongSupplier millisSupplier = () -> TimeValue.nsecToMSec(System.nanoTime());
         final InboundDecoder decoder = new InboundDecoder(PageCacheRecycler.NON_RECYCLING_INSTANCE);
         final Supplier<CircuitBreaker> breaker = () -> new NoopCircuitBreaker("test");
-        final InboundAggregator aggregator = new InboundAggregator(breaker, (Predicate<String>) action -> true);
+        final InboundAggregator aggregator = new InboundAggregator(breaker, (Predicate<String>) _ -> true);
         final InboundPipeline pipeline = new InboundPipeline(statsTracker, millisSupplier, decoder, aggregator, messageHandler);
 
         try (BytesStreamOutput streamOutput = new BytesStreamOutput()) {
@@ -256,24 +260,12 @@ public class InboundPipelineTests extends ESTestCase {
         return new CloseableChannel(new EmbeddedChannel(), false);
     }
 
-    private static class MessageData {
-
-        private final Version version;
-        private final long requestId;
-        private final boolean isRequest;
-        private final boolean isCompressed;
-        private final String value;
-        private final String actionName;
-
-        private MessageData(Version version, long requestId, boolean isRequest, boolean isCompressed, String actionName, String value) {
-            this.version = version;
-            this.requestId = requestId;
-            this.isRequest = isRequest;
-            this.isCompressed = isCompressed;
-            this.actionName = actionName;
-            this.value = value;
-        }
-
+    private record MessageData(Version version,
+                               long requestId,
+                               boolean isRequest,
+                               boolean isCompressed,
+                               String actionName,
+                               String value) {
 
         @Override
         public boolean equals(Object o) {

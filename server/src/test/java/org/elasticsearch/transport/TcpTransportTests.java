@@ -64,6 +64,7 @@ import io.netty.channel.embedded.EmbeddedChannel;
 public class TcpTransportTests extends ESTestCase {
 
     /** Test ipv4 host with a default port works */
+    @Test
     public void testParseV4DefaultPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("127.0.0.1", 1234);
         assertThat(addresses.length).isEqualTo(1);
@@ -73,6 +74,7 @@ public class TcpTransportTests extends ESTestCase {
     }
 
     /** Test ipv4 host with port works */
+    @Test
     public void testParseV4WithPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("127.0.0.1:2345", 1234);
         assertThat(addresses.length).isEqualTo(1);
@@ -82,6 +84,7 @@ public class TcpTransportTests extends ESTestCase {
     }
 
     /** Test unbracketed ipv6 hosts in configuration fail. Leave no ambiguity */
+    @Test
     public void testParseV6UnBracketed() throws Exception {
         try {
             TcpTransport.parse("::1", 1234);
@@ -92,6 +95,7 @@ public class TcpTransportTests extends ESTestCase {
     }
 
     /** Test ipv6 host with a default port works */
+    @Test
     public void testParseV6DefaultPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("[::1]", 1234);
         assertThat(addresses.length).isEqualTo(1);
@@ -101,6 +105,7 @@ public class TcpTransportTests extends ESTestCase {
     }
 
     /** Test ipv6 host with port works */
+    @Test
     public void testParseV6WithPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("[::1]:2345", 1234);
         assertThat(addresses.length).isEqualTo(1);
@@ -109,11 +114,13 @@ public class TcpTransportTests extends ESTestCase {
         assertThat(addresses[0].getPort()).isEqualTo(2345);
     }
 
+    @Test
     public void testRejectsPortRanges() {
         assertThatThrownBy(() -> TcpTransport.parse("[::1]:100-200", 1000))
             .isExactlyInstanceOf(NumberFormatException.class);
     }
 
+    @Test
     public void testDefaultSeedAddressesWithDefaultPort() {
         final List<String> seedAddresses = NetworkUtils.SUPPORTS_V6 ?
             List.of(
@@ -124,6 +131,7 @@ public class TcpTransportTests extends ESTestCase {
         testDefaultSeedAddresses(Settings.EMPTY, seedAddresses);
     }
 
+    @Test
     public void testDefaultSeedAddressesWithNonstandardGlobalPortRange() {
         final List<String> seedAddresses = NetworkUtils.SUPPORTS_V6 ?
             List.of("[::1]:4500", "[::1]:4501", "[::1]:4502", "[::1]:4503", "[::1]:4504", "[::1]:4505",
@@ -133,6 +141,7 @@ public class TcpTransportTests extends ESTestCase {
         testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4500-9600").build(), seedAddresses);
     }
 
+    @Test
     public void testDefaultSeedAddressesWithSmallGlobalPortRange() {
         final List<String> seedAddresses = NetworkUtils.SUPPORTS_V6 ?
             List.of("[::1]:4300", "[::1]:4301", "[::1]:4302", "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302") :
@@ -140,6 +149,7 @@ public class TcpTransportTests extends ESTestCase {
         testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4300-4302").build(), seedAddresses);
     }
 
+    @Test
     public void testDefaultSeedAddressesWithNonstandardSinglePort() {
         testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4500").build(),
             NetworkUtils.SUPPORTS_V6 ? List.of("[::1]:4500", "127.0.0.1:4500") : List.of("127.0.0.1:4500"));
@@ -174,151 +184,149 @@ public class TcpTransportTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testReadMessageLengthWithIncompleteHeader() throws IOException {
-        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
-        streamOutput.write('E');
-        streamOutput.write('S');
-        streamOutput.write(1);
-        streamOutput.write(1);
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
+            streamOutput.write('E');
+            streamOutput.write('S');
+            streamOutput.write(1);
+            streamOutput.write(1);
 
-        assertThat(TcpTransport.readMessageLength(streamOutput.bytes())).isEqualTo(-1);
-    }
-
-    public void testReadPingMessageLength() throws IOException {
-        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
-        streamOutput.write('E');
-        streamOutput.write('S');
-        streamOutput.writeInt(-1);
-
-        assertThat(TcpTransport.readMessageLength(streamOutput.bytes())).isEqualTo(0);
-    }
-
-    public void testReadPingMessageLengthWithStartOfSecondMessage() throws IOException {
-        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
-        streamOutput.write('E');
-        streamOutput.write('S');
-        streamOutput.writeInt(-1);
-        streamOutput.write('E');
-        streamOutput.write('S');
-
-        assertThat(TcpTransport.readMessageLength(streamOutput.bytes())).isEqualTo(0);
-    }
-
-    public void testReadMessageLength() throws IOException {
-        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
-        streamOutput.write('E');
-        streamOutput.write('S');
-        streamOutput.writeInt(2);
-        streamOutput.write('M');
-        streamOutput.write('A');
-
-        assertThat(TcpTransport.readMessageLength(streamOutput.bytes())).isEqualTo(2);
-
-    }
-
-    public void testInvalidLength() throws IOException {
-        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
-        streamOutput.write('E');
-        streamOutput.write('S');
-        streamOutput.writeInt(-2);
-        streamOutput.write('M');
-        streamOutput.write('A');
-
-        try {
-            TcpTransport.readMessageLength(streamOutput.bytes());
-            fail("Expected exception");
-        } catch (Exception ex) {
-            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
-            assertThat(ex.getMessage()).isEqualTo("invalid data length: -2");
+            assertThat(TcpTransport.readMessageLength(streamOutput.bytes())).isEqualTo(-1);
         }
     }
 
-    public void testInvalidHeader() throws IOException {
-        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
-        streamOutput.write('E');
-        streamOutput.write('C');
-        byte byte1 = randomByte();
-        byte byte2 = randomByte();
-        streamOutput.write(byte1);
-        streamOutput.write(byte2);
-        streamOutput.write(randomByte());
-        streamOutput.write(randomByte());
-        streamOutput.write(randomByte());
+    @Test
+    public void testReadPingMessageLength() throws IOException {
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
+            streamOutput.write('E');
+            streamOutput.write('S');
+            streamOutput.writeInt(-1);
 
-        try {
-            TcpTransport.readMessageLength(streamOutput.bytes());
-            fail("Expected exception");
-        } catch (Exception ex) {
-            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
+            assertThat(TcpTransport.readMessageLength(streamOutput.bytes())).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testReadPingMessageLengthWithStartOfSecondMessage() throws IOException {
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
+            streamOutput.write('E');
+            streamOutput.write('S');
+            streamOutput.writeInt(-1);
+            streamOutput.write('E');
+            streamOutput.write('S');
+
+            assertThat(TcpTransport.readMessageLength(streamOutput.bytes())).isEqualTo(0);
+        }
+    }
+
+    @Test
+    public void testReadMessageLength() throws IOException {
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
+            streamOutput.write('E');
+            streamOutput.write('S');
+            streamOutput.writeInt(2);
+            streamOutput.write('M');
+            streamOutput.write('A');
+
+            assertThat(TcpTransport.readMessageLength(streamOutput.bytes())).isEqualTo(2);
+        }
+    }
+
+    @Test
+    public void testInvalidLength() throws IOException {
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
+            streamOutput.write('E');
+            streamOutput.write('S');
+            streamOutput.writeInt(-2);
+            streamOutput.write('M');
+            streamOutput.write('A');
+
+            assertThatThrownBy(() -> TcpTransport.readMessageLength(streamOutput.bytes()))
+                .isExactlyInstanceOf(StreamCorruptedException.class)
+                .hasMessage("invalid data length: -2");
+        }
+    }
+
+    @Test
+    public void testInvalidHeader() throws IOException {
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
+            streamOutput.write('E');
+            streamOutput.write('C');
+            byte byte1 = randomByte();
+            byte byte2 = randomByte();
+            streamOutput.write(byte1);
+            streamOutput.write(byte2);
+            streamOutput.write(randomByte());
+            streamOutput.write(randomByte());
+            streamOutput.write(randomByte());
+
             String expected = "invalid internal transport message format, got (45,43,"
                 + Integer.toHexString(byte1 & 0xFF) + ","
                 + Integer.toHexString(byte2 & 0xFF) + ")";
-            assertThat(ex.getMessage()).isEqualTo(expected);
+            assertThatThrownBy(() -> TcpTransport.readMessageLength(streamOutput.bytes()))
+                .isExactlyInstanceOf(StreamCorruptedException.class)
+                .hasMessage(expected);
         }
     }
 
+    @Test
     public void testHTTPRequest() throws IOException {
         String[] httpHeaders = {"GET", "POST", "PUT", "HEAD", "DELETE", "OPTIONS", "PATCH", "TRACE"};
 
         for (String httpHeader : httpHeaders) {
-            BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
+            try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
 
-            for (char c : httpHeader.toCharArray()) {
-                streamOutput.write((byte) c);
-            }
-            streamOutput.write(new byte[6]);
+                for (char c : httpHeader.toCharArray()) {
+                    streamOutput.write((byte) c);
+                }
+                streamOutput.write(new byte[6]);
 
-            try {
-                TcpTransport.readMessageLength(streamOutput.bytes());
-                fail("Expected exception");
-            } catch (Exception ex) {
-                assertThat(ex).isExactlyInstanceOf(TcpTransport.HttpRequestOnTransportException.class);
-                assertThat(ex.getMessage()).isEqualTo("This is not a HTTP port");
+                assertThatThrownBy(() -> TcpTransport.readMessageLength(streamOutput.bytes()))
+                    .isExactlyInstanceOf(TcpTransport.HttpRequestOnTransportException.class)
+                    .hasMessage("This is not a HTTP port");
             }
         }
     }
 
+    @Test
     public void testTLSHeader() throws IOException {
-        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
 
-        streamOutput.write(0x16);
-        streamOutput.write(0x03);
-        byte byte1 = randomByte();
-        streamOutput.write(byte1);
-        byte byte2 = randomByte();
-        streamOutput.write(byte2);
-        streamOutput.write(randomByte());
-        streamOutput.write(randomByte());
-        streamOutput.write(randomByte());
+            streamOutput.write(0x16);
+            streamOutput.write(0x03);
+            byte byte1 = randomByte();
+            streamOutput.write(byte1);
+            byte byte2 = randomByte();
+            streamOutput.write(byte2);
+            streamOutput.write(randomByte());
+            streamOutput.write(randomByte());
+            streamOutput.write(randomByte());
 
-        try {
-            TcpTransport.readMessageLength(streamOutput.bytes());
-            fail("Expected exception");
-        } catch (Exception ex) {
-            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
             String expected = "SSL/TLS request received but SSL/TLS is not enabled on this node, got (16,3,"
-                    + Integer.toHexString(byte1 & 0xFF) + ","
-                    + Integer.toHexString(byte2 & 0xFF) + ")";
-            assertThat(ex.getMessage()).isEqualTo(expected);
+                + Integer.toHexString(byte1 & 0xFF) + ","
+                + Integer.toHexString(byte2 & 0xFF) + ")";
+
+            assertThatThrownBy(() -> TcpTransport.readMessageLength(streamOutput.bytes()))
+                .isExactlyInstanceOf(StreamCorruptedException.class)
+                .hasMessage(expected);
         }
     }
 
+    @Test
     public void testHTTPResponse() throws IOException {
-        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
-        streamOutput.write('H');
-        streamOutput.write('T');
-        streamOutput.write('T');
-        streamOutput.write('P');
-        streamOutput.write(randomByte());
-        streamOutput.write(randomByte());
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
+            streamOutput.write('H');
+            streamOutput.write('T');
+            streamOutput.write('T');
+            streamOutput.write('P');
+            streamOutput.write(randomByte());
+            streamOutput.write(randomByte());
 
-        try {
-            TcpTransport.readMessageLength(streamOutput.bytes());
-            fail("Expected exception");
-        } catch (Exception ex) {
-            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
-            assertThat(ex.getMessage()).isEqualTo("received HTTP response on transport port, ensure that transport port " +
-                    "(not HTTP port) of a remote node is specified in the configuration");
+            assertThatThrownBy(() -> TcpTransport.readMessageLength(streamOutput.bytes()))
+                .isExactlyInstanceOf(StreamCorruptedException.class)
+                .hasMessage("received HTTP response on transport port, ensure that transport port " +
+                            "(not HTTP port) of a remote node is specified in the configuration");
         }
     }
 

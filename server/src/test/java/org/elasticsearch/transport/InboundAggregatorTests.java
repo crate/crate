@@ -34,6 +34,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
+import org.junit.Test;
 
 public class InboundAggregatorTests extends ESTestCase {
 
@@ -57,6 +58,7 @@ public class InboundAggregatorTests extends ESTestCase {
         aggregator = new InboundAggregator(() -> circuitBreaker, requestCanTripBreaker);
     }
 
+    @Test
     public void testInboundAggregation() throws IOException {
         long requestId = randomNonNegativeLong();
         Header header = new Header(randomInt(), requestId, TransportStatus.setRequest((byte) 0), Version.CURRENT);
@@ -104,6 +106,7 @@ public class InboundAggregatorTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testInboundUnknownAction() throws IOException {
         long requestId = randomNonNegativeLong();
         Header header = new Header(randomInt(), requestId, TransportStatus.setRequest((byte) 0), Version.CURRENT);
@@ -127,6 +130,7 @@ public class InboundAggregatorTests extends ESTestCase {
         assertThat(aggregated.takeBreakerReleaseControl()).isNotNull();
     }
 
+    @Test
     public void testCircuitBreak() throws IOException {
         circuitBreaker.startBreaking();
         // Actions are breakable
@@ -187,6 +191,7 @@ public class InboundAggregatorTests extends ESTestCase {
         assertThat(aggregated3.isShortCircuit()).isFalse();
     }
 
+    @Test
     public void testCloseWillCloseContent() {
         long requestId = randomNonNegativeLong();
         Header header = new Header(randomInt(), requestId, TransportStatus.setRequest((byte) 0), Version.CURRENT);
@@ -220,6 +225,7 @@ public class InboundAggregatorTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testFinishAggregationWillFinishHeader() throws IOException {
         long requestId = randomNonNegativeLong();
         final String actionName;
@@ -257,5 +263,4 @@ public class InboundAggregatorTests extends ESTestCase {
             }
         }
     }
-
 }
