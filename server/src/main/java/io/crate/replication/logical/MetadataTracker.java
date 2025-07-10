@@ -532,6 +532,9 @@ public final class MetadataTracker implements Closeable {
                 Metadata.builder(updatedClusterState.metadata())
             );
 
+            if (subscription.relations().size() != relations.size()) {
+                throw new RuntimeException("check here too");
+            }
             updatedClusterState = UpdateSubscriptionAction.update(
                 updatedClusterState,
                 subscriptionName,

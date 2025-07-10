@@ -188,7 +188,9 @@ public class TransportCreateSubscriptionAction extends TransportMasterNodeAction
                         new Subscription.RelationState(Subscription.State.INITIALIZING, null)
                     );
                 }
-
+                if (relations.isEmpty()) {
+                    throw new IllegalStateException("can this be empty?");
+                }
                 Subscription subscription = new Subscription(
                     request.owner(),
                     request.connectionInfo(),
