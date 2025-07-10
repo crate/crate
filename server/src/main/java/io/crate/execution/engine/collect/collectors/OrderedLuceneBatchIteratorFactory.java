@@ -36,7 +36,6 @@ import java.util.function.IntSupplier;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.common.collections.Lists;
-import io.crate.common.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.breaker.RowAccounting;
@@ -99,15 +98,19 @@ public class OrderedLuceneBatchIteratorFactory {
                 pagingIterator,
                 this::tryFetchMore,
                 this::allExhausted,
-                throwable -> close()
+                throwable -> {
+                    if (throwable == null) {
+                        close();
+                    } else {
+                        kill(throwable);
+                    }
+                }
             );
         }
 
-        private KillableCompletionStage<List<KeyIterable<ShardId, Row>>> tryFetchMore(ShardId shardId) {
+        private CompletionStage<List<KeyIterable<ShardId, Row>>> tryFetchMore(ShardId shardId) {
             if (allExhausted()) {
-                return KillableCompletionStage.whenKilled(
-                    CompletableFuture.failedFuture(new IllegalStateException("Cannot fetch more if source is exhausted")),
-                    t -> { });
+                return CompletableFuture.failedFuture(new IllegalStateException("Cannot fetch more if source is exhausted"));
             }
             CompletionStage<List<KeyIterable<ShardId, Row>>> stage;
             if (shardId == null) {
@@ -119,7 +122,7 @@ public class OrderedLuceneBatchIteratorFactory {
             } else {
                 stage = loadFrom(collectorsByShardId.get(shardId));
             }
-            return KillableCompletionStage.whenKilled(stage, this::kill);
+            return stage;
         }
 
         private static CompletionStage<List<KeyIterable<ShardId, Row>>> loadFrom(OrderedDocCollector collector) {

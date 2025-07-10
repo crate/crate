@@ -29,6 +29,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
 
@@ -41,7 +42,6 @@ import org.jetbrains.annotations.NotNull;
 
 import io.crate.Streamer;
 import io.crate.common.annotations.GuardedBy;
-import io.crate.common.concurrent.KillableCompletionStage;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.Row;
@@ -250,9 +250,9 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         return exhausted.size() == numBuckets;
     }
 
-    private KillableCompletionStage<? extends Iterable<? extends KeyIterable<Integer, Row>>> fetchMore(Integer exhaustedBucket) {
+    private CompletionStage<? extends Iterable<? extends KeyIterable<Integer, Row>>> fetchMore(Integer exhaustedBucket) {
         if (allUpstreamsExhausted()) {
-            return KillableCompletionStage.failed(new IllegalStateException("Source is exhausted"));
+            return CompletableFuture.failedStage(new IllegalStateException("Source is exhausted"));
         }
         currentPage = new CompletableFuture<>();
         if (exhaustedBucket == null || exhausted.contains(exhaustedBucket)) {
@@ -260,7 +260,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         } else {
             fetchExhausted(exhaustedBucket);
         }
-        return KillableCompletionStage.whenKilled(currentPage, t -> currentPage.completeExceptionally(t));
+        return currentPage;
     }
 
     private void fetchExhausted(Integer exhaustedBucket) {
@@ -306,7 +306,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         synchronized (lock) {
             lastThrowable = t;
             batchPagingIterator.kill(t); // this causes a already active consumer to fail
-            batchPagingIterator.close();
+            currentPage.completeExceptionally(t);
             if (receivingFirstPage) {
                 // no active consumer - can "activate" it with a failure
                 receivingFirstPage = false;
