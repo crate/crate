@@ -24,7 +24,6 @@ import static java.util.Collections.emptySet;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,7 +57,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
 
     private static ThreadPool threadPool;
     private static NettyBootstrap nettyBootstrap;
-    private static final long timeout = Long.MAX_VALUE;
+    private static final long TIMEOUT = Long.MAX_VALUE;
 
     @BeforeClass
     public static void startThreadPool() {
@@ -67,8 +66,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
         nettyBootstrap.start();
     }
 
-
-    private List<TransportService> transportServices = new ArrayList<>();
+    private final List<TransportService> transportServices = new ArrayList<>();
 
     private NetworkHandle startServices(String nodeNameAndId, Settings settings, Version version) {
         var allSettings = Settings.builder()
@@ -98,7 +96,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             allSettings,
             transport,
             threadPool,
-            (boundAddress) -> new DiscoveryNode(
+            boundAddress -> new DiscoveryNode(
                 nodeNameAndId,
                 nodeNameAndId,
                 boundAddress.publishAddress(),
@@ -115,6 +113,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
     }
 
     @After
+    @Override
     public void tearDown() throws Exception {
         for (TransportService transportService : transportServices) {
             transportService.close();
@@ -132,7 +131,8 @@ public class TransportServiceHandshakeTests extends ESTestCase {
         threadPool = null;
     }
 
-    public void testConnectToNodeLight() throws IOException {
+    @Test
+    public void testConnectToNodeLight() {
         Settings settings = Settings.builder().put("cluster.name", "test").build();
 
         NetworkHandle handleA = startServices("TS_A", settings, Version.CURRENT);
@@ -149,17 +149,17 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             Version.CURRENT.minimumCompatibilityVersion());
         try (Transport.Connection connection =
                  AbstractSimpleTransportTestCase.openConnection(handleA.transportService, discoveryNode, TestProfiles.LIGHT_PROFILE)){
-            DiscoveryNode connectedNode = TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut));
+            DiscoveryNode connectedNode = TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, TIMEOUT, fut));
             assertThat(connectedNode).isNotNull();
             // the name and version should be updated
-            assertThat("TS_B").isEqualTo(connectedNode.getName());
+            assertThat(connectedNode.getName()).isEqualTo("TS_B");
             assertThat(handleB.discoveryNode.getVersion()).isEqualTo(connectedNode.getVersion());
             assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
         }
     }
 
+    @Test
     public void testMismatchedClusterName() {
-
         NetworkHandle handleA = startServices("TS_A", Settings.builder().put("cluster.name", "a").build(), Version.CURRENT);
         NetworkHandle handleB = startServices("TS_B", Settings.builder().put("cluster.name", "b").build(), Version.CURRENT);
         DiscoveryNode discoveryNode = new DiscoveryNode(
@@ -171,7 +171,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
         assertThatThrownBy(() -> {
             try (Transport.Connection connection =
                      AbstractSimpleTransportTestCase.openConnection(handleA.transportService, discoveryNode, TestProfiles.LIGHT_PROFILE)) {
-                TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut.map(x -> null)));
+                TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, TIMEOUT, fut.map(_ -> null)));
             }
         }).isExactlyInstanceOf(IllegalStateException.class)
             .hasMessageContaining(
@@ -194,7 +194,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
         assertThatThrownBy(() -> {
             try (Transport.Connection connection =
                      AbstractSimpleTransportTestCase.openConnection(handleA.transportService, discoveryNode, TestProfiles.LIGHT_PROFILE)) {
-                TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, timeout, fut.map(x -> null)));
+                TestFutureUtils.get(fut -> handleA.transportService.handshake(connection, TIMEOUT, fut.map(_ -> null)));
             }
         }).isExactlyInstanceOf(IllegalStateException.class)
             .hasMessageContaining(
@@ -204,6 +204,7 @@ public class TransportServiceHandshakeTests extends ESTestCase {
         assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
+    @Test
     public void testNodeConnectWithDifferentNodeId() {
         Settings settings = Settings.builder().put("cluster.name", "test").build();
         NetworkHandle handleA = startServices("TS_A", settings, Version.CURRENT);
@@ -214,22 +215,11 @@ public class TransportServiceHandshakeTests extends ESTestCase {
             emptyMap(),
             emptySet(),
             handleB.discoveryNode.getVersion());
-        assertThatThrownBy(() -> {
-            AbstractSimpleTransportTestCase.connectToNode(handleA.transportService, discoveryNode);
-        }).isExactlyInstanceOf(ConnectTransportException.class)
+        assertThatThrownBy(() -> AbstractSimpleTransportTestCase.connectToNode(handleA.transportService, discoveryNode))
+            .isExactlyInstanceOf(ConnectTransportException.class)
             .hasMessageContaining("unexpected remote node");
         assertThat(handleA.transportService.nodeConnected(discoveryNode)).isFalse();
     }
 
-
-    private static class NetworkHandle {
-        private TransportService transportService;
-        private DiscoveryNode discoveryNode;
-
-        NetworkHandle(TransportService transportService, DiscoveryNode discoveryNode) {
-            this.transportService = transportService;
-            this.discoveryNode = discoveryNode;
-        }
-    }
-
+    private record NetworkHandle(TransportService transportService, DiscoveryNode discoveryNode){}
 }
