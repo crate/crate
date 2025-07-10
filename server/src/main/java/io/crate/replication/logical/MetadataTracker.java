@@ -71,10 +71,8 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
-import io.crate.replication.logical.action.UpdateSubscriptionAction;
 import io.crate.replication.logical.exceptions.SubscriptionUnknownException;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.replication.logical.metadata.Subscription;
@@ -526,26 +524,7 @@ public final class MetadataTracker implements Closeable {
                     relations.put(relationName, state);
                 }
             }
-            updatedClusterState = DropSubscriptionAction.removeSubscriptionSetting(
-                changedRelations,
-                updatedClusterState,
-                Metadata.builder(updatedClusterState.metadata())
-            );
-
-            if (subscription.relations().size() != relations.size()) {
-                throw new RuntimeException("check here too");
-            }
-            updatedClusterState = UpdateSubscriptionAction.update(
-                updatedClusterState,
-                subscriptionName,
-                new Subscription(
-                    subscription.owner(),
-                    subscription.connectionInfo(),
-                    subscription.publications(),
-                    subscription.settings(),
-                    relations
-                )
-            );
+            throw new RuntimeException("I did not want to drop");
         }
         return updatedClusterState;
     }

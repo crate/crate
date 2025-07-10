@@ -141,8 +141,7 @@ public class DropSubscriptionAction extends ActionType<AcknowledgedResponse> {
                         var subscription = newMetadata.subscription().remove(request.name());
                         assert !newMetadata.equals(oldMetadata) : "must not be equal to guarantee the cluster change action";
                         mdBuilder.putCustom(SubscriptionsMetadata.TYPE, newMetadata);
-
-                        return removeSubscriptionSetting(subscription.relations().keySet(), currentState, mdBuilder);
+                        throw new RuntimeException("do not drop");
                     } else if (request.ifExists() == false) {
                         throw new SubscriptionUnknownException(request.name());
                     }
