@@ -87,7 +87,7 @@ public class PeerFinderTests extends ESTestCase {
     private TransportService transportService;
     private Iterable<DiscoveryNode> foundPeersFromNotification;
 
-    private static long CONNECTION_TIMEOUT_MILLIS = 30000;
+    private static final long CONNECTION_TIMEOUT_MILLIS = 30000;
 
     class MockTransportAddressConnector implements TransportAddressConnector {
         final Map<TransportAddress, DiscoveryNode> reachableNodes = new HashMap<>();
@@ -210,15 +210,15 @@ public class PeerFinderTests extends ESTestCase {
             = new ClusterConnectionManager(settings, capturingTransport);
         StubbableConnectionManager connectionManager
             = new StubbableConnectionManager(innerConnectionManager);
-        connectionManager.setDefaultNodeConnectedBehavior((cm, discoveryNode) -> {
+        connectionManager.setDefaultNodeConnectedBehavior((_, discoveryNode) -> {
             final boolean isConnected = connectedNodes.contains(discoveryNode);
             final boolean isDisconnected = disconnectedNodes.contains(discoveryNode);
             assert isConnected != isDisconnected : discoveryNode + ": isConnected=" + isConnected + ", isDisconnected=" + isDisconnected;
             return isConnected;
         });
-        connectionManager.setDefaultGetConnectionBehavior((cm, discoveryNode) -> capturingTransport.createConnection(discoveryNode));
+        connectionManager.setDefaultGetConnectionBehavior((_, discoveryNode) -> capturingTransport.createConnection(discoveryNode));
         transportService = new TransportService(settings, capturingTransport, deterministicTaskQueue.getThreadPool(),
-                                                boundTransportAddress -> localNode, null, connectionManager);
+                                                _ -> localNode, null, connectionManager);
 
         transportService.start();
         transportService.acceptIncomingRequests();
@@ -634,7 +634,7 @@ public class PeerFinderTests extends ESTestCase {
 
         peerFinder.handlePeersRequest(new PeersRequest(sourceNode, emptyList()));
         runAllRunnableTasks();
-        respondToRequests(node -> {
+        respondToRequests(_ -> {
             throw new AssertionError("there should have been no further requests");
         });
 

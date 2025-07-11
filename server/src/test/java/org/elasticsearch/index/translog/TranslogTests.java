@@ -20,7 +20,6 @@
 package org.elasticsearch.index.translog;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;

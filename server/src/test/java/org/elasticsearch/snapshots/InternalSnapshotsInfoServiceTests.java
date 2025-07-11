@@ -187,7 +187,7 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
     @Test
     public void testErroneousSnapshotShardSizes() throws Exception {
         final AtomicInteger reroutes = new AtomicInteger();
-        final RerouteService rerouteService = (reason, priority, listener) -> {
+        final RerouteService rerouteService = (_, _, listener) -> {
             reroutes.incrementAndGet();
             listener.onResponse(clusterService.state());
         };
@@ -343,10 +343,9 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
             clusterState -> addUnassignedShards(clusterState, indexName, nbShards));
 
         // waiting for snapshot shard size fetches to be executed, as we want to verify that they are cleaned up
-        assertBusy(() -> {
+        assertBusy(() ->
             assertThat(snapshotsInfoService.numberOfFailedSnapshotShardSizes() + snapshotsInfoService.numberOfKnownSnapshotShardSizes())
-                .isEqualTo(nbShards);
-        });
+                .isEqualTo(nbShards));
 
         if (randomBoolean()) {
             // simulate initialization and start of the shards

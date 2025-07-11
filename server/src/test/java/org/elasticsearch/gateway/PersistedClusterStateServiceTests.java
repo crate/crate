@@ -809,8 +809,8 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
-    @TestLogging(value = "org.elasticsearch.gateway:WARN")
     @Test
+    @TestLogging(value = "org.elasticsearch.gateway:WARN")
     public void testSlowLogging() throws IOException, IllegalAccessException {
         final long slowWriteLoggingThresholdMillis;
         final Settings settings;
@@ -959,5 +959,4 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                 ? BigArrays.NON_RECYCLING_INSTANCE
                 : new MockBigArrays(new MockPageCacheRecycler(Settings.EMPTY), new NoneCircuitBreakerService());
     }
-
 }

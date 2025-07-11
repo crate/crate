@@ -46,11 +46,13 @@ import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogDeletionPolicy;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 import com.carrotsearch.hppc.LongArrayList;
 
 public class CombinedDeletionPolicyTests extends ESTestCase {
 
+    @Test
     public void testKeepCommitsAfterGlobalCheckpoint() throws Exception {
         final AtomicLong globalCheckpoint = new AtomicLong();
         final int extraRetainedOps = between(0, 100);
@@ -91,6 +93,7 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
                 Math.min(getLocalCheckpoint(commitList.get(keptIndex)) + 1, globalCheckpoint.get() + 1 - extraRetainedOps)));
     }
 
+    @Test
     public void testAcquireIndexCommit() throws Exception {
         final AtomicLong globalCheckpoint = new AtomicLong();
         final int extraRetainedOps = between(0, 100);
@@ -167,6 +170,7 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
             Math.max(NO_OPS_PERFORMED, Math.min(getLocalCheckpoint(safeCommit) + 1, globalCheckpoint.get() + 1 - extraRetainedOps)));
     }
 
+    @Test
     public void testDeleteInvalidCommits() throws Exception {
         final AtomicLong globalCheckpoint = new AtomicLong(randomNonNegativeLong());
         final SoftDeletesPolicy softDeletesPolicy = new SoftDeletesPolicy(globalCheckpoint::get, -1, 0, () -> RetentionLeases.EMPTY);
@@ -198,6 +202,7 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
         assertThat(softDeletesPolicy.getMinRetainedSeqNo()).isEqualTo(getLocalCheckpoint(CombinedDeletionPolicy.findSafeCommitPoint(commitList, globalCheckpoint.get())) + 1);
     }
 
+    @Test
     public void testCheckUnreferencedCommits() throws Exception {
         final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.UNASSIGNED_SEQ_NO);
         final SoftDeletesPolicy softDeletesPolicy = new SoftDeletesPolicy(globalCheckpoint::get, -1, 0, () -> RetentionLeases.EMPTY);
@@ -268,8 +273,8 @@ public class CombinedDeletionPolicyTests extends ESTestCase {
 
     void resetDeletion(IndexCommit commit) {
         final AtomicBoolean deleted = new AtomicBoolean();
-        when(commit.isDeleted()).thenAnswer(args -> deleted.get());
-        doAnswer(arg -> {
+        when(commit.isDeleted()).thenAnswer(_ -> deleted.get());
+        doAnswer(_ -> {
             deleted.set(true);
             return null;
         }).when(commit).delete();

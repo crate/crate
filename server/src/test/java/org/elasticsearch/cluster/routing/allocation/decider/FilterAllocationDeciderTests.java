@@ -18,6 +18,12 @@
  */
 package org.elasticsearch.cluster.routing.allocation.decider;
 
+import static io.crate.testing.Asserts.assertThat;
+import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
+
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -34,12 +40,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.snapshots.EmptySnapshotsInfoService;
 import org.elasticsearch.test.gateway.TestGatewayAllocator;
 import org.junit.Test;
-
-import java.util.List;
-import java.util.Map;
-
-import static io.crate.testing.Asserts.assertThat;
-import static org.elasticsearch.cluster.routing.ShardRoutingState.INITIALIZING;
 
 
 public class FilterAllocationDeciderTests extends ESAllocationTestCase {
