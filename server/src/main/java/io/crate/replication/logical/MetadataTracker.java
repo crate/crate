@@ -486,8 +486,7 @@ public final class MetadataTracker implements Closeable {
             var publisherRelationMetadata = relationsInPublications.get(relationName);
             boolean relationDisappeared = publisherRelationMetadata == null;
             if (relationDisappeared) {
-                changedRelations.add(relationName);
-                continue;
+                throw new RuntimeException("publisherRelationMetadata == null");
             }
             // Check for possible dropped partitions
             var concreteIndices = IndexNameExpressionResolver.concreteIndices(
