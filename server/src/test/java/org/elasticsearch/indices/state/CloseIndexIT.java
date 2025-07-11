@@ -60,7 +60,7 @@ public class CloseIndexIT extends IntegTestCase {
         assertIndexIsClosed("test");
     }
 
-    static void assertIndexIsClosed(final String... indices) {
+    private static void assertIndexIsClosed(final String... indices) {
         var clusterState = FutureUtils.get(client().state(new ClusterStateRequest())).getState();
         var availableIndices = clusterState.metadata().indices();
         assertThat(availableIndices.keys().toArray(String.class)).containsExactly(indices);

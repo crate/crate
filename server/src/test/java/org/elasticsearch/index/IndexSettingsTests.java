@@ -23,7 +23,6 @@ package org.elasticsearch.index;
 
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -106,7 +105,7 @@ public class IndexSettingsTests extends ESTestCase {
             newIndexMeta("index", theSettings), Settings.EMPTY, integerSetting);
         settings.getScopedSettings().addSettingsUpdateConsumer(
             integerSetting, integer::set,
-            (i) -> {
+            i -> {
                 if (i == 42) {
                     throw new AssertionError("boom");
                 }
@@ -201,17 +200,15 @@ public class IndexSettingsTests extends ESTestCase {
         assertThat(settings.getIndexVersionCreated()).isEqualTo(version);
         assertThat(settings.getUUID()).isEqualTo("_na_");
 
-        assertThatThrownBy(() -> {
-            settings.updateIndexMetadata(
-                newIndexMeta(
-                    "index",
-                    Settings.builder()
-                        .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                        .put("index.test.setting.int", 42)
-                        .build()
-                )
-            );
-        }).isExactlyInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> settings.updateIndexMetadata(
+            newIndexMeta(
+                "index",
+                Settings.builder()
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put("index.test.setting.int", 42)
+                    .build()
+            )
+        )).isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("version mismatch on settings update expected: ");
 
         // use version number that is unknown
@@ -242,17 +239,15 @@ public class IndexSettingsTests extends ESTestCase {
                 .build()
         );
         IndexSettings settings3 = new IndexSettings(metaData, Settings.EMPTY);
-        assertThatThrownBy(() -> {
-            settings3.updateIndexMetadata(
-                newIndexMeta(
-                    "index",
-                    Settings.builder()
-                        .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
-                        .put("index.test.setting.int", 42)
-                        .build()
-                )
-            );
-        }).isExactlyInstanceOf(IllegalArgumentException.class)
+        assertThatThrownBy(() -> settings3.updateIndexMetadata(
+            newIndexMeta(
+                "index",
+                Settings.builder()
+                    .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                    .put("index.test.setting.int", 42)
+                    .build()
+            )
+        )).isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("uuid mismatch on settings update expected: 0xdeadbeef but was: _na_");
         assertThat(settings3.getSettings()).isEqualTo(metaData.getSettings());
     }
@@ -515,17 +510,17 @@ public class IndexSettingsTests extends ESTestCase {
         Settings settings =
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS.archiveUnknownOrInvalidSettings(
                 Settings.EMPTY,
-                e -> {
+                _ -> {
                     assert false : "should not have been invoked, no unknown settings";
                 },
-                (e, ex) -> {
+                (_, _) -> {
                     assert false : "should not have been invoked, no invalid settings";
                 });
         assertThat(Settings.EMPTY).isSameAs(settings);
         settings =
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS.archiveUnknownOrInvalidSettings(
                 Settings.builder().put("index.refresh_interval", "-200").build(),
-                e -> {
+                _ -> {
                     assert false : "should not have been invoked, no invalid settings";
                 },
                 (e, ex) -> {
@@ -541,10 +536,10 @@ public class IndexSettingsTests extends ESTestCase {
         settings =
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS.archiveUnknownOrInvalidSettings(
                 prevSettings,
-                e -> {
+                _ -> {
                     assert false : "should not have been invoked, no unknown settings";
                 },
-                (e, ex) -> {
+                (_, _) -> {
                     assert false : "should not have been invoked, no invalid settings";
                 });
         assertThat(settings).isSameAs(prevSettings);
@@ -559,7 +554,7 @@ public class IndexSettingsTests extends ESTestCase {
                     assertThat(e.getKey()).isEqualTo("index.unknown");
                     assertThat(e.getValue()).isEqualTo("foo");
                 },
-                (e, ex) -> {
+                (_, _) -> {
                     assert false : "should not have been invoked, no invalid settings";
                 });
 
@@ -594,6 +589,4 @@ public class IndexSettingsTests extends ESTestCase {
         assertThat(indexSettings.getTranslogRetentionAge().millis()).isEqualTo(-1L);
         assertThat(indexSettings.getTranslogRetentionSize().getBytes()).isEqualTo(-1L);
     }
-
-
 }

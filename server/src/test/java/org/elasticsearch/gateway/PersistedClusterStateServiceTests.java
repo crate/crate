@@ -84,6 +84,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         );
     }
 
+    @Test
     public void testPersistsAndReloadsTerm() throws IOException {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
             final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
@@ -99,6 +100,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testPersistsAndReloadsGlobalMetadata() throws IOException {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
             final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
@@ -144,6 +146,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testLoadsFreshestState() throws IOException {
         final Path[] dataPaths = createDataPaths();
         final long freshTerm = randomLongBetween(1L, Long.MAX_VALUE);
@@ -286,6 +289,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testFailsIfFreshestStateIsInStaleTerm() throws IOException {
         final Path[] dataPaths1 = createDataPaths();
         final Path[] dataPaths2 = createDataPaths();
@@ -384,6 +388,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testClosesWriterOnFatalError() throws IOException {
         final AtomicBoolean throwException = new AtomicBoolean();
 
@@ -430,6 +435,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testCrashesWithIOErrorOnCommitFailure() throws IOException {
         final AtomicBoolean throwException = new AtomicBoolean();
 
@@ -592,6 +598,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testPersistsAndReloadsIndexMetadataIffVersionOrTermChanges() throws IOException {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
             final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
@@ -669,6 +676,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void test_persists_updated_column_oid() throws IOException {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
             final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
@@ -688,6 +696,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testPersistsAndReloadsIndexMetadataForMultipleIndices() throws IOException {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
             final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
@@ -758,6 +767,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testReloadsMetadataAcrossMultipleSegments() throws IOException {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
             final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
@@ -792,6 +802,7 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     @TestLogging(value = "org.elasticsearch.gateway:WARN")
     public void testSlowLogging() throws IOException, IllegalAccessException {
         final long slowWriteLoggingThresholdMillis;
@@ -941,5 +952,4 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
                 ? BigArrays.NON_RECYCLING_INSTANCE
                 : new MockBigArrays(new MockPageCacheRecycler(Settings.EMPTY), new NoneCircuitBreakerService());
     }
-
 }

@@ -21,7 +21,6 @@ package org.elasticsearch.index.engine;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.shuffle;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_RESET;

@@ -22,7 +22,6 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
@@ -45,6 +44,7 @@ import org.assertj.core.api.SoftAssertions;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotRequest;
+import org.elasticsearch.action.admin.cluster.snapshots.create.CreateSnapshotResponse;
 import org.elasticsearch.action.admin.cluster.snapshots.create.TransportCreateSnapshot;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.DeleteSnapshotRequest;
 import org.elasticsearch.action.admin.cluster.snapshots.delete.TransportDeleteSnapshot;
@@ -125,7 +125,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
                 new CreateSnapshotRequest(repoName, "fast-snapshot")
                     .relationNames(List.of(new RelationName("doc", "tbl_fast")))
                     .waitForCompletion(true)
-            ).thenApply(x -> x.getSnapshotInfo());
+            ).thenApply(CreateSnapshotResponse::getSnapshotInfo);
         assertSuccessful(future);
 
         assertThat(createSlowFuture.isDone()).isFalse();
@@ -204,7 +204,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         assertSuccessful(createFuture);
         assertBusy(() -> {
            assertThat(createSlowFuture).isCompletedExceptionally();
-           assertThatThrownBy(() -> createSlowFuture.join())
+           assertThatThrownBy(createSlowFuture::join)
                .satisfiesAnyOf(
                     t -> assertThat(t).hasRootCauseExactlyInstanceOf(SnapshotException.class),
                     t -> assertThat(t).hasRootCauseExactlyInstanceOf(IOException.class)
@@ -420,7 +420,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
                 new CreateSnapshotRequest(repoName, "snapshot-three")
                     .relationNames(List.of(new RelationName("doc", secondTable)))
                     .waitForCompletion(true)
-            ).thenApply(x -> x.getSnapshotInfo());
+            ).thenApply(CreateSnapshotResponse::getSnapshotInfo);
 
         assertThat(firstSnapshotResponse).isNotDone();
         assertThat(secondSnapshotResponse).isNotDone();
@@ -1296,7 +1296,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
             .waitForCompletion(true);
         return client
             .execute(TransportCreateSnapshot.ACTION, createSnapshotRequest)
-            .thenApply(x -> x.getSnapshotInfo());
+            .thenApply(CreateSnapshotResponse::getSnapshotInfo);
     }
 
     private CompletableFuture<SnapshotInfo> startAndBlockFailingFullSnapshot(String blockedRepoName,

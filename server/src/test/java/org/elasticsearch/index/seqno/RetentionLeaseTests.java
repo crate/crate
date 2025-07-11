@@ -27,15 +27,18 @@ import java.io.IOException;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class RetentionLeaseTests extends ESTestCase {
 
+    @Test
     public void testEmptyId() {
         assertThatThrownBy(() -> new RetentionLease("", randomNonNegativeLong(), randomNonNegativeLong(), "source"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("retention lease ID can not be empty");
     }
 
+    @Test
     public void testRetainingSequenceNumberOutOfRange() {
         final long retainingSequenceNumber = randomLongBetween(Long.MIN_VALUE, -1);
         assertThatThrownBy(() -> new RetentionLease("id", retainingSequenceNumber, randomNonNegativeLong(), "source"))
@@ -43,6 +46,7 @@ public class RetentionLeaseTests extends ESTestCase {
             .hasMessageContaining("retention lease retaining sequence number [" + retainingSequenceNumber + "] out of range");
     }
 
+    @Test
     public void testTimestampOutOfRange() {
         final long timestamp = randomLongBetween(Long.MIN_VALUE, -1);
         assertThatThrownBy(() -> new RetentionLease("id", randomNonNegativeLong(), timestamp, "source"))
@@ -50,12 +54,14 @@ public class RetentionLeaseTests extends ESTestCase {
             .hasMessageContaining("retention lease timestamp [" + timestamp + "] out of range");
     }
 
+    @Test
     public void testEmptySource() {
         assertThatThrownBy(() -> new RetentionLease("id", randomNonNegativeLong(), randomNonNegativeLong(), ""))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("retention lease source can not be empty");
     }
 
+    @Test
     public void testRetentionLeaseSerialization() throws IOException {
         final String id = randomAlphaOfLength(8);
         final long retainingSequenceNumber = randomLongBetween(0, Long.MAX_VALUE);
@@ -69,5 +75,4 @@ public class RetentionLeaseTests extends ESTestCase {
             }
         }
     }
-
 }

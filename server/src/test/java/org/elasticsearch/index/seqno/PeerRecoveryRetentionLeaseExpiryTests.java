@@ -123,9 +123,11 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
         assertThat(retentionLeases.v1()).isFalse();
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
-        assertThat(leaseIds).hasSize(2);
-        assertThat(leaseIds).isEqualTo(replicationTracker.routingTable.shards().stream()
-            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
+        assertThat(leaseIds)
+            .hasSize(2)
+            .isEqualTo(replicationTracker.routingTable.shards().stream()
+                .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet())
+            );
     }
 
     @Test
@@ -143,10 +145,11 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
         assertThat(retentionLeases.v1()).as("should not have expired anything").isFalse();
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
-        assertThat(leaseIds).hasSize(3);
-        assertThat(leaseIds).isEqualTo(Stream.concat(Stream.of(ReplicationTracker.getPeerRecoveryRetentionLeaseId(unknownNodeId)),
-            replicationTracker.routingTable.shards().stream()
-                .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId)).collect(Collectors.toSet()));
+        assertThat(leaseIds)
+            .hasSize(3)
+            .isEqualTo(Stream.concat(Stream.of(ReplicationTracker.getPeerRecoveryRetentionLeaseId(unknownNodeId)),
+                replicationTracker.routingTable.shards().stream()
+                    .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId)).collect(Collectors.toSet()));
     }
 
     @Test
@@ -169,9 +172,10 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
         assertThat(retentionLeases.v1()).as("should have expired something").isTrue();
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
-        assertThat(leaseIds).hasSize(2);
-        assertThat(leaseIds).isEqualTo(replicationTracker.routingTable.shards().stream()
-            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
+        assertThat(leaseIds)
+            .hasSize(2)
+            .isEqualTo(replicationTracker.routingTable.shards().stream()
+                .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
     }
 
     @Test
@@ -191,11 +195,14 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
         assertThat(retentionLeases.v1()).isTrue();
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
-        assertThat(leaseIds).hasSize(2);
-        assertThat(leaseIds).isEqualTo(replicationTracker.routingTable.shards().stream()
-            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
+        assertThat(leaseIds)
+            .hasSize(2)
+            .isEqualTo(replicationTracker.routingTable.shards().stream()
+                .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
     }
 
+
+    @Test
     public void testPeerRecoveryRetentionLeasesForUnassignedCopiesExpireIfRetainingTooMuchHistory() {
         if (randomBoolean()) {
             startReplica();
@@ -211,9 +218,10 @@ public class PeerRecoveryRetentionLeaseExpiryTests extends ReplicationTrackerTes
         assertThat(retentionLeases.v1()).as("should have expired something").isTrue();
 
         final Set<String> leaseIds = retentionLeases.v2().leases().stream().map(RetentionLease::id).collect(Collectors.toSet());
-        assertThat(leaseIds).hasSize(2);
-        assertThat(leaseIds).isEqualTo(replicationTracker.routingTable.shards().stream()
-            .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
+        assertThat(leaseIds)
+            .hasSize(2)
+            .isEqualTo(replicationTracker.routingTable.shards().stream()
+                .map(ReplicationTracker::getPeerRecoveryRetentionLeaseId).collect(Collectors.toSet()));
     }
 
     private SafeCommitInfo randomSafeCommitInfo() {

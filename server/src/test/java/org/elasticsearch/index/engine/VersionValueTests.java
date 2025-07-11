@@ -25,9 +25,11 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.apache.lucene.tests.util.RamUsageTester;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class VersionValueTests extends ESTestCase {
 
+    @Test
     public void testIndexRamBytesUsed() {
         Translog.Location translogLoc = null;
         if (randomBoolean()) {
@@ -37,9 +39,9 @@ public class VersionValueTests extends ESTestCase {
         assertThat(versionValue.ramBytesUsed()).isEqualTo(RamUsageTester.ramUsed(versionValue));
     }
 
+    @Test
     public void testDeleteRamBytesUsed() {
         DeleteVersionValue versionValue = new DeleteVersionValue(randomLong(), randomLong(), randomLong(), randomLong());
         assertThat(versionValue.ramBytesUsed()).isEqualTo(RamUsageTester.ramUsed(versionValue));
     }
-
 }

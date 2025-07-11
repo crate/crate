@@ -216,8 +216,4 @@ public class RestoreServiceTest {
         assertThat(resolvedTemplates).containsExactly(
             templateName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table"));
     }
-
-
-
-
 }

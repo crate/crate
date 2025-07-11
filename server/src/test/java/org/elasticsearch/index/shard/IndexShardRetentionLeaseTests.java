@@ -92,6 +92,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
         }
     }
 
+    @Test
     public void testRemoveRetentionLease() throws IOException {
         final IndexShard indexShard = newStartedShard(true, Settings.EMPTY);
         final long primaryTerm = indexShard.getOperationPrimaryTerm();
@@ -216,6 +217,7 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
         }
     }
 
+    @Test
     public void testPersistence() throws IOException {
         final Settings settings = Settings.builder()
                 .put(IndexSettings.INDEX_SOFT_DELETES_RETENTION_LEASE_PERIOD_SETTING.getKey(), Long.MAX_VALUE, TimeUnit.NANOSECONDS)
@@ -361,5 +363,4 @@ public class IndexShardRetentionLeaseTests extends IndexShardTestCase {
             assertThat(retentionLease.source()).isEqualTo("test-" + i);
         }
     }
-
 }

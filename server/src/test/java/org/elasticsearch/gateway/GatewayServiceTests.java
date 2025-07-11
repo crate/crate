@@ -73,6 +73,7 @@ public class GatewayServiceTests extends ESTestCase {
         SettingsUtil.resetDeprecationLogger();
     }
 
+
     public void testDefaultRecoverAfterTime() {
         // check that the default is not set
         GatewayService service = createService(Settings.builder());
@@ -107,6 +108,7 @@ public class GatewayServiceTests extends ESTestCase {
         assertSettingDeprecationsAndWarnings(new Setting<?>[] {GatewayService.RECOVER_AFTER_MASTER_NODES_SETTING });
     }
 
+    @Test
     public void testRecoverStateUpdateTask() throws Exception {
         GatewayService service = createService(Settings.builder());
         ClusterStateUpdateTask clusterStateUpdateTask = service.new RecoverStateUpdateTask();

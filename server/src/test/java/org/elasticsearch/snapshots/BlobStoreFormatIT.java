@@ -180,5 +180,4 @@ public class BlobStoreFormatIT extends AbstractSnapshotIntegTestCase {
             }
         }
     }
-
 }

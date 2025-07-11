@@ -69,7 +69,7 @@ public class NoOpEngineTests extends EngineTestCase {
         engine.close();
         // Ensure that we can't open two noop engines for the same store
         final EngineConfig engineConfig = noOpConfig(INDEX_SETTINGS, store, primaryTranslogDir);
-        try (NoOpEngine ignored = new NoOpEngine(engineConfig)) {
+        try (var _ = new NoOpEngine(engineConfig)) {
             assertThatThrownBy(() -> new NoOpEngine(engineConfig))
                 .isExactlyInstanceOf(UncheckedIOException.class)
                 .hasCauseExactlyInstanceOf(LockObtainFailedException.class);

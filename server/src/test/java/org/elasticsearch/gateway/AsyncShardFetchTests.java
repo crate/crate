@@ -41,6 +41,7 @@ import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Test;
 
 public class AsyncShardFetchTests extends ESTestCase {
     private final DiscoveryNode node1 = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Collections.emptyMap(),
@@ -69,6 +70,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         terminate(threadPool);
     }
 
+    @Test
     public void testClose() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).build();
         test.addSimulation(node1.getId(), response1);
@@ -86,11 +88,12 @@ public class AsyncShardFetchTests extends ESTestCase {
         try {
             test.fetchData(nodes, emptySet());
             fail("fetch data should fail when closed");
-        } catch (IllegalStateException e) {
+        } catch (IllegalStateException _) {
             // all is well
         }
     }
 
+    @Test
     public void testFullCircleSingleNodeSuccess() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).build();
         test.addSimulation(node1.getId(), response1);
@@ -110,6 +113,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
 
+    @Test
     public void testFullCircleSingleNodeFailure() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).build();
         // add a failed response for node1
@@ -142,6 +146,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
 
+    @Test
     public void testIgnoreResponseFromDifferentRound() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).build();
         test.addSimulation(node1.getId(), response1);
@@ -166,6 +171,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
 
+    @Test
     public void testIgnoreFailureFromDifferentRound() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).build();
         // add a failed response for node1
@@ -191,6 +197,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         assertThat(fetchData.getData()).hasSize(0);
     }
 
+    @Test
     public void testTwoNodesOnSetup() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).add(node2).build();
         test.addSimulation(node1.getId(), response1);
@@ -219,6 +226,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         assertThat(fetchData.getData().get(node2)).isSameAs(response2);
     }
 
+    @Test
     public void testTwoNodesOnSetupAndFailure() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).add(node2).build();
         test.addSimulation(node1.getId(), response1);
@@ -245,6 +253,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         assertThat(fetchData.getData().get(node1)).isSameAs(response1);
     }
 
+    @Test
     public void testTwoNodesAddedInBetween() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).build();
         test.addSimulation(node1.getId(), response1);
@@ -275,6 +284,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         assertThat(fetchData.getData().get(node2)).isSameAs(response2);
     }
 
+    @Test
     public void testClearCache() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).build();
         test.addSimulation(node1.getId(), response1);
@@ -321,6 +331,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         assertThat(fetchData.getData().get(node1)).isSameAs(response1_2);
     }
 
+    @Test
     public void testConcurrentRequestAndClearCache() throws Exception {
         DiscoveryNodes nodes = DiscoveryNodes.builder().add(node1).build();
         test.addSimulation(node1.getId(), response1);
@@ -370,7 +381,7 @@ public class AsyncShardFetchTests extends ESTestCase {
 
         private final ThreadPool threadPool;
         private final Map<String, Entry> simulations = new ConcurrentHashMap<>();
-        private AtomicInteger reroute = new AtomicInteger();
+        private final AtomicInteger reroute = new AtomicInteger();
 
         TestFetch(ThreadPool threadPool) {
             super(LogManager.getLogger(TestFetch.class), "test", new ShardId("test", "_na_", 1), "", null);
@@ -431,9 +442,7 @@ public class AsyncShardFetchTests extends ESTestCase {
         }
     }
 
-
     static class Response extends BaseNodeResponse {
-
         Response(DiscoveryNode node) {
             super(node);
         }

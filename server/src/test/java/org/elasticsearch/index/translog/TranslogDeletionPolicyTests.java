@@ -33,7 +33,6 @@ import org.apache.lucene.store.ByteArrayDataOutput;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.ReleasableBytesReference;
-import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
@@ -146,7 +145,7 @@ public class TranslogDeletionPolicyTests extends ESTestCase {
             assertMinGenRequired(deletionPolicy, readersAndWriter,
                 max3(selectedGenerationByAge, selectedGenerationBySize, selectedGenerationByTotalFiles));
             long viewGen = randomFrom(allGens).generation;
-            try (Releasable ignored = deletionPolicy.acquireTranslogGen(viewGen)) {
+            try (var _ = deletionPolicy.acquireTranslogGen(viewGen)) {
                 assertMinGenRequired(deletionPolicy, readersAndWriter,
                     min(viewGen, max3(selectedGenerationByAge, selectedGenerationBySize, selectedGenerationByTotalFiles)));
                 // disable age

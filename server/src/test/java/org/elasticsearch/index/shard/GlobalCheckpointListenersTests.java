@@ -31,6 +31,7 @@ import static org.mockito.Mockito.verify;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -154,7 +155,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
             final int index = i;
             globalCheckpointListeners.add(
                     randomLongBetween(0, globalCheckpoint),
-                    maybeMultipleInvocationProtectingListener((g, e) -> globalCheckpoints[index] = g),
+                    maybeMultipleInvocationProtectingListener((g, _) -> globalCheckpoints[index] = g),
                     null);
             // the listener should be notified immediately
             assertThat(globalCheckpoints[index]).isEqualTo(globalCheckpoint);
@@ -188,7 +189,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
             final boolean failure = randomBoolean();
             globalCheckpointListeners.add(
                     randomLongBetween(NO_OPS_PERFORMED, globalCheckpoint - 1),
-                    maybeMultipleInvocationProtectingListener((g, e) -> {
+                    maybeMultipleInvocationProtectingListener((_, _) -> {
                         if (failure) {
                             globalCheckpoints[index] = Long.MIN_VALUE;
                             throw new RuntimeException("failure");
@@ -227,7 +228,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
         for (int i = 0; i < numberOfListeners; i++) {
             final int index = i;
             globalCheckpointListeners.add(
-                    0, maybeMultipleInvocationProtectingListener((g, e) -> exceptions[index] = e), null);
+                    0, maybeMultipleInvocationProtectingListener((_, e) -> exceptions[index] = e), null);
         }
         globalCheckpointListeners.close();
         for (int i = 0; i < numberOfListeners; i++) {
@@ -237,9 +238,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
         }
 
         // test the listeners are not invoked twice
-        for (int i = 0; i < numberOfListeners; i++) {
-            exceptions[i] = null;
-        }
+        Arrays.fill(exceptions, null);
         globalCheckpointListeners.close();
         for (int i = 0; i < numberOfListeners; i++) {
             assertThat(exceptions[i]).isNull();
@@ -256,7 +255,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
         final CountDownLatch latch = new CountDownLatch(1);
         globalCheckpointListeners.add(
                 randomLongBetween(NO_OPS_PERFORMED, Long.MAX_VALUE),
-                maybeMultipleInvocationProtectingListener((g, e) -> {
+                maybeMultipleInvocationProtectingListener((_, _) -> {
                     invoked.set(true);
                     latch.countDown();
                 }),
@@ -280,7 +279,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
             failures[index] = failure;
             globalCheckpointListeners.add(
                     0,
-                    maybeMultipleInvocationProtectingListener((g, e) -> {
+                    maybeMultipleInvocationProtectingListener((g, _) -> {
                         if (failure) {
                             globalCheckpoints[index] = Long.MIN_VALUE;
                             throw new RuntimeException("failure");
@@ -334,7 +333,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
             failures[index] = failure;
             globalCheckpointListeners.add(
                     0,
-                    maybeMultipleInvocationProtectingListener((g, e) -> {
+                    maybeMultipleInvocationProtectingListener((_, e) -> {
                         if (failure) {
                             throw new RuntimeException("failure");
                         } else {
@@ -585,7 +584,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
                         verify(mockLogger).trace(message.capture(), t.capture());
                         assertThat(message.getValue()).isEqualTo("global checkpoint listener timed out");
                         assertThat(t.getValue()).hasMessageContaining(timeout.getStringRep());
-                    } catch (Exception caught) {
+                    } catch (Exception _) {
                         fail(e.getMessage());
                     } finally {
                         latch.countDown();
@@ -641,7 +640,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
     public void testFailingListenerAfterTimeout() throws InterruptedException {
         final CountDownLatch latch = new CountDownLatch(1);
         final Logger mockLogger = mock(Logger.class);
-        doAnswer(invocationOnMock -> {
+        doAnswer(_ -> {
             latch.countDown();
             return null;
         }).when(mockLogger).warn(
@@ -653,7 +652,7 @@ public class GlobalCheckpointListenersTests extends ESTestCase {
         final TimeValue timeout = TimeValue.timeValueMillis(randomIntBetween(1, 50));
         globalCheckpointListeners.add(
                 NO_OPS_PERFORMED,
-                maybeMultipleInvocationProtectingListener((g, e) -> {
+                maybeMultipleInvocationProtectingListener((_, _) -> {
                     throw new RuntimeException("failure");
                 }),
                 timeout);

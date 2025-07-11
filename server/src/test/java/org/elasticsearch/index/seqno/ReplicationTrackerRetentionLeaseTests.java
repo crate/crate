@@ -67,9 +67,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             primaryTerm,
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             () -> 0L,
-            (leases, listener) -> {},
+            (_, _) -> {},
             OPS_BASED_RECOVERY_ALWAYS_REASONABLE
         );
         replicationTracker.updateFromMaster(
@@ -116,9 +116,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                 IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
                 primaryTerm,
                 UNASSIGNED_SEQ_NO,
-                value -> {},
+                _ -> {},
                 () -> 0L,
-                (leases, listener) -> {},
+                (_, _) -> {},
                 OPS_BASED_RECOVERY_ALWAYS_REASONABLE);
         replicationTracker.updateFromMaster(
                 randomNonNegativeLong(),
@@ -145,9 +145,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                 IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
                 primaryTerm,
                 UNASSIGNED_SEQ_NO,
-                value -> {},
+                _ -> {},
                 () -> 0L,
-                (leases, listener) -> {},
+                (_, _) -> {},
                 OPS_BASED_RECOVERY_ALWAYS_REASONABLE);
         replicationTracker.updateFromMaster(
                 randomNonNegativeLong(),
@@ -172,9 +172,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             randomNonNegativeLong(),
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             () -> 0L,
-            (leases, listener) -> {
+            (leases, _) -> {
                 // we do not want to hold a lock on the replication tracker in the callback!
                 assertThat(Thread.holdsLock(reference.get())).isFalse();
                 invoked.set(true);
@@ -222,9 +222,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             randomLongBetween(1, Long.MAX_VALUE),
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             timeReference::get,
-            (leases, listener) -> {
+            (_, listener) -> {
                 assertThat(Thread.holdsLock(replicationTrackerRef.get())).isFalse();
                 assertThat(synced.compareAndSet(false, true)).isTrue();
                 listener.onResponse(new ReplicationResponse());
@@ -271,9 +271,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             randomLongBetween(1, Long.MAX_VALUE),
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             () -> 0L,
-            (leases, listener) -> { },
+            (_, _) -> { },
             OPS_BASED_RECOVERY_ALWAYS_REASONABLE);
         replicationTracker.updateFromMaster(
             randomNonNegativeLong(),
@@ -295,9 +295,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             randomLongBetween(1, Long.MAX_VALUE),
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             () -> 0L,
-            (leases, listener) -> { },
+            (_, _) -> { },
             OPS_BASED_RECOVERY_ALWAYS_REASONABLE);
         replicationTracker.updateFromMaster(
             randomNonNegativeLong(),
@@ -324,9 +324,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                 IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
                 primaryTerm,
                 UNASSIGNED_SEQ_NO,
-                value -> {},
+                _ -> {},
                 () -> 0L,
-                (leases, listener) -> {},
+                (_, _) -> {},
                 OPS_BASED_RECOVERY_ALWAYS_REASONABLE);
         replicationTracker.updateFromMaster(
                 randomNonNegativeLong(),
@@ -351,9 +351,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                 IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
                 randomNonNegativeLong(),
                 UNASSIGNED_SEQ_NO,
-                value -> {},
+                _ -> {},
                 () -> 0L,
-                (leases, listener) -> {
+                (leases, _) -> {
                     // we do not want to hold a lock on the replication tracker in the callback!
                     assertThat(Thread.holdsLock(reference.get())).isFalse();
                     invoked.set(true);
@@ -415,9 +415,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", settings),
             primaryTerm,
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             currentTimeMillis::get,
-            (leases, listener) -> {},
+            (_, _) -> {},
             OPS_BASED_RECOVERY_ALWAYS_REASONABLE
         );
         replicationTracker.updateFromMaster(
@@ -493,9 +493,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             randomNonNegativeLong(),
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             () -> 0L,
-            (leases, listener) -> {},
+            (_, _) -> {},
             OPS_BASED_RECOVERY_ALWAYS_REASONABLE
         );
         replicationTracker.updateFromMaster(
@@ -553,9 +553,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             primaryTerm,
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             () -> 0L,
-            (leases, listener) -> {},
+            (_, _) -> {},
             OPS_BASED_RECOVERY_ALWAYS_REASONABLE
         );
         replicationTracker.updateFromMaster(
@@ -590,9 +590,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
                 IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
                 primaryTerm,
                 UNASSIGNED_SEQ_NO,
-                value -> {},
+                _ -> {},
                 () -> 0L,
-                (leases, listener) -> {},
+                (_, _) -> {},
                 OPS_BASED_RECOVERY_ALWAYS_REASONABLE);
         replicationTracker.updateFromMaster(
                 randomNonNegativeLong(),
@@ -640,9 +640,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             primaryTerm,
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             () -> 0L,
-            (leases, listener) -> {},
+            (_, _) -> {},
             OPS_BASED_RECOVERY_ALWAYS_REASONABLE
         );
         replicationTracker.updateFromMaster(
@@ -706,9 +706,9 @@ public class ReplicationTrackerRetentionLeaseTests extends ReplicationTrackerTes
             IndexSettingsModule.newIndexSettings("test", Settings.EMPTY),
             primaryTerm,
             UNASSIGNED_SEQ_NO,
-            value -> {},
+            _ -> {},
             () -> 0L,
-            (leases, listener) -> {},
+            (_, _) -> {},
             OPS_BASED_RECOVERY_ALWAYS_REASONABLE);
         replicationTracker.updateFromMaster(
             randomNonNegativeLong(),

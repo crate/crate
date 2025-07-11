@@ -62,6 +62,7 @@ import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.junit.Test;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
@@ -106,6 +107,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         return persistedState;
     }
 
+    @Test
     public void testInitialState() throws IOException {
         CoordinationState.PersistedState gateway = null;
         try {
@@ -210,6 +212,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testSetLastAcceptedStateTermChanged() throws IOException {
         CoordinationState.PersistedState gateway = null;
         try {
@@ -259,6 +262,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testMarkAcceptedConfigAsCommitted() throws IOException {
         CoordinationState.PersistedState gateway = null;
         try {
@@ -296,6 +300,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testStatePersistedOnLoad() throws IOException {
         // open LucenePersistedState to make sure that cluster state is written out to each data path
         final PersistedClusterStateService persistedClusterStateService =
@@ -331,6 +336,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testDataOnlyNodePersistence() throws Exception {
         DiscoveryNode localNode = new DiscoveryNode("node1", buildNewFakeTransportAddress(), Collections.emptyMap(),
                                                     Set.of(DiscoveryNodeRole.DATA_ROLE), Version.CURRENT);
@@ -424,6 +430,7 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
         ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
     }
 
+    @Test
     public void testStatePersistenceWithIOIssues() throws IOException {
         final AtomicReference<Double> ioExceptionRate = new AtomicReference<>(0.01d);
         final List<MockDirectoryWrapper> list = new ArrayList<>();
@@ -523,5 +530,4 @@ public class GatewayMetaStatePersistedStateTests extends ESTestCase {
                 ? BigArrays.NON_RECYCLING_INSTANCE
                 : new MockBigArrays(new MockPageCacheRecycler(Settings.EMPTY), new NoneCircuitBreakerService());
     }
-
 }

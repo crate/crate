@@ -183,18 +183,21 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
             .build();
     }
 
+    @Test
     public void testGetRelevantIndicesWithUnassignedShardsOnMasterEligibleNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, true));
         assertThat(indices).hasSize(0);
     }
 
+    @Test
     public void testGetRelevantIndicesWithUnassignedShardsOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(clusterStateWithUnassignedIndex(indexMetadata, false));
         assertThat(indices).hasSize(0);
     }
 
+    @Test
     public void testGetRelevantIndicesWithAssignedShards() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         boolean masterEligible = randomBoolean();
@@ -202,6 +205,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         assertThat(indices).hasSize(1);
     }
 
+    @Test
     public void testGetRelevantIndicesForNonReplicatedClosedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
@@ -209,6 +213,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         assertThat(indices).hasSize(0);
     }
 
+    @Test
     public void testGetRelevantIndicesForReplicatedClosedButUnassignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
@@ -216,6 +221,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         assertThat(indices).hasSize(0);
     }
 
+    @Test
     public void testGetRelevantIndicesForReplicatedClosedAndAssignedIndexOnDataOnlyNode() {
         IndexMetadata indexMetadata = createIndexMetadata("test");
         Set<Index> indices = IncrementalClusterStateWriter.getRelevantIndices(
@@ -455,6 +461,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
     }
 
     @TestLogging(value = "org.elasticsearch.gateway:WARN")
+    @Test
     public void testSlowLogging() throws WriteStateException, IllegalAccessException {
         final long slowWriteLoggingThresholdMillis;
         final Settings settings;

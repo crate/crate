@@ -55,6 +55,7 @@ import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Before;
+import org.junit.Test;
 
 public class FsHealthServiceTests extends ESTestCase {
 
@@ -66,6 +67,7 @@ public class FsHealthServiceTests extends ESTestCase {
         deterministicTaskQueue = new DeterministicTaskQueue(settings, random());
     }
 
+    @Test
     public void testSchedulesHealthCheckAtRefreshIntervals() throws Exception {
         long refreshInterval = randomLongBetween(1000, 12000);
         final Settings settings = Settings.builder().put(FsHealthService.REFRESH_INTERVAL_SETTING.getKey(), refreshInterval + "ms").build();
@@ -96,6 +98,7 @@ public class FsHealthServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testFailsHealthOnIOException() throws IOException {
         FileSystem fileSystem = PathUtils.getDefaultFileSystem();
         FileSystemIOExceptionProvider disruptFileSystemProvider = new FileSystemIOExceptionProvider(fileSystem);
@@ -117,7 +120,7 @@ public class FsHealthServiceTests extends ESTestCase {
             fsHealthService.new FsHealthMonitor().run();
             assertThat(fsHealthService.getHealth().getStatus()).isEqualTo(UNHEALTHY);
             for (Path path : env.nodeDataPaths()) {
-                assertThat(fsHealthService.getHealth().getInfo().contains(path.toString()));
+                assertThat(fsHealthService.getHealth().getInfo()).contains(path.toString());
             }
             assertThat(disruptFileSystemProvider.getInjectedPathCount()).isEqualTo(env.nodeDataPaths().length);
         } finally {
@@ -128,6 +131,7 @@ public class FsHealthServiceTests extends ESTestCase {
     }
 
     @TestLogging(value = "org.elasticsearch.monitor.fs:WARN")
+    @Test
     public void testLoggingOnHungIO() throws Exception {
         long slowLogThreshold = randomLongBetween(100, 200);
         final Settings settings = Settings.builder().put(FsHealthService.SLOW_PATH_LOGGING_THRESHOLD_SETTING.getKey(),
@@ -170,6 +174,7 @@ public class FsHealthServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testFailsHealthOnSinglePathFsyncFailure() throws IOException {
         FileSystem fileSystem = PathUtils.getDefaultFileSystem();
         FileSystemFsyncIOExceptionProvider disruptFsyncFileSystemProvider = new FileSystemFsyncIOExceptionProvider(fileSystem);
@@ -201,6 +206,7 @@ public class FsHealthServiceTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testFailsHealthOnSinglePathWriteFailure() throws IOException {
         FileSystem fileSystem = PathUtils.getDefaultFileSystem();
         FileSystemIOExceptionProvider disruptWritesFileSystemProvider = new FileSystemIOExceptionProvider(fileSystem);

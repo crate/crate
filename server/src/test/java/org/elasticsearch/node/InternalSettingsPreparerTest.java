@@ -100,7 +100,7 @@ public class InternalSettingsPreparerTest {
             () -> InternalSettingsPreparer.prepareEnvironment(Settings.EMPTY, settings, config, () -> "node1")
         ).isExactlyInstanceOf(SettingsException.class)
             .hasMessage("Failed to load settings from [crate.yml]")
-            .extracting(t -> t.getCause(), Assertions.as(InstanceOfAssertFactories.THROWABLE))
+            .extracting(Throwable::getCause, Assertions.as(InstanceOfAssertFactories.THROWABLE))
             .hasMessageStartingWith("Duplicate field 'stats.enabled'");
     }
 }

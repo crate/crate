@@ -185,5 +185,4 @@ public class RetentionLeaseBackgroundSyncActionTests extends ESTestCase {
 
         assertThat(action.indexBlockLevel()).isNull();
     }
-
 }

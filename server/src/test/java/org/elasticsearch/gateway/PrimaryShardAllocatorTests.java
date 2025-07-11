@@ -409,6 +409,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
      * Tests that when restoring from a snapshot and we don't know the shard size yet, the shard will remain in
      * the unassigned list to be allocated later.
      */
+    @Test
     public void testRestoreDoesNotAssignIfShardSizeNotAvailable() {
         RoutingAllocation allocation = getRestoreRoutingAllocation(yesAllocationDeciders(), null, "allocId");
         testAllocator.addData(node1, null, false);

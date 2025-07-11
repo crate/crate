@@ -153,6 +153,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
         }
     }
 
+    @Test
     public void testSnapshotWithConflictingName() throws Exception {
         final IndexId indexId = new IndexId(randomAlphaOfLength(10), UUIDs.randomBase64UUID());
         final ShardId shardId = new ShardId(indexId.getName(), indexId.getId(), 0);

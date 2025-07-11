@@ -20,7 +20,6 @@
 package org.elasticsearch.index.seqno;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.io.Closeable;
@@ -641,5 +640,4 @@ public class RetentionLeaseIT extends IntegTestCase  {
     private static ActionListener<ReplicationResponse> countDownLatchListener(CountDownLatch latch) {
         return ActionListener.wrap(r -> latch.countDown(), RetentionLeaseIT::failWithException);
     }
-
 }

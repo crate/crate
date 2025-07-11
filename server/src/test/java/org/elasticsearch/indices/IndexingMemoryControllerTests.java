@@ -54,6 +54,7 @@ import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
+import org.junit.Test;
 
 public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
@@ -176,6 +177,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         }
     }
 
+    @Test
     public void testShardAdditionAndRemoval() throws IOException {
 
         MockController controller = new MockController(Settings.builder()
@@ -206,6 +208,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         closeShards(shard0, shard1, shard2);
     }
 
+    @Test
     public void testActiveInactive() throws IOException {
 
         MockController controller = new MockController(Settings.builder()
@@ -242,6 +245,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         closeShards(shard0, shard1);
     }
 
+    @Test
     public void testMinBufferSizes() {
         MockController controller = new MockController(Settings.builder()
                                                            .put("indices.memory.index_buffer_size", "0.001%")
@@ -250,6 +254,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         assertThat(controller.indexingBufferSize()).isEqualTo(new ByteSizeValue(6, ByteSizeUnit.MB));
     }
 
+    @Test
     public void testNegativeMinIndexBufferSize() {
         assertThatThrownBy(() -> new MockController(Settings.builder()
             .put("indices.memory.min_index_buffer_size", "-6mb").build())
@@ -258,6 +263,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
     }
 
+    @Test
     public void testNegativeInterval() {
         assertThatThrownBy(() -> new MockController(Settings.builder()
                 .put("indices.memory.interval", "-42s").build())
@@ -268,6 +274,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
     }
 
+    @Test
     public void testNegativeShardInactiveTime() {
         assertThatThrownBy(() -> new MockController(Settings.builder()
             .put("indices.memory.shard_inactive_time", "-42s").build())
@@ -277,6 +284,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
                 "[-42s] as a time value: negative durations are not supported");
     }
 
+    @Test
     public void testNegativeMaxIndexBufferSize() {
         assertThatThrownBy(() -> new MockController(Settings.builder()
                 .put("indices.memory.max_index_buffer_size", "-6mb").build()))
@@ -284,6 +292,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
             .hasMessage("failed to parse setting [indices.memory.max_index_buffer_size] with value [-6mb] as a size in bytes");
     }
 
+    @Test
     public void testMaxBufferSizes() {
         MockController controller = new MockController(Settings.builder()
                                                            .put("indices.memory.index_buffer_size", "90%")
@@ -292,6 +301,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         assertThat(controller.indexingBufferSize()).isEqualTo(new ByteSizeValue(6, ByteSizeUnit.MB));
     }
 
+    @Test
     public void testThrottling() throws Exception {
 
         MockController controller = new MockController(Settings.builder()
@@ -351,6 +361,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         closeShards(shard0, shard1);
     }
 
+    @Test
     public void testTranslogRecoveryWorksWithIMC() throws IOException {
         IndexShard shard = newStartedShard(true);
         for (int i = 0; i < 100; i++) {
@@ -404,6 +415,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         return stats;
     }
 
+    @Test
     public void testSkipRefreshIfShardIsRefreshingAlready() throws Exception {
         SetOnce<CountDownLatch> refreshLatch = new SetOnce<>();
         ReferenceManager.RefreshListener refreshListener = new ReferenceManager.RefreshListener() {
@@ -420,7 +432,6 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
 
             @Override
             public void afterRefresh(boolean didRefresh) {
-
             }
         };
         IndexShard shard = newStartedShard(

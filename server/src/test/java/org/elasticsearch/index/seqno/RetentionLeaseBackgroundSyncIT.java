@@ -91,5 +91,4 @@ public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
             });
         }
     }
-
 }

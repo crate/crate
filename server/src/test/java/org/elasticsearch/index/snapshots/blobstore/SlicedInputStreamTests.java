@@ -28,10 +28,13 @@ import java.io.InputStream;
 import java.util.Random;
 
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.generators.RandomNumbers;
 
 public class SlicedInputStreamTests extends ESTestCase {
+
+    @Test
     public void testReadRandom() throws IOException {
         int parts = randomIntBetween(1, 20);
         ByteArrayOutputStream stream = new ByteArrayOutputStream();
@@ -39,13 +42,10 @@ public class SlicedInputStreamTests extends ESTestCase {
         final long seed = randomLong();
         Random random = new Random(seed);
         for (int i = 0; i < numWriteOps; i++) {
-            switch(random.nextInt(5)) {
-                case 1:
-                    stream.write(random.nextInt(Byte.MAX_VALUE));
-                    break;
-                default:
-                    stream.write(randomBytes(random));
-                    break;
+            if (random.nextInt(5) == 1) {
+                stream.write(random.nextInt(Byte.MAX_VALUE));
+            } else {
+                stream.write(randomBytes(random));
             }
         }
 
@@ -69,17 +69,14 @@ public class SlicedInputStreamTests extends ESTestCase {
         random = new Random(seed);
         assertThat(input.available()).isEqualTo(streams[0].available());
         for (int i = 0; i < numWriteOps; i++) {
-            switch(random.nextInt(5)) {
-                case 1:
-                    assertThat(random.nextInt(Byte.MAX_VALUE)).isEqualTo(input.read());
-                    break;
-                default:
-                    byte[] b = randomBytes(random);
-                    byte[] buffer = new byte[b.length];
-                    int read = readFully(input, buffer);
-                    assertThat(b.length).isEqualTo(read);
-                    assertThat(b).isEqualTo(buffer);
-                    break;
+            if (random.nextInt(5) == 1) {
+                assertThat(random.nextInt(Byte.MAX_VALUE)).isEqualTo(input.read());
+            } else {
+                byte[] b = randomBytes(random);
+                byte[] buffer = new byte[b.length];
+                int read = readFully(input, buffer);
+                assertThat(b.length).isEqualTo(read);
+                assertThat(b).isEqualTo(buffer);
             }
         }
 

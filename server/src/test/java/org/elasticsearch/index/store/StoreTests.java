@@ -89,6 +89,7 @@ import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
+import org.junit.Test;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
@@ -101,10 +102,10 @@ public class StoreTests extends ESTestCase {
     private static final Version MIN_SUPPORTED_LUCENE_VERSION = org.elasticsearch.Version.CURRENT
         .minimumIndexCompatibilityVersion().luceneVersion;
 
+    @Test
     public void testRefCount() {
         final ShardId shardId = new ShardId("index", "_na_", 1);
-        IndexSettings indexSettings = INDEX_SETTINGS;
-        Store store = new Store(shardId, indexSettings, StoreTests.newDirectory(random()), new DummyShardLock(shardId));
+        Store store = new Store(shardId, INDEX_SETTINGS, StoreTests.newDirectory(random()), new DummyShardLock(shardId));
         int incs = randomIntBetween(1, 100);
         for (int i = 0; i < incs; i++) {
             if (randomBoolean()) {
@@ -143,6 +144,7 @@ public class StoreTests extends ESTestCase {
         assertThatThrownBy(store::ensureOpen).isInstanceOf(IllegalStateException.class);
     }
 
+    @Test
     public void testVerifyingIndexOutput() throws IOException {
         Directory dir = newDirectory();
         IndexOutput output = dir.createOutput("foo.bar", IOContext.DEFAULT);
@@ -175,19 +177,20 @@ public class StoreTests extends ESTestCase {
         try {
             appendRandomData(verifyingOutput);
             fail("should be a corrupted index");
-        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
+        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException _) {
             // ok
         }
         try {
             Store.verify(verifyingOutput);
             fail("should be a corrupted index");
-        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
+        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException _) {
             // ok
         }
 
         IOUtils.close(indexInput, verifyingOutput, dir);
     }
 
+    @Test
     public void testVerifyingIndexOutputOnEmptyFile() throws IOException {
         Directory dir = newDirectory();
         IndexOutput verifyingOutput =
@@ -197,12 +200,13 @@ public class StoreTests extends ESTestCase {
         try {
             Store.verify(verifyingOutput);
             fail("should be a corrupted index");
-        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
+        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException _) {
             // ok
         }
         IOUtils.close(verifyingOutput, dir);
     }
 
+    @Test
     public void testChecksumCorrupted() throws IOException {
         Directory dir = newDirectory();
         IndexOutput output = dir.createOutput("foo.bar", IOContext.DEFAULT);
@@ -248,7 +252,7 @@ public class StoreTests extends ESTestCase {
                 }
             }
             fail("should be a corrupted index");
-        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
+        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException _) {
             // ok
         }
         IOUtils.close(indexInput, verifyingOutput, dir);
@@ -273,6 +277,7 @@ public class StoreTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testVerifyingIndexOutputWithBogusInput() throws IOException {
         Directory dir = newDirectory();
         int length = scaledRandomIntBetween(10, 1024);
@@ -284,12 +289,13 @@ public class StoreTests extends ESTestCase {
                 length--;
             }
             fail("should be a corrupted index");
-        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
+        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException _) {
             // ok
         }
         IOUtils.close(verifyingOutput, dir);
     }
 
+    @Test
     public void testNewChecksums() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
         Store store = new Store(shardId, INDEX_SETTINGS, StoreTests.newDirectory(random()), new DummyShardLock(shardId));
@@ -325,7 +331,7 @@ public class StoreTests extends ESTestCase {
         try {
             store.getMetadata(null);
             fail("no index present - expected exception");
-        } catch (IndexNotFoundException ex) {
+        } catch (IndexNotFoundException _) {
             // expected
         }
         writer.commit();
@@ -349,85 +355,87 @@ public class StoreTests extends ESTestCase {
         IOUtils.close(store);
     }
 
-    public void testCheckIntegrity() throws IOException {
-        Directory dir = newDirectory();
-        long luceneFileLength = 0;
+@Test
+public void testCheckIntegrity() throws IOException {
+    Directory dir = newDirectory();
+    long luceneFileLength = 0;
 
-        try (IndexOutput output = dir.createOutput("lucene_checksum.bin", IOContext.DEFAULT)) {
-            int iters = scaledRandomIntBetween(10, 100);
-            for (int i = 0; i < iters; i++) {
-                BytesRef bytesRef = new BytesRef(TestUtil.randomRealisticUnicodeString(random(), 10, 1024));
-                output.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
-                luceneFileLength += bytesRef.length;
-            }
-            CodecUtil.writeFooter(output);
-            luceneFileLength += CodecUtil.footerLength();
-
-        }
-
-        try (IndexInput indexInput = dir.openInput("lucene_checksum.bin", IOContext.DEFAULT)) {
-            assertThat(indexInput.length()).isEqualTo(luceneFileLength);
-        }
-
-        dir.close();
-
-    }
-
-    public void testVerifyingIndexInput() throws IOException {
-        Directory dir = newDirectory();
-        IndexOutput output = dir.createOutput("foo.bar", IOContext.DEFAULT);
+    try (IndexOutput output = dir.createOutput("lucene_checksum.bin", IOContext.DEFAULT)) {
         int iters = scaledRandomIntBetween(10, 100);
         for (int i = 0; i < iters; i++) {
             BytesRef bytesRef = new BytesRef(TestUtil.randomRealisticUnicodeString(random(), 10, 1024));
             output.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
+            luceneFileLength += bytesRef.length;
         }
         CodecUtil.writeFooter(output);
-        output.close();
+        luceneFileLength += CodecUtil.footerLength();
 
-        // Check file
-        IndexInput indexInput = dir.openInput("foo.bar", IOContext.DEFAULT);
-        long checksum = CodecUtil.retrieveChecksum(indexInput);
-        indexInput.seek(0);
-        ChecksumIndexInput verifyingIndexInput = new Store.VerifyingIndexInput(dir.openInput("foo.bar", IOContext.DEFAULT));
-        readIndexInputFullyWithRandomSeeks(verifyingIndexInput);
+    }
+
+    try (IndexInput indexInput = dir.openInput("lucene_checksum.bin", IOContext.DEFAULT)) {
+        assertThat(indexInput.length()).isEqualTo(luceneFileLength);
+    }
+
+    dir.close();
+
+}
+
+@Test
+public void testVerifyingIndexInput() throws IOException {
+    Directory dir = newDirectory();
+    IndexOutput output = dir.createOutput("foo.bar", IOContext.DEFAULT);
+    int iters = scaledRandomIntBetween(10, 100);
+    for (int i = 0; i < iters; i++) {
+        BytesRef bytesRef = new BytesRef(TestUtil.randomRealisticUnicodeString(random(), 10, 1024));
+        output.writeBytes(bytesRef.bytes, bytesRef.offset, bytesRef.length);
+    }
+    CodecUtil.writeFooter(output);
+    output.close();
+
+    // Check file
+    IndexInput indexInput = dir.openInput("foo.bar", IOContext.DEFAULT);
+    long checksum = CodecUtil.retrieveChecksum(indexInput);
+    indexInput.seek(0);
+    ChecksumIndexInput verifyingIndexInput = new Store.VerifyingIndexInput(dir.openInput("foo.bar", IOContext.DEFAULT));
+    readIndexInputFullyWithRandomSeeks(verifyingIndexInput);
+    Store.verify(verifyingIndexInput);
+    assertThat(checksum).isEqualTo(verifyingIndexInput.getChecksum());
+    IOUtils.close(indexInput, verifyingIndexInput);
+
+    // Corrupt file and check again
+    corruptFile(dir, "foo.bar", "foo1.bar");
+    verifyingIndexInput = new Store.VerifyingIndexInput(dir.openInput("foo1.bar", IOContext.DEFAULT));
+    readIndexInputFullyWithRandomSeeks(verifyingIndexInput);
+    try {
         Store.verify(verifyingIndexInput);
-        assertThat(checksum).isEqualTo(verifyingIndexInput.getChecksum());
-        IOUtils.close(indexInput, verifyingIndexInput);
-
-        // Corrupt file and check again
-        corruptFile(dir, "foo.bar", "foo1.bar");
-        verifyingIndexInput = new Store.VerifyingIndexInput(dir.openInput("foo1.bar", IOContext.DEFAULT));
-        readIndexInputFullyWithRandomSeeks(verifyingIndexInput);
-        try {
-            Store.verify(verifyingIndexInput);
-            fail("should be a corrupted index");
-        } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException ex) {
-            // ok
-        }
-        IOUtils.close(verifyingIndexInput);
-        IOUtils.close(dir);
+        fail("should be a corrupted index");
+    } catch (CorruptIndexException | IndexFormatTooOldException | IndexFormatTooNewException _) {
+        // ok
     }
+    IOUtils.close(verifyingIndexInput);
+    IOUtils.close(dir);
+}
 
-    private void readIndexInputFullyWithRandomSeeks(IndexInput indexInput) throws IOException {
-        BytesRef ref = new BytesRef(scaledRandomIntBetween(1, 1024));
-        long pos = 0;
-        while (pos < indexInput.length()) {
-            assertThat(indexInput.getFilePointer()).isEqualTo(pos);
-            int op = random().nextInt(5);
-            if (op == 0) {
-                int shift = 100 - randomIntBetween(0, 200);
-                pos = Math.min(indexInput.length() - 1, Math.max(0, pos + shift));
-                indexInput.seek(pos);
-            } else if (op == 1) {
-                indexInput.readByte();
-                pos++;
-            } else {
-                int min = (int) Math.min(indexInput.length() - pos, ref.bytes.length);
-                indexInput.readBytes(ref.bytes, ref.offset, min);
-                pos += min;
-            }
+private void readIndexInputFullyWithRandomSeeks(IndexInput indexInput) throws IOException {
+    BytesRef ref = new BytesRef(scaledRandomIntBetween(1, 1024));
+    long pos = 0;
+    while (pos < indexInput.length()) {
+        assertThat(indexInput.getFilePointer()).isEqualTo(pos);
+        int op = random().nextInt(5);
+        if (op == 0) {
+            int shift = 100 - randomIntBetween(0, 200);
+            pos = Math.min(indexInput.length() - 1, Math.max(0, pos + shift));
+            indexInput.seek(pos);
+        } else if (op == 1) {
+            indexInput.readByte();
+            pos++;
+        } else {
+            int min = (int) Math.min(indexInput.length() - pos, ref.bytes.length);
+            indexInput.readBytes(ref.bytes, ref.offset, min);
+            pos += min;
         }
     }
+}
 
     private void corruptFile(Directory dir, String fileIn, String fileOut) throws IOException {
         IndexInput input = dir.openInput(fileIn, IOContext.READONCE);
@@ -451,14 +459,14 @@ public class StoreTests extends ESTestCase {
 
     }
 
-    public void assertDeleteContent(Store store, Directory dir) throws IOException {
+    private void assertDeleteContent(Store store, Directory dir) throws IOException {
         deleteContent(store.directory());
         assertThat(store.directory().listAll().length).as(Arrays.toString(store.directory().listAll())).isEqualTo(0);
         assertThat(store.stats(0L).sizeInBytes()).isEqualTo(0L);
         assertThat(dir.listAll().length).isEqualTo(0);
     }
 
-    public static void assertConsistent(Store store, Store.MetadataSnapshot metadata) throws IOException {
+    private static void assertConsistent(Store store, Store.MetadataSnapshot metadata) throws IOException {
         for (String file : store.directory().listAll()) {
             if (!IndexWriter.WRITE_LOCK_NAME.equals(file) && file.startsWith("extra") == false) {
                 assertThat(metadata.asMap().containsKey(file)).as(file + " is not in the map: " + metadata.asMap().size() + " vs. " +
@@ -470,6 +478,7 @@ public class StoreTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testRecoveryDiff() throws IOException, InterruptedException {
         int numDocs = 2 + random().nextInt(100);
         List<Document> docs = new ArrayList<>();
@@ -613,6 +622,7 @@ public class StoreTests extends ESTestCase {
         IOUtils.close(store);
     }
 
+    @Test
     public void testCleanupFromSnapshot() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
         Store store = new Store(shardId, INDEX_SETTINGS, StoreTests.newDirectory(random()), new DummyShardLock(shardId));
@@ -702,7 +712,8 @@ public class StoreTests extends ESTestCase {
         IOUtils.close(store);
     }
 
-    public void testOnCloseCallback() throws IOException {
+    @Test
+    public void testOnCloseCallback() {
         final ShardId shardId =
             new ShardId(new Index(randomRealisticUnicodeOfCodepointLengthBetween(1, 10), "_na_"), randomIntBetween(0, 100));
         final AtomicInteger count = new AtomicInteger(0);
@@ -723,6 +734,7 @@ public class StoreTests extends ESTestCase {
         assertThat(count.get()).isEqualTo(1);
     }
 
+    @Test
     public void testStoreStats() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
         Settings settings = Settings.builder()
@@ -770,13 +782,13 @@ public class StoreTests extends ESTestCase {
     }
 
 
-    public static void deleteContent(Directory directory) throws IOException {
+    private static void deleteContent(Directory directory) throws IOException {
         final String[] files = directory.listAll();
         final List<IOException> exceptions = new ArrayList<>();
         for (String file : files) {
             try {
                 directory.deleteFile(file);
-            } catch (NoSuchFileException | FileNotFoundException e) {
+            } catch (NoSuchFileException | FileNotFoundException _) {
                 // ignore
             } catch (IOException e) {
                 exceptions.add(e);
@@ -785,7 +797,7 @@ public class StoreTests extends ESTestCase {
         Exceptions.rethrowAndSuppress(exceptions);
     }
 
-    public int numNonExtraFiles(Store store) throws IOException {
+    private int numNonExtraFiles(Store store) throws IOException {
         int numNonExtra = 0;
         for (String file : store.directory().listAll()) {
             if (file.startsWith("extra") == false) {
@@ -795,6 +807,7 @@ public class StoreTests extends ESTestCase {
         return numNonExtra;
     }
 
+    @Test
     public void testMetadataSnapshotStreaming() throws Exception {
         Store.MetadataSnapshot outMetadataSnapshot = createMetadataSnapshot();
         org.elasticsearch.Version targetNodeVersion = randomVersion(random());
@@ -828,6 +841,7 @@ public class StoreTests extends ESTestCase {
         return new Store.MetadataSnapshot(unmodifiableMap(storeFileMetadataMap), Map.of("userdata_1", "test", "userdata_2", "test"), 0);
     }
 
+    @Test
     public void testUserDataRead() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
         Store store = new Store(shardId, INDEX_SETTINGS, StoreTests.newDirectory(random()), new DummyShardLock(shardId));
@@ -854,6 +868,7 @@ public class StoreTests extends ESTestCase {
         IOUtils.close(store);
     }
 
+    @Test
     public void testStreamStoreFilesMetadata() throws Exception {
         Store.MetadataSnapshot metadataSnapshot = createMetadataSnapshot();
         int numOfLeases = randomIntBetween(0, 10);
@@ -883,6 +898,7 @@ public class StoreTests extends ESTestCase {
         assertThat(outStoreFileMetadata.peerRecoveryRetentionLeases()).isEqualTo(peerRecoveryRetentionLeases);
     }
 
+    @Test
     public void testMarkCorruptedOnTruncatedSegmentsFile() throws IOException {
         IndexWriterConfig iwc = newIndexWriterConfig();
         final ShardId shardId = new ShardId("index", "_na_", 1);
@@ -906,7 +922,7 @@ public class StoreTests extends ESTestCase {
         writer.close();
         SegmentInfos segmentCommitInfos = store.readLastCommittedSegmentsInfo();
         store.directory().deleteFile(segmentCommitInfos.getSegmentsFileName());
-        try (IndexOutput _ = store.directory().createOutput(segmentCommitInfos.getSegmentsFileName(), IOContext.DEFAULT)) {
+        try (var _ = store.directory().createOutput(segmentCommitInfos.getSegmentsFileName(), IOContext.DEFAULT)) {
             // empty file
         }
 
@@ -926,6 +942,7 @@ public class StoreTests extends ESTestCase {
         store.close();
     }
 
+    @Test
     public void testCanOpenIndex() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
         IndexWriterConfig iwc = newIndexWriterConfig();
@@ -945,6 +962,7 @@ public class StoreTests extends ESTestCase {
         store.close();
     }
 
+    @Test
     public void testDeserializeCorruptionException() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
         final Directory dir = new ByteBuffersDirectory();
@@ -974,6 +992,7 @@ public class StoreTests extends ESTestCase {
         store.close();
     }
 
+    @Test
     public void testCorruptionMarkerVersionCheck() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
         final Directory dir = new ByteBuffersDirectory();
@@ -990,6 +1009,7 @@ public class StoreTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testHistoryUUIDCanBeForced() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
         try (Store store = new Store(shardId, INDEX_SETTINGS, StoreTests.newDirectory(random()), new DummyShardLock(shardId))) {
@@ -1008,12 +1028,13 @@ public class StoreTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testGetPendingFiles() throws IOException {
         final ShardId shardId = new ShardId("index", "_na_", 1);
         final String testfile = "testfile";
         try (Store store = new Store(shardId, INDEX_SETTINGS, new NIOFSDirectory(createTempDir()), new DummyShardLock(shardId))) {
             store.directory().createOutput(testfile, IOContext.DEFAULT).close();
-            try (IndexInput _ = store.directory().openInput(testfile, IOContext.DEFAULT)) {
+            try (var _ = store.directory().openInput(testfile, IOContext.DEFAULT)) {
                 store.directory().deleteFile(testfile);
                 assertThat(store.directory().getPendingDeletions()).isEqualTo(FilterDirectory.unwrap(store.directory()).getPendingDeletions());
             }

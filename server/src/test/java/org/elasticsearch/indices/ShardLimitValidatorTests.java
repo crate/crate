@@ -81,7 +81,7 @@ public class ShardLimitValidatorTests extends CrateDummyClusterServiceUnitTest {
     }
 
 
-    public static ClusterState createClusterForShardLimitTest(int nodesInCluster, int shardsInIndex, int replicas) {
+    private static ClusterState createClusterForShardLimitTest(int nodesInCluster, int shardsInIndex, int replicas) {
         ImmutableOpenMap.Builder<String, DiscoveryNode> dataNodes = ImmutableOpenMap.builder();
         for (int i = 0; i < nodesInCluster; i++) {
             dataNodes.put(randomAlphaOfLengthBetween(5, 15), mock(DiscoveryNode.class));
