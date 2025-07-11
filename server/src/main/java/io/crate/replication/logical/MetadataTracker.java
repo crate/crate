@@ -221,7 +221,7 @@ public final class MetadataTracker implements Closeable {
                     var publisherRelationMetadata = publicationsState.get().relationsInPublications().get(relationName);
                     boolean relationDisappeared = publisherRelationMetadata == null;
                     if (relationDisappeared) {
-                        publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
+                        throw new RuntimeException("missing publisherRelationMetadata");
                     } else {
                         if (i > 0) {
                             throw new RuntimeException("missing publisherRelationMetadata recovered: " + i);
