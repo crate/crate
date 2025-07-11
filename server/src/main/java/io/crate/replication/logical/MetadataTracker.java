@@ -36,6 +36,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -229,7 +230,8 @@ public final class MetadataTracker implements Closeable {
                     }
                 }
             }
-        } catch (Exception e) {
+        } catch (InterruptedException e) {
+        } catch (ExecutionException e2) {
         }
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
             if (response.unknownPublications().containsAll(subscription.publications())) {
