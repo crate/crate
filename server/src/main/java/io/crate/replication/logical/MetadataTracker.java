@@ -215,14 +215,19 @@ public final class MetadataTracker implements Closeable {
         );
         CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
         try {
-            for (int i = 0; i < 5; i ++) {
             for (var relationName : subscription.relations().keySet()) {
-                var publisherRelationMetadata = publicationsState.get().relationsInPublications().get(relationName);
-                boolean relationDisappeared = publisherRelationMetadata == null;
-                if (relationDisappeared) {
-                    publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
+                for (int i = 0; i < 10; i++) {
+                    var publisherRelationMetadata = publicationsState.get().relationsInPublications().get(relationName);
+                    boolean relationDisappeared = publisherRelationMetadata == null;
+                    if (relationDisappeared) {
+                        publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
+                    } else {
+                        if (i > 0) {
+                            throw new RuntimeException("missing publisherRelationMetadata recovered: " + i);
+                        }
+                        break;
+                    }
                 }
-            }
             }
         } catch (Exception e) {
         }
