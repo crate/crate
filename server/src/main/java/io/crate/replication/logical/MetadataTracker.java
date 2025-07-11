@@ -214,6 +214,18 @@ public final class MetadataTracker implements Closeable {
             subscription.connectionInfo().user()
         );
         CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
+        try {
+            for (int i = 0; i < 5; i ++) {
+            for (var relationName : subscription.relations().keySet()) {
+                var publisherRelationMetadata = publicationsState.get().relationsInPublications().get(relationName);
+                boolean relationDisappeared = publisherRelationMetadata == null;
+                if (relationDisappeared) {
+                    publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
+                }
+            }
+            }
+        } catch (Exception e) {
+        }
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
             if (response.unknownPublications().containsAll(subscription.publications())) {
                 stopTracking(subscriptionName);
@@ -246,12 +258,13 @@ public final class MetadataTracker implements Closeable {
             }
         });
 
+        CompletableFuture<Response> finalPublicationsState = publicationsState;
         return updatedClusterState.thenCompose(acked -> {
             if (!acked) {
                 return CompletableFuture.completedFuture(false);
             }
-            assert publicationsState.isDone() : "If thenCompose triggers, publicationsState must be done";
-            var publicationResponse = publicationsState.join();
+            assert finalPublicationsState.isDone() : "If thenCompose triggers, publicationsState must be done";
+            var publicationResponse = finalPublicationsState.join();
 
             RestoreDiff restoreDiff = getRestoreDiff(subscription, subscriberState, publicationResponse);
             if (restoreDiff.isEmpty()) {
