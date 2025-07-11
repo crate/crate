@@ -33,9 +33,11 @@ import java.util.stream.Stream;
 import org.elasticsearch.common.io.stream.NamedWriteableRegistry;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class RetentionLeasesTests extends ESTestCase {
 
+    @Test
     public void testPrimaryTermOutOfRange() {
         final long primaryTerm = randomLongBetween(Long.MIN_VALUE, 0);
         assertThatThrownBy(() -> new RetentionLeases(primaryTerm, randomNonNegativeLong(), Collections.emptyList()))
@@ -43,6 +45,7 @@ public class RetentionLeasesTests extends ESTestCase {
             .hasMessageContaining("primary term must be positive but was [" + primaryTerm + "]");
     }
 
+    @Test
     public void testVersionOutOfRange() {
         final long version = randomLongBetween(Long.MIN_VALUE, -1);
         assertThatThrownBy(() -> new RetentionLeases(randomLongBetween(1, Long.MAX_VALUE), version, Collections.emptyList()))
@@ -50,6 +53,7 @@ public class RetentionLeasesTests extends ESTestCase {
             .hasMessageContaining("version must be non-negative but was [" + version + "]");
     }
 
+    @Test
     public void testSupersedesByPrimaryTerm() {
         final long lowerPrimaryTerm = randomLongBetween(1, Long.MAX_VALUE);
         final RetentionLeases left = new RetentionLeases(lowerPrimaryTerm, randomLongBetween(1, Long.MAX_VALUE), Collections.emptyList());
@@ -61,6 +65,7 @@ public class RetentionLeasesTests extends ESTestCase {
         assertThat(left.supersedes(right.primaryTerm(), right.version())).isFalse();
     }
 
+    @Test
     public void testSupersedesByVersion() {
         final long primaryTerm = randomLongBetween(1, Long.MAX_VALUE);
         final long lowerVersion = randomLongBetween(1, Long.MAX_VALUE);
@@ -73,6 +78,7 @@ public class RetentionLeasesTests extends ESTestCase {
         assertThat(left.supersedes(right.primaryTerm(), right.version())).isFalse();
     }
 
+    @Test
     public void testRetentionLeasesRejectsDuplicates() {
         final RetentionLeases retentionLeases = randomRetentionLeases(false);
         final RetentionLease retentionLease = randomFrom(retentionLeases.leases());
@@ -84,6 +90,7 @@ public class RetentionLeasesTests extends ESTestCase {
             .hasMessageContaining("duplicate retention lease ID [" + retentionLease.id() + "]");
     }
 
+    @Test
     public void testLeasesPreservesIterationOrder() {
         final RetentionLeases retentionLeases = randomRetentionLeases(true);
         if (retentionLeases.leases().isEmpty()) {
@@ -93,6 +100,7 @@ public class RetentionLeasesTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testRetentionLeasesMetadataStateFormat() throws IOException {
         final Path path = createTempDir();
         final RetentionLeases retentionLeases = randomRetentionLeases(true);
@@ -115,5 +123,4 @@ public class RetentionLeasesTests extends ESTestCase {
         }
         return new RetentionLeases(primaryTerm, version, leases);
     }
-
 }

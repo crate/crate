@@ -41,10 +41,11 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class DanglingIndicesStateTests extends ESTestCase {
 
-    private static Settings indexSettings = Settings.builder()
+    private static final Settings INDEX_SETTINGS = Settings.builder()
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
@@ -57,6 +58,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
         return false;
     }
 
+    @Test
     public void testCleanupWhenEmpty() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
             MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
@@ -69,13 +71,14 @@ public class DanglingIndicesStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testDanglingIndicesDiscovery() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
             MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
             DanglingIndicesState danglingState = createDanglingIndicesState(env, metaStateService);
             assertThat(danglingState.getDanglingIndices().isEmpty()).isTrue();
             Metadata metadata = Metadata.builder().build();
-            final Settings.Builder settings = Settings.builder().put(indexSettings).put(IndexMetadata.SETTING_INDEX_UUID, "test1UUID");
+            final Settings.Builder settings = Settings.builder().put(INDEX_SETTINGS).put(IndexMetadata.SETTING_INDEX_UUID, "test1UUID");
             IndexMetadata dangledIndex = IndexMetadata.builder("test1UUID").settings(settings).indexName("test1").build();
             metaStateService.writeIndex("test_write", dangledIndex);
             Map<Index, IndexMetadata> newDanglingIndices = danglingState.findNewDanglingIndices(metadata);
@@ -86,6 +89,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testInvalidIndexFolder() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
             MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
@@ -93,7 +97,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
             Metadata metadata = Metadata.builder().build();
             final String uuid = "test1UUID";
-            final Settings.Builder settings = Settings.builder().put(indexSettings).put(IndexMetadata.SETTING_INDEX_UUID, uuid);
+            final Settings.Builder settings = Settings.builder().put(INDEX_SETTINGS).put(IndexMetadata.SETTING_INDEX_UUID, uuid);
             IndexMetadata dangledIndex = IndexMetadata.builder(uuid).settings(settings).indexName("test1").build();
             metaStateService.writeIndex("test_write", dangledIndex);
             for (Path path : env.resolveIndexFolder(uuid)) {
@@ -110,6 +114,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testDanglingProcessing() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
             MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
@@ -117,7 +122,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
             Metadata metadata = Metadata.builder().build();
 
-            final Settings.Builder settings = Settings.builder().put(indexSettings).put(IndexMetadata.SETTING_INDEX_UUID, "test1UUID");
+            final Settings.Builder settings = Settings.builder().put(INDEX_SETTINGS).put(IndexMetadata.SETTING_INDEX_UUID, "test1UUID");
             IndexMetadata dangledIndex = IndexMetadata.builder("test1UUID").settings(settings).indexName("test1").build();
             metaStateService.writeIndex("test_write", dangledIndex);
 
@@ -151,12 +156,13 @@ public class DanglingIndicesStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testDanglingIndicesNotImportedWhenTombstonePresent() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
             MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
             DanglingIndicesState danglingState = createDanglingIndicesState(env, metaStateService);
 
-            final Settings.Builder settings = Settings.builder().put(indexSettings).put(IndexMetadata.SETTING_INDEX_UUID, "test1UUID");
+            final Settings.Builder settings = Settings.builder().put(INDEX_SETTINGS).put(IndexMetadata.SETTING_INDEX_UUID, "test1UUID");
             IndexMetadata dangledIndex = IndexMetadata.builder("test1UUID").settings(settings).indexName("test1").build();
             metaStateService.writeIndex("test_write", dangledIndex);
 
@@ -166,6 +172,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testDanglingIndicesAreNotAllocatedWhenDisabled() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
             MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
@@ -186,6 +193,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testDanglingIndicesAreAllocatedWhenEnabled() throws Exception {
         try (NodeEnvironment env = newNodeEnvironment()) {
             MetaStateService metaStateService = new MetaStateService(env, writableRegistry(), xContentRegistry());
@@ -203,7 +211,7 @@ public class DanglingIndicesStateTests extends ESTestCase {
 
             assertThat(danglingIndicesState.isAutoImportDanglingIndicesEnabled()).as("Expected dangling imports to be enabled").isTrue();
 
-            final Settings.Builder settings = Settings.builder().put(indexSettings).put(IndexMetadata.SETTING_INDEX_UUID, "test1UUID");
+            final Settings.Builder settings = Settings.builder().put(INDEX_SETTINGS).put(IndexMetadata.SETTING_INDEX_UUID, "test1UUID");
             IndexMetadata dangledIndex = IndexMetadata.builder("test1UUID").settings(settings).indexName("test1").build();
             metaStateService.writeIndex("test_write", dangledIndex);
 

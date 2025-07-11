@@ -113,7 +113,6 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.RelationName;
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
@@ -208,17 +207,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         assertThat(response.isAcknowledged()).isTrue();
     }
 
-    private List<RecoveryState> findRecoveriesForTargetNode(String nodeName, List<RecoveryState> recoveryStates) {
-        List<RecoveryState> nodeResponses = new ArrayList<>();
-        for (RecoveryState recoveryState : recoveryStates) {
-            if (recoveryState.getTargetNode().getName().equals(nodeName)) {
-                nodeResponses.add(recoveryState);
-            }
-        }
-        return nodeResponses;
-    }
-
-    private void createAndPopulateIndex(String name, int nodeCount, int shardCount, int replicaCount) throws Exception {
+    private void createAndPopulateIndex(String name, int shardCount, int replicaCount) throws Exception {
 
         logger.info("--> creating test index: {}", name);
         execute("CREATE TABLE " + name + " (foo_int INT, foo_string TEXT, foo_float FLOAT) " +
@@ -258,7 +247,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         logger.info("--> start nodes");
         String node = cluster().startNode();
 
-        createAndPopulateIndex(INDEX_NAME, 1, SHARD_COUNT, REPLICA_COUNT);
+        createAndPopulateIndex(INDEX_NAME, SHARD_COUNT, REPLICA_COUNT);
 
         logger.info("--> restarting cluster");
         cluster().fullRestart();
@@ -281,7 +270,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         logger.info("--> start nodes");
         cluster().startNode();
 
-        createAndPopulateIndex(INDEX_NAME, 1, SHARD_COUNT, REPLICA_COUNT);
+        createAndPopulateIndex(INDEX_NAME, SHARD_COUNT, REPLICA_COUNT);
 
         logger.info("--> restarting cluster");
         cluster().fullRestart();
@@ -358,7 +347,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final String nodeA = cluster().startNode();
 
         logger.info("--> create index on node: {}", nodeA);
-        createAndPopulateIndex(INDEX_NAME, 1, SHARD_COUNT, REPLICA_COUNT);
+        createAndPopulateIndex(INDEX_NAME, SHARD_COUNT, REPLICA_COUNT);
 
         logger.info("--> start node B");
         // force a shard recovery from nodeA to nodeB
@@ -436,7 +425,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         final String nodeA = cluster().startNode();
 
         logger.info("--> create index on node: {}", nodeA);
-        createAndPopulateIndex(INDEX_NAME, 1, SHARD_COUNT, REPLICA_COUNT);
+        createAndPopulateIndex(INDEX_NAME, SHARD_COUNT, REPLICA_COUNT);
         execute("SELECT size FROM sys.shards WHERE table_name = '" + INDEX_NAME + "' AND primary=true");
         long shardSize = (long) response.rows()[0][0];
 
@@ -580,7 +569,7 @@ public class IndexRecoveryIT extends IntegTestCase {
         ensureGreen();
 
         logger.info("--> create index on node: {}", nodeA);
-        createAndPopulateIndex(INDEX_NAME, 1, SHARD_COUNT, REPLICA_COUNT);
+        createAndPopulateIndex(INDEX_NAME, SHARD_COUNT, REPLICA_COUNT);
 
         logger.info("--> snapshot");
         var snapshotName = REPO_NAME + "." + SNAP_NAME;
@@ -1020,8 +1009,6 @@ public class IndexRecoveryIT extends IntegTestCase {
     @Test
     public void testHistoryRetention() throws Exception {
         cluster().startNodes(3);
-
-        final String indexName = IndexName.encode(sqlExecutor.getCurrentSchema(), "test", null);
         execute("CREATE TABLE test (id int) CLUSTERED INTO 1 SHARDS " +
                 "WITH (" +
                 " number_of_replicas=2," +

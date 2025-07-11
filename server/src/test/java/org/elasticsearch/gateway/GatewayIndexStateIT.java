@@ -23,7 +23,6 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.SQLTransportExecutor.REQUEST_TIMEOUT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
@@ -58,7 +57,6 @@ import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.env.NodeEnvironment;
-import org.elasticsearch.index.Index;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
@@ -83,6 +81,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         return false;
     }
 
+    @Test
     public void testSimpleOpenClose() throws Exception {
         logger.info("--> starting 2 nodes");
         cluster().startNodes(2);
@@ -123,7 +122,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
         try {
             execute("insert into test (id) values (2)");
             fail();
-        } catch (Exception e) {
+        } catch (Exception _) {
             // all is well
         }
 

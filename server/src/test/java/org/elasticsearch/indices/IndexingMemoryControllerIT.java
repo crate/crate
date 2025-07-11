@@ -34,6 +34,7 @@ import org.elasticsearch.index.engine.InternalEngine;
 import org.elasticsearch.plugins.EnginePlugin;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Test;
 
 
 @IntegTestCase.ClusterScope(numDataNodes = 1)
@@ -80,6 +81,7 @@ public class IndexingMemoryControllerIT extends IntegTestCase {
         }
     }
 
+    @Test
     public void testDeletesAloneCanTriggerRefresh() throws Exception {
         // Disable refresh interval to make sure it won't be executed while the test is running
         execute("create table doc.test(x int) clustered into 1 shards with(number_of_replicas=0, refresh_interval='-1')");

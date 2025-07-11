@@ -3846,7 +3846,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shard,
             readonlyShardRouting,
             shard.indexSettings.getIndexMetadata(),
-            List.of(idxSettings -> Optional.of(
+            List.of(_ -> Optional.of(
                 engineConfig ->
                     new ReadOnlyEngine(engineConfig, null, null, true, UnaryOperator.identity(), true) {
 

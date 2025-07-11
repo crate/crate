@@ -70,8 +70,6 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
 
     @Test
     public void testConcurrentlyChangeRepositoryContents() throws Exception {
-        Client client = client();
-
         Path repo = randomRepoPath();
         final String repoName = "test";
 
@@ -97,14 +95,14 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
             getRepositoryData(cluster().getMasterNodeInstance(RepositoriesService.class).repository(repoName));
         Files.move(repo.resolve("index-" + repositoryData.getGenId()), repo.resolve("index-" + (repositoryData.getGenId() + 1)));
 
-        assertRepositoryBlocked(client, repoName, snapshot);
+        assertRepositoryBlocked(repoName, snapshot);
 
         if (randomBoolean()) {
             logger.info("--> move index-N blob back to initial generation");
             Files.move(repo.resolve("index-" + (repositoryData.getGenId() + 1)), repo.resolve("index-" + repositoryData.getGenId()));
 
             logger.info("--> verify repository remains blocked");
-            assertRepositoryBlocked(client, repoName, snapshot);
+            assertRepositoryBlocked(repoName, snapshot);
         }
 
         logger.info("--> remove repository");
@@ -472,7 +470,7 @@ public class CorruptedBlobStoreRepositoryIT extends AbstractSnapshotIntegTestCas
         assertThat(successfulShards).isEqualTo(snapshotInfo.totalShards());
     }
 
-    private void assertRepositoryBlocked(Client client, String repo, String existingSnapshot) {
+    private void assertRepositoryBlocked(String repo, String existingSnapshot) {
         logger.info("--> try to delete snapshot");
         Asserts.assertSQLError(() -> execute("drop snapshot \"" + repo + "\".\"" + existingSnapshot + "\""))
                 .hasPGError(PGErrorStatus.INTERNAL_ERROR)

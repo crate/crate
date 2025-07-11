@@ -663,5 +663,4 @@ public class RetentionLeaseIT extends IntegTestCase  {
     private static ActionListener<ReplicationResponse> countDownLatchListener(CountDownLatch latch) {
         return ActionListener.wrap(r -> latch.countDown(), RetentionLeaseIT::failWithException);
     }
-
 }

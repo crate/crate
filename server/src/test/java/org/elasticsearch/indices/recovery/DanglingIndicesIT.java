@@ -32,6 +32,7 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.TestCluster;
+import org.junit.Test;
 
 import io.crate.metadata.RelationName;
 
@@ -53,6 +54,7 @@ public class DanglingIndicesIT extends IntegTestCase {
      * Check that when dangling indices are discovered, then they are recovered into
      * the cluster, so long as the recovery setting is enabled.
      */
+    @Test
     public void testDanglingIndicesAreRecoveredWhenSettingIsEnabled() throws Exception {
         final Settings settings = buildSettings(true, true);
         cluster().startNodes(3, settings);
@@ -98,6 +100,7 @@ public class DanglingIndicesIT extends IntegTestCase {
      * Check that when dangling indices are discovered, then they are not recovered into
      * the cluster when the recovery setting is disabled.
      */
+    @Test
     public void testDanglingIndicesAreNotRecoveredWhenSettingIsDisabled() throws Exception {
         cluster().startNodes(3, buildSettings(false, true));
 

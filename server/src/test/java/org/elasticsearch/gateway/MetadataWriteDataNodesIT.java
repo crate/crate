@@ -36,7 +36,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
-import org.elasticsearch.test.TestCluster;
+import org.junit.Test;
 
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
@@ -57,6 +57,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
         assertIndexInMetaState(masterNode, indexUUID);
     }
 
+    @Test
     public void testIndexFilesAreRemovedIfAllShardsFromIndexRemoved() throws Exception {
         // this test checks that the index data is removed from a data only node once all shards have been allocated away from it
         String masterNode = cluster().startMasterOnlyNode(Settings.EMPTY);
@@ -122,7 +123,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
 
 
     private boolean indexDirectoryExists(String nodeName, Index index) {
-        NodeEnvironment nodeEnv = ((TestCluster) cluster()).getInstance(NodeEnvironment.class, nodeName);
+        NodeEnvironment nodeEnv = cluster().getInstance(NodeEnvironment.class, nodeName);
         Path[] paths = nodeEnv.indexPaths(index);
         for (Path path : paths) {
             if (Files.exists(path)) {

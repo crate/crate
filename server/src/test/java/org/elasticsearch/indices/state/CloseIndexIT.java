@@ -62,7 +62,7 @@ public class CloseIndexIT extends IntegTestCase {
         assertIndexIsClosed(new RelationName("doc", "test"));
     }
 
-    static void assertIndexIsClosed(final RelationName relation) {
+    private static void assertIndexIsClosed(final RelationName relation) {
         var clusterState = FutureUtils.get(client().state(new ClusterStateRequest())).getState();
         List<IndexMetadata> indices = clusterState.metadata().getIndices(relation, List.of(), true, im -> im);
         for (IndexMetadata indexMetadata : indices) {

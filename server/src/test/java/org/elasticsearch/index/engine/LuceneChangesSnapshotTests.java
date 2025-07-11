@@ -20,7 +20,6 @@
 package org.elasticsearch.index.engine;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -41,6 +40,7 @@ import io.crate.common.io.IOUtils;
 
 public class LuceneChangesSnapshotTests extends EngineTestCase {
 
+    @Test
     public void testBasics() throws Exception {
         long fromSeqNo = randomNonNegativeLong();
         long toSeqNo = randomLongBetween(fromSeqNo, Long.MAX_VALUE);
@@ -139,6 +139,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
      * non-root documents don't have primary term but only sequence numbers. This test verifies that {@link LuceneChangesSnapshot}
      * correctly skip non-root documents and returns at most one operation per sequence number.
      */
+    @Test
     public void testSkipNonRootOfNestedDocuments() throws Exception {
         Map<Long, Long> seqNoToTerm = new HashMap<>();
         List<Engine.Operation> operations = generateHistoryOnReplica(between(1, 100), randomBoolean(), randomBoolean());
@@ -170,6 +171,7 @@ public class LuceneChangesSnapshotTests extends EngineTestCase {
         }
     }
 
+    @Test
     public void testUpdateAndReadChangesConcurrently() throws Exception {
         Follower[] followers = new Follower[between(1, 3)];
         CountDownLatch readyLatch = new CountDownLatch(followers.length + 1);
