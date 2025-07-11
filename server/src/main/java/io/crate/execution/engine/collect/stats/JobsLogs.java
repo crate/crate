@@ -31,6 +31,7 @@ import java.util.concurrent.locks.StampedLock;
 import java.util.function.BooleanSupplier;
 import java.util.function.LongSupplier;
 
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
@@ -182,6 +183,8 @@ public class JobsLogs {
         long stamp = operationsLogRWLock.readLock();
         try {
             operationsLog.add(operationContextLog);
+        } catch (CircuitBreakingException ex) {
+            // ignore, coming from the experiment
         } finally {
             operationsLogRWLock.unlockRead(stamp);
         }
