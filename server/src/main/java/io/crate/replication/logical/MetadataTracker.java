@@ -314,7 +314,7 @@ public final class MetadataTracker implements Closeable {
                     subscriptionName,
                     subscription,
                     localClusterState,
-                    response.relationsInPublications()
+                    response
                 );
                 return updateIndexMetadata(
                     subscriptionName,
