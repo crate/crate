@@ -36,7 +36,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ExecutionException;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -215,24 +214,6 @@ public final class MetadataTracker implements Closeable {
             subscription.connectionInfo().user()
         );
         CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request);
-        try {
-            for (var relationName : subscription.relations().keySet()) {
-                for (int i = 0; i < 10; i++) {
-                    var publisherRelationMetadata = publicationsState.get().relationsInPublications().get(relationName);
-                    boolean relationDisappeared = publisherRelationMetadata == null;
-                    if (relationDisappeared) {
-                        throw new RuntimeException("missing publisherRelationMetadata");
-                    } else {
-                        if (i > 0) {
-                            throw new RuntimeException("missing publisherRelationMetadata recovered: " + i);
-                        }
-                        break;
-                    }
-                }
-            }
-        } catch (InterruptedException e) {
-        } catch (ExecutionException e2) {
-        }
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
             if (response.unknownPublications().containsAll(subscription.publications())) {
                 stopTracking(subscriptionName);
@@ -265,13 +246,12 @@ public final class MetadataTracker implements Closeable {
             }
         });
 
-        CompletableFuture<Response> finalPublicationsState = publicationsState;
         return updatedClusterState.thenCompose(acked -> {
             if (!acked) {
                 return CompletableFuture.completedFuture(false);
             }
-            assert finalPublicationsState.isDone() : "If thenCompose triggers, publicationsState must be done";
-            var publicationResponse = finalPublicationsState.join();
+            assert publicationsState.isDone() : "If thenCompose triggers, publicationsState must be done";
+            var publicationResponse = publicationsState.join();
 
             RestoreDiff restoreDiff = getRestoreDiff(subscription, subscriberState, publicationResponse);
             if (restoreDiff.isEmpty()) {
@@ -498,15 +478,15 @@ public final class MetadataTracker implements Closeable {
     private ClusterState processDroppedTablesOrPartitions(String subscriptionName,
                                                           Subscription subscription,
                                                           ClusterState subscriberClusterState,
-                                                          Map<RelationName, RelationMetadata> relationsInPublications) {
+                                                          Response response) {
         HashSet<RelationName> changedRelations = new HashSet<>();
         HashSet<Index> partitionsToRemove = new HashSet<>();
         Metadata subscriberMetadata = subscriberClusterState.metadata();
         for (var relationName : subscription.relations().keySet()) {
-            var publisherRelationMetadata = relationsInPublications.get(relationName);
+            var publisherRelationMetadata = response.relationsInPublications().get(relationName);
             boolean relationDisappeared = publisherRelationMetadata == null;
             if (relationDisappeared) {
-                throw new RuntimeException("publisherRelationMetadata == null");
+                throw new RuntimeException("publisherRelationMetadata == null " + String.join(",", response.unknownPublications()));
             }
             // Check for possible dropped partitions
             var concreteIndices = IndexNameExpressionResolver.concreteIndices(
