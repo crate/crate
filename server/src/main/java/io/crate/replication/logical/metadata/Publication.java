@@ -150,12 +150,21 @@ public class Publication implements Writeable {
             relations.addAll(tables);
         }
 
-        return relations.stream()
+        if (relations.isEmpty()) {
+            throw new RuntimeException("should not be empty");
+        }
+
+        var rels = relations.stream()
             .filter(relationName -> userCanPublish(roles, relationName, publicationOwner, publicationName))
             .filter(relationName -> subscriberCanRead(roles, relationName, subscriber, publicationName))
             .map(relationName -> RelationMetadata.fromMetadata(relationName, state.metadata(), applyCustomIndexSettings(state)))
             .collect(Collectors.toMap(RelationMetadata::name, x -> x));
 
+        if (rels.isEmpty()) {
+            throw new RuntimeException("rels should not be empty");
+        }
+
+        return rels;
     }
 
     @VisibleForTesting
