@@ -7,7 +7,7 @@
   <parent>
     <groupId>io.crate</groupId>
     <artifactId>crate</artifactId>
-    <version>5.10.11</version>
+    <version>5.10.12</version>
     <relativePath>../../pom.xml</relativePath>
   </parent>
 
