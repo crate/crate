@@ -26,20 +26,16 @@ import static io.crate.testing.Asserts.assertThat;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
-import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.sql.tree.JoinType;
-import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
 public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterServiceUnitTest {
 
-    private PlanStats planStats;
     private LogicalPlan t1;
     private LogicalPlan t2;
     private SQLExecutor e;
@@ -49,10 +45,6 @@ public class RewriteFilterOnOuterJoinToInnerJoinTest extends CrateDummyClusterSe
         e = SQLExecutor.of(clusterService)
             .addTable("create table t1 (a int)")
             .addTable("create table t2 (b int)");
-        planStats = new PlanStats(e.nodeCtx,
-            CoordinatorTxnCtx.systemTransactionContext(),
-            new TableStats());
-
 
         t1 = e.logicalPlan("SELECT a FROM t1");
         t2 = e.logicalPlan("SELECT b FROM t2");
