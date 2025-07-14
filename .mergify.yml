@@ -15,7 +15,7 @@ queue_rules:
     merge_method: rebase
 
 merge_queue:
-  max_parallel_checks: 1
+  max_parallel_checks: 0
 
 pull_request_rules:
   - name: default
