@@ -91,25 +91,13 @@ public interface ActionListener<Response> extends BiConsumer<Response, Throwable
         }
 
         @Override
-        public void accept(T response, Throwable throwable) {
-            if (throwable == null) {
-                try {
-                    onResponse.accept(response);
-                    return;
-                } catch (Throwable t) {
-                    throwable = t;
-                }
-            }
-            onFailure.accept(Exceptions.toException(SQLExceptions.unwrap(throwable)));
-        }
-
-
-        @Override
         public void onResponse(T response) {
             try {
                 onResponse.accept(response);
             } catch (Exception e) {
-                onFailure(e);
+                onFailure.accept(e);
+            } catch (Throwable t) {
+                onFailure.accept(Exceptions.toException(t));
             }
         }
 
