@@ -21,13 +21,17 @@
 
 package io.crate.execution.support;
 
+import java.util.concurrent.CompletableFuture;
+
 import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.util.concurrent.CompletableFuture;
 
 @FunctionalInterface
 public interface NodeAction<TRequest extends TransportRequest, TResponse extends TransportResponse> {
 
+    /// Executes the operation on the remote nodes
+    ///
+    /// For error handling implementations are allowed to either raise errors
+    /// or return failed futures
     CompletableFuture<TResponse> nodeOperation(TRequest request);
 }

@@ -138,8 +138,8 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
         RootTask rootTask = tasksService.getTaskOrNull(request.jobId());
         if (rootTask == null) {
             if (tasksService.recentlyFailed(request.jobId())) {
-                return CompletableFuture.failedFuture(JobKilledException.of(
-                    "Received result for job=" + request.jobId() + " but there is no context for this job due to a failure during the setup."));
+                throw JobKilledException.of(
+                    "Received result for job=" + request.jobId() + " but there is no context for this job due to a failure during the setup.");
             } else {
                 return retryOrFailureResponse(request, retryDelay);
             }
@@ -149,24 +149,20 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
         try {
             rxTask = rootTask.getTask(request.executionPhaseId());
         } catch (ClassCastException e) {
-            return CompletableFuture.failedFuture(
-                new IllegalStateException(
-                    String.format(
-                        Locale.ENGLISH,
-                        "Found execution rootTask for %d but it's not a downstream rootTask",
-                        request.executionPhaseId()), e));
-        } catch (Throwable t) {
-            return CompletableFuture.failedFuture(t);
+            throw new IllegalStateException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Found execution rootTask for %d but it's not a downstream rootTask",
+                    request.executionPhaseId()), e);
         }
 
         PageBucketReceiver pageBucketReceiver = rxTask.getBucketReceiver(request.executionPhaseInputId());
         if (pageBucketReceiver == null) {
-            return CompletableFuture.failedFuture(
-                new IllegalStateException(
-                    String.format(
-                        Locale.ENGLISH,
-                        "Couldn't find BucketReceiver for input %d",
-                        request.executionPhaseInputId())));
+            throw new IllegalStateException(
+                String.format(
+                    Locale.ENGLISH,
+                    "Couldn't find BucketReceiver for input %d",
+                    request.executionPhaseInputId()));
         }
 
         Throwable throwable = request.throwable();
@@ -220,13 +216,11 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
             );
             killNodeAction
                 .execute(killRequest)
-                .whenComplete(
-                    (resp, t) -> {
-                        if (t != null) {
-                            LOGGER.debug("Could not kill " + request.jobId(), t);
-                        }
+                .whenComplete((_, t) -> {
+                    if (t != null) {
+                        LOGGER.debug("Could not kill " + request.jobId(), t);
                     }
-                );
+                });
             return CompletableFuture.failedFuture(new TaskMissing(TaskMissing.Type.ROOT, request.jobId()));
         }
     }
@@ -251,13 +245,18 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
         }
 
         public CompletableFuture<DistributedResultResponse> run() {
-            return nodeOperation(request, retryDelay).whenComplete((r, f) -> {
-                if (f == null) {
-                    complete(r);
-                } else {
-                    completeExceptionally(f);
-                }
-            });
+            try {
+                return nodeOperation(request, retryDelay).whenComplete((r, f) -> {
+                    if (f == null) {
+                        complete(r);
+                    } else {
+                        completeExceptionally(f);
+                    }
+                });
+            } catch (Throwable t) {
+                completeExceptionally(t);
+                return this;
+            }
         }
     }
 }
