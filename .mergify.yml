@@ -16,7 +16,8 @@ queue_rules:
 
 pull_request_rules:
   - name: default
-    conditions: []
+    conditions:
+      - label=ready-to-merge
     actions:
       queue:
 
