@@ -66,6 +66,11 @@ public class PriorityRunnable {
         public Runnable unwrap() {
             return runnable;
         }
+
+        @Override
+        public String toString() {
+            return "[" + source + "/" + priority() + "=" + runnable + "]";
+        }
     }
 
     public static class SimplePriorityRunnable extends PrioritizedRunnable implements WrappedRunnable {
@@ -85,6 +90,11 @@ public class PriorityRunnable {
         @Override
         public Runnable unwrap() {
             return runnable;
+        }
+
+        @Override
+        public String toString() {
+            return "[" + source + "/" + priority() + "=" + runnable + "]";
         }
     }
 }
