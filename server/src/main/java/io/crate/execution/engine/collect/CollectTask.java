@@ -118,7 +118,7 @@ public class CollectTask implements Task {
                 consumer.accept(null, err);
             }
         });
-        this.consumerCompleted = consumer.completionFuture().handle((res, err) -> {
+        this.consumerCompleted = consumer.completionFuture().handle((_, err) -> {
             totalBytes = ramAccounting.totalBytes();
             releaseResources();
             if (err != null) {
@@ -130,19 +130,18 @@ public class CollectTask implements Task {
 
     private void releaseResources() {
         synchronized (searchers) {
-            if (releasedResources == false) {
-                releasedResources = true;
-                for (var cursor : searchers.values()) {
-                    cursor.value.close();
-                }
-                searchers.clear();
-                for (var memoryManager : memoryManagers) {
-                    memoryManager.close();
-                }
-                memoryManagers.clear();
-            } else {
-                throw new AssertionError("Double release must not happen");
+            if (releasedResources) {
+                return;
             }
+            releasedResources = true;
+            for (var cursor : searchers.values()) {
+                cursor.value.close();
+            }
+            searchers.clear();
+            for (var memoryManager : memoryManagers) {
+                memoryManager.close();
+            }
+            memoryManagers.clear();
         }
     }
 
@@ -154,6 +153,7 @@ public class CollectTask implements Task {
     @Override
     public void kill(Throwable throwable) {
         killed = throwable;
+        releaseResources();
         if (started.compareAndSet(false, true)) {
             consumer.accept(null, throwable);
         } else {
@@ -212,8 +212,12 @@ public class CollectTask implements Task {
                 }
             } else {
                 searcher.close();
-                // addSearcher call after resource-release should only happen in error case
-                // the join call should trigger the original failure
+                // addSearcher call after resource-release should only happen
+                // in error case or explicit kill.
+                if (killed != null) {
+                    throw Exceptions.toRuntimeException(killed);
+                }
+                // if not killed, then the join call should trigger the original failure
                 try {
                     consumerCompleted.join();
                 } catch (CompletionException e) {
@@ -288,7 +292,7 @@ public class CollectTask implements Task {
 
     public MemoryManager memoryManager() {
         MemoryManager memoryManager = memoryManagerFactory.apply(ramAccounting);
-        // an atomicBoolean call would not be enough, because without syncronization
+        // an atomicBoolean call would not be enough, because without synchronization
         // the `memoryManagers.add` could be called just right *after* another thread triggered `releaseResources`
         synchronized (searchers) {
             if (releasedResources == false) {
@@ -296,7 +300,7 @@ public class CollectTask implements Task {
                 return memoryManager;
             } else {
                 memoryManager.close();
-                // memoryManager acess after resource-release should only happen in error case
+                // memoryManager access after resource-release should only happen in error case
                 // the join call should trigger the original failure
                 try {
                     consumerCompleted.join();
