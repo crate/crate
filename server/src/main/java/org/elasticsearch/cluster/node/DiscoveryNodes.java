@@ -19,22 +19,6 @@
 
 package org.elasticsearch.cluster.node;
 
-import com.carrotsearch.hppc.ObjectHashSet;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractDiffable;
-import org.elasticsearch.cluster.Diff;
-import io.crate.common.Booleans;
-import io.crate.common.collections.Sets;
-
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.regex.Regex;
-import org.elasticsearch.common.transport.TransportAddress;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -44,6 +28,23 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.AbstractDiffable;
+import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.regex.Regex;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.jetbrains.annotations.Nullable;
+
+import com.carrotsearch.hppc.ObjectHashSet;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
+
+import io.crate.common.Booleans;
+import io.crate.common.collections.Sets;
 
 /**
  * This class holds all {@link DiscoveryNode} in the cluster and provides convenience methods to
@@ -173,6 +174,7 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
      * @param nodeId id of the wanted node
      * @return wanted node if it exists. Otherwise <code>null</code>
      */
+    @Nullable
     public DiscoveryNode get(String nodeId) {
         return nodes.get(nodeId);
     }

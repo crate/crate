@@ -53,6 +53,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.github.benmanes.caffeine.cache.Cache;
 import com.github.benmanes.caffeine.cache.Caffeine;
 
+import io.crate.common.collections.Lists;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -194,7 +195,10 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
                 activeTasks.size(),
                 nodes.getLocalNodeId(),
                 nodes.getLocalNode().getName(),
-                newRootTask.participatingNodes()
+                Lists.map(newRootTask.participatingNodes(), nodeId -> {
+                    DiscoveryNode node = nodes.get(nodeId);
+                    return node == null ? nodeId : nodeId + "/" + node.getName();
+                })
             );
         }
         return newRootTask;
