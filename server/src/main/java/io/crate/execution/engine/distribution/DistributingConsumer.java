@@ -252,8 +252,27 @@ public class DistributingConsumer implements RowConsumer {
                     downstream.needsMoreData = false;
                     countdownAndMaybeCloseIt(numActiveRequests, it);
                 } else {
-                    downstream.needsMoreData = resp.needMore();
-                    countdownAndMaybeContinue(it, numActiveRequests, false);
+                    switch (resp.result()) {
+                        case DONE:
+                            downstream.needsMoreData = false;
+                            countdownAndMaybeContinue(it, numActiveRequests, false);
+                            break;
+                        case NEED_MORE:
+                            downstream.needsMoreData = true;
+                            countdownAndMaybeContinue(it, numActiveRequests, false);
+                            break;
+                        case TASK_MISSING:
+                            if (it.isKilled()) {
+                                downstream.needsMoreData = false;
+                                countdownAndMaybeContinue(it, numActiveRequests, false);
+                                return;
+                            } else {
+                                distributedResultAction.execute(request).whenComplete(this);
+                            }
+                            break;
+                        default:
+                            break;
+                    }
                 }
                 return;
             }

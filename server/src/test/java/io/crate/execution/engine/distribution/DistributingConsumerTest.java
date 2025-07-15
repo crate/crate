@@ -54,6 +54,7 @@ import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.FailingBatchIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
+import io.crate.execution.engine.distribution.DistributedResultResponse.Result;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.jobs.CumulativePageBucketReceiver;
 import io.crate.execution.jobs.DistResultRXTask;
@@ -212,7 +213,7 @@ public class DistributingConsumerTest extends ESTestCase {
                     resultRequest.bucketIdx(),
                     resultRequest.readRows(streamers),
                     resultRequest.isLast(),
-                    needMore -> result.complete(new DistributedResultResponse(needMore)));
+                    needMore -> result.complete(new DistributedResultResponse(needMore ? Result.NEED_MORE : Result.DONE)));
             } else {
                 bucketReceiver.kill(throwable);
             }

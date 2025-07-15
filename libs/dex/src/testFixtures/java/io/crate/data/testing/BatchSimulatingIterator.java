@@ -147,6 +147,11 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
         delegate.kill(throwable);
     }
 
+    @Override
+    public boolean isKilled() {
+        return delegate.isKilled();
+    }
+
     public int getMovetoStartCalls() {
         return moveToStartCalls;
     }

@@ -46,6 +46,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.TaskMissing;
+import io.crate.execution.engine.distribution.DistributedResultResponse.Result;
 import io.crate.execution.jobs.DownstreamRXTask;
 import io.crate.execution.jobs.PageBucketReceiver;
 import io.crate.execution.jobs.PageResultListener;
@@ -141,7 +142,7 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
                 throw JobKilledException.of(
                     "Received result for job=" + request.jobId() + " but there is no context for this job due to a failure during the setup.");
             } else {
-                return retryOrFailureResponse(request, retryDelay);
+                return CompletableFuture.completedFuture(new DistributedResultResponse(Result.TASK_MISSING));
             }
         }
 
@@ -177,7 +178,7 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
             return pageResultListener.future;
         } else {
             pageBucketReceiver.kill(throwable);
-            return CompletableFuture.completedFuture(new DistributedResultResponse(false));
+            return CompletableFuture.completedFuture(new DistributedResultResponse(Result.DONE));
         }
     }
 
@@ -231,7 +232,7 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
         @Override
         public void needMore(boolean needMore) {
             LOGGER.trace("sending needMore response, need more? {}", needMore);
-            future.complete(new DistributedResultResponse(needMore));
+            future.complete(new DistributedResultResponse(needMore ? Result.NEED_MORE : Result.DONE));
         }
     }
 

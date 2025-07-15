@@ -153,7 +153,7 @@ public class CollectTask implements Task {
     @Override
     public void kill(Throwable throwable) {
         killed = throwable;
-        releaseResources();
+        // releaseResources();
         if (started.compareAndSet(false, true)) {
             consumer.accept(null, throwable);
         } else {

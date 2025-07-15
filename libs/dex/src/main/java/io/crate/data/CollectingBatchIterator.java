@@ -170,6 +170,11 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
+    public boolean isKilled() {
+        return killed != null;
+    }
+
+    @Override
     public boolean hasLazyResultSet() {
         return involvesIO;
     }
