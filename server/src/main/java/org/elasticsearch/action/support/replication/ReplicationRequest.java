@@ -22,13 +22,13 @@ package org.elasticsearch.action.support.replication;
 import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.indices.refresh.TransportShardRefreshAction;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.TransportRequest;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 
@@ -88,9 +88,7 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
 
     /**
      * @return the shardId of the shard where this operation should be executed on.
-     * can be null if the shardID has not yet been resolved
      */
-    @Nullable
     public ShardId shardId() {
         return shardId;
     }
@@ -125,11 +123,10 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
 
     public ReplicationRequest(StreamInput in) throws IOException {
         super(in);
-        if (in.readBoolean()) {
-            shardId = new ShardId(in);
-        } else {
-            shardId = null;
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            in.readBoolean();
         }
+        shardId = new ShardId(in);
         waitForActiveShards = ActiveShardCount.readFrom(in);
         timeout = in.readTimeValue();
         index = in.readString();
@@ -139,12 +136,10 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        if (shardId != null) {
+        if (out.getVersion().before(Version.V_6_0_0)) {
             out.writeBoolean(true);
-            shardId.writeTo(out);
-        } else {
-            out.writeBoolean(false);
         }
+        shardId.writeTo(out);
         waitForActiveShards.writeTo(out);
         out.writeTimeValue(timeout);
         out.writeString(index);
