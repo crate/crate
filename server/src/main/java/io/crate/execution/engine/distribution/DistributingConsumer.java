@@ -367,6 +367,7 @@ public class DistributingConsumer implements RowConsumer {
                ", inputId=" + inputId +
                ", bucketIdx=" + bucketIdx +
                ", downstreams=" + downstreams +
+               ", failure=" + failure +
                '}';
     }
 }

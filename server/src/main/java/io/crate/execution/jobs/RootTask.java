@@ -205,7 +205,7 @@ public class RootTask implements CompletionListenable<Void> {
                 }
             }
             try {
-                logger.trace("Starting task job={} phase={} name={}", jobId, phaseId, task.name());
+                logger.trace("Task.start job={} id={} name={}", jobId, phaseId, task.name());
                 CompletableFuture<Void> started = task.start();
                 if (started == null || (started.isDone() && !started.isCompletedExceptionally())) {
                     continue;
@@ -253,7 +253,7 @@ public class RootTask implements CompletionListenable<Void> {
     public long kill(@Nullable String reason) {
         int numKilled = 0;
         if (!closed.getAndSet(true)) {
-            logger.trace("kill called on Task {}", jobId);
+            logger.trace("RootTask.kill job={}", jobId);
             if (numActiveTasks.get() == 0) {
                 finish();
             } else {
@@ -262,7 +262,7 @@ public class RootTask implements CompletionListenable<Void> {
                         continue;
                     }
                     if (traceEnabled) {
-                        logger.trace("Task kill id={} ctx={}", task.id(), task);
+                        logger.trace("Task.kill job={} id={} task={}", jobId, task.id(), task);
                     }
                     task.kill(JobKilledException.of(reason));
                     numKilled++;
@@ -354,7 +354,7 @@ public class RootTask implements CompletionListenable<Void> {
         private boolean finishIfNeeded() {
             if (traceEnabled) {
                 Task task = getTask(id);
-                logger.trace("Task completed jobId={} id={} task={} error={}", jobId, id, task, failure);
+                logger.trace("Task completed job={} id={} task={} error={}", jobId, id, task, failure);
             }
             if (numActiveTasks.decrementAndGet() == 0) {
                 finish();
