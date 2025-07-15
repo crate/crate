@@ -103,13 +103,14 @@ public class FetchTask implements Task {
         this.routings = routings;
         this.toFetch = HashMap.newHashMap(phase.tableIndices().size());
         this.getTableInfo = getTableInfo;
-    }
-
-    private void closeSearchers() {
-        for (var cursor : searchers) {
-            cursor.value.close();
-        }
-        searchers.clear();
+        this.result.whenComplete((_, _) -> {
+            synchronized (jobId) {
+                for (var cursor : searchers) {
+                    cursor.value.close();
+                }
+                searchers.clear();
+            }
+        });
     }
 
     /**
@@ -167,7 +168,6 @@ public class FetchTask implements Task {
                 synchronized (jobId) {
                     borrowed--;
                     if (borrowed == 0 && killed != null) {
-                        closeSearchers();
                         result.completeExceptionally(killed);
                     }
                 }
@@ -213,7 +213,6 @@ public class FetchTask implements Task {
         synchronized (jobId) {
             killed = throwable;
             if (borrowed == 0) {
-                closeSearchers();
                 result.completeExceptionally(throwable);
             }
         }
@@ -222,7 +221,6 @@ public class FetchTask implements Task {
     public void close() {
         synchronized (jobId) {
             assert borrowed == 0 : "Close shouldn't be called while searchers are in use";
-            closeSearchers();
             if (killed == null) {
                 result.complete(null);
             } else {
@@ -252,15 +250,15 @@ public class FetchTask implements Task {
                     throw t;
                 }
             }
-            return CompletableFuture.allOf(refreshActions.toArray(CompletableFuture[]::new))
-                .thenApply(ignored -> {
-                    synchronized (jobId) {
-                        if (killed == null) {
-                            setupSearchers();
-                        }
+            CompletableFuture<Void> allRefreshed = CompletableFuture.allOf(refreshActions.toArray(CompletableFuture[]::new));
+            return allRefreshed.thenApply(_ -> {
+                synchronized (jobId) {
+                    if (killed == null) {
+                        setupSearchers();
                     }
-                    return null;
-                });
+                }
+                return null;
+            });
         }
     }
 
