@@ -53,7 +53,6 @@ public class AbstractAsyncTaskTests extends ESTestCase {
 
     @Test
     public void testAutoRepeat() throws Exception {
-
         boolean shouldRunThrowException = randomBoolean();
         final CyclicBarrier barrier1 = new CyclicBarrier(2); // 1 for runInternal plus 1 for the test sequence
         final CyclicBarrier barrier2 = new CyclicBarrier(2); // 1 for runInternal plus 1 for the test sequence
@@ -95,9 +94,9 @@ public class AbstractAsyncTaskTests extends ESTestCase {
         assertThat(task.isScheduled()).isTrue();
         barrier1.await();
         assertThat(task.isScheduled()).isTrue();
+        barrier1.reset();
         barrier2.await();
         assertThat(count.get()).isEqualTo(1);
-        barrier1.reset();
         barrier2.reset();
         barrier1.await();
         assertThat(task.isScheduled()).isTrue();
