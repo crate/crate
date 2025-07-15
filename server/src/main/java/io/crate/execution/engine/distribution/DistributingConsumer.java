@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
@@ -269,8 +270,14 @@ public class DistributingConsumer implements RowConsumer {
                 try {
                     var cancellable = threadPool.scheduleUnlessShuttingDown(
                         delay,
-                        ThreadPool.Names.SEARCH,
-                        () -> distributedResultAction.execute(request).whenComplete(this)
+                        ThreadPool.Names.SAME,
+                        () -> {
+                            try {
+                                responseExecutor.execute(() -> distributedResultAction.execute(request).whenComplete(this));
+                            } catch (RejectedExecutionException ex) {
+                                handleFailure(ex);
+                            }
+                        }
                     );
 
                     // shutting down; no retry
