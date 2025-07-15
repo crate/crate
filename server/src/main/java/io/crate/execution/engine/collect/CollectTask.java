@@ -245,12 +245,15 @@ public class CollectTask implements Task {
     @Override
     public String toString() {
         synchronized (searchers) {
+            String iterator = (batchIterator.isDone() && !batchIterator.isCompletedExceptionally())
+                ? batchIterator.join().toString()
+                : batchIterator.toString();
             return "CollectTask{" +
                 "id=" + collectPhase.phaseId() +
                 ", sharedContexts=" + sharedShardContexts +
                 ", consumer=" + consumer +
                 ", searchContexts=" + searchers.keys() +
-                ", batchIterator=" + batchIterator +
+                ", batchIterator=" + iterator +
                 ", finished=" + consumerCompleted.isDone() +
                 '}';
         }
