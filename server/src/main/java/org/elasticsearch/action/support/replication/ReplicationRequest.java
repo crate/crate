@@ -46,7 +46,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
      * and at request creation time for shard-level bulk, refresh and flush requests.
      */
     protected final ShardId shardId;
-    protected final String index;
 
     protected TimeValue timeout = DEFAULT_TIMEOUT;
 
@@ -61,7 +60,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
      * Creates a new request with resolved shard id
      */
     public ReplicationRequest(ShardId shardId) {
-        this.index = shardId.getIndexName();
         this.shardId = shardId;
     }
 
@@ -76,10 +74,6 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
 
     public TimeValue timeout() {
         return timeout;
-    }
-
-    public String index() {
-        return this.index;
     }
 
     public ActiveShardCount waitForActiveShards() {
@@ -129,7 +123,10 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
         shardId = new ShardId(in);
         waitForActiveShards = ActiveShardCount.readFrom(in);
         timeout = in.readTimeValue();
-        index = in.readString();
+        if (in.getVersion().before(Version.V_6_0_0)) {
+            // old index name, not used anymore
+            in.readString();
+        }
         routedBasedOnClusterVersion = in.readVLong();
     }
 
@@ -142,7 +139,9 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
         shardId.writeTo(out);
         waitForActiveShards.writeTo(out);
         out.writeTimeValue(timeout);
-        out.writeString(index);
+        if (out.getVersion().before(Version.V_6_0_0)) {
+            out.writeString(shardId.getIndexName());
+        }
         out.writeVLong(routedBasedOnClusterVersion);
     }
 
