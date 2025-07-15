@@ -48,6 +48,8 @@ import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.TaskMissing;
+import io.crate.exceptions.TaskMissing.Type;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
 
@@ -266,8 +268,13 @@ public class DistributingConsumer implements RowConsumer {
                                 downstream.needsMoreData = false;
                                 countdownAndMaybeContinue(it, numActiveRequests, false);
                                 return;
+                            } else if (retries.hasNext()) {
+                                TimeValue delay = retries.next();
+                                threadPool.scheduleUnlessShuttingDown(delay, ThreadPool.Names.SAME, () -> {
+                                    distributedResultAction.execute(request).whenComplete(this);
+                                });
                             } else {
-                                distributedResultAction.execute(request).whenComplete(this);
+                                handleFailure(new TaskMissing(Type.CHILD, jobId));
                             }
                             break;
                         default:
