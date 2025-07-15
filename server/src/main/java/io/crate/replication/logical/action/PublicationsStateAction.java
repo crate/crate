@@ -196,15 +196,19 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
         private final Metadata metadata;
         private final List<String> unknownPublications;
+        // for response instance forwarding purpose - from a node < 6.0 in the same cluster to a node < 6.0 in the target cluster
+        private final Map<RelationName, RelationMetadata> relationsInPublications;
 
         public Response(Metadata metadata, List<String> unknownPublications) {
             this.metadata = metadata;
             this.unknownPublications = unknownPublications;
+            this.relationsInPublications = Map.of();
         }
 
         public Response(StreamInput in) throws IOException {
             if (in.getVersion().before(Version.V_6_0_0)) {
                 Map<RelationName, RelationMetadata> relationsInPublications = in.readMap(RelationName::new, RelationMetadata::new);
+                this.relationsInPublications = relationsInPublications;
                 Metadata.Builder mdBuilder = Metadata.builder();
                 for (Map.Entry<RelationName, RelationMetadata> entry : relationsInPublications.entrySet()) {
                     RelationMetadata relationMetadata = entry.getValue();
@@ -218,6 +222,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 }
                 metadata = mdBuilder.build();
             } else {
+                relationsInPublications = Map.of();
                 metadata = Metadata.readFrom(in);
             }
             unknownPublications = in.readList(StreamInput::readString);
@@ -226,7 +231,8 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             if (out.getVersion().before(Version.V_6_0_0)) {
-                Map<RelationName, RelationMetadata> relationsInPublications =
+                Map<RelationName, RelationMetadata> relationsInPublications = !this.relationsInPublications.isEmpty() ?
+                    this.relationsInPublications :
                     metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
                         .map(table -> RelationMetadata.fromMetadata(table, metadata))
                         .collect(Collectors.toMap(RelationMetadata::name, x -> x));

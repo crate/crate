@@ -27,6 +27,7 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static java.util.Collections.singletonList;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -456,6 +457,36 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
                 org.elasticsearch.cluster.metadata.RelationMetadata.Table table2 = metadata1.getRelation(relationName2);
                 assertThat(table2).isNotNull();
                 assertThat(table2.partitionedBy()).containsExactly(ColumnIdent.of("p"));
+            }
+        }
+    }
+
+    @Test
+    public void test_ensure_streaming_response_received_from_5_10_can_be_forwarded_to_5_10() throws IOException {
+        var relName = new RelationName("doc", "x");
+        var indexMetadata = IndexMetadata.builder("x").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0).build();
+        Map<RelationName, RelationMetadata> relationsInPublications = Map.of(
+            relName,
+            new RelationMetadata(relName, List.of(indexMetadata), null));
+        List<String> unknownPublications = List.of();
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.V_5_10_0);
+
+        out.writeMap(relationsInPublications, (o, v) -> v.writeTo(out), (o, v) -> v.writeTo(out));
+        out.writeStringCollection(unknownPublications);
+
+        try (var in = out.bytes().streamInput()) {
+            in.setVersion(Version.V_5_10_0);
+            PublicationsStateAction.Response response = new PublicationsStateAction.Response(in); // Response received from 5.10
+            var out2 = new BytesStreamOutput();
+            out2.setVersion(Version.V_5_10_0);
+            response.writeTo(out2); // Response forwarded to 5.10
+
+            try (var in2 = out2.bytes().streamInput()) {
+                // Check that the response forwarded to 5.10 == the response received from 5.10
+                Map<RelationName, RelationMetadata> relationsInPublications2 = in2.readMap(RelationName::new, RelationMetadata::new);
+                assertThat(relationsInPublications2).isEqualTo(relationsInPublications);
             }
         }
     }
