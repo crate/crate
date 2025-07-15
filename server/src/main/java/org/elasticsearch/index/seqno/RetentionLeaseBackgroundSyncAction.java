@@ -200,7 +200,6 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
                     "retentionLeases=" + retentionLeases +
                     ", shardId=" + shardId +
                     ", timeout=" + timeout +
-                    ", index='" + index + '\'' +
                     ", waitForActiveShards=" + waitForActiveShards +
                     '}';
         }

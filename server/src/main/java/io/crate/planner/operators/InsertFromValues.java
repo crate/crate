@@ -653,8 +653,8 @@ public class InsertFromValues implements LogicalPlan {
                     throwable = SQLExceptions.unwrap(throwable);
                     // we want to report duplicate key exceptions
                     if (!SQLExceptions.isDocumentAlreadyExistsException(throwable) &&
-                            (partitionWasDeleted(throwable, request.index())
-                                    || partitionClosed(throwable, request.index())
+                            (partitionWasDeleted(throwable, request.shardId().getIndexName())
+                                    || partitionClosed(throwable, request.shardId().getIndexName())
                                     || mixedArgumentTypesFailure(throwable))) {
                         result.complete(compressedResult);
                     } else {
@@ -672,7 +672,7 @@ public class InsertFromValues implements LogicalPlan {
                     .currentNodeId();
             } catch (IndexNotFoundException e) {
                 lastFailure.set(e);
-                if (!IndexName.isPartitioned(request.index())) {
+                if (!IndexName.isPartitioned(request.shardId().getIndexName())) {
                     synchronized (compressedResult) {
                         compressedResult.markAsFailed(request.items());
                     }
@@ -703,7 +703,7 @@ public class InsertFromValues implements LogicalPlan {
                 public void onFailure(Exception e) {
                     nodeLimit.onSample(startTime, true);
                     Throwable t = SQLExceptions.unwrap(e);
-                    if (!partitionWasDeleted(t, request.index())) {
+                    if (!partitionWasDeleted(t, request.shardId().getIndexName())) {
                         synchronized (compressedResult) {
                             compressedResult.markAsFailed(request.items());
                         }
