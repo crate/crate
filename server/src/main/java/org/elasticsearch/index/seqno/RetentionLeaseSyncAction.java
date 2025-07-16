@@ -189,7 +189,6 @@ public class RetentionLeaseSyncAction extends
                     "retentionLeases=" + retentionLeases +
                     ", shardId=" + shardId +
                     ", timeout=" + timeout +
-                    ", index='" + index + '\'' +
                     ", waitForActiveShards=" + waitForActiveShards +
                     '}';
         }
