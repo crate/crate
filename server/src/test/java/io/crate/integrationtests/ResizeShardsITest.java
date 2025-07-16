@@ -26,12 +26,27 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_VERSION_CREATED;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 
+import java.util.concurrent.TimeUnit;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.ClusterStateUpdateTask;
+import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.Priority;
+import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import io.crate.concurrent.FutureActionListener;
 
 public class ResizeShardsITest extends IntegTestCase {
 
@@ -80,6 +95,73 @@ public class ResizeShardsITest extends IntegTestCase {
         assertThat(response).hasRows("1| true");
         execute("select id from quotes");
         assertThat(response).hasRowCount(2L);
+    }
+
+    @Test
+    public void testShrinkShardsEnsureLeftOverIndicesAreRemoved() throws Exception {
+        execute(
+            "create table quotes (" +
+                "   id integer," +
+                "   quote string," +
+                "   date timestamp with time zone" +
+                ") clustered into 3 shards with (number_of_replicas = 1)");
+
+        final String resizeIndex = ".resized." + getFqn("quotes");
+        FutureActionListener<ClusterStateUpdateResponse> future = new FutureActionListener<>();
+        cluster().getCurrentMasterNodeInstance(ClusterService.class)
+            .submitStateUpdateTask("test-create-dangling-index", new ClusterStateUpdateTask(Priority.HIGH) {
+                @Override
+                public ClusterState execute(ClusterState currentState) {
+                    Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
+
+                    IndexMetadata indexMetadata = IndexMetadata.builder(resizeIndex)
+                        .settings(Settings.builder()
+                            .put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                            .put(SETTING_NUMBER_OF_SHARDS, 1)
+                            .put(SETTING_NUMBER_OF_REPLICAS, 1)
+                            .put(SETTING_INDEX_VERSION_CREATED.getKey(), Version.CURRENT)
+                            .build())
+                        .build();
+                    mdBuilder.put(indexMetadata, false);
+                    return ClusterState.builder(currentState).metadata(mdBuilder).build();
+                }
+
+                @Override
+                public void onFailure(String source, Exception e) {
+                    future.onFailure(e);
+                }
+
+                @Override
+                public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
+                    future.onResponse(null);
+                }
+            });
+        assertThat(future).succeedsWithin(10, TimeUnit.SECONDS);
+
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
+        assertThat(clusterService.state().metadata().hasIndex(resizeIndex)).isTrue();
+
+        final String resizeNodeName = getADataNodeName(clusterService.state());
+
+        execute("alter table quotes set (\"routing.allocation.require._name\"=?, \"blocks.write\"=?)",
+            $(resizeNodeName, true));
+        assertBusy(() -> {
+            execute(
+                "select count(*) from sys.shards where " +
+                    "table_name = 'quotes' " +
+                    "and state = 'STARTED' " +
+                    "and node['name'] = ?",
+                new Object[] { resizeNodeName }
+            );
+            assertThat(response).hasRows(new Object[] { 3L });
+        });
+
+        execute("alter table quotes set (number_of_shards=?)", $(1));
+
+        execute("select number_of_shards from information_schema.tables where table_name = 'quotes'");
+        assertThat(response).hasRows("1");
+
+        assertThat(clusterService.state().metadata().hasIndex(resizeIndex)).isFalse();
     }
 
     @Test
