@@ -1,5 +1,5 @@
 ---
-# This is a dummy job to unblock mergify on PRs that have no code-changes
+# This is a dummy job to unblock merging on PRs that have no code-changes
 # See https://docs.github.com/en/repositories/configuring-branches-and-merges-in-your-repository/defining-the-mergeability-of-pull-requests/troubleshooting-required-status-checks#handling-skipped-but-required-checks
 name: CrateDB SQL
 on:

@@ -1,5 +1,5 @@
 ---
-# This is a dummy job to unblock mergify on PRs that have no code-changes
+# This is a dummy job to unblock merging on PRs that have no code-changes
 name: CrateDB Docs
 on:
   pull_request:
