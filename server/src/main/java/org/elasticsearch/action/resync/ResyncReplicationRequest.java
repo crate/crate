@@ -19,15 +19,15 @@
 
 package org.elasticsearch.action.resync;
 
+import java.io.IOException;
+import java.util.Arrays;
+import java.util.Objects;
+
 import org.elasticsearch.action.support.replication.ReplicationRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
-
-import java.io.IOException;
-import java.util.Arrays;
-import java.util.Objects;
 
 /**
  * Represents a batch of operations sent from the primary to its replicas during the primary-replica resync.
@@ -92,7 +92,6 @@ public final class ResyncReplicationRequest extends ReplicationRequest<ResyncRep
         return "TransportResyncReplicationAction.Request{" +
             "shardId=" + shardId +
             ", timeout=" + timeout +
-            ", index='" + index + '\'' +
             ", trimAboveSeqNo=" + trimAboveSeqNo +
             ", maxSeenAutoIdTimestampOnPrimary=" + maxSeenAutoIdTimestampOnPrimary +
             ", ops=" + operations.length +

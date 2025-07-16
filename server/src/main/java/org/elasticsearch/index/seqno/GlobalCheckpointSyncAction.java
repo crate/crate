@@ -117,7 +117,6 @@ public class GlobalCheckpointSyncAction extends TransportReplicationAction<
             return "GlobalCheckpointSyncAction.Request{" +
                     "shardId=" + shardId +
                     ", timeout=" + timeout +
-                    ", index='" + index + '\'' +
                     ", waitForActiveShards=" + waitForActiveShards +
                     "}";
         }

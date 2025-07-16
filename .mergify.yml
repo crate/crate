@@ -1,7 +1,16 @@
 ---
+merge_queue:
+  max_parallel_checks: 1
+  reset_on_external_merge: never
+
 queue_rules:
   - name: default
     queue_conditions:
+      - label=ready-to-merge
+      - '#approved-reviews-by>=1'
+    merge_conditions:
+      - label=ready-to-merge
+      - '#approved-reviews-by>=1'
       - status-success~=^check-author-signed-cla
       - status-success=ci/jenkins/pr_tests
       - status-success~=^Test CrateDB SQL on ubuntu
@@ -9,9 +18,6 @@ queue_rules:
       - status-success~=^checkstyle
       - status-success~=^forbiddenApis
       - status-success~=^Vale
-    merge_conditions:
-      - label=ready-to-merge
-      - '#approved-reviews-by>=1'
     merge_method: rebase
 
 pull_request_rules:

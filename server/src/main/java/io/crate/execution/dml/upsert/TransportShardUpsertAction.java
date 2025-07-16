@@ -131,7 +131,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                                                                           ShardUpsertRequest request,
                                                                                           AtomicBoolean killed) {
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
-        String indexName = request.index();
+        String indexName = request.shardId().getIndexName();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
@@ -156,7 +156,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 insertColumns
             );
             indexer = new Indexer(
-                request.index(),
+                request.shardId().getIndexName(),
                 tableInfo,
                 indexShard.getVersionCreated(),
                 txnCtx,
@@ -284,7 +284,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
     protected WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, UpsertReplicaRequest request) throws IOException {
         List<Reference> columns = request.columns();
         Translog.Location location = null;
-        String indexName = request.index();
+        String indexName = request.shardId().getIndexName();
         boolean traceEnabled = logger.isTraceEnabled();
         RelationName relationName = RelationName.fromIndexName(indexName);
         DocTableInfo tableInfo = schemas.getTableInfo(relationName);

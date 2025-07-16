@@ -46,7 +46,7 @@ public class DeleteBlobRequestTest extends ESTestCase {
 
         DeleteBlobRequest fromStream = new DeleteBlobRequest(out.bytes().streamInput());
 
-        assertThat(fromStream.index()).isEqualTo("foo");
+        assertThat(fromStream.shardId().getIndexName()).isEqualTo("foo");
         assertThat(fromStream.id()).isEqualTo(Hex.encodeHexString(digest));
     }
 }
