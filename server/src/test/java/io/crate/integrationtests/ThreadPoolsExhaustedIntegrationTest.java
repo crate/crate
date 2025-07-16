@@ -25,8 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
-import java.util.List;
+import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
@@ -68,13 +69,33 @@ public class ThreadPoolsExhaustedIntegrationTest extends IntegTestCase {
         assertRejectedExecutionFailure("select * from t limit ?", new Object[]{1_000_000});
     }
 
-    private void assertRejectedExecutionFailure(String stmt, Object[] parameters) {
-        List<CompletableFuture<SQLResponse>> futures = new ArrayList<>();
-        for (int i = 0; i < 1000; i++) {
-            CompletableFuture<SQLResponse> future = sqlExecutor.execute(stmt, parameters);
-            futures.add(future);
+    private void assertRejectedExecutionFailure(String stmt, Object[] parameters) throws Exception {
+        ArrayList<CompletableFuture<SQLResponse>> futures = new ArrayList<>();
+        ArrayList<Thread> threads = new ArrayList<>();
+        int numThreads = 10;
+        int reqPerThread = 50;
+        CyclicBarrier barrier = new CyclicBarrier(numThreads);
+        for (int i = 0; i < numThreads; i++) {
+            Thread t = new Thread(() -> {
+                try {
+                    barrier.await();
+                } catch (InterruptedException | BrokenBarrierException e) {
+                    // ignore
+                }
+                for (int j = 0; j < reqPerThread; j++) {
+                    CompletableFuture<SQLResponse> future = sqlExecutor.execute(stmt, parameters);
+                    synchronized (futures) {
+                        futures.add(future);
+                    }
+                }
+            });
+            t.start();
+            threads.add(t);
         }
 
+        for (var thread : threads) {
+            thread.join();
+        }
         for (CompletableFuture<SQLResponse> future : futures) {
             try {
                 future.get(SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
