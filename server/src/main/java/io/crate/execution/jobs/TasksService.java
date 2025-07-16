@@ -75,7 +75,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
     private final Object failedSentinel = new Object();
     private final Cache<UUID, Object> recentlyFailed = Caffeine.newBuilder()
         .executor(Runnable::run)
-        .maximumSize(200L)
+        .maximumSize(1000L)
         .expireAfterWrite(30, TimeUnit.SECONDS)
         .build();
 
