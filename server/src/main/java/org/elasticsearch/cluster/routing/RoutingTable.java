@@ -558,6 +558,20 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
             return this;
         }
 
+        /**
+         * Adds an {@link IndexRoutingTable} to the routing table with the index name as key.
+         * This is needed when receiving diffs from older nodes that still use the index name as key.
+         * To be able to diff both routing tables, we need to convert the local one to the same format before
+         * upgrading it.
+         */
+        public Builder addWithIndexName(IndexRoutingTable indexRoutingTable) {
+            if (indicesRouting == null) {
+                throw new IllegalStateException("once build is called the builder cannot be reused");
+            }
+            indicesRouting.put(indexRoutingTable.getIndex().getName(), indexRoutingTable);
+            return this;
+        }
+
         public Builder add(IndexRoutingTable.Builder indexRoutingTableBuilder) {
             add(indexRoutingTableBuilder.build());
             return this;

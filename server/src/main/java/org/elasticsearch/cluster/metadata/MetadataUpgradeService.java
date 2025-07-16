@@ -125,6 +125,11 @@ public class MetadataUpgradeService {
                 Version.CURRENT.minimumIndexCompatibilityVersion(),
                 metadata.custom(UserDefinedFunctionsMetadata.TYPE));
             changed |= indexMetadata != newMetadata;
+            // Remove any existing metadata, registered by it's name, for the index
+            if (upgradedMetadata.get(indexName) != null) {
+                changed = true;
+                upgradedMetadata.remove(indexName);
+            }
             upgradedMetadata.put(newMetadata, false);
         }
 

@@ -26,6 +26,7 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.UUID;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
@@ -53,6 +54,7 @@ public class JobRequest extends TransportRequest {
     private final String coordinatorNodeId;
     private final Collection<? extends NodeOperation> nodeOperations;
     private final boolean enableProfiling;
+    private final Version senderVersion;
 
     private JobRequest(UUID jobId,
                        SessionSettings sessionSettings,
@@ -64,6 +66,7 @@ public class JobRequest extends TransportRequest {
         this.sessionSettings = sessionSettings;
         this.nodeOperations = nodeOperations;
         this.enableProfiling = enableProfiling;
+        this.senderVersion = Version.CURRENT;
     }
 
     public UUID jobId() {
@@ -86,8 +89,13 @@ public class JobRequest extends TransportRequest {
         return sessionSettings;
     }
 
+    public Version senderVersion() {
+        return senderVersion;
+    }
+
     JobRequest(StreamInput in) throws IOException {
         super(in);
+        senderVersion = in.getVersion();
 
         jobId = new UUID(in.readLong(), in.readLong());
         coordinatorNodeId = in.readString();

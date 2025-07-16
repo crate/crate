@@ -27,7 +27,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -91,20 +90,6 @@ public class ClusterStateUpdaters {
         }
 
         return ClusterState.builder(state).blocks(blocks).build();
-    }
-
-    /**
-     * Mainly used to upgrade cluster index blocks to switch from using the indexName to the indexUUID.
-     */
-    public static ClusterBlocks upgradeClusterBlocks(final ClusterState state) {
-        final ClusterBlocks.Builder builder = ClusterBlocks.builder();
-        for (ClusterBlock block : state.blocks().global()) {
-            builder.addGlobalBlock(block);
-        }
-        for (final IndexMetadata indexMetadata : state.metadata()) {
-            builder.addBlocks(indexMetadata);
-        }
-        return builder.build();
     }
 
     static ClusterState updateRoutingTable(final ClusterState state) {

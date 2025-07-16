@@ -366,6 +366,29 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
             return this;
         }
 
+        public Builder addBlocksWithIndexName(IndexMetadata indexMetadata) {
+            String indexName = indexMetadata.getIndex().getName();
+            if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+                addIndexBlock(indexName, IndexMetadata.INDEX_CLOSED_BLOCK);
+            }
+            if (IndexMetadata.INDEX_READ_ONLY_SETTING.get(indexMetadata.getSettings())) {
+                addIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_BLOCK);
+            }
+            if (IndexMetadata.INDEX_BLOCKS_READ_SETTING.get(indexMetadata.getSettings())) {
+                addIndexBlock(indexName, IndexMetadata.INDEX_READ_BLOCK);
+            }
+            if (IndexMetadata.INDEX_BLOCKS_WRITE_SETTING.get(indexMetadata.getSettings())) {
+                addIndexBlock(indexName, IndexMetadata.INDEX_WRITE_BLOCK);
+            }
+            if (IndexMetadata.INDEX_BLOCKS_METADATA_SETTING.get(indexMetadata.getSettings())) {
+                addIndexBlock(indexName, IndexMetadata.INDEX_METADATA_BLOCK);
+            }
+            if (IndexMetadata.INDEX_BLOCKS_READ_ONLY_ALLOW_DELETE_SETTING.get(indexMetadata.getSettings())) {
+                addIndexBlock(indexName, IndexMetadata.INDEX_READ_ONLY_ALLOW_DELETE_BLOCK);
+            }
+            return this;
+        }
+
         public Builder updateBlocks(IndexMetadata indexMetadata) {
             // let's remove all blocks for this index and add them back -- no need to remove all individual blocks....
             indices.remove(indexMetadata.getIndex().getUUID());
