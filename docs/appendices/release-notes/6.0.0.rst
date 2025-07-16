@@ -43,10 +43,11 @@ Version 6.0.0 - Unreleased
 Breaking Changes
 ================
 
-- Updated Lucene from 9.12 to 10.2 which brings the following user facing changes:
+- Updated Lucene from 9.12 to 10.2 which brings the following user facing
+  changes:
 
   - Tables created in 4.x can't be read anymore. If you're running CrateDB 5.x
-    and have any tables created in 4.x they need to be reindexed before moving
+    and have any tables created in 4.x they need to be re-indexed before moving
     to CrateDB 6.0. Make sure there are no warnings in the admin console and see
     :ref:`table_version_compatibility` for more information.
 
@@ -55,10 +56,11 @@ Breaking Changes
     to re-index with either plain ``dutch`` or ``english`` stemmers before
     upgrading.
 
-  - The ``german2`` and ``german`` token filters now use the same underlying stemmer,
-    which always expands ``ä``, ``ö`` and ``ü`` to ``ae``, ``oe`` and ``ue`` respectively.
-    If users have tables which were using the ``german`` stemmer without a character
-    filter that already did this, they will need to re-index after upgrading.
+  - The ``german2`` and ``german`` token filters now use the same underlying
+    stemmer, which always expands ``ä``, ``ö`` and ``ü`` to ``ae``, ``oe`` and
+    ``ue`` respectively. If users have tables which were using the ``german``
+    stemmer without a character filter that already did this, they will need to
+    re-index after upgrading.
 
 - Removed the deprecated ``soft_deletes.enabled`` setting for ``CREATE TABLE``.
   The setting defaulted to ``true`` since 4.3.0, was deprecated in 4.5.0 and
@@ -156,10 +158,10 @@ Breaking Changes
        ``BOOLEAN`` column in their ``PARTITIONED BY`` clause.
 
 - Added a :ref:`statement_max_length` setting to limit the length of allowed SQL
-  statements. It defaults to 262144. Statements exceeding this limit are rejected
-  because large statements consume a high amount of memory. Large statements are
-  typically caused by inline values or using a large number of ``VALUES``
-  clauses.
+  statements. It defaults to ``262144``. Statements exceeding this limit are
+  rejected because large statements consume a high amount of memory. Large
+  statements are typically caused by inline values or using a large number of
+  ``VALUES`` clauses.
   Instead, statements should be written using parameter symbols (``?``) and
   inserting lots of values should be done using either bulk operations or a
   ``INSERT INTO`` in combination with a ``SELECT FROM`` and ``UNNEST``.
@@ -310,9 +312,9 @@ Performance and Resilience Improvements
 ---------------------------------------
 
 - Changed how scheduling and prioritization for read queries, in particular
-  queries against ``sys.shards`` and ``sys.nodes`` work. This should help
-  continue monitoring a cluster that is overloaded with too many concurrent
-  queries.
+  queries against :ref:`sys.shards <sys-shards>` and :ref:`sys.nodes<sys-nodes>`
+  work. This should help continue monitoring a cluster that is overloaded with
+  too many concurrent queries.
 
 - Improved the logic to push down expressions within the ``WHERE`` clause to the
   table to use index lookups instead of resulting in post-filtering when using
@@ -348,9 +350,9 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
-- Added ``merge_id`` and ``fully_merged_docs`` columns to the sys.segments table
-  to give more information on ongoing merges and whether the recovery source is
-  still present in merged segments.
+- Added ``merge_id`` and ``fully_merged_docs`` columns to the
+  :ref:`sys.segments <sys-segments>` table to give more information on ongoing
+  merges and whether the recovery source is still present in merged segments.
 
 - Added the :ref:`sys.cluster_health <sys-cluster_health>` table to provide
   information about the health of the whole cluster in comparison to
@@ -361,14 +363,12 @@ Administration and Operations
   session setting that allows partial failures of ``INSERT FROM SELECT``
   statements.
 
-- Added ``last_write_before`` column to the sys.shards table, reporting a
-  timestamp before which the last write operation to the shard has taken place.
+- Added ``last_write_before`` column to the :ref:`sys.shards <sys-shards>`
+  table, reporting a timestamp before which the last write operation to the
+  shard has taken place.
 
 - Re-enabled :ref:`mapping.depth.limit <sql-create-table-mapping-depth-limit>`
   setting to enforce a maximum nesting depth for object columns when adding new
   columns to a table. The default value is ``100``. The limit can be increased
-  if necessary, but use caution;deeply nested structures may lead to long
-  execution times or stack overflow errors.
-
-Client interfaces
------------------
+  if necessary, but use with caution as deeply nested structures may lead to
+  long execution times or stack overflow errors.
