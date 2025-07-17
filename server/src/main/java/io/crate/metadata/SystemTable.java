@@ -314,14 +314,14 @@ public final class SystemTable<T> implements TableInfo {
                 }
             }
             return new SystemTable<>(
-               name,
-               refByColumns,
-               expressions,
-               primaryKeys,
-               dynamicColumns,
-               supportedOperations,
-               rowGranularity,
-               getRouting
+                name,
+                refByColumns,
+                expressions,
+                primaryKeys,
+                dynamicColumns,
+                supportedOperations,
+                rowGranularity,
+                getRouting
            );
         }
 

@@ -61,12 +61,12 @@ public class ConnectionInfo implements Writeable {
         "sslmode",
         SSLMode.PREFER.name(),
         input -> switch (input.toLowerCase(Locale.ENGLISH)) {
-                case "prefer" -> SSLMode.PREFER;
-                case "disable" -> SSLMode.DISABLE;
-                case "require" -> SSLMode.REQUIRE;
-                default -> throw new CreateSubscriptionException(
-                    "Invalid value for sslmode: " + input + " expected one of: prefer, disable, require");
-            },
+            case "prefer" -> SSLMode.PREFER;
+            case "disable" -> SSLMode.DISABLE;
+            case "require" -> SSLMode.REQUIRE;
+            default -> throw new CreateSubscriptionException(
+                "Invalid value for sslmode: " + input + " expected one of: prefer, disable, require");
+        },
         DataTypes.STRING
     );
 
