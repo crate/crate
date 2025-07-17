@@ -37,6 +37,8 @@ import org.elasticsearch.common.network.CloseableChannel;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
@@ -52,6 +54,7 @@ public class TransportHandshakerTests extends ESTestCase {
     private TransportHandshaker.HandshakeRequestSender requestSender;
 
     @Override
+    @Before
     public void setUp() throws Exception {
         super.setUp();
         String nodeId = "node-id";
@@ -64,6 +67,7 @@ public class TransportHandshakerTests extends ESTestCase {
     }
 
     @Override
+    @After
     public void tearDown() throws Exception {
         threadPool.shutdown();
         super.tearDown();

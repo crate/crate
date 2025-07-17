@@ -36,9 +36,11 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class TransportDecompressorTests extends ESTestCase {
 
+    @Test
     public void testSimpleCompression() throws IOException {
         try (BytesStreamOutput output = new BytesStreamOutput()) {
             byte randomByte = randomByte();
@@ -55,10 +57,10 @@ public class TransportDecompressorTests extends ESTestCase {
             ReleasableBytesReference releasableBytesReference = decompressor.pollDecompressedPage();
             assertThat(releasableBytesReference.get(0)).isEqualTo(randomByte);
             releasableBytesReference.close();
-
         }
     }
 
+    @Test
     public void testMultiPageCompression() throws IOException {
         try (BytesStreamOutput output = new BytesStreamOutput()) {
             try (StreamOutput deflateStream = new OutputStreamStreamOutput(CompressorFactory.COMPRESSOR.threadLocalOutputStream(
@@ -88,6 +90,7 @@ public class TransportDecompressorTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testIncrementalMultiPageCompression() throws IOException {
         try (BytesStreamOutput output = new BytesStreamOutput()) {
             try (StreamOutput deflateStream = new OutputStreamStreamOutput(
@@ -127,8 +130,6 @@ public class TransportDecompressorTests extends ESTestCase {
                 assertThat(streamInput.readInt()).isEqualTo(i);
             }
             Releasables.close(reference1, reference2, reference3);
-
         }
     }
-
 }
