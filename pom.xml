@@ -316,13 +316,13 @@
 
     <versions.jdk>24.0.1</versions.jdk>
     <versions.annotations>26.0.2</versions.annotations>
-    <versions.log4j>2.24.3</versions.log4j>
+    <versions.log4j>2.25.1</versions.log4j>
     <versions.assertj>3.27.3</versions.assertj>
     <versions.junit5>5.13.1</versions.junit5>
     <versions.junit-platform-commons>1.13.1</versions.junit-platform-commons>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.3</versions.randomizedrunner>
-    <versions.jackson>2.19.0</versions.jackson>
+    <versions.jackson>2.19.1</versions.jackson>
     <versions.fastdoubleparser>2.0.1</versions.fastdoubleparser>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.2</versions.antlr>
@@ -335,17 +335,17 @@
     <versions.tdigest>3.3</versions.tdigest>
     <versions.datasketches>5.0.2</versions.datasketches>
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
-    <versions.caffeine>3.2.1</versions.caffeine>
+    <versions.caffeine>3.2.2</versions.caffeine>
     <versions.jodatime>2.14.0</versions.jodatime>
-    <versions.aws>1.12.786</versions.aws>
+    <versions.aws>1.12.788</versions.aws>
     <versions.opendal>0.47.6</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.commonscodec>1.18.0</versions.commonscodec>
     <versions.bigmath>2.3.2</versions.bigmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>24.2.1</versions.graalvm>
+    <versions.graalvm>24.2.2</versions.graalvm>
     <versions.jwt>4.5.0</versions.jwt>
-    <versions.jwks-rsa>0.22.1</versions.jwks-rsa>
+    <versions.jwks-rsa>0.22.2</versions.jwks-rsa>
 
     <versions.google.gax>2.43.0</versions.google.gax>
     <versions.google.auth>1.23.0</versions.google.auth>
@@ -358,7 +358,7 @@
     <versions.google.gson>1.43.1</versions.google.gson>
     <versions.google.errorprone>2.38.0</versions.google.errorprone>
     <versions.google.j2objc>3.0.0</versions.google.j2objc>
-    <versions.checkerframework>3.49.4</versions.checkerframework>
+    <versions.checkerframework>3.49.5</versions.checkerframework>
     <versions.grpc>1.73.0</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
@@ -382,7 +382,7 @@
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
     <versions.plugin.surefire>3.5.3</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
-    <versions.plugin.puppycrawl>10.25.0</versions.plugin.puppycrawl>
+    <versions.plugin.puppycrawl>10.26.1</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.13</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.9</versions.plugin.forbiddenapis>
