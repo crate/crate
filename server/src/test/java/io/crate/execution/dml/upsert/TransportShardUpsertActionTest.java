@@ -36,8 +36,8 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -86,6 +86,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.netty.NettyBootstrap;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
@@ -147,7 +148,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 item.id(),
-                "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\'');
+                "document with id: " + item.id() + " already exists in '" + request.shardId() + '\'');
         }
     }
 
@@ -157,8 +158,11 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
     @Before
     public void prepare() throws Exception {
-        charactersIndexUUID = UUIDs.randomBase64UUID();
-        partitionIndexUUID = UUIDs.randomBase64UUID();
+        SQLExecutor.builder(clusterService).build()
+            .addTable("create table doc.characters (id int, p int) PARTITIONED BY (p)", PARTITION_INDEX);
+        charactersIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of(), true, IndexMetadata::getIndexUUID);
+        partitionIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of("1395874800000"), true, IndexMetadata::getIndexUUID);
+
         nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
         nettyBootstrap.start();
 
@@ -181,6 +185,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             }
         });
         when(indexService.getShard(0)).thenReturn(indexShard);
+        when(indexShard.shardId()).thenReturn(new ShardId(charactersIndex, 0));
 
         // Avoid null pointer exceptions
         DocTableInfo tableInfo = mock(DocTableInfo.class);
@@ -281,7 +286,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardResponse response = result.response;
         assertThat(response.failures()).satisfiesExactly(
             f -> assertThat(f.error().getMessage()).isEqualTo(
-                "[1]: version conflict, document with id: 1 already exists in 'characters'"));
+                "[1]: version conflict, document with id: 1 already exists in '[characters/%s][0]'", charactersIndexUUID));
     }
 
     @Test

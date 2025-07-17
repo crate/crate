@@ -132,13 +132,13 @@ public final class TransportSwapRelations extends TransportMasterNodeAction<Swap
     protected ClusterBlockException checkBlock(SwapRelationsRequest request, ClusterState state) {
         Set<String> affectedIndices = new HashSet<>();
         Metadata metadata = state.metadata();
-        Function<IndexMetadata, String> toOpenIndexName = imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null;
+        Function<IndexMetadata, String> toOpenIndexUUID = imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null;
         for (RelationNameSwap swapAction : request.swapActions()) {
-            affectedIndices.addAll(metadata.getIndices(swapAction.source(), List.of(), false, toOpenIndexName));
-            affectedIndices.addAll(metadata.getIndices(swapAction.target(), List.of(), false, toOpenIndexName));
+            affectedIndices.addAll(metadata.getIndices(swapAction.source(), List.of(), false, toOpenIndexUUID));
+            affectedIndices.addAll(metadata.getIndices(swapAction.target(), List.of(), false, toOpenIndexUUID));
         }
         for (RelationName dropRelation : request.dropRelations()) {
-            affectedIndices.addAll(metadata.getIndices(dropRelation, List.of(), false, toOpenIndexName));
+            affectedIndices.addAll(metadata.getIndices(dropRelation, List.of(), false, toOpenIndexUUID));
         }
         return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, affectedIndices.toArray(new String[0]));
     }

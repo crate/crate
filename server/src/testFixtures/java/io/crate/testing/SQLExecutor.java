@@ -677,8 +677,9 @@ public class SQLExecutor {
                                                             @Nullable Map<String, Object> mapping,
                                                             Version smallestNodeVersion) throws IOException {
         Settings indexSettings = buildSettings(settings, smallestNodeVersion);
-        IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
-            .settings(indexSettings);
+        IndexMetadata.Builder metaBuilder = IndexMetadata.builder(UUIDs.randomBase64UUID())
+            .settings(indexSettings)
+            .indexName(indexName);
         if (mapping != null) {
             metaBuilder.putMapping(new MappingMetadata(mapping));
         }
@@ -801,9 +802,11 @@ public class SQLExecutor {
     public SQLExecutor startShards(String... indices) {
         var clusterState = clusterService.state();
         for (var index : indices) {
-            var indexName = IndexName.decode(index).toRelationName().indexNameOrAlias();
-            final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, INITIALIZING);
-            clusterState = allocationService.applyStartedShards(clusterState, startedShards);
+            List<String> indexUUIDs = clusterState.metadata().getIndices(RelationName.fromIndexName(index), List.of(), true, IndexMetadata::getIndexUUID);
+            for (var indexUUID : indexUUIDs) {
+                final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexUUID, INITIALIZING);
+                clusterState = allocationService.applyStartedShards(clusterState, startedShards);
+            }
         }
         clusterState = allocationService.reroute(clusterState, "reroute after starting");
         ClusterServiceUtils.setState(clusterService, clusterState);
@@ -813,10 +816,12 @@ public class SQLExecutor {
     public SQLExecutor failShards(String... indices) {
         var clusterState = clusterService.state();
         for (var index : indices) {
-            var indexName = IndexName.decode(index).toRelationName().indexNameOrAlias();
-            final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, STARTED);
-            for (ShardRouting shard : startedShards) {
-                clusterState = allocationService.applyFailedShard(clusterState, shard, false);
+            List<String> indexUUIDs = clusterState.metadata().getIndices(RelationName.fromIndexName(index), List.of(), true, IndexMetadata::getIndexUUID);
+            for (var indexUUID : indexUUIDs) {
+                final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexUUID, STARTED);
+                for (ShardRouting shard : startedShards) {
+                    clusterState = allocationService.applyFailedShard(clusterState, shard, false);
+                }
             }
         }
         clusterState = allocationService.reroute(clusterState, "reroute after failing shards");

@@ -25,6 +25,8 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.junit.Test;
@@ -65,7 +67,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
             Context context = luceneQueryBuilder.convert(
                 query,
                 txnCtx,
-                indexEnv.indexService().index().getName(),
+                List.of(),
                 indexEnv.indexService().indexAnalyzers(),
                 table,
                 Version.CURRENT,
@@ -97,7 +99,7 @@ public class IsNullPredicateTest extends ScalarTestCase {
             Query query = luceneQueryBuilder.convert(
                 sqlExpressions.asSymbol("obj_ignored['x'] is NULL"),
                 txnCtx,
-                indexEnv.indexService().index().getName(),
+                List.of(),
                 indexEnv.indexService().indexAnalyzers(),
                 table,
                 Version.CURRENT,

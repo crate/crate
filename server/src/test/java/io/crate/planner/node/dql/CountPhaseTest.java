@@ -50,7 +50,7 @@ public class CountPhaseTest extends ESTestCase {
                     .put("i2", IntArrayList.from(1, 2)).map())
                 .put("n2", MapBuilder.<String, IntIndexedContainer>treeMapBuilder()
                     .put("i1", IntArrayList.from(3)).map()).map());
-        CountPhase countPhase = new CountPhase(1, routing, Literal.BOOLEAN_TRUE, DistributionInfo.DEFAULT_BROADCAST);
+        CountPhase countPhase = new CountPhase(1, routing, Literal.BOOLEAN_TRUE, DistributionInfo.DEFAULT_BROADCAST, true);
 
         BytesStreamOutput out = new BytesStreamOutput(10);
         countPhase.writeTo(out);
@@ -63,5 +63,6 @@ public class CountPhaseTest extends ESTestCase {
         assertThat(streamedNode.nodeIds()).containsExactlyInAnyOrder("n1", "n2");
         assertThat(streamedNode.routing()).isEqualTo(routing);
         assertThat(streamedNode.distributionInfo()).isEqualTo(DistributionInfo.DEFAULT_BROADCAST);
+        assertThat(streamedNode.ignoreUnavailableIndex()).isEqualTo(countPhase.ignoreUnavailableIndex());
     }
 }

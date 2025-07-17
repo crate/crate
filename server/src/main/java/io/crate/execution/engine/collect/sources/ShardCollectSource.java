@@ -94,7 +94,6 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
@@ -312,14 +311,13 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         List<CompletableFuture<OrderedDocCollector>> orderedDocCollectors = new ArrayList<>();
         Metadata metadata = clusterService.state().metadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
-            String indexName = entry.getKey();
-            IndexMetadata indexMetadata = metadata.index(indexName);
+            String indexUUID = entry.getKey();
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
-                if (IndexName.isPartitioned(indexName)) {
+                if (collectPhase.ignoreUnavailableIndex()) {
                     continue;
-                } else {
-                    throw new IndexNotFoundException(indexName);
                 }
+                throw new IndexNotFoundException(indexUUID);
             }
             Index index = indexMetadata.getIndex();
             for (IntCursor shard : entry.getValue()) {
@@ -338,7 +336,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                         )).exceptionally(err -> {
                             err = SQLExceptions.unwrap(err);
                             if (err instanceof IndexNotFoundException notFound
-                                    && IndexName.isPartitioned(notFound.getIndex().getName())) {
+                                    && collectPhase.ignoreUnavailableIndex()) {
                                 return OrderedDocCollector.empty(notFound.getShardId());
                             }
                             throw Exceptions.toRuntimeException(err);
@@ -347,7 +345,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                 } catch (ShardNotFoundException | IllegalIndexShardStateException e) {
                     throw e;
                 } catch (IndexNotFoundException e) {
-                    if (IndexName.isPartitioned(indexName)) {
+                    if (collectPhase.ignoreUnavailableIndex()) {
                         break;
                     }
                     throw e;
@@ -388,7 +386,7 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
                                                                               boolean requiresScroll) {
         err = SQLExceptions.unwrap(err);
         if (err instanceof IndexNotFoundException) {
-            if (IndexName.isPartitioned(shardId.getIndexName())) {
+            if (collectPhase.ignoreUnavailableIndex()) {
                 return CompletableFuture.completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
             }
             throw Exceptions.toRuntimeException(err);
@@ -419,13 +417,13 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
         Metadata metadata = clusterService.state().metadata();
         List<CompletableFuture<BatchIterator<Row>>> iterators = new ArrayList<>();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShards.entrySet()) {
-            String indexName = entry.getKey();
-            IndexMetadata indexMD = metadata.index(indexName);
+            String indexUUID = entry.getKey();
+            IndexMetadata indexMD = metadata.index(indexUUID);
             if (indexMD == null) {
-                if (IndexName.isPartitioned(indexName)) {
+                if (collectPhase.ignoreUnavailableIndex()) {
                     continue;
                 }
-                throw new IndexNotFoundException(indexName);
+                throw new IndexNotFoundException(indexUUID);
             }
             Index index = indexMD.getIndex();
             for (IntCursor shardCursor: entry.getValue()) {
@@ -458,8 +456,8 @@ public class ShardCollectSource implements CollectSource, IndexEventListener {
 
 
         for (Map.Entry<String, IntIndexedContainer> indexShards : indexShardsMap.entrySet()) {
-            String indexName = indexShards.getKey();
-            IndexMetadata indexMetadata = metadata.index(indexName);
+            String indexUUID = indexShards.getKey();
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
                 continue;
             }

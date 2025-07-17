@@ -79,7 +79,7 @@ public class RetentionLeaseActions {
         protected ShardsIterator shards(final ClusterState state, final T request) {
             return state
                 .routingTable()
-                .shardRoutingTable(request.getShardId().getIndexName(), request.getShardId().id())
+                .shardRoutingTable(request.getShardId().getIndexUUID(), request.getShardId().id())
                 .primaryShardIt();
         }
 
@@ -259,7 +259,7 @@ public class RetentionLeaseActions {
         }
 
         Request(final ShardId shardId, final String id) {
-            super(Objects.requireNonNull(shardId).getIndexName());
+            super(Objects.requireNonNull(shardId).getIndexUUID());
             this.shardId = shardId;
             this.id = Objects.requireNonNull(id);
         }

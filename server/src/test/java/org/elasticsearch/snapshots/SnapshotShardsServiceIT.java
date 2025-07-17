@@ -78,7 +78,7 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
         }
 
         logger.info("--> blocking repository");
-        String blockedNode = blockNodeWithIndex("repo", "test");
+        String blockedNode = blockNodeWithIndex("repo", "doc.test");
 
         execute("create snapshot repo.snapshot table doc.test with (wait_for_completion = false)");
         waitForBlock(blockedNode, "repo", TimeValue.timeValueSeconds(60));

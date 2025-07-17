@@ -63,6 +63,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.io.IOUtils;
+import io.crate.metadata.upgrade.ClusterStateUpgrader;
 
 public class PublicationTransportHandler {
 
@@ -160,13 +161,7 @@ public class PublicationTransportHandler {
                 // Close early to release resources used by the de-compression as early as possible
                 try (StreamInput input = in) {
                     ClusterState tempState = ClusterState.readFrom(input, transportService.getLocalNode());
-                    if (in.getVersion().before(Version.V_6_0_0)) {
-                        incomingState = ClusterState.builder(tempState)
-                            .metadata(metadataUpgradeService.upgradeMetadata(tempState.metadata()))
-                            .build();
-                    } else {
-                        incomingState = tempState;
-                    }
+                    incomingState = ClusterStateUpgrader.upgrade(tempState, in.getVersion(), metadataUpgradeService);
                 } catch (Exception e) {
                     LOGGER.warn("unexpected error while deserializing an incoming cluster state", e);
                     throw e;
@@ -191,14 +186,12 @@ public class PublicationTransportHandler {
                         try (StreamInput input = in) {
                             diff = ClusterState.readDiffFrom(input, lastSeen.nodes().getLocalNode());
                         }
-                        ClusterState tempState = diff.apply(lastSeen); // might throw IncompatibleClusterStateVersionException
-                        if (in.getVersion().before(Version.V_6_0_0)) {
-                            incomingState = ClusterState.builder(tempState)
-                                .metadata(metadataUpgradeService.upgradeMetadata(tempState.metadata()))
-                                .build();
-                        } else {
-                            incomingState = tempState;
-                        }
+                        incomingState = ClusterStateUpgrader.applyDiff(
+                            lastSeen,
+                            diff,
+                            in.getVersion(),
+                            metadataUpgradeService
+                        );
                     } catch (IncompatibleClusterStateVersionException e) {
                         incompatibleClusterStateDiffReceivedCount.incrementAndGet();
                         throw e;
@@ -243,6 +236,8 @@ public class PublicationTransportHandler {
     }
 
     private static BytesReference serializeFullClusterState(ClusterState clusterState, Version nodeVersion) throws IOException {
+        clusterState = ClusterStateUpgrader.downgrade(clusterState, nodeVersion);
+
         final BytesStreamOutput bStream = new BytesStreamOutput();
         try (StreamOutput stream = new OutputStreamStreamOutput(CompressorFactory.COMPRESSOR.threadLocalOutputStream(bStream))) {
             stream.setVersion(nodeVersion);
@@ -291,14 +286,14 @@ public class PublicationTransportHandler {
             for (DiscoveryNode node : discoveryNodes) {
                 try {
                     if (sendFullVersion || previousState.nodes().nodeExists(node) == false) {
+                        // BWC is handled in the serialization method
                         if (serializedStates.containsKey(node.getVersion()) == false) {
                             serializedStates.put(node.getVersion(), serializeFullClusterState(newState, node.getVersion()));
                         }
                     } else {
                         // will send a diff
-                        if (diff == null) {
-                            diff = newState.diff(previousState);
-                        }
+                        diff = ClusterStateUpgrader.createDiff(previousState, newState, node.getVersion());
+
                         if (serializedDiffs.containsKey(node.getVersion()) == false) {
                             final BytesReference serializedDiff = serializeDiffClusterState(diff, node.getVersion());
                             serializedDiffs.put(node.getVersion(), serializedDiff);

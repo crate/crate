@@ -22,19 +22,15 @@
 package io.crate.beans;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.test.ESTestCase.buildNewFakeTransportAddress;
-import static org.elasticsearch.test.ESTestCase.settings;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.UUID;
 
 import org.assertj.core.api.ThrowingConsumer;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -45,6 +41,7 @@ import org.elasticsearch.cluster.routing.TestShardRouting;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -53,44 +50,53 @@ import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import io.crate.common.collections.Tuple;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
 @RunWith(RandomizedRunner.class)
 @ThreadLeakScope(ThreadLeakScope.Scope.NONE)
-public class NodeInfoTest {
+public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
 
-    ClusterState.Builder clusterState;
+    ClusterState.Builder csBuilder;
+    RelationName relationName = new RelationName("doc", "test");
 
     @Before
-    public void setup() {
+    public void setup() throws Exception {
+        var tableName = relationName.indexNameOrAlias();
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.test (id INT) " +
+                "CLUSTERED INTO 3 SHARDS WITH (number_of_replicas = 2)");
         DiscoveryNode.setPossibleRoles(DiscoveryNodeRole.BUILT_IN_ROLES);
-        var tableName = "test";
+        var indexUUID = clusterService.state().metadata()
+            .getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
         var indexRoutingTableBuilder = IndexRoutingTable
-            .builder(new Index(tableName, UUID.randomUUID().toString()))
-            .addShard(TestShardRouting.newShardRouting(tableName,
+            .builder(new Index(tableName, indexUUID))
+            .addShard(TestShardRouting.newShardRouting(indexUUID,
                                                        1,
                                                        "node_1",
                                                        true,
                                                        ShardRoutingState.STARTED))
-            .addShard(TestShardRouting.newShardRouting(tableName,
+            .addShard(TestShardRouting.newShardRouting(indexUUID,
                                                        2,
                                                        "node_1",
                                                        false,
                                                        ShardRoutingState.STARTED))
-            .addShard(TestShardRouting.newShardRouting(tableName,
+            .addShard(TestShardRouting.newShardRouting(indexUUID,
                                                        3,
                                                        "node_1",
                                                        false,
                                                        ShardRoutingState.STARTED))
-            .addShard(TestShardRouting.newShardRouting(tableName,
+            .addShard(TestShardRouting.newShardRouting(indexUUID,
                                                        4,
                                                        null,
                                                        false,
                                                        ShardRoutingState.UNASSIGNED));
 
         var routingTable = RoutingTable.builder().add(indexRoutingTableBuilder).build();
-        var meta = IndexMetadata.builder(tableName).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(2);
-        this.clusterState = ClusterState.builder(new ClusterName("crate")).version(1L).routingTable(routingTable)
-            .metadata(Metadata.builder().put(meta));
+        this.csBuilder = ClusterState.builder(clusterService.state()).version(1L).routingTable(routingTable);
+        ClusterServiceUtils.setState(clusterService, csBuilder);
     }
 
     @Test
@@ -102,7 +108,7 @@ public class NodeInfoTest {
             .localNodeId("node_1")
             .build();
 
-        var nodeInfo = new NodeInfo(() -> clusterState.nodes(nodes).build(), this::shardStateAndSizeProvider);
+        var nodeInfo = new NodeInfo(() -> csBuilder.nodes(nodes).build(), this::shardStateAndSizeProvider);
 
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_1");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_1");
@@ -132,7 +138,7 @@ public class NodeInfoTest {
             .localNodeId("node_2")
             .build();
 
-        var nodeInfo = new NodeInfo(() -> clusterState.nodes(nodes).build(), this::shardStateAndSizeProvider);
+        var nodeInfo = new NodeInfo(() -> csBuilder.nodes(nodes).build(), this::shardStateAndSizeProvider);
 
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_2");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_2");
@@ -153,7 +159,7 @@ public class NodeInfoTest {
             .localNodeId("node_2")
             .build();
 
-        var nodeInfo = new NodeInfo(() -> clusterState.nodes(nodes).build(), this::shardStateAndSizeProvider);
+        var nodeInfo = new NodeInfo(() -> csBuilder.nodes(nodes).build(), this::shardStateAndSizeProvider);
 
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_2");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_2");
@@ -168,7 +174,7 @@ public class NodeInfoTest {
     }
 
     @Test
-    public void test_local_node_is_data_node_all_shards_locally() {
+    public void test_local_node_is_data_node_all_shards_locally() throws Exception {
         var nodes = DiscoveryNodes
             .builder()
             .add(discoveryNode("node_1"))
@@ -177,7 +183,7 @@ public class NodeInfoTest {
             .localNodeId("node_1")
             .build();
 
-        var nodeInfo = new NodeInfo(() -> clusterState.nodes(nodes).build(), this::shardStateAndSizeProvider);
+        var nodeInfo = new NodeInfo(() -> csBuilder.nodes(nodes).build(), this::shardStateAndSizeProvider);
         var shardStats = nodeInfo.getShardStats();
         assertThat(shardStats.getPrimaries()).isEqualTo(1);
         assertThat(shardStats.getTotal()).isEqualTo(3);
@@ -187,27 +193,36 @@ public class NodeInfoTest {
 
         assertThat(nodeInfo.getShardInfo())
             .satisfiesExactlyInAnyOrder(
-               isShardInfo(1, "test", "", "STARTED", "STARTED", 100),
-               isShardInfo(2, "test", "", "STARTED", "STARTED", 100),
-               isShardInfo(3, "test", "", "STARTED", "STARTED", 100));
+               isShardInfo(1, relationName.name(), "", "STARTED", "STARTED", 100),
+               isShardInfo(2, relationName.name(), "", "STARTED", "STARTED", 100),
+               isShardInfo(3, relationName.name(), "", "STARTED", "STARTED", 100));
     }
 
     @Test
-    public void test_partitioned_tables() {
-        var tableName = ".partitioned.test.p1";
+    public void test_partitioned_tables() throws Exception {
+        resetClusterService();
+        RelationName relationName = new RelationName("doc", "parted");;
+        PartitionName partitionName = new PartitionName(relationName, List.of("p1"));
+        var tableName = partitionName.asIndexName();
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.parted (id INT, p TEXT) PARTITIONED BY (p) " +
+                      "CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 2)", tableName);
+
+        var indexUUID = clusterService.state().metadata()
+            .getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
         var indexRoutingTableBuilder = IndexRoutingTable
-            .builder(new Index(tableName, UUID.randomUUID().toString()))
-            .addShard(TestShardRouting.newShardRouting(tableName,
+            .builder(new Index(tableName, indexUUID))
+            .addShard(TestShardRouting.newShardRouting(indexUUID,
                                                        1,
                                                        "node_1",
                                                        true,
                                                        ShardRoutingState.STARTED))
-            .addShard(TestShardRouting.newShardRouting(tableName,
+            .addShard(TestShardRouting.newShardRouting(indexUUID,
                                                        2,
                                                        "node_1",
                                                        false,
                                                        ShardRoutingState.STARTED))
-            .addShard(TestShardRouting.newShardRouting(tableName,
+            .addShard(TestShardRouting.newShardRouting(indexUUID,
                                                        3,
                                                        "node_1",
                                                        false,
@@ -215,9 +230,7 @@ public class NodeInfoTest {
 
 
         var routingTable = RoutingTable.builder().add(indexRoutingTableBuilder).build();
-        var meta = IndexMetadata.builder(tableName).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(2);
-        var cs = ClusterState.builder(new ClusterName("crate")).version(1L).routingTable(routingTable)
-            .metadata(Metadata.builder().put(meta));
+        var cs = ClusterState.builder(clusterService.state()).version(1L).routingTable(routingTable);
 
         var nodes = DiscoveryNodes
             .builder()
@@ -234,9 +247,9 @@ public class NodeInfoTest {
 
         assertThat(nodeInfo.getShardInfo())
             .satisfiesExactlyInAnyOrder(
-               isShardInfo(1, "test", "p1", "STARTED", "STARTED", 100),
-               isShardInfo(2, "test", "p1", "STARTED", "STARTED", 100),
-               isShardInfo(3, "test", "p1", "STARTED", "STARTED", 100));
+               isShardInfo(1, relationName.name(), partitionName.ident(), "STARTED", "STARTED", 100),
+               isShardInfo(2, relationName.name(), partitionName.ident(), "STARTED", "STARTED", 100),
+               isShardInfo(3, relationName.name(), partitionName.ident(), "STARTED", "STARTED", 100));
 
     }
 

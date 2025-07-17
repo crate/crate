@@ -336,7 +336,7 @@ public abstract class TransportReplicationAction<
                 final ClusterState clusterState = clusterService.state();
                 final IndexMetadata indexMetadata = clusterState.metadata().getIndexSafe(primaryShardReference.routingEntry().index());
 
-                final ClusterBlockException blockException = blockExceptions(clusterState, indexMetadata.getIndex().getName());
+                final ClusterBlockException blockException = blockExceptions(clusterState, indexMetadata.getIndex().getUUID());
                 if (blockException != null) {
                     logger.trace("cluster is blocked, action failed on primary", blockException);
                     throw blockException;
@@ -615,7 +615,7 @@ public abstract class TransportReplicationAction<
         @Override
         public void doRun() {
             final ClusterState state = observer.setAndGetObservedState();
-            final ClusterBlockException blockException = blockExceptions(state, request.shardId().getIndexName());
+            final ClusterBlockException blockException = blockExceptions(state, request.shardId().getIndexUUID());
             if (blockException != null) {
                 if (blockException.retryable()) {
                     logger.trace("cluster is blocked, scheduling a retry", blockException);
@@ -630,19 +630,12 @@ public abstract class TransportReplicationAction<
             if (indexMetadata == null) {
                 // ensure that the cluster state on the node is at least as high as the node that decided that the index was there
                 if (state.version() < request.routedBasedOnClusterVersion()) {
-                    logger.trace(
-                        "failed to find index [{}] for request [{}] despite sender thinking it would be here. "
-                        + "Local cluster state version [{}]] is older than on sending node (version [{}]), scheduling a retry...",
-                        request.shardId().getIndex(),
-                        request,
-                        state.version(),
-                        request.routedBasedOnClusterVersion()
-                    );
-                    retry(new IndexNotFoundException(
-                        "failed to find index as current cluster state with version [" + state.version() +
+                    logger.trace("failed to find index [{}] for request [{}] despite sender thinking it would be here. " +
+                            "Local cluster state version [{}]] is older than on sending node (version [{}]), scheduling a retry...",
+                        request.shardId().getIndex(), request, state.version(), request.routedBasedOnClusterVersion());
+                    retry(new IndexNotFoundException("failed to find index as current cluster state with version [" + state.version() +
                         "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]",
-                        request.shardId().getIndexName()
-                    ));
+                        request.shardId().getIndex().toString()));
                     return;
                 } else {
                     finishAsFailed(new IndexNotFoundException(request.shardId().getIndex()));

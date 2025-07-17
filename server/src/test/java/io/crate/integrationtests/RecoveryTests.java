@@ -75,7 +75,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
     private ShardId resolveShardId(String index, String digest) {
         return clusterService().operationRouting()
-            .indexShards(clusterService().state(), index, digest, null)
+            .indexShards(clusterService().state(), resolveIndex(index).getUUID(), digest, null)
             .shardId();
     }
 
@@ -228,7 +228,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
         BlobIndicesService blobIndicesService = cluster().getInstance(BlobIndicesService.class, node2);
         for (String digest : uploadedDigests) {
-            BlobShard blobShard = blobIndicesService.localBlobShard(BlobIndex.fullIndexName("test"), digest);
+            BlobShard blobShard = blobIndicesService.localBlobShard(resolveIndex(BlobIndex.fullIndexName("test")).getUUID(), digest);
             assertThat(blobShard.blobContainer().getFile(digest).length()).isGreaterThanOrEqualTo(1);
         }
 

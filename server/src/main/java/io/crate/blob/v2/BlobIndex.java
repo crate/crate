@@ -94,11 +94,11 @@ public class BlobIndex {
         BlobShard shard = shards.remove(shardId.id());
         if (shard != null) {
             if (shards.isEmpty()) {
-                blobRoot = retrieveBlobRootDir(shard.getBlobDir(), shard.indexShard().shardId().getIndexName(), logger);
+                blobRoot = retrieveBlobRootDir(shard.getBlobDir(), shard.indexShard().shardId().getIndexUUID(), logger);
             }
             shard.deleteShard();
             if (blobRoot != null) {
-                this.deleteIndex(blobRoot, shardId.getIndex().getName());
+                this.deleteIndex(blobRoot, shardId.getIndexUUID());
             }
         }
 
