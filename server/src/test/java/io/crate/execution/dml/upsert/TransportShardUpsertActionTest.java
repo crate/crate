@@ -185,6 +185,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             }
         });
         when(indexService.getShard(0)).thenReturn(indexShard);
+        when(indexShard.shardId()).thenReturn(new ShardId(charactersIndex, 0));
 
         // Avoid null pointer exceptions
         DocTableInfo tableInfo = mock(DocTableInfo.class);
