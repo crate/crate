@@ -374,7 +374,7 @@
     <!-- Maven Plugins -->
     <versions.plugin.dependency>3.8.1</versions.plugin.dependency>
     <versions.plugin.versions>2.18.0</versions.plugin.versions>
-    <versions.plugin.enforcer>3.5.0</versions.plugin.enforcer>
+    <versions.plugin.enforcer>3.6.1</versions.plugin.enforcer>
     <versions.plugin.clean>3.5.0</versions.plugin.clean>
     <versions.plugin.resources>3.3.1</versions.plugin.resources>
     <versions.plugin.install>3.1.4</versions.plugin.install>
