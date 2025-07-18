@@ -121,6 +121,8 @@ public interface BatchIterator<T> extends Killable {
      */
     void close();
 
+    boolean isKilled();
+
     /**
      * Loads the next batch if there is still data available for loading.
      * This may only be called if {@link #allLoaded()} returns false.
