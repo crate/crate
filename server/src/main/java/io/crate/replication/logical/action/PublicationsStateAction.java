@@ -52,6 +52,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportActionProxy;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.RelationName;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
@@ -196,13 +197,20 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
 
         private final Metadata metadata;
         private final List<String> unknownPublications;
-        // for response instance forwarding purpose - from a node < 6.0 in the same cluster to a node < 6.0 in the target cluster
+        /**
+         * The action is registered as a proxy action,
+         * thus a node may forward the request/response to/from its master node.
+         * In such cases, the received metadata won't be upgraded,
+         * and we cannot recreate this old payload using the new RelationMetadata.
+         * The payload is then stored and send out as-is.
+         */
+        @Nullable
         private final Map<RelationName, RelationMetadata> relationsInPublications;
 
         public Response(Metadata metadata, List<String> unknownPublications) {
             this.metadata = metadata;
             this.unknownPublications = unknownPublications;
-            this.relationsInPublications = Map.of();
+            this.relationsInPublications = null;
         }
 
         public Response(StreamInput in) throws IOException {
@@ -222,7 +230,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 }
                 metadata = mdBuilder.build();
             } else {
-                relationsInPublications = Map.of();
+                relationsInPublications = null;
                 metadata = Metadata.readFrom(in);
             }
             unknownPublications = in.readList(StreamInput::readString);
@@ -231,7 +239,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             if (out.getVersion().before(Version.V_6_0_0)) {
-                Map<RelationName, RelationMetadata> relationsInPublications = !this.relationsInPublications.isEmpty() ?
+                Map<RelationName, RelationMetadata> relationsInPublications = this.relationsInPublications != null ?
                     this.relationsInPublications :
                     metadata.relations(org.elasticsearch.cluster.metadata.RelationMetadata.Table.class).stream()
                         .map(table -> RelationMetadata.fromMetadata(table, metadata))

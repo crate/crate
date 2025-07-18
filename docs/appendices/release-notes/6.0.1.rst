@@ -47,4 +47,5 @@ series.
 Fixes
 =====
 
-None
+- Fix intermittent subscription loss in logical replication during rolling
+  upgrades.
