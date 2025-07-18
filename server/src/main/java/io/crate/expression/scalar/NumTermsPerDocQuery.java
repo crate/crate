@@ -63,7 +63,7 @@ import io.crate.types.TimestampType;
 
 public class NumTermsPerDocQuery extends Query {
 
-    private final String column;
+    protected final String column;
     private final java.util.function.Function<LeafReaderContext, IntUnaryOperator> numTermsPerDocFactory;
     private final IntPredicate matches;
 

@@ -28,19 +28,8 @@ import java.util.function.IntUnaryOperator;
 
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
-import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.index.SortedSetDocValues;
-import org.apache.lucene.search.ConstantScoreScorer;
-import org.apache.lucene.search.ConstantScoreWeight;
-import org.apache.lucene.search.DocIdSetIterator;
-import org.apache.lucene.search.IndexSearcher;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.QueryVisitor;
-import org.apache.lucene.search.ScoreMode;
-import org.apache.lucene.search.Scorer;
-import org.apache.lucene.search.TwoPhaseIterator;
-import org.apache.lucene.search.Weight;
 
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.metadata.ColumnIdent;
@@ -63,11 +52,7 @@ import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 
-public class NumNullTermsPerDocQuery extends Query {
-
-    private final Reference ref;
-    private final java.util.function.Function<LeafReaderContext, IntUnaryOperator> NumNullTermsPerDocFactory;
-    private final IntPredicate matches;
+public class NumNullTermsPerDocQuery extends NumTermsPerDocQuery {
 
     private static IntUnaryOperator getNumNullTermsPerDocFunction(LeafReader reader, Reference ref, Function<ColumnIdent, Reference> getRef) {
         DataType<?> elementType = ArrayType.unnest(ref.valueType());
@@ -145,81 +130,14 @@ public class NumNullTermsPerDocQuery extends Query {
     public NumNullTermsPerDocQuery(Reference ref,
                                    Function<ColumnIdent, Reference> getRef,
                                    IntPredicate matches) {
-        this.ref = ref;
-        this.NumNullTermsPerDocFactory = leafReaderContext -> getNumNullTermsPerDocFunction(leafReaderContext.reader(), ref, getRef);
-        this.matches = matches;
-    }
-
-    @Override
-    public Weight createWeight(IndexSearcher searcher, ScoreMode scoreMode, float boost) throws IOException {
-        return new ConstantScoreWeight(this, boost) {
-            @Override
-            public boolean isCacheable(LeafReaderContext ctx) {
-                return false;
-            }
-
-            @Override
-            public Scorer scorer(LeafReaderContext context) {
-                return new ConstantScoreScorer(
-                    this,
-                    0f,
-                    scoreMode,
-                    new NumNullTermsPerDocQuery.NumNullTermsPerDocTwoPhaseIterator(context.reader(), NumNullTermsPerDocFactory.apply(context), matches));
-            }
-        };
-    }
-
-    @Override
-    public void visit(QueryVisitor visitor) {
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        NumNullTermsPerDocQuery that = (NumNullTermsPerDocQuery) o;
-
-        if (!NumNullTermsPerDocFactory.equals(that.NumNullTermsPerDocFactory)) return false;
-        return matches.equals(that.matches);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = NumNullTermsPerDocFactory.hashCode();
-        result = 31 * result + matches.hashCode();
-        return result;
+        super(
+            ref.storageIdent(),
+            leafReaderContext -> getNumNullTermsPerDocFunction(leafReaderContext.reader(), ref, getRef),
+            matches);
     }
 
     @Override
     public String toString(String field) {
-        return "NumNullTermsPerDoc: " + ref;
-    }
-
-    static class NumNullTermsPerDocTwoPhaseIterator extends TwoPhaseIterator {
-
-        private final IntUnaryOperator NumNullTermsOfDoc;
-        private final IntPredicate matches;
-
-        NumNullTermsPerDocTwoPhaseIterator(LeafReader reader,
-                                              IntUnaryOperator NumNullTermsOfDoc,
-                                              IntPredicate matches) {
-            super(DocIdSetIterator.all(reader.maxDoc()));
-            this.NumNullTermsOfDoc = NumNullTermsOfDoc;
-            this.matches = matches;
-        }
-
-        @Override
-        public boolean matches() {
-            int doc = approximation.docID();
-            return matches.test(NumNullTermsOfDoc.applyAsInt(doc));
-        }
-
-        @Override
-        public float matchCost() {
-            // This is an arbitrary number;
-            // It's less than what is used in GenericFunctionQuery to indicate that this check should be cheaper
-            return 2;
-        }
+        return "NumNullTermsPerDoc: " + column;
     }
 }
