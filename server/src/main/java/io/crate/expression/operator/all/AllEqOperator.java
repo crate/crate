@@ -21,10 +21,13 @@
 
 package io.crate.expression.operator.all;
 
+import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
+
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanClause.Occur;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.MatchAllDocsQuery;
@@ -105,7 +108,11 @@ public final class AllEqOperator extends AllOperator<Object> {
             // 1 = all(array_ref) --> returns true for arrays satisfying the following conditions:
             //   1) array_ref containing 1 only OR 2) empty
             // where 1) is equivalent to `array_ref that does not contain null` AND `array_ref that does not contain values other than 1`
-            var arraysWithoutNullElementsQuery = ArrayIndexer.arraysWithoutNullElementsQuery(ref, context.tableInfo()::getReference);
+            var arraysWithoutNullElementsQuery = new BooleanQuery.Builder()
+                .setMinimumNumberShouldMatch(1)
+                .add(ArrayIndexer.arraysWithoutNullElementsQuery(ref, context.tableInfo()::getReference), Occur.SHOULD)
+                .add(genericFunctionFilter(allEq, context), BooleanClause.Occur.SHOULD)
+                .build();
             var doesNotContainValuesOtherThanLiteral = Queries.not(AnyNeqOperator.literalMatchesAnyArrayRef(literal, ref)); // `not(array_ref > 1 || array_ref < 1)`
             var emptyArrays = ArrayIndexer.arrayLengthTermQuery(ref, 0, context.tableInfo()::getReference);
             return new BooleanQuery.Builder()

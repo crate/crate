@@ -944,9 +944,40 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         builder.indexValue("a", listOfTwoAndNull);
         try (QueryTester tester = builder.build()) {
             assertThat(tester.toQuery("1 = all(a)"))
-                .hasToString("((+NumNullTermsPerDoc: a +(+*:* -((a:[2 TO 2147483647] a:[-2147483648 TO 0])~1))) _array_length_a:[0 TO 0])~1");
+                .hasToString("((+((NumNullTermsPerDoc: a (1 = ALL(a)))~1) +(+*:* -((a:[2 TO 2147483647] a:[-2147483648 TO 0])~1))) _array_length_a:[0 TO 0])~1");
             assertThat(tester.runQuery("a", "1 = all(a)"))
                 .containsExactly(List.of(1), List.of(1, 1), List.of());
+        }
+    }
+
+    @Test
+    public void test_all_eq_on_string_array_ref() throws Exception {
+        var listOfNulls = new ArrayList<String>();
+        listOfNulls.add(null);
+        var listOfAAndNull = new ArrayList<String>();
+        listOfAAndNull.add("a");
+        listOfAAndNull.add(null);
+        var listOfBAndNull = new ArrayList<String>();
+        listOfBAndNull.add("b");
+        listOfBAndNull.add(null);
+
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (a string[])");
+        builder.indexValue("a", List.of("a"));
+        builder.indexValue("a", List.of("a", "a"));
+        builder.indexValue("a", List.of());
+        builder.indexValue("a", listOfNulls);
+        builder.indexValue("a", null);
+        builder.indexValue("a", listOfAAndNull);
+        builder.indexValue("a", listOfBAndNull);
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.toQuery("'a' = all(a)"))
+                .hasToString("((+((NumNullTermsPerDoc: a ('a' = ALL(a)))~1) +(+*:* -((a:{a TO *} a:{* TO a})~1))) _array_length_a:[0 TO 0])~1");
+            assertThat(tester.runQuery("a", "'a' = all(a)"))
+                .containsExactly(List.of("a"), List.of("a", "a"), List.of());
         }
     }
 
