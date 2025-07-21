@@ -61,10 +61,6 @@ public class RetentionLeaseSyncAction extends
     public static final String ACTION_NAME = "indices:admin/seq_no/retention_lease_sync";
     private static final Logger LOGGER = LogManager.getLogger(RetentionLeaseSyncAction.class);
 
-    protected Logger getLogger() {
-        return LOGGER;
-    }
-
     @Inject
     public RetentionLeaseSyncAction(
             final Settings settings,
@@ -122,7 +118,7 @@ public class RetentionLeaseSyncAction extends
                 public void handleException(TransportException e) {
                     Class<?>[] clazzes = { IndexNotFoundException.class, AlreadyClosedException.class, IndexShardClosedException.class };
                     if (Exceptions.firstCause(e, clazzes) == null) {
-                        getLogger().warn(new ParameterizedMessage("{} retention lease sync failed", shardId), e);
+                        LOGGER.warn(new ParameterizedMessage("{} retention lease sync failed", shardId), e);
                     }
                     listener.onFailure(e);
                 }
