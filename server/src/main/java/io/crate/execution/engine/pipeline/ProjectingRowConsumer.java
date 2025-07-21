@@ -21,6 +21,13 @@
 
 package io.crate.execution.engine.pipeline;
 
+import java.util.Collection;
+import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.jetbrains.annotations.Nullable;
+
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
@@ -28,12 +35,6 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.TransactionContext;
-import org.elasticsearch.common.breaker.CircuitBreaker;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.Collection;
-import java.util.UUID;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * Consumer implementation which applies projections onto the BatchIterator received on accept,
@@ -119,6 +120,11 @@ public class ProjectingRowConsumer implements RowConsumer {
     @Override
     public CompletableFuture<?> completionFuture() {
         return consumer.completionFuture();
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        consumer.kill(throwable);
     }
 
     @Override

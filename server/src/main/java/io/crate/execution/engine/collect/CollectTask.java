@@ -157,10 +157,12 @@ public class CollectTask implements Task {
         if (started.compareAndSet(false, true)) {
             consumer.accept(null, throwable);
         } else {
-            batchIterator.whenComplete((it, err) -> {
-                if (err == null) {
+            batchIterator.whenComplete((it, _) -> {
+                consumer.kill(throwable);
+                if (it != null) {
                     it.kill(throwable);
-                } // else: Consumer must have received a failure already
+                }
+                // else: whenComplete handler defined in the CTOR takes care of the error case.
             });
         }
     }

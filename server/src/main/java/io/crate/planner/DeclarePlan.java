@@ -23,13 +23,10 @@ package io.crate.planner;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.jetbrains.annotations.Nullable;
 
-import io.crate.session.Cursor;
-import io.crate.session.Cursors;
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
@@ -38,6 +35,8 @@ import io.crate.data.RowConsumer;
 import io.crate.data.SentinelRow;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.protocols.postgres.TransactionState;
+import io.crate.session.Cursor;
+import io.crate.session.Cursors;
 import io.crate.sql.SqlFormatter;
 import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.Declare.Hold;
@@ -109,6 +108,11 @@ public class DeclarePlan implements Plan {
         @Override
         public CompletableFuture<?> completionFuture() {
             return finalResult;
+        }
+
+        @Override
+        public void kill(Throwable throwable) {
+            consumer.kill(throwable);
         }
     }
 }
