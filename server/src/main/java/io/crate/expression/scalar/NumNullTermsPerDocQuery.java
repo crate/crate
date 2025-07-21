@@ -29,7 +29,6 @@ import java.util.function.IntUnaryOperator;
 import org.apache.lucene.index.DocValues;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.SortedNumericDocValues;
-import org.apache.lucene.index.SortedSetDocValues;
 
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.metadata.ColumnIdent;
@@ -54,9 +53,10 @@ import io.crate.types.TimestampType;
 
 public class NumNullTermsPerDocQuery extends NumTermsPerDocQuery {
 
-    private static IntUnaryOperator getNumNullTermsPerDocFunction(LeafReader reader, Reference ref, Function<ColumnIdent, Reference> getRef) {
-        DataType<?> elementType = ArrayType.unnest(ref.valueType());
-        switch (elementType.id()) {
+    public static boolean isSupportedType(DataType<?> type) {
+        type = ArrayType.unnest(type);
+        // The types indexed with SortedSetDocValues are not supported, i.e., String, Char, IP ...
+        switch (type.id()) {
             case BooleanType.ID:
             case ByteType.ID:
             case ShortType.ID:
@@ -67,45 +67,24 @@ public class NumNullTermsPerDocQuery extends NumTermsPerDocQuery {
             case FloatType.ID:
             case DoubleType.ID:
             case GeoPointType.ID:
-                return numValuesPerDocForSortedNumeric(reader, ref, getRef);
-
+                return true;
             case NumericType.ID: {
-                NumericType numericType = (NumericType) elementType;
+                NumericType numericType = (NumericType) type;
                 Integer precision = numericType.numericPrecision();
-                if (precision == null || precision > NumericStorage.COMPACT_PRECISION) {
-                    return numValuesPerDocForSortedSetDocValues(reader, ref, getRef);
-                }
-                return numValuesPerDocForSortedNumeric(reader, ref, getRef);
+                return (precision != null && precision <= NumericStorage.COMPACT_PRECISION);
             }
-
             case StringType.ID:
             case CharacterType.ID:
             case BitStringType.ID:
             case IpType.ID:
-                return numValuesPerDocForSortedSetDocValues(reader, ref, getRef);
-
             default:
-                throw new UnsupportedOperationException("NYI: " + elementType);
+                return false;
         }
     }
 
-    private static IntUnaryOperator numValuesPerDocForSortedSetDocValues(LeafReader reader, Reference ref, Function<ColumnIdent, Reference> getRef) {
-        final SortedSetDocValues numNonNullTerms;
-        final SortedNumericDocValues numAllTerms;
-        try {
-            numNonNullTerms = DocValues.getSortedSet(reader, ref.storageIdent());
-            numAllTerms = DocValues.getSortedNumeric(reader, ArrayIndexer.toArrayLengthFieldName(ref, getRef));
-        } catch (IOException e) {
-            throw new RuntimeException(e);
-        }
-        return doc -> {
-            try {
-                return numAllTerms.advanceExact(doc) && numNonNullTerms.advanceExact(doc) ?
-                    Math.toIntExact(numAllTerms.nextValue()) - numNonNullTerms.docValueCount() : -1;
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        };
+    private static IntUnaryOperator getNumNullTermsPerDocFunction(LeafReader reader, Reference ref, Function<ColumnIdent, Reference> getRef) {
+        assert isSupportedType(ArrayType.unnest(ref.valueType())) : "Unsupported element type provided to NumNullTermsPerDocQuery";
+        return numValuesPerDocForSortedNumeric(reader, ref, getRef);
     }
 
     private static IntUnaryOperator numValuesPerDocForSortedNumeric(LeafReader reader, Reference ref, Function<ColumnIdent, Reference> getRef) {

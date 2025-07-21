@@ -21,6 +21,8 @@
 
 package io.crate.execution.dml;
 
+import static io.crate.expression.scalar.NumNullTermsPerDocQuery.isSupportedType;
+
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
@@ -68,6 +70,9 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     }
 
     public static Query arraysWithoutNullElementsQuery(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+        if (!isSupportedType(arrayRef.valueType())) {
+            return null;
+        }
         return new NumNullTermsPerDocQuery(arrayRef, getRef, nullElementCount -> nullElementCount == 0);
     }
 
