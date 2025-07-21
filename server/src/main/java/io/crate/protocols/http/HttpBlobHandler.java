@@ -36,8 +36,6 @@ import java.util.regex.Pattern;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.Nullable;
 
@@ -90,7 +88,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
 
     private final Matcher blobsMatcher = BLOBS_PATTERN.matcher("");
     private final BlobService blobService;
-    private final Netty4CorsConfig corsConfig;
     private HttpRequest currentMessage;
 
     private RemoteDigestBlob digestBlob;
@@ -98,10 +95,9 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private String index;
     private String digest;
 
-    public HttpBlobHandler(BlobService blobService, Netty4CorsConfig corsConfig) {
+    public HttpBlobHandler(BlobService blobService) {
         super(false);
         this.blobService = blobService;
-        this.corsConfig = corsConfig;
     }
 
     private boolean possibleRedirect(HttpRequest request, String index, String digest) {
@@ -233,9 +229,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     }
 
     private void sendResponse(HttpRequest request, HttpResponse response) {
-        if (request != null) {
-            Netty4CorsHandler.setCorsResponseHeaders(request, response, corsConfig);
-        }
         ChannelFuture cf = ctx.channel().writeAndFlush(response);
         if (currentMessage != null && !HttpUtil.isKeepAlive(currentMessage)) {
             cf.addListener(ChannelFutureListener.CLOSE);
@@ -348,7 +341,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
             DefaultHttpResponse response = new DefaultHttpResponse(HTTP_1_1, PARTIAL_CONTENT);
             maybeSetConnectionCloseHeader(response);
             HttpUtil.setContentLength(response, end - start + 1);
-            Netty4CorsHandler.setCorsResponseHeaders(request, response, corsConfig);
             response.headers().set(HttpHeaderNames.CONTENT_RANGE, "bytes " + start + "-" + end + "/" + raf.length());
             setDefaultGetHeaders(response);
 
@@ -371,7 +363,6 @@ public class HttpBlobHandler extends SimpleChannelInboundHandler<Object> {
     private void fullContentResponse(HttpRequest request, String index, final String digest) throws IOException {
         BlobShard blobShard = blobService.localBlobShard(index, digest);
         HttpResponse response = new DefaultHttpResponse(HTTP_1_1, HttpResponseStatus.OK);
-        Netty4CorsHandler.setCorsResponseHeaders(request, response, corsConfig);
         final RandomAccessFile raf = blobShard.blobContainer().getRandomAccessFile(digest);
         try {
             maybeSetConnectionCloseHeader(response);

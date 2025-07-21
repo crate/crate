@@ -42,8 +42,6 @@ import org.elasticsearch.action.admin.cluster.state.TransportClusterState;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
 
@@ -67,14 +65,12 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
 
     private final Path sitePath;
     private final NodeClient client;
-    private final Netty4CorsConfig corsConfig;
     private final String nodeName;
 
-    public MainAndStaticFileHandler(String nodeName, Path home, NodeClient client, Netty4CorsConfig corsConfig) {
+    public MainAndStaticFileHandler(String nodeName, Path home, NodeClient client) {
         this.nodeName = nodeName;
         this.sitePath = home.resolve("lib").resolve("site");
         this.client = client;
-        this.corsConfig = corsConfig;
     }
 
     @Override
@@ -104,7 +100,6 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
     }
 
     private void writeResponse(ChannelHandlerContext ctx, FullHttpRequest req, FullHttpResponse resp) {
-        Netty4CorsHandler.setCorsResponseHeaders(req, resp, corsConfig);
         ChannelPromise promise = ctx.newPromise();
         if (isCloseConnection(req)) {
             promise.addListener(ChannelFutureListener.CLOSE);

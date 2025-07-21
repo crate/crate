@@ -19,11 +19,6 @@
 
 package org.elasticsearch.http.netty4.cors;
 
-import io.netty.handler.codec.http.DefaultHttpHeaders;
-import io.netty.handler.codec.http.EmptyHttpHeaders;
-import io.netty.handler.codec.http.HttpHeaders;
-import io.netty.handler.codec.http.HttpMethod;
-
 import java.util.Collections;
 import java.util.LinkedHashSet;
 import java.util.Map;
@@ -32,11 +27,15 @@ import java.util.Set;
 import java.util.concurrent.Callable;
 import java.util.regex.Pattern;
 
+import io.netty.handler.codec.http.DefaultHttpHeaders;
+import io.netty.handler.codec.http.EmptyHttpHeaders;
+import io.netty.handler.codec.http.HttpHeaders;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.cors.CorsConfig;
+
 /**
  * Configuration for Cross-Origin Resource Sharing (CORS).
- *
- * This class was lifted from the Netty project:
- *  https://github.com/netty/netty
+ * Alternative to {@link CorsConfig} that supports patterns for the origin
  */
 public final class Netty4CorsConfig {
 

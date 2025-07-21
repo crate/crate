@@ -600,7 +600,7 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
             aggregator.setMaxCumulationBufferComponents(transport.maxCompositeBufferComponents);
             pipeline.addLast("chunked", new ChunkedWriteHandler());
             pipeline.addLast("auth_handler", new HttpAuthUpstreamHandler(settings, authentication, roles));
-            pipeline.addLast("blob_handler", new HttpBlobHandler(blobService, transport.getCorsConfig()));
+            pipeline.addLast("blob_handler", new HttpBlobHandler(blobService));
             pipeline.addLast("aggregator", aggregator);
             if (transport.compression) {
                 pipeline.addLast("encoder_compress", new HttpContentCompressor(transport.compressionLevel));
@@ -609,14 +609,12 @@ public class Netty4HttpServerTransport extends AbstractLifecycleComponent implem
                 settings,
                 sessions,
                 breakerService::getBreaker,
-                roles,
-                transport.getCorsConfig()
+                roles
             ));
             pipeline.addLast("handler", new MainAndStaticFileHandler(
                 nodeName,
                 home,
-                nodeClient,
-                transport.getCorsConfig()
+                nodeClient
             ));
             if (SETTING_CORS_ENABLED.get(transport.settings())) {
                 pipeline.addAfter("encoder", "cors", new Netty4CorsHandler(transport.getCorsConfig()));
