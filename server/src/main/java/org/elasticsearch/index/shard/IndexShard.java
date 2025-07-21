@@ -2687,27 +2687,43 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      *                  the tracing will capture the supplied object's {@link Object#toString()} value. Otherwise the object
      *                  isn't used
      */
-    public void acquirePrimaryOperationPermit(ActionListener<Releasable> onPermitAcquired, String executorOnDelay, Object debugInfo) {
+    public void acquirePrimaryOperationPermit(ActionListener<Releasable> onPermitAcquired,
+                                              String executorOnDelay,
+                                              Object debugInfo) {
         acquirePrimaryOperationPermit(onPermitAcquired, executorOnDelay, debugInfo, false);
     }
 
-    public void acquirePrimaryOperationPermit(ActionListener<Releasable> onPermitAcquired, String executorOnDelay, Object debugInfo,
+    public void acquirePrimaryOperationPermit(ActionListener<Releasable> onPermitAcquired,
+                                              String executorOnDelay,
+                                              Object debugInfo,
                                               boolean forceExecution) {
         verifyNotClosed();
-        assert shardRouting.primary() : "acquirePrimaryOperationPermit should only be called on primary shard: " + shardRouting;
+        assert shardRouting.primary()
+            : "acquirePrimaryOperationPermit should only be called on primary shard: " + shardRouting;
 
-        indexShardOperationPermits.acquire(wrapPrimaryOperationPermitListener(onPermitAcquired), executorOnDelay, forceExecution, debugInfo);
+        indexShardOperationPermits.acquire(
+            wrapPrimaryOperationPermitListener(onPermitAcquired),
+            executorOnDelay,
+            forceExecution,
+            debugInfo
+        );
     }
 
     /**
      * Acquire all primary operation permits. Once all permits are acquired, the provided ActionListener is called.
      * It is the responsibility of the caller to close the {@link Releasable}.
      */
-    public void acquireAllPrimaryOperationsPermits(final ActionListener<Releasable> onPermitAcquired, final TimeValue timeout) {
+    public void acquireAllPrimaryOperationsPermits(final ActionListener<Releasable> onPermitAcquired,
+                                                   final TimeValue timeout) {
         verifyNotClosed();
-        assert shardRouting.primary() : "acquireAllPrimaryOperationsPermits should only be called on primary shard: " + shardRouting;
+        assert shardRouting.primary()
+            : "acquireAllPrimaryOperationsPermits should only be called on primary shard: " + shardRouting;
 
-        asyncBlockOperations(wrapPrimaryOperationPermitListener(onPermitAcquired), timeout.duration(), timeout.timeUnit());
+        asyncBlockOperations(
+            wrapPrimaryOperationPermitListener(onPermitAcquired),
+            timeout.duration(),
+            timeout.timeUnit()
+        );
     }
 
     /**
@@ -2743,8 +2759,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         try {
             indexShardOperationPermits.asyncBlockOperations(wrappedListener, timeout, timeUnit, ThreadPool.Names.GENERIC);
         } catch (Exception e) {
-            forceRefreshes.close();
-            throw e;
+            onPermitAcquired.onFailure(e);
         }
     }
 
@@ -2857,7 +2872,12 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                                               final ActionListener<Releasable> onPermitAcquired,
                                               final String executorOnDelay,
                                               final Object debugInfo) {
-        innerAcquireReplicaOperationPermit(opPrimaryTerm, globalCheckpoint, maxSeqNoOfUpdatesOrDeletes, onPermitAcquired, false,
+        innerAcquireReplicaOperationPermit(
+            opPrimaryTerm,
+            globalCheckpoint,
+            maxSeqNoOfUpdatesOrDeletes,
+            onPermitAcquired,
+            false,
             (listener) -> indexShardOperationPermits.acquire(listener, executorOnDelay, true, debugInfo));
     }
 
