@@ -27,6 +27,7 @@ import org.elasticsearch.common.Strings;
 import io.netty.channel.ChannelDuplexHandler;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpHeadersFactory;
 import io.netty.handler.codec.http.HttpHeaderNames;
@@ -35,15 +36,12 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.cors.CorsHandler;
 import io.netty.util.ReferenceCounted;
 
 /**
- * Handles <a href="http://www.w3.org/TR/cors/">Cross Origin Resource Sharing</a> (CORS) requests.
- * <p>
- * This handler can be configured using a {@link Netty4CorsConfig}, please
- * refer to this class for details about the configuration options available.
- *
- * This code was borrowed from Netty 4 and refactored to work for Elasticsearch's Netty 3 setup.
+ * Adaption from {@link CorsHandler} that supports a {@link Netty4CorsConfig}
+ * for support of regex patterns in the origin
  */
 public class Netty4CorsHandler extends ChannelDuplexHandler {
 
@@ -85,6 +83,14 @@ public class Netty4CorsHandler extends ChannelDuplexHandler {
             }
         }
         ctx.fireChannelRead(msg);
+    }
+
+    @Override
+    public void write(ChannelHandlerContext ctx, Object msg, ChannelPromise promise) throws Exception {
+        if (msg instanceof HttpResponse response) {
+            setCorsResponseHeaders(request, response, config);
+        }
+        ctx.write(msg, promise);
     }
 
     public static void setCorsResponseHeaders(HttpRequest request, HttpResponse resp, Netty4CorsConfig config) {
