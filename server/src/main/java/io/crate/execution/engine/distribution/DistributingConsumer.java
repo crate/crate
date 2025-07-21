@@ -29,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
@@ -76,6 +77,8 @@ public class DistributingConsumer implements RowConsumer {
     private final CompletableFuture<Void> completionFuture;
     private final ThreadPool threadPool;
 
+    private final AtomicBoolean consuming = new AtomicBoolean(false);
+
     @VisibleForTesting
     final long maxBytes;
 
@@ -83,6 +86,7 @@ public class DistributingConsumer implements RowConsumer {
     final MultiBucketBuilder multiBucketBuilder;
 
     private volatile Throwable failure;
+
 
     public DistributingConsumer(Executor responseExecutor,
                                 UUID jobId,
@@ -116,11 +120,21 @@ public class DistributingConsumer implements RowConsumer {
 
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-        if (failure == null) {
+        Throwable t = failure == null ? this.failure : failure;
+        if (t == null) {
             consumeIt(iterator);
         } else {
-            completionFuture.completeExceptionally(failure);
-            forwardFailure(null, failure);
+            completionFuture.completeExceptionally(t);
+            forwardFailure(null, t);
+        }
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        failure = throwable;
+        // Eagerly release resources without waiting for a response
+        if (consuming.compareAndSet(false, true)) {
+            completionFuture.completeExceptionally(throwable);
         }
     }
 
@@ -130,31 +144,41 @@ public class DistributingConsumer implements RowConsumer {
     }
 
     private void consumeIt(BatchIterator<Row> it) {
-        try {
-            while (it.moveNext()) {
-                multiBucketBuilder.add(it.currentElement());
-                if (multiBucketBuilder.size() >= pageSize || multiBucketBuilder.ramBytesUsed() >= maxBytes) {
-                    forwardResults(it, false);
-                    return;
-                }
-            }
-            if (it.allLoaded()) {
-                forwardResults(it, true);
-            } else {
-                it.loadNextBatch().whenComplete((_, t) -> {
-                    if (t == null) {
-                        consumeIt(it);
-                    } else {
-                        forwardFailure(it, t);
+        consumeIt(it, false);
+    }
+
+    private void consumeIt(BatchIterator<Row> it, boolean force) {
+        if (force || consuming.compareAndSet(false, true)) {
+            try {
+                while (it.moveNext()) {
+                    multiBucketBuilder.add(it.currentElement());
+                    if (multiBucketBuilder.size() >= pageSize || multiBucketBuilder.ramBytesUsed() >= maxBytes) {
+                        forwardResults(it, false);
+                        return;
                     }
-                });
+                }
+                if (it.allLoaded()) {
+                    forwardResults(it, true);
+                } else {
+                    it.loadNextBatch().whenComplete((_, t) -> {
+                        if (t == null) {
+                            consumeIt(it, true);
+                        } else {
+                            forwardFailure(it, t);
+                        }
+                    });
+                }
+            } catch (Throwable t) {
+                forwardFailure(it, t);
             }
-        } catch (Throwable t) {
-            forwardFailure(it, t);
+        } else {
+            assert failure != null : "If consuming is true, it means we got killed";
+            forwardFailure(it, failure);
         }
     }
 
     private void forwardFailure(@Nullable final BatchIterator<Row> it, final Throwable f) {
+        consuming.set(false);
         Throwable failure = SQLExceptions.unwrap(f); // make sure it's streamable
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         var builder = new DistributedResultRequest.Builder(jobId, targetPhaseId, inputId, bucketIdx, failure, false);
@@ -191,6 +215,7 @@ public class DistributingConsumer implements RowConsumer {
     }
 
     private void forwardResults(BatchIterator<Row> it, boolean isLast) {
+        consuming.set(false);
         multiBucketBuilder.build(buckets);
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         for (int i = 0; i < downstreams.size(); i++) {
