@@ -43,7 +43,7 @@ public record Stats (long numDocs, long sizeInBytes,  Map<ColumnIdent, ColumnSta
 
     public static final Stats EMPTY = new Stats(-1, -1, Map.of());
 
-    public static Stats from(StreamInput in) throws IOException {
+    public static Stats readFrom(StreamInput in) throws IOException {
         long numDocs = in.readLong();
         long sizeInBytes = in.readLong();
         int numColumnStats = in.readVInt();
