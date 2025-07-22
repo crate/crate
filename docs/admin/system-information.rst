@@ -1696,18 +1696,18 @@ CrateDB maintains backward compatibility for tables created in ``majorVersion - 
       - Current Version
       - Current Version
     * -
-      - 3.x
       - 4.x
       - 5.x
-    * - 3.x
-      - ✔️
-      - ✔️
-      - ❌
+      - 6.x
     * - 4.x
+      - ✔️
+      - ✔️
+      - ❌
+    * - 5.x
       - ❌
       - ✔️
       - ✔️
-    * - 5.x
+    * - 6.x
       - ❌
       - ❌
       - ✔️
