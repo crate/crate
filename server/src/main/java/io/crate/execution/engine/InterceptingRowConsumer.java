@@ -97,6 +97,10 @@ class InterceptingRowConsumer implements RowConsumer {
         return consumer.completionFuture();
     }
 
+    @Override
+    public void kill(Throwable throwable) {
+        consumer.kill(throwable);
+    }
 
     @Override
     public String toString() {
