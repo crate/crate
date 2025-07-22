@@ -21,8 +21,9 @@
 
 package io.crate.data;
 
-import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.CompletionStage;
+
+import org.jetbrains.annotations.NotNull;
 
 /**
  * Base class for BatchIterator implementations which mostly forward to another BatchIterator.
@@ -64,5 +65,10 @@ public abstract class MappedForwardingBatchIterator<I, O> implements BatchIterat
     @Override
     public boolean hasLazyResultSet() {
         return delegate().hasLazyResultSet();
+    }
+
+    @Override
+    public boolean isKilled() {
+        return delegate().isKilled();
     }
 }

@@ -153,6 +153,11 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
     }
 
     @Override
+    public boolean isKilled() {
+        return killed != null;
+    }
+
+    @Override
     public Row currentElement() {
         return row;
     }

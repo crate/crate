@@ -21,30 +21,58 @@
 
 package io.crate.execution.engine.distribution;
 
+import java.io.IOException;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
-import java.io.IOException;
-
 public class DistributedResultResponse extends TransportResponse {
 
-    private final boolean needMore;
-
-    public DistributedResultResponse(boolean needMore) {
-        this.needMore = needMore;
+    public static enum Result {
+        NEED_MORE,
+        TASK_MISSING,
+        DONE
     }
 
-    public boolean needMore() {
-        return needMore;
+    private final Result result;
+
+    public DistributedResultResponse(Result result) {
+        this.result = result;
+    }
+
+    public Result result() {
+        return result;
     }
 
     public DistributedResultResponse(StreamInput in) throws IOException {
-        needMore = in.readBoolean();
+        if (in.getVersion().onOrAfter(Version.V_6_0_0)) {
+            this.result = in.readEnum(Result.class);
+        } else {
+            boolean needMore = in.readBoolean();
+            result = needMore ? Result.NEED_MORE : Result.DONE;
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeBoolean(needMore);
+        if (out.getVersion().onOrAfter(Version.V_6_0_0)) {
+            out.writeEnum(result);
+        } else {
+            switch (result) {
+                case DONE:
+                    out.writeBoolean(false);
+                    break;
+                case NEED_MORE:
+                    out.writeBoolean(true);
+                    break;
+                case TASK_MISSING:
+                    out.writeBoolean(false);
+                    break;
+                default:
+                    break;
+            }
+        }
     }
 }

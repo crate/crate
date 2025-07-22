@@ -215,6 +215,11 @@ public class FileReadingIterator implements BatchIterator<FileReadingIterator.Li
     }
 
     @Override
+    public boolean isKilled() {
+        return killed != null;
+    }
+
+    @Override
     public void moveToStart() {
         raiseIfKilled();
         reset();
