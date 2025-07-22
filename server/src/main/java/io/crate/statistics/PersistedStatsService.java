@@ -150,7 +150,7 @@ public final class PersistedStatsService implements StatsService {
                                     Document doc = storedFields.document(docIdSetIterator.docID());
                                     BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
                                     ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
-                                    return new Stats(new InputStreamStreamInput(bis));
+                                    return Stats.from(new InputStreamStreamInput(bis));
                                 }
                             }
                         }

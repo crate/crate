@@ -62,7 +62,7 @@ public class TableStats {
      * Returns -1 if the table isn't in the cache
      */
     public long numDocs(RelationName relationName) {
-        return statsService.getOrDefault(relationName, Stats.EMPTY).numDocs;
+        return statsService.getOrDefault(relationName, Stats.EMPTY).numDocs();
     }
 
     /**

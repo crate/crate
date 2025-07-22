@@ -24,14 +24,12 @@ package io.crate.statistics;
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Objects;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.collections.Maps;
 import io.crate.expression.symbol.AliasSymbol;
@@ -41,38 +39,21 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.types.FixedWidthType;
 
-@VisibleForTesting
-public class Stats implements Writeable {
 
-    public static final Stats EMPTY = new Stats();
 
-    @VisibleForTesting
-    final long numDocs;
-    @VisibleForTesting
-    final long sizeInBytes;
+public record Stats (long numDocs, long sizeInBytes,  Map<ColumnIdent, ColumnStats<?>> statsByColumn) implements Writeable {
 
-    private final Map<ColumnIdent, ColumnStats<?>> statsByColumn;
+    public static final Stats EMPTY = new Stats(-1, -1, Map.of());
 
-    private Stats() {
-        numDocs = -1;
-        sizeInBytes = -1;
-        statsByColumn = Map.of();
-    }
-
-    public Stats(long numDocs, long sizeInBytes, Map<ColumnIdent, ColumnStats<?>> statsByColumn) {
-        this.numDocs = numDocs;
-        this.sizeInBytes = sizeInBytes;
-        this.statsByColumn = statsByColumn;
-    }
-
-    public Stats(StreamInput in) throws IOException {
-        this.numDocs = in.readLong();
-        this.sizeInBytes = in.readLong();
+    public static Stats from(StreamInput in) throws IOException {
+        long numDocs = in.readLong();
+        long sizeInBytes = in.readLong();
         int numColumnStats = in.readVInt();
-        this.statsByColumn = HashMap.newHashMap(numColumnStats);
+        Map<ColumnIdent, ColumnStats<?>> statsByColumn= HashMap.newHashMap(numColumnStats);
         for (int i = 0; i < numColumnStats; i++) {
             statsByColumn.put(ColumnIdent.of(in), new ColumnStats<>(in));
         }
+       return new Stats(numDocs, sizeInBytes, statsByColumn);
     }
 
     @Override
@@ -161,17 +142,5 @@ public class Stats implements Writeable {
             }
         }
         return sum;
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (o == null || getClass() != o.getClass()) return false;
-        Stats stats = (Stats) o;
-        return numDocs == stats.numDocs && sizeInBytes == stats.sizeInBytes && Objects.equals(statsByColumn, stats.statsByColumn);
-    }
-
-    @Override
-    public int hashCode() {
-        return Objects.hash(numDocs, sizeInBytes, statsByColumn);
     }
 }
