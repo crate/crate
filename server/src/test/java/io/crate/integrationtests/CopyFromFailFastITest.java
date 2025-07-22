@@ -119,7 +119,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
             }
 
             @Override
-            public Sessions sqlOperations() {
+            public Sessions sessions() {
                 return cluster().getInstance(Sessions.class, nodeNameOfShard0);
             }
         };
@@ -196,7 +196,7 @@ public class CopyFromFailFastITest extends IntegTestCase {
             }
 
             @Override
-            public Sessions sqlOperations() {
+            public Sessions sessions() {
                 return cluster().getInstance(Sessions.class, nodeNameOfShard0);
             }
         };

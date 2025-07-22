@@ -24,15 +24,14 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
-import io.crate.session.Sessions;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.session.Sessions;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLTransportExecutor;
 
@@ -62,7 +61,7 @@ public class JobIntegrationTest extends IntegTestCase {
                 }
 
                 @Override
-                public Sessions sqlOperations() {
+                public Sessions sessions() {
                     return cluster().getInstance(Sessions.class);
                 }
             }
