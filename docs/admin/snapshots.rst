@@ -44,6 +44,13 @@ Creating a repository with the same name will result in an error::
     ... WITH (location='another_repo_path', compress=false);
     RepositoryAlreadyExistsException[Repository 'where_my_snapshots_go' already exists]
 
+.. NOTE::
+
+    When upgrading a cluster to a new major version (e.g. from 5.x to 6.x) it's
+    highly advisable, once the cluster is fully upgraded to the new version, to
+    create a new repository using a different data path from the old(s) one(s),
+    and create a new full snapshot of your data.
+
 Creating a snapshot
 ...................
 
