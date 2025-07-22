@@ -70,7 +70,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RerouteService;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 import org.elasticsearch.cluster.service.ClusterApplier;
-import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
 import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
@@ -271,7 +270,7 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
         }
     }
 
-    private void handleApplyCommit(ApplyCommitRequest applyCommitRequest, ActionListener<Void> applyListener) {
+    private void handleApplyCommit(ApplyCommitRequest applyCommitRequest, ActionListener<Void> listener) {
         synchronized (mutex) {
             LOGGER.trace("handleApplyCommit: applying commit {}", applyCommitRequest);
 
@@ -280,21 +279,9 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
             applierState = mode == Mode.CANDIDATE ? clusterStateWithNoMasterBlock(committedState) : committedState;
             if (applyCommitRequest.getSourceNode().equals(getLocalNode())) {
                 // master node applies the committed state at the end of the publication process, not here.
-                applyListener.onResponse(null);
+                listener.onResponse(null);
             } else {
-                clusterApplier.onNewClusterState(applyCommitRequest.toString(), () -> applierState,
-                    new ClusterApplyListener() {
-
-                        @Override
-                        public void onFailure(String source, Exception e) {
-                            applyListener.onFailure(e);
-                        }
-
-                        @Override
-                        public void onSuccess(String source) {
-                            applyListener.onResponse(null);
-                        }
-                    });
+                clusterApplier.onNewClusterState(applyCommitRequest.toString(), () -> applierState, listener);
             }
         }
     }
@@ -554,8 +541,11 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
 
             if (applierState.nodes().getMasterNodeId() != null) {
                 applierState = clusterStateWithNoMasterBlock(applierState);
-                clusterApplier.onNewClusterState("becoming candidate: " + method, () -> applierState, (source, e) -> {
-                });
+                clusterApplier.onNewClusterState(
+                    "becoming candidate: " + method,
+                    () -> applierState,
+                    ActionListener.wrap(() -> {})
+                );
             }
         }
 
@@ -1359,10 +1349,12 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
                     assert receivedJoinsProcessed == false;
                     receivedJoinsProcessed = true;
 
-                    clusterApplier.onNewClusterState(CoordinatorPublication.this.toString(), () -> applierState,
-                        new ClusterApplyListener() {
+                    clusterApplier.onNewClusterState(
+                        CoordinatorPublication.this.toString(),
+                        () -> applierState,
+                        new ActionListener<>() {
                             @Override
-                            public void onFailure(String source, Exception e) {
+                            public void onFailure(Exception e) {
                                 synchronized (mutex) {
                                     removePublicationAndPossiblyBecomeCandidate("clusterApplier#onNewClusterState");
                                 }
@@ -1372,7 +1364,7 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
                             }
 
                             @Override
-                            public void onSuccess(String source) {
+                            public void onResponse(Void response) {
                                 synchronized (mutex) {
                                     assert currentPublication.get() == CoordinatorPublication.this;
                                     currentPublication = Optional.empty();
