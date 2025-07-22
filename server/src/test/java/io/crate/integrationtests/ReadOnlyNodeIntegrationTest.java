@@ -63,7 +63,7 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
                 }
 
                 @Override
-                public Sessions sqlOperations() {
+                public Sessions sessions() {
                     return cluster().getInstance(Sessions.class, cluster().getNodeNames()[1]);
                 }
             }
@@ -106,7 +106,7 @@ public class ReadOnlyNodeIntegrationTest extends IntegTestCase {
                     }
 
                     @Override
-                    public Sessions sqlOperations() {
+                    public Sessions sessions() {
                         // make sure we use NOT the read-only operations
                         return cluster().getInstance(Sessions.class, cluster().getNodeNames()[0]);
                     }
