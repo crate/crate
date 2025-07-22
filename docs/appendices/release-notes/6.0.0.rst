@@ -17,6 +17,14 @@ Released on 2025-07-17.
     A rolling upgrade from >= 5.10.1 to 6.0.0 is supported.
     Before upgrading, you should `back up your data`_.
 
+.. IMPORTANT::
+
+    It's highly advisable, once the cluster is fully upgraded to
+    :ref:`version_6.0.0`, to :ref:`create a new repository
+    <sql-create-repository>`, on a different path than the repository used when
+    the cluster was in 5.x version, and :ref:`create a full backup of your data
+    <sql-create-snapshot>`.
+
 .. WARNING::
 
     Tables that were created before CrateDB 5.x will not function with 6.x
