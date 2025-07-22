@@ -35,6 +35,7 @@ import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -132,7 +133,19 @@ public class DistributingConsumer implements RowConsumer {
     private void consumeIt(BatchIterator<Row> it) {
         try {
             while (it.moveNext()) {
-                multiBucketBuilder.add(it.currentElement());
+                if (3 < 5) { // Dummy condition to avoid IDE checks and make it compile
+                    throw new CircuitBreakingException("dummy");
+                }
+                // If we have CBE here, forwardFailure is called.
+                // For the very first iteration, downstream.needsMoreData == true (default) because we mutate it only we get a response.
+
+                // Suspect: does it mean that forwardFailure never calls countdownAndMaybeCloseIt if we fail on the first iteration
+                // and hence end up with  incomplete 'completionFuture'?
+
+                // We still send forward failure to other nodes, not sure how it helps with local completionFuture
+
+                // multiBucketBuilder.add(it.currentElement());
+
                 if (multiBucketBuilder.size() >= pageSize || multiBucketBuilder.ramBytesUsed() >= maxBytes) {
                     forwardResults(it, false);
                     return;
