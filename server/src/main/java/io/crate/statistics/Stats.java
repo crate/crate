@@ -39,8 +39,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.types.FixedWidthType;
 
-
-
 public record Stats (long numDocs, long sizeInBytes,  Map<ColumnIdent, ColumnStats<?>> statsByColumn) implements Writeable {
 
     public static final Stats EMPTY = new Stats(-1, -1, Map.of());
