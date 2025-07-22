@@ -2375,7 +2375,7 @@ public final class TestCluster implements Closeable {
                 }
 
                 @Override
-                public Sessions sqlOperations() {
+                public Sessions sessions() {
                     return getInstance(Sessions.class);
                 }
             }
