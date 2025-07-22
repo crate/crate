@@ -163,6 +163,7 @@ public final class PersistedStatsService implements StatsService {
         return null;
     }
 
+
     private static Writer createWriter(Path path) throws IOException {
         Path dataPath = path.resolve(STATS);
         Directory directory = new NIOFSDirectory(dataPath);

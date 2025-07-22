@@ -39,7 +39,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.types.FixedWidthType;
 
-public record Stats (long numDocs, long sizeInBytes,  Map<ColumnIdent, ColumnStats<?>> statsByColumn) implements Writeable {
+public record Stats(long numDocs,
+                    long sizeInBytes,
+                    Map<ColumnIdent, ColumnStats<?>> statsByColumn) implements Writeable {
 
     public static final Stats EMPTY = new Stats(-1, -1, Map.of());
 
@@ -47,11 +49,11 @@ public record Stats (long numDocs, long sizeInBytes,  Map<ColumnIdent, ColumnSta
         long numDocs = in.readLong();
         long sizeInBytes = in.readLong();
         int numColumnStats = in.readVInt();
-        Map<ColumnIdent, ColumnStats<?>> statsByColumn= HashMap.newHashMap(numColumnStats);
+        Map<ColumnIdent, ColumnStats<?>> statsByColumn = HashMap.newHashMap(numColumnStats);
         for (int i = 0; i < numColumnStats; i++) {
             statsByColumn.put(ColumnIdent.of(in), new ColumnStats<>(in));
         }
-       return new Stats(numDocs, sizeInBytes, statsByColumn);
+        return new Stats(numDocs, sizeInBytes, statsByColumn);
     }
 
     @Override
