@@ -31,7 +31,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.metadata.RelationName;
-import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
 
@@ -60,13 +59,6 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
             // tableStats.tableStats.estimatedSizePerRow() is not tested because it's based on sys.shards size
             // column which is is cached for 10 secs in ShardSizeExpression which will increase the time needed
             // to run this test.
-        }, 5, TimeUnit.SECONDS);
-
-        execute("drop table t1");
-
-        assertBusy(() -> {
-            TableStats tableStats = cluster().getDataNodeInstance(TableStats.class);
-            assertThat(tableStats.getStats(new RelationName(sqlExecutor.getCurrentSchema(), "t1"))).isEqualTo(Stats.EMPTY);
         }, 5, TimeUnit.SECONDS);
     }
 }

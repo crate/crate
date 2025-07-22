@@ -38,7 +38,6 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.cluster.DDLClusterStateService;
 import io.crate.metadata.cluster.DropTableClusterStateTaskExecutor;
-import io.crate.statistics.TableStats;
 
 public class TransportDropTable extends AbstractDDLTransportAction<DropTableRequest, AcknowledgedResponse> {
 
@@ -59,8 +58,7 @@ public class TransportDropTable extends AbstractDDLTransportAction<DropTableRequ
                               ClusterService clusterService,
                               ThreadPool threadPool,
                               MetadataDeleteIndexService deleteIndexService,
-                              DDLClusterStateService ddlClusterStateService,
-                              TableStats tableStats) {
+                              DDLClusterStateService ddlClusterStateService) {
         super(
             ACTION.name(),
             transportService,
@@ -71,7 +69,7 @@ public class TransportDropTable extends AbstractDDLTransportAction<DropTableRequ
             AcknowledgedResponse::new,
             "drop-table"
         );
-        executor = new DropTableClusterStateTaskExecutor(deleteIndexService, ddlClusterStateService, tableStats);
+        executor = new DropTableClusterStateTaskExecutor(deleteIndexService, ddlClusterStateService);
     }
 
     @Override
