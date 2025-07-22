@@ -62,7 +62,6 @@ import org.elasticsearch.cluster.coordination.FollowersChecker.FollowerCheckRequ
 import org.elasticsearch.cluster.coordination.JoinHelper.FollowerJoinAccumulator;
 import org.elasticsearch.cluster.coordination.JoinHelper.InitialJoinAccumulator;
 import org.elasticsearch.cluster.coordination.JoinHelper.JoinAccumulator;
-import org.elasticsearch.cluster.coordination.JoinHelper.JoinCallback;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -179,9 +178,19 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
         this.onJoinValidators = JoinTaskExecutor.addBuiltInJoinValidators(onJoinValidators);
         this.singleNodeDiscovery = DiscoveryModule.SINGLE_NODE_DISCOVERY_TYPE.equals(DiscoveryModule.DISCOVERY_TYPE_SETTING.get(settings));
         this.electionStrategy = electionStrategy;
-        this.joinHelper = new JoinHelper(settings, allocationService, masterService, transportService,
-            this::getCurrentTerm, this::getStateForMasterService, this::handleJoinRequest, this::joinLeaderInTerm, this.onJoinValidators,
-            rerouteService, nodeHealthService);
+        this.joinHelper = new JoinHelper(
+            settings,
+            allocationService,
+            masterService,
+            transportService,
+            this::getCurrentTerm,
+            this::getStateForMasterService,
+            this::handleJoinRequest,
+            this::joinLeaderInTerm,
+            this.onJoinValidators,
+            rerouteService,
+            nodeHealthService
+        );
         this.persistedStateSupplier = persistedStateSupplier;
         this.noMasterBlockService = new NoMasterBlockService(settings, clusterSettings);
         this.lastKnownLeader = Optional.empty();
@@ -444,7 +453,7 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
     }
 
 
-    private void handleJoinRequest(JoinRequest joinRequest, JoinCallback joinCallback) {
+    private void handleJoinRequest(JoinRequest joinRequest, ActionListener<Void> joinCallback) {
         assert Thread.holdsLock(mutex) == false;
         assert getLocalNode().isMasterEligibleNode() : getLocalNode() + " received a join but is not master-eligible";
         LOGGER.trace("handleJoinRequest: as {}, handling {}", mode, joinRequest);
@@ -455,7 +464,7 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
             return;
         }
 
-        transportService.connectToNode(joinRequest.getSourceNode(), ActionListener.wrap(ignore -> {
+        transportService.connectToNode(joinRequest.getSourceNode(), joinCallback.withOnResponse((l, _) -> {
             final ClusterState stateForJoinValidation = getStateForMasterService();
 
             if (stateForJoinValidation.nodes().isLocalNodeElectedMaster()) {
@@ -466,16 +475,17 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
                     JoinTaskExecutor.ensureMajorVersionBarrier(joinRequest.getSourceNode().getVersion(),
                         stateForJoinValidation.nodes().getMinNodeVersion());
                 }
-                sendValidateJoinRequest(stateForJoinValidation, joinRequest, joinCallback);
+                sendValidateJoinRequest(stateForJoinValidation, joinRequest, l);
             } else {
-                processJoinRequest(joinRequest, joinCallback);
+                processJoinRequest(joinRequest, l);
             }
-        }, joinCallback::onFailure));
+        }));
     }
 
     // package private for tests
-    void sendValidateJoinRequest(ClusterState stateForJoinValidation, JoinRequest joinRequest,
-                                 JoinCallback joinCallback) {
+    void sendValidateJoinRequest(ClusterState stateForJoinValidation,
+                                 JoinRequest joinRequest,
+                                 ActionListener<Void> joinCallback) {
         // validate the join on the joining node, will throw a failure if it fails the validation
         joinHelper.sendValidateJoinRequest(joinRequest.getSourceNode(), stateForJoinValidation, new ActionListener<Empty>() {
             @Override
@@ -496,7 +506,7 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
         });
     }
 
-    private void processJoinRequest(JoinRequest joinRequest, JoinCallback joinCallback) {
+    private void processJoinRequest(JoinRequest joinRequest, ActionListener<Void> joinCallback) {
         final Optional<Join> optionalJoin = joinRequest.getOptionalJoin();
         synchronized (mutex) {
             updateMaxTermSeen(joinRequest.getTerm());
