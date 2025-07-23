@@ -218,7 +218,6 @@ import io.crate.role.RoleManagerService;
 import io.crate.role.Roles;
 import io.crate.role.RolesService;
 import io.crate.session.Sessions;
-import io.crate.statistics.PersistedStatsService;
 import io.crate.statistics.TableStats;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
@@ -385,7 +384,6 @@ public class Node implements Closeable {
             resourcesToClose.add(clusterService);
 
             final Roles roles = new RolesService(clusterService);
-            final PersistedStatsService statsService = new PersistedStatsService(nodeEnvironment.nodeDataPaths()[0]);
             final TableStats tableStats = new TableStats();
             final NodeContext nodeContext = NodeContext.of(environment, clusterService, functions, roles, tableStats);
             final var udfService = new UserDefinedFunctionService(clusterService, nodeContext);
