@@ -165,7 +165,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             createTempDir()
         );
 
-        statsService.add(relationName, stats);
+        statsService.update(relationName, stats);
         Stats loaded = statsService.get(relationName);
         assertThat(loaded).isEqualTo(stats);
     }
@@ -208,7 +208,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             createTempDir()
         );
 
-        statsService.add(tableStats);
+        statsService.update(tableStats);
         assertThat(statsService.get(table1)).isEqualTo(stats1);
         assertThat(statsService.get(table2)).isEqualTo(stats2);
     }
@@ -249,7 +249,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             createTempDir()
         );
 
-        statsService.add(tableStats);
+        statsService.update(tableStats);
 
         assertThat(statsService.get(table1)).isEqualTo(stats1);
         assertThat(statsService.get(table2)).isEqualTo(stats2);
@@ -282,7 +282,7 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             createTempDir()
         );
 
-        statsService.add(relationName, stats);
+        statsService.update(relationName, stats);
         statsService.clear();;
         Stats loaded = statsService.get(relationName);
         assertThat(loaded).isNull();;

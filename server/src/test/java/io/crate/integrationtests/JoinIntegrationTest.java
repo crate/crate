@@ -921,7 +921,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(4L, 16L, Map.of()));
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(6L, 24L, Map.of()));
-            tableStats.updateTableStats(newStats);
+            tableStats.updateTableStats(newStats::get);
         }
 
         execute("select a, x from t1 join t2 on t1.a + 1 = t2.x + 1 order by a, x");
@@ -951,7 +951,7 @@ public class JoinIntegrationTest extends IntegTestCase {
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(2L, 8L, Map.of()));
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(3L, 12L, Map.of()));
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t3"), new Stats(10L, 40L, Map.of()));
-            tableStats.updateTableStats(newStats);
+            tableStats.updateTableStats(newStats::get);
         }
 
         execute("select a, x, y from t1 join t2 on t1.a = t2.x join t3 on t3.y = t2.x where t1.a < t2.x + 1 " +
@@ -999,7 +999,7 @@ public class JoinIntegrationTest extends IntegTestCase {
         for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), relationName), new Stats(rowsCount, tableSizeInBytes, Map.of()));
-            tableStats.updateTableStats(newStats);
+            tableStats.updateTableStats(newStats::get);
         }
 
         RamBlockSizeCalculator ramBlockSizeCalculator = new RamBlockSizeCalculator(

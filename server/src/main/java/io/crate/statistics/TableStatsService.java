@@ -131,6 +131,7 @@ public class TableStatsService implements Runnable {
         this(settings, threadPool, clusterService, sessions, env.nodeDataPaths()[0]);
     }
 
+    @VisibleForTesting
     TableStatsService(Settings settings,
                       ThreadPool threadPool,
                       ClusterService clusterService,
@@ -213,11 +214,6 @@ public class TableStatsService implements Runnable {
         return cache.get(relationName);
     }
 
-    public Stats getOrDefault(RelationName relationName, Stats defaultValue) {
-        Stats result = get(relationName);
-        return result == null ? defaultValue : result;
-    }
-
     public void remove(RelationName relationName) {
         try {
             try (var writer = createWriter(dataPath)) {
@@ -284,7 +280,6 @@ public class TableStatsService implements Runnable {
         return null;
     }
 
-
     private static IndexWriter createWriter(Path path) throws IOException {
         Path dataPath = path.resolve(STATS);
         Directory directory = new NIOFSDirectory(dataPath);
@@ -296,7 +291,7 @@ public class TableStatsService implements Runnable {
         return new IndexWriter(directory, indexWriterConfig);
     }
 
-    public void add(Map<RelationName, Stats> stats) {
+    public void update(Map<RelationName, Stats> stats) {
         try {
             try (var writer = createWriter(dataPath)) {
                 for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
@@ -317,7 +312,7 @@ public class TableStatsService implements Runnable {
         return new Term(RELATION_NAME_FIELD, relationName.fqn());
     }
 
-    public void add(RelationName relationName, Stats stats) {
+    public void update(RelationName relationName, Stats stats) {
         try {
             try (var writer = createWriter(dataPath)) {
                 Document doc = makeDocument(relationName, stats);
