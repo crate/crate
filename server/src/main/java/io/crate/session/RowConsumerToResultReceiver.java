@@ -40,6 +40,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     private final CompletableFuture<?> completionFuture = new CompletableFuture<>();
     private ResultReceiver<?> resultReceiver;
     private int maxRows;
+    private volatile boolean closeAttemptIgnored = false;
 
     /**
      * Reset per suspend/execute
@@ -92,6 +93,15 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                     if (maxRows > 0 && rowCount % maxRows == 0) {
                         activeIt = iterator;
                         resultReceiver.batchFinished();
+                        boolean closeConsumer = closeAttemptIgnored; // One volatile read;
+                        if (closeConsumer) {
+                            // If we already tried to stop consumer and failed because it was too early,
+                            // we "fulfill the promise" when we can finally do it to avoid having a stale sys.jobs entry.
+                            // We don't need to do this check anywhere else
+                            // as completionFuture is completed in all other flows (exceptionally or normally)
+                            completionFuture.complete(null);
+                            activeIt.close();
+                        }
                         return; // resumed via postgres protocol, close is done later
                     }
                 }
@@ -141,6 +151,12 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             // resultReceiver is left untouched:
             // - A previous .batchCompleted() call already flushed out pending messages
             // - Calling failure/allFinished would lead to extra messages, including  sentCommandComplete, to the client, which can lead to issues on the client.
+        } else {
+            // Bind that overwrites and closes previous Portal
+            // can arrive before batch is processed.
+            // We mark "failed" close attempt so that it's done again
+            // when portal is back to the suspended state after finishing a batch.
+            closeAttemptIgnored = true;
         }
     }
 
