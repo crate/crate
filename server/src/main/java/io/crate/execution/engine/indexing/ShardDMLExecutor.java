@@ -150,7 +150,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
 
             @Override
             public void onResponse(ShardResponse response) {
-                nodeLimit.onSample(startTime, false);
+                nodeLimit.onSample(startTime);
                 long totalBytesUsed = 0;
                 for (var item : request.items()) {
                     totalBytesUsed += item.ramBytesUsed();
@@ -169,7 +169,7 @@ public class ShardDMLExecutor<TReq extends ShardRequest<TReq, TItem>,
 
             @Override
             public void onFailure(Exception e) {
-                nodeLimit.onSample(startTime, true);
+                nodeLimit.onSample(startTime);
                 long totalBytesUsed = 0;
                 for (var item : request.items()) {
                     totalBytesUsed += item.ramBytesUsed();
