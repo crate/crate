@@ -56,6 +56,14 @@ public class TranslogDeletionPolicy {
 
     private int retentionTotalFiles;
 
+    public TranslogDeletionPolicy() {
+        if (Assertions.ENABLED) {
+            openTranslogRef = new ConcurrentHashMap<>();
+        } else {
+            openTranslogRef = null;
+        }
+    }
+
     public TranslogDeletionPolicy(long retentionSizeInBytes, long retentionAgeInMillis, int retentionTotalFiles) {
         this.retentionSizeInBytes = retentionSizeInBytes;
         this.retentionAgeInMillis = retentionAgeInMillis;

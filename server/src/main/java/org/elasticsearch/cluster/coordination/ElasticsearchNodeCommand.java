@@ -70,6 +70,45 @@ public abstract class ElasticsearchNodeCommand extends EnvironmentAwareCommand {
     public static final String ABORTED_BY_USER_MSG = "aborted by user";
     public static final String CS_MISSING_MSG = "cluster state is empty, cluster has never been bootstrapped?";
 
+    // fake the registry here, as command-line tools are not loading plugins, and ensure that it preserves the parsed XContent
+    public static final NamedXContentRegistry namedXContentRegistry = new NamedXContentRegistry(ClusterModule.getNamedXWriteables()) {
+
+        /*
+        @SuppressWarnings("unchecked")
+        @Override
+        public <T, C> T parseNamedObject(Class<T> categoryClass, String name, XContentParser parser, C context) throws IOException {
+            // Currently, two unknown top-level objects are present
+            if (Metadata.Custom.class.isAssignableFrom(categoryClass)) {
+                if (DataStreamMetadata.TYPE.equals(name)) {
+                    // DataStreamMetadata is used inside Metadata class for validation purposes and building the indicesLookup,
+                    // therefor even es node commands need to be able to parse it.
+                    return super.parseNamedObject(categoryClass, name, parser, context);
+                    // TODO: Try to parse other named objects (e.g. stored scripts, ingest pipelines) that are part of core es as well?
+                    // Note that supporting PersistentTasksCustomMetadata is trickier, because PersistentTaskParams is a named object too.
+                } else {
+                    return (T) new UnknownMetadataCustom(name, parser.mapOrdered());
+                }
+            }
+            if (Condition.class.isAssignableFrom(categoryClass)) {
+                // The parsing for conditions is a bit weird as these represent JSON primitives (strings or numbers)
+                // TODO: Make Condition non-pluggable
+                assert parser.currentToken() == XContentParser.Token.FIELD_NAME : parser.currentToken();
+                if (parser.currentToken() != XContentParser.Token.FIELD_NAME) {
+                    throw new UnsupportedOperationException("Unexpected token for Condition: " + parser.currentToken());
+                }
+                parser.nextToken();
+                assert parser.currentToken().isValue() : parser.currentToken();
+                if (parser.currentToken().isValue() == false) {
+                    throw new UnsupportedOperationException("Unexpected token for Condition: " + parser.currentToken());
+                }
+                return (T) new UnknownCondition(name, parser.objectText());
+            }
+            assert false : "Unexpected category class " + categoryClass + " for name " + name;
+            throw new UnsupportedOperationException("Unexpected category class " + categoryClass + " for name " + name);
+        }
+         */
+    };
+
     protected static final NamedWriteableRegistry NAMED_WRITABLE_CONTENT_REGISTRY = new NamedWriteableRegistry(
         Stream.of(ClusterModule.getNamedWriteables().stream(), IndicesModule.getNamedWriteables().stream())
             .flatMap(Function.identity())
