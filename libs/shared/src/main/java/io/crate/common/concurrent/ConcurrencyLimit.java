@@ -131,11 +131,11 @@ public final class ConcurrencyLimit {
         return System.nanoTime();
     }
 
-    public final void onSample(long startTime, boolean didDrop) {
+    public final void onSample(long startTime) {
         long rtt = System.nanoTime() - startTime;
         int decrementedNumInflight = numInflight.decrementAndGet();
         synchronized (this) {
-            int newLimit = update(rtt, decrementedNumInflight, didDrop);
+            int newLimit = update(rtt, decrementedNumInflight);
             if (newLimit != limit) {
                 limit = newLimit;
             }
@@ -146,7 +146,7 @@ public final class ConcurrencyLimit {
         return limit;
     }
 
-    private int update(final long rtt, final int inflight, final boolean didDrop) {
+    private int update(final long rtt, final int inflight) {
         final double queueSize = this.queueSize.apply((int)this.estimatedLimit);
 
         this.lastRtt = rtt;
