@@ -74,14 +74,9 @@ public final class PgCatalogTableDefinitions {
                 .map(e -> new PgPublicationTable.PublicationRow(e.getKey(), e.getValue()))
                 .iterator();
 
-        Iterable<RelationName> docTableRelationNames =
-            () -> InformationSchemaIterables.tablesStream(schemas)
-            .filter(x -> x instanceof DocTableInfo).map(RelationInfo::ident)
-            .sorted((o1, o2) -> o1.fqn().compareTo(o2.fqn())).iterator();
-
         tableDefinitions = Map.ofEntries(
             Map.entry(PgStatsTable.NAME, new StaticTableDefinition<>(
-                    () -> tableStats.statsEntries(docTableRelationNames),
+                    () -> tableStats.statsEntries(),
                     (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relation().fqn()),
                     PgStatsTable.INSTANCE.expressions()
                 )

@@ -1347,7 +1347,7 @@ public abstract class IntegTestCase extends ESTestCase {
     @After
     private void resetTableStats() {
         for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
-            tableStats.clear();
+            tableStats.updateTableStats(Map.of());
         }
     }
 

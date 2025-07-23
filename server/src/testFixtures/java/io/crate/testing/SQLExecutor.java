@@ -186,7 +186,6 @@ import io.crate.sql.tree.CreateTable;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.statistics.Stats;
-import io.crate.statistics.StubStatsService;
 import io.crate.statistics.TableStats;
 
 /**
@@ -320,7 +319,7 @@ public class SQLExecutor {
             }
             addNodesToClusterState(clusterService, numNodes);
             final Settings settings = Settings.EMPTY;
-            TableStats tableStats = new TableStats(new StubStatsService());
+            TableStats tableStats = new TableStats();
             var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
             AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
             Path homeDir = CrateLuceneTestCase.createTempDir();
