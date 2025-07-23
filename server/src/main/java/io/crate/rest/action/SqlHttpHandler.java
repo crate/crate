@@ -45,8 +45,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jetbrains.annotations.Nullable;
@@ -92,7 +90,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final Sessions sessions;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final Roles roles;
-    private final Netty4CorsConfig corsConfig;
     private final boolean checkJwtProperties;
 
     private Session session;
@@ -100,14 +97,12 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     public SqlHttpHandler(Settings settings,
                           Sessions sessions,
                           Function<String, CircuitBreaker> circuitBreakerProvider,
-                          Roles roles,
-                          Netty4CorsConfig corsConfig) {
+                          Roles roles) {
         super(false);
         this.settings = settings;
         this.sessions = sessions;
         this.circuitBreakerProvider = circuitBreakerProvider;
         this.roles = roles;
-        this.corsConfig = corsConfig;
         this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
     }
 
@@ -189,7 +184,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             );
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, mediaType);
         }
-        Netty4CorsHandler.setCorsResponseHeaders(request, resp, corsConfig);
         resp.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(content.readableBytes()));
         boolean closeConnection = isCloseConnection(request);
         ChannelPromise promise = ctx.newPromise();

@@ -50,6 +50,7 @@ import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
+import io.netty.handler.codec.http.HttpHeaderNames;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 2)
 @WindowsIncompatible
@@ -87,7 +88,8 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
             .header("Origin", "Http://example.com")
             .build();
         var response = httpClient.send(request, BodyHandlers.discarding());
-        assertThat(response.headers().firstValue("Access-Control-Allow-Origin")).isPresent();
+        assertThat(response.headers().map())
+            .containsEntry(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), List.of("*"));
     }
 
     @Test
