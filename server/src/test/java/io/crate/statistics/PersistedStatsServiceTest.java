@@ -142,8 +142,4 @@ public class PersistedStatsServiceTest extends CrateDummyClusterServiceUnitTest 
         Stats loaded = statsService.get(relationName);
         assertThat(loaded).isNull();;
     }
-
-
-
-
 }

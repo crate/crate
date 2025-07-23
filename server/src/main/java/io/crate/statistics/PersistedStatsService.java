@@ -22,8 +22,8 @@
 package io.crate.statistics;
 
 import java.io.ByteArrayInputStream;
-import java.io.Closeable;
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
@@ -62,7 +62,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
-import io.crate.common.io.IOUtils;
 import io.crate.metadata.RelationName;
 
 public final class PersistedStatsService implements StatsService {
@@ -97,8 +96,8 @@ public final class PersistedStatsService implements StatsService {
     @Override
     public void remove(RelationName relationName) {
         try {
-            try (Writer writer = createWriter(dataPath)) {
-                writer.delete(relationName);
+            try (var writer = createWriter(dataPath)) {
+                writer.deleteDocuments(relTerm(relationName));
                 writer.flush();
                 writer.commit();
             }
@@ -111,7 +110,7 @@ public final class PersistedStatsService implements StatsService {
     @Override
     public void clear() {
         try {
-            try (Writer writer = createWriter(dataPath)) {
+            try (var writer = createWriter(dataPath)) {
                 writer.deleteAll();
                 writer.flush();
                 writer.commit();
@@ -126,45 +125,44 @@ public final class PersistedStatsService implements StatsService {
     @Nullable
     Stats loadFromDisk(RelationName relationName) {
         Path path = dataPath.resolve(STATS);
-        if (Files.exists(path)) {
+        if (!Files.exists(path)) {
+            return null;
+        }
+        try (Directory dir = new NIOFSDirectory(path)) {
+            DirectoryReader reader;
             try {
-                try (Directory dir = new NIOFSDirectory(path)) {
-                    DirectoryReader reader;
-                    try {
-                        reader = DirectoryReader.open(dir);
-                    } catch (IndexNotFoundException e) {
-                        LOGGER.warn("Try to load Stats from %s but no index exists %s", path.toString(), e.getMessage());
-                        return null;
-                    }
-                    IndexSearcher indexSearcher = new IndexSearcher(reader);
-                    indexSearcher.setQueryCache(null);
-                    Query query = new TermQuery(new Term(RELATION_NAME_FIELD, relationName.fqn()));
-                    Weight weight = indexSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
-                    try (IndexReader indexReader = indexSearcher.getIndexReader()) {
-                        for (LeafReaderContext leafReaderContext : indexReader.leaves()) {
-                            Scorer scorer = weight.scorer(leafReaderContext);
-                            if (scorer != null) {
-                                DocIdSetIterator docIdSetIterator = scorer.iterator();
-                                StoredFields storedFields = leafReaderContext.reader().storedFields();
-                                if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                                    Document doc = storedFields.document(docIdSetIterator.docID());
-                                    BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
-                                    ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
-                                    return Stats.readFrom(new InputStreamStreamInput(bis));
-                                }
-                            }
+                reader = DirectoryReader.open(dir);
+            } catch (IndexNotFoundException e) {
+                LOGGER.warn("Try to load Stats from %s but no index exists %s", path.toString(), e.getMessage());
+                return null;
+            }
+            IndexSearcher indexSearcher = new IndexSearcher(reader);
+            indexSearcher.setQueryCache(null);
+            Query query = new TermQuery(new Term(RELATION_NAME_FIELD, relationName.fqn()));
+            Weight weight = indexSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+            try (IndexReader indexReader = indexSearcher.getIndexReader()) {
+                for (LeafReaderContext leafReaderContext : indexReader.leaves()) {
+                    Scorer scorer = weight.scorer(leafReaderContext);
+                    if (scorer != null) {
+                        DocIdSetIterator docIdSetIterator = scorer.iterator();
+                        StoredFields storedFields = leafReaderContext.reader().storedFields();
+                        if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                            Document doc = storedFields.document(docIdSetIterator.docID());
+                            BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
+                            ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
+                            return Stats.readFrom(new InputStreamStreamInput(bis));
                         }
                     }
                 }
-            } catch (IOException e) {
-                throw new RuntimeException("Can't load TableStats from disk", e);
             }
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
         return null;
     }
 
 
-    private static Writer createWriter(Path path) throws IOException {
+    private static IndexWriter createWriter(Path path) throws IOException {
         Path dataPath = path.resolve(STATS);
         Directory directory = new NIOFSDirectory(dataPath);
         boolean openExisting = DirectoryReader.indexExists(directory);
@@ -172,17 +170,16 @@ public final class PersistedStatsService implements StatsService {
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
         indexWriterConfig.setOpenMode(openExisting ? IndexWriterConfig.OpenMode.APPEND : IndexWriterConfig.OpenMode.CREATE);
         indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-        IndexWriter indexWriter = new IndexWriter(directory, indexWriterConfig);
-        return new Writer(directory, indexWriter);
+        return new IndexWriter(directory, indexWriterConfig);
     }
 
     public void add(Map<RelationName, Stats> stats) {
         try {
-            try (Writer writer = createWriter(dataPath)) {
+            try (var writer = createWriter(dataPath)) {
                 for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
                     RelationName relationName = entry.getKey();
-                    Document doc = writer.makeDocument(relationName, entry.getValue());
-                    writer.updateDoc(relationName, doc);
+                    Document doc = makeDocument(relationName, entry.getValue());
+                    writer.updateDocument(relTerm(relationName), doc);
                 }
                 writer.prepareCommit();
                 writer.flush();
@@ -193,11 +190,15 @@ public final class PersistedStatsService implements StatsService {
         }
     }
 
+    private static Term relTerm(RelationName relationName) {
+        return new Term(RELATION_NAME_FIELD, relationName.fqn());
+    }
+
     public void add(RelationName relationName, Stats stats) {
         try {
-            try (Writer writer = createWriter(dataPath)) {
-                Document doc = writer.makeDocument(relationName, stats);
-                writer.updateDoc(relationName, doc);
+            try (var writer = createWriter(dataPath)) {
+                Document doc = makeDocument(relationName, stats);
+                writer.updateDocument(relTerm(relationName), doc);
                 writer.prepareCommit();
                 writer.flush();
                 writer.commit();
@@ -207,51 +208,13 @@ public final class PersistedStatsService implements StatsService {
         }
     }
 
-    private static final class Writer implements Closeable {
-        final Directory directory;
-        final IndexWriter indexWriter;
-
-        private Writer(Directory directory, IndexWriter indexWriter) {
-            this.directory = directory;
-            this.indexWriter = indexWriter;
-        }
-
-        void updateDoc(RelationName relationName, Document statsDoc) throws IOException {
-            indexWriter.updateDocument(new Term(RELATION_NAME_FIELD, relationName.fqn()), statsDoc);
-        }
-
-        void flush() throws IOException {
-            this.indexWriter.flush();
-        }
-
-        void commit() throws IOException {
-            indexWriter.commit();
-        }
-
-        void delete(RelationName relationName) throws IOException {
-            indexWriter.deleteDocuments(new Term(RELATION_NAME_FIELD, relationName.fqn()));
-        }
-
-        void deleteAll() throws IOException {
-            indexWriter.deleteAll();
-        }
-
-        @Override
-        public void close() throws IOException {
-            IOUtils.close(indexWriter, directory);
-        }
-
-        void prepareCommit() throws IOException {
-            indexWriter.prepareCommit();
-        }
-
-        private Document makeDocument(RelationName relationName, Stats stats) throws IOException {
-            BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
-            stats.writeTo(bytesStreamOutput);
-            Document document = new Document();
-            document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
-            document.add(new StoredField(DATA_FIELD, bytesStreamOutput.bytes().toBytesRef()));
-            return document;
-        }
+    private static Document makeDocument(RelationName relationName, Stats stats) throws IOException {
+        BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
+        stats.writeTo(bytesStreamOutput);
+        Document document = new Document();
+        document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
+        document.add(new StoredField(DATA_FIELD, bytesStreamOutput.bytes().toBytesRef()));
+        return document;
     }
+
 }
