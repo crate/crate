@@ -688,12 +688,12 @@ public class InsertFromValues implements LogicalPlan {
                 public void onResponse(ShardResponse shardResponse) {
                     Throwable throwable = shardResponse.failure();
                     if (throwable == null) {
-                        nodeLimit.onSample(startTime, false);
+                        nodeLimit.onSample(startTime);
                         synchronized (compressedResult) {
                             compressedResult.update(shardResponse);
                         }
                     } else {
-                        nodeLimit.onSample(startTime, true);
+                        nodeLimit.onSample(startTime);
                         lastFailure.set(throwable);
                     }
                     countdown.accept(request);
@@ -701,7 +701,7 @@ public class InsertFromValues implements LogicalPlan {
 
                 @Override
                 public void onFailure(Exception e) {
-                    nodeLimit.onSample(startTime, true);
+                    nodeLimit.onSample(startTime);
                     Throwable t = SQLExceptions.unwrap(e);
                     if (!partitionWasDeleted(t, request.shardId().getIndexName())) {
                         synchronized (compressedResult) {

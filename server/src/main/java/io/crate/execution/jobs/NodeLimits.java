@@ -92,7 +92,7 @@ public class NodeLimits {
      * Instances may change if the settings are updated.
      * Consumers of the ConcurrencyLimit need to hold onto the same instance for
      * {@link ConcurrencyLimit#startSample()} and
-     * {@link ConcurrencyLimit#onSample(long, boolean)} calls to ensure the number
+     * {@link ConcurrencyLimit#onSample(long)} calls to ensure the number
      * of inflight requests are accurate.
      * </p>
      **/
