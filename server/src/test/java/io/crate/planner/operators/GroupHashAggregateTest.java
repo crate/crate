@@ -33,9 +33,11 @@ import org.junit.Test;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.Stats;
 import io.crate.statistics.StatsUtils;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SqlExpressions;
 import io.crate.testing.T3;
@@ -43,6 +45,7 @@ import io.crate.types.DataTypes;
 
 public class GroupHashAggregateTest extends CrateDummyClusterServiceUnitTest {
 
+    private TableStats tableStats;
     private SqlExpressions expressions;
     private Stats stats;
 
@@ -62,6 +65,8 @@ public class GroupHashAggregateTest extends CrateDummyClusterServiceUnitTest {
                 ColumnIdent.of("i"), columnStats
             )
         );
+        tableStats = new TableStats();
+        tableStats.updateTableStats(Map.of(new RelationName("doc", "t1"), stats)::get);
         expressions = new SqlExpressions(T3.sources(clusterService));
     }
 

@@ -21,7 +21,12 @@
 
 package io.crate.planner;
 
+import static io.crate.analyze.TableDefinitions.TEST_DOC_LOCATIONS_TABLE_IDENT;
+import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
+
+import java.util.HashMap;
+import java.util.Map;
 
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -31,10 +36,13 @@ import io.crate.analyze.TableDefinitions;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.fdw.ForeignDataWrappers;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.Union;
+import io.crate.statistics.Stats;
+import io.crate.statistics.TableStats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -212,6 +220,12 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_union_returns_unknown_expected_rows_unknown_on_one_source_plan() {
         String stmt = "SELECT id FROM users UNION ALL SELECT id FROM locations";
+        TableStats tableStats = new TableStats();
+        Map<RelationName, Stats> rowCountByTable = new HashMap<>();
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(-1, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(1, 0, Map.of()));
+        tableStats.updateTableStats(rowCountByTable::get);
+
         var context = e.getPlannerContext();
         var logicalPlanner = new LogicalPlanner(
             e.nodeCtx,
@@ -221,6 +235,9 @@ public class UnionPlannerTest extends CrateDummyClusterServiceUnitTest {
         var plan = logicalPlanner.plan(e.analyze(stmt), context);
         var union = (Union) plan.sources().get(0);
         assertThat(e.getStats(union).numDocs()).isEqualTo(-1L);
+        rowCountByTable.put(USER_TABLE_IDENT, new Stats(1, 0, Map.of()));
+        rowCountByTable.put(TEST_DOC_LOCATIONS_TABLE_IDENT, new Stats(-1, 0, Map.of()));
+        tableStats.updateTableStats(rowCountByTable::get);
         plan = logicalPlanner.plan(e.analyze(stmt), context);
         union = (Union) plan.sources().get(0);
         assertThat(e.getStats(union).numDocs()).isEqualTo(-1L);
