@@ -221,7 +221,6 @@ public class TestingHelpers {
     }
 
     public static NodeContext createNodeContext(Schemas schemas, List<Role> roles) {
-
         return new NodeContext(
             Functions.load(Settings.EMPTY, new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE))),
             () -> roles,

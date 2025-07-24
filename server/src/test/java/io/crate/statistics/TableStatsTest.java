@@ -88,6 +88,4 @@ public class TableStatsTest extends ESTestCase {
         assertThat(sizeEstimate).isEqualTo(1168L);
     }
 
-
-
 }

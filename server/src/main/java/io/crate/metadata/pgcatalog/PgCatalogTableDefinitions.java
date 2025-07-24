@@ -76,8 +76,7 @@ public final class PgCatalogTableDefinitions {
 
         Iterable<RelationName> docTableRelationNames =
             () -> InformationSchemaIterables.tablesStream(schemas)
-            .filter(x -> x instanceof DocTableInfo).map(RelationInfo::ident)
-            .sorted((o1, o2) -> o1.fqn().compareTo(o2.fqn())).iterator();
+            .filter(x -> x instanceof DocTableInfo).map(RelationInfo::ident).iterator();
 
         tableDefinitions = Map.ofEntries(
             Map.entry(PgStatsTable.NAME, new StaticTableDefinition<>(
