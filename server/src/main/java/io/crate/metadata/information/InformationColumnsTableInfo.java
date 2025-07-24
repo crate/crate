@@ -38,7 +38,7 @@ import io.crate.metadata.SystemTable;
 import io.crate.types.DataTypes;
 
 
-public class InformationColumnsTableInfo {
+public final class InformationColumnsTableInfo {
 
     public static final String NAME = "columns";
     public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
@@ -47,6 +47,8 @@ public class InformationColumnsTableInfo {
     private static final String IS_GENERATED_ALWAYS = "ALWAYS";
     private static final Integer NUMERIC_PRECISION_RADIX = 2; // Binary
     private static final Integer DATETIME_PRECISION = 3; // Milliseconds
+
+    private InformationColumnsTableInfo() {}
 
     public static SystemTable<ColumnContext> INSTANCE = SystemTable.<ColumnContext>builder(IDENT)
         .addNonNull("table_schema", STRING, r -> r.ref().ident().tableIdent().schema())
@@ -61,10 +63,11 @@ public class InformationColumnsTableInfo {
             }
             return IS_GENERATED_NEVER;
         })
-        .addNonNull("is_nullable", BOOLEAN, r -> !r.relation().primaryKey().contains(r.ref().column()) && r.ref().isNullable())
+        .addNonNull("is_nullable", DataTypes.STRING, r ->
+            !r.relation().primaryKey().contains(r.ref().column()) && r.ref().isNullable() ? "YES" : "NO")
         .add("generation_expression", STRING, r -> {
-            if (r.ref() instanceof GeneratedReference) {
-                return ((GeneratedReference) r.ref()).formattedGeneratedExpression();
+            if (r.ref() instanceof GeneratedReference gr) {
+                return gr.formattedGeneratedExpression();
             }
             return null;
         })
@@ -127,5 +130,4 @@ public class InformationColumnsTableInfo {
             ColumnIdent.of("column_name")
         )
         .build();
-
 }

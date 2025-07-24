@@ -45,7 +45,10 @@ Version 6.1.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- Changed the datatype and values returned from ``is_nullable`` column of
+  :ref:`information_schema.columns <information_schema_columns>` table.
+  Previously, it was returning ``BOOLEAN`` values, and now it returns ``'YES'``
+  or ``'NO'``, in order to be compatible with the SQL specification.
 
 Deprecations
 ============
