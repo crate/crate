@@ -114,8 +114,7 @@ public class TableStatsService implements Runnable {
     private static final String RELATION_NAME_FIELD = "relationName";
 
     private final LoadingCache<RelationName, Stats> cache = Caffeine.newBuilder()
-        .expireAfterWrite(1, TimeUnit.MINUTES)
-        .maximumSize(100)
+        .expireAfterAccess(1, TimeUnit.MINUTES)
         .build(this::loadFromDisk);
 
     private final Path dataPath;
