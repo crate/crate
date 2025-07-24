@@ -73,7 +73,6 @@ public final class TransportAnalyzeAction {
                                   NodeContext nodeContext,
                                   ClusterService clusterService,
                                   TableStatsService tableStatsService,
-                                  TableStats tableStats,
                                   ThreadPool threadPool) {
         this.transportService = transportService;
         this.schemas = nodeContext.schemas();
@@ -117,7 +116,6 @@ public final class TransportAnalyzeAction {
             new NodeActionRequestHandler<PublishTableStatsRequest, AcknowledgedResponse>(
                 req -> {
                     tableStatsService.update(req.tableStats());
-                    tableStats.updateTableStats(tableStatsService::get);
                     return completedFuture(new AcknowledgedResponse(true));
                 }
             )

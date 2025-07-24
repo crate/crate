@@ -58,7 +58,6 @@ import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
@@ -67,7 +66,6 @@ import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
@@ -122,17 +120,7 @@ public class TableStatsService implements Runnable {
 
     private final Path dataPath;
 
-    @Inject
     public TableStatsService(Settings settings,
-                             ThreadPool threadPool,
-                             ClusterService clusterService,
-                             Sessions sessions,
-                             NodeEnvironment env) {
-        this(settings, threadPool, clusterService, sessions, env.nodeDataPaths()[0]);
-    }
-
-    @VisibleForTesting
-    TableStatsService(Settings settings,
                       ThreadPool threadPool,
                       ClusterService clusterService,
                       Sessions sessions,

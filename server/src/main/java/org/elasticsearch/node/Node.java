@@ -219,6 +219,7 @@ import io.crate.role.Roles;
 import io.crate.role.RolesService;
 import io.crate.session.Sessions;
 import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 
@@ -754,9 +755,20 @@ public class Node implements Closeable {
                 client
             );
 
+            TableStatsService tableStatsService = new TableStatsService(
+                settings,
+                threadPool,
+                clusterService,
+                sessions,
+                nodeEnvironment.nodeDataPaths()[0]
+            );
+
+            tableStats.updateTableStats(tableStatsService::get);
+
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
                     b.bind(NodeContext.class).toInstance(nodeContext);
+                    b.bind(TableStatsService.class).toInstance(tableStatsService);
                     b.bind(TableStats.class).toInstance(tableStats);
                     b.bind(Analyzer.class).toInstance(analyzer);
                     b.bind(Sessions.class).toInstance(sessions);
