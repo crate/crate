@@ -62,6 +62,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
+import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -269,7 +270,11 @@ public class TableStatsService implements Runnable {
                             Document doc = storedFields.document(docIdSetIterator.docID());
                             BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
                             ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
-                            return Stats.readFrom(new InputStreamStreamInput(bis));
+                            InputStreamStreamInput in = new InputStreamStreamInput(bis);
+                            Version version = Version.readVersion(in);
+                            if (Version.CURRENT.onOrAfter(version)) {
+                                return Stats.readFrom(new InputStreamStreamInput(in));
+                            }
                         }
                     }
                 }
@@ -328,6 +333,7 @@ public class TableStatsService implements Runnable {
 
     private static Document makeDocument(RelationName relationName, Stats stats) throws IOException {
         BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
+        Version.writeVersion(Version.CURRENT, bytesStreamOutput);
         stats.writeTo(bytesStreamOutput);
         Document document = new Document();
         document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
