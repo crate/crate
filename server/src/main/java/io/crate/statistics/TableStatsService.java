@@ -62,7 +62,6 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
-import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -219,7 +218,6 @@ public class TableStatsService implements Runnable {
         try {
             try (var writer = createWriter(dataPath)) {
                 writer.deleteDocuments(relTerm(relationName));
-                writer.flush();
                 writer.commit();
             }
             cache.invalidate(relationName);
@@ -232,7 +230,6 @@ public class TableStatsService implements Runnable {
         try {
             try (var writer = createWriter(dataPath)) {
                 writer.deleteAll();
-                writer.flush();
                 writer.commit();
             }
             cache.invalidateAll();
@@ -305,7 +302,6 @@ public class TableStatsService implements Runnable {
                     writer.updateDocument(relTerm(relationName), doc);
                 }
                 writer.prepareCommit();
-                writer.flush();
                 writer.commit();
             }
         } catch (IOException e) {
@@ -323,7 +319,6 @@ public class TableStatsService implements Runnable {
                 Document doc = makeDocument(relationName, stats);
                 writer.updateDocument(relTerm(relationName), doc);
                 writer.prepareCommit();
-                writer.flush();
                 writer.commit();
             }
         } catch (IOException e) {
