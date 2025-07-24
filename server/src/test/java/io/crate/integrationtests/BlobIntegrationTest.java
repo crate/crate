@@ -47,6 +47,7 @@ import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
 import org.jetbrains.annotations.Nullable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndicesService;
@@ -83,6 +84,7 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     @Test
+    @Ignore("Flakiness introduced with JDK 24.0.2")
     public void testCorsHeadersAreSet() throws Exception {
         String digest = uploadTinyBlob();
         HttpRequest request = HttpRequest.newBuilder(blobUri(digest))
