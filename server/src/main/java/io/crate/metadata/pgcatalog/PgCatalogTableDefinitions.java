@@ -25,12 +25,16 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
+import java.util.Collection;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 import org.elasticsearch.common.inject.Inject;
 
-import io.crate.session.Sessions;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.NodeContext;
@@ -44,8 +48,11 @@ import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgPublicationTablesTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionRelTable;
 import io.crate.replication.logical.metadata.pgcatalog.PgSubscriptionTable;
+import io.crate.role.GrantedRole;
+import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
+import io.crate.session.Sessions;
 import io.crate.statistics.TableStats;
 
 public final class PgCatalogTableDefinitions {
@@ -162,6 +169,11 @@ public final class PgCatalogTableDefinitions {
                 PgRolesTable.create(roles).expressions(),
                 false
             )),
+            Map.entry(PgAuthMembersTable.IDENT, new StaticTableDefinition<>(
+                () -> completedFuture(authMembers(roles.roles())),
+                PgAuthMembersTable.create(roles).expressions(),
+                false
+            )),
             Map.entry(PgAmTable.IDENT, new StaticTableDefinition<>(
                 () -> completedFuture(emptyList()),
                 PgAmTable.INSTANCE.expressions(),
@@ -173,7 +185,7 @@ public final class PgCatalogTableDefinitions {
                 false
             )),
             Map.entry(PgSettingsTable.IDENT, new StaticTableDefinition<>(
-                (txnCtx, user) -> completedFuture(sessionSettingRegistry.namedSessionSettings(txnCtx)),
+                (txnCtx, _) -> completedFuture(sessionSettingRegistry.namedSessionSettings(txnCtx)),
                 PgSettingsTable.INSTANCE.expressions(),
                 false
             )),
@@ -232,7 +244,7 @@ public final class PgCatalogTableDefinitions {
             ),
 
             Map.entry(PgCursors.IDENT, new StaticTableDefinition<>(
-                (txnCtx, user) -> completedFuture(sessions.getCursors(user)),
+                (_, user) -> completedFuture(sessions.getCursors(user)),
                 PgCursors.INSTANCE.expressions(),
                 false
             )),
@@ -264,5 +276,35 @@ public final class PgCatalogTableDefinitions {
 
     public static boolean isPgCatalogOrInformationSchema(Integer schemaOid) {
         return OidHash.schemaOid(InformationSchemaInfo.NAME) == schemaOid || OidHash.schemaOid(PgCatalogSchemaInfo.NAME) == schemaOid;
+    }
+
+    static Iterable<RoleMember> authMembers(Collection<Role> roles) {
+        Map<String, Set<RoleMember>> roleMembers = new HashMap<>();
+        for (Role role : roles) {
+            for (GrantedRole grantedRole : role.grantedRoles()) {
+                roleMembers.computeIfAbsent(grantedRole.roleName(), _ -> new HashSet<>())
+                    .add(new RoleMember(grantedRole.roleName(), role.name(), grantedRole.grantor()));
+            }
+        }
+        return roleMembers.values().stream().flatMap(Set::stream).toList();
+    }
+
+    public record RoleMember(String role, String member, String grantor) {
+        @Override
+        public boolean equals(Object o) {
+            if (this == o) {
+                return true;
+            }
+            if (o == null || getClass() != o.getClass()) {
+                return false;
+            }
+            RoleMember that = (RoleMember) o;
+            return Objects.equals(role, that.role) && Objects.equals(member, that.member);
+        }
+
+        @Override
+        public int hashCode() {
+            return Objects.hash(role, member);
+        }
     }
 }

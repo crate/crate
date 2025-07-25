@@ -67,7 +67,7 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- Added the :ref:`pg_catalog.pg_auth_members table <postgres-pg_catalog>`
 
 Data Types
 ----------
