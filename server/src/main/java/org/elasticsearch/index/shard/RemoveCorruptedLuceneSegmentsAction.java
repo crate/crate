@@ -41,7 +41,7 @@ public class RemoveCorruptedLuceneSegmentsAction {
                                                                                      Lock writeLock,
                                                                                      PrintStream printStream,
                                                                                      boolean verbose) throws IOException {
-        boolean markedCorrupted = RemoveCorruptedShardDataCommand.isCorruptMarkerFileIsPresent(indexDirectory);
+        boolean markedCorrupted = false; // CrateDB never puts the markers even corrupted
 
         final CheckIndex.Status status;
         try (CheckIndex checker = new CheckIndex(indexDirectory, writeLock)) {
