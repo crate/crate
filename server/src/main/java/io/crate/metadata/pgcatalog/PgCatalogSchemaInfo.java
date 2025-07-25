@@ -63,6 +63,7 @@ public final class PgCatalogSchemaInfo implements SchemaInfo {
             Map.entry(PgRangeTable.IDENT.name(), PgRangeTable.INSTANCE),
             Map.entry(PgEnumTable.IDENT.name(), PgEnumTable.INSTANCE),
             Map.entry(PgRolesTable.IDENT.name(), PgRolesTable.create(roles)),
+            Map.entry(PgAuthMembersTable.IDENT.name(), PgAuthMembersTable.create(roles)),
             Map.entry(PgAmTable.IDENT.name(), PgAmTable.INSTANCE),
             Map.entry(PgTablespaceTable.IDENT.name(), PgTablespaceTable.INSTANCE),
             Map.entry(PgIndexesTable.IDENT.name(), PgIndexesTable.INSTANCE),

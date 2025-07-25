@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -206,15 +205,17 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void testPgDescriptionTableIsEmpty() {
         execute("select * from pg_description");
-        assertThat(response).isEmpty();
-        assertThat(response).hasColumns("classoid", "description", "objoid", "objsubid");
+        assertThat(response)
+            .isEmpty()
+            .hasColumns("classoid", "description", "objoid", "objsubid");
     }
 
     @Test
     public void testPgShdescriptionTableIsEmpty() {
         execute("select * from pg_shdescription");
-        assertThat(response).isEmpty();
-        assertThat(response).hasColumns("classoid", "description", "objoid");
+        assertThat(response)
+            .isEmpty()
+            .hasColumns("classoid", "description", "objoid");
     }
 
     @UseRandomizedOptimizerRules(0)
@@ -400,7 +401,7 @@ public class PgCatalogITest extends IntegTestCase {
                     LEFT JOIN pg_range ON (pg_range.rngtypid = typ.oid)
                     where typname in ('_int2', '_int4')
                     order by 1, 3, 4, 5
-                    """);
+            """);
         assertThat(response).hasRows(
             "1005| _int2| 0| false| NULL| 21| a| 21",
             "1007| _int4| 0| false| NULL| 23| a| 23"
@@ -519,5 +520,24 @@ public class PgCatalogITest extends IntegTestCase {
         for (int i = 0; i < response.rowCount(); i++) {
             assertThat(response.rows()[i][0]).isNotNull();
         }
+    }
+
+    @Test
+    public void test_pg_auth_members() {
+        execute("CREATE USER \"Arthur\"");
+        execute("CREATE ROLE \"NormalRole1\"");
+        execute("CREATE ROLE \"NormalRole2\"");
+        execute("CREATE ROLE \"SuperDooper\"");
+        execute("GRANT AL TO \"SuperDooper\"");
+        execute("GRANT \"SuperDooper\" TO \"NormalRole2\"");
+        execute("GRANT \"NormalRole1\" TO \"Arthur\"");
+        execute("GRANT \"NormalRole2\" TO \"Arthur\"");
+
+        execute("SELECT oid, roleid, member, grantor, admin_option, inherit_option, set_option " +
+            "FROM pg_catalog.pg_auth_members ORDER BY oid");
+        assertThat(response).hasRows(
+            "-1974470723| -128874565| 1562823286| -450373579| true| true| false",
+            "-895873865| 1562823286| 1487968075| -450373579| true| true| false",
+            "-328885978| 645618296| 1487968075| -450373579| false| true| false");
     }
 }
