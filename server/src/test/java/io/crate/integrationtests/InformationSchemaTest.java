@@ -83,6 +83,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_am| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_attrdef| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_attribute| pg_catalog| BASE TABLE| NULL",
+            "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_auth_members| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_class| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_constraint| pg_catalog| BASE TABLE| NULL",
             "NULL| NULL| NULL| strict| NULL| NULL| NULL| SYSTEM GENERATED| NULL| NULL| NULL| crate| pg_cursors| pg_catalog| BASE TABLE| NULL",
@@ -160,14 +161,18 @@ public class InformationSchemaTest extends IntegTestCase {
         Object[][] rows = response.rows();
         assertThat(rows[0][0]).isEqualTo("t1_view1");
         assertThat(rows[0][1]).isEqualTo(
-            "SELECT *\n" +
-            "FROM \"t1\"\n" +
-            "WHERE \"name\" = 'foo'\n");
+            """
+                SELECT *
+                FROM "t1"
+                WHERE "name" = 'foo'
+                """);
         assertThat(rows[1][0]).isEqualTo("t1_view2");
         assertThat(rows[1][1]).isEqualTo(
-            "SELECT \"id\"\n" +
-            "FROM \"t1\"\n" +
-            "WHERE \"name\" = 'foo'\n");
+            """
+                SELECT "id"
+                FROM "t1"
+                WHERE "name" = 'foo'
+                """);
 
         // SELECT information_schema.columns
         execute("SELECT table_name, column_name " +
@@ -213,12 +218,12 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testSearchInformationSchemaTablesRefresh() {
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(73L);
+        assertThat(response.rowCount()).isEqualTo(74L);
 
         execute("create table t4 (col1 integer, col2 string) with(number_of_replicas=0)");
 
         execute("select * from information_schema.tables");
-        assertThat(response.rowCount()).isEqualTo(74L);
+        assertThat(response.rowCount()).isEqualTo(75L);
     }
 
     @Test
@@ -439,14 +444,15 @@ public class InformationSchemaTest extends IntegTestCase {
             "users_pkey| PRIMARY KEY| users| sys"
         );
 
-        execute("CREATE TABLE test (\n" +
-                " col1 INTEGER constraint chk_1 check (col1 > 10),\n" +
-                " col2 INTEGER,\n" +
-                " col3 INT NOT NULL,\n" +
-                " col4 STRING,\n" +
-                " PRIMARY KEY(col1,col2),\n" +
-                " CONSTRAINT unnecessary_check CHECK (col2 != col1)\n" +
-                ")");
+        execute("""
+            CREATE TABLE test (
+             col1 INTEGER constraint chk_1 check (col1 > 10),
+             col2 INTEGER,
+             col3 INT NOT NULL,
+             col4 STRING,
+             PRIMARY KEY(col1,col2),
+             CONSTRAINT unnecessary_check CHECK (col2 != col1)
+            )""");
         ensureGreen();
         execute("SELECT constraint_type, constraint_name, table_name FROM information_schema.table_constraints " +
                 "WHERE table_schema = ?",
@@ -571,7 +577,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1058);
+        assertThat(response.rowCount()).isEqualTo(1065);
     }
 
     @Test
@@ -889,7 +895,7 @@ public class InformationSchemaTest extends IntegTestCase {
         execute("create table t3 (id integer, col1 string) clustered into 3 shards with(number_of_replicas=0)");
         execute("select count(*) from information_schema.tables");
         assertThat(response.rowCount()).isEqualTo(1);
-        assertThat(response.rows()[0][0]).isEqualTo(76L);
+        assertThat(response.rows()[0][0]).isEqualTo(77L);
     }
 
     @Test
