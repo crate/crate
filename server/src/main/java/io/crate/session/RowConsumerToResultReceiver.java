@@ -156,8 +156,12 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             // can arrive before batch is processed.
             // We mark "failed" close attempt so that it's done again
             // when portal is back to the suspended state after finishing a batch.
-            closeAttemptIgnored = true;
+            markToBeClosed();
         }
+    }
+
+    public void markToBeClosed() {
+        closeAttemptIgnored = true;
     }
 
     public boolean suspended() {
