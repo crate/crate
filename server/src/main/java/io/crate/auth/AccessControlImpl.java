@@ -278,6 +278,16 @@ public final class AccessControlImpl implements AccessControl {
             relation.accept(relationVisitor, new RelationContext(user, permission));
         }
 
+        private void hasALPrivileges(Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.AL,
+                Securable.CLUSTER,
+                null
+            );
+        }
+
         @Override
         protected Void visitAnalyzedStatement(AnalyzedStatement analyzedStatement, Role user) {
             throwRequiresSuperUserPermission(user.name());
@@ -306,7 +316,7 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitSwapTable(AnalyzedSwapTable swapTable, Role user) {
             Roles roles = relationVisitor.roles;
-            if (!roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null)) {
+            if (!roles.hasALPrivileges(user)) {
                 if (!roles.hasPrivilege(user, Permission.DDL, Securable.TABLE, swapTable.target().ident().fqn())
                     || !roles.hasPrivilege(user, Permission.DDL, Securable.TABLE, swapTable.source().ident().fqn())
                 ) {
@@ -318,25 +328,13 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitGCDanglingArtifacts(AnalyzedGCDanglingArtifacts gcDanglingArtifacts, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitRerouteRetryFailedStatement(AnalyzedRerouteRetryFailed rerouteRetryFailed, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
@@ -346,13 +344,7 @@ public final class AccessControlImpl implements AccessControl {
             if (analysis.roleName().equals(user.name())) {
                 return null;
             }
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
@@ -543,13 +535,7 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitSetStatement(AnalyzedSetStatement analysis, Role user) {
             if (analysis.scope().equals(SetStatement.Scope.GLOBAL)) {
-                Privileges.ensureUserHasPrivilege(
-                    relationVisitor.roles,
-                    user,
-                    Permission.AL,
-                    Securable.CLUSTER,
-                    null
-                );
+                hasALPrivileges(user);
             }
             return null;
         }
@@ -672,13 +658,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitResetAnalyzedStatement(AnalyzedResetStatement resetAnalyzedStatement, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
@@ -712,37 +692,19 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         protected Void visitAnalyzedCreateRole(AnalyzedCreateRole createRole, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         protected Void visitDropRole(AnalyzedDropRole dropRole, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitPrivilegesStatement(AnalyzedPrivileges changePrivileges, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             for (Privilege privilege : changePrivileges.privileges()) {
                 if (privilege.policy() == Policy.GRANT) {
                     Privileges.ensureUserHasPrivilege(
@@ -815,13 +777,7 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitCreatePublication(AnalyzedCreatePublication createPublication, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             // All tables cannot be checked on publication creation - they are checked before actual replication starts
             // and a table gets published only if publication owner has DQL, DML and DDL privileges on that table.
             for (RelationName relationName: createPublication.tables()) {
@@ -840,25 +796,13 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitDropPublication(AnalyzedDropPublication dropPublication, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitAlterPublication(AnalyzedAlterPublication alterPublication, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             for (RelationName relationName: alterPublication.tables()) {
                 for (Permission permission : READ_WRITE_DEFINE) {
                     Privileges.ensureUserHasPrivilege(
@@ -875,109 +819,55 @@ public final class AccessControlImpl implements AccessControl {
 
         @Override
         public Void visitCreateSubscription(AnalyzedCreateSubscription createSubscription, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitDropSubscription(AnalyzedDropSubscription dropSubscription, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitAlterSubscription(AnalyzedAlterSubscription alterSubscription, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitAnalyze(AnalyzedAnalyze analyzedAnalyze, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitCreateServer(AnalyzedCreateServer createServer, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitAlterServer(AnalyzedAlterServer analyzedAlterServer, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitDropServer(AnalyzedDropServer dropServer, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitCreateUserMapping(AnalyzedCreateUserMapping createUserMapping, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 
         @Override
         public Void visitDropUserMapping(AnalyzedDropUserMapping dropUserMapping, Role user) {
-            Privileges.ensureUserHasPrivilege(
-                relationVisitor.roles,
-                user,
-                Permission.AL,
-                Securable.CLUSTER,
-                null
-            );
+            hasALPrivileges(user);
             return null;
         }
 

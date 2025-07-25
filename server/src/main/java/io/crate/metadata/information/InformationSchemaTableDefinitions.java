@@ -33,7 +33,6 @@ import org.elasticsearch.common.inject.Singleton;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.metadata.RelationName;
-import io.crate.role.Permission;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
 
@@ -110,7 +109,7 @@ public class InformationSchemaTableDefinitions {
             Map.entry(
                 InformationSqlFeaturesTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, role) -> completedFuture(informationSchemaIterables.features()),
+                    (_, _) -> completedFuture(informationSchemaIterables.features()),
                     InformationSqlFeaturesTableInfo.INSTANCE.expressions(),
                     false
                 )
@@ -126,7 +125,7 @@ public class InformationSchemaTableDefinitions {
             Map.entry(
                 InformationReferentialConstraintsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, role) -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
+                    (_, _) -> completedFuture(informationSchemaIterables.referentialConstraintsInfos()),
                     InformationReferentialConstraintsTableInfo.INSTANCE.expressions(),
                     false
                 )
@@ -134,7 +133,7 @@ public class InformationSchemaTableDefinitions {
             Map.entry(
                 InformationCharacterSetsTable.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, role) -> completedFuture(Arrays.asList(new Void[]{null})),
+                    (_, _) -> completedFuture(Arrays.asList(new Void[]{null})),
                     InformationCharacterSetsTable.INSTANCE.expressions(),
                     false
                 )
@@ -142,7 +141,7 @@ public class InformationSchemaTableDefinitions {
             Map.entry(
                 InformationEnabledRolesTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, role) -> completedFuture(informationSchemaIterables.enabledRoles(role, roles)),
+                    (_, role) -> completedFuture(informationSchemaIterables.enabledRoles(role, roles)),
                     InformationEnabledRolesTableInfo.INSTANCE.expressions(),
                     false
                 )
@@ -150,7 +149,7 @@ public class InformationSchemaTableDefinitions {
             Map.entry(
                 InformationApplicableRolesTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, role) -> completedFuture(informationSchemaIterables.applicableRoles(role, roles)),
+                    (_, role) -> completedFuture(informationSchemaIterables.applicableRoles(role, roles)),
                     InformationApplicableRolesTableInfo.INSTANCE.expressions(),
                     false
                 )
@@ -158,7 +157,7 @@ public class InformationSchemaTableDefinitions {
             Map.entry(
                 InformationRoleTableGrantsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, role) -> completedFuture(informationSchemaIterables.roleTableGrants(role, roles)),
+                    (_, role) -> completedFuture(informationSchemaIterables.roleTableGrants(role, roles)),
                     InformationRoleTableGrantsTableInfo.INSTANCE.expressions(),
                     false
                 )
@@ -166,7 +165,7 @@ public class InformationSchemaTableDefinitions {
             Map.entry(
                 InformationAdministrableRoleAuthorizationsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, role) -> completedFuture(informationSchemaIterables.administrableRoleAuthorizations(role, roles)),
+                    (_, role) -> completedFuture(informationSchemaIterables.administrableRoleAuthorizations(role, roles)),
                     InformationAdministrableRoleAuthorizationsTableInfo.INSTANCE.expressions(),
                     false
                 )
@@ -207,16 +206,16 @@ public class InformationSchemaTableDefinitions {
                 UserMappingsTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     informationSchemaIterables::userMappings,
-                    (user, t) -> roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null),
+                    (user, _) -> roles.hasALPrivileges(user),
                     UserMappingsTableInfo.INSTANCE.expressions()
                 )
             ),
             Map.entry(
                 UserMappingOptionsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, user) -> completedFuture(
+                    (_, user) -> completedFuture(
                         () -> StreamSupport.stream(informationSchemaIterables.userMappingOptions().spliterator(), false)
-                            .filter(userMappingOptions -> roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
+                            .filter(_ -> roles.hasALPrivileges(user))
                             .map(userMappingOptions -> {
                                 if ((user.name().equals(userMappingOptions.userName()) || user.isSuperUser()) == false) {
                                     return new UserMappingOptionsTableInfo.UserMappingOptions(
