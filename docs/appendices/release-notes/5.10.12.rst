@@ -47,4 +47,5 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that caused having stuck ``sys.jobs`` entries when using PG
+  protocol and prepared statements.
