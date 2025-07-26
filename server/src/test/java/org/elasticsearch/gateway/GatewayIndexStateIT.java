@@ -339,7 +339,7 @@ public class GatewayIndexStateIT extends IntegTestCase {
                     }
 
                     @Override
-                    public Sessions sqlOperations() {
+                    public Sessions sessions() {
                         return cluster().getInstance(Sessions.class, otherNode);
                     }
                 };

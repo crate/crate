@@ -58,7 +58,7 @@ public class BulkInsertOnClientNodeTest extends IntegTestCase {
                 }
 
                 @Override
-                public Sessions sqlOperations() {
+                public Sessions sessions() {
                     return cluster().getInstance(Sessions.class, nodeName());
                 }
 
