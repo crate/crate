@@ -23,8 +23,10 @@ import static org.elasticsearch.index.seqno.SequenceNumbers.UNASSIGNED_SEQ_NO;
 
 import java.io.Closeable;
 import java.io.IOException;
+import java.io.PrintStream;
 import java.io.UncheckedIOException;
 import java.nio.channels.ClosedByInterruptException;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -56,6 +58,7 @@ import java.util.stream.StreamSupport;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.analysis.Analyzer;
+import org.apache.lucene.index.CheckIndex;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.Term;
@@ -82,8 +85,10 @@ import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedRunnable;
+import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
+import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.metrics.CounterMetric;
 import org.elasticsearch.common.metrics.MeanMetric;
 import org.elasticsearch.common.settings.Settings;
@@ -125,6 +130,8 @@ import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.PrimaryReplicaSyncer.ResyncTask;
 import org.elasticsearch.index.store.Store;
+import org.elasticsearch.index.store.Store.MetadataSnapshot;
+import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
@@ -145,6 +152,7 @@ import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.ObjectLongMap;
 
+import io.crate.common.Booleans;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
@@ -165,6 +173,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     private final QueryCache queryCache;
     private final Store store;
     private final Object mutex = new Object();
+    private final String checkIndexOnStartup;
     private final CodecService codecService;
     private final TranslogConfig translogConfig;
     private final IndexEventListener indexEventListener;
@@ -280,6 +289,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         /* create engine config */
         logger.debug("state: [CREATED]");
 
+        this.checkIndexOnStartup = indexSettings.getValue(IndexSettings.INDEX_CHECK_ON_STARTUP);
         this.translogConfig = new TranslogConfig(shardId, shardPath().resolveTranslog(), indexSettings, bigArrays);
         final String aId = shardRouting.allocationId().getId();
         final long primaryTerm = indexSettings.getIndexMetadata().primaryTerm(shardId.id());
@@ -1348,7 +1358,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             return UNASSIGNED_SEQ_NO;
         }
         try {
-            recoveryState.setStage(RecoveryState.Stage.VERIFY_INDEX);
+            maybeCheckIndex(); // check index here and won't do it again if ops-based recovery occurs
             recoveryState.setStage(RecoveryState.Stage.TRANSLOG);
             if (safeCommit.isPresent() == false) {
                 assert globalCheckpoint == UNASSIGNED_SEQ_NO :
@@ -1539,7 +1549,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      **/
     public void openEngineAndRecoverFromTranslog() throws IOException {
         recoveryState.validateCurrentStage(RecoveryState.Stage.INDEX);
-        recoveryState.setStage(RecoveryState.Stage.VERIFY_INDEX);
+        maybeCheckIndex();
         recoveryState.setStage(RecoveryState.Stage.TRANSLOG);
         final RecoveryState.Translog translogRecoveryStats = recoveryState.getTranslog();
         final Engine.TranslogRecoveryRunner translogRecoveryRunner = (engine, snapshot) -> {
@@ -2445,6 +2455,78 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
     public boolean pendingInSync() {
         assert assertPrimaryMode();
         return replicationTracker.pendingInSync();
+    }
+
+    public void maybeCheckIndex() {
+        recoveryState.setStage(RecoveryState.Stage.VERIFY_INDEX);
+        if (Booleans.isTrue(checkIndexOnStartup) || "checksum".equals(checkIndexOnStartup)) {
+            try {
+                checkIndex();
+            } catch (IOException ex) {
+                throw new RecoveryFailedException(recoveryState, "check index failed", ex);
+            }
+        }
+    }
+
+    void checkIndex() throws IOException {
+        if (store.tryIncRef()) {
+            try {
+                doCheckIndex();
+            } catch (IOException e) {
+                store.markStoreCorrupted(e);
+                throw e;
+            } finally {
+                store.decRef();
+            }
+        }
+    }
+
+    private void doCheckIndex() throws IOException {
+        final long timeNS = System.nanoTime();
+        if (!Lucene.indexExists(store.directory())) {
+            return;
+        }
+        BytesStreamOutput os = new BytesStreamOutput();
+        PrintStream out = new PrintStream(os, false, StandardCharsets.UTF_8.name());
+
+        if ("checksum".equals(checkIndexOnStartup)) {
+            // physical verification only: verify all checksums for the latest commit
+            IOException corrupt = null;
+            MetadataSnapshot metadata = snapshotStoreMetadata();
+            for (Map.Entry<String, StoreFileMetadata> entry : metadata.asMap().entrySet()) {
+                try {
+                    Store.checkIntegrity(entry.getValue(), store.directory());
+                    out.println("checksum passed: " + entry.getKey());
+                } catch (IOException exc) {
+                    out.println("checksum failed: " + entry.getKey());
+                    exc.printStackTrace(out);
+                    corrupt = exc;
+                }
+            }
+            out.flush();
+            if (corrupt != null) {
+                logger.warn("check index [failure]\n{}", os.bytes().utf8ToString());
+                throw corrupt;
+            }
+        } else {
+            // full checkindex
+            final CheckIndex.Status status = store.checkIndex(out);
+            out.flush();
+            if (!status.clean) {
+                if (state == IndexShardState.CLOSED) {
+                    // ignore if closed....
+                    return;
+                }
+                logger.warn("check index [failure]\n{}", os.bytes().utf8ToString());
+                throw new IOException("index check failure");
+            }
+        }
+
+        if (logger.isDebugEnabled()) {
+            logger.debug("check index [success]\n{}", os.bytes().utf8ToString());
+        }
+
+        recoveryState.getVerifyIndex().checkIndexTime(Math.max(0, TimeValue.nsecToMSec(System.nanoTime() - timeNS)));
     }
 
     Engine getEngine() {

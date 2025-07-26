@@ -140,6 +140,7 @@ import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.repositories.RepositoryData;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.test.CorruptionUtils;
 import org.elasticsearch.test.DummyShardLock;
 import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.test.store.MockFSDirectoryFactory;
@@ -1161,6 +1162,74 @@ public class IndexShardTests extends IndexShardTestCase {
     }
 
     @Test
+    public void testIndexCheckOnStartup() throws Exception {
+        IndexShard indexShard = newStartedShard(true);
+
+        long numDocs = between(10, 100);
+        for (long i = 0; i < numDocs; i++) {
+            indexDoc(indexShard, Long.toString(i), "{}");
+        }
+        indexShard.flush(false);
+        closeShards(indexShard);
+
+        ShardPath shardPath = indexShard.shardPath();
+
+        Path indexPath = shardPath.getDataPath().resolve(ShardPath.INDEX_FOLDER_NAME);
+        CorruptionUtils.corruptIndex(random(), indexPath, false);
+
+        AtomicInteger corruptedMarkerCount = new AtomicInteger();
+         SimpleFileVisitor<Path> corruptedVisitor = new SimpleFileVisitor<>() {
+             @Override
+             public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                 if (Files.isRegularFile(file) && file.getFileName().toString().startsWith(Store.CORRUPTED_MARKER_NAME_PREFIX)) {
+                     corruptedMarkerCount.incrementAndGet();
+                 }
+                 return FileVisitResult.CONTINUE;
+             }
+         };
+        Files.walkFileTree(indexPath, corruptedVisitor);
+
+        assertThat(corruptedMarkerCount.get()).as("corruption marker should not be there").isEqualTo(0);
+
+        ShardRouting shardRouting = ShardRoutingHelper.initWithSameId(
+            indexShard.routingEntry(),
+            RecoverySource.ExistingStoreRecoverySource.INSTANCE
+        );
+        // start shard and perform index check on startup. It enforce shard to fail due to corrupted index files
+        IndexMetadata indexMetadata = IndexMetadata.builder(
+            indexShard.indexSettings().getIndexMetadata()).settings(
+                Settings.builder()
+                    .put(indexShard.indexSettings.getSettings())
+                    .put(IndexSettings.INDEX_CHECK_ON_STARTUP.getKey(), randomFrom("true", "checksum")))
+            .build();
+
+        IndexShard corruptedShard = newShard(
+            shardRouting,
+            shardPath,
+            indexMetadata,
+            null,
+            indexShard.engineFactoryProviders(),
+            indexShard.getGlobalCheckpointSyncer(),
+            indexShard.getRetentionLeaseSyncer(),
+            EMPTY_EVENT_LISTENER
+        );
+
+        assertThatThrownBy(() -> newStartedShard(p -> corruptedShard, true))
+            .isExactlyInstanceOf(IndexShardRecoveryException.class)
+            .hasMessage("failed recovery");
+
+        // check that corrupt marker is there
+        Files.walkFileTree(indexPath, corruptedVisitor);
+        assertThat(corruptedMarkerCount.get()).as("store has to be marked as corrupted").isEqualTo(1);
+
+        try {
+            closeShards(corruptedShard);
+        } catch (RuntimeException e) {
+            // Ignored because corrupted shard can throw various exceptions on close
+        }
+    }
+
+    @Test
     public void testShardDoesNotStartIfCorruptedMarkerIsPresent() throws Exception {
         IndexShard indexShard = newStartedShard(true);
 
@@ -1239,6 +1308,96 @@ public class IndexShardTests extends IndexShardTestCase {
         corruptedMarkerCount.set(0);
         Files.walkFileTree(indexPath, corruptedVisitor);
         assertThat(corruptedMarkerCount.get()).as("store still has a single corrupt marker").isEqualTo(1);
+    }
+
+    /**
+     * Simulates a scenario that happens when we are async fetching snapshot metadata from GatewayService
+     * and checking index concurrently. This should always be possible without any exception.
+     */
+    @Test
+    public void testReadSnapshotAndCheckIndexConcurrently() throws Exception {
+        final boolean isPrimary = randomBoolean();
+        IndexShard indexShard = newStartedShard(isPrimary);
+        final long numDocs = between(10, 100);
+        for (long i = 0; i < numDocs; i++) {
+            indexDoc(indexShard, Long.toString(i), "{}");
+            if (randomBoolean()) {
+                indexShard.refresh("test");
+            }
+        }
+        indexShard.flush(false);
+        closeShards(indexShard);
+
+        ShardRouting shardRouting = ShardRoutingHelper.initWithSameId(
+            indexShard.routingEntry(),
+            isPrimary
+                ? RecoverySource.ExistingStoreRecoverySource.INSTANCE
+                : RecoverySource.PeerRecoverySource.INSTANCE
+        );
+        IndexMetadata indexMetadata = IndexMetadata
+            .builder(indexShard.indexSettings().getIndexMetadata())
+            .settings(
+                Settings.builder()
+                    .put(indexShard.indexSettings.getSettings())
+                    .put(IndexSettings.INDEX_CHECK_ON_STARTUP.getKey(), randomFrom("false", "true", "checksum")))
+            .build();
+        IndexShard newShard = newShard(
+            shardRouting,
+            indexShard.shardPath(),
+            indexMetadata,
+            null,
+            indexShard.engineFactoryProviders,
+            indexShard.getGlobalCheckpointSyncer(),
+            indexShard.getRetentionLeaseSyncer(),
+            EMPTY_EVENT_LISTENER
+        );
+
+        Store.MetadataSnapshot storeFileMetadatas = newShard.snapshotStoreMetadata();
+        assertThat(storeFileMetadatas.size())
+            .as("at least 2 files, commit and data: " + storeFileMetadatas.toString())
+            .isGreaterThan(1);
+        AtomicBoolean stop = new AtomicBoolean(false);
+        CountDownLatch latch = new CountDownLatch(1);
+        Thread snapshotter = new Thread(() -> {
+            latch.countDown();
+            while (stop.get() == false) {
+                try {
+                    Store.MetadataSnapshot readMeta = newShard.snapshotStoreMetadata();
+                    assertThat(readMeta.getNumDocs()).isEqualTo(numDocs);
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).different).hasSize(0);
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).missing).hasSize(0);
+                    assertThat(storeFileMetadatas.recoveryDiff(readMeta).identical.size())
+                        .isEqualTo(storeFileMetadatas.size());
+                } catch (IOException e) {
+                    throw new AssertionError(e);
+                }
+            }
+        });
+        snapshotter.start();
+
+        if (isPrimary) {
+            newShard.markAsRecovering(
+                "store",
+                new RecoveryState(
+                    newShard.routingEntry(),
+                    getFakeDiscoNode(newShard.routingEntry().currentNodeId()), null));
+        } else {
+            newShard.markAsRecovering(
+                "peer",
+                new RecoveryState(
+                    newShard.routingEntry(),
+                    getFakeDiscoNode(newShard.routingEntry().currentNodeId()),
+                    getFakeDiscoNode(newShard.routingEntry().currentNodeId()))
+            );
+        }
+        int iters = iterations(10, 100);
+        latch.await();
+        for (int i = 0; i < iters; i++) {
+            newShard.checkIndex();
+        }
+        assertThat(stop.compareAndSet(false, true)).isTrue();
+        snapshotter.join();
+        closeShards(newShard);
     }
 
     @Test
