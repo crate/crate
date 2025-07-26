@@ -1203,8 +1203,8 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
                         }
 
                         final StatusInfo statusInfo = nodeHealthService.getHealth();
-                        if (statusInfo.getStatus() == UNHEALTHY) {
-                            LOGGER.debug("skip prevoting as local node is unhealthy: [{}]", statusInfo.getInfo());
+                        if (statusInfo.status() == UNHEALTHY) {
+                            LOGGER.debug("skip prevoting as local node is unhealthy: [{}]", statusInfo.info());
                             return;
                         }
 

@@ -57,8 +57,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionModule;
-import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
@@ -248,10 +246,10 @@ public class Node implements Closeable {
             key,
             "",
             value -> {
-                if (value.length() > 0 && (Character.isWhitespace(value.charAt(0)) || Character.isWhitespace(value.charAt(value.length() - 1)))) {
+                if (!value.isEmpty() && (Character.isWhitespace(value.charAt(0)) || Character.isWhitespace(value.charAt(value.length() - 1)))) {
                     throw new IllegalArgumentException(key + " cannot have leading or trailing whitespace " + "[" + value + "]");
                 }
-                if (value.length() > 0 && "node.attr.server_name".equals(key)) {
+                if (!value.isEmpty() && "node.attr.server_name".equals(key)) {
                     try {
                         new SNIHostName(value);
                     } catch (IllegalArgumentException e) {
@@ -295,6 +293,7 @@ public class Node implements Closeable {
      * @param environment                the environment for this node
      * @param classpathPlugins           the plugins to be loaded from the classpath
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Node(final Environment environment, Collection<Class<? extends Plugin>> classpathPlugins) {
         logger = LogManager.getLogger(Node.class);
         final List<Closeable> resourcesToClose = new ArrayList<>(); // register everything we need to release in the case of an error
@@ -848,15 +847,14 @@ public class Node implements Closeable {
             // reroute, which needs to call into the allocation service. We close the loop here:
             clusterModule.setExistingShardsAllocators(injector.getInstance(GatewayAllocator.class));
 
-            List<LifecycleComponent> pluginLifecycleComponents = pluginComponents.stream()
+            this.pluginLifecycleComponents = pluginComponents.stream()
                 .filter(p -> p instanceof LifecycleComponent)
                 .map(p -> (LifecycleComponent) p).collect(Collectors.toList());
             pluginLifecycleComponents.addAll(pluginsService.getGuiceServiceClasses().stream()
-                                                 .map(injector::getInstance).collect(Collectors.toList()));
+                                                 .map(injector::getInstance).toList());
             resourcesToClose.addAll(pluginLifecycleComponents);
             resourcesToClose.add(injector.getInstance(PeerRecoverySourceService.class));
-            this.pluginLifecycleComponents = Collections.unmodifiableList(pluginLifecycleComponents);
-            client.initialize(injector.getInstance(new Key<Map<ActionType, TransportAction>>() {}));
+            client.initialize(injector.getInstance(new Key<>() {}));
 
             logger.info("initialized");
 

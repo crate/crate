@@ -118,8 +118,8 @@ public class PreVoteCollector {
         final PreVoteResponse response = state.preVoteResponse();
 
         final StatusInfo statusInfo = nodeHealthService.getHealth();
-        if (statusInfo.getStatus() == UNHEALTHY) {
-            String message = "rejecting " + request + " on unhealthy node: [" + statusInfo.getInfo() + "]";
+        if (statusInfo.status() == UNHEALTHY) {
+            String message = "rejecting " + request + " on unhealthy node: [" + statusInfo.info() + "]";
             LOGGER.debug(message);
             throw new NodeHealthCheckFailureException(message);
         }
