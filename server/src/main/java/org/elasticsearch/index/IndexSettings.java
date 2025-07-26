@@ -65,6 +65,18 @@ public final class IndexSettings {
                       Property.IndexScope,
                       Property.ReplicatedIndexScope);
 
+    public static final Setting<String> INDEX_CHECK_ON_STARTUP = new Setting<>("index.shard.check_on_startup", "false", (s) -> {
+        switch (s) {
+            case "false":
+            case "true":
+            case "fix":
+            case "checksum":
+                return s;
+            default:
+                throw new IllegalArgumentException("unknown value for [index.shard.check_on_startup] must be one of [true, false, fix, checksum] but was: " + s);
+        }
+    }, DataTypes.STRING, Property.IndexScope);
+
     /**
      * Index setting describing for NGramTokenizer and NGramTokenFilter
      * the maximum difference between
