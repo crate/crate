@@ -22,6 +22,7 @@ import java.util.Random;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.test.TestCluster;
@@ -102,8 +103,9 @@ public class SlowClusterStateProcessing extends SingleNodeDisruption {
             return false;
         }
         final AtomicBoolean stopped = new AtomicBoolean(false);
-        clusterService.getClusterApplierService().runOnApplierThread("service_disruption_delay",
-            currentState -> {
+        clusterService.getClusterApplierService().runOnApplierThread(
+            "service_disruption_delay",
+            _ -> {
                 try {
                     long count = duration.millis() / 200;
                     // wait while checking for a stopped
@@ -117,7 +119,11 @@ public class SlowClusterStateProcessing extends SingleNodeDisruption {
                 } catch (InterruptedException e) {
                     throw Exceptions.toRuntimeException(e);
                 }
-            }, (source, e) -> countDownLatch.countDown(),
+            },
+            ActionListener.wrap(
+                _ -> {},
+                _ -> countDownLatch.countDown()
+            ),
             Priority.IMMEDIATE);
         try {
             countDownLatch.await();

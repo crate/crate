@@ -59,6 +59,7 @@ import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -569,7 +570,10 @@ public class IndicesService extends AbstractLifecycleComponent
                             backoffIt
                         );
                     },
-                    (_, e1) -> result.completeExceptionally(e1),
+                    ActionListener.wrap(
+                        _ -> {},
+                        e1 -> result.completeExceptionally(e1)
+                    ),
                     Priority.NORMAL
                 );
             };
