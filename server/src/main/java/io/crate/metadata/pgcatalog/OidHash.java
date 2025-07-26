@@ -56,9 +56,8 @@ public final class OidHash {
 
         public static Type fromRelationType(RelationInfo.RelationType type) {
             return switch (type) {
-                case BASE_TABLE -> OidHash.Type.TABLE;
+                case BASE_TABLE, FOREIGN -> OidHash.Type.TABLE;
                 case VIEW -> OidHash.Type.VIEW;
-                case FOREIGN -> OidHash.Type.TABLE;
             };
         }
     }
@@ -78,21 +77,21 @@ public final class OidHash {
     }
 
     public static int schemaOid(String name) {
-        return oid(Type.SCHEMA.toString() + name);
+        return oid(Type.SCHEMA + name);
     }
 
     public static int primaryKeyOid(RelationName name, List<ColumnIdent> primaryKeys) {
         var primaryKey = Lists.joinOn(" ", primaryKeys, ColumnIdent::name);
-        return oid(Type.PRIMARY_KEY.toString() + name.fqn() + primaryKey);
+        return oid(Type.PRIMARY_KEY + name.fqn() + primaryKey);
     }
 
     public static int constraintOid(String relationName, String constraintName, String constraintType) {
-        return oid(Type.CONSTRAINT.toString() + relationName + constraintName + constraintType);
+        return oid(Type.CONSTRAINT + relationName + constraintName + constraintType);
     }
 
     public static int functionOid(Signature sig) {
         FunctionName name = sig.getName();
-        return oid(Type.PROC.toString() + name.schema() + name.name() + argTypesToStr(sig.getArgumentTypes()));
+        return oid(Type.PROC + name.schema() + name.name() + argTypesToStr(sig.getArgumentTypes()));
     }
 
     public static int publicationOid(String name, Publication publication) {
@@ -114,7 +113,7 @@ public final class OidHash {
         return Lists.joinOn(" ", typeSignatures, ts -> {
             try {
                 return ts.createType().getName();
-            } catch (IllegalArgumentException i) {
+            } catch (IllegalArgumentException e) {
                 // generic signatures, e.g. E, array(E)
                 String baseName = ts.getBaseTypeName();
                 List<TypeSignature> innerTs = ts.getParameters();

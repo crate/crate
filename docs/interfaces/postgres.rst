@@ -153,6 +153,7 @@ following tables:
 - `pg_am`_
 - `pg_attrdef <pgsql_pg_attrdef_>`__
 - `pg_attribute <pgsql_pg_attribute_>`__
+- `pg_auth_members`_
 - `pg_class <pgsql_pg_class_>`__
 - `pg_constraint <pgsql_pg_constraint_>`__
 - `pg_cursors <pgsql_pg_cursors_>`__
@@ -531,6 +532,7 @@ CrateDB and we love to hear feedback.
 .. _pg_enum: https://www.postgresql.org/docs/14/catalog-pg-enum.html
 .. _pg_range: https://www.postgresql.org/docs/14/catalog-pg-range.html
 .. _pg_roles: https://www.postgresql.org/docs/14/view-pg-roles.html
+.. _pg_auth_members: https://www.postgresql.org/docs/17/catalog-pg-auth-members.html
 .. _pg_tables: https://www.postgresql.org/docs/14/view-pg-tables.html
 .. _pg_tablespace: https://www.postgresql.org/docs/14/catalog-pg-tablespace.html
 .. _pg_views: https://www.postgresql.org/docs/14/view-pg-views.html
