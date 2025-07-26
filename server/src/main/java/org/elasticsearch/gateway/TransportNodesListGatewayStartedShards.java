@@ -117,6 +117,7 @@ public class TransportNodesListGatewayStartedShards extends
 
     @Override
     protected NodeGatewayStartedShards nodeOperation(NodeRequest request) {
+        // TODO:
         try {
             final ShardId shardId = request.getShardId();
             logger.trace("{} loading local shard state info", shardId);
