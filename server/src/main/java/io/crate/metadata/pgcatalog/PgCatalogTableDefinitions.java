@@ -30,6 +30,8 @@ import java.util.Map;
 
 import org.elasticsearch.common.inject.Inject;
 
+import io.crate.metadata.RelationInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.session.Sessions;
 import io.crate.execution.engine.collect.sources.InformationSchemaIterables;
 import io.crate.expression.reference.StaticTableDefinition;
@@ -62,6 +64,7 @@ public final class PgCatalogTableDefinitions {
                                      LogicalReplicationService logicalReplicationService,
                                      Roles roles) {
         Schemas schemas = nodeContext.schemas();
+
         Iterable<PgSubscriptionTable.SubscriptionRow> subscriptionRows =
             () -> logicalReplicationService.subscriptions().entrySet().stream()
                 .map(e -> new PgSubscriptionTable.SubscriptionRow(e.getKey(), e.getValue()))
@@ -71,9 +74,13 @@ public final class PgCatalogTableDefinitions {
                 .map(e -> new PgPublicationTable.PublicationRow(e.getKey(), e.getValue()))
                 .iterator();
 
+        Iterable<RelationName> docTableRelationNames =
+            () -> InformationSchemaIterables.tablesStream(schemas)
+            .filter(x -> x instanceof DocTableInfo).map(RelationInfo::ident).iterator();
+
         tableDefinitions = Map.ofEntries(
             Map.entry(PgStatsTable.NAME, new StaticTableDefinition<>(
-                    tableStats::statsEntries,
+                    () -> tableStats.statsEntries(docTableRelationNames),
                     (user, t) -> roles.hasAnyPrivilege(user, Securable.TABLE, t.relation().fqn()),
                     PgStatsTable.INSTANCE.expressions()
                 )

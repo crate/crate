@@ -43,7 +43,7 @@ public final class PublishTableStatsRequest extends TransportRequest {
         int numRelations = in.readVInt();
         statsByRelation = HashMap.newHashMap(numRelations);
         for (int i = 0; i < numRelations; i++) {
-            statsByRelation.put(new RelationName(in), new Stats(in));
+            statsByRelation.put(new RelationName(in), Stats.readFrom(in));
         }
     }
 

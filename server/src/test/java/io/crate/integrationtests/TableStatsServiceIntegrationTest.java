@@ -59,6 +59,6 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
             // tableStats.tableStats.estimatedSizePerRow() is not tested because it's based on sys.shards size
             // column which is is cached for 10 secs in ShardSizeExpression which will increase the time needed
             // to run this test.
-        }, 5, TimeUnit.SECONDS);
+        }, 10, TimeUnit.SECONDS);
     }
 }

@@ -55,7 +55,8 @@ public class IterativeOptimizerTest {
 
     private final NodeContext nodeCtx = createNodeContext();
     private final CoordinatorTxnCtx ctx = CoordinatorTxnCtx.systemTransactionContext();
-    private final PlanStats planStats = new PlanStats(nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), new TableStats());
+    private final TableStats tableStats = new TableStats();
+    private final PlanStats planStats = new PlanStats(nodeCtx, CoordinatorTxnCtx.systemTransactionContext(), tableStats);
 
     @Test
     public void test_match_single_rule_merge_filters() {

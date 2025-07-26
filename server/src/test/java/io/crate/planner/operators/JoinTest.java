@@ -406,7 +406,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         Map<RelationName, Stats> stats = new HashMap<>();
         stats.put(T3.T1, new Stats(23, 64, Map.of()));
         stats.put(T3.T4, new Stats(42, 64, Map.of()));
-        tableStats.updateTableStats(stats);
+        tableStats.updateTableStats(stats::get);
 
         // rebuild executor + cluster state with 1 node
         resetClusterService();

@@ -72,7 +72,7 @@ public final class TransportAnalyzeAction {
                                   ReservoirSampler reservoirSampler,
                                   NodeContext nodeContext,
                                   ClusterService clusterService,
-                                  TableStats tableStats,
+                                  TableStatsService tableStatsService,
                                   ThreadPool threadPool) {
         this.transportService = transportService;
         this.schemas = nodeContext.schemas();
@@ -115,7 +115,7 @@ public final class TransportAnalyzeAction {
             // Explicit generic is required for eclipse JDT, otherwise it won't compile
             new NodeActionRequestHandler<PublishTableStatsRequest, AcknowledgedResponse>(
                 req -> {
-                    tableStats.updateTableStats(req.tableStats());
+                    tableStatsService.update(req.tableStats());
                     return completedFuture(new AcknowledgedResponse(true));
                 }
             )

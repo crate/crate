@@ -319,7 +319,7 @@ public class SQLExecutor {
             }
             addNodesToClusterState(clusterService, numNodes);
             final Settings settings = Settings.EMPTY;
-            var tableStats = new TableStats();
+            TableStats tableStats = new TableStats();
             var sessionSettingRegistry = new SessionSettingRegistry(Set.of(LoadedRules.INSTANCE));
             AtomicReference<RelationAnalyzer> relationAnalyzerRef = new AtomicReference<>(null);
             Path homeDir = CrateLuceneTestCase.createTempDir();
@@ -397,7 +397,6 @@ public class SQLExecutor {
                         settings,
                         clusterService,
                         nodeCtx,
-                        tableStats,
                         null,
                         null,
                         roleManager,
@@ -654,7 +653,7 @@ public class SQLExecutor {
     }
 
     public void updateTableStats(Map<RelationName, Stats> stats) {
-        tableStats.updateTableStats(stats);
+        tableStats.updateTableStats(stats::get);
     }
 
     public PlanStats planStats() {
