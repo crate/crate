@@ -34,6 +34,7 @@ public final class Portal {
     private String portalName;
     private final PreparedStmt preparedStmt;
     private final List<Object> params;
+    private boolean closeAttemptIgnored = false;
 
     @Nullable
     private final FormatCodes.FormatCode[] resultFormatCodes;
@@ -72,7 +73,11 @@ public final class Portal {
     }
 
     public void setActiveConsumer(RowConsumerToResultReceiver consumer) {
+        if (closeAttemptIgnored) {
+            consumer.markToBeClosed();
+        }
         this.consumer = consumer;
+
     }
 
     @Nullable
@@ -83,6 +88,8 @@ public final class Portal {
     public void closeActiveConsumer() {
         if (consumer != null) {
             consumer.closeAndFinishIfSuspended();
+        } else {
+            closeAttemptIgnored = true;
         }
     }
 

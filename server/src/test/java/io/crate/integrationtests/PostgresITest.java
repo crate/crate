@@ -970,6 +970,21 @@ public class PostgresITest extends IntegTestCase {
     }
 
     @Test
+    public void testExecuteBatchDoesNotLeakSysJobsLog() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            PreparedStatement stmt = conn.prepareStatement("SELECT ?");
+            for (int i = 1; i <= 3; i++) {
+                stmt.setInt(1, i);
+                stmt.addBatch();
+            }
+            stmt.executeBatch();
+        }
+        for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
+            assertBusy(() -> assertThat(jobsLogService.get().activeJobs()).isEmpty());
+        }
+    }
+
+    @Test
     public void test_insert_with_on_conflict_do_nothing_batch_error_resp_is_0_for_conflicting_items() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.prepareStatement("create table t (id int primary key) clustered into 1 shards").execute();
