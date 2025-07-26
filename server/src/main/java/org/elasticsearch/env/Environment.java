@@ -23,6 +23,7 @@ import static io.crate.types.DataTypes.STRING_ARRAY;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
+import java.net.URI;
 import java.net.URISyntaxException;
 import java.net.URL;
 import java.nio.file.FileStore;
@@ -203,7 +204,7 @@ public class Environment {
     public URL resolveRepoURL(URL url) {
         try {
             if ("file".equalsIgnoreCase(url.getProtocol())) {
-                if (url.getHost() == null || "".equals(url.getHost())) {
+                if (url.getHost() == null || url.getHost().isEmpty()) {
                     // only local file urls are supported
                     Path path = PathUtils.get(repoFiles, url.toURI());
                     if (path == null) {
@@ -222,20 +223,18 @@ public class Environment {
                 }
                 String jarTail = file.substring(pos);
                 String filePath = file.substring(0, pos);
-                URL internalUrl = new URL(filePath);
+                URL internalUrl = URI.create(filePath).toURL();
                 URL normalizedUrl = resolveRepoURL(internalUrl);
                 if (normalizedUrl == null) {
                     return null;
                 }
-                return new URL("jar", "", normalizedUrl.toExternalForm() + jarTail);
+                return new URI("jar", "", normalizedUrl.toExternalForm(), jarTail).toURL();
             } else {
                 // It's not file or jar url and it didn't match the white list - reject
                 return null;
             }
-        } catch (MalformedURLException ex) {
+        } catch (MalformedURLException | URISyntaxException ignored) {
             // cannot make sense of this file url
-            return null;
-        } catch (URISyntaxException ex) {
             return null;
         }
     }

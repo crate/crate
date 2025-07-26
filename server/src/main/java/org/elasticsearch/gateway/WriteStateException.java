@@ -19,9 +19,7 @@
 
 package org.elasticsearch.gateway;
 
-import java.io.IOError;
 import java.io.IOException;
-import java.io.UncheckedIOException;
 
 /**
  * This exception is thrown when there is a problem of writing state to disk.
@@ -40,17 +38,5 @@ public class WriteStateException extends IOException {
      */
     public boolean isDirty() {
         return dirty;
-    }
-
-    /**
-     * Rethrows this {@link WriteStateException} as {@link IOError} if dirty flag is set, which will lead to JVM shutdown.
-     * If dirty flag is not set, this exception is wrapped into {@link UncheckedIOException}.
-     */
-    public void rethrowAsErrorOrUncheckedException() {
-        if (isDirty()) {
-            throw new IOError(this);
-        } else {
-            throw new UncheckedIOException(this);
-        }
     }
 }

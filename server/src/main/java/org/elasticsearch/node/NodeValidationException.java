@@ -19,9 +19,9 @@
 
 package org.elasticsearch.node;
 
-import org.elasticsearch.common.transport.BoundTransportAddress;
-
 import java.util.List;
+
+import org.elasticsearch.common.transport.BoundTransportAddress;
 
 /**
  * An exception thrown during node validation. Node validation runs immediately before a node
@@ -40,5 +40,4 @@ public class NodeValidationException extends Exception {
     public NodeValidationException(final String message) {
         super(message);
     }
-
 }

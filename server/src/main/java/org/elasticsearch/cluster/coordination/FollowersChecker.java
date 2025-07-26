@@ -165,9 +165,9 @@ public class FollowersChecker {
 
     private void handleFollowerCheck(FollowerCheckRequest request, TransportChannel transportChannel) throws IOException {
         final StatusInfo statusInfo = nodeHealthService.getHealth();
-        if (statusInfo.getStatus() == UNHEALTHY) {
+        if (statusInfo.status() == UNHEALTHY) {
             final String message
-                = "handleFollowerCheck: node is unhealthy [" + statusInfo.getInfo() + "], rejecting " + statusInfo.getInfo();
+                = "handleFollowerCheck: node is unhealthy [" + statusInfo.info() + "], rejecting " + statusInfo.info();
             LOGGER.debug(message);
             throw new NodeHealthCheckFailureException(message);
         }
