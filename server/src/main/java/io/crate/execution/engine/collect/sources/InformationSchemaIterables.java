@@ -79,7 +79,6 @@ import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.protocols.postgres.types.PGTypes;
-import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
@@ -393,7 +392,7 @@ public class InformationSchemaIterables {
 
 
     public Iterable<String> enabledRoles(Role role, Roles roles) {
-        boolean isAdmin = roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null);
+        boolean isAdmin = roles.hasALPrivileges(role);
         return () -> Iterators.concat(
             List.of(role.name()).iterator(),
             applicableRoles(role, roles, isAdmin)
@@ -404,12 +403,12 @@ public class InformationSchemaIterables {
     }
 
     public Iterable<ApplicableRole> administrableRoleAuthorizations(Role role, Roles roles) {
-        boolean isAdmin = roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null);
+        boolean isAdmin = roles.hasALPrivileges(role);
         return () -> applicableRoles(role, roles, isAdmin).filter(ApplicableRole::isGrantable).iterator();
     }
 
     public Iterable<ApplicableRole> applicableRoles(Role role, Roles roles) {
-        boolean isAdmin = roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null);
+        boolean isAdmin = roles.hasALPrivileges(role);
         return () -> applicableRoles(role, roles, isAdmin).iterator();
     }
 
@@ -427,7 +426,7 @@ public class InformationSchemaIterables {
     }
 
     public Iterable<RoleTableGrant> roleTableGrants(Role role, Roles roles) {
-        boolean isAdmin = roles.hasPrivilege(role, Permission.AL, Securable.CLUSTER, null);
+        boolean isAdmin = roles.hasALPrivileges(role);
         return () -> roleTableGrants(role, role, roles, isAdmin).distinct().iterator();
     }
 

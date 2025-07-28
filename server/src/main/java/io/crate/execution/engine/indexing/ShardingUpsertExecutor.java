@@ -117,6 +117,7 @@ public class ShardingUpsertExecutor
                            Function<ShardId, ShardUpsertRequest> requestFactory,
                            List<? extends CollectExpression<Row, ?>> expressions,
                            Supplier<String> indexNameResolver,
+                           Supplier<String> indexUUIDResolver,
                            boolean autoCreateIndices,
                            Client elasticsearchClient,
                            int targetTableNumShards,
@@ -141,6 +142,7 @@ public class ShardingUpsertExecutor
             constraintsChecker,
             rowShardResolver,
             indexNameResolver,
+            indexUUIDResolver,
             expressions,
             itemFactory,
             autoCreateIndices,
@@ -301,7 +303,7 @@ public class ShardingUpsertExecutor
         return executor.consumeIteratorAndExecute()
             .thenApply(upsertResults -> resultCollector.finisher().apply(upsertResults))
             .whenComplete((res, err) -> {
-                nodeLimit.onSample(startTime, err != null);
+                nodeLimit.onSample(startTime);
             });
     }
 
@@ -343,7 +345,7 @@ public class ShardingUpsertExecutor
 
         @Override
         public void onResponse(ShardResponse shardResponse) {
-            nodeLimit.onSample(startTime, false);
+            nodeLimit.onSample(startTime);
             resultAccumulator.accept(upsertResults, shardResponse, rowSourceInfos);
             var failure = shardResponse.failure();
             if (failure != null) {
@@ -356,7 +358,7 @@ public class ShardingUpsertExecutor
 
         @Override
         public void onFailure(Exception e) {
-            nodeLimit.onSample(startTime, true);
+            nodeLimit.onSample(startTime);
             countdown();
         }
 

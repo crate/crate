@@ -38,6 +38,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -117,33 +118,37 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testCurrentSchemas() throws Exception {
         Metadata metadata = Metadata.builder()
-            .put(IndexMetadata.builder("doc.d1")
+            .put(IndexMetadata.builder(UUIDs.randomBase64UUID())
                 .state(IndexMetadata.State.OPEN)
                 .settings(Settings.builder()
                     .put(SETTING_NUMBER_OF_SHARDS, 1)
                     .put(SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
+                .indexName("doc.d1")
                 .build(), true)
-            .put(IndexMetadata.builder("doc.d2")
+            .put(IndexMetadata.builder(UUIDs.randomBase64UUID())
                 .state(IndexMetadata.State.CLOSE)
                 .settings(Settings.builder()
                     .put(SETTING_NUMBER_OF_SHARDS, 1)
                     .put(SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
+                .indexName("doc.d2")
                 .build(), true)
-            .put(IndexMetadata.builder("foo.f1")
+            .put(IndexMetadata.builder(UUIDs.randomBase64UUID())
                 .state(IndexMetadata.State.CLOSE)
                 .settings(Settings.builder()
                     .put(SETTING_NUMBER_OF_SHARDS, 1)
                     .put(SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
+                .indexName("foo.f1")
                 .build(), true)
-            .put(IndexMetadata.builder("foo.f2")
+            .put(IndexMetadata.builder(UUIDs.randomBase64UUID())
                 .state(IndexMetadata.State.OPEN)
                 .settings(Settings.builder()
                     .put(SETTING_NUMBER_OF_SHARDS, 1)
                     .put(SETTING_NUMBER_OF_REPLICAS, 0)
                     .put(SETTING_VERSION_CREATED, Version.CURRENT))
+                .indexName("foo.f2")
                 .build(), true)
             .build();
         metadata = metadataUpgradeService.upgradeMetadata(metadata);

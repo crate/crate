@@ -44,7 +44,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -60,8 +59,8 @@ public abstract class StoredRowLookup implements StoredRow {
 
     public static final Version PARTIAL_STORED_SOURCE_VERSION = Version.V_5_10_0;
 
-    private final PartitionName partitionName;
     protected final DocTableInfo table;
+    private final List<String> partitionValues;
 
     protected int doc;
     protected ReaderContext readerContext;
@@ -69,21 +68,21 @@ public abstract class StoredRowLookup implements StoredRow {
     protected Map<String, Object> parsedSource = null;
 
 
-    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, String indexName) {
-        return create(shardCreatedVersion, table, indexName, List.of(), false);
+    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, List<String> partitionValues) {
+        return create(shardCreatedVersion, table, partitionValues, List.of(), false);
     }
 
-    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, String indexName, List<Symbol> columns, boolean fromTranslog) {
+    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, List<String> partitionValues, List<Symbol> columns, boolean fromTranslog) {
         if (shardCreatedVersion.before(PARTIAL_STORED_SOURCE_VERSION) || fromTranslog) {
-            return new FullStoredRowLookup(table, indexName, columns);
+            return new FullStoredRowLookup(table, partitionValues, columns);
         }
-        return new ColumnAndStoredRowLookup(table, shardCreatedVersion, indexName, columns);
+        return new ColumnAndStoredRowLookup(table, shardCreatedVersion, partitionValues, columns);
     }
 
-    private StoredRowLookup(DocTableInfo table, String indexName) {
+    private StoredRowLookup(DocTableInfo table, List<String> partitionValues) {
         this.table = table;
-        this.partitionName = table.isPartitioned() ? PartitionName.fromIndexOrTemplate(indexName) : null;
-        assert partitionName == null || partitionName.values().size() == table.partitionedBy().size()
+        this.partitionValues = partitionValues;
+        assert partitionValues == null || partitionValues.size() == table.partitionedBy().size()
             : "PartitionName must have values for each partitionedBy column";
     }
 
@@ -91,7 +90,7 @@ public abstract class StoredRowLookup implements StoredRow {
         List<ColumnIdent> partitionedBy = table.partitionedBy();
         for (int i = 0; i < partitionedBy.size(); i++) {
             ColumnIdent columnIdent = partitionedBy.get(i);
-            Maps.mergeInto(input, columnIdent.name(), columnIdent.path(), partitionName.values().get(i));
+            Maps.mergeInto(input, columnIdent.name(), columnIdent.path(), partitionValues.get(i));
         }
         return input;
     }
@@ -150,8 +149,8 @@ public abstract class StoredRowLookup implements StoredRow {
         private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
         private final SourceParser sourceParser;
 
-        public FullStoredRowLookup(DocTableInfo table, String indexName, List<Symbol> columns) {
-            super(table, indexName);
+        public FullStoredRowLookup(DocTableInfo table, List<String> partitionValues, List<Symbol> columns) {
+            super(table, partitionValues);
             this.sourceParser = new SourceParser(table.lookupNameBySourceKey(), true);
             register(columns);
         }
@@ -203,8 +202,8 @@ public abstract class StoredRowLookup implements StoredRow {
         private final List<ColumnExpression> expressions = new ArrayList<>();
         private final ColumnFieldVisitor fieldsVisitor;
 
-        private ColumnAndStoredRowLookup(DocTableInfo table, Version shardVersionCreated, String indexName, List<Symbol> columns) {
-            super(table, indexName);
+        private ColumnAndStoredRowLookup(DocTableInfo table, Version shardVersionCreated, List<String> partitionValues, List<Symbol> columns) {
+            super(table, partitionValues);
             this.fieldsVisitor = new ColumnFieldVisitor(table, shardVersionCreated);
             register(columns);
         }

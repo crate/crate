@@ -1455,7 +1455,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     true,
                     origin,
                     new SourceToParse(
-                        shardId.getIndexName(),
+                        shardId.getIndexUUID(),
                         index.id(),
                         index.getSource(),
                         XContentType.JSON

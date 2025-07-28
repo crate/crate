@@ -95,7 +95,7 @@ public class ReplicationOperationTests extends ESTestCase {
     @Test
     public void testReplication() throws Exception {
         final String index = "test";
-        final ShardId shardId = new ShardId(index, "_na_", 0);
+        final ShardId shardId = new ShardId(index, index, 0);
 
         ClusterState initialState = stateWithActivePrimary(index, true, randomInt(5));
         IndexMetadata indexMetadata = initialState.metadata().index(index);
@@ -179,7 +179,7 @@ public class ReplicationOperationTests extends ESTestCase {
 
     public void testRetryTransientReplicationFailure() throws Exception {
         final String index = "test";
-        final ShardId shardId = new ShardId(index, "_na_", 0);
+        final ShardId shardId = new ShardId(index, index, 0);
 
         ClusterState initialState = stateWithActivePrimary(index, true, randomInt(5));
         IndexMetadata indexMetadata = initialState.metadata().index(index);
@@ -279,7 +279,7 @@ public class ReplicationOperationTests extends ESTestCase {
     @Test
     public void testNoLongerPrimary() throws Exception {
         final String index = "test";
-        final ShardId shardId = new ShardId(index, "_na_", 0);
+        final ShardId shardId = new ShardId(index, index, 0);
 
         ClusterState initialState = stateWithActivePrimary(index, true, 1 + randomInt(2), randomInt(2));
         IndexMetadata indexMetadata = initialState.metadata().index(index);
@@ -370,7 +370,7 @@ public class ReplicationOperationTests extends ESTestCase {
     @Test
     public void testAddedReplicaAfterPrimaryOperation() throws Exception {
         final String index = "test";
-        final ShardId shardId = new ShardId(index, "_na_", 0);
+        final ShardId shardId = new ShardId(index, index, 0);
         final ClusterState initialState = stateWithActivePrimary(index, true, 0);
         Set<String> inSyncAllocationIds = initialState.metadata().index(index).inSyncAllocationIds(0);
         IndexShardRoutingTable shardRoutingTable = initialState.routingTable().shardRoutingTable(shardId);
@@ -395,7 +395,7 @@ public class ReplicationOperationTests extends ESTestCase {
 
         final AtomicReference<ReplicationGroup> replicationGroup = new AtomicReference<>(initialReplicationGroup);
         logger.debug("--> using initial replicationGroup:\n{}", replicationGroup.get());
-        final long primaryTerm = initialState.metadata().index(shardId.getIndexName()).primaryTerm(shardId.id());
+        final long primaryTerm = initialState.metadata().index(shardId.getIndexUUID()).primaryTerm(shardId.id());
         final ShardRouting primaryShard = updatedReplicationGroup.getRoutingTable().primaryShard();
         final TestPrimary primary = new TestPrimary(primaryShard, replicationGroup::get, threadPool) {
             @Override
@@ -429,7 +429,7 @@ public class ReplicationOperationTests extends ESTestCase {
     @Test
     public void testWaitForActiveShards() throws Exception {
         final String index = "test";
-        final ShardId shardId = new ShardId(index, "_na_", 0);
+        final ShardId shardId = new ShardId(index, index, 0);
         final int assignedReplicas = randomInt(2);
         final int unassignedReplicas = randomInt(2);
         final int totalShards = 1 + assignedReplicas + unassignedReplicas;
@@ -486,7 +486,7 @@ public class ReplicationOperationTests extends ESTestCase {
     @Test
     public void testPrimaryFailureHandlingReplicaResponse() throws Exception {
         final String index = "test";
-        final ShardId shardId = new ShardId(index, "_na_", 0);
+        final ShardId shardId = new ShardId(index, index, 0);
 
         final Request request = new Request(shardId);
 
@@ -541,7 +541,7 @@ public class ReplicationOperationTests extends ESTestCase {
     private Set<ShardRouting> getExpectedReplicas(ShardId shardId, ClusterState state, Set<String> trackedShards) {
         Set<ShardRouting> expectedReplicas = new HashSet<>();
         String localNodeId = state.nodes().getLocalNodeId();
-        if (state.routingTable().hasIndex(shardId.getIndexName())) {
+        if (state.routingTable().hasIndex(shardId.getIndexUUID())) {
             for (ShardRouting shardRouting : state.routingTable().shardRoutingTable(shardId)) {
                 if (shardRouting.unassigned()) {
                     continue;

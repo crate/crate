@@ -29,8 +29,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -49,6 +47,7 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata;
 import org.elasticsearch.indices.store.TransportNodesListShardStoreMetadata.NodeStoreFilesMetadata;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 
@@ -432,7 +431,7 @@ public abstract class ReplicaShardAllocator extends BaseGatewayShardAllocator {
         }
     }
 
-    static class MatchingNodes {
+    private static class MatchingNodes {
         private final Map<DiscoveryNode, MatchingNode> matchingNodes;
         private final DiscoveryNode nodeWithHighestMatch;
         @Nullable

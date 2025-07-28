@@ -261,8 +261,8 @@ public class JoinHelper {
     public void sendJoinRequest(DiscoveryNode destination, long term, Optional<Join> optionalJoin) {
         assert destination.isMasterEligibleNode() : "trying to join master-ineligible " + destination;
         final StatusInfo statusInfo = nodeHealthService.getHealth();
-        if (statusInfo.getStatus() == UNHEALTHY) {
-            LOGGER.debug("dropping join request to [{}]: [{}]", destination, statusInfo.getInfo());
+        if (statusInfo.status() == UNHEALTHY) {
+            LOGGER.debug("dropping join request to [{}]: [{}]", destination, statusInfo.info());
             return;
         }
         final JoinRequest joinRequest = new JoinRequest(transportService.getLocalNode(), term, optionalJoin);

@@ -28,14 +28,10 @@ import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 
-import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.role.Permission;
-import io.crate.role.Privileges;
 import io.crate.role.Role;
 import io.crate.role.Roles;
-import io.crate.role.Securable;
 
 public final class PgRolesTable {
 
@@ -47,31 +43,17 @@ public final class PgRolesTable {
         return SystemTable.<Role>builder(IDENT)
             .add("rolname", STRING, Role::name)
             .add("rolsuper", BOOLEAN, Role::isSuperUser)
-            .add("rolinherit", BOOLEAN, r -> true) // Always inherit
-            .add("rolcreaterole", BOOLEAN, r -> canCreateRoleOrSubscription(roles, r))
+            .add("rolinherit", BOOLEAN, _ -> true) // Always inherit
+            .add("rolcreaterole", BOOLEAN, roles::hasALPrivileges)
             .add("rolcreatedb", BOOLEAN, ignored -> null) // There is no create database functionality
             .add("rolcanlogin", BOOLEAN, Role::isUser)
-            .add("rolreplication", BOOLEAN, r -> canCreateRoleOrSubscription(roles, r))
-            .add("rolconnlimit", INTEGER, r -> -1)
+            .add("rolreplication", BOOLEAN, roles::hasALPrivileges)
+            .add("rolconnlimit", INTEGER, _ -> -1)
             .add("rolpassword", STRING, r -> r.password() != null ? PASSWORD_PLACEHOLDER : null)
             .add("rolvaliduntil", TIMESTAMPZ, ignored -> null)
             .add("rolbypassrls", BOOLEAN, ignored -> null)
             .add("rolconfig", STRING_ARRAY, ignored -> null)
             .add("oid", INTEGER, r -> OidHash.userOid(r.name()))
             .build();
-    }
-
-    private static boolean canCreateRoleOrSubscription(Roles roles, Role role) {
-        try {
-            Privileges.ensureUserHasPrivilege(
-                roles,
-                role,
-                Permission.AL,
-                Securable.CLUSTER,
-                null);
-            return true;
-        } catch (MissingPrivilegeException e) {
-            return false;
-        }
     }
 }

@@ -23,6 +23,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexGraveyard.SETTING_MAX_TOMBSTONES;
 import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -31,6 +32,9 @@ import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.TestCluster;
+import org.junit.Test;
+
+import io.crate.metadata.RelationName;
 
 
 @ClusterScope(numDataNodes = 0, scope = IntegTestCase.Scope.TEST)
@@ -50,6 +54,7 @@ public class DanglingIndicesIT extends IntegTestCase {
      * Check that when dangling indices are discovered, then they are recovered into
      * the cluster, so long as the recovery setting is enabled.
      */
+    @Test
     public void testDanglingIndicesAreRecoveredWhenSettingIsEnabled() throws Exception {
         final Settings settings = buildSettings(true, true);
         cluster().startNodes(3, settings);
@@ -58,6 +63,9 @@ public class DanglingIndicesIT extends IntegTestCase {
         ensureGreen();
         assertBusy(() -> cluster().getInstances(IndicesService.class).forEach(
             indicesService -> assertThat(indicesService.allPendingDanglingIndicesWritten()).isTrue()));
+
+        RelationName relationName = new RelationName("doc", "test");
+        String indexUUID = clusterService().state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
 
         boolean refreshIntervalChanged = randomBoolean();
         if (refreshIntervalChanged) {
@@ -82,7 +90,9 @@ public class DanglingIndicesIT extends IntegTestCase {
                 .as("Expected dangling index test to be recovered")
                 .isEqualTo((1L)));
         ensureGreen();
-        final IndexMetadata indexMetadata = clusterService().state().metadata().index("test");
+
+
+        final IndexMetadata indexMetadata = clusterService().state().metadata().index(indexUUID);
         assertThat(indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID)).isNotNull();
     }
 
@@ -90,6 +100,7 @@ public class DanglingIndicesIT extends IntegTestCase {
      * Check that when dangling indices are discovered, then they are not recovered into
      * the cluster when the recovery setting is disabled.
      */
+    @Test
     public void testDanglingIndicesAreNotRecoveredWhenSettingIsDisabled() throws Exception {
         cluster().startNodes(3, buildSettings(false, true));
 

@@ -71,6 +71,7 @@ import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
 import io.crate.types.DataTypes;
 
+@SuppressWarnings("RedundantThrows")
 public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTest {
 
     private List<List<Object>> validationCallArguments;

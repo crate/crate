@@ -91,8 +91,9 @@ public class BlobIndicesService implements IndexEventListener {
     @Override
     public void afterIndexCreated(IndexService indexService) {
         String indexName = indexService.index().getName();
+        String indexUUID = indexService.index().getUUID();
         if (isBlobIndex(indexName)) {
-            BlobIndex oldBlobIndex = indices.put(indexName, new BlobIndex(LOGGER, globalBlobPath));
+            BlobIndex oldBlobIndex = indices.put(indexUUID, new BlobIndex(LOGGER, globalBlobPath));
             assert oldBlobIndex == null : "There must not be an index present if a new index is created";
         }
     }
@@ -102,17 +103,19 @@ public class BlobIndicesService implements IndexEventListener {
                                   IndexSettings indexSettings,
                                   IndicesClusterStateService.AllocatedIndices.IndexRemovalReason reason) {
         String indexName = index.getName();
+        String indexUUID = index.getUUID();
         if (isBlobIndex(indexName)) {
-            BlobIndex blobIndex = indices.remove(indexName);
+            BlobIndex blobIndex = indices.remove(indexUUID);
             assert blobIndex != null : "BlobIndex not found on afterIndexDeleted";
         }
     }
 
     @Override
     public void afterIndexShardCreated(IndexShard indexShard) {
-        String index = indexShard.shardId().getIndexName();
-        if (isBlobIndex(index)) {
-            BlobIndex blobIndex = indices.get(index);
+        String indexName = indexShard.shardId().getIndexName();
+        String indexUUID = indexShard.shardId().getIndexUUID();
+        if (isBlobIndex(indexName)) {
+            BlobIndex blobIndex = indices.get(indexUUID);
             assert blobIndex != null : "blobIndex must exists if a shard is created in it";
             blobIndex.createShard(indexShard);
         }
@@ -124,9 +127,10 @@ public class BlobIndicesService implements IndexEventListener {
                                        IndexShardState currentState,
                                        @Nullable String reason) {
         if (currentState == IndexShardState.POST_RECOVERY) {
-            String index = indexShard.shardId().getIndexName();
-            if (isBlobIndex(index)) {
-                BlobIndex blobIndex = indices.get(index);
+            String indexName = indexShard.shardId().getIndexName();
+            String indexUUID = indexShard.shardId().getIndexUUID();
+            if (isBlobIndex(indexName)) {
+                BlobIndex blobIndex = indices.get(indexUUID);
                 blobIndex.initializeShard(indexShard);
             }
         }
@@ -135,8 +139,9 @@ public class BlobIndicesService implements IndexEventListener {
     @Override
     public void afterIndexShardDeleted(ShardId shardId, Settings indexSettings) {
         String index = shardId.getIndexName();
+        String indexUUID = shardId.getIndexUUID();
         if (isBlobIndex(index)) {
-            BlobIndex blobIndex = indices.get(index);
+            BlobIndex blobIndex = indices.get(indexUUID);
             if (blobIndex != null) {
                 blobIndex.removeShard(shardId);
             }
@@ -145,7 +150,7 @@ public class BlobIndicesService implements IndexEventListener {
 
     @Nullable
     public BlobShard blobShard(ShardId shardId) {
-        BlobIndex blobIndex = indices.get(shardId.getIndexName());
+        BlobIndex blobIndex = indices.get(shardId.getIndexUUID());
         if (blobIndex == null) {
             return null;
         }

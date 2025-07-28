@@ -50,7 +50,7 @@ public class TransportRequestDeduplicatorTests extends ESTestCase {
             threads[i] = new Thread(() -> {
                 barrier.arriveAndAwaitAdvance();
                 for (int n = 0; n < iterationsPerThread; n++) {
-                    deduplicator.executeOnce(request, new ActionListener<Void>() {
+                    deduplicator.executeOnce(request, new ActionListener<>() {
                         @Override
                         public void onResponse(Void aVoid) {
                             successCount.incrementAndGet();
@@ -61,7 +61,7 @@ public class TransportRequestDeduplicatorTests extends ESTestCase {
                             assertThat(e).isSameAs(failure);
                             failureCount.incrementAndGet();
                         }
-                    }, (req, reqListener) -> listenerHolder.set(reqListener));
+                    }, (_, reqListener) -> listenerHolder.set(reqListener));
                 }
             });
             threads[i].start();
@@ -88,5 +88,4 @@ public class TransportRequestDeduplicatorTests extends ESTestCase {
             }
         });
     }
-
 }

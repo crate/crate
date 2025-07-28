@@ -385,7 +385,7 @@ infinite recursion of your mind, beware!)::
     | interval_type            | text       |               30 |
     | is_generated             | text       |               31 |
     | is_identity              | boolean    |               32 |
-    | is_nullable              | boolean    |               33 |
+    | is_nullable              | text       |               33 |
     | numeric_precision        | integer    |               34 |
     | numeric_precision_radix  | integer    |               35 |
     | numeric_scale            | integer    |               36 |
@@ -420,7 +420,8 @@ infinite recursion of your mind, beware!)::
 | ``ordinal_position``          | The position of the column within the         | ``INTEGER``   |
 |                               | table                                         |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``is_nullable``               | Whether the column is nullable                | ``BOOLEAN``   |
+| ``is_nullable``               | 'YES' if the column is nullable, 'NO'         | ``TEXT``      |
+|                               | if it's not nullable                          |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``data_type``                 | The data type of the column                   | ``TEXT``      |
 |                               |                                               |               |

@@ -39,6 +39,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -116,12 +117,14 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         });
         t.start();
 
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
+        Metadata metadata = clusterService.state().metadata();
+
         PartitionName partitionName = new PartitionName(
             new RelationName(sqlExecutor.getCurrentSchema(), "t"),
             Collections.singletonList("a"));
-        final String indexName = partitionName.asIndexName();
+        final String indexUUID = metadata.getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
 
-        ClusterService clusterService = cluster().getInstance(ClusterService.class);
         DiscoveryNodes nodes = clusterService.state().nodes();
         List<String> nodeIds = new ArrayList<>(2);
         for (DiscoveryNode node : nodes) {
@@ -138,7 +141,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         Thread relocatingThread = new Thread(() -> {
             while (relocations.getCount() > 0) {
                 ClusterStateResponse clusterStateResponse = FutureUtils.get(client().state(new ClusterStateRequest().relationNames(List.of(partitionName.relationName()))));
-                List<ShardRouting> shardRoutings = clusterStateResponse.getState().routingTable().allShards(indexName);
+                List<ShardRouting> shardRoutings = clusterStateResponse.getState().routingTable().allShards(indexUUID);
 
                 int numMoves = 0;
                 for (ShardRouting shardRouting : shardRoutings) {
@@ -150,7 +153,7 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
                     }
                     String toNode = nodeSwap.get(shardRouting.currentNodeId());
 
-                    assert IndexName.decode(shardRouting.getIndexName()).table().equals("t") : "Must use index of `t` table";
+                    assert IndexName.decode(shardRouting.index().getName()).table().equals("t") : "Must use index of `t` table";
                     execute(
                         "alter table t PARTITION (p = 'a') REROUTE MOVE SHARD ? FROM ? TO ?",
                         new Object[] { shardRouting.shardId().id(), shardRouting.currentNodeId(), toNode }
@@ -308,10 +311,6 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
         });
 
         final CountDownLatch deleteLatch = new CountDownLatch(1);
-        final String partitionName = new PartitionName(
-            new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
-            Collections.singletonList(String.valueOf(idToDelete))
-        ).asIndexName();
         final Object[] deleteArgs = new Object[]{idToDelete};
         Thread deleteThread = new Thread(() -> {
             boolean deleted = false;
@@ -319,7 +318,13 @@ public class PartitionedTableConcurrentIntegrationTest extends IntegTestCase {
                 try {
                     Metadata metadata = client().state(new ClusterStateRequest()).get()
                         .getState().metadata();
-                    if (metadata.indices().get(partitionName) != null) {
+                    final String indexUUID = metadata.getIndex(
+                        new RelationName(sqlExecutor.getCurrentSchema(), "parted"),
+                        List.of(String.valueOf(idToDelete)),
+                        true,
+                        IndexMetadata::getIndexUUID
+                    );
+                    if (indexUUID != null) {
                         execute("delete from parted where id = ?", deleteArgs);
                         deleted = true;
                     }

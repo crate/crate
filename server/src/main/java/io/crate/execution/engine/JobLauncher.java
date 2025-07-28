@@ -316,7 +316,7 @@ public class JobLauncher {
     private SharedShardContexts maybeInstrumentProfiler(RootTask.Builder builder) {
         if (enableProfiling) {
             var profilers = new HashMap<ShardId, QueryProfiler>();
-            ProfilingContext profilingContext = new ProfilingContext(profilers);
+            ProfilingContext profilingContext = new ProfilingContext(profilers, clusterService.state());
             builder.profilingContext(profilingContext);
             return new SharedShardContexts(
                 indicesService,

@@ -53,9 +53,7 @@ import io.crate.planner.Planner;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.protocols.postgres.KeyData;
-import io.crate.role.Permission;
 import io.crate.role.Role;
-import io.crate.role.Securable;
 
 
 @Singleton
@@ -243,7 +241,7 @@ public class Sessions {
         if (!cancelled) {
             var client = executorProvider.get().client();
             CancelRequest request = new CancelRequest(keyData);
-            client.execute(TransportCancelAction.ACTION, request).whenComplete((res, err) -> {
+            client.execute(TransportCancelAction.ACTION, request).whenComplete((_, err) -> {
                 if (err != null) {
                     LOGGER.error("Error during cancel broadcast", err);
                 }
@@ -258,7 +256,7 @@ public class Sessions {
     public Iterable<Cursor> getCursors(Role user) {
         return () -> sessions.values().stream()
             .filter(session ->
-                nodeCtx.roles().hasPrivilege(user, Permission.AL, Securable.CLUSTER, null)
+                nodeCtx.roles().hasALPrivileges(user)
                 || session.sessionSettings().sessionUser().equals(user))
             .flatMap(session -> StreamSupport.stream(session.cursors.spliterator(), false))
             .iterator();

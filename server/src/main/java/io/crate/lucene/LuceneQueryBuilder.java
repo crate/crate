@@ -98,14 +98,14 @@ public class LuceneQueryBuilder {
 
     public Context convert(Symbol query,
                            TransactionContext txnCtx,
-                           String indexName,
+                           List<String> partitionValues,
                            IndexAnalyzers indexAnalyzers,
                            DocTableInfo table,
                            Version shardCreatedVersion,
                            QueryCache queryCache,
                            Runnable raiseIfKilled) throws UnsupportedFeatureException {
         var refResolver = new LuceneReferenceResolver(
-            indexName,
+            partitionValues,
             table.partitionedByColumns(),
             table.primaryKey(),
             shardCreatedVersion,
@@ -119,7 +119,7 @@ public class LuceneQueryBuilder {
             nodeCtx,
             queryCache,
             indexAnalyzers,
-            indexName,
+            partitionValues,
             table.partitionedByColumns(),
             query,
             raiseIfKilled
@@ -145,7 +145,7 @@ public class LuceneQueryBuilder {
         final QueryCache queryCache;
         private final TransactionContext txnCtx;
         private final IndexAnalyzers indexAnalyzers;
-        private final String indexName;
+        private final List<String> partitionValues;
 
         final NodeContext nodeContext;
         private final Symbol parentQuery;
@@ -158,7 +158,7 @@ public class LuceneQueryBuilder {
                 NodeContext nodeCtx,
                 QueryCache queryCache,
                 IndexAnalyzers indexAnalyzers,
-                String indexName,
+                List<String> partitionValues,
                 List<Reference> partitionColumns,
                 Symbol parentQuery,
                 Runnable raiseIfKilled) {
@@ -171,7 +171,7 @@ public class LuceneQueryBuilder {
             this.docInputFactory = new DocInputFactory(
                 nodeCtx,
                 new LuceneReferenceResolver(
-                    indexName,
+                    partitionValues,
                     partitionColumns,
                     table.primaryKey(),
                     shardCreatedVersion,
@@ -180,7 +180,7 @@ public class LuceneQueryBuilder {
             );
             this.queryCache = queryCache;
             this.parentQuery = parentQuery;
-            this.indexName = indexName;
+            this.partitionValues = partitionValues;
         }
 
         public Query query() {
@@ -403,7 +403,7 @@ public class LuceneQueryBuilder {
         final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
         final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
         final CollectorContext collectorContext
-            = new CollectorContext(() -> StoredRowLookup.create(context.shardCreatedVersion, context.table, context.indexName));
+            = new CollectorContext(() -> StoredRowLookup.create(context.shardCreatedVersion, context.table, context.partitionValues));
         for (LuceneCollectorExpression<?> expression : expressions) {
             expression.startCollect(collectorContext);
         }

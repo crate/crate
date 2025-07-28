@@ -1874,9 +1874,9 @@ public final class TestCluster implements Closeable {
     /**
      * Returns a set of nodes that have at least one shard of the given index.
      */
-    public synchronized Set<String> nodesInclude(String index) {
-        if (clusterService().state().routingTable().hasIndex(index)) {
-            List<ShardRouting> allShards = clusterService().state().routingTable().allShards(index);
+    public synchronized Set<String> nodesInclude(String indexUUID) {
+        if (clusterService().state().routingTable().hasIndex(indexUUID)) {
+            List<ShardRouting> allShards = clusterService().state().routingTable().allShards(indexUUID);
             DiscoveryNodes discoveryNodes = clusterService().state().nodes();
             Set<String> nodes = new HashSet<>();
             for (ShardRouting shardRouting : allShards) {

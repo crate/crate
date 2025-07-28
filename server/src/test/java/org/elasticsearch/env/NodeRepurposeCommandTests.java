@@ -59,7 +59,6 @@ public class NodeRepurposeCommandTests extends ESTestCase {
     private static final Index INDEX = new Index("testIndex", "testUUID");
     private Settings dataMasterSettings;
     private Environment environment;
-    private Path[] nodePaths;
     private Settings dataNoMasterSettings;
     private Settings noDataNoMasterSettings;
     private Settings noDataMasterSettings;
@@ -69,7 +68,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         dataMasterSettings = buildEnvSettings(Settings.EMPTY);
         environment = TestEnvironment.newEnvironment(dataMasterSettings);
         try (NodeEnvironment nodeEnvironment = new NodeEnvironment(dataMasterSettings, environment)) {
-            nodePaths = nodeEnvironment.nodeDataPaths();
+            Path[] nodePaths = nodeEnvironment.nodeDataPaths();
             final String nodeId = randomAlphaOfLength(10);
             try (PersistedClusterStateService.Writer writer = new PersistedClusterStateService(nodePaths, nodeId,
                 xContentRegistry(),
@@ -94,6 +93,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
             .build();
     }
 
+    @Test
     public void testEarlyExitNoCleanup() throws Exception {
         createIndexDataFiles(dataMasterSettings, randomInt(10), randomBoolean());
 
@@ -101,6 +101,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         verifyNoQuestions(dataNoMasterSettings, s -> assertThat(s).contains(NO_CLEANUP));
     }
 
+    @Test
     public void testNothingToCleanup() throws Exception {
         verifyNoQuestions(noDataNoMasterSettings, s -> assertThat(s).contains(NO_DATA_TO_CLEAN_UP_FOUND));
         verifyNoQuestions(noDataMasterSettings, s -> assertThat(s).contains(NO_SHARD_DATA_TO_CLEAN_UP_FOUND));
@@ -126,7 +127,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
 
     @Test
     public void testLocked() throws IOException {
-        try (NodeEnvironment env = new NodeEnvironment(dataMasterSettings, TestEnvironment.newEnvironment(dataMasterSettings))) {
+        try (var _ = new NodeEnvironment(dataMasterSettings, TestEnvironment.newEnvironment(dataMasterSettings))) {
             assertThatThrownBy(() -> verifyNoQuestions(noDataNoMasterSettings, null))
                 .isExactlyInstanceOf(ElasticsearchException.class)
                 .hasMessageContaining(NodeRepurposeCommand.FAILED_TO_OBTAIN_NODE_LOCK_MSG);
@@ -163,6 +164,7 @@ public class NodeRepurposeCommandTests extends ESTestCase {
         new NodeEnvironment(noDataNoMasterSettings, environment).close();
     }
 
+    @Test
     public void testCleanupShardData() throws Exception {
         int shardCount = randomIntBetween(1, 10);
         boolean verbose = randomBoolean();
@@ -246,11 +248,12 @@ public class NodeRepurposeCommandTests extends ESTestCase {
                 try (PersistedClusterStateService.Writer writer =
                          ElasticsearchNodeCommand.createPersistedClusterStateService(Settings.EMPTY, env.nodeDataPaths()).createWriter()) {
                     writer.writeFullStateAndCommit(1L, ClusterState.builder(ClusterName.DEFAULT)
-                        .metadata(Metadata.builder().put(IndexMetadata.builder(INDEX.getName())
-                                                             .settings(Settings.builder().put("index.version.created", Version.CURRENT)
-                                                                           .put(IndexMetadata.SETTING_INDEX_UUID, INDEX.getUUID()))
-                                                             .numberOfShards(1)
-                                                             .numberOfReplicas(1)).build())
+                        .metadata(Metadata.builder().put(IndexMetadata.builder(INDEX.getUUID())
+                            .settings(Settings.builder().put("index.version.created", Version.CURRENT)
+                                .put(IndexMetadata.SETTING_INDEX_UUID, INDEX.getUUID()))
+                            .indexName(INDEX.getName())
+                            .numberOfShards(1)
+                            .numberOfReplicas(1)).build())
                         .build());
                 }
             }

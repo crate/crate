@@ -227,7 +227,7 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
         @Override
         protected ShardsIterator shards(ClusterState state, Request request) {
             return state.routingTable().shardRoutingTable(
-                request.index(),
+                request.shardId().getIndexUUID(),
                 request.shardId().id()
             ).activeInitializingShardsRandomIt();
         }

@@ -109,7 +109,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                                      String ... columns) {
         DocTableInfo table = e.resolveTableInfo(tableName);
         return new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             table.versionCreated(),
             new CoordinatorTxnCtx(e.getSessionSettings()),
@@ -153,7 +153,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -193,7 +193,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -257,7 +257,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -300,7 +300,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Reference x = table.getReference(ColumnIdent.of("x"));
         Reference y = table.getReference(ColumnIdent.of("y"));
         var indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             txnCtx,
@@ -316,7 +316,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .hasSize(8);
 
         indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             txnCtx,
@@ -339,7 +339,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(ColumnIdent.of("x"));
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -360,7 +360,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(ColumnIdent.of("data"));
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -394,16 +394,16 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generated_partitioned_column_is_not_indexed_or_included_in_source() throws Exception {
-        String partition = new PartitionName(new RelationName("doc", "tbl"), List.of("3")).asIndexName();
+        PartitionName partition = new PartitionName(new RelationName("doc", "tbl"), List.of("3"));
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable(
                 "create table doc.tbl (x int, p int as x + 2) partitioned by (p)",
-                partition
+                partition.asIndexName()
             );
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(ColumnIdent.of("x"));
         Indexer indexer = new Indexer(
-            partition,
+            partition.values(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -424,7 +424,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -455,7 +455,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(ColumnIdent.of("x"));
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -483,7 +483,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Reference y = table.getReference(ColumnIdent.of("y"));
         Reference o = table.getReference(ColumnIdent.of("o"));
         Indexer indexer1 = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -495,7 +495,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage("Given value 2 for generated column y does not match calculation (x + 2) = 3");
 
         Indexer indexer2 = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -513,7 +513,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int not null, y int default 0 NOT NULL)");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -544,7 +544,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 """);
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -576,7 +576,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 """);
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -602,7 +602,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 """);
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -627,7 +627,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(e.getSessionSettings()),
@@ -653,7 +653,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(e.getSessionSettings()),
@@ -789,7 +789,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 clusterService.state(), Version.CURRENT)) {
 
             Indexer indexer = new Indexer(
-                table.ident().indexNameOrAlias(),
+                List.of(),
                 table,
                 Version.CURRENT,
                 new CoordinatorTxnCtx(e.getSessionSettings()),
@@ -819,7 +819,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfo table = e.resolveTableInfo("tbl");
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(e.getSessionSettings()),
@@ -863,7 +863,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
         assertThatThrownBy(() -> {
             new Indexer(
-                table.ident().indexNameOrAlias(),
+                List.of(),
                 table,
                 Version.CURRENT,
                 new CoordinatorTxnCtx(e.getSessionSettings()),
@@ -1139,7 +1139,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Reference oRef = newTable.getReference(ColumnIdent.of("o"));
         assertThat(((ObjectType) oRef.valueType()).innerTypes().keySet()).containsExactlyElementsOf(keys);
         indexer = new Indexer(
-            newTable.ident().indexNameOrAlias(),
+            List.of(),
             newTable,
             Version.CURRENT,
             new CoordinatorTxnCtx(e.getSessionSettings()),
@@ -1232,7 +1232,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Reference x = table.getReference(ColumnIdent.of("x"));
         Reference y = new DynamicReference(new ReferenceIdent(table.ident(), "y"), RowGranularity.DOC, 2);
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -1257,7 +1257,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generated_column_can_refer_to_a_non_string_partitioned_by_column() throws Exception {
-        String partition = new PartitionName(new RelationName("doc", "t"), List.of("2")).asIndexName();
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("""
              CREATE TABLE t (
@@ -1269,7 +1268,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             );
         DocTableInfo table = executor.resolveTableInfo("t");
         Indexer indexer = new Indexer(
-            partition,
+            List.of("2"),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -1302,7 +1301,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(ColumnIdent.of("obj"));
         Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
+            List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
@@ -1435,13 +1434,15 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_indexing_geo_shape_results_in_same_fields_as_document_mapper() throws Exception {
         var sqlExecutor = SQLExecutor.of(clusterService);
+        int idx = 0;
         for (var indexType : List.of(TREE_GEOHASH, TREE_QUADTREE, TREE_LEGACY_QUADTREE, TREE_BKD)) {
-            sqlExecutor.addTable("create table tbl (x geo_shape index using " + indexType + ")");
+            String tableName = "tbl_" + idx++;
+            sqlExecutor.addTable("create table " + tableName + " (x geo_shape index using " + indexType + ")");
 
             Supplier<Map<String, Object>> dataGenerator = DataTypeTesting.getDataGenerator(GeoShapeType.INSTANCE);
-            DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
+            DocTableInfo table = sqlExecutor.resolveTableInfo(tableName);
 
-            Indexer indexer = getIndexer(sqlExecutor, "tbl", "x");
+            Indexer indexer = getIndexer(sqlExecutor, tableName, "x");
             Map<String, Object> value = dataGenerator.get();
             ParsedDocument doc = indexer.index(item(value));
 

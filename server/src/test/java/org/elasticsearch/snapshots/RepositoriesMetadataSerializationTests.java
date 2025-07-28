@@ -62,7 +62,7 @@ public class RepositoriesMetadataSerializationTests extends AbstractDiffableSeri
     @Override
     protected Custom mutateInstance(Custom instance) {
         List<RepositoryMetadata> entries = new ArrayList<>(((RepositoriesMetadata) instance).repositories());
-        boolean addEntry = entries.isEmpty() ? true : randomBoolean();
+        boolean addEntry = entries.isEmpty() || randomBoolean();
         if (addEntry) {
             entries.add(new RepositoryMetadata(randomAlphaOfLength(10), randomAlphaOfLength(10), randomSettings()));
         } else {
@@ -71,7 +71,7 @@ public class RepositoriesMetadataSerializationTests extends AbstractDiffableSeri
         return new RepositoriesMetadata(entries);
     }
 
-    public Settings randomSettings() {
+    private static Settings randomSettings() {
         if (randomBoolean()) {
             return Settings.EMPTY;
         } else {
@@ -122,5 +122,4 @@ public class RepositoriesMetadataSerializationTests extends AbstractDiffableSeri
         repos.sort(Comparator.comparing(RepositoryMetadata::name));
         return new RepositoriesMetadata(repos);
     }
-
 }

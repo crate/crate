@@ -82,6 +82,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.metadata.RelationName;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 0)
@@ -222,9 +223,10 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
     }
 
     private Set<ShardRouting> getShardRoutings(String nodeId, String indexName) {
+        String indexUUID = resolveIndex(indexName).getUUID();
         final Set<ShardRouting> shardRoutings = new HashSet<>();
         ClusterStateResponse clusterStateResponse = FutureUtils.get(client().state(new ClusterStateRequest().routingTable(true)));
-        for (IndexShardRoutingTable indexShardRoutingTable : clusterStateResponse.getState().routingTable().index(indexName)) {
+        for (IndexShardRoutingTable indexShardRoutingTable : clusterStateResponse.getState().routingTable().index(indexUUID)) {
             for (ShardRouting shard : indexShardRoutingTable.shards()) {
                 assertThat(shard.state()).isEqualTo(ShardRoutingState.STARTED);
                 if (shard.currentNodeId().equals(nodeId)) {
@@ -240,7 +242,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
      * @param indexName
      */
     private long createReasonableSizedShards(String indexName) throws Exception {
-        String tableName = "doc." + indexName; // UseRandomizedSchema is set to false
+        String tableName = indexName; // UseRandomizedSchema is set to false
         while (true) {
 
             execute("insert into " + tableName + "(x) values (?)", new Object[]{randomAlphaOfLengthBetween(1000, 2000)});
@@ -250,8 +252,10 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
 
             execute("refresh table " + tableName);
 
-            var indicesStats = client().stats(new IndicesStatsRequest(indexName).store(true)).get();
-            final List<ShardStats> shardStatses = indicesStats.getIndex(indexName).getShards();
+            RelationName relationName = RelationName.fromIndexName(tableName);
+            String indexUUID = resolveIndex(tableName).getUUID();
+            var indicesStats = client().stats(new IndicesStatsRequest(relationName).store(true)).get();
+            final List<ShardStats> shardStatses = indicesStats.getIndex(indexUUID).getShards();
 
             final long[] shardSizes = new long[shardStatses.size()];
             for (ShardStats shardStats : shardStatses) {

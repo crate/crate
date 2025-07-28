@@ -29,6 +29,7 @@ import java.util.concurrent.CountDownLatch;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
@@ -49,11 +50,15 @@ public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
             new Object[] { numberOfReplicas }
         );
         ensureGreen();
-        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+
+        Index index = resolveIndex("doc.tbl");
+        String indexUUID = index.getUUID();
+
+        final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
                 .getInstance(IndicesService.class, primaryShardNodeName)
-                .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                .getShardOrNull(new ShardId(index, 0));
         // we will add multiple retention leases and expect to see them synced to all replicas
         final int length = randomIntBetween(1, 8);
         final Map<String, RetentionLease> currentRetentionLeases = new HashMap<>(length);
@@ -80,16 +85,15 @@ public class RetentionLeaseBackgroundSyncIT extends IntegTestCase {
             }
             assertBusy(() -> {
                 // check all retention leases have been synced to all replicas
-                for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
+                for (final ShardRouting replicaShard : clusterService().state().routingTable().index(indexUUID).shard(0).replicaShards()) {
                     final String replicaShardNodeId = replicaShard.currentNodeId();
                     final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
                     final IndexShard replica = cluster()
                         .getInstance(IndicesService.class, replicaShardNodeName)
-                        .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                        .getShardOrNull(new ShardId(index, 0));
                     assertThat(replica.getRetentionLeases()).isEqualTo(primary.getRetentionLeases());
                 }
             });
         }
     }
-
 }

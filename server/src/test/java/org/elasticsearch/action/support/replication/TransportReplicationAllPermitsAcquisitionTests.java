@@ -132,7 +132,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             .localNodeId(node1.getId())
             .masterNodeId(node1.getId()));
 
-        shardId = new ShardId("index", UUID.randomUUID().toString(), 0);
+        shardId = new ShardId("_na_", "index", 0);
         ShardRouting shardRouting =
             newShardRouting(shardId, node1.getId(), true, ShardRoutingState.INITIALIZING, RecoverySource.EmptyStoreRecoverySource.INSTANCE);
 
@@ -145,7 +145,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             .build();
 
         primary = newStartedShard(p -> newShard(shardRouting, indexSettings, List.of()), true);
-        IndexMetadata indexMetadata = IndexMetadata.builder(shardId.getIndexName())
+        IndexMetadata indexMetadata = IndexMetadata.builder(shardId.getIndexUUID())
             .settings(indexSettings)
             .primaryTerm(shardId.id(), primary.getOperationPrimaryTerm())
             .putMapping("{ \"properties\": { \"value\":  { \"type\": \"short\", \"position\": 1}}}")
@@ -291,8 +291,8 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                                 if (globalBlock) {
                                     assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global block must exist").isTrue();
                                 } else {
-                                    String indexName = primary.shardId().getIndexName();
-                                    assertThat(clusterState.blocks().hasIndexBlock(indexName, block)).as("Index block must exist").isTrue();
+                                    String indexUUID = primary.shardId().getIndexUUID();
+                                    assertThat(clusterState.blocks().hasIndexBlock(indexUUID, block)).as("Index block must exist").isTrue();
                                 }
                             }
                         }
@@ -326,9 +326,9 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
                             assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global block must not exist yet").isFalse();
                             blocks.addGlobalBlock(block);
                         } else {
-                            String indexName = reference.indexShard.shardId().getIndexName();
-                            assertThat(clusterState.blocks().hasIndexBlock(indexName, block)).as("Index block must not exist yet").isFalse();
-                            blocks.addIndexBlock(indexName, block);
+                            String indexUUID = reference.indexShard.shardId().getIndexUUID();
+                            assertThat(clusterState.blocks().hasIndexBlock(indexUUID, block)).as("Index block must not exist yet").isFalse();
+                            blocks.addIndexBlock(indexUUID, block);
                         }
 
                         logger.trace("adding test block to cluster state {}", block);
@@ -546,7 +546,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
         private void assertNoBlocks(final String error) {
             final ClusterState clusterState = clusterService.state();
             assertThat(clusterState.blocks().hasGlobalBlock(block)).as("Global level " + error).isFalse();
-            assertThat(clusterState.blocks().hasIndexBlock(shardId.getIndexName(), block)).as("Index level " + error).isFalse();
+            assertThat(clusterState.blocks().hasIndexBlock(shardId.getIndexUUID(), block)).as("Index level " + error).isFalse();
         }
     }
 

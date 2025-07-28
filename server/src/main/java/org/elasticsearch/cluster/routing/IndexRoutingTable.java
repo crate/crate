@@ -103,9 +103,9 @@ public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> imple
         if (!metadata.hasIndex(index)) {
             throw new IllegalStateException(index + " exists in routing does not exists in metadata");
         }
-        IndexMetadata indexMetadata = metadata.index(index.getName());
+        IndexMetadata indexMetadata = metadata.index(index.getUUID());
         if (indexMetadata.getIndexUUID().equals(index.getUUID()) == false) {
-            throw new IllegalStateException(index.getName() + " exists in routing does not exists in metadata with the same uuid");
+            throw new IllegalStateException(index.getUUID() + " exists in routing does not exists in metadata with the same uuid");
         }
 
         // check the number of shards
