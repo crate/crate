@@ -34,17 +34,16 @@ import java.util.List;
 
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfigBuilder;
 import org.junit.Test;
 
-import io.crate.session.Session;
-import io.crate.session.Sessions;
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Protocol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
+import io.crate.session.Session;
+import io.crate.session.Sessions;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
 
@@ -56,8 +55,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(Role.CRATE_USER),
-            Netty4CorsConfigBuilder.forAnyOrigin().build()
+            () -> List.of(Role.CRATE_USER)
         );
 
         Role user = handler.userFromAuthHeader(null);
@@ -73,8 +71,7 @@ public class SqlHttpHandlerTest {
             settings,
             mock(Sessions.class),
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(RolesHelper.userOf("trillian")),
-            Netty4CorsConfigBuilder.forAnyOrigin().build()
+            () -> List.of(RolesHelper.userOf("trillian"))
         );
 
         Role user = handler.userFromAuthHeader(null);
@@ -87,8 +84,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(RolesHelper.userOf("Aladdin")),
-            Netty4CorsConfigBuilder.forAnyOrigin().build()
+            () -> List.of(RolesHelper.userOf("Aladdin"))
         );
 
         Role user = handler.userFromAuthHeader("Basic QWxhZGRpbjpPcGVuU2VzYW1l");
@@ -115,8 +111,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mockedSqlOperations,
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(dummyUser),
-            Netty4CorsConfigBuilder.forAnyOrigin().build()
+            () -> List.of(dummyUser)
         );
 
         // 1st call to ensureSession creates a session instance bound to 'dummyUser'
@@ -142,8 +137,7 @@ public class SqlHttpHandlerTest {
             Settings.EMPTY,
             mock(Sessions.class),
             _ -> new NoopCircuitBreaker("dummy"),
-            () -> List.of(JWT_USER),
-            Netty4CorsConfigBuilder.forAnyOrigin().build()
+            () -> List.of(JWT_USER)
         );
 
         Role resolvedUser = handler.userFromAuthHeader("bearer " + JWT_TOKEN);

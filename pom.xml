@@ -314,15 +314,15 @@
     <!-- see surefire plugin configuration for explanation -->
     <skipRunTests>false</skipRunTests>
 
-    <versions.jdk>24.0.1</versions.jdk>
+    <versions.jdk>24.0.2</versions.jdk>
     <versions.annotations>26.0.2</versions.annotations>
     <versions.log4j>2.25.1</versions.log4j>
     <versions.assertj>3.27.3</versions.assertj>
-    <versions.junit5>5.13.1</versions.junit5>
-    <versions.junit-platform-commons>1.13.1</versions.junit-platform-commons>
+    <versions.junit5>5.13.4</versions.junit5>
+    <versions.junit-platform-commons>1.13.4</versions.junit-platform-commons>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.3</versions.randomizedrunner>
-    <versions.jackson>2.19.1</versions.jackson>
+    <versions.jackson>2.19.2</versions.jackson>
     <versions.fastdoubleparser>2.0.1</versions.fastdoubleparser>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.2</versions.antlr>
@@ -340,7 +340,7 @@
     <versions.aws>1.12.788</versions.aws>
     <versions.opendal>0.47.6</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
-    <versions.commonscodec>1.18.0</versions.commonscodec>
+    <versions.commonscodec>1.19.0</versions.commonscodec>
     <versions.bigmath>2.3.2</versions.bigmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
     <versions.graalvm>24.2.2</versions.graalvm>

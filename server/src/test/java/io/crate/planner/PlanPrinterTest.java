@@ -25,7 +25,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.Map;
+import java.util.function.Function;
 
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -45,7 +47,14 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private Map<String, Object> printPlan(String stmt) {
-        return PlanPrinter.objectMap(e.plan(stmt));
+        Function<String, String> uuidToIndexName = indexUUID -> {
+            RelationMetadata relation = clusterService.state().metadata().getRelation(indexUUID);
+            if (relation != null) {
+                return relation.name().indexNameOrAlias();
+            }
+            throw new IllegalStateException("RelationMetadata for " + indexUUID + " is not available");
+        };
+        return PlanPrinter.objectMap(e.plan(stmt), uuidToIndexName);
     }
 
     @Test

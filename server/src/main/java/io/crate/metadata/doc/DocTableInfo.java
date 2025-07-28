@@ -78,7 +78,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
@@ -421,7 +420,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (whereClause.partitions().isEmpty()) {
             indices = concreteOpenIndices(state.metadata());
         } else {
-            indices = whereClause.partitions().toArray(new String[0]);
+            indices = concreteOpenIndices(state.metadata(), whereClause.partitions());
         }
         return routingProvider.forIndices(
             state,
@@ -469,7 +468,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public String[] concreteIndices(Metadata metadata) {
         boolean strict = !isPartitioned;
         return metadata
-            .getIndices(ident, List.of(), strict, imd -> imd.getIndex().getName())
+            .getIndices(ident, List.of(), strict, imd -> imd.getIndex().getUUID())
             .toArray(String[]::new);
     }
 
@@ -480,9 +479,29 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 ident,
                 List.of(),
                 strict,
-                imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null
+                imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
             )
             .toArray(String[]::new);
+    }
+
+    public String[] concreteOpenIndices(Metadata metadata, List<String> partitions) {
+        if (partitions.isEmpty()) {
+            return new String[0];
+        }
+        String[] uuids = new String[partitions.size()];
+        for (int i = 0; i < partitions.size(); i++) {
+            List<String> partitionValues = PartitionName.fromIndexOrTemplate(partitions.get(i)).values();
+            List<String> indexUUIDS = metadata.getIndices(
+                ident,
+                partitionValues,
+                false,
+                imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
+            );
+            if (!indexUUIDS.isEmpty()) {
+                uuids[i] = indexUUIDS.getFirst();
+            }
+        }
+        return uuids;
     }
 
     /**
@@ -553,7 +572,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             );
         });
     }
-
 
     /**
      * returns <code>true</code> if this table is a partitioned table,
@@ -1067,8 +1085,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         ));
         String[] concreteIndices = concreteIndices(metadata);
         ArrayList<String> indexUUIDs = new ArrayList<>(concreteIndices.length);
-        for (String indexName : concreteIndices) {
-            IndexMetadata indexMetadata = metadata.index(indexName);
+        for (String indexUUID : concreteIndices) {
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
                 throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
             }
@@ -1080,7 +1098,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
             }
             var indexNumberOfShards = numberOfShards;
-            if (isPartitioned && IndexName.isPartitioned(indexName)) {
+            if (isPartitioned && indexMetadata.partitionValues().isEmpty() == false) {
                 // if the index is a part of a partitioned table,
                 // the actual value of the index must be used as the value for the whole partitioned table may have changed
                 indexNumberOfShards = indexMetadata.getNumberOfShards();

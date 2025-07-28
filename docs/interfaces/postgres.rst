@@ -363,11 +363,14 @@ JDBC
 Limitations
 '''''''''''
 
-- *Reflection* methods like ``conn.getMetaData().getTables(...)`` won't work
-  since the required tables are unavailable in CrateDB.
+- Versions ``42.7.5``, ``42.7.6`` and ``42.7.7``` do not support some metadata
+  methods when used with CrateDB version ``5.x``, e.g.::
 
-  As a workaround it's possible to use ``SHOW TABLES`` or query the
-  ``information_schema`` tables manually using ``SELECT`` statements.
+      conn.getMetaData().getTables(...)
+
+  These metadata calls only work with CrateDB ``6.0.0`` and later. If you rely
+  on such metadata methods, and you use CrateDB ``5.x`` you should avoid those
+  JDBC versions and use ``42.7.4`` instead.
 
 - ``OBJECT`` and ``GEO_SHAPE`` columns can be streamed as ``JSON`` but require
   `pgjdbc`_ version ``9.4.1210`` or newer.

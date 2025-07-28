@@ -106,7 +106,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         indexShard = mock(IndexShard.class);
         when(indexShard.getActiveOperationsCount()).thenReturn(IndexShard.OPERATIONS_BLOCKED);
 
-        ShardId shardId = new ShardId("index", "_na_", randomIntBetween(0, 3));
+        ShardId shardId = new ShardId("_na_", "index", randomIntBetween(0, 3));
         when(indexShard.shardId()).thenReturn(shardId);
 
         clusterService = createClusterService(threadPool);

@@ -19,10 +19,10 @@
 
 package org.elasticsearch.env;
 
-import org.elasticsearch.index.shard.ShardId;
-
 import java.io.Closeable;
 import java.util.concurrent.atomic.AtomicBoolean;
+
+import org.elasticsearch.index.shard.ShardId;
 
 /**
  * A shard lock guarantees exclusive access to a shards data
@@ -36,7 +36,7 @@ public abstract class ShardLock implements Closeable {
     private final ShardId shardId;
     private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    public ShardLock(ShardId id) {
+    protected ShardLock(ShardId id) {
         this.shardId = id;
     }
 
@@ -69,5 +69,4 @@ public abstract class ShardLock implements Closeable {
                 "shardId=" + shardId +
                 '}';
     }
-
 }

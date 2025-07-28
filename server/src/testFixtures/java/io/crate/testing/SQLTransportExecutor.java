@@ -249,7 +249,7 @@ public class SQLTransportExecutor {
     }
 
     public Session newSession() {
-        return clientProvider.sqlOperations().newSession(
+        return clientProvider.sessions().newSession(
             new ConnectionProperties(null, null, Protocol.HTTP, null),
             searchPath.currentSchema(),
             Role.CRATE_USER
@@ -257,7 +257,7 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse executeAs(String stmt, Role user) {
-        try (Session session = clientProvider.sqlOperations()
+        try (Session session = clientProvider.sessions()
             .newSession(new ConnectionProperties(null, null, Protocol.HTTP, null), null, user)) {
             return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
         }
@@ -599,7 +599,7 @@ public class SQLTransportExecutor {
         @Nullable
         String pgUrl();
 
-        Sessions sqlOperations();
+        Sessions sessions();
     }
 
 

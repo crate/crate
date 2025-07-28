@@ -54,14 +54,15 @@ public class CountTaskTest extends ESTestCase {
         return new CountPhase(phaseId,
             new Routing(Collections.emptyMap()),
             Literal.BOOLEAN_TRUE,
-            DistributionInfo.DEFAULT_BROADCAST);
+            DistributionInfo.DEFAULT_BROADCAST,
+            false);
     }
 
     @Test
     public void testClose() throws Exception {
         CompletableFuture<Long> future = new CompletableFuture<>();
         CountOperation countOperation = mock(CountOperation.class);
-        when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
+        when(countOperation.count(eq(txnCtx), any(), any(Symbol.class), eq(false))).thenReturn(future);
 
         final CountTask countTask1 = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
         countTask1.start();
@@ -72,7 +73,7 @@ public class CountTaskTest extends ESTestCase {
 
         // on error
         future = new CompletableFuture<>();
-        when(countOperation.count(eq(txnCtx), any(), any(Symbol.class))).thenReturn(future);
+        when(countOperation.count(eq(txnCtx), any(), any(Symbol.class), eq(false))).thenReturn(future);
 
         final CountTask countTask2 =
             new CountTask(countPhaseWithId(2), txnCtx, countOperation, new TestingRowConsumer(), null);
@@ -89,7 +90,7 @@ public class CountTaskTest extends ESTestCase {
     public void testKillOperationFuture() throws Exception {
         CompletableFuture<Long> future = new CompletableFuture<>();
         CountOperation countOperation = mock(CountOperation.class);
-        when(countOperation.count(any(), any(), any())).thenReturn(future);
+        when(countOperation.count(any(), any(), any(), eq(false))).thenReturn(future);
 
         CountTask countTask = new CountTask(countPhaseWithId(1), txnCtx, countOperation, new TestingRowConsumer(), null);
 

@@ -71,6 +71,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -255,8 +256,9 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             AggregateMode.ITER_PARTIAL,
             RowGranularity.SHARD
         );
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), List.of());
         var reference = new SimpleReference(
-            new ReferenceIdent(new RelationName("doc", "test"), "x"),
+            new ReferenceIdent(partitionName.relationName(), "x"),
             RowGranularity.DOC,
             DataTypes.STRING,
             IndexType.PLAIN,
@@ -275,13 +277,14 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         var collectPhase = createCollectPhase(List.of(reference), List.of(groupProjection));
         var collectTask = createCollectTask(shard, collectPhase, Version.CURRENT);
         var nodeCtx = createNodeContext();
-        var referenceResolver = new LuceneReferenceResolver(shard.shardId().getIndexName(), List.of(), List.of(), Version.CURRENT, _ -> false);
+        var referenceResolver = new LuceneReferenceResolver(partitionName.values(), List.of(), List.of(), Version.CURRENT, _ -> false);
 
         var it = DocValuesGroupByOptimizedIterator.tryOptimize(
             functions,
             referenceResolver,
             shard,
             mock(DocTableInfo.class),
+            partitionName.values(),
             new LuceneQueryBuilder(nodeCtx),
             new DocInputFactory(
                 nodeCtx,

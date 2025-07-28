@@ -33,7 +33,6 @@ import static io.crate.role.Securable.SCHEMA;
 import static io.crate.role.Securable.TABLE;
 import static io.crate.role.Securable.VIEW;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Before;
@@ -75,7 +74,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGrantPrivilegesToUsersOnCluster() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT DQL, DML TO user1, user2");
-        assertThat(analysis.userNames()).containsExactly("user1", "user2");;
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.privileges()).containsExactlyInAnyOrder(
             privilegeOf(GRANT, DQL, CLUSTER, null),
             privilegeOf(GRANT, DML, CLUSTER, null)
@@ -85,7 +84,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDenyPrivilegesToUsers() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("DENY DQL, DML TO user1, user2");
-        assertThat(analysis.userNames()).containsExactly("user1", "user2");;
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.privileges()).containsExactlyInAnyOrder(
             privilegeOf(DENY, DQL, CLUSTER, null),
             privilegeOf(DENY, DML, CLUSTER, null)
@@ -94,7 +93,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     public void testGrantPrivilegesToUsersOnSchemas() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT DQL, DML on schema doc, sys TO user1, user2");
-        assertThat(analysis.userNames()).containsExactly("user1", "user2");;
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.privileges()).containsExactlyInAnyOrder(
             privilegeOf(GRANT, DQL, SCHEMA, "doc"),
             privilegeOf(GRANT, DML, SCHEMA, "doc"),
@@ -106,7 +105,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGrantPrivilegesToUsersOnTables() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT DQL, DML on table t2, locations TO user1, user2");
-        assertThat(analysis.userNames()).containsExactly("user1", "user2");;
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.privileges()).containsExactlyInAnyOrder(
             privilegeOf(GRANT, DQL, TABLE, "doc.t2"),
             privilegeOf(GRANT, DML, TABLE, "doc.t2"),
@@ -118,7 +117,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testGrantPrivilegesToUsersOnViews() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("GRANT DQL, DML on table t2, locations TO user1, user2");
-        assertThat(analysis.userNames()).containsExactly("user1", "user2");;
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.privileges()).containsExactlyInAnyOrder(
             privilegeOf(GRANT, DQL, TABLE, "doc.t2"),
             privilegeOf(GRANT, DML, TABLE, "doc.t2"),
@@ -130,7 +129,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRevokePrivilegesFromUsersOnCluster() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("REVOKE DQL, DML FROM user1, user2");
-        assertThat(analysis.userNames()).containsExactly("user1", "user2");;
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.privileges()).containsExactlyInAnyOrder(
             privilegeOf(REVOKE, DQL, CLUSTER, null),
             privilegeOf(REVOKE, DML, CLUSTER, null)
@@ -140,7 +139,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRevokePrivilegesFromUsersOnSchemas() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("REVOKE DQL, DML On schema doc, sys FROM user1, user2");
-        assertThat(analysis.userNames()).containsExactly("user1", "user2");;
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.privileges()).containsExactlyInAnyOrder(
             privilegeOf(REVOKE, DQL, SCHEMA, "doc"),
             privilegeOf(REVOKE, DML, SCHEMA, "doc"),
@@ -152,7 +151,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testRevokePrivilegesFromUsersOnTables() {
         AnalyzedPrivileges analysis = analyzePrivilegesStatement("REVOKE DQL, DML On table doc.t2, locations FROM user1, user2");
-        assertThat(analysis.userNames()).containsExactly("user1", "user2");;
+        assertThat(analysis.userNames()).containsExactly("user1", "user2");
         assertThat(analysis.privileges()).containsExactlyInAnyOrder(
             privilegeOf(REVOKE, DQL, TABLE, "doc.t2"),
             privilegeOf(REVOKE, DML, TABLE, "doc.t2"),
@@ -265,7 +264,7 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testGrantOnUnknownSchemaDoesntThrowsException() {
+    public void testGrantOnUnknownSchemaDoesNotThrowsException() {
         analyzePrivilegesStatement("GRANT DQL on schema hoichi TO user1");
     }
 
@@ -300,12 +299,12 @@ public class PrivilegesAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testRevokeOnInformationSchemaTableDoNotThrowException() {
+    public void testRevokeOnInformationSchemaTableDoesNotThrowException() {
         analyzePrivilegesStatement("REVOKE DQL ON TABLE information_schema.tables FROM user1");
     }
 
     @Test
-    public void testRevokeOnInformationSchemaViewDoNotThrowException() {
+    public void testRevokeOnInformationSchemaViewDoesNotThrowException() {
         analyzePrivilegesStatement("REVOKE DQL ON TABLE information_schema.views FROM user1");
     }
 

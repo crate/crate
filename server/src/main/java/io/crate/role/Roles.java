@@ -103,6 +103,10 @@ public interface Roles {
         return null;
     }
 
+    default boolean hasALPrivileges(Role role) {
+        return hasPrivilege(role, Permission.AL, Securable.CLUSTER, null);
+    }
+
     /**
      * Checks if the user has a privilege that matches the given securable, type, ident and
      * default schema. Currently only the type is checked since Class is always

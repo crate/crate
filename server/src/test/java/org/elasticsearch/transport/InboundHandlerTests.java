@@ -71,6 +71,7 @@ public class InboundHandlerTests extends ESTestCase {
     private CloseableChannel channel;
     private EmbeddedChannel embeddedChannel;
 
+    @Override
     @Before
     public void setUp() throws Exception {
         super.setUp();
@@ -95,6 +96,7 @@ public class InboundHandlerTests extends ESTestCase {
         handler = handlerForVersion(version);
     }
 
+    @Override
     @After
     public void tearDown() throws Exception {
         ThreadPool.terminate(threadPool, 10, TimeUnit.SECONDS);
@@ -103,11 +105,11 @@ public class InboundHandlerTests extends ESTestCase {
 
     @Test
     public void testPing() throws Exception {
-        AtomicReference<TransportChannel> channelCaptor = new AtomicReference<>();
+        final AtomicReference<TransportChannel> channelCaptor = new AtomicReference<>();
         RequestHandlerRegistry<TestRequest> registry = new RequestHandlerRegistry<>(
             "test-request",
             TestRequest::new,
-            (request, channel) -> channelCaptor.set(channel),
+            (_, channel) -> channelCaptor.set(channel),
             ThreadPool.Names.SAME,
             false,
             true
@@ -178,8 +180,8 @@ public class InboundHandlerTests extends ESTestCase {
         handler.inboundMessage(channel, requestMessage);
 
         TransportChannel transportChannel = channelCaptor.get();
-        assertThat(Version.CURRENT).isEqualTo(transportChannel.getVersion());
-        assertThat("transport").isEqualTo(transportChannel.getChannelType());
+        assertThat(transportChannel.getVersion()).isEqualTo(Version.CURRENT);
+        assertThat(transportChannel.getChannelType()).isEqualTo("transport");
         assertThat(requestValue).isEqualTo(requestCaptor.get().value);
 
         String responseValue = randomAlphaOfLength(10);
@@ -202,7 +204,7 @@ public class InboundHandlerTests extends ESTestCase {
         if (isError) {
             assertThat(exceptionCaptor.get()).isInstanceOf(RemoteTransportException.class);
             assertThat(exceptionCaptor.get().getCause()).isInstanceOf(ElasticsearchException.class);
-            assertThat("boom").isEqualTo(exceptionCaptor.get().getCause().getMessage());
+            assertThat(exceptionCaptor.get().getCause().getMessage()).isEqualTo("boom");
         } else {
             assertThat(responseValue).isEqualTo(responseCaptor.get().value);
         }
@@ -455,8 +457,8 @@ public class InboundHandlerTests extends ESTestCase {
 
     private InboundHandler handlerForVersion(Version localVersion) {
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
-        TransportHandshaker handshaker = new TransportHandshaker(localVersion, threadPool, (n, c, r, v) -> {});
-        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (c, b) -> channel.writeAndFlush(Unpooled.wrappedBuffer(b)));
+        TransportHandshaker handshaker = new TransportHandshaker(localVersion, threadPool, (_, _, _, _) -> {});
+        TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (_, b) -> channel.writeAndFlush(Unpooled.wrappedBuffer(b)));
         OutboundHandler outboundHandler = new OutboundHandler(
             "node",
             localVersion,

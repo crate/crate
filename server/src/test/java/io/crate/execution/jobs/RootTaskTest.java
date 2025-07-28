@@ -38,6 +38,7 @@ import java.util.UUID;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -167,7 +168,7 @@ public class RootTaskTest extends ESTestCase {
     public void testEnablingProfilingGathersExecutionTimes() throws Throwable {
         RootTask.Builder builder =
             new RootTask.Builder(logger, UUID.randomUUID(), "dummy-user", coordinatorNode, Collections.emptySet(), mock(JobsLogs.class));
-        ProfilingContext profilingContext = new ProfilingContext(Map.of());
+        ProfilingContext profilingContext = new ProfilingContext(Map.of(), ClusterState.EMPTY_STATE);
         builder.profilingContext(profilingContext);
 
         AbstractTaskTest.TestingTask ctx1 = new AbstractTaskTest.TestingTask(1);

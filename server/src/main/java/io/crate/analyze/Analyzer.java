@@ -201,7 +201,7 @@ public class Analyzer {
         this.alterTableRenameColumnAnalyzer = new AlterTableRenameColumnAnalyzer(schemas, nodeCtx);
         this.swapTableAnalyzer = new SwapTableAnalyzer(nodeCtx, schemas);
         this.viewAnalyzer = new ViewAnalyzer(relationAnalyzer, schemas);
-        this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this);
+        this.explainStatementAnalyzer = new ExplainStatementAnalyzer(this, clusterService);
         this.showStatementAnalyzer = new ShowStatementAnalyzer(this, schemas, sessionSettingRegistry);
         this.updateAnalyzer = new UpdateAnalyzer(nodeCtx, relationAnalyzer);
         this.deleteAnalyzer = new DeleteAnalyzer(nodeCtx, relationAnalyzer);

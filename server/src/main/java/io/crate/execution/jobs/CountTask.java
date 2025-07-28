@@ -63,7 +63,7 @@ public class CountTask extends AbstractTask {
     @Override
     public synchronized CompletableFuture<Void> innerStart() {
         try {
-            countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where());
+            countFuture = countOperation.count(txnCtx, indexShardMap, countPhase.where(), countPhase.ignoreUnavailableIndex());
         } catch (Throwable t) {
             consumer.accept(null, t);
             return null;

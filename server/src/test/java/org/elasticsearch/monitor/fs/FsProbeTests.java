@@ -38,12 +38,14 @@ import org.apache.lucene.util.Constants;
 import org.elasticsearch.env.NodeEnvironment;
 import org.elasticsearch.env.NodeEnvironment.NodePath;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 import io.crate.common.collections.Tuple;
 
 
 public class FsProbeTests extends ESTestCase {
 
+    @Test
     public void testFsInfo() throws IOException {
 
         try (NodeEnvironment env = newNodeEnvironment()) {
@@ -90,6 +92,7 @@ public class FsProbeTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testFsInfoOverflow() throws Exception {
         final FsInfo.Path pathStats =
             new FsInfo.Path(
@@ -151,6 +154,7 @@ public class FsProbeTests extends ESTestCase {
         pathStats.add(pathToAdd);
     }
 
+    @Test
     public void testIoStats() {
         final AtomicReference<List<String>> diskStats = new AtomicReference<>();
         diskStats.set(Arrays.asList(
@@ -239,6 +243,7 @@ public class FsProbeTests extends ESTestCase {
         assertThat(second.totalWriteKilobytes).isEqualTo(1236L);
     }
 
+    @Test
     public void testAdjustForHugeFilesystems() throws Exception {
         NodePath np = new FakeNodePath(createTempDir());
         assertThat(FsProbe.getFSInfo(np).total).isGreaterThanOrEqualTo(0L);
@@ -309,6 +314,5 @@ public class FsProbeTests extends ESTestCase {
         public Object getAttribute(String attribute) throws IOException {
             throw new UnsupportedOperationException("don't call me");
         }
-
     }
 }

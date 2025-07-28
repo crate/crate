@@ -30,7 +30,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.atomic.AtomicBoolean;
-import java.util.stream.Collectors;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.action.resync.ResyncReplicationRequest;
@@ -74,7 +73,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
             shard.applyIndexOperationOnPrimary(
                 Versions.MATCH_ANY,
                 VersionType.INTERNAL,
-                new SourceToParse(shard.shardId().getIndexName(), Integer.toString(i), new BytesArray("{}"), XContentType.JSON),
+                new SourceToParse(shard.shardId().getIndexUUID(), Integer.toString(i), new BytesArray("{}"), XContentType.JSON),
                 SequenceNumbers.UNASSIGNED_SEQ_NO,
                 0,
                 -1L,
@@ -130,11 +129,12 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         closeShards(shard);
     }
 
+    @Test
     public void testSyncerOnClosingShard() throws Exception {
         IndexShard shard = newStartedShard(true);
         AtomicBoolean syncActionCalled = new AtomicBoolean();
         PrimaryReplicaSyncer.SyncAction syncAction =
-            (request, allocationId, primaryTerm, listener) -> {
+            (request, _, _, listener) -> {
                 logger.info("Sending off {} operations", request.getOperations().length);
                 syncActionCalled.set(true);
                 threadPool.generic().execute(() -> listener.onResponse(new ReplicationResponse()));
@@ -148,7 +148,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
             shard.applyIndexOperationOnPrimary(
                 Versions.MATCH_ANY,
                 VersionType.INTERNAL,
-                new SourceToParse(shard.shardId().getIndexName(), Integer.toString(i), new BytesArray("{}"), XContentType.JSON),
+                new SourceToParse(shard.shardId().getIndexUUID(), Integer.toString(i), new BytesArray("{}"), XContentType.JSON),
                 SequenceNumbers.UNASSIGNED_SEQ_NO,
                 0,
                 -1L,
@@ -196,7 +196,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         try {
             FutureUtils.get(fut);
             assertThat(syncActionCalled.get()).as("Sync action was not called").isTrue();
-        } catch (AlreadyClosedException | IndexShardClosedException ignored) {
+        } catch (AlreadyClosedException | IndexShardClosedException _) {
             // ignore
         }
     }
@@ -223,7 +223,7 @@ public class PrimaryReplicaSyncerTests extends IndexShardTestCase {
         PlainFuture<PrimaryReplicaSyncer.ResyncTask> fut = new PlainFuture<>();
         syncer.resync(shard, fut);
         FutureUtils.get(fut);
-        assertThat(sentOperations).isEqualTo(operations.stream().filter(op -> op.seqNo() >= 0).collect(Collectors.toList()));
+        assertThat(sentOperations).isEqualTo(operations.stream().filter(op -> op.seqNo() >= 0).toList());
         closeShards(shard);
     }
 }

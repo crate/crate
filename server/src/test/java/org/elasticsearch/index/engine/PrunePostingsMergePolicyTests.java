@@ -163,7 +163,6 @@ public class PrunePostingsMergePolicyTests extends ESTestCase {
                     }
                 }
             }
-
         }
     }
 }

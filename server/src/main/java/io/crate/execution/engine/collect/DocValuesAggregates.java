@@ -80,6 +80,7 @@ public final class DocValuesAggregates {
                                                  LuceneReferenceResolver referenceResolver,
                                                  IndexShard indexShard,
                                                  DocTableInfo table,
+                                                 List<String> partitionValues,
                                                  LuceneQueryBuilder luceneQueryBuilder,
                                                  RoutedCollectPhase phase,
                                                  CollectTask collectTask) {
@@ -107,7 +108,7 @@ public final class DocValuesAggregates {
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             phase.where(),
             collectTask.txnCtx(),
-            indexShard.shardId().getIndexName(),
+            partitionValues,
             indexService.indexAnalyzers(),
             table,
             indexShard.getVersionCreated(),

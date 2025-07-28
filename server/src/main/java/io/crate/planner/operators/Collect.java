@@ -237,8 +237,10 @@ public class Collect implements LogicalPlan {
                                            java.util.function.Function<Symbol, Symbol> binder,
                                            Row params,
                                            SubQueryResults subQueryResults) {
+        boolean onPartitionedTable = false;
         WhereClause boundWhere;
         if (tableInfo instanceof DocTableInfo docTable) {
+            onPartitionedTable = docTable.isPartitioned();
             if (detailedQuery == null) {
                 boundWhere = immutableWhere.map(binder);
             } else {
@@ -292,6 +294,7 @@ public class Collect implements LogicalPlan {
                 RoutingProvider.ShardSelection.ANY,
                 sessionSettings),
             tableInfo.rowGranularity(),
+            onPartitionedTable,
             planHints.contains(PlanHint.PREFER_SOURCE_LOOKUP) && tableInfo instanceof DocTableInfo
                 ? Lists.map(boundOutputs, DocReferences::toDocLookup)
                 : boundOutputs,

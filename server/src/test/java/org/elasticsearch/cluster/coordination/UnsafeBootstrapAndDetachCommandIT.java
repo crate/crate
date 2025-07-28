@@ -23,7 +23,6 @@
 package org.elasticsearch.cluster.coordination;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.gateway.DanglingIndicesState.AUTO_IMPORT_DANGLING_INDICES_SETTING;
 import static org.elasticsearch.indices.recovery.RecoverySettings.INDICES_RECOVERY_MAX_BYTES_PER_SEC_SETTING;
@@ -51,6 +50,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.TestCluster;
 import org.junit.Test;
 
+import io.crate.metadata.RelationName;
 import io.crate.server.cli.MockTerminal;
 import io.crate.testing.UseJdbc;
 import joptsimple.OptionSet;
@@ -267,6 +267,9 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
         execute("create table doc.test (x int)");
         ensureGreen();
 
+        RelationName relationName = new RelationName("doc", "test");
+        String indexUUID = clusterService().state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+
         Settings master1DataPathSettings = cluster().dataPathSettings(masterNodes.get(0));
         Settings master2DataPathSettings = cluster().dataPathSettings(masterNodes.get(1));
         Settings master3DataPathSettings = cluster().dataPathSettings(masterNodes.get(2));
@@ -325,7 +328,7 @@ public class UnsafeBootstrapAndDetachCommandIT extends IntegTestCase {
 
         logger.info("--> ensure index test is green");
         ensureGreen();
-        IndexMetadata indexMetadata = clusterService().state().metadata().index("test");
+        IndexMetadata indexMetadata = clusterService().state().metadata().index(indexUUID);
         assertThat(indexMetadata.getSettings().get(IndexMetadata.SETTING_HISTORY_UUID)).isNotNull();
 
         logger.info("--> detach-cluster on 2nd and 3rd master-eligible nodes");

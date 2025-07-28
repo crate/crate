@@ -95,12 +95,12 @@ public class TransportRenameTable extends TransportMasterNodeAction<RenameTableR
     protected void masterOperation(RenameTableRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
-        AtomicReference<String[]> newIndexNames = new AtomicReference<>(null);
+        AtomicReference<String[]> newIndexUUIDs = new AtomicReference<>(null);
         ActionListener<AcknowledgedResponse> waitForShardsListener = activeShardsObserver.waitForShards(
             listener,
             request.timeout(),
             () -> logger.info("Renamed a relation, but the operation timed out waiting for enough shards to become available"),
-            newIndexNames::get
+            newIndexUUIDs::get
         );
         clusterService.submitStateUpdateTask(
             "rename-table",
@@ -108,11 +108,11 @@ public class TransportRenameTable extends TransportMasterNodeAction<RenameTableR
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
                     ClusterState updatedState = executor.execute(currentState, request);
-                    newIndexNames.set(updatedState.metadata().getIndices(
+                    newIndexUUIDs.set(updatedState.metadata().getIndices(
                         request.targetName(),
                         List.of(),
                         false,
-                        imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null
+                        imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
                     ).toArray(String[]::new));
                     return updatedState;
                 }

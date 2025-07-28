@@ -74,21 +74,6 @@ public class IncrementalClusterStateWriter {
         this.slowWriteLoggingThreshold = slowWriteLoggingThreshold;
     }
 
-    void setCurrentTerm(long currentTerm) throws WriteStateException {
-        Manifest manifest = new Manifest(currentTerm, previousManifest.getClusterStateVersion(), previousManifest.getGlobalGeneration(),
-            new HashMap<>(previousManifest.getIndexGenerations()));
-        metaStateService.writeManifestAndCleanup("current term changed", manifest);
-        previousManifest = manifest;
-    }
-
-    Manifest getPreviousManifest() {
-        return previousManifest;
-    }
-
-    void setIncrementalWrite(boolean incrementalWrite) {
-        this.incrementalWrite = incrementalWrite;
-    }
-
     /**
      * Updates manifest and meta data on disk.
      *

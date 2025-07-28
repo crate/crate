@@ -144,8 +144,8 @@ public class ClusterFormationFailureHelper {
         }
 
         String getDescription() {
-            if (statusInfo.getStatus() == UNHEALTHY) {
-                return String.format(Locale.ROOT, "this node is unhealthy: %s", statusInfo.getInfo());
+            if (statusInfo.status() == UNHEALTHY) {
+                return String.format(Locale.ROOT, "this node is unhealthy: %s", statusInfo.info());
             }
             final List<String> clusterStateNodes = StreamSupport.stream(clusterState.nodes().getMasterNodes().values().spliterator(), false)
                 .map(n -> n.value.toString()).collect(Collectors.toList());

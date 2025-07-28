@@ -610,7 +610,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "interval_type| text",
             "is_generated| text",
             "is_identity| boolean",
-            "is_nullable| boolean",
+            "is_nullable| text",
             "numeric_precision| integer",
             "numeric_precision_radix| integer",
             "numeric_scale| integer",
@@ -762,13 +762,13 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response.rows()[0][cols.get("identity_minimum")]).isEqualTo(null);
         assertThat(response.rows()[0][cols.get("identity_cycle")]).isEqualTo(null);
 
-        assertThat(response.rows()[0][cols.get("is_nullable")]).isEqualTo(false);
-        assertThat(response.rows()[2][cols.get("is_nullable")]).isEqualTo(false);
-        assertThat(response.rows()[3][cols.get("is_nullable")]).isEqualTo(true);
-        assertThat(response.rows()[7][cols.get("is_nullable")]).isEqualTo(false);
-        assertThat(response.rows()[8][cols.get("is_nullable")]).isEqualTo(false);
-        assertThat(response.rows()[9][cols.get("is_nullable")]).isEqualTo(false);
-        assertThat(response.rows()[10][cols.get("is_nullable")]).isEqualTo(true);
+        assertThat(response.rows()[0][cols.get("is_nullable")]).isEqualTo("NO");
+        assertThat(response.rows()[2][cols.get("is_nullable")]).isEqualTo("NO");
+        assertThat(response.rows()[3][cols.get("is_nullable")]).isEqualTo("YES");
+        assertThat(response.rows()[7][cols.get("is_nullable")]).isEqualTo("NO");
+        assertThat(response.rows()[8][cols.get("is_nullable")]).isEqualTo("NO");
+        assertThat(response.rows()[9][cols.get("is_nullable")]).isEqualTo("NO");
+        assertThat(response.rows()[10][cols.get("is_nullable")]).isEqualTo("YES");
 
         assertThat(response.rows()[1][cols.get("numeric_precision")]).isEqualTo(8);
         assertThat(response.rows()[6][cols.get("numeric_precision")]).isEqualTo(16);

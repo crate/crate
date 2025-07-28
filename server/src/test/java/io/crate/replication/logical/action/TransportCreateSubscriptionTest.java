@@ -150,7 +150,7 @@ public class TransportCreateSubscriptionTest {
                 List.of(indexUUID),
                 0L
                 )
-            .put(IndexMetadata.builder(relationName.indexNameOrAlias()).settings(indexSettings))
+            .put(IndexMetadata.builder(indexUUID).indexName(relationName.indexNameOrAlias()).settings(indexSettings))
             .build();
 
         PublicationsStateAction.Response response = new PublicationsStateAction.Response(publisherMetadata, List.of());

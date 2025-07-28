@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.action.admin.cluster.repositories.put.PutRepositoryRequest;
 import org.elasticsearch.action.admin.cluster.repositories.put.TransportPutRepository;
@@ -78,7 +77,7 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
         }
 
         logger.info("--> blocking repository");
-        String blockedNode = blockNodeWithIndex("repo", "test");
+        String blockedNode = blockNodeWithIndex("repo", "doc.test");
 
         execute("create snapshot repo.snapshot table doc.test with (wait_for_completion = false)");
         waitForBlock(blockedNode, "repo", TimeValue.timeValueSeconds(60));
@@ -100,7 +99,7 @@ public class SnapshotShardsServiceIT extends AbstractSnapshotIntegTestCase {
         assertBusy(() -> {
             final Snapshot snapshot = new Snapshot("repo", snapshotId);
             List<IndexShardSnapshotStatus.Stage> stages = snapshotShardsService.currentSnapshotShards(snapshot)
-                .values().stream().map(status -> status.asCopy().getStage()).collect(Collectors.toList());
+                .values().stream().map(status -> status.asCopy().getStage()).toList();
             assertThat(stages).hasSize(shards);
             assertThat(stages).allSatisfy(s -> assertThat(s).isEqualTo(IndexShardSnapshotStatus.Stage.DONE));
         }, 30L, TimeUnit.SECONDS);

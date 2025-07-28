@@ -40,10 +40,12 @@ import org.elasticsearch.common.util.PageCacheRecycler;
 import org.elasticsearch.indices.breaker.NoneCircuitBreakerService;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.threadpool.TestThreadPool;
+import org.junit.Test;
 
 public class TcpTransportTest extends ESTestCase {
 
     /** Test ipv4 host with a default port works */
+    @Test
     public void testParseV4DefaultPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("127.0.0.1", 1234);
         assertThat(addresses.length).isEqualTo(1);
@@ -53,6 +55,7 @@ public class TcpTransportTest extends ESTestCase {
     }
 
     /** Test ipv4 host with port works */
+    @Test
     public void testParseV4WithPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("127.0.0.1:2345", 1234);
         assertThat(addresses.length).isEqualTo(1);
@@ -62,6 +65,7 @@ public class TcpTransportTest extends ESTestCase {
     }
 
     /** Test unbracketed ipv6 hosts in configuration fail. Leave no ambiguity */
+    @Test
     public void testParseV6UnBracketed() throws Exception {
         try {
             TcpTransport.parse("::1", 1234);
@@ -72,6 +76,7 @@ public class TcpTransportTest extends ESTestCase {
     }
 
     /** Test ipv6 host with a default port works */
+    @Test
     public void testParseV6DefaultPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("[::1]", 1234);
         assertThat(addresses.length).isEqualTo(1);
@@ -81,6 +86,7 @@ public class TcpTransportTest extends ESTestCase {
     }
 
     /** Test ipv6 host with port works */
+    @Test
     public void testParseV6WithPort() throws Exception {
         TransportAddress[] addresses = TcpTransport.parse("[::1]:2345", 1234);
         assertThat(addresses.length).isEqualTo(1);
@@ -89,59 +95,62 @@ public class TcpTransportTest extends ESTestCase {
         assertThat(addresses[0].getPort()).isEqualTo(2345);
     }
 
+    @Test
     public void testRejectsPortRanges() {
         assertThatThrownBy(() -> TcpTransport.parse("[::1]:100-200", 1000))
             .isExactlyInstanceOf(NumberFormatException.class);
     }
 
+    @Test
     public void testDefaultSeedAddressesWithDefaultPort() {
         testDefaultSeedAddresses(Settings.EMPTY, List.of(
             "[::1]:4300", "[::1]:4301", "[::1]:4302", "[::1]:4303", "[::1]:4304", "[::1]:4305",
             "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302", "127.0.0.1:4303", "127.0.0.1:4304", "127.0.0.1:4305"));
     }
 
+    @Test
     public void testDefaultSeedAddressesWithNonstandardGlobalPortRange() {
         testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4500-4600").build(), List.of(
             "[::1]:4500", "[::1]:4501", "[::1]:4502", "[::1]:4503", "[::1]:4504", "[::1]:4505",
             "127.0.0.1:4500", "127.0.0.1:4501", "127.0.0.1:4502", "127.0.0.1:4503", "127.0.0.1:4504", "127.0.0.1:4505"));
     }
 
+    @Test
     public void testDefaultSeedAddressesWithSmallGlobalPortRange() {
         testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4300-4302").build(), List.of(
             "[::1]:4300", "[::1]:4301", "[::1]:4302", "127.0.0.1:4300", "127.0.0.1:4301", "127.0.0.1:4302"));
     }
 
+    @Test
     public void testDefaultSeedAddressesWithNonstandardSinglePort() {
         testDefaultSeedAddresses(Settings.builder().put(TransportSettings.PORT.getKey(), "4500").build(), List.of(
             "[::1]:4500", "127.0.0.1:4500"));
     }
 
+    @Test
     public void testTLSHeader() throws IOException {
-        BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14);
+        try (BytesStreamOutput streamOutput = new BytesStreamOutput(1 << 14)) {
 
-        streamOutput.write(0x16);
-        streamOutput.write(0x03);
-        byte byte1 = randomByte();
-        streamOutput.write(byte1);
-        byte byte2 = randomByte();
-        streamOutput.write(byte2);
-        streamOutput.write(randomByte());
-        streamOutput.write(randomByte());
-        streamOutput.write(randomByte());
+            streamOutput.write(0x16);
+            streamOutput.write(0x03);
+            byte byte1 = randomByte();
+            streamOutput.write(byte1);
+            byte byte2 = randomByte();
+            streamOutput.write(byte2);
+            streamOutput.write(randomByte());
+            streamOutput.write(randomByte());
+            streamOutput.write(randomByte());
 
-        try {
-            TcpTransport.readMessageLength(streamOutput.bytes());
-            fail("Expected exception");
-        } catch (Exception ex) {
-            assertThat(ex).isExactlyInstanceOf(StreamCorruptedException.class);
             String expected = "SSL/TLS request received but SSL/TLS is not enabled on this node, got (16,3,"
                 + Integer.toHexString(byte1 & 0xFF) + ","
                 + Integer.toHexString(byte2 & 0xFF) + ")";
-            assertThat(ex.getMessage()).isEqualTo(expected);
+            assertThatThrownBy(() -> TcpTransport.readMessageLength(streamOutput.bytes()))
+                .isExactlyInstanceOf(StreamCorruptedException.class)
+                .hasMessage(expected);
         }
     }
 
-    private void testDefaultSeedAddresses(final Settings settings, List<String> expectedAddresses) {
+    public void testDefaultSeedAddresses(final Settings settings, List<String> expectedAddresses) {
         final TestThreadPool testThreadPool = new TestThreadPool("test");
         try {
             final TcpTransport tcpTransport = new TcpTransport(settings,

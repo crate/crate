@@ -19,6 +19,16 @@
 
 package org.elasticsearch.gateway;
 
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -38,16 +48,6 @@ import org.elasticsearch.cluster.routing.allocation.decider.Decision.Type;
 import org.elasticsearch.env.ShardLockObtainFailedException;
 import org.elasticsearch.gateway.AsyncShardFetch.FetchResult;
 import org.elasticsearch.gateway.TransportNodesListGatewayStartedShards.NodeGatewayStartedShards;
-
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
 /**
  * The primary shard allocator allocates unassigned primary shards to nodes that hold
@@ -115,7 +115,7 @@ public abstract class PrimaryShardAllocator extends BaseGatewayShardAllocator {
         // use in-sync allocation ids to select nodes
         final NodeShardsResult nodeShardsResult = buildNodeShardsResult(unassignedShard, snapshotRestore,
             allocation.getIgnoreNodes(unassignedShard.shardId()), inSyncAllocationIds, shardState, logger);
-        final boolean enoughAllocationsFound = nodeShardsResult.orderedAllocationCandidates.size() > 0;
+        final boolean enoughAllocationsFound = !nodeShardsResult.orderedAllocationCandidates.isEmpty();
         logger.debug("[{}][{}]: found {} allocation candidates of {} based on allocation ids: [{}]", unassignedShard.index(),
             unassignedShard.id(), nodeShardsResult.orderedAllocationCandidates.size(), unassignedShard, inSyncAllocationIds);
 
@@ -339,39 +339,15 @@ public abstract class PrimaryShardAllocator extends BaseGatewayShardAllocator {
 
     protected abstract FetchResult<NodeGatewayStartedShards> fetchData(ShardRouting shard, RoutingAllocation allocation);
 
-    private static class NodeShardsResult {
-        final List<NodeGatewayStartedShards> orderedAllocationCandidates;
-        final int allocationsFound;
+    private record NodeShardsResult(List<NodeGatewayStartedShards> orderedAllocationCandidates, int allocationsFound) {}
 
-        NodeShardsResult(List<NodeGatewayStartedShards> orderedAllocationCandidates, int allocationsFound) {
-            this.orderedAllocationCandidates = orderedAllocationCandidates;
-            this.allocationsFound = allocationsFound;
-        }
-    }
-
-    static class NodesToAllocate {
-        final List<DecidedNode> yesNodeShards;
-        final List<DecidedNode> throttleNodeShards;
-        final List<DecidedNode> noNodeShards;
-
-        NodesToAllocate(List<DecidedNode> yesNodeShards, List<DecidedNode> throttleNodeShards, List<DecidedNode> noNodeShards) {
-            this.yesNodeShards = yesNodeShards;
-            this.throttleNodeShards = throttleNodeShards;
-            this.noNodeShards = noNodeShards;
-        }
-    }
+    private record NodesToAllocate(List<DecidedNode> yesNodeShards,
+                                   List<DecidedNode> throttleNodeShards,
+                                   List<DecidedNode> noNodeShards) {}
 
     /**
      * This class encapsulates the shard state retrieved from a node and the decision that was made
      * by the allocator for allocating to the node that holds the shard copy.
      */
-    private static class DecidedNode {
-        final NodeGatewayStartedShards nodeShardState;
-        final Decision decision;
-
-        private DecidedNode(NodeGatewayStartedShards nodeShardState, Decision decision) {
-            this.nodeShardState = nodeShardState;
-            this.decision = decision;
-        }
-    }
+    private record DecidedNode(NodeGatewayStartedShards nodeShardState, Decision decision) {}
 }

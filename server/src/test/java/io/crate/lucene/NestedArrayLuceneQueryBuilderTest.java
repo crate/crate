@@ -67,7 +67,7 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
-            "create table t (a int[][])"
+            "create table t2 (a int[][])"
         );
         List<Integer> nullArray = new ArrayList<>();
         nullArray.add(null);
@@ -140,7 +140,7 @@ public class NestedArrayLuceneQueryBuilderTest extends LuceneQueryBuilderTest {
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
-            "create table t (o array(array(object as (a int))))"
+            "create table t2 (o array(array(object as (a int))))"
         );
         var val = List.of(
             List.of(Map.of("a", 1)),

@@ -40,17 +40,18 @@ public final class PriorityComparator implements Comparator<ShardRouting> {
     }
 
     @Override
-    public final int compare(ShardRouting o1, ShardRouting o2) {
-        final String o1Index = o1.getIndexName();
-        final String o2Index = o2.getIndexName();
+    public int compare(ShardRouting o1, ShardRouting o2) {
+        final String o1Index = o1.getIndexUUID();
+        final String o2Index = o2.getIndexUUID();
         if (o1Index.equals(o2Index) == false) {
             Metadata metadata = allocation.metadata();
             final Settings settingsO1 = metadata.getIndexSafe(o1.index()).getSettings();
             final Settings settingsO2 = metadata.getIndexSafe(o2.index()).getSettings();
             int cmp = Long.compare(timeCreated(settingsO2), timeCreated(settingsO1));
             if (cmp == 0) {
-                return o2Index.compareTo(o1Index);
+                return o2.index().getName().compareTo(o1.index().getName());
             }
+            return cmp;
         }
         return 0;
     }

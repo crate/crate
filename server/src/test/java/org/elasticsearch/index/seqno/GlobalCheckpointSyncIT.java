@@ -28,7 +28,6 @@ import java.util.Locale;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.function.BiConsumer;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
@@ -57,7 +56,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
         return Stream.concat(
                 super.nodePlugins().stream(),
                 Stream.of(InternalSettingsPlugin.class, MockTransportService.TestPlugin.class))
-                .collect(Collectors.toList());
+                .toList();
     }
 
     @Test
@@ -90,7 +89,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
         //
         runGlobalCheckpointSyncTest(
             TimeValue.timeValueHours(24),
-            (indexName, client) -> {
+            (indexName, _) -> {
                 RelationName relationName = RelationName.fromIndexName(indexName);
                 String stmt = String.format(
                     Locale.ENGLISH,
@@ -100,7 +99,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
                 );
                 execute(stmt, new Object[] { Translog.Durability.REQUEST.name() });
             },
-            (indexName, client) -> {}
+            (_, _) -> {}
         );
     }
 
@@ -108,6 +107,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
      * This test swallows the post-operation global checkpoint syncs, and then restores the ability to send these requests at the end of the
      * test so that a background sync can fire and sync the global checkpoint.
      */
+    @Test
     public void testBackgroundGlobalCheckpointSync() throws Exception {
         runGlobalCheckpointSyncTest(
                 TimeValue.timeValueSeconds(randomIntBetween(1, 3)),
@@ -135,7 +135,7 @@ public class GlobalCheckpointSyncIT extends IntegTestCase {
                         }
                     }
                 },
-                (indexName, client) -> {
+                (_, client) -> {
                     // restore global checkpoint syncs between all nodes
                     final DiscoveryNodes nodes = FutureUtils
                         .get(client.state(new ClusterStateRequest()))

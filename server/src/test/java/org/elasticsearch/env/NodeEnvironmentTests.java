@@ -47,6 +47,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.test.IndexSettingsModule;
+import org.junit.Test;
 
 import io.crate.common.collections.Sets;
 import io.crate.common.io.IOUtils;
@@ -55,6 +56,7 @@ import io.crate.common.io.IOUtils;
 public class NodeEnvironmentTests extends ESTestCase {
     private final IndexSettings idxSettings = IndexSettingsModule.newIndexSettings("foo", Settings.EMPTY);
 
+    @Test
     public void testNodeLock() throws IOException {
         final Settings settings = buildEnvSettings(Settings.EMPTY);
         NodeEnvironment env = newNodeEnvironment(settings);
@@ -77,6 +79,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         assertThat(env.lockedShards()).isEmpty();
     }
 
+    @Test
     public void testSegmentInfosTracing() {
         // Defaults to not hooking up std out
         assertThat(SegmentInfos.getInfoStream()).isNull();
@@ -97,6 +100,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testShardLock() throws Exception {
         final NodeEnvironment env = newNodeEnvironment();
 
@@ -129,7 +133,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         try {
             env.shardLock(new ShardId(index, 0), "6");
             fail("shard is locked");
-        } catch (ShardLockObtainFailedException ex) {
+        } catch (ShardLockObtainFailedException _) {
             // expected
         }
         IOUtils.close(locks);
@@ -139,6 +143,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         env.close();
     }
 
+    @Test
     public void testAvailableIndexFolders() throws Exception {
         final NodeEnvironment env = newNodeEnvironment();
         final int numIndices = randomIntBetween(1, 10);
@@ -158,6 +163,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         env.close();
     }
 
+    @Test
     public void testAvailableIndexFoldersWithExclusions() throws Exception {
         final NodeEnvironment env = newNodeEnvironment();
         final int numIndices = randomIntBetween(1, 10);
@@ -181,6 +187,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         env.close();
     }
 
+    @Test
     public void testResolveIndexFolders() throws Exception {
         final NodeEnvironment env = newNodeEnvironment();
         final int numIndices = randomIntBetween(1, 10);
@@ -210,6 +217,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         env.close();
     }
 
+    @Test
     public void testDeleteSafe() throws Exception {
         final NodeEnvironment env = newNodeEnvironment();
         final Index index = new Index("foo", "fooUUID");
@@ -269,7 +277,7 @@ public class NodeEnvironmentTests extends ESTestCase {
                 @Override
                 public void doRun() throws Exception {
                     start.await();
-                    try (ShardLock autoCloses = env.shardLock(new ShardId(index, 0), "2")) {
+                    try (var _ = env.shardLock(new ShardId(index, 0), "2")) {
                         blockLatch.countDown();
                         Thread.sleep(randomIntBetween(1, 10));
                     }
@@ -298,6 +306,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         env.close();
     }
 
+    @Test
     public void testStressShardLock() throws IOException, InterruptedException {
         class Int {
             int value = 0;
@@ -329,14 +338,15 @@ public class NodeEnvironmentTests extends ESTestCase {
                     for (int i = 0; i < iters; i++) {
                         int shard = randomIntBetween(0, counts.length - 1);
                         try {
-                            try (ShardLock autoCloses = env.shardLock(new ShardId("foo", "fooUUID", shard), "1",
-                                                                      scaledRandomIntBetween(0, 10))) {
+                            try (var _ = env.shardLock(new ShardId("foo", "fooUUID", shard),
+                                                       "1",
+                                                       scaledRandomIntBetween(0, 10))) {
                                 counts[shard].value++;
                                 countsAtomic[shard].incrementAndGet();
-                                assertThat(1).isEqualTo(flipFlop[shard].incrementAndGet());
-                                assertThat(0).isEqualTo(flipFlop[shard].decrementAndGet());
+                                assertThat(flipFlop[shard].incrementAndGet()).isEqualTo(1);
+                                assertThat(flipFlop[shard].decrementAndGet()).isEqualTo(0);
                             }
-                        } catch (ShardLockObtainFailedException ex) {
+                        } catch (ShardLockObtainFailedException _) {
                             // ok
                         }
                     }
@@ -360,6 +370,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         env.close();
     }
 
+    @Test
     public void testCustomDataPaths() throws Exception {
         String[] dataPaths = tmpPaths();
         NodeEnvironment env = newNodeEnvironment(dataPaths, "/tmp", Settings.EMPTY);
@@ -394,6 +405,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         env.close();
     }
 
+    @Test
     public void testNodeIdNotPersistedAtInitialization() throws IOException {
         NodeEnvironment env = newNodeEnvironment(new String[0], Settings.builder()
             .put("node.local_storage", false)
@@ -417,6 +429,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         env.close();
     }
 
+    @Test
     public void testExistingTempFiles() throws IOException {
         String[] paths = tmpPaths();
         // simulate some previous left over temp files
@@ -452,6 +465,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testEnsureNoShardDataOrIndexMetadata() throws IOException {
         Settings settings = buildEnvSettings(Settings.EMPTY);
         Index index = new Index("test", "testUUID");
@@ -568,6 +582,7 @@ public class NodeEnvironmentTests extends ESTestCase {
         return new NodeEnvironment(build, TestEnvironment.newEnvironment(build));
     }
 
+    @Override
     public Settings buildEnvSettings(Settings settings) {
         return Settings.builder()
             .put(Environment.PATH_HOME_SETTING.getKey(), createTempDir().toAbsolutePath().toString())
