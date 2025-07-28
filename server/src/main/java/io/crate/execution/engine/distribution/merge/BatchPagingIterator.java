@@ -21,17 +21,18 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.common.concurrent.KillableCompletionStage;
-import io.crate.common.exceptions.Exceptions;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-
-import org.jetbrains.annotations.NotNull;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.common.concurrent.KillableCompletionStage;
+import io.crate.common.exceptions.Exceptions;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 
 /**
  * BatchIterator implementation that is backed by a {@link PagingIterator}.
@@ -169,6 +170,13 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
         close();
         if (loading != null) {
             loading.kill(throwable);
+        }
+    }
+
+    @Override
+    public boolean isKilled() {
+        synchronized (this) {
+            return killed != null;
         }
     }
 }

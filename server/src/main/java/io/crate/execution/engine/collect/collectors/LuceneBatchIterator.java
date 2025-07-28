@@ -222,4 +222,9 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     public void kill(@NotNull Throwable throwable) {
         killed = throwable;
     }
+
+    @Override
+    public boolean isKilled() {
+        return killed != null;
+    }
 }
