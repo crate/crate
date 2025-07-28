@@ -18,9 +18,16 @@
  */
 package org.elasticsearch.test;
 
+import static junit.framework.TestCase.fail;
+
+import java.util.Collections;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.atomic.AtomicReference;
+
 import org.apache.logging.log4j.core.util.Throwables;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
@@ -31,7 +38,6 @@ import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterApplier;
-import org.elasticsearch.cluster.service.ClusterApplier.ClusterApplyListener;
 import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.cluster.service.MasterService;
@@ -39,30 +45,22 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Collections;
-import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.atomic.AtomicReference;
-
-import static junit.framework.TestCase.fail;
-
 public class ClusterServiceUtils {
 
     public static void setState(ClusterApplierService executor, ClusterState clusterState) {
         CountDownLatch latch = new CountDownLatch(1);
         AtomicReference<Exception> exception = new AtomicReference<>();
-        executor.onNewClusterState("test setting state",
-            () -> ClusterState.builder(clusterState).version(clusterState.version() + 1).build(), new ClusterApplyListener() {
-                @Override
-                public void onSuccess(String source) {
-                    latch.countDown();
-                }
-
-                @Override
-                public void onFailure(String source, Exception e) {
+        executor.onNewClusterState(
+            "test setting state",
+            () -> ClusterState.builder(clusterState).version(clusterState.version() + 1).build(),
+            ActionListener.wrap(
+                _ -> latch.countDown(),
+                e -> {
                     exception.set(e);
                     latch.countDown();
                 }
-            });
+            )
+        );
         try {
             latch.await();
             if (exception.get() != null) {
@@ -146,19 +144,10 @@ public class ClusterServiceUtils {
     }
 
     public static ClusterStatePublisher createClusterStatePublisher(ClusterApplier clusterApplier) {
-        return (event, publishListener, ackListener) ->
-            clusterApplier.onNewClusterState("mock_publish_to_self[" + event.source() + "]", () -> event.state(),
-                new ClusterApplyListener() {
-                    @Override
-                    public void onSuccess(String source) {
-                        publishListener.onResponse(null);
-                    }
-
-                    @Override
-                    public void onFailure(String source, Exception e) {
-                        publishListener.onFailure(e);
-                    }
-                }
+        return (event, publishListener, _) -> clusterApplier.onNewClusterState(
+            "mock_publish_to_self[" + event.source() + "]",
+            () -> event.state(),
+            publishListener
         );
     }
 
