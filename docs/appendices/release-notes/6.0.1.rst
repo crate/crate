@@ -47,5 +47,8 @@ series.
 Fixes
 =====
 
-- Fix intermittent subscription loss in logical replication during rolling
+- Fixed intermittent subscription loss in logical replication during rolling
   upgrades.
+
+- Fixed an issue that prevented users to change the value of the
+  :ref:`indices.recovery.max_concurrent_file_chunks` setting.
