@@ -42,7 +42,6 @@ import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
-import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
@@ -118,7 +117,6 @@ public class PutHeadChunkRunnable implements Runnable {
                     recipientNode,
                     BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
                     new PutBlobHeadChunkRequest(transferId, new BytesArray(buffer, 0, bytesRead)),
-                    TransportRequestOptions.EMPTY,
                     new ActionListenerResponseHandler<>(
                         BlobHeadRequestHandler.Actions.PUT_BLOB_HEAD_CHUNK,
                         listener,

@@ -54,7 +54,6 @@ import org.elasticsearch.indices.recovery.BlobStartRecoveryRequest;
 import org.elasticsearch.indices.recovery.RecoverySourceHandler;
 import org.elasticsearch.indices.recovery.RecoveryTargetHandler;
 import org.elasticsearch.indices.recovery.StartRecoveryRequest;
-import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
@@ -114,7 +113,6 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             request.targetNode(),
             BlobRecoveryTarget.Actions.START_PREFIX,
             new BlobStartPrefixSyncRequest(request.recoveryId(), request.shardId(), prefix),
-            TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(
                 BlobRecoveryTarget.Actions.START_PREFIX,
                 listener,
@@ -220,7 +218,6 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             request.targetNode(),
             BlobRecoveryTarget.Actions.DELETE_FILE,
             new BlobRecoveryDeleteRequest(request.recoveryId(), digests),
-            TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(
                 BlobRecoveryTarget.Actions.DELETE_FILE,
                 listener,
@@ -236,7 +233,6 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             request.targetNode(),
             BlobRecoveryTarget.Actions.FINALIZE_RECOVERY,
             new BlobFinalizeRecoveryRequest(request.recoveryId()),
-            TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(
                 BlobRecoveryTarget.Actions.FINALIZE_RECOVERY,
                 listener,
@@ -252,7 +248,6 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
             request.targetNode(),
             BlobRecoveryTarget.Actions.START_RECOVERY,
             new BlobStartRecoveryRequest(request.recoveryId(), request.shardId()),
-            TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(
                 BlobRecoveryTarget.Actions.START_RECOVERY,
                 listener,
@@ -315,7 +310,6 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                             request.targetNode(),
                             BlobRecoveryTarget.Actions.START_TRANSFER,
                             startTransferRequest,
-                            TransportRequestOptions.EMPTY,
                             new ActionListenerResponseHandler<>(
                                 BlobRecoveryTarget.Actions.START_TRANSFER,
                                 listener,
@@ -345,7 +339,6 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                 BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
                                 new BlobRecoveryChunkRequest(request.recoveryId(),
                                     startTransferRequest.transferId(), content, isLast),
-                                TransportRequestOptions.EMPTY,
                                 new ActionListenerResponseHandler<>(
                                     BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
                                     transferChunkListener,
@@ -363,7 +356,6 @@ public class BlobRecoveryHandler extends RecoverySourceHandler {
                                 BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
                                 new BlobRecoveryChunkRequest(request.recoveryId(),
                                     startTransferRequest.transferId(), BytesArray.EMPTY, true),
-                                TransportRequestOptions.EMPTY,
                                 new ActionListenerResponseHandler<>(
                                     BlobRecoveryTarget.Actions.TRANSFER_CHUNK,
                                     transferMissingChunkListener,
