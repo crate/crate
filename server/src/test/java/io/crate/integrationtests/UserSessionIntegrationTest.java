@@ -22,10 +22,12 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.common.unit.TimeValue;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
@@ -58,16 +60,21 @@ public class UserSessionIntegrationTest extends BaseRolesIntegrationTest {
             execute("SET SESSION AUTHORIZATION test", session);
             execute("SET enable_hashjoin=false", session);
 
-            execute("select auth_user, session_user, client_address, " +
-                    "protocol, ssl, settings, last_statement from sys.sessions", session);
+            TimeValue timeout = TimeValue.timeValueSeconds(10);
+            var response = sqlExecutor.exec(
+                "select auth_user, session_user, client_address, protocol, ssl, settings, last_statement from sys.sessions",
+                null,
+                session,
+                timeout
+            );
             assertThat(response).hasRows(
                 "crate| test| localhost| http| false| {application_name=NULL, datestyle=ISO, " +
                     "disabled_optimizer_rules=optimizer_equi_join_to_lookup_join, enable_hashjoin=false, " +
                     "error_on_unknown_object_key=true, insert_select_fail_fast=false, " +
                     "memory.operation_limit=0, search_path=pg_catalog,doc, " +
-                    "statement_timeout=0s}| select auth_user, session_user, client_address, " +
+                    "statement_timeout=10s}| select auth_user, session_user, client_address, " +
                     "protocol, ssl, settings, last_statement from sys.sessions");
-            execute("select handler_node, time_created from sys.sessions", session);
+            response = execute("select handler_node, time_created from sys.sessions", session);
             assertThat(response).hasRowCount(1);
             assertThat((String) response.rows()[0][0]).startsWith("node_s");
             assertThat((Long) response.rows()[0][1]).isGreaterThanOrEqualTo(timeCreated);
