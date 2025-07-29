@@ -193,6 +193,7 @@ information about the currently applied cluster settings.
     | settings['indices']['recovery']['internal_action_long_timeout']                   | text         |
     | settings['indices']['recovery']['internal_action_timeout']                        | text         |
     | settings['indices']['recovery']['max_bytes_per_sec']                              | text         |
+    | settings['indices']['recovery']['max_concurrent_file_chunks']                     | integer      |
     | settings['indices']['recovery']['recovery_activity_timeout']                      | text         |
     | settings['indices']['recovery']['retry_delay_network']                            | text         |
     | settings['indices']['recovery']['retry_delay_state_sync']                         | text         |
