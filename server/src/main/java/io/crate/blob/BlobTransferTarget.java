@@ -43,7 +43,6 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.transport.TransportRequestOptions;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
@@ -171,7 +170,6 @@ public class BlobTransferTarget {
             recipientNodeId,
             BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
             new BlobInfoRequest(senderNodeId, request.transferId),
-            TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(
                 BlobHeadRequestHandler.Actions.GET_TRANSFER_INFO,
                 listener,
@@ -199,7 +197,6 @@ public class BlobTransferTarget {
             recipientNodeId,
             BlobHeadRequestHandler.Actions.GET_BLOB_HEAD,
             new GetBlobHeadRequest(senderNodeId, request.transferId(), request.currentPos),
-            TransportRequestOptions.EMPTY,
             new ActionListenerResponseHandler<>(
                 BlobHeadRequestHandler.Actions.GET_BLOB_HEAD,
                 getBlobHeadListener,

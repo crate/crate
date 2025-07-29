@@ -74,33 +74,36 @@ public class TransportServiceDeserializationFailureTests extends ESTestCase {
         {
             // requests without a parent task are recorded directly in the response context
 
-            transportService.sendRequest(otherNode, testActionName, TransportRequest.Empty.INSTANCE,
-                    TransportRequestOptions.EMPTY, new TransportResponseHandler<TransportResponse.Empty>() {
-                        @Override
-                        public void handleResponse(TransportResponse.Empty response) {
-                            fail("should not be called");
-                        }
+            transportService.sendRequest(
+                otherNode,
+                testActionName,
+                TransportRequest.Empty.INSTANCE,
+                new TransportResponseHandler<TransportResponse.Empty>() {
+                    @Override
+                    public void handleResponse(TransportResponse.Empty response) {
+                        fail("should not be called");
+                    }
 
-                        @Override
-                        public void handleException(TransportException exp) {
-                            fail("should not be called");
-                        }
+                    @Override
+                    public void handleException(TransportException exp) {
+                        fail("should not be called");
+                    }
 
-                        @Override
-                        public String executor() {
-                            return ThreadPool.Names.SAME;
-                        }
+                    @Override
+                    public String executor() {
+                        return ThreadPool.Names.SAME;
+                    }
 
-                        @Override
-                        public TransportResponse.Empty read(StreamInput in) {
-                            throw new AssertionError("should not be called");
-                        }
+                    @Override
+                    public TransportResponse.Empty read(StreamInput in) {
+                        throw new AssertionError("should not be called");
+                    }
 
-                        @Override
-                        public String toString() {
-                            return "test handler without parent";
-                        }
-                    });
+                    @Override
+                    public String toString() {
+                        return "test handler without parent";
+                    }
+                });
 
             final List<Transport.ResponseContext<? extends TransportResponse>> responseContexts
                     = transport.getResponseHandlers().prune(ignored -> true);
@@ -110,33 +113,36 @@ public class TransportServiceDeserializationFailureTests extends ESTestCase {
         }
 
         {
-            transportService.sendRequest(otherNode, testActionName, TransportRequest.Empty.INSTANCE,
-                    TransportRequestOptions.EMPTY, new TransportResponseHandler<TransportResponse.Empty>() {
-                        @Override
-                        public void handleResponse(TransportResponse.Empty response) {
-                            fail("should not be called");
-                        }
+            transportService.sendRequest(
+                otherNode,
+                testActionName,
+                TransportRequest.Empty.INSTANCE,
+                    new TransportResponseHandler<TransportResponse.Empty>() {
+                    @Override
+                    public void handleResponse(TransportResponse.Empty response) {
+                        fail("should not be called");
+                    }
 
-                        @Override
-                        public void handleException(TransportException exp) {
-                            fail("should not be called");
-                        }
+                    @Override
+                    public void handleException(TransportException exp) {
+                        fail("should not be called");
+                    }
 
-                        @Override
-                        public String executor() {
-                            return ThreadPool.Names.SAME;
-                        }
+                    @Override
+                    public String executor() {
+                        return ThreadPool.Names.SAME;
+                    }
 
-                        @Override
-                        public TransportResponse.Empty read(StreamInput in) {
-                            throw new AssertionError("should not be called");
-                        }
+                    @Override
+                    public TransportResponse.Empty read(StreamInput in) {
+                        throw new AssertionError("should not be called");
+                    }
 
-                        @Override
-                        public String toString() {
-                            return "test handler with parent";
-                        }
-                    });
+                    @Override
+                    public String toString() {
+                        return "test handler with parent";
+                    }
+                });
 
             final List<Transport.ResponseContext<? extends TransportResponse>> responseContexts
                     = transport.getResponseHandlers().prune(ignored -> true);
