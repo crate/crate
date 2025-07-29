@@ -21,17 +21,19 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import io.crate.common.concurrent.KillableCompletionStage;
-import io.crate.common.exceptions.Exceptions;
-import io.crate.data.BatchIterator;
-import io.crate.data.Row;
-
-import org.jetbrains.annotations.NotNull;
 import java.util.Iterator;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
+
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.common.exceptions.Exceptions;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
 
 /**
  * BatchIterator implementation that is backed by a {@link PagingIterator}.
@@ -46,18 +48,18 @@ import java.util.function.Function;
 public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     private final PagingIterator<Key, Row> pagingIterator;
-    private final Function<Key, KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore;
+    private final Function<Key, CompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore;
     private final BooleanSupplier isUpstreamExhausted;
     private final Consumer<? super Throwable> closeCallback;
+    private final AtomicBoolean closed = new AtomicBoolean(false);
 
-    private Throwable killed;
-    private KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>> currentlyLoading;
+    private volatile Throwable killed;
+
     private Iterator<Row> it;
-    private boolean closed = false;
     private Row current;
 
     public BatchPagingIterator(PagingIterator<Key, Row> pagingIterator,
-                               Function<Key, KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore,
+                               Function<Key, CompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>>> fetchMore,
                                BooleanSupplier isUpstreamExhausted,
                                Consumer<? super Throwable> closeCallback) {
         this.pagingIterator = pagingIterator;
@@ -93,8 +95,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     @Override
     public void close() {
-        if (!closed) {
-            closed = true;
+        if (closed.compareAndSet(false, true)) {
             pagingIterator.finish(); // release resource, specially possible ram accounted bytes
             closeCallback.accept(killed);
         }
@@ -102,20 +103,20 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
 
     @Override
     public CompletionStage<?> loadNextBatch() throws Exception {
-        if (closed) {
+        if (closed.get()) {
             throw new IllegalStateException("BatchIterator already closed");
         }
         if (allLoaded()) {
             throw new IllegalStateException("All data already loaded");
         }
         Throwable err;
-        KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>> future;
+        CompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>> future;
         synchronized (this) {
             err = this.killed;
             if (err == null) {
-                currentlyLoading = future = fetchMore.apply(pagingIterator.exhaustedIterable());
+                future = fetchMore.apply(pagingIterator.exhaustedIterable());
             } else {
-                future = KillableCompletionStage.failed(err);
+                future = CompletableFuture.failedStage(err);
             }
         }
         if (err == null) {
@@ -147,28 +148,18 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     }
 
     private void raiseIfClosedOrKilled() {
-        Throwable err;
-        synchronized (this) {
-            err = killed;
-        }
+        Throwable err = killed;
         if (err != null) {
             Exceptions.rethrowUnchecked(err);
         }
-        if (closed) {
+        if (closed.get()) {
             throw new IllegalStateException("Iterator is closed");
         }
     }
 
     @Override
     public void kill(@NotNull Throwable throwable) {
-        KillableCompletionStage<? extends Iterable<? extends KeyIterable<Key, Row>>> loading;
-        synchronized (this) {
-            killed = throwable;
-            loading = this.currentlyLoading;
-        }
+        killed = throwable;
         close();
-        if (loading != null) {
-            loading.kill(throwable);
-        }
     }
 }
