@@ -426,7 +426,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             state,
             indices,
             whereClause.routingValues(),
-            isPartitioned,
+            true,
             shardSelection
         );
     }

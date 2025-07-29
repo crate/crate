@@ -21,18 +21,24 @@
 package org.elasticsearch.index.shard;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import java.io.IOException;
+import java.nio.file.FileVisitResult;
+import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.SimpleFileVisitor;
+import java.nio.file.attribute.BasicFileAttributes;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.env.TestEnvironment;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.MockEngineFactoryPlugin;
+import org.elasticsearch.index.store.Store;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.CorruptionUtils;
@@ -59,7 +65,7 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
 
         final String node = cluster().startNode();
 
-        execute("CREATE TABLE t (a INT) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        execute("CREATE TABLE t (a INT) CLUSTERED INTO 3 SHARDS WITH (number_of_replicas = 0)");
         int totalDocs = 0;
         for (int i = 0; i < randomIntBetween(5, 10); i++) {
             int batchSize = randomIntBetween(10, 100);
@@ -113,20 +119,21 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
 
         });
 
-        /*
-        // shard should be failed due to a corrupted index
+        // check that corrupt marker is there
+        AtomicInteger corruptedMarkerCount = new AtomicInteger();
+        SimpleFileVisitor<Path> corruptedVisitor = new SimpleFileVisitor<>() {
+            @Override
+            public FileVisitResult visitFile(Path file, BasicFileAttributes attrs) throws IOException {
+                if (Files.isRegularFile(file) && file.getFileName().toString().startsWith(Store.CORRUPTED_MARKER_NAME_PREFIX)) {
+                    corruptedMarkerCount.incrementAndGet();
+                }
+                return FileVisitResult.CONTINUE;
+            }
+        };
         assertBusy(() -> {
-            final ClusterAllocationExplanation explanation =
-                client().admin().cluster().prepareAllocationExplain()
-                    .setIndex(indexName).setShard(0).setPrimary(true)
-                    .get().getExplanation();
-
-            final ShardAllocationDecision shardAllocationDecision = explanation.getShardAllocationDecision();
-            assertThat(shardAllocationDecision.isDecisionTaken(), equalTo(true));
-            assertThat(shardAllocationDecision.getAllocateDecision().getAllocationDecision(),
-                equalTo(AllocationDecision.NO_VALID_SHARD_COPY));
+            Files.walkFileTree(shardPath.resolveIndex(), corruptedVisitor);
+            assertThat(corruptedMarkerCount.get()).as("store has to be marked as corrupted").isEqualTo(1);
         });
-         */
 
         cluster().restartNode(node, new TestCluster.RestartCallback() {
             @Override
@@ -139,68 +146,8 @@ public class RemoveCorruptedShardDataCommandIT extends IntegTestCase {
         });
 
         waitNoPendingTasksOnAll();
-        ensureGreen();
 
-        execute("SELECT COUNT(*) FROM t");
-        assertThat(response).hasRows(String.valueOf(totalDocs));
-
-        /*
-
-
-        String nodeId = null;
-        final ClusterState state = client().admin().cluster().prepareState().get().getState();
-        final DiscoveryNodes nodes = state.nodes();
-        for (ObjectObjectCursor<String, DiscoveryNode> cursor : nodes.getNodes()) {
-            final String name = cursor.value.getName();
-            if (name.equals(node)) {
-                nodeId = cursor.key;
-                break;
-            }
-        }
-        assertThat(nodeId, notNullValue());
-
-        logger.info("--> output:\n{}", terminal.getOutput());
-
-        assertThat(terminal.getOutput(), containsString("allocate_stale_primary"));
-        assertThat(terminal.getOutput(), containsString("\"node\" : \"" + nodeId + "\""));
-
-        // there is only _stale_ primary (due to new allocation id)
-        assertBusy(() -> {
-            final ClusterAllocationExplanation explanation =
-                client().admin().cluster().prepareAllocationExplain()
-                    .setIndex(indexName).setShard(0).setPrimary(true)
-                    .get().getExplanation();
-
-            final ShardAllocationDecision shardAllocationDecision = explanation.getShardAllocationDecision();
-            assertThat(shardAllocationDecision.isDecisionTaken(), equalTo(true));
-            assertThat(shardAllocationDecision.getAllocateDecision().getAllocationDecision(),
-                equalTo(AllocationDecision.NO_VALID_SHARD_COPY));
-        });
-
-        client().admin().cluster().prepareReroute()
-            .add(new AllocateStalePrimaryAllocationCommand(indexName, 0, nodeId, true))
-            .get();
-
-        assertBusy(() -> {
-            final ClusterAllocationExplanation explanation =
-                client().admin().cluster().prepareAllocationExplain()
-                    .setIndex(indexName).setShard(0).setPrimary(true)
-                    .get().getExplanation();
-
-            assertThat(explanation.getCurrentNode(), notNullValue());
-            assertThat(explanation.getShardState(), equalTo(ShardRoutingState.STARTED));
-        });
-
-        final Pattern pattern = Pattern.compile("Corrupted Lucene index segments found -\\s+(?<docs>\\d+) documents will be lost.");
-        final Matcher matcher = pattern.matcher(terminal.getOutput());
-        assertThat(matcher.find(), equalTo(true));
-        final int expectedNumDocs = numDocs - Integer.parseInt(matcher.group("docs"));
-
-        ensureGreen(indexName);
-
-        assertHitCount(client().prepareSearch(indexName).setQuery(matchAllQuery()).get(), expectedNumDocs);
-
-
-         */
+        execute(String.format("SELECT COUNT(*) < %s FROM t", totalDocs));
+        assertThat(response).hasRows("true");
     }
 }
