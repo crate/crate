@@ -47,4 +47,5 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed an issue that prevented users to change the value of the
+  :ref:`indices.recovery.max_concurrent_file_chunks` setting.
