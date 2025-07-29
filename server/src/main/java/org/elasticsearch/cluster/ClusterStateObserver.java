@@ -41,7 +41,7 @@ public class ClusterStateObserver {
 
     protected final Logger logger;
 
-    private final Predicate<ClusterState> MATCH_ALL_CHANGES_PREDICATE = state -> true;
+    private final Predicate<ClusterState> MATCH_ALL_CHANGES_PREDICATE = _ -> true;
 
     private final ClusterApplierService clusterApplierService;
     private final ThreadPool threadPool;
@@ -100,11 +100,7 @@ public class ClusterStateObserver {
     }
 
     public void waitForNextChange(Listener listener) {
-        waitForNextChange(listener, MATCH_ALL_CHANGES_PREDICATE);
-    }
-
-    public void waitForNextChange(Listener listener, @Nullable TimeValue timeOutValue) {
-        waitForNextChange(listener, MATCH_ALL_CHANGES_PREDICATE, timeOutValue);
+        waitForNextChange(listener, MATCH_ALL_CHANGES_PREDICATE, null);
     }
 
     public void waitForNextChange(Listener listener, Predicate<ClusterState> statePredicate) {
@@ -271,13 +267,6 @@ public class ClusterStateObserver {
         void onTimeout(TimeValue timeout);
     }
 
-    static class ObservingContext {
-        public final Listener listener;
-        public final Predicate<ClusterState> statePredicate;
-
-        ObservingContext(Listener listener, Predicate<ClusterState> statePredicate) {
-            this.listener = listener;
-            this.statePredicate = statePredicate;
-        }
+    record ObservingContext(Listener listener, Predicate<ClusterState> statePredicate) {
     }
 }
