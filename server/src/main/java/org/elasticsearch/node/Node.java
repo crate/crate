@@ -763,6 +763,7 @@ public class Node implements Closeable {
             );
 
             tableStats.updateTableStats(tableStatsService::get);
+            clusterService.addListener(tableStatsService);
 
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
