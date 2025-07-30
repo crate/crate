@@ -47,6 +47,12 @@ series.
 Fixes
 =====
 
+- Fixed an issue that led to replication errors due to the ``seqNo`` and
+  ``primaryTerm`` information missing when replicating new records written as
+  part of ``INSERT INTO`` or ``COPY FROM`` statements from the primary to
+  replica shards when running in a mixed cluster with 6.0.0 and an earlier
+  version before 5.10.11.
+
 - Fixed an issue that could lead to a ``NullPointerException`` when running
   ``DELETE`` queries.
 
