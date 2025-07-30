@@ -21,7 +21,7 @@
 
 package io.crate.session;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -30,15 +30,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
 
+import org.elasticsearch.test.ESTestCase;
 import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
+import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.FailingBatchIterator;
 import io.crate.data.testing.TestingBatchIterators;
 
-public class RowConsumerToResultReceiverTest {
+public class RowConsumerToResultReceiverTest extends ESTestCase {
 
     @Test
     public void testBatchedIteratorConsumption() throws Exception {
@@ -101,7 +103,7 @@ public class RowConsumerToResultReceiverTest {
             }
         };
         RowConsumerToResultReceiver batchConsumer =
-            new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
+            new RowConsumerToResultReceiver(resultReceiver, 1, t -> {});
 
         batchConsumer.accept(batchSimulatingIterator, null);
 
@@ -113,5 +115,30 @@ public class RowConsumerToResultReceiverTest {
 
         assertThat(batchConsumer.suspended()).isFalse();
         assertThat(rowCount[0]).isEqualTo(10);
+    }
+
+    @Test
+    public void test_does_not_suspend_consumer_on_last_row() throws Exception {
+        {
+            int numRows = randomIntBetween(1, 10);
+            BatchIterator<Row> batchIterator = TestingBatchIterators.range(0, numRows);
+            BaseResultReceiver resultReceiver = new BaseResultReceiver();
+            var consumer = new RowConsumerToResultReceiver(resultReceiver, numRows, _ -> {});
+
+            consumer.accept(batchIterator, null);
+            assertThat(consumer.suspended()).isFalse();
+            assertThat(consumer.completionFuture()).isDone();
+        }
+        {
+            int numRows = randomIntBetween(2, 10);
+            BatchIterator<Row> numbers = TestingBatchIterators.range(0, numRows);
+            var batchIterator = new BatchSimulatingIterator<>(numbers, numRows - 1, 1, null);
+            BaseResultReceiver resultReceiver = new BaseResultReceiver();
+            var consumer = new RowConsumerToResultReceiver(resultReceiver, numRows, _ -> {});
+
+            consumer.accept(batchIterator, null);
+            assertThat(consumer.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
+            assertThat(consumer.suspended()).isFalse();
+        }
     }
 }
