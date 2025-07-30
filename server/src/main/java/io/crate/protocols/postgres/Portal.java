@@ -25,9 +25,9 @@ import java.util.List;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.analyze.AnalyzedStatement;
 import io.crate.session.PreparedStmt;
 import io.crate.session.RowConsumerToResultReceiver;
-import io.crate.analyze.AnalyzedStatement;
 
 public final class Portal {
 
@@ -91,6 +91,7 @@ public final class Portal {
         return "Portal{" +
                "portalName=" + portalName +
                ", preparedStmt=" + preparedStmt.rawStatement() +
+               ", consumer=" + consumer +
                '}';
     }
 }

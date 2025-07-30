@@ -45,12 +45,12 @@ public class RowConsumerToResultReceiver implements RowConsumer {
      * Reset per suspend/execute
      */
     private int rowCount = 0;
-    private BatchIterator<Row> activeIt;
+    private CompletableFuture<BatchIterator<Row>> suspendedIt = new CompletableFuture<>();
 
     public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
-        completionFuture.whenComplete((res, err) -> {
+        completionFuture.whenComplete((_, err) -> {
             onCompletion.accept(err);
         });
     }
@@ -77,22 +77,23 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         while (true) {
             try {
                 while (iterator.moveNext()) {
+                    if (rowCount > 0 && maxRows > 0 && rowCount % maxRows == 0) {
+                        suspendedIt.complete(iterator);
+                        resultReceiver.batchFinished();
+                        return; // resumed via postgres protocol, close is done later
+                    }
                     rowCount++;
                     CompletableFuture<Void> writeFuture = resultReceiver.setNextRow(iterator.currentElement());
                     if (writeFuture != null) {
                         LOGGER.trace("Suspended execution after {} rows as the receiver is not writable anymore", rowCount);
-                        activeIt = iterator;
+                        suspendedIt.complete(iterator);
                         writeFuture.thenRun(() -> {
                             LOGGER.trace("Resume execution after {} rows", rowCount);
-                            resume();
+                            suspendedIt = new CompletableFuture<>();
+                            rowCount = 0;
+                            consumeIt(iterator);
                         });
                         return;
-                    }
-
-                    if (maxRows > 0 && rowCount % maxRows == 0) {
-                        activeIt = iterator;
-                        resultReceiver.batchFinished();
-                        return; // resumed via postgres protocol, close is done later
                     }
                 }
                 if (iterator.allLoaded()) {
@@ -109,7 +110,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                         }
                         continue;
                     }
-                    nextBatch.whenComplete((r, f) -> {
+                    nextBatch.whenComplete((_, f) -> {
                         if (f == null) {
                             consumeIt(iterator);
                         } else {
@@ -135,17 +136,17 @@ public class RowConsumerToResultReceiver implements RowConsumer {
      * and finish the ResultReceiver
      */
     public void closeAndFinishIfSuspended() {
-        if (activeIt != null) {
-            activeIt.close();
+        suspendedIt.whenComplete((it, _) -> {
+            it.close();
             completionFuture.complete(null);
             // resultReceiver is left untouched:
             // - A previous .batchCompleted() call already flushed out pending messages
             // - Calling failure/allFinished would lead to extra messages, including  sentCommandComplete, to the client, which can lead to issues on the client.
-        }
+        });
     }
 
     public boolean suspended() {
-        return activeIt != null;
+        return suspendedIt.isDone();
     }
 
     public void replaceResultReceiver(ResultReceiver<?> resultReceiver, int maxRows) {
@@ -159,10 +160,20 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     }
 
     public void resume() {
-        assert activeIt != null : "resume must only be called if suspended() returned true and activeIt is not null";
-        BatchIterator<Row> iterator = this.activeIt;
-        this.activeIt = null;
-        consumeIt(iterator);
+        assert suspended() : "resume must only be called if suspended() returned true";
+        BatchIterator<Row> it = null;
+        try {
+            it = suspendedIt.join();
+            suspendedIt = new CompletableFuture<>();
+            resultReceiver.setNextRow(it.currentElement());
+            consumeIt(it);
+        } catch (Throwable t) {
+            if (it != null) {
+                it.close();
+            }
+            completionFuture.completeExceptionally(t);
+            resultReceiver.fail(t);
+        }
     }
 
     @Override
@@ -171,7 +182,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                "resultReceiver=" + resultReceiver +
                ", maxRows=" + maxRows +
                ", rowCount=" + rowCount +
-               ", activeIt=" + activeIt +
+               ", activeIt=" + suspendedIt +
                '}';
     }
 }

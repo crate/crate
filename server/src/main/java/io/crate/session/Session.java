@@ -630,6 +630,7 @@ public class Session implements AutoCloseable {
         if (activeExecution == null) {
             return triggerDeferredExecutions(forceBulk);
         } else {
+            LOGGER.debug("method=sync activeExecution={}", activeExecution);
             var result = activeExecution;
             activeExecution = null;
             return result;
@@ -679,9 +680,10 @@ public class Session implements AutoCloseable {
     }
 
     private CompletableFuture<?> triggerDeferredExecutions(boolean forceBulk) {
-        switch (deferredExecutionsByStmt.size()) {
+        int numDeferred = deferredExecutionsByStmt.size();
+        LOGGER.debug("method=sync deferredExecutions={}", numDeferred);
+        switch (numDeferred) {
             case 0:
-                LOGGER.debug("method=sync deferredExecutions=0");
                 return CompletableFuture.completedFuture(null);
             case 1: {
                 var deferredExecutions = deferredExecutionsByStmt.values().iterator().next();
@@ -689,7 +691,7 @@ public class Session implements AutoCloseable {
                 return exec(deferredExecutions, forceBulk);
             }
             default: {
-                // Mix of different defered execution is PG specific.
+                // Mix of different deferred execution is PG specific.
                 // HTTP sync-s at the end of both single/bulk requests, and it's always one statement.
                 // sequentiallize execution to ensure client receives row counts in correct order
                 CompletableFuture<?> allCompleted = null;

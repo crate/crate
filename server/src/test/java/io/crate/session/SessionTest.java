@@ -24,6 +24,7 @@ package io.crate.session;
 import static io.crate.session.Session.UNNAMED;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.concurrent.CompletableFuture.completedFuture;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
@@ -43,6 +44,7 @@ import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.ScheduledThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -59,6 +61,7 @@ import io.crate.common.unit.TimeValue;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.data.testing.TestingBatchIterators;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.engine.collect.stats.QueueSink;
@@ -69,6 +72,7 @@ import io.crate.planner.Plan;
 import io.crate.planner.Planner;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
+import io.crate.protocols.postgres.FormatCodes.FormatCode;
 import io.crate.protocols.postgres.Portal;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -398,35 +402,34 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_statement_timeout_schedule_is_removed_for_finished_jobs() throws Exception {
         Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        Plan plan = new Plan() {
+            @Override
+            public StatementType type() {
+                return StatementType.INSERT;
+            }
+
+            @Override
+            public void executeOrFail(DependencyCarrier dependencies,
+                                      PlannerContext plannerContext,
+                                      RowConsumer consumer,
+                                      Row params,
+                                      SubQueryResults subQueryResults) throws Exception {
+                consumer.accept(InMemoryBatchIterator.empty(null), null);
+            }
+
+            @Override
+            public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                               PlannerContext plannerContext,
+                                                               List<Row> bulkParams,
+                                                               SubQueryResults subQueryResults) {
+                return new CompletableFuture<>();
+            }
+        };
+        when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
+            .thenReturn(plan);
         SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
             .setPlanner(planner)
             .build();
-        when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
-            .thenReturn(
-                new Plan() {
-                    @Override
-                    public StatementType type() {
-                        return StatementType.INSERT;
-                    }
-
-                    @Override
-                    public void executeOrFail(DependencyCarrier dependencies,
-                                              PlannerContext plannerContext,
-                                              RowConsumer consumer,
-                                              Row params,
-                                              SubQueryResults subQueryResults) throws Exception {
-                        consumer.accept(InMemoryBatchIterator.empty(null), null);
-                    }
-
-                    @Override
-                    public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
-                                                                       PlannerContext plannerContext,
-                                                                       List<Row> bulkParams,
-                                                                       SubQueryResults subQueryResults) {
-                        return new CompletableFuture<>();
-                    }
-                }
-            );
 
         DependencyCarrier dependencies = sqlExecutor.dependencyMock;
         when(dependencies.scheduler()).thenReturn(THREAD_POOL.scheduler());
@@ -510,6 +513,57 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
                 }
             );
         }
+    }
+
+    @Test
+    public void test_binding_portal_again_closes_suspended_consumers_eventually() throws Exception {
+        Planner planner = mock(Planner.class, Answers.RETURNS_MOCKS);
+        AtomicReference<RowConsumer> consumerRef = new AtomicReference<>();
+        Plan plan = new Plan() {
+            @Override
+            public StatementType type() {
+                return StatementType.INSERT;
+            }
+
+            @Override
+            public void executeOrFail(DependencyCarrier dependencies,
+                                      PlannerContext plannerContext,
+                                      RowConsumer consumer,
+                                      Row params,
+                                      SubQueryResults subQueryResults) throws Exception {
+                consumerRef.set(consumer);
+            }
+
+            @Override
+            public CompletableFuture<BulkResponse> executeBulk(DependencyCarrier executor,
+                                                               PlannerContext plannerContext,
+                                                               List<Row> bulkParams,
+                                                               SubQueryResults subQueryResults) {
+                return new CompletableFuture<>();
+            }
+        };
+        when(planner.plan(any(AnalyzedStatement.class), any(PlannerContext.class)))
+            .thenReturn(plan);
+        SQLExecutor sqlExecutor = SQLExecutor.builder(clusterService)
+            .setPlanner(planner)
+            .build();
+        try (Session session = sqlExecutor.createSession()) {
+            session.parse("S1", "SELECT 1", Collections.emptyList());
+            session.bind("", "S1", List.of(), new FormatCode[0]);
+            BaseResultReceiver baseResultReceiver = new BaseResultReceiver();
+            session.execute("", 5, baseResultReceiver);
+
+            assertThat(baseResultReceiver.completionFuture()).isNotDone();
+            Portal portal = session.portals.get("");
+            assertThat(portal.activeConsumer()).isNotNull();
+            assertThat(portal.activeConsumer().suspended()).isFalse();
+
+            session.bind("", "S1", List.of(), new FormatCode[0]);
+            assertThat(portal.activeConsumer().suspended()).isFalse();
+            consumerRef.get().accept(TestingBatchIterators.range(0, 10), null);
+            assertThat(portal.activeConsumer().completionFuture()).succeedsWithin(1, TimeUnit.SECONDS);
+        }
+
     }
 
     @Test
