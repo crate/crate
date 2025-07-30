@@ -47,5 +47,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could cause ``SELECT`` statements to get stuck if executed
+  via a PostgreSQL client that set the ``maxRow`` option as part of an
+  ``EXECUTE`` message and it matched the number of result rows exactly.
+
 - Fixed an issue that prevented users to change the value of the
   :ref:`indices.recovery.max_concurrent_file_chunks` setting.
