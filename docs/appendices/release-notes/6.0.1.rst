@@ -47,6 +47,9 @@ series.
 Fixes
 =====
 
+- Fixed a regression introduced in 6.0.0 that could cause ``INSERT INTO``
+  statements to get stuck during a network partition.
+
 - Fixed intermittent subscription loss in logical replication during rolling
   upgrades.
 
