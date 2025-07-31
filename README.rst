@@ -50,7 +50,7 @@ Features
 - Horizontally scalable, highly available and fault-tolerant clusters that run
   very well in virtualized and containerized environments.
 
-- Extremely fast distributed query execution.
+- Extremely fast distributed query execution
 
 - Auto-partitioning, auto-sharding, and auto-replication.
 
