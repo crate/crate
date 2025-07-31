@@ -51,4 +51,19 @@ public class ShardDeleteRequestTest extends ESTestCase {
 
         assertThat(request).isEqualTo(request2);
     }
+
+    @Test
+    public void test_streaming_empty_items_results_in_empty_list() throws Exception {
+        ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
+        UUID jobId = UUID.randomUUID();
+        ShardDeleteRequest request = new ShardDeleteRequest(shardId, jobId);
+        BytesStreamOutput out = new BytesStreamOutput();
+        request.writeTo(out);
+
+        StreamInput in = out.bytes().streamInput();
+        ShardDeleteRequest request2 = new ShardDeleteRequest(in);
+
+        assertThat(request2.items()).hasSize(0);
+        assertThat(request).isEqualTo(request2);
+    }
 }

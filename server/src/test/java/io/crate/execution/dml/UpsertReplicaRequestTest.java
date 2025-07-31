@@ -123,6 +123,13 @@ public class UpsertReplicaRequestTest {
                     ShardUpsertRequestTest.NAME_REF
                 );
                 assertThat(shardUpsertRequest.items()).hasSize(2);
+                for (int i = 0; i < items.size(); i++) {
+                    Item item = shardUpsertRequest.items().get(i);
+                    var replicaItem = items.get(i);
+                    assertThat(item.seqNo()).isEqualTo(replicaItem.seqNo());
+                    assertThat(item.primaryTerm()).isEqualTo(replicaItem.primaryTerm());
+                    assertThat(item.version()).isEqualTo(replicaItem.version());
+                }
             }
         }
     }
