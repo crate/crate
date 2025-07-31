@@ -283,7 +283,7 @@ public class TableStatsService implements Runnable, ClusterStateListener {
     }
 
     private IndexWriter createWriter() throws IOException {
-        Directory directory = NIOFSDirectory.open(dataPath);
+        Directory directory = new NIOFSDirectory(dataPath);
         boolean openExisting = DirectoryReader.indexExists(directory);
 
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
