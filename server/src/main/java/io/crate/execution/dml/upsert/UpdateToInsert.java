@@ -60,6 +60,7 @@ import io.crate.metadata.doc.DocTableInfo;
  * This is left to the {@link Indexer} which should be used on the result.
  *
  * Despite this, it does include undeterministic synthetic columns within {@link #columns()}
+ * and some dummy placeholder values for them.
  * This is necessary to ensure that in upsert statements, both the INSERT and the UPDATE case
  * have the same column ordering, which is:
  *
@@ -141,6 +142,13 @@ import io.crate.metadata.doc.DocTableInfo;
  **/
 public final class UpdateToInsert {
 
+    /**
+     * Dummy value for a non-deterministic synthetics.
+     * We want to have them in targets but don't want to have values for them.
+     * Usage of NULL can be interpreted as "user provided NULL" by Indexer,
+     * so using placeholder as a dummy value.
+     */
+    public static final Object PLACEHOLDER = new Object();
     private final DocTableInfo table;
     private final Evaluator eval;
     private final List<Reference> updateColumns;
@@ -252,9 +260,9 @@ public final class UpdateToInsert {
                     : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                 insertValues[i] = value;
             } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
-                insertValues[i] = null;
+                insertValues[i] = PLACEHOLDER;
             } else if (ref.defaultExpression() != null && !ref.defaultExpression().isDeterministic()) {
-                insertValues[i] = null;
+                insertValues[i] = PLACEHOLDER;
             } else {
                 insertValues[i] = ref.accept(eval, values).value();
             }

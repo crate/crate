@@ -48,6 +48,7 @@ import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.execution.dml.upsert.UpdateToInsert;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.InputFactory;
@@ -446,10 +447,21 @@ public class Indexer {
             Input<?> input = ctxForRefs.add(expression);
             tableConstraints.add(new TableCheckConstraint(input, constraint));
         }
+        // Targets can contain synthetics in following cases:
+        // - User has provided a value
+        // - UpdateToInsert added it.
+        // We can't make a decision to skip or not to skip synthetics without having values.
+        // Hence, we always prepare synthetics(generator objects) for non-partitioned columns
+        // and decide later if we want to actually generate a value.
+
+        // Problem: regular insert don't have placeholder and logic to always add synthetics to targets breaks regular inserts.
+
         for (var ref : table.defaultExpressionColumns()) {
-            if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+            if (ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
+
+
             ColumnIdent column = ref.column();
 
             createParentSynthetics(table, targetColumns, column, getRef);
@@ -471,9 +483,6 @@ public class Indexer {
         }
         for (var ref : table.generatedColumns()) {
             if (ref.granularity() == RowGranularity.PARTITION) {
-                continue;
-            }
-            if (targetColumns.contains(ref)) {
                 continue;
             }
 
@@ -750,6 +759,12 @@ public class Indexer {
         for (int i = 0; i < values.length; i++) {
             Reference reference = columns.get(i);
             Object value = valueForInsert(reference.valueType(), values[i]);
+            if (UpdateToInsert.PLACEHOLDER.equals(value)) {
+                // Reference was artificially added to targets,
+                // no actual value here, must be generated below via synthetics
+
+                // Problem: regular insert don't have placeholder and logic to always add synthetics to targets breaks regular inserts.
+            }
             ColumnConstraint check = columnConstraints.get(reference.column());
             if (check != null) {
                 check.verify(value);

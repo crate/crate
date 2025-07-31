@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -2042,6 +2041,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
         assertThat(response.rowCount()).isEqualTo(1);
         execute("refresh table tbl");
+        execute("select rnd_col from tbl");
+        assertThat(response.rows()[0][0]).isNotNull();
 
         execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
 

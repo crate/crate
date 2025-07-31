@@ -762,6 +762,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("refresh table generated_column");
         execute("select inserted from generated_column");
         assertThat(response.rows()[0][0]).isNotEqualTo(ts);
+        assertThat(response.rows()[0][0]).isNotNull();
     }
 
     @Test
