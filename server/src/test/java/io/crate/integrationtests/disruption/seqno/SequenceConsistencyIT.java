@@ -136,34 +136,17 @@ public class SequenceConsistencyIT extends AbstractDisruptionTestCase {
 
         execute("refresh table registers");
 
-        assertBusy(() -> {
-            execute("select value, _seq_no, _primary_term from registers where id = 1", null, masterNodeName);
-            String finalValue = (String) response.rows()[0][0];
-            long finalSequenceNumber = (long) response.rows()[0][1];
-            long finalPrimaryTerm = (long) response.rows()[0][2];
-
-            assertThat(finalSequenceNumber).satisfiesAnyOf(
-                x -> {
-                    assertThat(firstUpdate).isNotDone();
-                    assertThat(x)
-                        .as("We executed 2 updates on the new primary")
-                        .isEqualTo(2L);
-                    assertThat(finalPrimaryTerm)
-                        .as("Primary promotion should've triggered a bump in primary term")
-                        .isEqualTo(2L);
-                    assertThat(finalValue).isEqualTo("value set on master the second time");
-                },
-                x -> {
-                    assertThat(firstUpdate).isDone();
-                    assertThat(x)
-                        .as("We executed 3 updates on the new primary")
-                        .isEqualTo(3L);
-                    assertThat(finalPrimaryTerm)
-                        .as("Primary promotion should've triggered a bump in primary term")
-                        .isEqualTo(2L);
-                    assertThat(finalValue).isEqualTo("value whilst disrupted");
-                }
-            );
-        });
+        assertThat(firstUpdate).succeedsWithin(10, TimeUnit.SECONDS);
+        execute("select value, _seq_no, _primary_term from registers where id = 1", null, masterNodeName);
+        String finalValue = (String) response.rows()[0][0];
+        long finalSequenceNumber = (long) response.rows()[0][1];
+        long finalPrimaryTerm = (long) response.rows()[0][2];
+        assertThat(finalSequenceNumber)
+            .as("We executed 3 updates on the new primary")
+            .isEqualTo(3L);
+        assertThat(finalPrimaryTerm)
+            .as("Primary promotion should've triggered a bump in primary term")
+            .isEqualTo(2L);
+        assertThat(finalValue).isEqualTo("value whilst disrupted");
     }
 }
