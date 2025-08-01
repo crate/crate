@@ -2136,4 +2136,30 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             assertThat((long) response.rows()[0][0]).isLessThan(57000);
         }
     }
+
+    @Test
+    public void test_update_undeterministic_synthetics_are_not_reset() throws Exception {
+        execute("""
+            create table tbl(
+                 value int,
+                 gen TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS CURRENT_TIMESTAMP,
+                 def TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+             )
+            """
+        );
+
+        execute("insert into tbl (value) VALUES (1)");
+        execute("refresh table tbl");
+
+        execute("select gen, def from tbl");
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
+
+        execute("update tbl set value = 2");
+        execute("refresh table tbl");
+        execute("select gen, def from tbl");
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
+
+    }
 }
