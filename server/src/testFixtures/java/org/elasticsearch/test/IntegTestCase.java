@@ -191,7 +191,6 @@ import io.crate.session.Session;
 import io.crate.session.Sessions;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
-import io.crate.statistics.TableStats;
 import io.crate.statistics.TableStatsService;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLResponse;
@@ -1349,7 +1348,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     @After
-    private void resetTableStats() {
+    public void resetTableStats() {
         for (TableStatsService tableStats : cluster().getInstances(TableStatsService.class)) {
             tableStats.clear();
         }
