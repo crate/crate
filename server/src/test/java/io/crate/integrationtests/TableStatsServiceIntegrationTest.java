@@ -30,17 +30,18 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Seed;
+
 import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
-
 
 @IntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
 public class TableStatsServiceIntegrationTest extends IntegTestCase {
 
     @Before
     public void setRefreshInterval() {
-        execute("set global transient stats.service.interval='50ms'");
+        execute("set global transient stats.service.interval='100ms'");
     }
 
     @After
@@ -49,6 +50,7 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    @Seed("35E3B4A35CA4C33B")
     public void test_stats_updated_and_deleted() throws Exception {
         execute("create table t1(a int) with (number_of_replicas = 1)");
         ensureGreen();
@@ -70,6 +72,7 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
         }, 5, TimeUnit.SECONDS);
     }
 
+    @Seed("35E3B4A35CA4C33B")
     public void test_delete_table_stats_when_partitioned_table_is_dropped() throws Exception {
         execute("create table t1 (id integer, timestamp timestamp with time zone) " +
             "partitioned by(timestamp) with (number_of_replicas=0)");
@@ -94,6 +97,5 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
             Stats stats = tableStats.getStats(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
             assertThat(stats).isEqualTo(Stats.EMPTY);
         }, 5, TimeUnit.SECONDS);
-
     }
 }
