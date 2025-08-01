@@ -166,6 +166,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             it = suspendedIt.join();
             suspendedIt = new CompletableFuture<>();
             resultReceiver.setNextRow(it.currentElement());
+            rowCount++;
             consumeIt(it);
         } catch (Throwable t) {
             if (it != null) {
