@@ -34,13 +34,12 @@ import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
-
 @IntegTestCase.ClusterScope(supportsDedicatedMasters = false, numDataNodes = 2, numClientNodes = 0)
 public class TableStatsServiceIntegrationTest extends IntegTestCase {
 
     @Before
     public void setRefreshInterval() {
-        execute("set global transient stats.service.interval='50ms'");
+        execute("set global transient stats.service.interval='100ms'");
     }
 
     @After
@@ -70,6 +69,7 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
         }, 5, TimeUnit.SECONDS);
     }
 
+    @Test
     public void test_delete_table_stats_when_partitioned_table_is_dropped() throws Exception {
         execute("create table t1 (id integer, timestamp timestamp with time zone) " +
             "partitioned by(timestamp) with (number_of_replicas=0)");
@@ -94,6 +94,5 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
             Stats stats = tableStats.getStats(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
             assertThat(stats).isEqualTo(Stats.EMPTY);
         }, 5, TimeUnit.SECONDS);
-
     }
 }
