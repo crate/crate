@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.data.Offset.offset;
 
@@ -2042,6 +2041,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
         assertThat(response.rowCount()).isEqualTo(1);
         execute("refresh table tbl");
+        execute("select rnd_col from tbl");
+        assertThat(response.rows()[0][0]).isNotNull();
 
         execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
 
@@ -2134,5 +2135,31 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             // but constantly less than 57000.
             assertThat((long) response.rows()[0][0]).isLessThan(57000);
         }
+    }
+
+    @Test
+    public void test_update_undeterministic_synthetics_are_not_reset() throws Exception {
+        execute("""
+            create table tbl(
+                 value int,
+                 gen TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS CURRENT_TIMESTAMP,
+                 def TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
+             )
+            """
+        );
+
+        execute("insert into tbl (value) VALUES (1)");
+        execute("refresh table tbl");
+
+        execute("select gen, def from tbl");
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
+
+        execute("update tbl set value = 2");
+        execute("refresh table tbl");
+        execute("select gen, def from tbl");
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
+
     }
 }

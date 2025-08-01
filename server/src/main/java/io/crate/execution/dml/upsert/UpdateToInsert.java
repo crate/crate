@@ -192,16 +192,6 @@ public final class UpdateToInsert {
         if (insertColumns != null) {
             this.columns.addAll(insertColumns);
         }
-        for (var ref : table.defaultExpressionColumns()) {
-            if (!ref.defaultExpression().isDeterministic() && !this.columns.contains(ref)) {
-                this.columns.add(ref);
-            }
-        }
-        for (var ref : table.generatedColumns()) {
-            if (!ref.isDeterministic() && !this.columns.contains(ref)) {
-                this.columns.add(ref);
-            }
-        }
         for (var ref : table.rootColumns()) {
             if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                 continue;
@@ -251,10 +241,6 @@ public final class UpdateToInsert {
                 assert ref.column().isRoot()
                     : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                 insertValues[i] = value;
-            } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
-                insertValues[i] = null;
-            } else if (ref.defaultExpression() != null && !ref.defaultExpression().isDeterministic()) {
-                insertValues[i] = null;
             } else {
                 insertValues[i] = ref.accept(eval, values).value();
             }

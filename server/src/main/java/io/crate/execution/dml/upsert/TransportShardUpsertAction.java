@@ -213,7 +213,24 @@ public class TransportShardUpsertAction extends TransportShardAction<
             List.copyOf(indexer.insertColumns()),
             replicaItems
         );
+
+
         for (ShardUpsertRequest.Item item : request.items()) {
+            if (updateToInsert != null && item.insertValues() != null) {
+                // For regular inserts, targets already in place and correct (non-determinsitc expansion happens later)
+                // For updates, insertValues will be properly created by the UpdateToInsert.convert
+                // Extending only for ON CONFLICT to match with UpdateToInsert's behavior
+                // that is adding all columns (except undeterministic synthetics) to the targets.
+                Object[] extended = new Object[updateToInsert.columns().size()];
+                for (int i = 0; i < item.insertValues().length; i++) {
+                    extended[i] = item.insertValues()[i];
+                }
+                int delta = extended.length - item.insertValues().length;
+                for (int i = 0; i < delta; i++) {
+                    extended[item.insertValues().length + i] = null;
+                }
+                item.insertValues(extended);
+            }
             if (shardResponse.failure() != null) {
                 // Skip all remaining items on replica
                 continue;
