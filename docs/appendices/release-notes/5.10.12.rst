@@ -53,3 +53,7 @@ Fixes
 
 - Fixed an issue that prevented users to change the value of the
   :ref:`indices.recovery.max_concurrent_file_chunks` setting.
+
+- Fixed an issue that caused a decimal literals to be converted to a ``DOUBLE``
+  when it cannot be contained exactly, causing precision loss. It is now
+  converted to a ``NUMERIC``.

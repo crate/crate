@@ -2325,7 +2325,8 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     public Node visitDecimalLiteral(SqlBaseParser.DecimalLiteralContext context) {
         String text = context.getText().replace("_", "");
         BigDecimal bigDecimal = new BigDecimal(text);
-        if (bigDecimal.precision() <= 18 || bigDecimal.scale() < 0) {
+        // Must keep new BigDecimal(...) to preserve the precision, BigDecimal.of(...) will hide rounding errors
+        if (new BigDecimal(bigDecimal.doubleValue()).compareTo(bigDecimal) == 0) {
             return new DoubleLiteral(bigDecimal.doubleValue());
         }
         return new NumericLiteral(bigDecimal);

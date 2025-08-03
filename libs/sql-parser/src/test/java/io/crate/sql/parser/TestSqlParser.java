@@ -31,6 +31,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.AssertionsForClassTypes.catchThrowableOfType;
 import static org.assertj.core.api.Fail.fail;
 
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -48,6 +49,7 @@ import io.crate.sql.tree.DoubleLiteral;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.FunctionCall;
 import io.crate.sql.tree.Node;
+import io.crate.sql.tree.NumericLiteral;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
@@ -132,7 +134,7 @@ public class TestSqlParser {
     }
 
     @Test
-    public void testDouble() {
+    public void test_decimal_literals() {
         assertExpression("123.", new DoubleLiteral(123));
         assertExpression("123.0", new DoubleLiteral(123));
         assertExpression(".5", new DoubleLiteral(.5));
@@ -142,15 +144,15 @@ public class TestSqlParser {
         assertExpression("123.E7", new DoubleLiteral(123E7));
         assertExpression("123.0E7", new DoubleLiteral(123E7));
         assertExpression("123E+7", new DoubleLiteral(123E7));
-        assertExpression("123E-7", new DoubleLiteral(123E-7));
+        assertExpression("123E-7", new NumericLiteral(new BigDecimal("123E-7")));
 
         assertExpression("123.456E7", new DoubleLiteral(123.456E7));
         assertExpression("123.456E+7", new DoubleLiteral(123.456E7));
-        assertExpression("123.456E-7", new DoubleLiteral(123.456E-7));
+        assertExpression("123.456E-7", new NumericLiteral(new BigDecimal("123.456E-7")));
 
-        assertExpression(".4E42", new DoubleLiteral(.4E42));
-        assertExpression(".4E+42", new DoubleLiteral(.4E42));
-        assertExpression(".4E-42", new DoubleLiteral(.4E-42));
+        assertExpression(".4E42", new NumericLiteral(new BigDecimal(".4E42")));
+        assertExpression(".4E+42", new NumericLiteral(new BigDecimal(".4E+42")));
+        assertExpression(".4E-42", new NumericLiteral(new BigDecimal(".4E-42")));
     }
 
     @Test
