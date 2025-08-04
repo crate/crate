@@ -47,6 +47,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could cause ``SELECT`` statements to get stuck if executed
+  via a PostgreSQL client that set the ``maxRow`` option as part of an
+  ``EXECUTE`` message and it matched the number of result rows exactly.
+
 - Fixed a regression introduced in 6.0.0 that could cause ``INSERT INTO``
   statements to get stuck during a network partition.
 
