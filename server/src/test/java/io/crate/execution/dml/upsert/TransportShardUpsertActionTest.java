@@ -169,7 +169,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                     def TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
                     p int) PARTITIONED BY (p)
                 """, PARTITION_INDEX
-            );
+        );
         charactersIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of(), true, IndexMetadata::getIndexUUID);
         partitionIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of("1395874800000"), true, IndexMetadata::getIndexUUID);
 
