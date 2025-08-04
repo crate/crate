@@ -56,6 +56,10 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -85,7 +89,7 @@ import io.crate.data.Row;
  * based on {@link #refreshInterval}.
  */
 @Singleton
-public class TableStatsService implements Runnable {
+public class TableStatsService implements Runnable, ClusterStateListener {
 
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
@@ -204,6 +208,10 @@ public class TableStatsService implements Runnable {
     }
 
     public void remove(RelationName relationName) {
+        // only remove when the data exists
+        if (!Files.exists(dataPath)) {
+            return;
+        }
         try {
             try (var writer = createWriter()) {
                 writer.deleteDocuments(relTerm(relationName));
@@ -216,6 +224,10 @@ public class TableStatsService implements Runnable {
     }
 
     public void clear() {
+        // only clear when the data exists
+        if (!Files.exists(dataPath)) {
+            return;
+        }
         try {
             try (var writer = createWriter()) {
                 writer.deleteAll();
@@ -230,6 +242,7 @@ public class TableStatsService implements Runnable {
     @VisibleForTesting
     @Nullable
     Stats loadFromDisk(RelationName relationName) {
+        // only load when the data exists
         if (!Files.exists(dataPath)) {
             return null;
         }
@@ -270,7 +283,7 @@ public class TableStatsService implements Runnable {
     }
 
     private IndexWriter createWriter() throws IOException {
-        Directory directory = NIOFSDirectory.open(dataPath);
+        Directory directory = new NIOFSDirectory(dataPath);
         boolean openExisting = DirectoryReader.indexExists(directory);
 
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
@@ -309,6 +322,22 @@ public class TableStatsService implements Runnable {
         document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
         document.add(new StoredField(DATA_FIELD, bytesStreamOutput.bytes().toBytesRef()));
         return document;
+    }
+
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        if (!event.metadataChanged() || event.isNewCluster()) {
+            return;
+        }
+
+        Metadata oldMetadata = event.previousState().metadata();
+        Metadata newMetadata = event.state().metadata();
+        for (var oldRelation : oldMetadata.relations(RelationMetadata.class)) {
+            RelationName name = oldRelation.name();
+            if (!newMetadata.contains(name)) {
+                remove(name);
+            }
+        }
     }
 }
 

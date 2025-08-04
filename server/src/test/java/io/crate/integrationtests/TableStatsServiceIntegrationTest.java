@@ -31,6 +31,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.metadata.RelationName;
+import io.crate.statistics.Stats;
 import io.crate.statistics.TableStats;
 
 
@@ -48,7 +49,7 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void testStatsUpdated() throws Exception {
+    public void test_stats_updated_and_deleted() throws Exception {
         execute("create table t1(a int) with (number_of_replicas = 1)");
         ensureGreen();
         execute("insert into t1(a) values(1), (2), (3), (4), (5)");
@@ -60,5 +61,39 @@ public class TableStatsServiceIntegrationTest extends IntegTestCase {
             // column which is is cached for 10 secs in ShardSizeExpression which will increase the time needed
             // to run this test.
         }, 5, TimeUnit.SECONDS);
+
+        execute("drop table t1");
+
+        assertBusy(() -> {
+            TableStats tableStats = cluster().getDataNodeInstance(TableStats.class);
+            assertThat(tableStats.getStats(new RelationName(sqlExecutor.getCurrentSchema(), "t1"))).isEqualTo(Stats.EMPTY);
+        }, 5, TimeUnit.SECONDS);
+    }
+
+    public void test_delete_table_stats_when_partitioned_table_is_dropped() throws Exception {
+        execute("create table t1 (id integer, timestamp timestamp with time zone) " +
+            "partitioned by(timestamp) with (number_of_replicas=0)");
+        ensureGreen();
+
+        execute("insert into t1 (id, timestamp) values(?, ?)", new Object[]{1, 1395874800000L});
+        execute("insert into t1 (id, timestamp) values(?, ?)", new Object[]{2, 1395961200000L});
+
+        execute("refresh table t1");
+        execute("analyze");
+
+        assertBusy(() -> {
+            TableStats tableStats = cluster().getDataNodeInstance(TableStats.class);
+            Stats stats = tableStats.getStats(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
+            assertThat(stats.numDocs()).isEqualTo(2);
+        }, 5, TimeUnit.SECONDS);
+
+        execute("drop table t1");
+
+        assertBusy(() -> {
+            TableStats tableStats = cluster().getDataNodeInstance(TableStats.class);
+            Stats stats = tableStats.getStats(new RelationName(sqlExecutor.getCurrentSchema(), "t1"));
+            assertThat(stats).isEqualTo(Stats.EMPTY);
+        }, 5, TimeUnit.SECONDS);
+
     }
 }
