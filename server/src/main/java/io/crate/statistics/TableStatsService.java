@@ -28,6 +28,7 @@ import java.io.UncheckedIOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
+import java.util.concurrent.locks.StampedLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,7 +38,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -77,12 +77,12 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
+import io.crate.common.unit.TimeValue;
+import io.crate.data.Row;
 import io.crate.metadata.RelationName;
 import io.crate.session.BaseResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
-import io.crate.common.unit.TimeValue;
-import io.crate.data.Row;
 
 /**
  * Handles persistence for {@link TableStats} and periodically refreshes {@link TableStats}
@@ -100,10 +100,14 @@ public class TableStatsService implements Runnable, ClusterStateListener {
         "stats.service.max_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     static final String STMT = "ANALYZE";
+    private static final String STATS = "_stats";
+    private static final String DATA_FIELD = "data";
+    private static final String RELATION_NAME_FIELD = "relationName";
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final Sessions sessions;
+    private final StampedLock lock = new StampedLock();
 
     private Session session;
 
@@ -113,9 +117,6 @@ public class TableStatsService implements Runnable, ClusterStateListener {
     @VisibleForTesting
     volatile Scheduler.ScheduledCancellable scheduledRefresh;
 
-    private static final String STATS = "_stats";
-    private static final String DATA_FIELD = "data";
-    private static final String RELATION_NAME_FIELD = "relationName";
 
     private final LoadingCache<RelationName, Stats> cache = Caffeine
         .newBuilder()
@@ -167,10 +168,10 @@ public class TableStatsService implements Runnable, ClusterStateListener {
         }
         try {
             BaseResultReceiver resultReceiver = new BaseResultReceiver();
-            resultReceiver.completionFuture().whenComplete((res, err) -> {
+            resultReceiver.completionFuture().whenComplete((_, err) -> {
                 scheduledRefresh = scheduleNextRefresh(refreshInterval);
                 if (err != null) {
-                    LOGGER.error("Error running periodic " + STMT + "", err);
+                    LOGGER.error("Error running periodic " + STMT, err);
                 }
             });
             if (session == null) {
@@ -203,7 +204,8 @@ public class TableStatsService implements Runnable, ClusterStateListener {
         scheduledRefresh = scheduleNextRefresh(newRefreshInterval);
     }
 
-    public @Nullable Stats get(RelationName relationName) {
+    @Nullable
+    public Stats get(RelationName relationName) {
         return cache.get(relationName);
     }
 
@@ -212,11 +214,9 @@ public class TableStatsService implements Runnable, ClusterStateListener {
         if (!Files.exists(dataPath)) {
             return;
         }
-        try {
-            try (var writer = createWriter()) {
-                writer.deleteDocuments(relTerm(relationName));
-                writer.commit();
-            }
+        try (var writer = createWriter()) {
+            writer.deleteDocuments(relTerm(relationName));
+            writer.commit();
             cache.invalidate(relationName);
         } catch (IOException e) {
             throw new UncheckedIOException("Can't delete TableStats from disk", e);
@@ -228,11 +228,9 @@ public class TableStatsService implements Runnable, ClusterStateListener {
         if (!Files.exists(dataPath)) {
             return;
         }
-        try {
-            try (var writer = createWriter()) {
-                writer.deleteAll();
-                writer.commit();
-            }
+        try (var writer = createWriter()) {
+            writer.deleteAll();
+            writer.commit();
             cache.invalidateAll();
         } catch (IOException e) {
             throw new UncheckedIOException("Can't delete TableStats from disk", e);
@@ -246,14 +244,8 @@ public class TableStatsService implements Runnable, ClusterStateListener {
         if (!Files.exists(dataPath)) {
             return null;
         }
-        try (Directory dir = new NIOFSDirectory(dataPath)) {
-            DirectoryReader reader;
-            try {
-                reader = DirectoryReader.open(dir);
-            } catch (IndexNotFoundException e) {
-                LOGGER.warn("Failed to load Stats from {} {}", dataPath.toString(), e.getMessage());
-                return null;
-            }
+        long readLock = lock.readLock();
+        try (Directory dir = new NIOFSDirectory(dataPath); DirectoryReader reader = DirectoryReader.open(dir)) {
             IndexSearcher indexSearcher = new IndexSearcher(reader);
             indexSearcher.setQueryCache(null);
             Query query = new TermQuery(relTerm(relationName));
@@ -277,36 +269,36 @@ public class TableStatsService implements Runnable, ClusterStateListener {
                 }
             }
         } catch (IOException e) {
+            LOGGER.warn("Failed to load Stats from {} {}", dataPath, e.getMessage());
             throw new UncheckedIOException(e);
+        } finally {
+            lock.unlock(readLock);
         }
         return null;
     }
 
-    private IndexWriter createWriter() throws IOException {
+    private TableStatsIndexWriter createWriter() throws IOException {
         Directory directory = new NIOFSDirectory(dataPath);
-        boolean openExisting = DirectoryReader.indexExists(directory);
-
         IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
-        indexWriterConfig.setOpenMode(openExisting ? IndexWriterConfig.OpenMode.APPEND : IndexWriterConfig.OpenMode.CREATE);
+        indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
         indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
 
-        return new IndexWriter(directory, indexWriterConfig);
+        long writeLock = lock.writeLock();
+        return new TableStatsIndexWriter(directory, indexWriterConfig, writeLock);
     }
 
     public void update(Map<RelationName, Stats> stats) {
-        try {
-            try (var writer = createWriter()) {
-                for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
-                    RelationName relationName = entry.getKey();
-                    Document doc = makeDocument(relationName, entry.getValue());
-                    writer.updateDocument(relTerm(relationName), doc);
-                }
-                writer.prepareCommit();
-                writer.commit();
+        try (var writer = createWriter()) {
+            for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
+                RelationName relationName = entry.getKey();
+                Document doc = makeDocument(relationName, entry.getValue());
+                writer.updateDocument(relTerm(relationName), doc);
             }
+            writer.prepareCommit();
+            writer.commit();
             cache.invalidateAll(stats.keySet());
         } catch (IOException e) {
-            throw new UncheckedIOException("Can't load TableStats from disk", e);
+            throw new UncheckedIOException("Can't write TableStats to disk", e);
         }
     }
 
@@ -337,6 +329,23 @@ public class TableStatsService implements Runnable, ClusterStateListener {
             if (!newMetadata.contains(name)) {
                 remove(name);
             }
+        }
+    }
+
+    private class TableStatsIndexWriter extends IndexWriter {
+
+        private long writeLock;
+
+        public TableStatsIndexWriter(Directory d, IndexWriterConfig conf, long writeLock) throws IOException {
+            super(d, conf);
+            this.writeLock = writeLock;
+        }
+
+        @Override
+        public void close() throws IOException {
+            super.close();
+            getDirectory().close();
+            lock.unlockWrite(writeLock);
         }
     }
 }
