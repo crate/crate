@@ -102,18 +102,20 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
                 return writeFutureRef.get();
             }
         };
-        RowConsumerToResultReceiver batchConsumer =
-            new RowConsumerToResultReceiver(resultReceiver, 1, t -> {});
+        var batchConsumer = new RowConsumerToResultReceiver(resultReceiver, 1, _ -> {});
 
         batchConsumer.accept(batchSimulatingIterator, null);
 
         assertThat(rowCount[0]).isEqualTo(1);
-        assertThat(batchConsumer.suspended()).isTrue();
+        assertThat(batchConsumer.waitingForWrite()).isTrue();
+        assertThat(batchConsumer.suspended())
+            .as("Must not set suspended, as it causes further portal usage in Session to close the consumer")
+            .isFalse();
 
         writeFutureRef.get().complete(null);
         resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
 
-        assertThat(batchConsumer.suspended()).isFalse();
+        assertThat(batchConsumer.waitingForWrite()).isFalse();
         assertThat(rowCount[0]).isEqualTo(10);
     }
 
