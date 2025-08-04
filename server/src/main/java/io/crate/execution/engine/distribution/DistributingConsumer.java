@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.distribution;
 
+import static io.crate.execution.engine.distribution.TransportDistributedResultAction.broadcastKill;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -40,6 +42,8 @@ import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
 
@@ -75,6 +79,9 @@ public class DistributingConsumer implements RowConsumer {
 
     private volatile Throwable failure;
 
+    private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
+    private final String localNodeId;
+
     public DistributingConsumer(Executor responseExecutor,
                                 UUID jobId,
                                 MultiBucketBuilder multiBucketBuilder,
@@ -83,6 +90,8 @@ public class DistributingConsumer implements RowConsumer {
                                 int bucketIdx,
                                 Collection<String> downstreamNodeIds,
                                 ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction,
+                                ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction,
+                                String localNodeId,
                                 int pageSize) {
         this.traceEnabled = LOGGER.isTraceEnabled();
         this.responseExecutor = responseExecutor;
@@ -92,6 +101,8 @@ public class DistributingConsumer implements RowConsumer {
         this.inputId = inputId;
         this.bucketIdx = bucketIdx;
         this.distributedResultAction = distributedResultAction;
+        this.killNodeAction = killNodeAction;
+        this.localNodeId = localNodeId;
         this.pageSize = pageSize;
         this.buckets = new StreamBucket[downstreamNodeIds.size()];
         this.completionFuture = new CompletableFuture<>();
@@ -227,10 +238,11 @@ public class DistributingConsumer implements RowConsumer {
                                 downstream.nodeId,
                                 t
                             );
-                            failure = t;
-                            downstream.needsMoreData = false;
-                            // continue because it's necessary to send something to downstreams still waiting for data
-                            countdownAndMaybeContinue(it, numActiveRequests, false);
+                            failure = SQLExceptions.unwrap(t);
+                            String reason = "An error was encountered: " + failure;
+                            broadcastKill(killNodeAction, jobId, localNodeId, reason);
+                            it.close();
+                            completionFuture.completeExceptionally(failure);
                         }
                     }
                 );
