@@ -25,6 +25,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Locale;
+import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
@@ -110,10 +111,7 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
             DistributedResultAction.NAME,
             ThreadPool.Names.SAME, // <- we will dispatch later at the nodeOperation on non failures
             true,
-            // Don't trip breaker on transport layer, but instead depend on ram-accounting in PageBucketReceivers
-            // We need to always handle requests to avoid jobs from getting stuck.
-            // (If we receive a request, but don't handle it, a task would remain open indefinitely)
-            false,
+            true,
             DistributedResultRequest::new,
             new NodeActionRequestHandler<>(nodeAction));
     }
@@ -204,31 +202,41 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("Received a result for job={} but couldn't find a RootTask for it", request.jobId());
             }
-            List<String> excludedNodeIds = Collections.singletonList(clusterService.localNode().getId());
             /* The upstream (DistributingConsumer) forwards failures to other downstreams and eventually considers its job done.
              * But it cannot inform the handler-merge about a failure because the JobResponse is sent eagerly.
              *
              * The handler local-merge would get stuck if not all its upstreams send their requests, so we need to invoke
              * a kill to make sure that doesn't happen.
              */
-            KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
-                excludedNodeIds,
-                List.of(request.jobId()),
-                Role.CRATE_USER.name(),
-                "Received data for job=" + request.jobId() + " but there is no job context present. " +
-                "This can happen due to bad network latency or if individual nodes are unresponsive due to high load"
-            );
-            killNodeAction
-                .execute(killRequest)
-                .whenComplete(
-                    (resp, t) -> {
-                        if (t != null) {
-                            LOGGER.debug("Could not kill " + request.jobId(), t);
-                        }
-                    }
-                );
+            String reason = "Received data for job=" + request.jobId() + " but there is no job context present. " +
+                "This can happen due to bad network latency or if individual nodes are unresponsive due to high load";
+            broadcastKill(killNodeAction, request.jobId(), clusterService.localNode().getId(), reason);
             return CompletableFuture.failedFuture(new TaskMissing(TaskMissing.Type.ROOT, request.jobId()));
         }
+    }
+
+    /**
+     * Sends KILL request to all nodes (excluding sender node).
+     */
+    public static void broadcastKill(ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction,
+                                     UUID jobId,
+                                     String localNodeId,
+                                     String reason) {
+        List<String> excludedNodeIds = Collections.singletonList(localNodeId);
+
+        KillJobsNodeRequest killRequest = new KillJobsNodeRequest(
+            excludedNodeIds,
+            List.of(jobId),
+            Role.CRATE_USER.name(),
+            reason
+        );
+        killNodeAction
+            .execute(killRequest)
+            .whenComplete((_, t) -> {
+                if (t != null) {
+                    LOGGER.debug("Could not kill " + jobId, t);
+                }
+            });
     }
 
     private static class SendResponsePageResultListener implements PageResultListener {

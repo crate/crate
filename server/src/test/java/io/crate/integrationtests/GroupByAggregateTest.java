@@ -26,18 +26,28 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.Stream;
 
 import org.assertj.core.data.Percentage;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.transport.MockTransportService;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
+import io.crate.common.collections.Lists;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.Paging;
+import io.crate.exceptions.JobKilledException;
+import io.crate.execution.engine.distribution.DistributedResultAction;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
@@ -48,9 +58,41 @@ public class GroupByAggregateTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
 
+
     @Before
     public void initTestData() {
         setup.setUpEmployees();
+    }
+
+    @Override
+    protected Collection<Class<? extends Plugin>> nodePlugins() {
+        return Lists.concat(super.nodePlugins(), MockTransportService.TestPlugin.class);
+    }
+
+
+    @Test
+    @UseJdbc(value = 0) // To avoid wrapping into PSQLException
+    public void test_dist_result_request_tripped_by_cb_no_stuck_jobs() throws Exception {
+        this.setup.groupBySetup("integer");
+        for (TransportService transportService : cluster().getDataOrMasterNodeInstances(TransportService.class)) {
+            MockTransportService mockTransportService = (MockTransportService) transportService;
+            mockTransportService.addRequestHandlingBehavior(DistributedResultAction.NAME, (handler, request, channel) -> {
+                throw new CircuitBreakingException("dummy");
+            });
+        }
+
+        // Using assertBusy to avoid flakiness.
+        // Sometimes a single select doesn't throw CBE, because of non-distributed execution.
+        // Depends on data distribution and which node out of 2 is selected to be a handler.
+        assertBusy(() -> {
+            try (var session = sqlExecutor.newSession()) {
+                // Timeout defeats the purpose of this test, ensure it's not applied.
+                session.sessionSettings().statementTimeout(TimeValue.ZERO);
+                assertThatThrownBy(() ->
+                    execute("select min(age) as minage, gender from characters group by gender order by gender", session)
+                ).isInstanceOfAny(JobKilledException.class, CircuitBreakingException.class);
+            }
+        });
     }
 
     @Test
