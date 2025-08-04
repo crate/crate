@@ -53,3 +53,9 @@ Fixes
 
 - Fixed an issue that prevented users to change the value of the
   :ref:`indices.recovery.max_concurrent_file_chunks` setting.
+
+- Fixed a regression introduced with :ref:`version_5.10.11` that caused values
+  of undeterministic ``DEFAULT`` and ``GENERATED`` columns to be ``NULL``
+  (instead of using having generated values) when using ``UPDATE`` or
+  ``INSERT... ON CONFLICT...`` statements.
+

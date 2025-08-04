@@ -215,20 +215,26 @@ public class TransportShardUpsertAction extends TransportShardAction<
         );
 
 
+        Object[] extended = null;
+        ShardUpsertRequest.Item firstItem = request.items().getFirst();
+        if (updateToInsert != null && firstItem != null && firstItem.insertValues() != null) {
+            // UpdateToInsert might extend targets,
+            // so we extend values with nulls to make targets and values size equal.
+
+            // Prepare an array that we will re-use to extend insert values.
+            // We create one and re-use it for all items to avoid array allocations per row,
+            // and it's safe because items are processed one by one.
+
+            // INSERT: no changes to targets -> no changes to values.
+            // UPDATE: insertValues must be extended but no need to do it here, it will be done by the UpdateToInsert.convert
+            // INSERT... ON CONFLICT: values expansion will be applied per item on the pre-allocated array.
+            extended = new Object[updateToInsert.columns().size()];
+        }
+
+
         for (ShardUpsertRequest.Item item : request.items()) {
-            if (updateToInsert != null && item.insertValues() != null) {
-                // For regular inserts, targets already in place and correct (non-determinsitc expansion happens later)
-                // For updates, insertValues will be properly created by the UpdateToInsert.convert
-                // Extending only for ON CONFLICT to match with UpdateToInsert's behavior
-                // that is adding all columns (except undeterministic synthetics) to the targets.
-                Object[] extended = new Object[updateToInsert.columns().size()];
-                for (int i = 0; i < item.insertValues().length; i++) {
-                    extended[i] = item.insertValues()[i];
-                }
-                int delta = extended.length - item.insertValues().length;
-                for (int i = 0; i < delta; i++) {
-                    extended[item.insertValues().length + i] = null;
-                }
+            if (extended != null) {
+                System.arraycopy(item.insertValues(), 0, extended, 0, item.insertValues().length);
                 item.insertValues(extended);
             }
             if (shardResponse.failure() != null) {

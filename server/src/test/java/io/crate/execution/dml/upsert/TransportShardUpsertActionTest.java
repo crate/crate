@@ -71,7 +71,9 @@ import io.crate.execution.dml.UpsertReplicaRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.jobs.TasksService;
 import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -159,7 +161,15 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Before
     public void prepare() throws Exception {
         SQLExecutor.builder(clusterService).build()
-            .addTable("create table doc.characters (id int, p int) PARTITIONED BY (p)", PARTITION_INDEX);
+            .addTable("""
+                create table doc.characters (
+                    id int,
+                    value text,
+                    gen TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS CURRENT_TIMESTAMP,
+                    def TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP,
+                    p int) PARTITIONED BY (p)
+                """, PARTITION_INDEX
+            );
         charactersIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of(), true, IndexMetadata::getIndexUUID);
         partitionIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of("1395874800000"), true, IndexMetadata::getIndexUUID);
 
@@ -206,7 +216,50 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                 false,
                 null
         );
+        var valueRef = new SimpleReference(
+            new ReferenceIdent(TABLE_IDENT, "value"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            IndexType.PLAIN,
+            true,
+            false,
+            2,
+            2,
+            false,
+            null
+        );
+
+        var gen = new SimpleReference(
+            new ReferenceIdent(TABLE_IDENT, "gen"),
+            RowGranularity.DOC,
+            DataTypes.TIMESTAMPZ,
+            IndexType.PLAIN,
+            true,
+            false,
+            3,
+            3,
+            false,
+            null
+        );
+        var genRef = new GeneratedReference(gen, Literal.of(DataTypes.TIMESTAMPZ, 1L));
+
+        var defRef = new SimpleReference(
+            new ReferenceIdent(TABLE_IDENT, "def"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            IndexType.PLAIN,
+            true,
+            false,
+            4,
+            4,
+            false,
+            Literal.of(DataTypes.TIMESTAMPZ, 1L)
+        );
         when(tableInfo.getReference(ColumnIdent.of("dynamic_long_col"))).thenReturn(dynamicLongColRef);
+        when(tableInfo.getReference(ColumnIdent.of("value"))).thenReturn(valueRef);
+        when(tableInfo.getReference(ColumnIdent.of("gen"))).thenReturn(genRef);
+        when(tableInfo.getReference(ColumnIdent.of("def"))).thenReturn(defRef);
+        when(tableInfo.rootColumns()).thenReturn(List.<Reference>of(ID_REF, valueRef, genRef, defRef));
         when(tableInfo.iterator()).thenReturn(List.<Reference>of(ID_REF, dynamicLongColRef).iterator());
 
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
@@ -390,5 +443,37 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         assertThat(result.response.failure()).isExactlyInstanceOf(InterruptedException.class);
         assertThat(result.replicaRequest().items()).isEmpty();
+    }
+
+    @Test
+    public void test_insert_on_conflict_item_values_expanded_to_match_targets_size() throws IOException {
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] targets = new SimpleReference[]{ID_REF};
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            DUMMY_SESSION_INFO,
+            TimeValue.timeValueSeconds(30),
+            DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            new String[]{"value"}, // Imitating ON CONFLICT UPDATE VALUE
+            targets,
+            null,
+            UUID.randomUUID()
+        ).newRequest(shardId);
+        request.add(1,
+            ShardUpsertRequest.Item.forInsert(
+                "1", List.of(), Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+                targets,
+                new Object[]{1},
+                null,
+                0));
+
+
+        var item = request.items().getFirst();
+        assertThat(item.insertValues().length).isEqualTo(1); // id - initial target value
+        TransportReplicationAction.PrimaryResult<UpsertReplicaRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
+
+        // UpdateToInsert adds "value" and "def" targets, so we are adding 2 nulls to match sizes.
+        assertThat(item.insertValues()).containsExactly(1, null, null);
     }
 }

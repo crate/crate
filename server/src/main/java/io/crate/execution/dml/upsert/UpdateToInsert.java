@@ -58,15 +58,15 @@ import io.crate.metadata.doc.DocTableInfo;
  * <p>
  * It doesn't re-generate values for generated columns and doesn't handle check constraints.
  * This is left to the {@link Indexer} which should be used on the result.
+ * However, this component adds all remaining columns to targets.
  *
- * Despite this, it does include undeterministic synthetic columns within {@link #columns()}
  * This is necessary to ensure that in upsert statements, both the INSERT and the UPDATE case
  * have the same column ordering, which is:
  *
  * <ol>
- *   <li>Insert columns</li>
- *   <li>Undeterministic generated columns</li>
- *   <li>All remaining columns (update only)</li>
+ *   <li>Insert columns (ONLY FOR INSERT... ON CONFLICT)</li>
+ *   <li>All remaining columns (INSERT... ON CONFLICT... UPDATE and UPDATE)</li>
+ *   <li>Undeterministic generated columns</li> -> Added by the Indexer for replica requests.
  * </ol>
  *
  * <p>
