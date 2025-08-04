@@ -473,7 +473,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         TransportReplicationAction.PrimaryResult<UpsertReplicaRequest, ShardResponse> result =
             transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
-        // UpdateToInsert adds "value" and "def" targets, so we are adding 2 nulls to match sizes.
-        assertThat(item.insertValues()).containsExactly(1, null, null);
+        // UpdateToInsert adds "value" to the targets, so we are adding 1 null to match sizes.
+        assertThat(item.insertValues()).containsExactly(1, null);
     }
 }
