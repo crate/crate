@@ -404,7 +404,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_generates_missing_pk_columns_with_default() throws Exception {
+    public void test_generates_missing_pk_columns_without_default() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("""
                 create table tbl (
@@ -441,6 +441,6 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             new Object[] { 1, 20 }
         );
         assertThat(item.pkValues()).containsExactly("1", "10");
-        assertThat(item.insertValues()).containsExactly(1, 20, 10);
+        assertThat(item.insertValues()).containsExactly(1, 20);
     }
 }
