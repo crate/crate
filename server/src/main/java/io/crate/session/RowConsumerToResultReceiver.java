@@ -27,6 +27,7 @@ import java.util.function.Consumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -46,6 +47,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
      */
     private int rowCount = 0;
     private CompletableFuture<BatchIterator<Row>> suspendedIt = new CompletableFuture<>();
+    private boolean waitingForWrite = false;
 
     public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
@@ -86,10 +88,10 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                     CompletableFuture<Void> writeFuture = resultReceiver.setNextRow(iterator.currentElement());
                     if (writeFuture != null) {
                         LOGGER.trace("Suspended execution after {} rows as the receiver is not writable anymore", rowCount);
-                        suspendedIt.complete(iterator);
+                        waitingForWrite = true;
                         writeFuture.thenRun(() -> {
                             LOGGER.trace("Resume execution after {} rows", rowCount);
-                            suspendedIt = new CompletableFuture<>();
+                            waitingForWrite = false;
                             rowCount = 0;
                             consumeIt(iterator);
                         });
@@ -149,6 +151,11 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         return suspendedIt.isDone();
     }
 
+    @VisibleForTesting
+    public boolean waitingForWrite() {
+        return waitingForWrite;
+    }
+
     public void replaceResultReceiver(ResultReceiver<?> resultReceiver, int maxRows) {
         if (!this.resultReceiver.completionFuture().isDone()) {
             // finish previous resultReceiver before replacing it, to ensure future triggers
@@ -166,6 +173,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             it = suspendedIt.join();
             suspendedIt = new CompletableFuture<>();
             resultReceiver.setNextRow(it.currentElement());
+            rowCount++;
             consumeIt(it);
         } catch (Throwable t) {
             if (it != null) {

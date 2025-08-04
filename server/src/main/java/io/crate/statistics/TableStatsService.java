@@ -25,10 +25,8 @@ package io.crate.statistics;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
-import java.util.concurrent.locks.StampedLock;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -37,7 +35,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -50,6 +47,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.Directory;
@@ -61,6 +59,7 @@ import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
@@ -77,6 +76,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
+import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.metadata.RelationName;
@@ -89,7 +89,7 @@ import io.crate.session.Sessions;
  * based on {@link #refreshInterval}.
  */
 @Singleton
-public class TableStatsService implements Runnable, ClusterStateListener {
+public class TableStatsService extends AbstractLifecycleComponent implements Runnable, ClusterStateListener {
 
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
@@ -107,7 +107,14 @@ public class TableStatsService implements Runnable, ClusterStateListener {
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final Sessions sessions;
-    private final StampedLock lock = new StampedLock();
+    private final Directory directory;
+    private final IndexWriter writer;
+    private final SearcherManager searcherManager;
+    private final LoadingCache<RelationName, Stats> cache = Caffeine
+        .newBuilder()
+        .maximumWeight(10_000)
+        .weigher((RelationName _, Stats s) -> s.statsByColumn().size())
+        .build(this::loadFromDisk);
 
     private Session session;
 
@@ -118,28 +125,50 @@ public class TableStatsService implements Runnable, ClusterStateListener {
     volatile Scheduler.ScheduledCancellable scheduledRefresh;
 
 
-    private final LoadingCache<RelationName, Stats> cache = Caffeine
-        .newBuilder()
-        .maximumWeight(10_000)
-        .weigher((RelationName _, Stats s) -> s.statsByColumn().size())
-        .build(this::loadFromDisk);
-
-    private final Path dataPath;
 
     public TableStatsService(Settings settings,
-                      ThreadPool threadPool,
-                      ClusterService clusterService,
-                      Sessions sessions,
-                      Path dataPath) {
+                             ThreadPool threadPool,
+                             ClusterService clusterService,
+                             Sessions sessions,
+                             Path dataPath) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.sessions = sessions;
-        this.dataPath = dataPath.resolve(STATS);
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);
         scheduledRefresh = scheduleNextRefresh(refreshInterval);
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
+
+        try {
+            this.directory = new NIOFSDirectory(dataPath.resolve(STATS));
+            IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
+            indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+            indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
+            this.writer = new IndexWriter(directory, indexWriterConfig);
+            this.searcherManager = new SearcherManager(writer, null);
+
+            // ensure index files exist for reads
+            this.update(Map.of());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    protected void doStart() {
+        clusterService.addListener(this);
+    }
+
+    @Override
+    protected void doStop() {
+        clusterService.removeListener(this);
+    }
+
+    @Override
+    protected void doClose() throws IOException {
+        cache.invalidateAll();
+        IOUtils.closeWhileHandlingException(searcherManager, writer, directory);
     }
 
     @Override
@@ -210,11 +239,7 @@ public class TableStatsService implements Runnable, ClusterStateListener {
     }
 
     public void remove(RelationName relationName) {
-        // only remove when the data exists
-        if (!Files.exists(dataPath)) {
-            return;
-        }
-        try (var writer = createWriter()) {
+        try {
             writer.deleteDocuments(relTerm(relationName));
             writer.commit();
             cache.invalidate(relationName);
@@ -224,11 +249,7 @@ public class TableStatsService implements Runnable, ClusterStateListener {
     }
 
     public void clear() {
-        // only clear when the data exists
-        if (!Files.exists(dataPath)) {
-            return;
-        }
-        try (var writer = createWriter()) {
+        try {
             writer.deleteAll();
             writer.commit();
             cache.invalidateAll();
@@ -240,63 +261,50 @@ public class TableStatsService implements Runnable, ClusterStateListener {
     @VisibleForTesting
     @Nullable
     Stats loadFromDisk(RelationName relationName) {
-        // only load when the data exists
-        if (!Files.exists(dataPath)) {
-            return null;
-        }
-        long readLock = lock.readLock();
-        try (Directory dir = new NIOFSDirectory(dataPath); DirectoryReader reader = DirectoryReader.open(dir)) {
-            IndexSearcher indexSearcher = new IndexSearcher(reader);
-            indexSearcher.setQueryCache(null);
-            Query query = new TermQuery(relTerm(relationName));
-            Weight weight = indexSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
-            try (IndexReader indexReader = indexSearcher.getIndexReader()) {
-                for (LeafReaderContext leafReaderContext : indexReader.leaves()) {
+        try {
+            searcherManager.maybeRefreshBlocking();
+            IndexSearcher searcher = searcherManager.acquire();
+            try {
+                searcher.setQueryCache(null);
+                Query query = new TermQuery(relTerm(relationName));
+                Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+                IndexReader reader = searcher.getIndexReader();
+                for (LeafReaderContext leafReaderContext : reader.leaves()) {
                     Scorer scorer = weight.scorer(leafReaderContext);
-                    if (scorer != null) {
-                        DocIdSetIterator docIdSetIterator = scorer.iterator();
-                        StoredFields storedFields = leafReaderContext.reader().storedFields();
-                        if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                            Document doc = storedFields.document(docIdSetIterator.docID());
-                            BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
-                            ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
-                            InputStreamStreamInput in = new InputStreamStreamInput(bis);
-                            Version version = Version.readVersion(in);
-                            in.setVersion(version);
-                            return Stats.readFrom(new InputStreamStreamInput(in));
-                        }
+                    if (scorer == null) {
+                        continue;
+                    }
+                    DocIdSetIterator docIdSetIterator = scorer.iterator();
+                    StoredFields storedFields = leafReaderContext.reader().storedFields();
+                    if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                        Document doc = storedFields.document(docIdSetIterator.docID());
+                        BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
+                        ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
+                        InputStreamStreamInput in = new InputStreamStreamInput(bis);
+                        Version version = Version.readVersion(in);
+                        in.setVersion(version);
+                        return Stats.readFrom(new InputStreamStreamInput(in));
                     }
                 }
+            } finally {
+                searcherManager.release(searcher);
             }
-        } catch (IOException e) {
-            LOGGER.warn("Failed to load Stats from {} {}", dataPath, e.getMessage());
-            throw new UncheckedIOException(e);
-        } finally {
-            lock.unlock(readLock);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
         }
         return null;
     }
 
-    private TableStatsIndexWriter createWriter() throws IOException {
-        Directory directory = new NIOFSDirectory(dataPath);
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
-        indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
-        indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-
-        long writeLock = lock.writeLock();
-        return new TableStatsIndexWriter(directory, indexWriterConfig, writeLock);
-    }
-
     public void update(Map<RelationName, Stats> stats) {
-        try (var writer = createWriter()) {
+        try {
             for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
                 RelationName relationName = entry.getKey();
                 Document doc = makeDocument(relationName, entry.getValue());
                 writer.updateDocument(relTerm(relationName), doc);
             }
-            writer.prepareCommit();
             writer.commit();
             cache.invalidateAll(stats.keySet());
+            searcherManager.maybeRefresh();
         } catch (IOException e) {
             throw new UncheckedIOException("Can't write TableStats to disk", e);
         }
@@ -329,23 +337,6 @@ public class TableStatsService implements Runnable, ClusterStateListener {
             if (!newMetadata.contains(name)) {
                 remove(name);
             }
-        }
-    }
-
-    private class TableStatsIndexWriter extends IndexWriter {
-
-        private long writeLock;
-
-        public TableStatsIndexWriter(Directory d, IndexWriterConfig conf, long writeLock) throws IOException {
-            super(d, conf);
-            this.writeLock = writeLock;
-        }
-
-        @Override
-        public void close() throws IOException {
-            super.close();
-            getDirectory().close();
-            lock.unlockWrite(writeLock);
         }
     }
 }
