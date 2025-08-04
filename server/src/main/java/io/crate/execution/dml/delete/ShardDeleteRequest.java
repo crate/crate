@@ -73,11 +73,9 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
     public ShardDeleteRequest(StreamInput in) throws IOException {
         super(in);
         int numItems = in.readVInt();
-        if (numItems > 0) {
-            items = new ArrayList<>(numItems);
-            for (int i = 0; i < numItems; i++) {
-                items.add(new ShardDeleteRequest.Item(in));
-            }
+        items = new ArrayList<>(numItems);
+        for (int i = 0; i < numItems; i++) {
+            items.add(new ShardDeleteRequest.Item(in));
         }
         if (in.readBoolean()) {
             skipFromLocation = in.readVInt();
