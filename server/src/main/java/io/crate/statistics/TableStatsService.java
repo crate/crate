@@ -25,7 +25,6 @@ package io.crate.statistics;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
-import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Map;
 
@@ -36,8 +35,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
-import org.apache.lucene.index.DirectoryReader;
-import org.apache.lucene.index.IndexNotFoundException;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -50,13 +47,19 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterChangedEvent;
+import org.elasticsearch.cluster.ClusterStateListener;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
@@ -73,19 +76,20 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
+import io.crate.common.io.IOUtils;
+import io.crate.common.unit.TimeValue;
+import io.crate.data.Row;
 import io.crate.metadata.RelationName;
 import io.crate.session.BaseResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
-import io.crate.common.unit.TimeValue;
-import io.crate.data.Row;
 
 /**
  * Handles persistence for {@link TableStats} and periodically refreshes {@link TableStats}
  * based on {@link #refreshInterval}.
  */
 @Singleton
-public class TableStatsService implements Runnable {
+public class TableStatsService extends AbstractLifecycleComponent implements Runnable, ClusterStateListener {
 
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
@@ -96,10 +100,21 @@ public class TableStatsService implements Runnable {
         "stats.service.max_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     static final String STMT = "ANALYZE";
+    private static final String STATS = "_stats";
+    private static final String DATA_FIELD = "data";
+    private static final String RELATION_NAME_FIELD = "relationName";
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final Sessions sessions;
+    private final Directory directory;
+    private final IndexWriter writer;
+    private final SearcherManager searcherManager;
+    private final LoadingCache<RelationName, Stats> cache = Caffeine
+        .newBuilder()
+        .maximumWeight(10_000)
+        .weigher((RelationName _, Stats s) -> s.statsByColumn().size())
+        .build(this::loadFromDisk);
 
     private Session session;
 
@@ -109,32 +124,51 @@ public class TableStatsService implements Runnable {
     @VisibleForTesting
     volatile Scheduler.ScheduledCancellable scheduledRefresh;
 
-    private static final String STATS = "_stats";
-    private static final String DATA_FIELD = "data";
-    private static final String RELATION_NAME_FIELD = "relationName";
 
-    private final LoadingCache<RelationName, Stats> cache = Caffeine
-        .newBuilder()
-        .maximumWeight(10_000)
-        .weigher((RelationName _, Stats s) -> s.statsByColumn().size())
-        .build(this::loadFromDisk);
-
-    private final Path dataPath;
 
     public TableStatsService(Settings settings,
-                      ThreadPool threadPool,
-                      ClusterService clusterService,
-                      Sessions sessions,
-                      Path dataPath) {
+                             ThreadPool threadPool,
+                             ClusterService clusterService,
+                             Sessions sessions,
+                             Path dataPath) {
         this.threadPool = threadPool;
         this.clusterService = clusterService;
         this.sessions = sessions;
-        this.dataPath = dataPath.resolve(STATS);
         refreshInterval = STATS_SERVICE_REFRESH_INTERVAL_SETTING.get(settings);
         scheduledRefresh = scheduleNextRefresh(refreshInterval);
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
+
+        try {
+            this.directory = new NIOFSDirectory(dataPath.resolve(STATS));
+            IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
+            indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+            indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
+            this.writer = new IndexWriter(directory, indexWriterConfig);
+            this.searcherManager = new SearcherManager(writer, null);
+
+            // ensure index files exist for reads
+            this.update(Map.of());
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
+    }
+
+    @Override
+    protected void doStart() {
+        clusterService.addListener(this);
+    }
+
+    @Override
+    protected void doStop() {
+        clusterService.removeListener(this);
+    }
+
+    @Override
+    protected void doClose() throws IOException {
+        cache.invalidateAll();
+        IOUtils.closeWhileHandlingException(searcherManager, writer, directory);
     }
 
     @Override
@@ -163,10 +197,10 @@ public class TableStatsService implements Runnable {
         }
         try {
             BaseResultReceiver resultReceiver = new BaseResultReceiver();
-            resultReceiver.completionFuture().whenComplete((res, err) -> {
+            resultReceiver.completionFuture().whenComplete((_, err) -> {
                 scheduledRefresh = scheduleNextRefresh(refreshInterval);
                 if (err != null) {
-                    LOGGER.error("Error running periodic " + STMT + "", err);
+                    LOGGER.error("Error running periodic " + STMT, err);
                 }
             });
             if (session == null) {
@@ -199,16 +233,15 @@ public class TableStatsService implements Runnable {
         scheduledRefresh = scheduleNextRefresh(newRefreshInterval);
     }
 
-    public @Nullable Stats get(RelationName relationName) {
+    @Nullable
+    public Stats get(RelationName relationName) {
         return cache.get(relationName);
     }
 
     public void remove(RelationName relationName) {
         try {
-            try (var writer = createWriter()) {
-                writer.deleteDocuments(relTerm(relationName));
-                writer.commit();
-            }
+            writer.deleteDocuments(relTerm(relationName));
+            writer.commit();
             cache.invalidate(relationName);
         } catch (IOException e) {
             throw new UncheckedIOException("Can't delete TableStats from disk", e);
@@ -217,10 +250,8 @@ public class TableStatsService implements Runnable {
 
     public void clear() {
         try {
-            try (var writer = createWriter()) {
-                writer.deleteAll();
-                writer.commit();
-            }
+            writer.deleteAll();
+            writer.commit();
             cache.invalidateAll();
         } catch (IOException e) {
             throw new UncheckedIOException("Can't delete TableStats from disk", e);
@@ -230,70 +261,52 @@ public class TableStatsService implements Runnable {
     @VisibleForTesting
     @Nullable
     Stats loadFromDisk(RelationName relationName) {
-        if (!Files.exists(dataPath)) {
-            return null;
-        }
-        try (Directory dir = new NIOFSDirectory(dataPath)) {
-            DirectoryReader reader;
+        try {
+            searcherManager.maybeRefreshBlocking();
+            IndexSearcher searcher = searcherManager.acquire();
             try {
-                reader = DirectoryReader.open(dir);
-            } catch (IndexNotFoundException e) {
-                LOGGER.warn("Failed to load Stats from {} {}", dataPath.toString(), e.getMessage());
-                return null;
-            }
-            IndexSearcher indexSearcher = new IndexSearcher(reader);
-            indexSearcher.setQueryCache(null);
-            Query query = new TermQuery(relTerm(relationName));
-            Weight weight = indexSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
-            try (IndexReader indexReader = indexSearcher.getIndexReader()) {
-                for (LeafReaderContext leafReaderContext : indexReader.leaves()) {
+                searcher.setQueryCache(null);
+                Query query = new TermQuery(relTerm(relationName));
+                Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+                IndexReader reader = searcher.getIndexReader();
+                for (LeafReaderContext leafReaderContext : reader.leaves()) {
                     Scorer scorer = weight.scorer(leafReaderContext);
-                    if (scorer != null) {
-                        DocIdSetIterator docIdSetIterator = scorer.iterator();
-                        StoredFields storedFields = leafReaderContext.reader().storedFields();
-                        if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                            Document doc = storedFields.document(docIdSetIterator.docID());
-                            BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
-                            ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
-                            InputStreamStreamInput in = new InputStreamStreamInput(bis);
-                            Version version = Version.readVersion(in);
-                            in.setVersion(version);
-                            return Stats.readFrom(new InputStreamStreamInput(in));
-                        }
+                    if (scorer == null) {
+                        continue;
+                    }
+                    DocIdSetIterator docIdSetIterator = scorer.iterator();
+                    StoredFields storedFields = leafReaderContext.reader().storedFields();
+                    if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                        Document doc = storedFields.document(docIdSetIterator.docID());
+                        BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
+                        ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
+                        InputStreamStreamInput in = new InputStreamStreamInput(bis);
+                        Version version = Version.readVersion(in);
+                        in.setVersion(version);
+                        return Stats.readFrom(new InputStreamStreamInput(in));
                     }
                 }
+            } finally {
+                searcherManager.release(searcher);
             }
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
         }
         return null;
     }
 
-    private IndexWriter createWriter() throws IOException {
-        Directory directory = NIOFSDirectory.open(dataPath);
-        boolean openExisting = DirectoryReader.indexExists(directory);
-
-        IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
-        indexWriterConfig.setOpenMode(openExisting ? IndexWriterConfig.OpenMode.APPEND : IndexWriterConfig.OpenMode.CREATE);
-        indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-
-        return new IndexWriter(directory, indexWriterConfig);
-    }
-
     public void update(Map<RelationName, Stats> stats) {
         try {
-            try (var writer = createWriter()) {
-                for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
-                    RelationName relationName = entry.getKey();
-                    Document doc = makeDocument(relationName, entry.getValue());
-                    writer.updateDocument(relTerm(relationName), doc);
-                }
-                writer.prepareCommit();
-                writer.commit();
+            for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
+                RelationName relationName = entry.getKey();
+                Document doc = makeDocument(relationName, entry.getValue());
+                writer.updateDocument(relTerm(relationName), doc);
             }
+            writer.commit();
             cache.invalidateAll(stats.keySet());
+            searcherManager.maybeRefresh();
         } catch (IOException e) {
-            throw new UncheckedIOException("Can't load TableStats from disk", e);
+            throw new UncheckedIOException("Can't write TableStats to disk", e);
         }
     }
 
@@ -309,6 +322,22 @@ public class TableStatsService implements Runnable {
         document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
         document.add(new StoredField(DATA_FIELD, bytesStreamOutput.bytes().toBytesRef()));
         return document;
+    }
+
+    @Override
+    public void clusterChanged(ClusterChangedEvent event) {
+        if (!event.metadataChanged() || event.isNewCluster()) {
+            return;
+        }
+
+        Metadata oldMetadata = event.previousState().metadata();
+        Metadata newMetadata = event.state().metadata();
+        for (var oldRelation : oldMetadata.relations(RelationMetadata.class)) {
+            RelationName name = oldRelation.name();
+            if (!newMetadata.contains(name)) {
+                remove(name);
+            }
+        }
     }
 }
 
