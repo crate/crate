@@ -761,9 +761,8 @@ public class Node implements Closeable {
                 sessions,
                 nodeEnvironment.nodeDataPaths()[0]
             );
-
+            resourcesToClose.add(tableStatsService);
             tableStats.updateTableStats(tableStatsService::get);
-            clusterService.addListener(tableStatsService);
 
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
@@ -992,6 +991,7 @@ public class Node implements Closeable {
         injector.getInstance(FsHealthService.class).start();
         injector.getInstance(RepositoriesService.class).start();
         injector.getInstance(UserDefinedFunctionService.class).start();
+        injector.getInstance(TableStatsService.class).start();
         nodeService.getMonitorService().start();
 
         final ClusterService clusterService = injector.getInstance(ClusterService.class);
@@ -1128,6 +1128,7 @@ public class Node implements Closeable {
 
         injector.getInstance(HttpServerTransport.class).stop();
 
+        injector.getInstance(TableStatsService.class).stop();
         injector.getInstance(UserDefinedFunctionService.class).stop();
         injector.getInstance(SnapshotsService.class).stop();
         injector.getInstance(SnapshotShardsService.class).stop();
@@ -1249,6 +1250,9 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(BlobService.class));
         toClose.add(() -> stopWatch.stop().start("netty_bootstrap"));
         toClose.add(injector.getInstance(NettyBootstrap.class));
+
+        toClose.add(() -> stopWatch.stop().start("table_stats_service"));
+        toClose.add(injector.getInstance(TableStatsService.class));
 
         for (LifecycleComponent plugin : pluginLifecycleComponents) {
             toClose.add(() -> stopWatch.stop().start("plugin(" + plugin.getClass().getName() + ")"));
