@@ -196,6 +196,10 @@ public final class UpdateToInsert {
             if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                 continue;
             }
+            if (ref.defaultExpression() != null) {
+                // It's either already in targets or will be injected by the indexer
+                continue;
+            }
             if (!this.columns.contains(ref)) {
                 this.columns.add(ref);
             }

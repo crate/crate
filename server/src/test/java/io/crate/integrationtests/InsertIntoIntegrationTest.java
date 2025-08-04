@@ -2138,28 +2138,27 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    public void test_update_undeterministic_synthetics_are_not_reset() throws Exception {
+    public void test_upsert_undeterministic_synthetics_are_not_reset() throws Exception {
         execute("""
             create table tbl(
-                 value int,
+                 value int primary key,
+                 value2 int,
                  gen TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS CURRENT_TIMESTAMP,
                  def TIMESTAMP WITH TIME ZONE DEFAULT CURRENT_TIMESTAMP
              )
             """
         );
 
-        execute("insert into tbl (value) VALUES (1)");
-        execute("refresh table tbl");
-
-        execute("select gen, def from tbl");
-        assertThat(response.rows()[0][0]).isNotNull();
-        assertThat(response.rows()[0][1]).isNotNull();
-
-        execute("update tbl set value = 2");
+        execute("insert into tbl (value) VALUES (1) on conflict(value) do update set value2 = 2");
         execute("refresh table tbl");
         execute("select gen, def from tbl");
         assertThat(response.rows()[0][0]).isNotNull();
         assertThat(response.rows()[0][1]).isNotNull();
 
+        execute("update tbl set value2 = 2");
+        execute("refresh table tbl");
+        execute("select gen, def from tbl");
+        assertThat(response.rows()[0][0]).isNotNull();
+        assertThat(response.rows()[0][1]).isNotNull();
     }
 }
