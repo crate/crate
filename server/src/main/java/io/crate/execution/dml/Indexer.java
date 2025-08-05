@@ -396,6 +396,7 @@ public class Indexer {
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
                    List<Reference> targetColumns,
+                   List<Reference> providedColumns,
                    Symbol[] returnValues) {
         this.columns = targetColumns;
         this.synthetics = new HashMap<>();
@@ -473,7 +474,7 @@ public class Indexer {
             if (ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            if (targetColumns.contains(ref)) {
+            if (providedColumns.contains(ref)) {
                 continue;
             }
 
@@ -499,7 +500,7 @@ public class Indexer {
             Context<Input<?>> ctxForReturnValues = inputFactory.ctxForRefs(
                 txnCtx,
                 ref -> {
-                    // Using Synthethic if available, it caches results to ensure non-deterministic functions yield the same result
+                    // Using Synthetic if available, it caches results to ensure non-deterministic functions yield the same result
                     // across indexing and return values
                     Synthetic synthetic = synthetics.get(ref.column());
                     if (synthetic == null) {
@@ -915,6 +916,9 @@ public class Indexer {
         return newColumns;
     }
 
+    /// @param item from either the INSERT or in the case of an UPDATE/CONFLICT
+    ///        the item converted using [io.crate.execution.dml.upsert.UpdateToInsert].
+    ///        The insertValues length can be different depending on that.
     public Object[] addGeneratedValues(IndexItem item) {
         Object[] insertValues = item.insertValues();
         if (undeterministic.isEmpty()) {
@@ -922,13 +926,21 @@ public class Indexer {
         }
         //  We don't know in advance how many values we will add: we can have multiple generated sub-columns.
         //  Some of them can have their root listed in the insert/upsert targets (and thus not causing array expansion) and some not.
-        List<Object> extendedValues = new ArrayList<>(insertValues.length);
+        ArrayList<Object> extendedValues = new ArrayList<>(columns.size());
         Collections.addAll(extendedValues, insertValues);
+        for (int i = insertValues.length; i < columns.size(); i++) {
+            extendedValues.add(null);
+        }
 
         for (var synthetic : undeterministic) {
             ColumnIdent column = synthetic.ref.column();
             if (column.isRoot()) {
-                extendedValues.add(synthetic.value());
+                int idx = Reference.indexOf(columns, column);
+                if (idx == -1) {
+                    extendedValues.add(synthetic.value());
+                } else {
+                    extendedValues.set(idx, synthetic.value());
+                }
             } else {
                 int valueIdx = Reference.indexOf(columns, column.getRoot());
                 Map<String, Object> root;

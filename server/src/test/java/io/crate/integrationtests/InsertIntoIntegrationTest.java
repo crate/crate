@@ -2030,7 +2030,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                id int PRIMARY KEY,
                value DOUBLE PRECISION,
                value_text TEXT,
-               rnd_col int GENERATED ALWAYS AS random() + 10
+               write_ts GENERATED ALWAYS AS current_timestamp
             ) with (number_of_replicas = 1)""");
 
         ensureGreen();
@@ -2042,6 +2042,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
         assertThat(response.rowCount()).isEqualTo(1);
         execute("refresh table tbl");
+        execute("select write_ts from tbl");
+        Long firstTs = (Long) response.rows()[0][0];
+        assertThat(firstTs).isNotNull();
 
         execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
 
@@ -2065,6 +2068,13 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response)
             .as("No underreplicated/failed shards due to streaming errors")
             .hasRows("0");
+
+        execute("refresh table tbl");
+        execute("select write_ts from tbl where id = 1");
+        Long secondTs = (Long) response.rows()[0][0];
+        assertThat(secondTs)
+            .as("Update must have re-evaluated the generated expression")
+            .isGreaterThan(firstTs);
     }
 
     @Test

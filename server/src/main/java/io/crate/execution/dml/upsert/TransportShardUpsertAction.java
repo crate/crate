@@ -170,6 +170,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 txnCtx,
                 nodeCtx,
                 updateToInsert.columns(),
+                insertColumns,
                 request.returnValues()
             );
             firstColumnIdent = indexer.columns().getFirst().column();
@@ -180,6 +181,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
+                insertColumns,
                 insertColumns,
                 request.returnValues()
             );
@@ -342,6 +344,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 indexShard.getVersionCreated(),
                 txnCtx,
                 nodeCtx,
+                targetColumns,
                 targetColumns,
                 null
             );

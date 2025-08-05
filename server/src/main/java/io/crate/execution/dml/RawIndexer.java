@@ -105,6 +105,7 @@ public class RawIndexer {
                 txnCtx,
                 nodeCtx,
                 targetRefs,
+                targetRefs,
                 returnValues
             );
         });

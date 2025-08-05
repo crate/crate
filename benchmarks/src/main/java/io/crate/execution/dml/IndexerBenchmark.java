@@ -49,6 +49,7 @@ import io.crate.execution.dml.IndexItem.StaticItem;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.session.BaseResultReceiver;
@@ -89,17 +90,18 @@ public class IndexerBenchmark {
 
         NodeContext nodeContext = injector.getInstance(NodeContext.class);
         DocTableInfo table = nodeContext.schemas().getTableInfo(new RelationName("doc", "tbl"));
-
+        List<Reference> targetColumns = List.of(
+                table.getReference(ColumnIdent.of("x")),
+                table.getReference(ColumnIdent.of("y"))
+        );
         indexer = new Indexer(
             List.of(),
             table,
             table.versionCreated(),
             new CoordinatorTxnCtx(session.sessionSettings()),
             injector.getInstance(NodeContext.class),
-            List.of(
-                table.getReference(ColumnIdent.of("x")),
-                table.getReference(ColumnIdent.of("y"))
-            ),
+            targetColumns,
+            targetColumns,
             null
         );
         items = IntStream.range(1, 2000).mapToObj(x -> new IndexItem.StaticItem(
