@@ -128,6 +128,16 @@ public final class CompositeBatchIterator {
         }
 
         @Override
+        public boolean isKilled() {
+            for (var iterator : iterators) {
+                if (iterator.isKilled()) {
+                    return true;
+                }
+            }
+            return false;
+        }
+
+        @Override
         public boolean hasLazyResultSet() {
             for (BatchIterator<T> iterator : iterators) {
                 if (iterator.hasLazyResultSet()) {

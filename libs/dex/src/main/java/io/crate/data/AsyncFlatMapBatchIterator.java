@@ -51,6 +51,11 @@ public final class AsyncFlatMapBatchIterator<I, O> implements BatchIterator<O> {
     }
 
     @Override
+    public boolean isKilled() {
+        return source.isKilled();
+    }
+
+    @Override
     public O currentElement() {
         return current;
     }

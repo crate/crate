@@ -44,6 +44,7 @@ import io.crate.data.Bucket;
 import io.crate.data.Row;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.engine.distribution.DistributedResultResponse;
+import io.crate.execution.engine.distribution.DistributedResultResponse.Result;
 import io.crate.execution.jobs.PageResultListener;
 
 public class IncrementalPageBucketReceiverTest {
@@ -108,10 +109,10 @@ public class IncrementalPageBucketReceiverTest {
 
         // First call goes to currentlyAccumulating == null, needMore must be true after the call
         final CompletableFuture<DistributedResultResponse> result = new CompletableFuture<>();
-        PageResultListener listener = needMore -> result.complete(new DistributedResultResponse(needMore));
+        PageResultListener listener = needMore -> result.complete(new DistributedResultResponse(needMore ? Result.NEED_MORE : Result.DONE));
         pageBucketReceiver.setBucket(0, Bucket.EMPTY, false, listener);
         assertThat(result).isCompletedWithValueMatchingWithin(
-            distributedResultResponse -> distributedResultResponse.needMore() == true,
+            distributedResultResponse -> distributedResultResponse.result() == Result.NEED_MORE,
             Duration.ofSeconds(1)
         );
 
@@ -120,19 +121,19 @@ public class IncrementalPageBucketReceiverTest {
             new Object[]{1},
         });
         final CompletableFuture<DistributedResultResponse> result2 = new CompletableFuture<>();
-        PageResultListener listener2 = needMore -> result2.complete(new DistributedResultResponse(needMore));
+        PageResultListener listener2 = needMore -> result2.complete(new DistributedResultResponse(needMore ? Result.NEED_MORE : Result.DONE));
         pageBucketReceiver.setBucket(0, bucket, false, listener2);
         assertThat(result2).isCompletedWithValueMatchingWithin(
-            distributedResultResponse -> distributedResultResponse.needMore() == true,
+            distributedResultResponse -> distributedResultResponse.result() == Result.NEED_MORE,
             Duration.ofSeconds(1)
         );
 
         // Call after failed processRows, listener must see that previous call was completed exceptionally
         final CompletableFuture<DistributedResultResponse> result3 = new CompletableFuture<>();
-        PageResultListener listener3 = needMore -> result3.complete(new DistributedResultResponse(needMore));
+        PageResultListener listener3 = needMore -> result3.complete(new DistributedResultResponse(needMore ? Result.NEED_MORE : Result.DONE));
         pageBucketReceiver.setBucket(0, Bucket.EMPTY, false, listener3);
         assertThat(result3).isCompletedWithValueMatchingWithin(
-            distributedResultResponse -> distributedResultResponse.needMore() == false,
+            distributedResultResponse -> distributedResultResponse.result() == Result.DONE,
             Duration.ofSeconds(1)
         );
     }
