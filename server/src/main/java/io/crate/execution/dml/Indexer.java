@@ -934,12 +934,13 @@ public class Indexer {
 
         for (var synthetic : undeterministic) {
             ColumnIdent column = synthetic.ref.column();
+            Object value = synthetic.value();
             if (column.isRoot()) {
                 int idx = Reference.indexOf(columns, column);
                 if (idx == -1) {
-                    extendedValues.add(synthetic.value());
+                    extendedValues.add(value);
                 } else {
-                    extendedValues.set(idx, synthetic.value());
+                    extendedValues.set(idx, value);
                 }
             } else {
                 int valueIdx = Reference.indexOf(columns, column.getRoot());
@@ -953,7 +954,6 @@ public class Indexer {
                     root = (Map<String, Object>) insertValues[valueIdx];
                 }
                 ColumnIdent child = column.shiftRight();
-                Object value = synthetic.value();
                 // We don't override value if it exists.
                 // It's needed when:
                 // - users explicitly provide the whole object (including generated sub-column), then we take user provided value.
