@@ -35,11 +35,11 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCopyFrom;
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.analyze.SymbolEvaluator;
-import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.SkippingBatchIterator;
@@ -52,6 +52,7 @@ import io.crate.execution.engine.collect.files.FileReadingIterator;
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.execution.engine.collect.files.LineProcessor;
 import io.crate.expression.InputFactory;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
@@ -91,8 +92,8 @@ public class FileCollectSource implements CollectSource {
                                                              CollectTask collectTask,
                                                              boolean supportMoveToStart) {
         FileUriCollectPhase fileUriCollectPhase = (FileUriCollectPhase) collectPhase;
-        InputFactory.Context<LineCollectorExpression<?>> ctx =
-            inputFactory.ctxForRefs(txnCtx, FileLineReferenceResolver::getImplementation);
+        ReferenceResolver<LineCollectorExpression<?>> referenceResolver = FileLineReferenceResolver::getImplementation;
+        InputFactory.Context<LineCollectorExpression<?>> ctx = inputFactory.ctxForRefs(txnCtx, referenceResolver);
         ctx.add(collectPhase.toCollect());
 
         Role user = requireNonNull(roles.findUser(txnCtx.sessionSettings().userName()), "User who invoked a statement must exist");
