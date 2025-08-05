@@ -2021,30 +2021,45 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
 
     /**
-     * Tests a regression introduced in 5.3 (https://github.com/crate/crate/issues/15171).
+     * Covers all scenarios during INSERT INTO ON CONFLICT,
+     * including a regression introduced in 5.3 (https://github.com/crate/crate/issues/15171).
      */
     @Test
-    public void test_insert_on_conflict_with_non_deterministic_column_succeed_on_replication() throws Exception {
-        execute("""
+    public void test_insert_on_conflict_with_all_default_and_generated_variants() throws Exception {
+        execute(
+            """
             CREATE TABLE tbl (
                id int PRIMARY KEY,
-               value DOUBLE PRECISION,
-               value_text TEXT,
-               write_ts GENERATED ALWAYS AS current_timestamp
-            ) with (number_of_replicas = 1)""");
+               x int,
+               y int default 0,
+               write_ts as current_timestamp,
+               z double precision default random(),
+               x2 as x * 2
+            ) with (number_of_replicas = 1)
+            """
+        );
 
         ensureGreen();
         execute(
             """
-            INSERT INTO tbl (id, value) VALUES (1, 99999)
-            ON CONFLICT (id) DO UPDATE SET value = excluded.value
+            INSERT INTO tbl (id, x) VALUES (1, 1)
+            ON CONFLICT (id) DO UPDATE SET x = excluded.x
             """
         );
         assertThat(response.rowCount()).isEqualTo(1);
         execute("refresh table tbl");
-        execute("select write_ts from tbl");
-        Long firstTs = (Long) response.rows()[0][0];
-        assertThat(firstTs).isNotNull();
+        execute("select y, write_ts, z, x2 from tbl");
+        Object[] row = response.rows()[0];
+        Integer y = (Integer) row[0];
+        Long writeTs = (Long) row[1];
+        Double z = (Double) row[2];
+        Integer x2 = (Integer) row[3];
+        assertThat(y).isEqualTo(0);
+        assertThat(writeTs).isNotNull();
+        assertThat(z)
+            .isGreaterThanOrEqualTo(0.0)
+            .isLessThanOrEqualTo(1.0);
+        assertThat(x2).isEqualTo(2);
 
         execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
 
@@ -2055,8 +2070,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute(
             """
-            INSERT INTO tbl (id, value) VALUES (?, ?)
-            ON CONFLICT (id) DO UPDATE SET value = excluded.value
+            INSERT INTO tbl (id, x) VALUES (?, ?)
+            ON CONFLICT (id) DO UPDATE SET x = excluded.x
             """,
             new Object[][] {
                 new Object[] { 1, 200 }, // conflict
@@ -2070,11 +2085,32 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             .hasRows("0");
 
         execute("refresh table tbl");
-        execute("select write_ts from tbl where id = 1");
-        Long secondTs = (Long) response.rows()[0][0];
-        assertThat(secondTs)
+        execute("select y, write_ts, z, x, x2 from tbl where id = 1");
+        Object[] updatedRow = response.rows()[0];
+        Integer updatedY = (Integer) updatedRow[0];
+        Long updatedWriteTs = (Long) updatedRow[1];
+        Double updatedZ = (Double) updatedRow[2];
+        Integer updatedX = (Integer) updatedRow[3];
+        Integer updatedX2 = (Integer) updatedRow[4];
+        assertThat(updatedY)
+            .as("Default value does not change")
+            .isEqualTo(0);
+
+        assertThat(updatedWriteTs)
             .as("Update must have re-evaluated the generated expression")
-            .isGreaterThan(firstTs);
+            .isGreaterThan(writeTs);
+
+        assertThat(updatedZ)
+            .as("Undeterministic default value is not re-evaluated")
+            .isEqualTo(z);
+
+        assertThat(updatedX)
+            .as("x has new value assigned in on conflict clause")
+            .isEqualTo(200);
+
+        assertThat(updatedX2)
+            .as("x had new value, x2 must re-evaluate")
+            .isEqualTo(400);
     }
 
     @Test
