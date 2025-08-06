@@ -68,3 +68,6 @@ Fixes
 
 - Fixed an issue that prevented users to change the value of the
   :ref:`indices.recovery.max_concurrent_file_chunks` setting.
+
+- Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
+  query with aggregations under memory pressure in a multi-node cluster.
