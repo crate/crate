@@ -57,7 +57,7 @@ public class StreamBucket implements Bucket, Writeable {
 
         private int size = 0;
         private BytesStreamOutput out;
-        private int prevOutSize = 0;
+        private long prevRamUsed = 0L;
 
         public Builder(Streamer<?>[] streamers, RamAccounting ramAccounting) {
             this.ramAccounting = requireNonNull(ramAccounting, "RamAccounting must not be null");
@@ -78,8 +78,8 @@ public class StreamBucket implements Bucket, Writeable {
                     throw new RuntimeException(e);
                 }
             }
-            ramAccounting.addBytes(out.size() - prevOutSize);
-            prevOutSize = out.size();
+            ramAccounting.addBytes(out.ramBytesUsed() - prevRamUsed);
+            prevRamUsed = out.ramBytesUsed();
         }
 
         public StreamBucket build() {
