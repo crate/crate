@@ -152,39 +152,17 @@ public class TransportShardUpsertAction extends TransportShardAction<
             }
         }
 
-        UpdateToInsert updateToInsert = null;
-        Indexer indexer;
-        ColumnIdent firstColumnIdent;
-        if (request.updateColumns() != null && request.updateColumns().length > 0) {
-            updateToInsert = new UpdateToInsert(
-                nodeCtx,
-                txnCtx,
-                tableInfo,
-                request.updateColumns(),
-                insertColumns
-            );
-            indexer = new Indexer(
-                partitionValues,
-                tableInfo,
-                indexShard.getVersionCreated(),
-                txnCtx,
-                nodeCtx,
-                updateToInsert.columns(),
-                request.returnValues()
-            );
-            firstColumnIdent = indexer.columns().getFirst().column();
-        } else {
-            indexer = new Indexer(
-                partitionValues,
-                tableInfo,
-                indexShard.getVersionCreated(),
-                txnCtx,
-                nodeCtx,
-                insertColumns,
-                request.returnValues()
-            );
-            firstColumnIdent = indexer.columns().getFirst().column();
-        }
+        Indexer indexer = new Indexer(
+            partitionValues,
+            tableInfo,
+            indexShard.getVersionCreated(),
+            txnCtx,
+            nodeCtx,
+            insertColumns,
+            request.updateColumns(),
+            request.returnValues()
+        );
+        ColumnIdent firstColumnIdent = indexer.columns().getFirst().column();
 
         RawIndexer rawIndexer = null;
         if (firstColumnIdent.equals(SysColumns.RAW)) {
@@ -234,7 +212,6 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     indexShard,
                     tableInfo,
                     partitionValues,
-                    updateToInsert,
                     rawIndexer
                 );
                 if (indexItemResult != null) {
@@ -343,6 +320,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 txnCtx,
                 nodeCtx,
                 targetColumns,
+                null,
                 null
             );
         }
@@ -421,7 +399,6 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                       IndexShard indexShard,
                                       DocTableInfo tableInfo,
                                       List<String> partitionValues,
-                                      @Nullable UpdateToInsert updateToInsert,
                                       @Nullable RawIndexer rawIndexer) throws Exception {
         VersionConflictEngineException lastException = null;
         Object[] insertValues = item.insertValues();
@@ -444,7 +421,6 @@ public class TransportShardUpsertAction extends TransportShardAction<
                         // Get most-recent table info, could have changed (new columns, dropped columns)
                         actualTable = schemas.getTableInfo(tableInfo.ident());
                     }
-                    assert updateToInsert != null;
                     assert hasUpdate;
                     String id = item.id();
                     indexItem = PKLookupOperation.withDoc(
@@ -462,7 +438,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                 throw new DocumentMissingException(indexShard.shardId(), id);
                             }
                             version.setPlain(doc.getVersion());
-                            return updateToInsert.convert(doc, item.updateAssignments(), insertValues);
+                            return indexer.update(doc, item.updateAssignments(), insertValues);
                         }
                     );
                 }
