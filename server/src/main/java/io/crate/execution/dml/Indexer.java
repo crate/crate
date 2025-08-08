@@ -31,6 +31,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -44,16 +45,21 @@ import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.analyze.Id;
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
+import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputFactory.Context;
+import io.crate.expression.reference.Doc;
+import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.DynamicReference;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
@@ -117,6 +123,9 @@ public class Indexer {
     private final Function<ColumnIdent, Reference> getRef;
     private final boolean writeOids;
     private final Version tableVersionCreated;
+    @Nullable
+    private final UpdateToInsert updateToInsert;
+
 
     public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
     }
@@ -396,21 +405,34 @@ public class Indexer {
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
                    List<Reference> targetColumns,
-                   Symbol[] returnValues) {
-        this.columns = targetColumns;
+                   @Nullable String[] updateColumns,
+                   @Nullable Symbol[] returnValues) {
+        if (updateColumns != null && updateColumns.length > 0) {
+            this.updateToInsert = new UpdateToInsert(
+                nodeCtx,
+                txnCtx,
+                table,
+                updateColumns,
+                targetColumns
+            );
+            this.columns = this.updateToInsert.columns();
+        } else {
+            this.updateToInsert = null;
+            this.columns = targetColumns;
+        }
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
         this.getRef = table::getReference;
         InputFactory inputFactory = new InputFactory(nodeCtx);
         SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
-        var referenceResolver = new RefResolver(symbolEval, partitionValues, targetColumns, table);
+        var referenceResolver = new RefResolver(symbolEval, partitionValues, columns, table);
         Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
             referenceResolver
         );
-        this.valueIndexers = new ArrayList<>(targetColumns.size());
+        this.valueIndexers = new ArrayList<>(columns.size());
         int position = -1;
-        for (var ref : targetColumns) {
+        for (var ref : columns) {
             ValueIndexer<?> valueIndexer;
             if (ref instanceof DynamicReference) {
                 if (table.columnPolicy() == ColumnPolicy.STRICT) {
@@ -438,7 +460,7 @@ public class Indexer {
             tableConstraints,
             columnConstraints,
             table,
-            targetColumns,
+            columns,
             ctxForRefs
         );
         for (var constraint : table.checkConstraints()) {
@@ -447,12 +469,12 @@ public class Indexer {
             tableConstraints.add(new TableCheckConstraint(input, constraint));
         }
         for (var ref : table.defaultExpressionColumns()) {
-            if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+            if (columns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
             ColumnIdent column = ref.column();
 
-            createParentSynthetics(table, targetColumns, column, getRef);
+            createParentSynthetics(table, columns, column, getRef);
 
             Input<?> input = table.primaryKey().contains(column)
                 ? ctxForRefs.add(ref)
@@ -473,11 +495,11 @@ public class Indexer {
             if (ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            if (targetColumns.contains(ref)) {
+            if (columns.contains(ref)) {
                 continue;
             }
 
-            createParentSynthetics(table, targetColumns, ref.column(), getRef);
+            createParentSynthetics(table, columns, ref.column(), getRef);
 
             Input<?> input = ctxForRefs.add(ref.generatedExpression());
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) ref.valueType().valueIndexer(
@@ -790,6 +812,11 @@ public class Indexer {
         return docBuilder.build(item.id());
     }
 
+    public IndexItem update(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
+        assert this.updateToInsert != null;
+        return this.updateToInsert.convert(doc, updateAssignments, excludedValues);
+    }
+
     /**
      * Doesn't add fields for NULL values.
      */
@@ -960,5 +987,247 @@ public class Indexer {
 
     public boolean hasReturnValues() {
         return returnValueInputs != null;
+    }
+
+    /**
+     * Uses a stored document to convert an UPDATE into an absolute INSERT
+     * (or rather: the structure required for indexing)
+     *
+     * <p>
+     * It doesn't re-generate values for generated columns and doesn't handle check constraints.
+     * This is left to the {@link Indexer} which should be used on the result.
+     *
+     * Despite this, it does include undeterministic synthetic columns within {@link #columns()}
+     * This is necessary to ensure that in upsert statements, both the INSERT and the UPDATE case
+     * have the same column ordering, which is:
+     *
+     * <ol>
+     *   <li>Insert columns</li>
+     *   <li>Undeterministic generated columns</li>
+     *   <li>All remaining columns (update only)</li>
+     * </ol>
+     *
+     * <p>
+     * Otherwise in bulk operations like follows the payload/column order could get mixed up
+     * between insert/update:
+     * </p>
+     *
+     * <p>
+     * Table with id, value, x, y, rnd_val
+     * </p>
+     *
+     * <pre>
+     *   INSERT INTO tbl (id, value) VALUES (?, ?) ON CONFLICT (id) DO UPDATE SET x = x + 1
+     * </pre>
+     *
+     * <pre>
+     * Bulk args:
+     *  [1, 1] -> [x] conflict  -> payload: [id, value, rnd_val, x, y]  -> [1, 1, 42, 10, 20]
+     *  [2, 2] -> [ ] conflict  -> payload: [id, value, rnd_val]        -> [2, 2, 23]
+     * </pre>
+     *
+     * <p>
+     * Examples:
+     * </p>
+     *
+     * <pre>
+     *  Table with columns (x, y, z) and existing record: (1, 2, 3)
+     *
+     *  UPDATE tbl SET
+     *      x = x + 2,
+     *      y = 42
+     *
+     *  Result:
+     *      targetColumns: [x,  y, z]
+     *      values:        [3, 42, 3]
+     * </pre>
+     *
+     * <pre>
+     *  Table with columns (x, o (y, z)) and existing record (1, {y=10, z=20})
+     *
+     *  UPDATE tbl SET
+     *      o['y'] = 40
+     *
+     *  Result:
+     *      targetColumns [x,            o]
+     *      values:       [1, {y=40, z=20}]
+     *  </pre>
+     *
+     *
+     *  <pre>
+     *   Table with columns (x, y, z) and existing record: (1, 2, 3)
+     *
+     *   INSERT INTO tbl (x, y, z) values (1, 10, 20)
+     *   ON CONFLICT (x) DO UPDATE SET
+     *      y = y + excluded.y
+     *
+     *  Result:
+     *      targetColumns: [x,  y, z]
+     *      values:        [1, 12, 3]
+     *  </pre>
+     *
+     *  <pre>
+     *      Table with columns (x, y, z) and existing record: (1, 2, 3)
+     *
+     *  INSERT INTO tbl (z) VALUES (3)
+     *  ON CONFLICT (z) DO UPDATE SET
+     *      y = 20
+     *
+     *  Result:
+     *      targetColumns: [z, x,  y]
+     *      values:        [3, 1, 20]
+     **/
+    public static final class UpdateToInsert {
+
+        private final DocTableInfo table;
+        private final Evaluator eval;
+        private final List<Reference> updateColumns;
+        private final ArrayList<Reference> columns;
+
+
+        public record Update(List<String> pkValues, Object[] insertValues, long version) {}
+
+        record Values(Doc doc, Object[] excludedValues) {
+        }
+
+        private static class Evaluator extends BaseImplementationSymbolVisitor<Values> {
+
+            private final ReferenceResolver<CollectExpression<Doc, ?>> refResolver;
+
+            private Evaluator(NodeContext nodeCtx,
+                              TransactionContext txnCtx,
+                              ReferenceResolver<CollectExpression<Doc, ?>> refResolver) {
+                super(txnCtx, nodeCtx);
+                this.refResolver = refResolver;
+            }
+
+            @Override
+            public Input<?> visitInputColumn(InputColumn inputColumn, Values context) {
+                return Literal.ofUnchecked(inputColumn.valueType(), context.excludedValues[inputColumn.index()]);
+            }
+
+            @Override
+            public Input<?> visitReference(Reference symbol, Values values) {
+                CollectExpression<Doc, ?> expr = refResolver.getImplementation(symbol);
+                expr.setNextRow(values.doc);
+                return expr;
+            }
+        }
+
+        public UpdateToInsert(NodeContext nodeCtx,
+                              TransactionContext txnCtx,
+                              DocTableInfo table,
+                              String[] updateColumns,
+                              @Nullable List<Reference> insertColumns) {
+            var refResolver = new DocRefResolver(table.partitionedBy());
+            this.table = table;
+            this.eval = new Evaluator(nodeCtx, txnCtx, refResolver);
+            this.updateColumns = new ArrayList<>(updateColumns.length);
+            this.columns = new ArrayList<>();
+            List<String> updateColumnList = Arrays.asList(updateColumns);
+            boolean errorOnUnknownObjectKey = txnCtx.sessionSettings().errorOnUnknownObjectKey();
+
+            if (insertColumns != null) {
+                this.columns.addAll(insertColumns);
+            }
+            for (var ref : table.defaultExpressionColumns()) {
+                if (!ref.defaultExpression().isDeterministic() && !this.columns.contains(ref)) {
+                    this.columns.add(ref);
+                }
+            }
+            for (var ref : table.generatedColumns()) {
+                if (!ref.isDeterministic() && !this.columns.contains(ref)) {
+                    this.columns.add(ref);
+                }
+            }
+            for (var ref : table.rootColumns()) {
+                if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
+                    continue;
+                }
+                if (!this.columns.contains(ref)) {
+                    this.columns.add(ref);
+                }
+            }
+            for (String columnName : updateColumns) {
+                ColumnIdent column = ColumnIdent.fromPath(columnName);
+                Reference existingRef = table.getReference(column);
+                if (existingRef == null) {
+                    Reference reference = table.getDynamic(column, true, errorOnUnknownObjectKey);
+                    if (column.isRoot()) {
+                        columns.add(reference);
+                        this.updateColumns.add(reference);
+                    } else {
+                        ColumnIdent root = column.getRoot();
+                        Reference rootReference = table.getReference(root);
+                        if (rootReference == null) {
+                            throw new UnsupportedOperationException(String.format(
+                                Locale.ENGLISH,
+                                "Cannot add new child `%s` if parent column is missing",
+                                column
+                            ));
+                        } else {
+                            this.updateColumns.add(reference);
+                        }
+                    }
+                } else {
+                    this.updateColumns.add(existingRef);
+                }
+            }
+        }
+
+        @SuppressWarnings("unchecked")
+        public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
+            Values values = new Values(doc, excludedValues);
+            Object[] insertValues = new Object[columns.size()];
+            Iterator<Reference> it = columns.iterator();
+            for (int i = 0; it.hasNext(); i++) {
+                Reference ref = it.next();
+                int updateIdx = updateColumns.indexOf(ref);
+                if (updateIdx >= 0) {
+                    Symbol symbol = updateAssignments[updateIdx];
+                    Object value = symbol.accept(eval, values).value();
+                    assert ref.column().isRoot()
+                        : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
+                    insertValues[i] = value;
+                } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
+                    insertValues[i] = null;
+                } else if (ref.defaultExpression() != null && !ref.defaultExpression().isDeterministic()) {
+                    insertValues[i] = null;
+                } else {
+                    insertValues[i] = ref.accept(eval, values).value();
+                }
+            }
+            for (int i = 0; i < updateColumns.size(); i++) {
+                Reference updateColumn = updateColumns.get(i);
+                ColumnIdent column = updateColumn.column();
+                if (column.isRoot()) {
+                    // Handled in previous loop over the columns
+                    continue;
+                }
+                ColumnIdent root = column.getRoot();
+                int idx = Reference.indexOf(columns, root);
+                assert idx > -1 : "Root of updateColumns must exist in table columns";
+                Symbol assignment = updateAssignments[i];
+                Object value = assignment.accept(eval, values).value();
+                ColumnIdent targetPath = column.shiftRight();
+                Map<String, Object> source = (Map<String, Object>) insertValues[idx];
+                if (source == null) {
+                    source = new HashMap<>();
+                    insertValues[idx] = source;
+                }
+                Maps.mergeInto(source, targetPath.name(), targetPath.path(), value);
+            }
+            return new IndexItem.StaticItem(
+                doc.getId(),
+                Id.decode(table.primaryKey(), doc.getId()),
+                insertValues,
+                doc.getSeqNo(),
+                doc.getPrimaryTerm()
+            );
+        }
+
+        public List<Reference> columns() {
+            return columns;
+        }
     }
 }
