@@ -406,6 +406,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             CoordinatorTxnCtx.systemTransactionContext(),
             nodeCtx,
             targetColumns,
+            targetColumns,
             null
         );
 

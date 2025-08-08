@@ -61,6 +61,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.optimizer.symbol.Optimizer;
@@ -138,13 +139,15 @@ public final class QueryTester implements AutoCloseable {
 
         public Builder indexValue(String column, Object value) throws IOException {
             IndexMetadata indexMetadata = plannerContext.clusterState().metadata().getIndex(table.ident(), List.of(), true, im -> im);
+            List<Reference> targetColumns = List.of(table.getReference(ColumnIdent.fromPath(column)));
             Indexer indexer = new Indexer(
                 indexMetadata.partitionValues(),
                 table,
                 indexVersion,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                List.of(table.getReference(ColumnIdent.fromPath(column))),
+                targetColumns,
+                targetColumns,
                 null
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), new Object[] { value }, -1L, -1L);
@@ -155,13 +158,15 @@ public final class QueryTester implements AutoCloseable {
 
         public Builder indexValues(List<String> columns, Object ... values) throws IOException {
             IndexMetadata indexMetadata = plannerContext.clusterState().metadata().getIndex(table.ident(), List.of(), true, im -> im);
+            List<Reference> targetColumns = Lists.map(columns, c -> table.getReference(ColumnIdent.fromPath(c)));
             Indexer indexer = new Indexer(
                 indexMetadata.partitionValues(),
                 table,
                 indexVersion,
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
-                Lists.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
+                targetColumns,
+                targetColumns,
                 null
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), values, -1L, -1L);
