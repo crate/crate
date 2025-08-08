@@ -404,9 +404,22 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                       DocTableInfo tableInfo,
                                       List<String> partitionValues,
                                       @Nullable RawIndexer rawIndexer) throws Exception {
-        VersionConflictEngineException lastException = null;
         Object[] insertValues = item.insertValues();
-        boolean tryInsertFirst = insertValues != null;
+        boolean isInsert = insertValues != null;
+        return isInsert ? indexItemForInsert(indexer, request, item, indexShard, tableInfo, partitionValues, rawIndexer) :
+            indexItemForUpdate(indexer, request, item, indexShard, tableInfo, partitionValues);
+    }
+
+    @Nullable
+    private IndexItemResult indexItemForInsert(Indexer indexer,
+                                               ShardUpsertRequest request,
+                                               ShardUpsertRequest.Item item,
+                                               IndexShard indexShard,
+                                               DocTableInfo tableInfo,
+                                               List<String> partitionValues,
+                                               @Nullable RawIndexer rawIndexer) throws Exception {
+        VersionConflictEngineException lastException = null;
+        boolean fallBackToUpdate = false;
         boolean hasUpdate = item.updateAssignments() != null && item.updateAssignments().length > 0;
         long seqNo = item.seqNo();
         long primaryTerm = item.primaryTerm();
@@ -415,36 +428,13 @@ public class TransportShardUpsertAction extends TransportShardAction<
             try {
                 boolean isRetry = retryCount > 0 || request.isRetry();
                 AtomicLong version = new AtomicLong();
-                if (tryInsertFirst) {
+                if (!fallBackToUpdate) {
                     version.setPlain(request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
                         ? Versions.MATCH_ANY
                         : Versions.MATCH_DELETED);
                 } else {
-                    DocTableInfo actualTable = tableInfo;
-                    if (isRetry) {
-                        // Get most-recent table info, could have changed (new columns, dropped columns)
-                        actualTable = schemas.getTableInfo(tableInfo.ident());
-                    }
-                    assert hasUpdate;
-                    String id = item.id();
-                    indexItem = PKLookupOperation.withDoc(
-                        indexShard,
-                        id,
-                        item.version(),
-                        VersionType.INTERNAL,
-                        seqNo,
-                        primaryTerm,
-                        actualTable,
-                        partitionValues,
-                        null,
-                        doc -> {
-                            if (doc == null) {
-                                throw new DocumentMissingException(indexShard.shardId(), id);
-                            }
-                            version.setPlain(doc.getVersion());
-                            return indexer.update(doc, item.updateAssignments(), insertValues);
-                        }
-                    );
+                    indexItem = lookupAndConvertToInsert(
+                        indexer, item, indexShard, tableInfo, partitionValues, seqNo, primaryTerm, isRetry, version);
                 }
                 return insert(
                     tableInfo.ident(),
@@ -464,9 +454,12 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     return null;
                 }
                 if (hasUpdate) {
-                    if (tryInsertFirst) {
+                    if (!fallBackToUpdate) {
                         // insert failed, document already exists, try update
-                        tryInsertFirst = false;
+                        fallBackToUpdate = true;
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("[{}] Insert conflict on id={}, falling back to UPDATE", indexShard.shardId(), item.id());
+                        }
                         continue;
                     } else if (seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && item.version() == Versions.MATCH_ANY) {
                         if (logger.isTraceEnabled()) {
@@ -487,6 +480,80 @@ public class TransportShardUpsertAction extends TransportShardAction<
             MAX_RETRY_LIMIT
         );
         throw lastException;
+    }
+
+    @Nullable
+    private IndexItemResult indexItemForUpdate(Indexer indexer,
+                                               ShardUpsertRequest request,
+                                               ShardUpsertRequest.Item item,
+                                               IndexShard indexShard,
+                                               DocTableInfo tableInfo,
+                                               List<String> partitionValues) throws Exception {
+        VersionConflictEngineException lastException = null;
+        assert item.updateAssignments() != null && item.updateAssignments().length > 0;
+        long seqNo = item.seqNo();
+        long primaryTerm = item.primaryTerm();
+        IndexItem indexItem;
+        for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
+            try {
+                boolean isRetry = retryCount > 0 || request.isRetry();
+                AtomicLong version = new AtomicLong();
+                indexItem = lookupAndConvertToInsert(
+                    indexer, item, indexShard, tableInfo, partitionValues, seqNo, primaryTerm, isRetry, version);
+                return insert(
+                    indexer,
+                    request,
+                    indexItem,
+                    indexShard,
+                    isRetry,
+                    null,
+                    version.getPlain(),
+                    item.autoGeneratedTimestamp()
+                );
+            } catch (VersionConflictEngineException e) {
+                lastException = e;
+                if (seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && item.version() == Versions.MATCH_ANY) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
+                            indexShard.shardId(), item.id(), item.version(), retryCount);
+                    }
+                    continue;
+                }
+                throw e;
+            }
+        }
+        logger.warn(
+            "[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",
+            indexShard.shardId(),
+            item.id(),
+            item.version(),
+            MAX_RETRY_LIMIT
+        );
+        throw lastException;
+    }
+
+    private IndexItem lookupAndConvertToInsert(Indexer indexer,
+                                               ShardUpsertRequest.Item item,
+                                               IndexShard shard,
+                                               DocTableInfo table,
+                                               List<String> partitionValues,
+                                               long seqNo,
+                                               long primaryTerm,
+                                               boolean isRetry,
+                                               AtomicLong version) {
+        // Get most-recent table info, could have changed (new columns, dropped columns)
+        DocTableInfo actual = isRetry ? schemas.getTableInfo(table.ident()) : table;
+        String id = item.id();
+        Object[] excluded = item.insertValues();
+        return PKLookupOperation.withDoc(
+            shard, id, item.version(), VersionType.INTERNAL,
+            seqNo, primaryTerm, actual, partitionValues, null,
+            doc -> {
+                if (doc == null) throw new DocumentMissingException(shard.shardId(), id);
+                version.setPlain(doc.getVersion());
+                return indexer.update(doc, item.updateAssignments(), excluded);
+            }
+        );
     }
 
     public record IndexItemResult(IndexResult result,
