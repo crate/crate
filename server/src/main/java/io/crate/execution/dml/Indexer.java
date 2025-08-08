@@ -496,7 +496,7 @@ public class Indexer {
             if (ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            if (columns.contains(ref)) {
+            if (targetColumns.contains(ref)) {
                 continue;
             }
 
@@ -976,11 +976,20 @@ public class Indexer {
         //  Some of them can have their root listed in the insert/upsert targets (and thus not causing array expansion) and some not.
         List<Object> extendedValues = new ArrayList<>(insertValues.length);
         Collections.addAll(extendedValues, insertValues);
+        for (int i = insertValues.length; i < columns.size(); i++) {
+            extendedValues.add(null);
+        }
 
         for (var synthetic : undeterministic) {
             ColumnIdent column = synthetic.ref.column();
+            Object value = synthetic.value();
             if (column.isRoot()) {
-                extendedValues.add(synthetic.value());
+                int idx = Reference.indexOf(columns, column);
+                if (idx == -1) {
+                    extendedValues.add(value);
+                } else {
+                    extendedValues.set(idx, value);
+                }
             } else {
                 int valueIdx = Reference.indexOf(columns, column.getRoot());
                 Map<String, Object> root;
@@ -997,7 +1006,6 @@ public class Indexer {
                     continue;
                 }
                 ColumnIdent child = column.shiftRight();
-                Object value = synthetic.value();
                 // We don't override value if it exists.
                 // It's needed when:
                 // - users explicitly provide the whole object (including generated sub-column), then we take user provided value.
@@ -1170,6 +1178,9 @@ public class Indexer {
                 }
             }
             for (var ref : table.rootColumns()) {
+                // The Indexer later on injects the generated column values
+                // We only include them here if they are provided in the `updateColumns` to validate
+                // that users provided the right value (otherwise they'd get ignored and we'd generate them later)
                 if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                     continue;
                 }
