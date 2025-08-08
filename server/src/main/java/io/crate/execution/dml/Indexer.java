@@ -814,14 +814,6 @@ public class Indexer {
 
     public IndexItem update(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
         assert this.updateToInsert != null;
-        Iterator<Synthetic> iterator = undeterministic.iterator();
-        while (iterator.hasNext()) {
-            var synthetic = iterator.next();
-            if (synthetic.ref instanceof Reference ref) {
-                assert ref.defaultExpression() != null : "Only default column can be undeterministic and not generated";
-                iterator.remove();
-            }
-        }
         return this.updateToInsert.convert(doc, updateAssignments, excludedValues);
     }
 
