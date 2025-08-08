@@ -469,7 +469,7 @@ public class Indexer {
             tableConstraints.add(new TableCheckConstraint(input, constraint));
         }
         for (var ref : table.defaultExpressionColumns()) {
-            if (columns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+            if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
             ColumnIdent column = ref.column();
