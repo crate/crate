@@ -1109,7 +1109,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         var executor = SQLExecutor.of(clusterService);
         assertThatThrownBy(() -> executor.analyze("select * from sys.nodes order by load"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot ORDER BY 'load': invalid data type 'object'.");
+            .hasMessage("Cannot ORDER BY 'load': invalid data type 'object(double precision, double precision, double precision, timestamp with time zone)'.");
     }
 
     @Test
