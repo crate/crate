@@ -38,6 +38,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
@@ -812,9 +813,33 @@ public class Indexer {
         return docBuilder.build(item.id());
     }
 
-    public IndexItem update(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
+    /**
+     *
+     * @param doc must be called after {@link Indexer#updateTargets(Function)}
+     */
+    public record UpdateBuild(Supplier<ParsedDocument> doc,
+                              Supplier<Object[]> replicaItems,
+                              List<Reference> newColumns,
+                              IndexItem indexItem) {
+    }
+
+    /**
+     * @param excludedValues provided for insert-on-conflict only, null for pure UPDATE
+     */
+    public UpdateBuild buildForUpdate(Doc storedDoc,
+                                      Symbol[] updateAssignments,
+                                      @Nullable Object[] excludedValues) throws IOException {
         assert this.updateToInsert != null;
-        return this.updateToInsert.convert(doc, updateAssignments, excludedValues);
+        var converted = updateToInsert.convert(storedDoc, updateAssignments, excludedValues);
+        var newCols = collectSchemaUpdates(converted);
+        Supplier<ParsedDocument> doc = () -> {
+            try {
+                return index(converted);
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        };
+        return new UpdateBuild(doc, () -> addGeneratedValues(converted), newCols, converted);
     }
 
     /**
