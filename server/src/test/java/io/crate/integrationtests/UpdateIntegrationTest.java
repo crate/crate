@@ -1134,4 +1134,119 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("update test set a = a + 98");
         assertThat(response).hasRowCount(1);
     }
+
+    @Test
+    public void test_update_does_not_modify_unassigned_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10)
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 1, {a=1, b=1}, 7)");
+        execute("refresh table t");
+        execute("select * from t");
+        String row = printedTable(response.rows());
+        execute("update t set c=9");
+        execute("refresh table t");
+        execute("select * from t");
+        // fails on master - '1| NULL| {a=1, b=1}| 9'
+        assertThat(printedTable(response.rows())).isEqualTo(row.replace('7', '9'));
+
+        execute("update t set c=3 returning *");
+        // fails on master - '1| NULL| {a=1, b=1}| 3'
+        assertThat(printedTable(response.rows())).isEqualTo(row.replace('7', '3'));
+    }
+
+    @Test
+    public void test_update_modifies_assigned_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10)
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 1, {a=1, b=1}, 7)");
+        execute("refresh table t");
+        execute("select * from t");
+        String row = printedTable(response.rows());
+        execute("update t set a=2, b=2, c=9, o={a=2, b=2}");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(printedTable(response.rows())).isEqualTo(row.replace('7', '9').replace('1', '2'));
+
+        execute("update t set a=2, b=2, c=3, o={a=2, b=2} returning *");
+        assertThat(printedTable(response.rows())).isEqualTo(row.replace('7', '3').replace('1', '2'));
+    }
+
+    @Test
+    public void test_update_validates_assigned_generated_columns_only_if_deterministic() {
+        // update stmt validates values assigned to deterministic generated columns and does not validate if non-deterministic
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10)
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 1, {a=1, b=1}, 0)");
+        execute("refresh table t");
+        execute("select * from t");
+        String row = printedTable(response.rows());
+        execute("update t set a=9, b=9, c=8, o={a=9, b=9}");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(printedTable(response.rows())).isEqualTo(row.replace('0', '8').replace('1', '9'));
+
+        execute("update t set a=1, b=1, c=0, o={a=1, b=1} returning *");
+        assertThat(printedTable(response.rows())).isEqualTo(row);
+
+        // fails on master - no exception thrown
+        assertThatThrownBy(() -> execute("update t set a=-1, b=-1, c=0, o={a=-1, b=-1}"))
+            .isExactlyInstanceOf(Exception.class)
+            .hasMessage("expect it fails with invalid values provided to generated columns, i.e. since c=0, a must be 1");
+    }
+
+    @Test
+    public void test_update_regenerates_unassigned_generated_columns() {
+        // update stmt regenerates generated columns if the source columns are updated
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10)
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, {a=1, b=2}, 0)");
+        execute("refresh table t");
+        execute("select * from t");
+        String row = printedTable(response.rows());
+        execute("update t set c=8");
+        execute("refresh table t");
+        execute("select * from t");
+        // fails on master - 1| 2| {a=1, b=2}| 0 - nothing updated?
+        assertThat(printedTable(response.rows())).isEqualTo(row.replace('0', '8'));
+
+        execute("update t set c=3 returning *");
+        // fails on master - no row returned
+        assertThat(printedTable(response.rows())).isEqualTo(row.replace('0', '3').replace('1', '4'));
+    }
 }
