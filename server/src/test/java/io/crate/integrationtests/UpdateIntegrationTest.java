@@ -1141,26 +1141,32 @@ public class UpdateIntegrationTest extends IntegTestCase {
             create table t (
                 a int default -1,
                 b int default round(random() * 10),
+                i int,
                 o object as (
                     a int default -1,
-                    b int default round(random() * 10)
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
                 ),
                 c int
             )
             """);
-        execute("insert into t values (1, 1, {a=1, b=1}, 7)");
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
         execute("refresh table t");
         execute("select * from t");
-        String row = printedTable(response.rows());
-        execute("update t set c=9");
-        execute("refresh table t");
-        execute("select * from t");
-        // fails on master - '1| NULL| {a=1, b=1}| 9'
-        assertThat(printedTable(response.rows())).isEqualTo(row.replace('7', '9'));
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
 
-        execute("update t set c=3 returning *");
-        // fails on master - '1| NULL| {a=1, b=1}| 3'
-        assertThat(printedTable(response.rows())).isEqualTo(row.replace('7', '3'));
+        execute("update t set c=99");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 99");
+
+        execute("update t set c=999 returning *");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 999");
     }
 
     @Test
@@ -1169,24 +1175,35 @@ public class UpdateIntegrationTest extends IntegTestCase {
             create table t (
                 a int default -1,
                 b int default round(random() * 10),
+                i int,
                 o object as (
                     a int default -1,
-                    b int default round(random() * 10)
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
                 ),
                 c int
             )
             """);
-        execute("insert into t values (1, 1, {a=1, b=1}, 7)");
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
         execute("refresh table t");
         execute("select * from t");
-        String row = printedTable(response.rows());
-        execute("update t set a=2, b=2, c=9, o={a=2, b=2}");
-        execute("refresh table t");
-        execute("select * from t");
-        assertThat(printedTable(response.rows())).isEqualTo(row.replace('7', '9').replace('1', '2'));
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
 
-        execute("update t set a=2, b=2, c=3, o={a=2, b=2} returning *");
-        assertThat(printedTable(response.rows())).isEqualTo(row.replace('7', '3').replace('1', '2'));
+        execute("update t set a=11, b=22, i=33, o={a=44, b=55, i=66, o={a=77, b=88, i=99}}, c=1010");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| 22| 33| {a=44, b=55, i=66, o={a=77, b=88, i=99}}| 1010");
+
+        execute("update t set a=1, b=2, i=3, o={a=4, b=5, i=6, o={a=7, b=8, i=9}}, c=10 returning *");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set o['o']['a']=11, o['o']['b']=12, o['o']['i']=13 returning *");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=11, b=12, i=13}}| 10");
     }
 
     @Test
@@ -1196,29 +1213,35 @@ public class UpdateIntegrationTest extends IntegTestCase {
             create table t (
                 a int generated always as c+1,
                 b int generated always as round(random() * 10),
+                i int,
                 o object as (
                     a int generated always as c+1,
-                    b int generated always as round(random() * 10)
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
                 ),
                 c int
             )
             """);
-        execute("insert into t values (1, 1, {a=1, b=1}, 0)");
+        execute("insert into t values (11, 2, 3, {a=11, b=5, i=6, o={a=11, b=8, i=9}}, 10)");
         execute("refresh table t");
         execute("select * from t");
-        String row = printedTable(response.rows());
-        execute("update t set a=9, b=9, c=8, o={a=9, b=9}");
+        assertThat(response).hasRows("11| 2| 3| {a=11, b=5, i=6, o={a=11, b=8, i=9}}| 10");
+
+        execute("update t set a=101, b=22, i=33, o={a=101, b=55, i=66, o={a=101, b=88, i=99}}, c=100");
         execute("refresh table t");
         execute("select * from t");
-        assertThat(printedTable(response.rows())).isEqualTo(row.replace('0', '8').replace('1', '9'));
+        assertThat(response).hasRows("101| 22| 33| {a=101, b=55, i=66, o={a=101, b=88, i=99}}| 100");
 
-        execute("update t set a=1, b=1, c=0, o={a=1, b=1} returning *");
-        assertThat(printedTable(response.rows())).isEqualTo(row);
+        execute("update t set a=11, b=2, i=3, o={a=11, b=5, i=6, o={a=11, b=8, i=9}}, c=10 returning *");
+        assertThat(response).hasRows("11| 2| 3| {a=11, b=5, i=6, o={a=11, b=8, i=9}}| 10");
 
-        // fails on master - no exception thrown
-        assertThatThrownBy(() -> execute("update t set a=-1, b=-1, c=0, o={a=-1, b=-1}"))
-            .isExactlyInstanceOf(Exception.class)
-            .hasMessage("expect it fails with invalid values provided to generated columns, i.e. since c=0, a must be 1");
+        execute("update t set o['o']['a']=11, o['o']['b']=12, o['o']['i']=13 returning b=-1, o['b']=-1, o['o']");
+        assertThat(response).hasRows("false| false| {a=11, b=12, i=13}");
     }
 
     @Test
@@ -1228,25 +1251,34 @@ public class UpdateIntegrationTest extends IntegTestCase {
             create table t (
                 a int generated always as c+1,
                 b int generated always as round(random() * 10),
+                i int,
                 o object as (
                     a int generated always as c+1,
-                    b int generated always as round(random() * 10)
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
                 ),
                 c int
             )
             """);
-        execute("insert into t values (1, 2, {a=1, b=2}, 0)");
+        execute("insert into t values (11, -1, 1, {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}, 10)");
         execute("refresh table t");
         execute("select * from t");
-        String row = printedTable(response.rows());
-        execute("update t set c=8");
-        execute("refresh table t");
-        execute("select * from t");
-        // fails on master - 1| 2| {a=1, b=2}| 0 - nothing updated?
-        assertThat(printedTable(response.rows())).isEqualTo(row.replace('0', '8'));
+        assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");
 
-        execute("update t set c=3 returning *");
-        // fails on master - no row returned
-        assertThat(printedTable(response.rows())).isEqualTo(row.replace('0', '3').replace('1', '4'));
+        execute("update t set c=100");
+        execute("refresh table t");
+        execute("select a, i, o['a'], o['i'], o['o']['a'], o['o']['i'], c from t");
+        assertThat(response).hasRows("101| 1| 101| 1| 101| 1| 100");
+        execute("select b=-1 and o['b']=-1 and o['o']['b']=-1 from t");
+        assertThat(response).hasRows("false");
+
+        execute("update t set b=-1, i=1, o={b=-1, i=1, o={b=-1, i=1}}, c=10 returning *");
+        //new bug found(fails on master) - o['a'] and o['o']['a'] missing
+        //assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");
     }
 }

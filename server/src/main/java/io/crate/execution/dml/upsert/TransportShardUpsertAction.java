@@ -443,8 +443,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     );
                 } else {
                     return indexItemForUpdate(
-                        indexer, request, item, indexShard, tableInfo, partitionValues
-                    );
+                        indexer, request, item, indexShard, tableInfo, partitionValues);
                 }
             } catch (VersionConflictEngineException e) {
                 lastException = e;
