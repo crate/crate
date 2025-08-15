@@ -126,6 +126,7 @@ public class Indexer {
     private final Version tableVersionCreated;
     @Nullable
     private final UpdateToInsert updateToInsert;
+    private final List<Reference> assignedColumns;
 
 
     public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
@@ -417,9 +418,11 @@ public class Indexer {
                 targetColumns
             );
             this.columns = this.updateToInsert.columns();
+            this.assignedColumns = this.updateToInsert.updateColumns;
         } else {
             this.updateToInsert = null;
             this.columns = targetColumns;
+            this.assignedColumns = this.columns;
         }
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
@@ -470,7 +473,12 @@ public class Indexer {
             tableConstraints.add(new TableCheckConstraint(input, constraint));
         }
         for (var ref : table.defaultExpressionColumns()) {
-            if (columns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+            if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+                continue;
+            }
+            // never re-generate default columns for UPDATE
+            boolean isUpdate = updateColumns != null && updateColumns.length > 0 && targetColumns.isEmpty();
+            if (isUpdate) {
                 continue;
             }
             ColumnIdent column = ref.column();
@@ -493,10 +501,11 @@ public class Indexer {
             }
         }
         for (var ref : table.generatedColumns()) {
-            if (ref.granularity() == RowGranularity.PARTITION) {
+            if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            if (targetColumns.contains(ref)) {
+            // never generate generated columns if assigned
+            if (assignedColumns.contains(ref)) {
                 continue;
             }
 
@@ -1167,13 +1176,8 @@ public class Indexer {
             if (insertColumns != null) {
                 this.columns.addAll(insertColumns);
             }
-            for (var ref : table.defaultExpressionColumns()) {
-                if (!ref.defaultExpression().isDeterministic() && !this.columns.contains(ref)) {
-                    this.columns.add(ref);
-                }
-            }
             for (var ref : table.generatedColumns()) {
-                if (!ref.isDeterministic() && !this.columns.contains(ref)) {
+                if (ref.column().isRoot() && !ref.isDeterministic() && !this.columns.contains(ref)) {
                     this.columns.add(ref);
                 }
             }
@@ -1226,15 +1230,23 @@ public class Indexer {
                 if (updateIdx >= 0) {
                     Symbol symbol = updateAssignments[updateIdx];
                     Object value = symbol.accept(eval, values).value();
+                    insertValues[i] = value;
                     assert ref.column().isRoot()
                         : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
-                    insertValues[i] = value;
                 } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
-                    insertValues[i] = null;
-                } else if (ref.defaultExpression() != null && !ref.defaultExpression().isDeterministic()) {
                     insertValues[i] = null;
                 } else {
                     insertValues[i] = ref.accept(eval, values).value();
+                    // Remove the generated children such that Indexer can generate it
+                    if (ref.valueType().id() == ObjectType.ID) {
+                        for (var child : table.getLeafReferences(ref)) {
+                            if (child.isGenerated() &&
+                                (!child.isDeterministic() || ((GeneratedReference) child).referencedReferences().stream().anyMatch(updateColumns::contains))) {
+                                //Maps.mergeInto((Map<String, Object>) insertValues[i], child.column().shiftRight().name(), child.column().shiftRight().path(), null);
+                                Maps.removeByPath((Map<String, Object>) insertValues[i], Arrays.asList(child.column().shiftRight().fqn().split("\\.")));
+                            }
+                        }
+                    }
                 }
             }
             for (int i = 0; i < updateColumns.size(); i++) {

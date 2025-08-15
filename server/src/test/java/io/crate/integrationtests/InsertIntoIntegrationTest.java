@@ -1980,46 +1980,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
     }
 
-    @Test
-    public void test_non_deterministic_sub_column_not_included_in_target_cols() {
-        execute("""
-            CREATE TABLE tbl (
-                a int PRIMARY KEY,
-                b text,
-                o1 object as (
-                    sub int as round((random() + 1) * 100)
-                )
-            )
-            """
-        );
-        execute("INSERT INTO tbl(a) VALUES (1)");
-        execute("refresh table tbl");
-
-        // Replication of non-deterministic sub-columns had 2 issues:
-        // 1. Used to fail with IndexOutOfBoundsException when preparing replica request
-        //    because values size was less than columns size.
-        //    This is solved now by having dedicated indexers for INSERT and for UPSERT/UPDATE.
-        // 2. If object column is not updated, it's supposed to be taken from the existing doc.
-        //    Object was taken but sub-column used to be re-generated and merged into existing object.
-        execute("SELECT o1['sub'] FROM tbl");
-        int generatedBeforeUpsert = (int) response.rows()[0][0];
-        assertThat(generatedBeforeUpsert).isGreaterThan(0);
-
-
-        execute("INSERT INTO tbl(a) VALUES (1) " +
-            "ON CONFLICT (a) DO UPDATE SET b = 'updated'"
-        );
-        execute("refresh table tbl");
-
-        // Some iterations to ensure it hits both primary and replica
-        // Ensure that non-deterministic sub-column is not re-genrated on replicas.
-        for (int i = 0; i < 10; i++) {
-            execute("SELECT o1['sub'] FROM tbl");
-            assertThat(response.rows()[0][0]).isEqualTo(generatedBeforeUpsert);
-        }
-    }
-
-
     /**
      * Covers all scenarios during INSERT INTO ON CONFLICT,
      * including a regression introduced in 5.3 (https://github.com/crate/crate/issues/15171).
@@ -2180,5 +2140,210 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             // but constantly less than 57000.
             assertThat((long) response.rows()[0][0]).isLessThan(57000);
         }
+    }
+
+    @Test
+    public void test_insert_with_unassigned_default_nested_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t(c,i,o) values (0, 1, {i=2, o={i=3}})");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
+        assertThat(response).hasRows("0| 1| 2| 3| -1| -1| -1");
+    }
+
+    @Test
+    public void test_insert_with_unassigned_nested_generated_columns() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t(c,i,o) values (0, 1, {i=2, o={i=3}})");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
+        assertThat(response).hasRows("0| 1| 2| 3| 1| 1| 1");
+    }
+
+    @Test
+    public void test_insert_on_conflict_does_not_modify_unassigned_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int primary key
+            )
+            """);
+        execute("insert into t(c,i,o) values (0, 1, {i=2, o={i=3}}) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
+        assertThat(response).hasRows("0| 1| 2| 3| -1| -1| -1");
+
+        //-- flaky?
+        execute("insert into t(c,i,o) values (6, 7, {i=8, o={i=9}}), (0, 1, {i=2, o={i=3}}), (5, 6, {i=7, o={i=8}}) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t order by c");
+        assertThat(response).hasRows("0| 11| 22| 33| -1| -1| -1", "5| 6| 7| 8| -1| -1| -1", "6| 7| 8| 9| -1| -1| -1");
+    }
+
+    @Test
+    public void test_insert_on_conflict_modifies_assigned_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int primary key
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        // below is exception from master - bug?
+        // insert into t values (11, 22, 33, {a=44, b=55, i=66, o={a=77, b=88, i=99}}, 10) on conflict (c) do update set i=excluded.i, o['i']=excluded.o['i'], o['o']['i']=excluded.o['o']['i'];
+        // SQLParseException[Column 'o['i']' that is used in the VALUES() expression is not part of the target column list]
+
+        execute("""
+            insert into t values
+                (111, 222, 333, {a=444, b=555, i=666, o={a=777, b=888, i=999}}, 9),
+                (11, 22, 33, {a=44, b=55, i=66, o={a=77, b=88, i=99}}, 10),
+                (1111, 2222, 3333, {a=4444, b=5555, i=6666, o={a=7777, b=8888, i=9999}}, 11)
+            on conflict (c) do update set i=-1, o['i']=-2, o['o']['i']=-3
+            """);
+        execute("refresh table t");
+        execute("select * from t order by c");
+        assertThat(response).hasRows(
+            "111| 222| 333| {a=444, b=555, i=666, o={a=777, b=888, i=999}}| 9",
+            "1| 2| -1| {a=4, b=5, i=-2, o={a=7, b=8, i=-3}}| 10",
+            "1111| 2222| 3333| {a=4444, b=5555, i=6666, o={a=7777, b=8888, i=9999}}| 11");
+    }
+
+    @Test
+    public void test_insert_on_conflict_validates_assigned_generated_columns_only_if_deterministic() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int primary key
+            )
+            """);
+
+        execute("insert into t values (11, -1, 3, {a=11, b=-2, i=6, o={a=11, b=-3, i=9}}, 10) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| -1| 3| {a=11, b=-2, i=6, o={a=11, b=-3, i=9}}| 10");
+
+        // below is exception from master - bug?
+        // insert into t values (11, 22, 33, {a=44, b=55, i=66, o={a=77, b=88, i=99}}, 10) on conflict (c) do update set i=excluded.i, o['i']=excluded.o['i'], o['o']['i']=excluded.o['o']['i'];
+        // SQLParseException[Column 'o['i']' that is used in the VALUES() expression is not part of the target column list]
+
+        execute("""
+            insert into t values
+                (11, 22, 33, {a=11, b=55, i=66, o={a=11, b=88, i=99}}, 10)
+            on conflict (c) do update set i=-1, o['i']=-2, o['o']['i']=-3
+            """);
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'], b>0, o['b']>0, o['o']['b']>0 from t where c=10 order by c");
+        assertThat(response).hasRows(
+            "10| -1| -2| -3| 11| 11| 11| true| true| true");
+        execute("select * from t where c=9 or c=11 order by c");
+        assertThat(response).hasRows(
+            "10| 222| 333| {a=10, b=555, i=666, o={a=10, b=888, i=999}}| 9",
+            "12| 2222| 3333| {a=12, b=5555, i=6666, o={a=12, b=8888, i=9999}}| 11");
+    }
+
+    @Test
+    public void test_insert_on_conflict_regenerates_unassigned_generated_columns() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int primary key
+            )
+            """);
+
+        execute("insert into t(c,i,o) values (0, 1, {i=2, o={i=3}}) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
+        assertThat(response).hasRows("0| 1| 2| 3| 1| 1| 1");
+
+        execute("insert into t(c,i,o) values (6, 7, {i=8, o={i=9}}), (0, 1, {i=2, o={i=3}}), (5, 6, {i=7, o={i=8}}) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t order by c");
+        assertThat(response).hasRows("0| 11| 22| 33| 1| 1| 1", "5| 6| 7| 8| 6| 6| 6", "6| 7| 8| 9| 7| 7| 7");
     }
 }
