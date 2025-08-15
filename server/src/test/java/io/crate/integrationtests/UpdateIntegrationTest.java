@@ -1238,15 +1238,12 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("insert into t values (1, 2, {a=1, b=2}, 0)");
         execute("refresh table t");
         execute("select * from t");
-        String row = printedTable(response.rows());
         execute("update t set c=8");
         execute("refresh table t");
-        execute("select * from t");
-        // fails on master - 1| 2| {a=1, b=2}| 0 - nothing updated?
-        assertThat(printedTable(response.rows())).isEqualTo(row.replace('0', '8'));
+        execute("select a, o['a'], c from t");
+        assertThat(printedTable(response.rows())).isEqualTo("9| 9| 8\n");
 
-        execute("update t set c=3 returning *");
-        // fails on master - no row returned
-        assertThat(printedTable(response.rows())).isEqualTo(row.replace('0', '3').replace('1', '4'));
+        execute("update t set c=3 returning a, o['a'], c");
+        assertThat(printedTable(response.rows())).isEqualTo("4| 4| 3\n");
     }
 }

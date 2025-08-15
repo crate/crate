@@ -101,7 +101,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
             Child child = entry.getValue();
-            if (value.containsKey(innerName) == false) {
+            if (value.containsKey(innerName) == false ||
+                (value.get(innerName) == null && !docBuilder.isAssigned(child.reference()))) {
                 var synth = docBuilder.getSyntheticValue(child.ident());
                 if (synth != null) {
                     // directly modify the map so that containing types will see the value

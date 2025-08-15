@@ -103,7 +103,7 @@ import io.crate.types.ObjectType;
  * <li>Update cluster state with new columns (The user of the Indexer is
  * responsible for this)</li>
  * <li>Update reference information based on cluster state update</li>
- * <li>Create {@link ParsedDocument} via {@link #index(IndexItem)}</li>
+ * <li>Create {@link ParsedDocument} via {@link #index(IndexItem, boolean)}</li>
  * </ol>
  *
  * Schema update and creation of ParsedDocument is split into two steps to be
@@ -126,6 +126,7 @@ public class Indexer {
     private final Version tableVersionCreated;
     @Nullable
     private final UpdateToInsert updateToInsert;
+    private final List<Reference> assignedColumns;
 
 
     public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
@@ -417,9 +418,11 @@ public class Indexer {
                 targetColumns
             );
             this.columns = this.updateToInsert.columns();
+            this.assignedColumns = this.updateToInsert.updateColumns;
         } else {
             this.updateToInsert = null;
             this.columns = targetColumns;
+            this.assignedColumns = this.columns;
         }
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
@@ -750,7 +753,7 @@ public class Indexer {
      * state.
      */
     @SuppressWarnings("unchecked")
-    public ParsedDocument index(IndexItem item) throws IOException {
+    public ParsedDocument index(IndexItem item, boolean forInsert) throws IOException {
         assert item.insertValues().length <= valueIndexers.size()
             : "Number of values must be less than or equal the number of targetColumns/valueIndexers";
 
@@ -766,7 +769,10 @@ public class Indexer {
             translogWriter,
             synthetics::get,
             columnConstraints,
-            tableVersionCreated
+            tableVersionCreated,
+            assignedColumns,
+            forInsert
+
         );
         Object[] values = item.insertValues();
 
@@ -834,7 +840,7 @@ public class Indexer {
         var newCols = collectSchemaUpdates(converted);
         Supplier<ParsedDocument> doc = () -> {
             try {
-                return index(converted);
+                return index(converted, false);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -1231,6 +1237,15 @@ public class Indexer {
                     insertValues[i] = null;
                 } else {
                     insertValues[i] = ref.accept(eval, values).value();
+                    // Set the generated children to null such that Indexer can generate it
+                    if (ref.valueType().id() == ObjectType.ID) {
+                        for (var child : table.getChildReferences(ref)) {
+                            if (child.isGenerated() &&
+                                (!child.isDeterministic() || ((GeneratedReference) child).referencedReferences().stream().anyMatch(updateColumns::contains))) {
+                                Maps.mergeInto((Map<String, Object>) insertValues[i], child.column().leafName(), List.of(), null);
+                            }
+                        }
+                    }
                 }
             }
             for (int i = 0; i < updateColumns.size(); i++) {

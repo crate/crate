@@ -356,7 +356,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     "Mappings are not available on the replica yet, triggered update: " + newColumns);
             }
 
-            ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item);
+            ParsedDocument parsedDoc = rawIndexer != null ? rawIndexer.index() : indexer.index(item, true);
             Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
             boolean isRetry = false;
             Engine.Index index = new Engine.Index(
@@ -630,7 +630,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
             }
         }
 
-        ParsedDocument parsedDoc = rawIndexer == null ? indexer.index(item) : rawIndexer.index();
+        ParsedDocument parsedDoc = rawIndexer == null ? indexer.index(item, true) : rawIndexer.index();
         Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
         assert VersionType.INTERNAL.validateVersionForWrites(version);
         Engine.Index index = new Engine.Index(

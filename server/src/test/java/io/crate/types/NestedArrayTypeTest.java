@@ -104,7 +104,7 @@ public class NestedArrayTypeTest extends DataTypeTestCase<List<List<Object>>> {
         Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
         Object[] insertValues = new Object[] { (List.of(List.of(1, 2), List.of(3, 4))) };
         ParsedDocument doc
-            = indexer.index(new IndexItem.StaticItem("id", List.of(), insertValues, 0, 0));
+            = indexer.index(new IndexItem.StaticItem("id", List.of(), insertValues, 0, 0), true);
 
         // Leaf values are stored as individual int points + docvalues
         var ref = table.getReference(ColumnIdent.fromPath("x"));

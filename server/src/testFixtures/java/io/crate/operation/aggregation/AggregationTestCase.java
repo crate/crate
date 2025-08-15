@@ -416,7 +416,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                 row[i] = targetColumns.get(i).valueType().implicitCast(row[i]);
             }
             IndexItem.StaticItem item = new IndexItem.StaticItem(id, List.of(id), row, 1, 1);
-            ParsedDocument parsedDoc = indexer.index(item);
+            ParsedDocument parsedDoc = indexer.index(item, true);
             Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
             Engine.Index index = new Engine.Index(
                 uid,

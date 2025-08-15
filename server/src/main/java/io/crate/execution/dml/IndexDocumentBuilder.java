@@ -21,6 +21,7 @@
 
 package io.crate.execution.dml;
 
+import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -41,6 +42,7 @@ import io.crate.data.Input;
 import io.crate.expression.reference.doc.lucene.IdCollectorExpression;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.doc.SysColumns;
 
 /**
@@ -55,6 +57,8 @@ public class IndexDocumentBuilder {
     private final Version tableVersionCreated;
     private final boolean addStoredField;
     private final boolean addArrayLengthField;
+    private final List<Reference> assignedRefs;
+    private final boolean forInsert;
 
     /**
      * Builds a new IndexDocumentBuilder
@@ -63,8 +67,9 @@ public class IndexDocumentBuilder {
         TranslogWriter translogWriter,
         ValueIndexer.Synthetics synthetics,
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
-        Version tableVersionCreated
-    ) {
+        Version tableVersionCreated,
+        List<Reference> assignedRefs,
+        boolean forInsert) {
         this(
             new Document(),
             translogWriter,
@@ -72,8 +77,9 @@ public class IndexDocumentBuilder {
             constraints,
             tableVersionCreated,
             tableVersionCreated.onOrAfter(StoredRowLookup.PARTIAL_STORED_SOURCE_VERSION),
-            tableVersionCreated.onOrAfter(ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)
-        );
+            tableVersionCreated.onOrAfter(ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION),
+            assignedRefs,
+            forInsert);
     }
 
     private IndexDocumentBuilder(
@@ -83,8 +89,9 @@ public class IndexDocumentBuilder {
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
         Version tableVersionCreated,
         boolean addStoredField,
-        boolean addArrayLengthField
-    ) {
+        boolean addArrayLengthField,
+        List<Reference> assignedRefs,
+        boolean forInsert) {
         this.doc = doc;
         this.translogWriter = translogWriter;
         this.synthetics = synthetics;
@@ -92,6 +99,8 @@ public class IndexDocumentBuilder {
         this.tableVersionCreated = tableVersionCreated;
         this.addStoredField = addStoredField;
         this.addArrayLengthField = addArrayLengthField;
+        this.assignedRefs = assignedRefs;
+        this.forInsert = forInsert;
     }
 
     /**
@@ -114,6 +123,14 @@ public class IndexDocumentBuilder {
     public Object getSyntheticValue(ColumnIdent columnIdent) {
         Input<Object> input = synthetics.get(columnIdent);
         return input == null ? null : input.value();
+    }
+
+    public boolean isAssigned(Reference reference) {
+        return assignedRefs.contains(reference);
+    }
+
+    public boolean isForInsert() {
+        return forInsert;
     }
 
     /**
@@ -148,7 +165,7 @@ public class IndexDocumentBuilder {
      * ordering and duplication, so child indexers do not need to store their values separately.
      */
     public IndexDocumentBuilder noStoredField() {
-        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, false, addArrayLengthField);
+        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, false, addArrayLengthField, assignedRefs, forInsert);
     }
 
     /**
@@ -159,7 +176,7 @@ public class IndexDocumentBuilder {
      * index array lengths.
      */
     public IndexDocumentBuilder noArrayLengthField() {
-        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, addStoredField, false);
+        return new IndexDocumentBuilder(doc, translogWriter, synthetics, constraints, tableVersionCreated, addStoredField, false, assignedRefs, forInsert);
     }
 
     /**
@@ -170,7 +187,7 @@ public class IndexDocumentBuilder {
      * preserve ordering and duplication.
      */
     public IndexDocumentBuilder wrapTranslog(UnaryOperator<TranslogWriter> wrapFunction) {
-        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, tableVersionCreated, addStoredField, addArrayLengthField);
+        return new IndexDocumentBuilder(doc, wrapFunction.apply(translogWriter), synthetics, constraints, tableVersionCreated, addStoredField, addArrayLengthField, assignedRefs, forInsert);
     }
 
     /**
