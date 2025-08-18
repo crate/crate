@@ -27,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -639,39 +638,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     }
 
     /**
-     * A set of all valid action prefixes.
-     */
-    public static final Set<String> VALID_ACTION_PREFIXES = Set.of(
-            "indices:admin",
-            "indices:monitor",
-            "indices:data/write",
-            "indices:data/read",
-            "indices:internal",
-            "cluster:admin",
-            "cluster:monitor",
-            "cluster:internal",
-            "internal:");
-
-    private void validateActionName(String actionName) {
-        assert isValidActionName(actionName)
-            : "invalid action name [" + actionName + "] must start with one of: " + TransportService.VALID_ACTION_PREFIXES;
-    }
-
-    /**
-     * Returns <code>true</code> iff the action name starts with a valid prefix.
-     *
-     * @see #VALID_ACTION_PREFIXES
-     */
-    private static boolean isValidActionName(String actionName) {
-        for (String prefix : VALID_ACTION_PREFIXES) {
-            if (actionName.startsWith(prefix)) {
-                return true;
-            }
-        }
-        return false;
-    }
-
-    /**
      * Registers a new request handler
      *
      * @param action         The action the request handler is associated with
@@ -683,7 +649,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                           String executor,
                                                                           Writeable.Reader<Request> requestReader,
                                                                           TransportRequestHandler<Request> handler) {
-        validateActionName(action);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
             action, requestReader, handler, executor, false, true);
         transport.registerRequestHandler(reg);
@@ -705,7 +670,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                           boolean canTripCircuitBreaker,
                                                                           Writeable.Reader<Request> requestReader,
                                                                           TransportRequestHandler<Request> handler) {
-        validateActionName(action);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
             action, requestReader, handler, executor, forceExecution, canTripCircuitBreaker);
         transport.registerRequestHandler(reg);
