@@ -1081,19 +1081,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         }
     }
 
-    public Engine.SyncedFlushResult syncFlush(String syncId, Engine.CommitId expectedCommitId) {
-        verifyNotClosed();
-        logger.trace("trying to sync flush. sync id [{}]. expected commit id [{}]]", syncId, expectedCommitId);
-        return getEngine().syncFlush(syncId, expectedCommitId);
-    }
-
     /**
      * Executes a flush against the engine
      * @param waitIfOngoing if {@code true} will block until all concurrent flushes are complete
      * @return the commit ID
      */
-    public Engine.CommitId flush(boolean waitIfOngoing) {
-        return flush(false, waitIfOngoing);
+    public void flush(boolean waitIfOngoing) {
+        flush(false, waitIfOngoing);
     }
 
     /**
@@ -1103,8 +1097,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      *
      * @return the commit ID
      */
-    public Engine.CommitId forceFlush() {
-        return flush(true, true);
+    public void forceFlush() {
+        flush(true, true);
     }
 
     /**
@@ -1114,7 +1108,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      * @param waitIfOngoing if {@code true} then blocks until all concurrent flushes are complete
      * @return the commit ID
      */
-    private Engine.CommitId flush(boolean force, boolean waitIfOngoing) {
+    private void flush(boolean force, boolean waitIfOngoing) {
         logger.trace("flush with waitIfOngoing={}, force={}", waitIfOngoing, force);
         /*
          * We allow flushes while recovery since we allow operations to happen while recovering and we want to keep the translog under
@@ -1123,9 +1117,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
          */
         verifyNotClosed();
         final long time = System.nanoTime();
-        final Engine.CommitId commitId = getEngine().flush(force, waitIfOngoing);
+        getEngine().flush(force, waitIfOngoing);
         flushMetric.inc(System.nanoTime() - time);
-        return commitId;
     }
 
     /**
