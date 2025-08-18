@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.shuffle;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.index.engine.Engine.Operation.Origin.LOCAL_RESET;
@@ -45,7 +46,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -100,7 +100,6 @@ import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.LiveIndexWriterConfig;
-import org.apache.lucene.index.LogByteSizeMergePolicy;
 import org.apache.lucene.index.LogDocMergePolicy;
 import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.NoMergePolicy;
@@ -449,10 +448,9 @@ public class InternalEngineTests extends EngineTestCase {
             globalCheckpoint.set(rarely() || localCheckpoint.get() == SequenceNumbers.NO_OPS_PERFORMED ?
                                      UNASSIGNED_SEQ_NO : randomIntBetween(0, (int) localCheckpoint.get()));
 
-            final Engine.CommitId commitId = engine.flush(true, true);
+            engine.flush(true, true);
 
             CommitStats stats2 = engine.commitStats();
-            assertThat(stats2.getRawCommitId()).isEqualTo(commitId);
             assertThat(stats2.getGeneration()).isGreaterThan(stats1.getGeneration());
             assertThat(stats2.getId()).isNotNull();
             assertThat(stats2.getId()).isNotEqualTo(stats1.getId());
@@ -565,9 +563,9 @@ public class InternalEngineTests extends EngineTestCase {
             recoveringEngine = new InternalEngine(initialEngine.config()) {
 
                 @Override
-                protected void commitIndexWriter(IndexWriter writer, Translog translog, String syncId) throws IOException {
+                protected void commitIndexWriter(IndexWriter writer, Translog translog) throws IOException {
                     committed.set(true);
-                    super.commitIndexWriter(writer, translog, syncId);
+                    super.commitIndexWriter(writer, translog);
                 }
             };
             recoveringEngine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
@@ -969,158 +967,6 @@ public class InternalEngineTests extends EngineTestCase {
             thread.join();
         }
         checker.run();
-    }
-
-    @Test
-    public void testSyncedFlush() throws IOException {
-        try (Store store = createStore();
-             Engine engine = createEngine(defaultSettings, store, createTempDir(), new LogByteSizeMergePolicy(), null)) {
-            final String syncId = randomUnicodeOfCodepointLengthBetween(10, 20);
-            ParsedDocument doc = testParsedDocument("1", testDocumentWithTextField(), B_1);
-            engine.index(indexForDoc(doc));
-            Engine.CommitId commitID = engine.flush();
-            assertThat(commitID).isEqualTo(new Engine.CommitId(store.readLastCommittedSegmentsInfo().getId()));
-            byte[] wrongBytes = Base64.getDecoder().decode(commitID.toString());
-            wrongBytes[0] = (byte) ~wrongBytes[0];
-            Engine.CommitId wrongId = new Engine.CommitId(wrongBytes);
-            assertThat(Engine.SyncedFlushResult.COMMIT_MISMATCH).as("should fail to sync flush with wrong id (but no docs)").isEqualTo(engine.syncFlush(syncId + "1", wrongId));
-            engine.index(indexForDoc(doc));
-            assertThat(Engine.SyncedFlushResult.PENDING_OPERATIONS).as("should fail to sync flush with right id but pending doc").isEqualTo(engine.syncFlush(syncId + "2", commitID));
-            commitID = engine.flush();
-            assertThat(Engine.SyncedFlushResult.SUCCESS).as("should succeed to flush commit with right id and no pending doc").isEqualTo(engine.syncFlush(syncId, commitID));
-            assertThat(syncId).isEqualTo(store.readLastCommittedSegmentsInfo().getUserData().get(Engine.SYNC_COMMIT_ID));
-            assertThat(syncId).isEqualTo(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID));
-        }
-    }
-
-    @Test
-    public void testRenewSyncFlush() throws Exception {
-        final int iters = randomIntBetween(2, 5); // run this a couple of times to get some coverage
-        for (int i = 0; i < iters; i++) {
-            try (Store store = createStore();
-                 InternalEngine engine =
-                     createEngine(config(defaultSettings, store, createTempDir(), new LogDocMergePolicy(), null))) {
-                final String syncId = randomUnicodeOfCodepointLengthBetween(10, 20);
-                Engine.Index doc1 =
-                    indexForDoc(testParsedDocument("1", testDocumentWithTextField(), B_1));
-                engine.index(doc1);
-                assertThat(doc1.startTime()).isEqualTo(engine.getLastWriteNanos());
-                engine.flush();
-                Engine.Index doc2 =
-                    indexForDoc(testParsedDocument("2", testDocumentWithTextField(), B_1));
-                engine.index(doc2);
-                assertThat(doc2.startTime()).isEqualTo(engine.getLastWriteNanos());
-                engine.flush();
-                final boolean forceMergeFlushes = randomBoolean();
-                final ParsedDocument parsedDoc3 =
-                    testParsedDocument("3", testDocumentWithTextField(), B_1);
-                if (forceMergeFlushes) {
-                    engine.index(new Engine.Index(newUid(parsedDoc3), parsedDoc3, UNASSIGNED_SEQ_NO, 0,
-                                                  Versions.MATCH_ANY, VersionType.INTERNAL, Engine.Operation.Origin.PRIMARY,
-                                                  System.nanoTime() - engine.engineConfig.getFlushMergesAfter().nanos(),
-                                                  -1, false, UNASSIGNED_SEQ_NO, 0));
-                } else {
-                    engine.index(indexForDoc(parsedDoc3));
-                }
-                Engine.CommitId commitID = engine.flush();
-                assertThat(Engine.SyncedFlushResult.SUCCESS).as("should succeed to flush commit with right id and no pending doc").isEqualTo(engine.syncFlush(syncId, commitID));
-                assertThat(engine.segments().size()).isEqualTo(3);
-
-                engine.forceMerge(forceMergeFlushes, 1, false, UUIDs.randomBase64UUID());
-                if (forceMergeFlushes == false) {
-                    engine.refresh("make all segments visible");
-                    assertThat(engine.segments().size()).isEqualTo(4);
-                    assertThat(syncId).isEqualTo(store.readLastCommittedSegmentsInfo().getUserData().get(Engine.SYNC_COMMIT_ID));
-                    assertThat(syncId).isEqualTo(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID));
-                    assertThat(engine.tryRenewSyncCommit()).isTrue();
-                    assertThat(engine.segments().size()).isEqualTo(1);
-                } else {
-                    engine.refresh("test");
-                    assertBusy(() -> assertThat(engine.segments()).hasSize(1));
-                }
-                assertThat(syncId).isEqualTo(store.readLastCommittedSegmentsInfo().getUserData().get(Engine.SYNC_COMMIT_ID));
-                assertThat(syncId).isEqualTo(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID));
-
-                if (randomBoolean()) {
-                    Engine.Index doc4 =
-                        indexForDoc(testParsedDocument("4", testDocumentWithTextField(), B_1));
-                    engine.index(doc4);
-                    assertThat(doc4.startTime()).isEqualTo(engine.getLastWriteNanos());
-                } else {
-                    Engine.Delete delete = new Engine.Delete(
-                        doc1.id(),
-                        doc1.uid(),
-                        UNASSIGNED_SEQ_NO,
-                        primaryTerm.get(),
-                        Versions.MATCH_ANY,
-                        VersionType.INTERNAL,
-                        Engine.Operation.Origin.PRIMARY,
-                        System.nanoTime(),
-                        UNASSIGNED_SEQ_NO,
-                        0
-                    );
-                    engine.delete(delete);
-                    assertThat(delete.startTime()).isEqualTo(engine.getLastWriteNanos());
-                }
-                assertThat(engine.tryRenewSyncCommit()).isFalse();
-                // we might hit a concurrent flush from a finishing merge here - just wait if ongoing...
-                engine.flush(false, true);
-                assertThat(store.readLastCommittedSegmentsInfo().getUserData().get(Engine.SYNC_COMMIT_ID)).isNull();
-                assertThat(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID)).isNull();
-            }
-        }
-    }
-
-    @Test
-    public void testSyncedFlushSurvivesEngineRestart() throws IOException {
-        final AtomicLong globalCheckpoint = new AtomicLong(SequenceNumbers.NO_OPS_PERFORMED);
-        IOUtils.close(store, engine);
-        store = createStore();
-        engine = createEngine(store, primaryTranslogDir, globalCheckpoint::get);
-        final String syncId = randomUnicodeOfCodepointLengthBetween(10, 20);
-        ParsedDocument doc = testParsedDocument("1", testDocumentWithTextField(),
-                                                new BytesArray("{}"));
-        engine.index(indexForDoc(doc));
-        globalCheckpoint.set(0L);
-        final Engine.CommitId commitID = engine.flush();
-        assertThat(Engine.SyncedFlushResult.SUCCESS).as("should succeed to flush commit with right id and no pending doc").isEqualTo(engine.syncFlush(syncId, commitID));
-        assertThat(syncId).isEqualTo(store.readLastCommittedSegmentsInfo().getUserData().get(Engine.SYNC_COMMIT_ID));
-        assertThat(syncId).isEqualTo(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID));
-        EngineConfig config = engine.config();
-        if (randomBoolean()) {
-            engine.close();
-        } else {
-            engine.flushAndClose();
-        }
-        if (randomBoolean()) {
-            final String translogUUID = Translog.createEmptyTranslog(config.getTranslogConfig().getTranslogPath(),
-                                                                     UNASSIGNED_SEQ_NO, shardId, primaryTerm.get());
-            store.associateIndexWithNewTranslog(translogUUID);
-        }
-        engine = new InternalEngine(config);
-        engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
-        assertThat(syncId).isEqualTo(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID));
-    }
-
-    @Test
-    public void testSyncedFlushVanishesOnReplay() throws IOException {
-        final String syncId = randomUnicodeOfCodepointLengthBetween(10, 20);
-        ParsedDocument doc = testParsedDocument("1",
-                                                testDocumentWithTextField(), new BytesArray("{}"));
-        engine.index(indexForDoc(doc));
-        final Engine.CommitId commitID = engine.flush();
-        assertThat(Engine.SyncedFlushResult.SUCCESS).as("should succeed to flush commit with right id and no pending doc").isEqualTo(engine.syncFlush(syncId, commitID));
-        assertThat(syncId).isEqualTo(store.readLastCommittedSegmentsInfo().getUserData().get(Engine.SYNC_COMMIT_ID));
-        assertThat(syncId).isEqualTo(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID));
-        doc = testParsedDocument("2", testDocumentWithTextField(), new BytesArray("{}"));
-        engine.index(indexForDoc(doc));
-        EngineConfig config = engine.config();
-        engine.close();
-        engine = new InternalEngine(config);
-        engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
-        assertThat(engine.getLastCommittedSegmentInfos().getUserData().get(Engine.SYNC_COMMIT_ID))
-            .as("Sync ID must be gone since we have a document to replay")
-            .isNull();
     }
 
     @Test
@@ -2831,8 +2677,8 @@ public class InternalEngineTests extends EngineTestCase {
                                                globalCheckpointSupplier)) {
 
                          @Override
-                         protected void commitIndexWriter(IndexWriter writer, Translog translog, String syncId) throws IOException {
-                             super.commitIndexWriter(writer, translog, syncId);
+                         protected void commitIndexWriter(IndexWriter writer, Translog translog) throws IOException {
+                             super.commitIndexWriter(writer, translog);
                              if (throwErrorOnCommit.get()) {
                                  throw new RuntimeException("power's out");
                              }
@@ -4691,14 +4537,14 @@ public class InternalEngineTests extends EngineTestCase {
         final AtomicLong lastSyncedGlobalCheckpointBeforeCommit = new AtomicLong(Translog.readGlobalCheckpoint(translogPath, translogUUID));
         try (InternalEngine engine = new InternalEngine(engineConfig) {
             @Override
-            protected void commitIndexWriter(IndexWriter writer, Translog translog, String syncId) throws IOException {
+            protected void commitIndexWriter(IndexWriter writer, Translog translog) throws IOException {
                 lastSyncedGlobalCheckpointBeforeCommit.set(Translog.readGlobalCheckpoint(translogPath, translogUUID));
                 // Advance the global checkpoint during the flush to create a lag between a persisted global checkpoint in the translog
                 // (this value is visible to the deletion policy) and an in memory global checkpoint in the SequenceNumbersService.
                 if (rarely()) {
                     globalCheckpoint.set(randomLongBetween(globalCheckpoint.get(), getPersistedLocalCheckpoint()));
                 }
-                super.commitIndexWriter(writer, translog, syncId);
+                super.commitIndexWriter(writer, translog);
             }
         }) {
             engine.recoverFromTranslog(translogHandler, Long.MAX_VALUE);
