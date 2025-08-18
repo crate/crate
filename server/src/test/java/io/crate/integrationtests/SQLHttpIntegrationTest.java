@@ -61,7 +61,7 @@ public abstract class SQLHttpIntegrationTest extends IntegTestCase {
     private final boolean usesSSL;
     private final SSLContext sslContext;
 
-    private InetSocketAddress address;
+    protected InetSocketAddress address;
     protected URI uri;
     protected HttpClient httpClient;
 
