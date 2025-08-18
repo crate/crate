@@ -23,13 +23,26 @@ package io.crate.integrationtests;
 
 import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_RESPONSE_MAX_ERRORS_PER_SHARD;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.OutputStream;
+import java.net.Socket;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse.BodyHandlers;
+import java.nio.charset.StandardCharsets;
 
+import org.apache.logging.log4j.Level;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.test.MockLogAppender;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Test;
+
+import io.crate.protocols.http.MainAndStaticFileHandler;
+import io.crate.session.Sessions;
 
 public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
 
@@ -51,6 +64,57 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
               "ok" : true,
               "status" : 200,
               "name" : "node_""");
+    }
+
+    @Test
+    @TestLogging("io.crate.protocols.http.MainAndStaticFileHandler:DEBUG")
+    public void test_connection_reset_doesnt_leak_bufs_or_sessions() throws Exception {
+        Logger logger = LogManager.getLogger(MainAndStaticFileHandler.class);
+        MockLogAppender appender = new MockLogAppender();
+        appender.start();
+        try {
+            Loggers.addAppender(logger, appender);
+            appender.addExpectation(new MockLogAppender.SeenEventExpectation(
+                "connection reset is logged",
+                "io.crate.protocols.http.MainAndStaticFileHandler",
+                Level.DEBUG,
+                "Connection reset by peer"
+            ));
+            Socket socket = new Socket(address.getHostName(), address.getPort());
+
+            // Send incomplete /_sql request to ensure a session is created
+            OutputStream outputStream = socket.getOutputStream();
+            String message = "POST /_sql HTTP/1.1\r\n\r\n";
+            outputStream.write(message.getBytes(StandardCharsets.UTF_8));
+            outputStream.flush();
+
+            assertBusy(() -> {
+                int numSessions = 0;
+                for (var sessions : cluster().getInstances(Sessions.class)) {
+                    for (var _ : sessions.getActive()) {
+                        numSessions++;
+                    }
+                }
+                assertThat(numSessions).isEqualTo(1);
+            });
+
+            // linger with timeout=0 means it won't wait for pending data to be sent on close
+            // causing a connection reset on the server
+            socket.setSoLinger(true, 0);
+            // extra data so there is something pending
+            outputStream.write(("POST /_sql HTTP/1.1\r\nFOO: " + "x".repeat(8096)).getBytes(StandardCharsets.UTF_8));
+            socket.close();
+
+            assertBusy(() -> {
+                appender.assertAllExpectationsMatched();
+            });
+
+            // Also called implicitly via @After, but making it explicit to clarify intent of the test
+            ensureNoSessionsLeft();
+        } finally {
+            appender.stop();
+            Loggers.removeAppender(logger, appender);
+        }
     }
 
     @Test
