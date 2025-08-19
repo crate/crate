@@ -437,13 +437,6 @@ public abstract class Engine implements Closeable {
             this.found = found;
         }
 
-        /**
-         * use in case of the delete operation failed before getting to internal engine
-         **/
-        public DeleteResult(Exception failure, long version, long term) {
-            this(failure, version, term, SequenceNumbers.UNASSIGNED_SEQ_NO, false);
-        }
-
         public DeleteResult(Exception failure, long version, long term, long seqNo, boolean found) {
             super(failure, version, term, seqNo);
             this.found = found;
