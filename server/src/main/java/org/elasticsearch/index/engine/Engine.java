@@ -358,11 +358,13 @@ public abstract class Engine implements Closeable {
         }
 
         /** get the translog location after executing the operation */
+        @Nullable
         public Translog.Location getTranslogLocation() {
             return translogLocation;
         }
 
         /** get document failure while executing the operation {@code null} in case of no failure */
+        @Nullable
         public Exception getFailure() {
             return failure;
         }
