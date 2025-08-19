@@ -20,6 +20,8 @@
 package org.elasticsearch.gateway;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -103,9 +105,10 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             if (PeerRecoveryTargetService.Actions.FILES_INFO.equals(action)) {
                 recoveryStarted.countDown();
                 try {
-                    blockRecovery.await();
+                    blockRecovery.await(10, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    fail(e);
                 }
             }
             connection.sendRequest(requestId, action, request, options);
@@ -117,7 +120,10 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             // AllocationService only calls GatewayAllocator if there're unassigned shards
             execute("""
                 create table doc.dummy (x int)
-                with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
+                with (
+                    "number_of_replicas" = 1,
+                    "write.wait_for_active_shards" = 0
+                )
             """);
             assertBusy(() -> {
                 execute("select health from sys.health where table_name = 'test'");
@@ -383,6 +389,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             execute(
                 "select seq_no_stats['global_checkpoint'], seq_no_stats['max_seq_no'], retention_leases['leases'] from sys.shards where table_name = ?",
                 new Object[]{tableName});
+            assertThat(response.rowCount()).isGreaterThan(0);
             long globalCheckPoint = (long) response.rows()[0][0];
             long maxSeqNo = (long) response.rows()[0][1];
             assertThat(globalCheckPoint).isEqualTo(maxSeqNo);
