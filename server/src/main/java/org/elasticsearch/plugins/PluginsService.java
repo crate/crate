@@ -40,7 +40,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -96,7 +95,6 @@ public class PluginsService {
         this.configPath = configPath;
 
         List<Tuple<PluginInfo, Plugin>> pluginsLoaded = new ArrayList<>();
-        List<PluginInfo> pluginsList = new ArrayList<>();
         // we need to build a List of plugins for checking mandatory plugins
         final List<String> pluginsNames = new ArrayList<>();
         // first we load plugins that are on the classpath. this is for tests and transport clients
@@ -111,7 +109,6 @@ public class PluginsService {
                 LOGGER.trace("plugin loaded from classpath [{}]", pluginInfo);
             }
             pluginsLoaded.add(new Tuple<>(pluginInfo, plugin));
-            pluginsList.add(pluginInfo);
             pluginsNames.add(pluginInfo.getName());
         }
 
@@ -122,7 +119,6 @@ public class PluginsService {
             try {
                 Set<Bundle> plugins = getPluginBundles(pluginsDirectory);
                 for (final Bundle bundle : plugins) {
-                    pluginsList.add(bundle.plugin);
                     pluginsNames.add(bundle.plugin.getName());
                 }
                 seenBundles.addAll(plugins);
@@ -130,6 +126,10 @@ public class PluginsService {
                 throw new IllegalStateException("Unable to initialize plugins", ex);
             }
         }
+
+        // we don't log jars in lib/ we really shouldn't log modules,
+        // but for now: just be transparent so we can debug any potential issues
+        logPluginInfo(pluginsLoaded, "plugin", LOGGER);
 
         List<Tuple<PluginInfo, Plugin>> loaded = loadBundles(seenBundles);
         pluginsLoaded.addAll(loaded);
@@ -154,20 +154,17 @@ public class PluginsService {
                 throw new IllegalStateException(message);
             }
         }
-
-        // we don't log jars in lib/ we really shouldn't log modules,
-        // but for now: just be transparent so we can debug any potential issues
-        logPluginInfo(pluginsList, "plugin", LOGGER);
     }
 
-    private static void logPluginInfo(final List<PluginInfo> pluginInfos, final String type, final Logger logger) {
+    private static void logPluginInfo(List<Tuple<PluginInfo, Plugin>> pluginInfos, String type, Logger logger) {
         assert pluginInfos != null;
         if (pluginInfos.isEmpty()) {
             logger.info("no " + type + "s loaded");
         } else {
-            for (final String name : pluginInfos.stream().map(PluginInfo::getName).sorted().collect(Collectors.toList())) {
-                logger.info("loaded " + type + " [" + name + "]");
-            }
+            pluginInfos.stream()
+                .map(x -> x.v1().getName())
+                .sorted()
+                .forEach(name -> logger.info("loaded " + type + " [" + name + "]"));
         }
     }
 
@@ -254,22 +251,23 @@ public class PluginsService {
      * @throws IOException if an I/O exception occurred reading the directories
      */
     public static List<Path> findPluginDirs(final Path rootPath) throws IOException {
-        final List<Path> plugins = new ArrayList<>();
-        final Set<String> seen = new HashSet<>();
-        if (Files.exists(rootPath)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(rootPath)) {
-                for (Path plugin : stream) {
-                    if (FileSystemUtils.isHidden(plugin)) {
-                        continue;
-                    }
-                    if (FileSystemUtils.isDesktopServicesStore(plugin)) {
-                        continue;
-                    }
-                    if (seen.add(plugin.getFileName().toString()) == false) {
-                        throw new IllegalStateException("duplicate plugin: " + plugin);
-                    } else if (Files.exists(plugin.resolve(ES_PLUGIN_PROPERTIES))) {
-                        plugins.add(plugin);
-                    }
+        if (!Files.exists(rootPath)) {
+            return List.of();
+        }
+        final ArrayList<Path> plugins = new ArrayList<>();
+        final HashSet<Path> seen = new HashSet<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(rootPath)) {
+            for (Path plugin : stream) {
+                if (FileSystemUtils.isHidden(plugin)) {
+                    continue;
+                }
+                if (FileSystemUtils.isDesktopServicesStore(plugin)) {
+                    continue;
+                }
+                if (seen.add(plugin.getFileName()) == false) {
+                    throw new IllegalStateException("duplicate plugin: " + plugin);
+                } else if (Files.exists(plugin.resolve(ES_PLUGIN_PROPERTIES))) {
+                    plugins.add(plugin);
                 }
             }
         }
@@ -309,27 +307,12 @@ public class PluginsService {
         return bundle;
     }
 
-    /**
-     * Return the given bundles, sorted in dependency loading order.
-     *
-     * This sort is stable, so that if two plugins do not have any interdependency,
-     * their relative order from iteration of the provided set will not change.
-     *
-     * @throws IllegalStateException if a dependency cycle is found
-     */
-    // pkg private for tests
-    static List<Bundle> sortBundles(Set<Bundle> bundles) {
-        LinkedHashSet<Bundle> sortedBundles = new LinkedHashSet<>(bundles);
-        return new ArrayList<>(sortedBundles);
-    }
-
     private List<Tuple<PluginInfo,Plugin>> loadBundles(Set<Bundle> bundles) {
         List<Tuple<PluginInfo, Plugin>> plugins = new ArrayList<>();
         Map<String, Plugin> loaded = new HashMap<>();
         Map<String, Set<URL>> transitiveUrls = new HashMap<>();
-        List<Bundle> sortedBundles = sortBundles(bundles);
 
-        for (Bundle bundle : sortedBundles) {
+        for (Bundle bundle : bundles) {
             checkBundleJarHell(JarHell.parseClassPath(), bundle, transitiveUrls);
 
             final Plugin plugin = loadBundle(bundle, loaded);
