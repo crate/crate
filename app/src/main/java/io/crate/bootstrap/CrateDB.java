@@ -29,7 +29,7 @@ import java.util.Map;
 
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
-import org.elasticsearch.bootstrap.BootstrapProxy;
+import org.elasticsearch.bootstrap.Bootstrap;
 import org.elasticsearch.bootstrap.StartupExceptionProxy;
 import org.elasticsearch.cli.ExitCodes;
 import org.elasticsearch.cli.Terminal;
@@ -110,7 +110,7 @@ public class CrateDB extends EnvironmentAwareCommand {
         }
 
         try {
-            BootstrapProxy.init(env);
+            Bootstrap.init(env);
         } catch (BootstrapException | RuntimeException e) {
             // format exceptions to the console in a special way
             // to avoid 2MB stacktraces from guice, etc.
@@ -130,6 +130,6 @@ public class CrateDB extends EnvironmentAwareCommand {
      * update crate.bat!
      */
     static void close(String[] args) throws IOException {
-        BootstrapProxy.stop();
+        Bootstrap.stop();
     }
 }
