@@ -205,10 +205,15 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 }
             });
             // AllocationService only calls GatewayAllocator if there are unassigned shards
+            // Excluding the new node for allocation to avoid rebalance of the `doc.test` table.
             execute("""
                 create table doc.dummy (x int)
-                with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
-            """);
+                with (
+                    "number_of_replicas" = 1,
+                    "write.wait_for_active_shards" = 0,
+                    "routing.allocation.exclude._name" = ?
+                )
+            """, new Object[] { newNode });
             cluster().startDataOnlyNode(nodeWithReplicaSettings);
 
             // need to wait for events to ensure the reroute has happened since we perform it async when a new node joins.
