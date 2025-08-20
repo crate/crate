@@ -26,6 +26,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.IntStream;
@@ -48,37 +49,38 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
             .mapToObj(i -> new Object[]{i})
             .toList();
 
-        BatchSimulatingIterator<Row> batchSimulatingIterator =
-            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10),
-                2,
-                5,
-                null);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            BatchSimulatingIterator<Row> batchSimulatingIterator =
+                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10),
+                    2,
+                    5,
+                    executor);
 
-        final List<Object[]> collectedRows = new ArrayList<>();
-        BaseResultReceiver resultReceiver = new BaseResultReceiver() {
-            @Override
-            public CompletableFuture<Void> setNextRow(Row row) {
-                var f = super.setNextRow(row);
-                collectedRows.add(row.materialize());
-                return f;
+            final List<Object[]> collectedRows = new ArrayList<>();
+            BaseResultReceiver resultReceiver = new BaseResultReceiver() {
+                @Override
+                public CompletableFuture<Void> setNextRow(Row row) {
+                    var f = super.setNextRow(row);
+                    collectedRows.add(row.materialize());
+                    return f;
+                }
+            };
+            var batchConsumer = new RowConsumerToResultReceiver(resultReceiver, 0, _ -> {});
+
+            batchConsumer.accept(batchSimulatingIterator, null);
+            resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
+
+            assertThat(collectedRows).hasSize(10);
+            for (int i = 0; i < collectedRows.size(); i++) {
+                assertThat(collectedRows.get(i)).isEqualTo(expectedResult.get(i));
             }
-        };
-        RowConsumerToResultReceiver batchConsumer =
-            new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
-
-        batchConsumer.accept(batchSimulatingIterator, null);
-        resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
-
-        assertThat(collectedRows).hasSize(10);
-        for (int i = 0; i < collectedRows.size(); i++) {
-            assertThat(collectedRows.get(i)).isEqualTo(expectedResult.get(i));
         }
     }
 
     @Test
     public void testExceptionOnAllLoadedCallIsForwardedToResultReceiver() throws Exception {
         BaseResultReceiver resultReceiver = new BaseResultReceiver();
-        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, t -> {});
+        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, _ -> {});
 
         consumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
         assertThat(resultReceiver.completionFuture().isCompletedExceptionally()).isTrue();
@@ -86,37 +88,39 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
 
     @Test
     public void test_consumer_pauses_and_resume_based_on_receivers_writablility() throws Exception {
-        BatchSimulatingIterator<Row> batchSimulatingIterator =
-            new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10),
-                2,
-                5,
-                null);
+        try (var executor = Executors.newFixedThreadPool(2)) {
+            BatchSimulatingIterator<Row> batchSimulatingIterator =
+                new BatchSimulatingIterator<>(TestingBatchIterators.range(0, 10),
+                    2,
+                    5,
+                    executor);
 
-        AtomicReference<CompletableFuture<Void>> writeFutureRef = new AtomicReference<>(new CompletableFuture<>());
-        int[] rowCount = new int[1];
-        BaseResultReceiver resultReceiver = new BaseResultReceiver() {
-            @Override
-            @Nullable
-            public CompletableFuture<Void> setNextRow(Row row) {
-                rowCount[0]++;
-                return writeFutureRef.get();
-            }
-        };
-        var batchConsumer = new RowConsumerToResultReceiver(resultReceiver, 1, _ -> {});
+            AtomicReference<CompletableFuture<Void>> writeFutureRef = new AtomicReference<>(new CompletableFuture<>());
+            int[] rowCount = new int[1];
+            BaseResultReceiver resultReceiver = new BaseResultReceiver() {
+                @Override
+                @Nullable
+                public CompletableFuture<Void> setNextRow(Row row) {
+                    rowCount[0]++;
+                    return writeFutureRef.get();
+                }
+            };
+            var batchConsumer = new RowConsumerToResultReceiver(resultReceiver, 1, _ -> {});
 
-        batchConsumer.accept(batchSimulatingIterator, null);
+            batchConsumer.accept(batchSimulatingIterator, null);
 
-        assertThat(rowCount[0]).isEqualTo(1);
-        assertThat(batchConsumer.waitingForWrite()).isTrue();
-        assertThat(batchConsumer.suspended())
-            .as("Must not set suspended, as it causes further portal usage in Session to close the consumer")
-            .isFalse();
+            assertThat(rowCount[0]).isEqualTo(1);
+            assertThat(batchConsumer.waitingForWrite()).isTrue();
+            assertThat(batchConsumer.suspended())
+                .as("Must not set suspended, as it causes further portal usage in Session to close the consumer")
+                .isFalse();
 
-        writeFutureRef.get().complete(null);
-        resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
+            writeFutureRef.get().complete(null);
+            resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
 
-        assertThat(batchConsumer.waitingForWrite()).isFalse();
-        assertThat(rowCount[0]).isEqualTo(10);
+            assertThat(batchConsumer.waitingForWrite()).isFalse();
+            assertThat(rowCount[0]).isEqualTo(10);
+        }
     }
 
     @Test
@@ -132,15 +136,17 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
             assertThat(consumer.completionFuture()).isDone();
         }
         {
-            int numRows = randomIntBetween(2, 10);
-            BatchIterator<Row> numbers = TestingBatchIterators.range(0, numRows);
-            var batchIterator = new BatchSimulatingIterator<>(numbers, numRows - 1, 1, null);
-            BaseResultReceiver resultReceiver = new BaseResultReceiver();
-            var consumer = new RowConsumerToResultReceiver(resultReceiver, numRows, _ -> {});
+            try (var executor = Executors.newFixedThreadPool(2)) {
+                int numRows = randomIntBetween(2, 10);
+                BatchIterator<Row> numbers = TestingBatchIterators.range(0, numRows);
+                var batchIterator = new BatchSimulatingIterator<>(numbers, numRows - 1, 1, executor);
+                BaseResultReceiver resultReceiver = new BaseResultReceiver();
+                var consumer = new RowConsumerToResultReceiver(resultReceiver, numRows, _ -> {});
 
-            consumer.accept(batchIterator, null);
-            assertThat(consumer.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
-            assertThat(consumer.suspended()).isFalse();
+                consumer.accept(batchIterator, null);
+                assertThat(consumer.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
+                assertThat(consumer.suspended()).isFalse();
+            }
         }
     }
 }
