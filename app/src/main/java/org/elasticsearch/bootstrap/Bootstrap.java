@@ -65,18 +65,9 @@ import io.crate.common.SuppressForbidden;
 import io.crate.ffi.Natives;
 import io.crate.plugin.SrvPlugin;
 
-/**
- * <p>
- * This is a copy of ES src/main/java/org/elasticsearch/bootstrap/Bootstrap.java.
- * <p>
- * With following patches:
- * - CrateNode instead of Node is build/started in order to load the CrateCorePlugin
- * - CrateSettingsPreparer is used instead of InternalSettingsPreparer
- * - disabled security manager setup due to policy problems with plugins
- */
-public class BootstrapProxy {
+public class Bootstrap {
 
-    private static volatile BootstrapProxy INSTANCE;
+    private static volatile Bootstrap INSTANCE;
 
     private static final Collection<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(
         SrvPlugin.class,
@@ -92,7 +83,7 @@ public class BootstrapProxy {
     /**
      * creates a new instance
      */
-    BootstrapProxy() {
+    Bootstrap() {
         keepAliveThread = new Thread(() -> {
             try {
                 keepAliveLatch.await();
@@ -151,7 +142,7 @@ public class BootstrapProxy {
                 } catch (IOException ex) {
                     throw new ElasticsearchException("failed to stop node", ex);
                 } catch (InterruptedException e) {
-                    LogManager.getLogger(BootstrapProxy.class).warn("Thread got interrupted while waiting for the node to shutdown.");
+                    LogManager.getLogger(Bootstrap.class).warn("Thread got interrupted while waiting for the node to shutdown.");
                     Thread.currentThread().interrupt();
                 }
             }));
@@ -190,7 +181,7 @@ public class BootstrapProxy {
                 throw new IllegalStateException("Node didn't stop within 10 seconds. Any outstanding requests or tasks might get killed.");
             }
         } catch (InterruptedException e) {
-            LogManager.getLogger(BootstrapProxy.class).warn("Thread got interrupted while waiting for the node to shutdown.");
+            LogManager.getLogger(Bootstrap.class).warn("Thread got interrupted while waiting for the node to shutdown.");
             Thread.currentThread().interrupt();
         } finally {
             INSTANCE.keepAliveLatch.countDown();
@@ -201,7 +192,7 @@ public class BootstrapProxy {
      * This method is invoked by {@link io.crate.bootstrap.CrateDB#main(String[])} to start CrateDB.
      */
     public static void init(Environment environment) throws BootstrapException, NodeValidationException, UserException {
-        INSTANCE = new BootstrapProxy();
+        INSTANCE = new Bootstrap();
         LogConfigurator.setNodeName(Node.NODE_NAME_SETTING.get(environment.settings()));
         try {
             LogConfigurator.configure(environment);
@@ -227,7 +218,7 @@ public class BootstrapProxy {
             if (maybeConsoleAppender != null) {
                 Loggers.removeAppender(rootLogger, maybeConsoleAppender);
             }
-            Logger logger = LogManager.getLogger(BootstrapProxy.class);
+            Logger logger = LogManager.getLogger(Bootstrap.class);
             // HACK, it sucks to do this, but we will run users out of disk space otherwise
             if (e instanceof CreationException) {
                 // guice: log the shortened exc to the log file
