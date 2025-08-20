@@ -21,6 +21,7 @@ package org.elasticsearch.index.engine;
 
 import java.io.IOException;
 
+import org.elasticsearch.Assertions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.rest.RestStatus;
@@ -45,5 +46,15 @@ public class DocumentMissingException extends EngineException {
     @Override
     public HttpErrorStatus httpErrorStatus() {
         return HttpErrorStatus.DOCUMENT_NOT_FOUND;
+    }
+
+    @Override
+    public synchronized Throwable fillInStackTrace() {
+        // Similar to VersionConflictEngineException, DocumentMissingException is mostly a marker
+        // to indicate a doc was missing. Stacktrace generation is expensive and isn't really interesting for those
+        if (Assertions.ENABLED) {
+            return super.fillInStackTrace();
+        }
+        return this;
     }
 }
