@@ -34,7 +34,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -83,7 +82,7 @@ public class PluginsService {
         Setting.listSetting("plugin.mandatory", Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
 
     public List<Setting<?>> getPluginSettings() {
-        return plugins.stream().flatMap(p -> p.v2().getSettings().stream()).collect(Collectors.toList());
+        return plugins.stream().flatMap(p -> p.v2().getSettings().stream()).toList();
     }
 
     /**
@@ -125,7 +124,6 @@ public class PluginsService {
             try {
                 // TODO: remove this leniency, but tests bogusly rely on it
                 if (isAccessibleDirectory(pluginsDirectory, LOGGER)) {
-                    checkForFailedPluginRemovals(pluginsDirectory);
                     Set<Bundle> plugins = getPluginBundles(pluginsDirectory);
                     for (final Bundle bundle : plugins) {
                         pluginsList.add(bundle.plugin);
@@ -269,8 +267,7 @@ public class PluginsService {
                     if (FileSystemUtils.isHidden(plugin)) {
                         continue;
                     }
-                    if (FileSystemUtils.isDesktopServicesStore(plugin) ||
-                        plugin.getFileName().toString().startsWith(".removing-")) {
+                    if (FileSystemUtils.isDesktopServicesStore(plugin)) {
                         continue;
                     }
                     if (seen.add(plugin.getFileName().toString()) == false) {
@@ -282,27 +279,6 @@ public class PluginsService {
             }
         }
         return plugins;
-    }
-
-    static void checkForFailedPluginRemovals(final Path pluginsDirectory) throws IOException {
-        /*
-         * Check for the existence of a marker file that indicates any plugins are in a garbage state from a failed attempt to remove the
-         * plugin.
-         */
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(pluginsDirectory, ".removing-*")) {
-            final Iterator<Path> iterator = stream.iterator();
-            if (iterator.hasNext()) {
-                final Path removing = iterator.next();
-                final String fileName = removing.getFileName().toString();
-                final String name = fileName.substring(1 + fileName.indexOf("-"));
-                final String message = String.format(
-                        Locale.ROOT,
-                        "found file [%s] from a failed attempt to remove the plugin [%s]; execute [elasticsearch-plugin remove %2$s]",
-                        removing,
-                        name);
-                throw new IllegalStateException(message);
-            }
-        }
     }
 
     /** Get bundles for plugins installed in the given plugins directory. */
@@ -474,10 +450,11 @@ public class PluginsService {
                 "()");
     }
 
-    @SuppressWarnings("unchecked")
     public <T> List<T> filterPlugins(Class<T> type) {
-        return plugins.stream().filter(x -> type.isAssignableFrom(x.v2().getClass()))
-            .map(p -> ((T)p.v2())).collect(Collectors.toList());
+        return plugins.stream()
+            .filter(x -> type.isAssignableFrom(x.v2().getClass()))
+            .map(p -> type.cast(p.v2()))
+            .toList();
     }
 
     /**
