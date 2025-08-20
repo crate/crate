@@ -19,7 +19,6 @@
 
 package org.elasticsearch.plugins;
 
-import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 import static org.elasticsearch.plugins.PluginInfo.ES_PLUGIN_PROPERTIES;
 
 import java.io.IOException;
@@ -121,15 +120,12 @@ public class PluginsService {
         // now, find all the ones that are in plugins/
         if (pluginsDirectory != null) {
             try {
-                // TODO: remove this leniency, but tests bogusly rely on it
-                if (isAccessibleDirectory(pluginsDirectory, LOGGER)) {
-                    Set<Bundle> plugins = getPluginBundles(pluginsDirectory);
-                    for (final Bundle bundle : plugins) {
-                        pluginsList.add(bundle.plugin);
-                        pluginsNames.add(bundle.plugin.getName());
-                    }
-                    seenBundles.addAll(plugins);
+                Set<Bundle> plugins = getPluginBundles(pluginsDirectory);
+                for (final Bundle bundle : plugins) {
+                    pluginsList.add(bundle.plugin);
+                    pluginsNames.add(bundle.plugin.getName());
                 }
+                seenBundles.addAll(plugins);
             } catch (IOException ex) {
                 throw new IllegalStateException("Unable to initialize plugins", ex);
             }
