@@ -31,11 +31,13 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
@@ -473,7 +475,9 @@ public class Indexer {
             tableConstraints.add(new TableCheckConstraint(input, constraint));
         }
         for (var ref : table.defaultExpressionColumns()) {
-            if (columns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+            // columns will not contain unassigned defaults but for insertOnConflict, it does
+            //boolean isInsertOnConflict = updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty();
+            if (assignedColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
             ColumnIdent column = ref.column();
@@ -830,13 +834,36 @@ public class Indexer {
     }
 
     /**
-     * @param excludedValues provided for insert-on-conflict only, null for pure UPDATE
+     * @param excludedValues     provided for insert-on-conflict only, null for pure UPDATE
+     * @param conflicted
      */
     public UpdateBuild buildForUpdate(Doc storedDoc,
                                       Symbol[] updateAssignments,
-                                      @Nullable Object[] excludedValues) throws IOException {
+                                      @Nullable Object[] excludedValues,
+                                      boolean conflicted) throws IOException {
         assert this.updateToInsert != null;
-        var converted = updateToInsert.convert(storedDoc, updateAssignments, excludedValues);
+        Map<ColumnIdent, Synthetic> savedSynthetics = new HashMap<>();
+        Set<Synthetic> savedUndeterministic = new HashSet<>();
+        if (conflicted) {
+            // do not re-evaluate non deterministic default columns
+            Iterator<Synthetic> i = synthetics.values().iterator();
+            while (i.hasNext()) {
+                Synthetic s = i.next();
+                if (s.ref.defaultExpression() != null && !s.ref.defaultExpression().isDeterministic()) {
+                    i.remove();
+                    savedSynthetics.put(s.ref.column(), s);
+                }
+            }
+            i = undeterministic.iterator();
+            while (i.hasNext()) {
+                Synthetic s = i.next();
+                if (s.ref.defaultExpression() != null && !s.ref.defaultExpression().isDeterministic()) {
+                    i.remove();
+                    savedUndeterministic.add(s);
+                }
+            }
+        }
+        var converted = updateToInsert.convert(storedDoc, updateAssignments, excludedValues, conflicted);
         var newCols = collectSchemaUpdates(converted);
         Supplier<ParsedDocument> doc = () -> {
             try {
@@ -845,7 +872,19 @@ public class Indexer {
                 throw new RuntimeException(e);
             }
         };
-        return new UpdateBuild(doc, () -> addGeneratedValues(converted), newCols, converted);
+        return new UpdateBuild(
+            doc,
+            () -> {
+                try {
+                    return addGeneratedValues(converted);
+                } finally {
+                    // recover the state such that non-conflicting rows can be consumed by the insert-on-conflict query
+                    undeterministic.addAll(savedUndeterministic);
+                    synthetics.putAll(savedSynthetics);
+                }
+            },
+            newCols,
+            converted);
     }
 
     /**
@@ -1165,6 +1204,7 @@ public class Indexer {
             this.columns = new ArrayList<>();
             List<String> updateColumnList = Arrays.asList(updateColumns);
             boolean errorOnUnknownObjectKey = txnCtx.sessionSettings().errorOnUnknownObjectKey();
+            boolean isInsertOnConflict = insertColumns != null && !insertColumns.isEmpty() && updateColumns.length > 0;
 
             if (insertColumns != null) {
                 this.columns.addAll(insertColumns);
@@ -1184,6 +1224,9 @@ public class Indexer {
                 // We only include them here if they are provided in the `updateColumns` to validate
                 // that users provided the right value (otherwise they'd get ignored and we'd generate them later)
                 if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
+                    continue;
+                }
+                if (isInsertOnConflict && ref.defaultExpression() != null) {
                     continue;
                 }
                 if (!this.columns.contains(ref)) {
@@ -1218,7 +1261,7 @@ public class Indexer {
         }
 
         @SuppressWarnings("unchecked")
-        public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
+        public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues, boolean conflicted) {
             Values values = new Values(doc, excludedValues);
             Object[] insertValues = new Object[columns.size()];
             Iterator<Reference> it = columns.iterator();
@@ -1233,7 +1276,8 @@ public class Indexer {
                     insertValues[i] = value;
                 } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
                     insertValues[i] = null;
-                } else if (ref.defaultExpression() != null && !ref.defaultExpression().isDeterministic()) {
+                } else if (!conflicted && ref.defaultExpression() != null) {
+                    // if insertOnConflict conflicted, read the default value
                     insertValues[i] = null;
                 } else {
                     insertValues[i] = ref.accept(eval, values).value();

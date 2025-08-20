@@ -404,7 +404,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
         Object[] insertValues = item.insertValues();
         boolean isInsert = insertValues != null;
         return isInsert ? indexItemForInsert(indexer, request, item, indexShard, tableInfo, partitionValues, rawIndexer) :
-            indexItemForUpdate(indexer, request, item, indexShard, tableInfo, partitionValues);
+            indexItemForUpdate(indexer, request, item, indexShard, tableInfo, partitionValues, false);
     }
 
     @Nullable
@@ -438,8 +438,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     );
                 } else {
                     return indexItemForUpdate(
-                        indexer, request, item, indexShard, tableInfo, partitionValues
-                    );
+                        indexer, request, item, indexShard, tableInfo, partitionValues, true);
                 }
 
             } catch (VersionConflictEngineException e) {
@@ -483,7 +482,8 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                                ShardUpsertRequest.Item item,
                                                IndexShard indexShard,
                                                DocTableInfo tableInfo,
-                                               List<String> partitionValues) throws Exception {
+                                               List<String> partitionValues,
+                                               boolean conflicted) throws Exception {
         VersionConflictEngineException lastException = null;
         assert item.updateAssignments() != null && item.updateAssignments().length > 0;
         final long seqNo = item.seqNo();
@@ -507,7 +507,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                         return item;
                     }
                 );
-                var build = indexer.buildForUpdate(docHolder[0], item.updateAssignments(), excluded);
+                var build = indexer.buildForUpdate(docHolder[0], item.updateAssignments(), excluded, conflicted);
                 final long startTime = System.nanoTime();
                 List<Reference> newColumns = build.newColumns();
                 if (newColumns.isEmpty() == false) {
