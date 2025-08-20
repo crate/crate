@@ -61,13 +61,12 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 
 import io.crate.bootstrap.BootstrapException;
-import io.crate.common.SuppressForbidden;
 import io.crate.ffi.Natives;
 import io.crate.plugin.SrvPlugin;
 
 public class Bootstrap {
 
-    private static volatile Bootstrap INSTANCE;
+    private static Bootstrap INSTANCE;
 
     private static final Collection<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(
         SrvPlugin.class,
@@ -76,14 +75,14 @@ public class Bootstrap {
         Ec2DiscoveryPlugin.class
     );
 
-    private volatile Node node;
+    private final Node node;
     private final CountDownLatch keepAliveLatch = new CountDownLatch(1);
     private final Thread keepAliveThread;
 
     /**
      * creates a new instance
      */
-    Bootstrap() {
+    Bootstrap(boolean addShutdownHook, Environment environment) throws BootstrapException {
         keepAliveThread = new Thread(() -> {
             try {
                 keepAliveLatch.await();
@@ -94,6 +93,15 @@ public class Bootstrap {
         keepAliveThread.setDaemon(false);
         // keep this thread alive (non daemon thread) until we shutdown
         Runtime.getRuntime().addShutdownHook(new Thread(keepAliveLatch::countDown));
+        setup(addShutdownHook, environment);
+        node = new Node(environment, DEFAULT_PLUGINS) {
+
+            @Override
+            protected void validateNodeBeforeAcceptingRequests(BoundTransportAddress boundTransportAddress,
+                                                               List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
+                BootstrapChecks.check(environment.settings(), boundTransportAddress, bootstrapChecks);
+            }
+        };
     }
 
     /**
@@ -157,16 +165,6 @@ public class Bootstrap {
         }
 
         IfConfig.logIfNecessary();
-
-        node = new Node(environment, DEFAULT_PLUGINS) {
-
-            @Override
-            protected void validateNodeBeforeAcceptingRequests(BoundTransportAddress boundTransportAddress,
-                                                               List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
-                BootstrapChecks.check(settings, boundTransportAddress, bootstrapChecks);
-            }
-        };
-
     }
 
     private void start() throws NodeValidationException {
@@ -177,7 +175,7 @@ public class Bootstrap {
     public static void stop() throws IOException {
         try {
             IOUtils.close(INSTANCE.node);
-            if (INSTANCE.node != null && INSTANCE.node.awaitClose(10, TimeUnit.SECONDS) == false) {
+            if (INSTANCE.node.awaitClose(10, TimeUnit.SECONDS) == false) {
                 throw new IllegalStateException("Node didn't stop within 10 seconds. Any outstanding requests or tasks might get killed.");
             }
         } catch (InterruptedException e) {
@@ -192,7 +190,6 @@ public class Bootstrap {
      * This method is invoked by {@link io.crate.bootstrap.CrateDB#main(String[])} to start CrateDB.
      */
     public static void init(Environment environment) throws BootstrapException, NodeValidationException, UserException {
-        INSTANCE = new Bootstrap();
         LogConfigurator.setNodeName(Node.NODE_NAME_SETTING.get(environment.settings()));
         try {
             LogConfigurator.configure(environment);
@@ -208,8 +205,7 @@ public class Bootstrap {
             // setDefaultUncaughtExceptionHandler
             Thread.setDefaultUncaughtExceptionHandler(new ElasticsearchUncaughtExceptionHandler());
 
-            INSTANCE.setup(true, environment);
-
+            INSTANCE = new Bootstrap(true, environment);
             INSTANCE.start();
         } catch (NodeValidationException | RuntimeException e) {
             // disable console logging, so user does not see the exception twice (jvm will show it already)
@@ -241,21 +237,6 @@ public class Bootstrap {
 
             throw e;
         }
-    }
-
-    @SuppressForbidden(reason = "System#out")
-    private static void closeSystOut() {
-        System.out.close();
-    }
-
-    @SuppressForbidden(reason = "System#err")
-    private static void closeSysError() {
-        System.err.close();
-    }
-
-    @SuppressForbidden(reason = "Allowed to exit explicitly in bootstrap phase")
-    private static void exit(int status) {
-        System.exit(status);
     }
 
     private static void checkLucene() {
