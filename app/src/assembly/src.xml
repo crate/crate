@@ -104,6 +104,10 @@
       <source>../plugins/repository-gcs/src/main/resources/plugin-descriptor.properties</source>
       <outputDirectory>plugins/repository-gcs</outputDirectory>
     </file>
+    <file>
+      <source>../plugins/dns-discovery/src/main/resources/plugin-descriptor.properties</source>
+      <outputDirectory>plugins/dns-discovery</outputDirectory>
+    </file>
   </files>
   <dependencySets>
     <dependencySet>
@@ -130,6 +134,7 @@
         <exclude>io.crate:es-repository-azure</exclude>
         <exclude>com.microsoft.azure:*</exclude>
         <exclude>io.crate:repository-gcs</exclude>
+        <exclude>io.crate:dns-discovery</exclude>
       </excludes>
     </dependencySet>
   </dependencySets>
@@ -242,6 +247,20 @@
         <includeDependencies>true</includeDependencies>
         <unpack>false</unpack>
         <outputDirectory>plugins/repository-gcs</outputDirectory>
+      </binaries>
+    </moduleSet>
+    <moduleSet>
+      <useAllReactorProjects>true</useAllReactorProjects>
+      <includes>
+        <include>io.crate:dns-discovery</include>
+      </includes>
+      <binaries>
+        <includes>
+          <include>io.crate:dns-discovery</include>
+        </includes>
+        <includeDependencies>true</includeDependencies>
+        <unpack>false</unpack>
+        <outputDirectory>plugins/dns-discovery</outputDirectory>
       </binaries>
     </moduleSet>
     <moduleSet>

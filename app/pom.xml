@@ -119,12 +119,14 @@
       <artifactId>es-discovery-ec2</artifactId>
       <version>${project.version}</version>
     </dependency>
+
     <dependency>
       <groupId>io.crate</groupId>
       <artifactId>dns-discovery</artifactId>
       <version>${project.version}</version>
+      <scope>runtime</scope>
+      <optional>true</optional>
     </dependency>
-
     <dependency>
       <groupId>io.crate</groupId>
       <artifactId>crate-copy-s3</artifactId>
