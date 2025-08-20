@@ -62,14 +62,12 @@ import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 
 import io.crate.bootstrap.BootstrapException;
 import io.crate.ffi.Natives;
-import io.crate.plugin.SrvPlugin;
 
 public class Bootstrap {
 
     private static Bootstrap INSTANCE;
 
     private static final Collection<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(
-        SrvPlugin.class,
         URLRepositoryPlugin.class,
         S3RepositoryPlugin.class,
         Ec2DiscoveryPlugin.class
