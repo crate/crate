@@ -106,21 +106,24 @@ public class TransportShardDeleteAction extends TransportShardAction<
                     item.seqNo(),
                     item.primaryTerm()
                 );
-                translogLocation = deleteResult.getTranslogLocation();
                 Exception failure = deleteResult.getFailure();
                 if (debugEnabled) {
                     logResult("primary", request.shardId(), item.id(), deleteResult);
                 }
                 if (failure == null) {
+                    Translog.Location newTranslogLocation = deleteResult.getTranslogLocation();
+                    if (newTranslogLocation != null) {
+                        translogLocation = newTranslogLocation;
+                    }
+                    Item resultItem = new Item(
+                        item.id(),
+                        deleteResult.getSeqNo(),
+                        deleteResult.getTerm(),
+                        deleteResult.getVersion()
+                    );
+                    replicaRequest.add(location, resultItem);
                     if (deleteResult.isFound()) {
                         shardResponse.add(location);
-                        Item resultItem = new Item(
-                            item.id(),
-                            deleteResult.getSeqNo(),
-                            deleteResult.getTerm(),
-                            deleteResult.getVersion()
-                        );
-                        replicaRequest.add(location, resultItem);
                     } else {
                         var ex = new DocumentMissingException(indexShard.shardId(), item.id());
                         shardResponse.add(location, item.id(), ex, false);

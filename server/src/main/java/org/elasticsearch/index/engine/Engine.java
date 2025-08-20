@@ -363,11 +363,13 @@ public abstract class Engine implements Closeable {
         }
 
         /** get the translog location after executing the operation */
+        @Nullable
         public Translog.Location getTranslogLocation() {
             return translogLocation;
         }
 
         /** get document failure while executing the operation {@code null} in case of no failure */
+        @Nullable
         public Exception getFailure() {
             return failure;
         }
@@ -431,13 +433,6 @@ public abstract class Engine implements Closeable {
         public DeleteResult(long version, long term, long seqNo, boolean found) {
             super(version, term, seqNo);
             this.found = found;
-        }
-
-        /**
-         * use in case of the delete operation failed before getting to internal engine
-         **/
-        public DeleteResult(Exception failure, long version, long term) {
-            this(failure, version, term, SequenceNumbers.UNASSIGNED_SEQ_NO, false);
         }
 
         public DeleteResult(Exception failure, long version, long term, long seqNo, boolean found) {

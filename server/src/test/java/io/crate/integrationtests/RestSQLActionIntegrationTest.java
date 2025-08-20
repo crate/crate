@@ -32,6 +32,8 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
@@ -39,8 +41,10 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.test.MockLogAppender;
 import org.elasticsearch.test.junit.annotations.TestLogging;
+import org.jetbrains.annotations.Nullable;
 import org.junit.Test;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.session.Sessions;
 
@@ -80,37 +84,59 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
                 Level.DEBUG,
                 "Connection reset by peer"
             ));
-            Socket socket = new Socket(address.getHostName(), address.getPort());
 
-            // Send incomplete /_sql request to ensure a session is created
-            OutputStream outputStream = socket.getOutputStream();
-            String message = "POST /_sql HTTP/1.1\r\n\r\n";
-            outputStream.write(message.getBytes(StandardCharsets.UTF_8));
-            outputStream.flush();
+            // This tries to cause a connection reset via soLinger with timeout=0, which means that it won't wait for
+            // pending data to be sent on socket.close()
+            //
+            // But due to timing the socket.close() can also exit cleanly -> do some retries
+            // to have at least one connection reset covered
+            ArrayList<AssertionError> errors = new ArrayList<>();
+            for (int i = 0; i < 10; i++) {
+                Socket socket = new Socket(address.getHostName(), address.getPort());
+                // linger with timeout=0 means it won't wait for pending data to be sent on close
+                // causing a connection reset on the server
+                socket.setSoLinger(true, 0);
 
-            assertBusy(() -> {
-                int numSessions = 0;
-                for (var sessions : cluster().getInstances(Sessions.class)) {
-                    for (var _ : sessions.getActive()) {
-                        numSessions++;
+                // Send incomplete /_sql request to ensure a session is created
+                OutputStream outputStream = socket.getOutputStream();
+                String message = "POST /_sql HTTP/1.1\r\n\r\n";
+                outputStream.write(message.getBytes(StandardCharsets.UTF_8));
+                outputStream.flush();
+
+                assertBusy(() -> {
+                    int numSessions = 0;
+                    for (var sessions : cluster().getInstances(Sessions.class)) {
+                        for (var _ : sessions.getActive()) {
+                            numSessions++;
+                        }
                     }
+                    assertThat(numSessions).isEqualTo(1);
+                });
+
+                // extra data so there is something pending
+                outputStream.write(("POST /_sql HTTP/1.1\r\nFOO: " + "x".repeat(8096)).getBytes(StandardCharsets.UTF_8));
+                socket.close();
+
+                try {
+                    assertBusy(() -> {
+                        appender.assertAllExpectationsMatched();
+                    }, 1, TimeUnit.SECONDS);
+
+                    return;
+                } catch (AssertionError ex) {
+                    errors.add(ex);
+                    continue;
+                } finally {
+                    // socket.close() must always remove the session, no matter if connection reset happened or not
+                    ensureNoSessionsLeft();
                 }
-                assertThat(numSessions).isEqualTo(1);
-            });
+            }
 
-            // linger with timeout=0 means it won't wait for pending data to be sent on close
-            // causing a connection reset on the server
-            socket.setSoLinger(true, 0);
-            // extra data so there is something pending
-            outputStream.write(("POST /_sql HTTP/1.1\r\nFOO: " + "x".repeat(8096)).getBytes(StandardCharsets.UTF_8));
-            socket.close();
-
-            assertBusy(() -> {
-                appender.assertAllExpectationsMatched();
-            });
-
-            // Also called implicitly via @After, but making it explicit to clarify intent of the test
-            ensureNoSessionsLeft();
+            @Nullable
+            AssertionError ex = Exceptions.merge(errors);
+            if (ex != null) {
+                throw ex;
+            }
         } finally {
             appender.stop();
             Loggers.removeAppender(logger, appender);
@@ -235,6 +261,9 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
                 "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `bigint`. Cannot add same column with type `text`]\"}}",
             "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `text`. Cannot add same column with type `bigint`]\"}}," +
                 "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `text`. Cannot add same column with type `bigint`]\"}}," +
+                "{\"rowcount\":1}",
+            "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Column `val['a']` already exists with type `text`. Cannot add same column with type `bigint`]\"}}," +
+                "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Cannot cast object element `a` with value `22` to type `text`]\"}}," +
                 "{\"rowcount\":1}",
             "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Cannot cast object element `a` with value `2` to type `text`]\"}}," +
                 "{\"rowcount\":-2,\"error\":{\"code\":4000,\"message\":\"SQLParseException[Cannot cast object element `a` with value `22` to type `text`]\"}}," +

@@ -51,7 +51,6 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -2330,19 +2329,15 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final SeqNoStats stats = getEngine().getSeqNoStats(replicationTracker.getGlobalCheckpoint());
         final boolean asyncDurability = indexSettings().getTranslogDurability() == Translog.Durability.ASYNC;
         if (stats.getMaxSeqNo() == stats.getGlobalCheckpoint() || asyncDurability) {
-            final ObjectLongMap<String> globalCheckpoints = getInSyncGlobalCheckpoints();
-            final long globalCheckpoint = replicationTracker.getGlobalCheckpoint();
             // async durability means that the local checkpoint might lag (as it is only advanced on fsync)
             // periodically ask for the newest local checkpoint by syncing the global checkpoint, so that ultimately the global
             // checkpoint can be synced. Also take into account that a shard might be pending sync, which means that it isn't
             // in the in-sync set just yet but might be blocked on waiting for its persisted local checkpoint to catch up to
             // the global checkpoint.
-            final boolean syncNeeded =
+            boolean globalNeedsSync = replicationTracker.globalNeedsSync();
+            boolean syncNeeded =
                 (asyncDurability && (stats.getGlobalCheckpoint() < stats.getMaxSeqNo() || replicationTracker.pendingInSync()))
-                    // check if the persisted global checkpoint
-                    || StreamSupport
-                            .stream(globalCheckpoints.values().spliterator(), false)
-                            .anyMatch(v -> v.value < globalCheckpoint);
+                    || globalNeedsSync;
             // only sync if index is not closed and there is a shard lagging the primary
             if (syncNeeded && indexSettings.getIndexMetadata().getState() == IndexMetadata.State.OPEN) {
                 logger.trace("syncing global checkpoint for [{}]", reason);
