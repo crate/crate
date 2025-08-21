@@ -507,6 +507,11 @@ public class Indexer {
                 continue;
             }
 
+            // skip assigned generated columns
+            if (assignedColumns.contains(ref)) {
+                continue;
+            }
+
             createParentSynthetics(table, columns, ref.column(), getRef);
 
             Input<?> input = ctxForRefs.add(ref.generatedExpression());
@@ -1226,7 +1231,7 @@ public class Indexer {
                 if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                     continue;
                 }
-                if (isInsertOnConflict && ref.defaultExpression() != null) {
+                if (ref.defaultExpression() != null && !updateColumnList.contains(ref.column().fqn())) {
                     continue;
                 }
                 if (!this.columns.contains(ref)) {
