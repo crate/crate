@@ -476,8 +476,12 @@ public class Indexer {
         }
         for (var ref : table.defaultExpressionColumns()) {
             // columns will not contain unassigned defaults but for insertOnConflict, it does
-            //boolean isInsertOnConflict = updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty();
-            if (assignedColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+            boolean isInsertOnConflict = updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty();
+            boolean isUpdate = updateColumns != null && updateColumns.length > 0 && targetColumns.isEmpty();
+            if (isUpdate || assignedColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+                continue;
+            }
+            if (isInsertOnConflict && (assignedColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION)) {
                 continue;
             }
             ColumnIdent column = ref.column();
@@ -1215,7 +1219,7 @@ public class Indexer {
                 this.columns.addAll(insertColumns);
             }
             for (var ref : table.defaultExpressionColumns()) {
-                if (!ref.defaultExpression().isDeterministic() && !this.columns.contains(ref)) {
+                if (ref.column().isRoot() && !ref.defaultExpression().isDeterministic() && !this.columns.contains(ref)) {
                     this.columns.add(ref);
                 }
             }
@@ -1231,7 +1235,8 @@ public class Indexer {
                 if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                     continue;
                 }
-                if (ref.defaultExpression() != null && !updateColumnList.contains(ref.column().fqn())) {
+                // for test_insert_on_conflict_with_all_default_and_generated_variants
+                if (isInsertOnConflict && ref.defaultExpression() != null && !updateColumnList.contains(ref.column().fqn())) {
                     continue;
                 }
                 if (!this.columns.contains(ref)) {
@@ -1280,9 +1285,6 @@ public class Indexer {
                         : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                     insertValues[i] = value;
                 } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
-                    insertValues[i] = null;
-                } else if (!conflicted && ref.defaultExpression() != null) {
-                    // if insertOnConflict conflicted, read the default value
                     insertValues[i] = null;
                 } else {
                     insertValues[i] = ref.accept(eval, values).value();
