@@ -1281,19 +1281,20 @@ public class Indexer {
                 if (updateIdx >= 0) {
                     Symbol symbol = updateAssignments[updateIdx];
                     Object value = symbol.accept(eval, values).value();
-                    assert ref.column().isRoot()
-                        : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
+//                    assert ref.column().isRoot()
+//                        : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                     insertValues[i] = value;
                 } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
                     insertValues[i] = null;
                 } else {
                     insertValues[i] = ref.accept(eval, values).value();
-                    // Set the generated children to null such that Indexer can generate it
+                    // Remove the generated children such that Indexer can generate it
                     if (ref.valueType().id() == ObjectType.ID) {
-                        for (var child : table.getChildReferences(ref)) {
+                        for (var child : table.getLeafReferences(ref)) {
                             if (child.isGenerated() &&
                                 (!child.isDeterministic() || ((GeneratedReference) child).referencedReferences().stream().anyMatch(updateColumns::contains))) {
-                                Maps.mergeInto((Map<String, Object>) insertValues[i], child.column().leafName(), List.of(), null);
+                                //Maps.mergeInto((Map<String, Object>) insertValues[i], child.column().shiftRight().name(), child.column().shiftRight().path(), null);
+                                Maps.removeByPath((Map<String, Object>) insertValues[i], Arrays.asList(child.column().shiftRight().fqn().split("\\.")));
                             }
                         }
                     }

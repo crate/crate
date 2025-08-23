@@ -31,7 +31,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.stream.StreamSupport;
 
 import org.apache.lucene.document.StoredField;
 import org.elasticsearch.Version;
@@ -102,14 +101,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
             Child child = entry.getValue();
-            if (value.containsKey(innerName) == false ||
-                (value.get(innerName) == null &&
-                    // to make sure the child is not assigned, all the parent object must also not be assigned
-                    (!docBuilder.isAssigned(child.reference()) &&
-                        StreamSupport.stream(child.reference().column().parents().spliterator(), false)
-                            .noneMatch(parent -> docBuilder.isAssigned(getRef.apply(parent))))
-                )
-            ) {
+            if (value.containsKey(innerName) == false) {
                 var synth = docBuilder.getSyntheticValue(child.ident());
                 if (synth != null) {
                     // directly modify the map so that containing types will see the value
