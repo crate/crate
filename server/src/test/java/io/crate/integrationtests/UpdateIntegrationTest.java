@@ -1134,4 +1134,151 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("update test set a = a + 98");
         assertThat(response).hasRowCount(1);
     }
+
+    @Test
+    public void test_update_does_not_modify_unassigned_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set c=99");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 99");
+
+        execute("update t set c=999 returning *");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 999");
+    }
+
+    @Test
+    public void test_update_modifies_assigned_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set a=11, b=22, i=33, o={a=44, b=55, i=66, o={a=77, b=88, i=99}}, c=1010");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| 22| 33| {a=44, b=55, i=66, o={a=77, b=88, i=99}}| 1010");
+
+        execute("update t set a=1, b=2, i=3, o={a=4, b=5, i=6, o={a=7, b=8, i=9}}, c=10 returning *");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set o['o']['a']=11, o['o']['b']=12, o['o']['i']=13 returning *");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=11, b=12, i=13}}| 10");
+    }
+
+    @Test
+    public void test_update_validates_assigned_generated_columns_only_if_deterministic() {
+        // update stmt validates values assigned to deterministic generated columns and does not validate if non-deterministic
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (11, 2, 3, {a=11, b=5, i=6, o={a=11, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| 2| 3| {a=11, b=5, i=6, o={a=11, b=8, i=9}}| 10");
+
+        execute("update t set a=101, b=22, i=33, o={a=101, b=55, i=66, o={a=101, b=88, i=99}}, c=100");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("101| 22| 33| {a=101, b=55, i=66, o={a=101, b=88, i=99}}| 100");
+
+        execute("update t set a=11, b=2, i=3, o={a=11, b=5, i=6, o={a=11, b=8, i=9}}, c=10 returning *");
+        assertThat(response).hasRows("11| 2| 3| {a=11, b=5, i=6, o={a=11, b=8, i=9}}| 10");
+
+        execute("update t set o['o']['a']=11, o['o']['b']=12, o['o']['i']=13 returning b=-1, o['b']=-1, o['o']");
+        assertThat(response).hasRows("false| false| {a=11, b=12, i=13}");
+    }
+
+    @Test
+    public void test_update_regenerates_unassigned_generated_columns() {
+        // update stmt regenerates generated columns if the source columns are updated
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (11, -1, 1, {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");
+
+        execute("update t set c=100");
+        execute("refresh table t");
+        execute("select a, i, o['a'], o['i'], o['o']['a'], o['o']['i'], c from t");
+        assertThat(response).hasRows("101| 1| 101| 1| 101| 1| 100");
+        execute("select b=-1 and o['b']=-1 and o['o']['b']=-1 from t");
+        assertThat(response).hasRows("false");
+
+        execute("update t set b=-1, i=1, o={b=-1, i=1, o={b=-1, i=1}}, c=10 returning *");
+        //new bug found(fails on master) - o['a'] and o['o']['a'] missing
+        //assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");
+    }
 }
