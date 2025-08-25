@@ -478,10 +478,10 @@ public class Indexer {
             // columns will not contain unassigned defaults but for insertOnConflict, it does
             boolean isInsertOnConflict = updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty();
             boolean isUpdate = updateColumns != null && updateColumns.length > 0 && targetColumns.isEmpty();
-            if (isUpdate || assignedColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+            if (assignedColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            if (isInsertOnConflict && (assignedColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION)) {
+            if (isUpdate || isInsertOnConflict && targetColumns.contains(ref)) {
                 continue;
             }
             ColumnIdent column = ref.column();
@@ -1281,8 +1281,6 @@ public class Indexer {
                 if (updateIdx >= 0) {
                     Symbol symbol = updateAssignments[updateIdx];
                     Object value = symbol.accept(eval, values).value();
-//                    assert ref.column().isRoot()
-//                        : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                     insertValues[i] = value;
                 } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
                     insertValues[i] = null;
