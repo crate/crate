@@ -23,15 +23,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
 import java.util.Properties;
-import java.util.function.Function;
-import java.util.stream.Collectors;
-
-import org.elasticsearch.common.Strings;
 
 /**
  * An in-memory representation of the plugin descriptor.
@@ -50,12 +42,8 @@ public class PluginInfo {
      * @param name                  the name of the plugin
      * @param description           a description of the plugin
      * @param classname             the entry point to the plugin
-     * @param extendedPlugins       other plugins this plugin extends through SPI
      */
-    public PluginInfo(String name,
-                      String description,
-                      String classname,
-                      List<String> extendedPlugins) {
+    public PluginInfo(String name, String description, String classname) {
         this.name = name;
         this.description = description;
         this.classname = classname;
@@ -70,50 +58,31 @@ public class PluginInfo {
      */
     public static PluginInfo readFromProperties(final Path path) throws IOException {
         final Path descriptor = path.resolve(ES_PLUGIN_PROPERTIES);
-
-        final Map<String, String> propsMap;
-        {
-            final Properties props = new Properties();
-            try (InputStream stream = Files.newInputStream(descriptor)) {
-                props.load(stream);
-            }
-            propsMap = props.stringPropertyNames().stream().collect(Collectors.toMap(Function.identity(), props::getProperty));
+        final Properties props = new Properties();
+        try (InputStream stream = Files.newInputStream(descriptor)) {
+            props.load(stream);
         }
 
-        final String name = propsMap.remove("name");
+        final String name = (String) props.remove("name");
         if (name == null || name.isEmpty()) {
             throw new IllegalArgumentException(
                     "property [name] is missing in [" + descriptor + "]");
         }
-        final String description = propsMap.remove("description");
+        final String description = (String) props.remove("description");
         if (description == null) {
             throw new IllegalArgumentException(
                     "property [description] is missing for plugin [" + name + "]");
         }
-        final String classname = propsMap.remove("classname");
+        final String classname = (String) props.remove("classname");
         if (classname == null) {
             throw new IllegalArgumentException(
                     "property [classname] is missing for plugin [" + name + "]");
         }
 
-        final String extendedString = propsMap.remove("extended.plugins");
-        final List<String> extendedPlugins;
-        if (extendedString == null) {
-            extendedPlugins = Collections.emptyList();
-        } else {
-            extendedPlugins = Arrays.asList(Strings.delimitedListToStringArray(extendedString, ","));
+        if (props.isEmpty() == false) {
+            throw new IllegalArgumentException("Unknown properties in plugin descriptor: " + props.keySet());
         }
-
-        if (propsMap.isEmpty() == false) {
-            throw new IllegalArgumentException("Unknown properties in plugin descriptor: " + propsMap.keySet());
-        }
-
-        return new PluginInfo(
-            name,
-            description,
-            classname,
-            extendedPlugins
-        );
+        return new PluginInfo(name, description, classname);
     }
 
     /**

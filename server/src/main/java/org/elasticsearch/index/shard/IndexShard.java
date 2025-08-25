@@ -916,7 +916,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public Engine.DeleteResult applyDeleteOperationOnPrimary(long version,
                                                              String id,
-                                                             VersionType versionType,
                                                              long ifSeqNo,
                                                              long ifPrimaryTerm) throws IOException {
         return applyDeleteOperation(
@@ -925,7 +924,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             getOperationPrimaryTerm(),
             version,
             id,
-            versionType,
+            VersionType.INTERNAL,
             ifSeqNo,
             ifPrimaryTerm,
             Engine.Operation.Origin.PRIMARY
@@ -962,7 +961,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 : "op term [ " + opPrimaryTerm + " ] > shard term [" + getOperationPrimaryTerm() + "]";
         ensureWriteAllowed(origin);
         final Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(id));
-        final Engine.Delete delete = prepareDelete(
+        long startTime = System.nanoTime();
+        Engine.Delete delete = new Engine.Delete(
             id,
             uid,
             seqNo,
@@ -970,44 +970,17 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             version,
             versionType,
             origin,
-            ifSeqNo,
-            ifPrimaryTerm
-        );
-        return delete(engine, delete);
-    }
-
-    private Engine.Delete prepareDelete(String id,
-                                        Term uid,
-                                        long seqNo,
-                                        long primaryTerm,
-                                        long version,
-                                        VersionType versionType,
-                                        Engine.Operation.Origin origin,
-                                        long ifSeqNo,
-                                        long ifPrimaryTerm) {
-        long startTime = System.nanoTime();
-        return new Engine.Delete(
-            id,
-            uid,
-            seqNo,
-            primaryTerm,
-            version,
-            versionType,
-            origin,
             startTime,
             ifSeqNo,
             ifPrimaryTerm
         );
-    }
-
-    private Engine.DeleteResult delete(Engine engine, Engine.Delete delete) throws IOException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("delete [{}] (seq no [{}])", delete.uid().text(), delete.seqNo());
+        }
         active.set(true);
-        final Engine.DeleteResult result;
         delete = indexingOperationListeners.preDelete(shardId, delete);
+        final Engine.DeleteResult result;
         try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("delete [{}] (seq no [{}])", delete.uid().text(), delete.seqNo());
-            }
             result = engine.delete(delete);
         } catch (Exception e) {
             indexingOperationListeners.postDelete(shardId, delete, e);

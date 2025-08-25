@@ -253,7 +253,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         Engine.DeleteResult result;
         if (shard.routingEntry().primary()) {
             result = shard.applyDeleteOperationOnPrimary(
-                Versions.MATCH_ANY, id, VersionType.INTERNAL, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+                Versions.MATCH_ANY, id, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
             shard.sync(); // advance local checkpoint
             shard.updateLocalCheckpointForShard(
                 shard.routingEntry().allocationId().getId(),

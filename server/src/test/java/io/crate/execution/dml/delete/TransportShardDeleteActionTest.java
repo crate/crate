@@ -23,7 +23,6 @@ package io.crate.execution.dml.delete;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.mock;
@@ -42,7 +41,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardNotFoundException;
@@ -152,7 +150,6 @@ public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnit
         when(indexShard.applyDeleteOperationOnPrimary(
             anyLong(),
             anyString(),
-            any(VersionType.class),
             anyLong(),
             anyLong()
         )).thenThrow(new ShardNotFoundException(shardId));

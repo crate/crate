@@ -19,7 +19,6 @@
 
 package org.elasticsearch.plugins;
 
-import static org.elasticsearch.common.io.FileSystemUtils.isAccessibleDirectory;
 import static org.elasticsearch.plugins.PluginInfo.ES_PLUGIN_PROPERTIES;
 
 import java.io.IOException;
@@ -34,7 +33,6 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
-import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -42,7 +40,6 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -83,7 +80,7 @@ public class PluginsService {
         Setting.listSetting("plugin.mandatory", Collections.emptyList(), Function.identity(), DataTypes.STRING_ARRAY, Property.NodeScope);
 
     public List<Setting<?>> getPluginSettings() {
-        return plugins.stream().flatMap(p -> p.v2().getSettings().stream()).collect(Collectors.toList());
+        return plugins.stream().flatMap(p -> p.v2().getSettings().stream()).toList();
     }
 
     /**
@@ -98,7 +95,6 @@ public class PluginsService {
         this.configPath = configPath;
 
         List<Tuple<PluginInfo, Plugin>> pluginsLoaded = new ArrayList<>();
-        List<PluginInfo> pluginsList = new ArrayList<>();
         // we need to build a List of plugins for checking mandatory plugins
         final List<String> pluginsNames = new ArrayList<>();
         // first we load plugins that are on the classpath. this is for tests and transport clients
@@ -107,14 +103,12 @@ public class PluginsService {
             PluginInfo pluginInfo = new PluginInfo(
                 pluginClass.getName(),
                 "classpath plugin",
-                pluginClass.getName(),
-                Collections.emptyList()
+                pluginClass.getName()
             );
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("plugin loaded from classpath [{}]", pluginInfo);
             }
             pluginsLoaded.add(new Tuple<>(pluginInfo, plugin));
-            pluginsList.add(pluginInfo);
             pluginsNames.add(pluginInfo.getName());
         }
 
@@ -123,20 +117,19 @@ public class PluginsService {
         // now, find all the ones that are in plugins/
         if (pluginsDirectory != null) {
             try {
-                // TODO: remove this leniency, but tests bogusly rely on it
-                if (isAccessibleDirectory(pluginsDirectory, LOGGER)) {
-                    checkForFailedPluginRemovals(pluginsDirectory);
-                    Set<Bundle> plugins = getPluginBundles(pluginsDirectory);
-                    for (final Bundle bundle : plugins) {
-                        pluginsList.add(bundle.plugin);
-                        pluginsNames.add(bundle.plugin.getName());
-                    }
-                    seenBundles.addAll(plugins);
+                Set<Bundle> plugins = getPluginBundles(pluginsDirectory);
+                for (final Bundle bundle : plugins) {
+                    pluginsNames.add(bundle.plugin.getName());
                 }
+                seenBundles.addAll(plugins);
             } catch (IOException ex) {
                 throw new IllegalStateException("Unable to initialize plugins", ex);
             }
         }
+
+        // we don't log jars in lib/ we really shouldn't log modules,
+        // but for now: just be transparent so we can debug any potential issues
+        logPluginInfo(pluginsLoaded, "plugin", LOGGER);
 
         List<Tuple<PluginInfo, Plugin>> loaded = loadBundles(seenBundles);
         pluginsLoaded.addAll(loaded);
@@ -161,20 +154,17 @@ public class PluginsService {
                 throw new IllegalStateException(message);
             }
         }
-
-        // we don't log jars in lib/ we really shouldn't log modules,
-        // but for now: just be transparent so we can debug any potential issues
-        logPluginInfo(pluginsList, "plugin", LOGGER);
     }
 
-    private static void logPluginInfo(final List<PluginInfo> pluginInfos, final String type, final Logger logger) {
+    private static void logPluginInfo(List<Tuple<PluginInfo, Plugin>> pluginInfos, String type, Logger logger) {
         assert pluginInfos != null;
         if (pluginInfos.isEmpty()) {
             logger.info("no " + type + "s loaded");
         } else {
-            for (final String name : pluginInfos.stream().map(PluginInfo::getName).sorted().collect(Collectors.toList())) {
-                logger.info("loaded " + type + " [" + name + "]");
-            }
+            pluginInfos.stream()
+                .map(x -> x.v1().getName())
+                .sorted()
+                .forEach(name -> logger.info("loaded " + type + " [" + name + "]"));
         }
     }
 
@@ -261,48 +251,27 @@ public class PluginsService {
      * @throws IOException if an I/O exception occurred reading the directories
      */
     public static List<Path> findPluginDirs(final Path rootPath) throws IOException {
-        final List<Path> plugins = new ArrayList<>();
-        final Set<String> seen = new HashSet<>();
-        if (Files.exists(rootPath)) {
-            try (DirectoryStream<Path> stream = Files.newDirectoryStream(rootPath)) {
-                for (Path plugin : stream) {
-                    if (FileSystemUtils.isHidden(plugin)) {
-                        continue;
-                    }
-                    if (FileSystemUtils.isDesktopServicesStore(plugin) ||
-                        plugin.getFileName().toString().startsWith(".removing-")) {
-                        continue;
-                    }
-                    if (seen.add(plugin.getFileName().toString()) == false) {
-                        throw new IllegalStateException("duplicate plugin: " + plugin);
-                    } else if (Files.exists(plugin.resolve(ES_PLUGIN_PROPERTIES))) {
-                        plugins.add(plugin);
-                    }
+        if (!Files.exists(rootPath)) {
+            return List.of();
+        }
+        final ArrayList<Path> plugins = new ArrayList<>();
+        final HashSet<Path> seen = new HashSet<>();
+        try (DirectoryStream<Path> stream = Files.newDirectoryStream(rootPath)) {
+            for (Path plugin : stream) {
+                if (FileSystemUtils.isHidden(plugin)) {
+                    continue;
+                }
+                if (FileSystemUtils.isDesktopServicesStore(plugin)) {
+                    continue;
+                }
+                if (seen.add(plugin.getFileName()) == false) {
+                    throw new IllegalStateException("duplicate plugin: " + plugin);
+                } else if (Files.exists(plugin.resolve(ES_PLUGIN_PROPERTIES))) {
+                    plugins.add(plugin);
                 }
             }
         }
         return plugins;
-    }
-
-    static void checkForFailedPluginRemovals(final Path pluginsDirectory) throws IOException {
-        /*
-         * Check for the existence of a marker file that indicates any plugins are in a garbage state from a failed attempt to remove the
-         * plugin.
-         */
-        try (DirectoryStream<Path> stream = Files.newDirectoryStream(pluginsDirectory, ".removing-*")) {
-            final Iterator<Path> iterator = stream.iterator();
-            if (iterator.hasNext()) {
-                final Path removing = iterator.next();
-                final String fileName = removing.getFileName().toString();
-                final String name = fileName.substring(1 + fileName.indexOf("-"));
-                final String message = String.format(
-                        Locale.ROOT,
-                        "found file [%s] from a failed attempt to remove the plugin [%s]; execute [elasticsearch-plugin remove %2$s]",
-                        removing,
-                        name);
-                throw new IllegalStateException(message);
-            }
-        }
     }
 
     /** Get bundles for plugins installed in the given plugins directory. */
@@ -338,27 +307,12 @@ public class PluginsService {
         return bundle;
     }
 
-    /**
-     * Return the given bundles, sorted in dependency loading order.
-     *
-     * This sort is stable, so that if two plugins do not have any interdependency,
-     * their relative order from iteration of the provided set will not change.
-     *
-     * @throws IllegalStateException if a dependency cycle is found
-     */
-    // pkg private for tests
-    static List<Bundle> sortBundles(Set<Bundle> bundles) {
-        LinkedHashSet<Bundle> sortedBundles = new LinkedHashSet<>(bundles);
-        return new ArrayList<>(sortedBundles);
-    }
-
     private List<Tuple<PluginInfo,Plugin>> loadBundles(Set<Bundle> bundles) {
         List<Tuple<PluginInfo, Plugin>> plugins = new ArrayList<>();
         Map<String, Plugin> loaded = new HashMap<>();
         Map<String, Set<URL>> transitiveUrls = new HashMap<>();
-        List<Bundle> sortedBundles = sortBundles(bundles);
 
-        for (Bundle bundle : sortedBundles) {
+        for (Bundle bundle : bundles) {
             checkBundleJarHell(JarHell.parseClassPath(), bundle, transitiveUrls);
 
             final Plugin plugin = loadBundle(bundle, loaded);
@@ -474,10 +428,11 @@ public class PluginsService {
                 "()");
     }
 
-    @SuppressWarnings("unchecked")
     public <T> List<T> filterPlugins(Class<T> type) {
-        return plugins.stream().filter(x -> type.isAssignableFrom(x.v2().getClass()))
-            .map(p -> ((T)p.v2())).collect(Collectors.toList());
+        return plugins.stream()
+            .filter(x -> type.isAssignableFrom(x.v2().getClass()))
+            .map(p -> type.cast(p.v2()))
+            .toList();
     }
 
     /**
