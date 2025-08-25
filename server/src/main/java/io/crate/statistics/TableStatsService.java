@@ -110,11 +110,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     private final Directory directory;
     private final IndexWriter writer;
     private final SearcherManager searcherManager;
-    private final LoadingCache<RelationName, Stats> cache = Caffeine
-        .newBuilder()
-        .maximumWeight(10_000)
-        .weigher((RelationName _, Stats s) -> s.statsByColumn().size())
-        .build(this::loadFromDisk);
+    private final LoadingCache<RelationName, Stats> cache;
 
     private Session session;
 
@@ -139,6 +135,12 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
         clusterService.getClusterSettings().addSettingsUpdateConsumer(
             STATS_SERVICE_REFRESH_INTERVAL_SETTING, this::setRefreshInterval);
+
+        cache = Caffeine.newBuilder()
+            .executor(threadPool.generic())
+            .maximumWeight(10_000)
+            .weigher((RelationName _, Stats s) -> s.statsByColumn().size())
+            .build(this::loadFromDisk);
 
         try {
             this.directory = new NIOFSDirectory(dataPath.resolve(STATS));
