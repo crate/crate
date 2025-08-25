@@ -23,12 +23,14 @@ package io.crate.integrationtests;
 
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
 
 import org.elasticsearch.test.IntegTestCase;
@@ -253,8 +255,10 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
             bulkArgs[i] = new Object[]{"event1", "item1"};
         }
         final CompletableFuture<BulkResponse> res = new CompletableFuture<>();
+        CyclicBarrier cyclicBarrier = new CyclicBarrier(2);
         Thread insertThread = new Thread(() -> {
             try {
+                cyclicBarrier.await();
                 res.complete(execute(stmt, bulkArgs));
             } catch (Exception e) {
                 // that's what we want
@@ -262,16 +266,27 @@ public class TransportSQLActionSingleNodeTest extends IntegTestCase {
             }
         });
         insertThread.start();
-        Thread.sleep(50);
-        execute("kill all");
+        cyclicBarrier.await();
+        while (!(res.isDone() || res.isCompletedExceptionally())) {
+            execute("kill all");
+        }
         insertThread.join();
         try {
             res.get();
         } catch (ExecutionException e) {
             // in this case the job was successfully killed, so it must occur as killed the jobs log
-            SQLResponse response = execute("select * from sys.jobs_log where error = ? and stmt = ?", new Object[]{"Job killed", stmt});
+            SQLResponse response = execute(
+                "select * from sys.jobs_log where (error = ? or error LIKE ?) and stmt = ?",
+                new Object[]{
+                    "Job killed",
+                    "InterruptedException in %",
+                    stmt
+                }
+            );
             if (response.rowCount() < 1L) {
-                assertThat(execute("select * from sys.jobs_log").rows()).isEmpty();
+                assertThat(execute("select * from sys.jobs_log").rows())
+                    .as("Must find sys.jobs_log entry if res fails with " + e.getMessage())
+                    .isEmpty();
             }
         }
         waitUntilShardOperationsFinished();
