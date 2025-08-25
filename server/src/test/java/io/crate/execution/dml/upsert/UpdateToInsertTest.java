@@ -81,8 +81,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(20) },
-            new Object[0],
-            false);
+            new Object[0]
+        );
         assertThat(item.insertValues())
             .containsExactly(10, 20);
     }
@@ -105,8 +105,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(0) },
-            new Object[] { 20 },
-            false);
+            new Object[] { 20 }
+        );
         assertThat(item.insertValues())
             .containsExactly(10, 20);
     }
@@ -128,8 +128,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(3) },
-            new Object[] {},
-            false);
+            new Object[] {}
+        );
         assertThat(item.insertValues())
             .containsExactly(1, Map.of("y", 3));
     }
@@ -151,8 +151,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(8) },
-            new Object[] {},
-            false);
+            new Object[] {}
+        );
         assertThat(item.insertValues())
             .containsExactly(8);
     }
@@ -176,7 +176,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         Doc doc = doc(UUIDs.randomBase64UUID(), List.of(), source);
 
         Symbol[] assignments = new Symbol[] { Literal.of(8) };
-        IndexItem item = updateToInsert.convert(doc, assignments, new Object[0], false);
+        IndexItem item = updateToInsert.convert(doc, assignments, new Object[0]);
         assertThat(item.insertValues())
             .containsExactly(8);
     }
@@ -198,8 +198,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1), Literal.of(2) },
-            new Object[] {},
-            false);
+            new Object[] {}
+        );
         assertThat(updateToInsert.columns()).satisfiesExactly(
             c -> assertThat(c).hasName("x"),
             c -> assertThat(c).hasName("y")
@@ -225,8 +225,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1) },
-            new Object[] {},
-            false);
+            new Object[] {}
+        );
         assertThat(item.pkValues()).containsExactly("3");
     }
 
@@ -274,8 +274,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(20) },
-            new Object[] { Literal.of(3) },
-            false);
+            new Object[] { Literal.of(3) }
+        );
         assertThat(item.insertValues()).containsExactly(3, 1, 20);
     }
 
@@ -314,8 +314,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
                 doc,
                 new Symbol[] { Literal.of(20) },
-                new Object[] { Literal.of(3) },
-            false);
+                new Object[] { Literal.of(3) }
+        );
         assertThat(item.insertValues()).containsExactly(3, 1, Map.of("a", 20));
     }
 
@@ -351,8 +351,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
-            new Object[] { 1, 20 },
-            false);
+            new Object[] { 1, 20 }
+        );
         assertThat(updateToInsert.columns()).satisfiesExactly(
             x -> assertThat(x).hasName("x"),
             x -> assertThat(x).hasName("z")
@@ -398,8 +398,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
-            new Object[] { 1, 20 },
-            false);
+            new Object[] { 1, 20 }
+        );
         assertThat(item.pkValues()).containsExactly("1", "2");
         assertThat(item.insertValues()).containsExactly(1, 20, Map.of("y", 2));
     }
@@ -439,8 +439,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
-            new Object[] { 1, 20 },
-            false);
+            new Object[] { 1, 20 }
+        );
         assertThat(item.pkValues()).containsExactly("1", "10");
         assertThat(item.insertValues()).containsExactly(1, 20, 10);
     }

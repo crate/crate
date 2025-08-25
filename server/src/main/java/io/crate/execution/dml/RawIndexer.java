@@ -160,7 +160,7 @@ public class RawIndexer {
      */
     public ParsedDocument index() throws IOException {
         assert currentRowIndexer != null : "Must be used only after collecting schema updates.";
-        return currentRowIndexer.index(currentItem, true);
+        return currentRowIndexer.index(currentItem);
     }
 
     public Object[] addGeneratedValues(IndexItem item) {

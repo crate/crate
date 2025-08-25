@@ -105,7 +105,7 @@ import io.crate.types.ObjectType;
  * <li>Update cluster state with new columns (The user of the Indexer is
  * responsible for this)</li>
  * <li>Update reference information based on cluster state update</li>
- * <li>Create {@link ParsedDocument} via {@link #index(IndexItem, boolean)}</li>
+ * <li>Create {@link ParsedDocument} via {@link #index(IndexItem)}</li>
  * </ol>
  *
  * Schema update and creation of ParsedDocument is split into two steps to be
@@ -766,7 +766,7 @@ public class Indexer {
      * state.
      */
     @SuppressWarnings("unchecked")
-    public ParsedDocument index(IndexItem item, boolean forInsert) throws IOException {
+    public ParsedDocument index(IndexItem item) throws IOException {
         assert item.insertValues().length <= valueIndexers.size()
             : "Number of values must be less than or equal the number of targetColumns/valueIndexers";
 
@@ -782,10 +782,7 @@ public class Indexer {
             translogWriter,
             synthetics::get,
             columnConstraints,
-            tableVersionCreated,
-            assignedColumns,
-            forInsert
-
+            tableVersionCreated
         );
         Object[] values = item.insertValues();
 
@@ -872,11 +869,11 @@ public class Indexer {
                 }
             }
         }
-        var converted = updateToInsert.convert(storedDoc, updateAssignments, excludedValues, conflicted);
+        var converted = updateToInsert.convert(storedDoc, updateAssignments, excludedValues);
         var newCols = collectSchemaUpdates(converted);
         Supplier<ParsedDocument> doc = () -> {
             try {
-                return index(converted, false);
+                return index(converted);
             } catch (IOException e) {
                 throw new RuntimeException(e);
             }
@@ -1213,15 +1210,9 @@ public class Indexer {
             this.columns = new ArrayList<>();
             List<String> updateColumnList = Arrays.asList(updateColumns);
             boolean errorOnUnknownObjectKey = txnCtx.sessionSettings().errorOnUnknownObjectKey();
-            boolean isInsertOnConflict = insertColumns != null && !insertColumns.isEmpty() && updateColumns.length > 0;
 
             if (insertColumns != null) {
                 this.columns.addAll(insertColumns);
-            }
-            for (var ref : table.defaultExpressionColumns()) {
-                if (ref.column().isRoot() && !ref.defaultExpression().isDeterministic() && !this.columns.contains(ref)) {
-                    this.columns.add(ref);
-                }
             }
             for (var ref : table.generatedColumns()) {
                 if (!ref.isDeterministic() && !this.columns.contains(ref)) {
@@ -1233,10 +1224,6 @@ public class Indexer {
                 // We only include them here if they are provided in the `updateColumns` to validate
                 // that users provided the right value (otherwise they'd get ignored and we'd generate them later)
                 if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
-                    continue;
-                }
-                // for test_insert_on_conflict_with_all_default_and_generated_variants
-                if (isInsertOnConflict && ref.defaultExpression() != null && !updateColumnList.contains(ref.column().fqn())) {
                     continue;
                 }
                 if (!this.columns.contains(ref)) {
@@ -1271,7 +1258,7 @@ public class Indexer {
         }
 
         @SuppressWarnings("unchecked")
-        public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues, boolean conflicted) {
+        public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
             Values values = new Values(doc, excludedValues);
             Object[] insertValues = new Object[columns.size()];
             Iterator<Reference> it = columns.iterator();

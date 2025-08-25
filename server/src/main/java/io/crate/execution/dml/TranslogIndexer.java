@@ -140,7 +140,7 @@ public class TranslogIndexer {
 
     private IndexDocumentBuilder populateLuceneFields(BytesReference source) throws IOException {
         Map<String, Object> docMap = sourceParser.parse(source, ignoreUnknownColumns == false);
-        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(TranslogWriter.wrapBytes(source), _ -> null, Map.of(), shardCreatedVersion, List.of(), true);
+        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(TranslogWriter.wrapBytes(source), _ -> null, Map.of(), shardCreatedVersion);
         for (var entry : docMap.entrySet()) {
             var column = entry.getKey();
             var indexer = indexers.get(column);

@@ -134,7 +134,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
                 Version.CURRENT)) {
 
             Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
-            ParsedDocument doc = indexer.index(item(data), true);
+            ParsedDocument doc = indexer.index(item(data));
             IndexWriter writer = indexEnv.writer();
             writer.addDocument(doc.doc().getFields());
             writer.commit();
@@ -202,7 +202,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         assertThat(reference).isNotNull();
 
         Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");
-        ParsedDocument doc = indexer.index(item(dataDef.data.get()), true);
+        ParsedDocument doc = indexer.index(item(dataDef.data.get()));
         IndexerTest.assertTranslogParses(doc, table);
     }
 
