@@ -70,6 +70,13 @@ If you want to attach a debugger to the instance, you'd have to enable the debug
 Then create an "Attach" configuration in your IDE or editor. If using Visual
 Studio Code you can use the pre-defined "Attach to CrateDB" configuration.
 
+
+To create a package for a different system you can force `os.arch` and activate
+the `jmods` profile::
+
+    $ ./mvnw -P jmods -Dos.arch=aarch64 clean package
+
+
 Using an IDE
 ============
 
