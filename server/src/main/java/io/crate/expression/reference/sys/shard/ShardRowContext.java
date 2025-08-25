@@ -207,31 +207,28 @@ public class ShardRowContext {
         }
     }
 
-    @Nullable
-    public Long maxSeqNo() {
+    public long maxSeqNo() {
         try {
             var stats = indexShard.seqNoStats();
-            return stats == null ? null : stats.getMaxSeqNo();
+            return stats.getMaxSeqNo();
         } catch (AlreadyClosedException e) {
             return 0L;
         }
     }
 
-    @Nullable
-    public Long localSeqNoCheckpoint() {
+    public long localSeqNoCheckpoint() {
         try {
             var stats = indexShard.seqNoStats();
-            return stats == null ? null : stats.getLocalCheckpoint();
+            return stats.getLocalCheckpoint();
         } catch (AlreadyClosedException e) {
             return 0L;
         }
     }
 
-    @Nullable
-    public Long globalSeqNoCheckpoint() {
+    public long globalSeqNoCheckpoint() {
         try {
             var stats = indexShard.seqNoStats();
-            return stats == null ? null : stats.getGlobalCheckpoint();
+            return stats.getGlobalCheckpoint();
         } catch (AlreadyClosedException e) {
             return 0L;
         }
