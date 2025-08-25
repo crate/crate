@@ -395,6 +395,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 "select seq_no_stats['global_checkpoint'], seq_no_stats['max_seq_no'], retention_leases['leases'] from sys.shards where table_name = ?",
                 new Object[]{tableName});
             assertThat(response.rowCount()).isGreaterThan(0);
+            assertThat(response.rows()[0][0]).isNotNull();
             long globalCheckPoint = (long) response.rows()[0][0];
             long maxSeqNo = (long) response.rows()[0][1];
             assertThat(globalCheckPoint).isEqualTo(maxSeqNo);
