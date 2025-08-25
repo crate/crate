@@ -284,13 +284,13 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
          * List of symbols used on update if document exist
          */
         @Nullable
-        private Symbol[] updateAssignments;
+        private final Symbol[] updateAssignments;
 
         /**
          * List of objects used on insert
          */
         @Nullable
-        private Object[] insertValues;
+        private final Object[] insertValues;
 
         /**
          * Values that make up the primary key.
@@ -403,10 +403,6 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             return insertValues;
         }
 
-        public void insertValues(Object[] insertValues) {
-            this.insertValues = insertValues;
-        }
-
         public List<String> pkValues() {
             return pkValues;
         }
@@ -431,6 +427,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 for (int i = 0; i < assignmentsSize; i++) {
                     updateAssignments[i] = Symbol.fromStream(in);
                 }
+            } else {
+                updateAssignments = null;
             }
 
             int missingAssignmentsSize = in.readVInt();
@@ -440,6 +438,8 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
                 for (int i = 0; i < missingAssignmentsSize; i++) {
                     insertValues[i] = insertValueStreamers[i].readValueFrom(in);
                 }
+            } else {
+                insertValues = null;
             }
             if (in.getVersion().before(Version.V_5_8_0)) {
                 if (in.readBoolean()) {
