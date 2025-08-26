@@ -34,7 +34,7 @@ import org.junit.Test;
 
 import io.crate.analyze.Id;
 import io.crate.execution.dml.IndexItem;
-import io.crate.execution.dml.Indexer;
+import io.crate.execution.dml.UpdateToInsert;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.symbol.InputColumn;
@@ -68,7 +68,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -92,7 +92,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -116,7 +116,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, o object as (y int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -139,7 +139,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int as x + 4)");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -165,7 +165,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int check (x > 10))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -186,7 +186,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -213,7 +213,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (x int primary key), y int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -235,7 +235,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        assertThatThrownBy(() -> new Indexer.UpdateToInsert(
+        assertThatThrownBy(() -> new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -254,7 +254,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y = ?
         Reference[] insertColumns = new Reference[] { table.getReference(ColumnIdent.of("z")) };
         String[] updateColumns = new String[] { "y" };
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -293,7 +293,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         // INSERT INTO tbl (z) VALUES (?) ON CONFLICT (...) DO UPDATE SET y['a'] = ?
         Reference[] insertColumns = new Reference[] { table.getReference(ColumnIdent.of("z")) };
         String[] updateColumns = new String[] { "y.a" };
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
                 e.nodeCtx,
                 new CoordinatorTxnCtx(e.getSessionSettings()),
                 table,
@@ -338,7 +338,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             table.getReference(ColumnIdent.of("z"))
         };
         String[] updateColumns = new String[] { "z" };
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -381,7 +381,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             table.getReference(ColumnIdent.of("z"))
         };
         String[] updateColumns = new String[] { "z" };
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
@@ -422,7 +422,7 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             table.getReference(ColumnIdent.of("z"))
         };
         String[] updateColumns = new String[] { "z" };
-        Indexer.UpdateToInsert updateToInsert = new Indexer.UpdateToInsert(
+        UpdateToInsert updateToInsert = new UpdateToInsert(
             e.nodeCtx,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             table,
