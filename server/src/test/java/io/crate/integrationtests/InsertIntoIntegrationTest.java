@@ -2312,7 +2312,9 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute("""
             insert into t values
-                (11, 22, 33, {a=11, b=55, i=66, o={a=11, b=88, i=99}}, 10)
+                (10, 222, 333, {a=10, b=555, i=666, o={a=10, b=888, i=999}}, 9),
+                (11, 22, 33, {a=11, b=55, i=66, o={a=11, b=88, i=99}}, 10),
+                (12, 2222, 3333, {a=12, b=5555, i=6666, o={a=12, b=8888, i=9999}}, 11)
             on conflict (c) do update set i=-1, o['i']=-2, o['o']['i']=-3
             """);
         execute("refresh table t");

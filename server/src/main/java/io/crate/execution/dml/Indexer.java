@@ -122,6 +122,8 @@ public class Indexer {
     @Nullable
     private final UpdateToInsert updateToInsert;
     private final List<Reference> assignedColumns;
+    @Nullable
+    private final Indexer insertOnConflictIndexer;
 
 
     public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
@@ -404,7 +406,16 @@ public class Indexer {
                    List<Reference> targetColumns,
                    @Nullable String[] updateColumns,
                    @Nullable Symbol[] returnValues) {
-        if (updateColumns != null && updateColumns.length > 0) {
+        if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty()) { // insert-on-conflict
+            // onConflictIndexer is built as if a pure update indexer
+            this.insertOnConflictIndexer = new Indexer(
+                partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, List.of(), updateColumns, returnValues);
+            // this indexer is build as if it is an insert indexer
+            this.updateToInsert = null;
+            this.columns = targetColumns;
+            this.assignedColumns = this.columns;
+        } else if (updateColumns != null && updateColumns.length > 0) { // update
+            this.insertOnConflictIndexer = null;
             this.updateToInsert = new UpdateToInsert(
                 nodeCtx,
                 txnCtx,
@@ -414,7 +425,8 @@ public class Indexer {
             );
             this.columns = this.updateToInsert.columns();
             this.assignedColumns = this.updateToInsert.updateColumns;
-        } else {
+        } else { // insert
+            this.insertOnConflictIndexer = null;
             this.updateToInsert = null;
             this.columns = targetColumns;
             this.assignedColumns = this.columns;
@@ -889,6 +901,10 @@ public class Indexer {
             result[i] = this.returnValueInputs.get(i).value();
         }
         return result;
+    }
+
+    public Indexer onConflictIndexer() {
+        return this.insertOnConflictIndexer;
     }
 
     public static Consumer<IndexItem> createConstraintCheck(DocTableInfo table,
