@@ -209,4 +209,14 @@ public class SelectWindowFunctionAnalyzerTest extends CrateDummyClusterServiceUn
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageStartingWith("'x' must appear in the GROUP BY clause or be used in an aggregation function.");
     }
+
+    @Test
+    public void test_window_function_partition_symbols_not_in_grouping_raises_an_error() {
+        assertThatThrownBy(() -> e.analyze(
+            "select sum(x) over(partition by x, y) " +
+                "FROM unnest([1], [6]) as t (x, y) " +
+                "group by x"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessageStartingWith("'y' must appear in the GROUP BY clause or be used in an aggregation function.");
+    }
 }
