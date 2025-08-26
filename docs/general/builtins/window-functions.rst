@@ -727,4 +727,5 @@ Example::
 Aggregate window functions
 ==========================
 
-See :ref:`aggregation`.
+The standard :ref:`aggregation functions<aggregation-functions>` can also be
+used with the ``window`` functionality.
