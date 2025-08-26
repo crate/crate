@@ -231,6 +231,12 @@ public final class GroupAndAggregateSemantics {
                     return offender;
                 }
             }
+            for (Symbol partition : function.windowDefinition().partitions()) {
+                Symbol offender = partition.accept(this, groupBy);
+                if (offender != null) {
+                    return offender;
+                }
+            }
             return null;
         }
 
