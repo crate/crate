@@ -71,3 +71,11 @@ Fixes
 
 - Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
   query with aggregations under memory pressure in a multi-node cluster.
+
+- Improved error message when attempting to use a column in ``PARTITION BY``
+  clause of a :ref:`window function <window-functions>`, which is not also
+  included in the ``GROUP BY``, e.g.::
+
+    SELECT sum(x) OVER(PARTITION BY x, y)
+    FROM unnest([1], [6]) AS t (x, y)
+    GROUP BY x
