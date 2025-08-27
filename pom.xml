@@ -241,41 +241,6 @@
           </execution>
         </executions>
       </plugin>
-      <plugin>
-        <artifactId>maven-jlink-plugin</artifactId>
-        <version>${versions.plugin.jlink}</version>
-        <extensions>true</extensions>
-        <configuration>
-          <addModules>
-            <addModule>java.base</addModule>
-            <addModule>java.logging</addModule>
-            <addModule>java.compiler</addModule>
-            <addModule>java.desktop</addModule>
-            <addModule>java.management</addModule>
-            <addModule>java.naming</addModule>
-            <addModule>java.rmi</addModule>
-            <addModule>java.scripting</addModule>
-            <addModule>java.security.jgss</addModule>
-            <addModule>java.security.sasl</addModule>
-            <addModule>java.sql</addModule>
-            <addModule>jdk.unsupported</addModule>
-            <addModule>jdk.management</addModule>
-            <addModule>jdk.management.agent</addModule>
-            <addModule>jdk.crypto.ec</addModule>
-            <addModule>jdk.incubator.vector</addModule>
-
-            <!-- These are required to use https://github.com/crate/jmx_exporter -->
-            <addModule>java.instrument</addModule>
-            <addModule>jdk.httpserver</addModule>
-
-            <!-- To support -XX:StartFlightRecording=[...] -->
-            <addModule>jdk.jfr</addModule>
-
-            <addModule>jdk.jcmd</addModule>
-            <addModule>jdk.jdwp.agent</addModule>
-          </addModules>
-        </configuration>
-      </plugin>
     </plugins>
   </build>
   <reporting>
@@ -315,6 +280,8 @@
     <skipRunTests>false</skipRunTests>
 
     <versions.jdk>24.0.2</versions.jdk>
+    <versions.jdkbuild>24.0.2+12</versions.jdkbuild>
+
     <versions.annotations>26.0.2</versions.annotations>
     <versions.log4j>2.25.1</versions.log4j>
     <versions.assertj>3.27.3</versions.assertj>
@@ -459,6 +426,7 @@
       </activation>
       <properties>
         <os.arch.classifier>x86_64</os.arch.classifier>
+        <jmods.arch>x64</jmods.arch>
       </properties>
     </profile>
     <profile>
@@ -471,6 +439,7 @@
       </activation>
       <properties>
         <os.arch.classifier>aarch_64</os.arch.classifier>
+        <jmods.arch>aarch64</jmods.arch>
       </properties>
     </profile>
 
@@ -484,6 +453,7 @@
       </activation>
       <properties>
         <os.classifier>linux-${os.arch.classifier}</os.classifier>
+        <jmods.os>linux</jmods.os>
       </properties>
     </profile>
     <profile>
@@ -496,6 +466,7 @@
       </activation>
       <properties>
         <os.classifier>osx-${os.arch.classifier}</os.classifier>
+        <jmods.os>mac</jmods.os>
       </properties>
     </profile>
     <profile>
@@ -508,8 +479,8 @@
       <properties>
         <!-- OpenDAL provides x64 packages only, but Windows arm64 >= 10 Build 21277 can emulate it   -->
         <os.classifier>windows-x86_64</os.classifier>
+        <jmods.os>windows</jmods.os>
       </properties>
     </profile>
-
   </profiles>
 </project>
