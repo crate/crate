@@ -23,12 +23,13 @@ package io.crate.expression.reference.sys.shard;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
@@ -40,6 +41,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Suppliers;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
@@ -62,6 +64,7 @@ public class ShardRowContext {
     private final String aliasName;
     @Nullable
     private final String templateName;
+    private final boolean orphanedPartition;
 
     public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
         this(indexShard, null, clusterService, Suppliers.memoizeWithExpiration(() -> {
@@ -87,14 +90,33 @@ public class ShardRowContext {
         this.clusterService = clusterService;
         this.sizeSupplier = sizeSupplier;
         ShardId shardId = indexShard.shardId();
-        String indexName = shardId.getIndexName();
         this.id = shardId.id();
-        this.indexParts = IndexName.decode(indexName);
-        if (indexParts.isPartitioned()) {
-            partitionIdent = indexParts.partitionIdent();
-            RelationName relationName = indexParts.toRelationName();
-            aliasName = relationName.indexNameOrAlias();
-            templateName = PartitionName.templateName(relationName.schema(), relationName.name());
+        IndexParts indexParts;
+        PartitionName partitionName;
+        boolean orphanedPartition;
+        try {
+            partitionName = clusterService.state().metadata().getPartitionName(shardId.getIndexUUID());
+            RelationName relationName = partitionName.relationName();
+            indexParts = new IndexParts(relationName.schema(), relationName.name(), partitionName.ident());
+            orphanedPartition = false;
+        } catch (RelationUnknown e) {
+            // Orphaned partition, no metadata available
+            IndexMetadata indexMetadata = clusterService.state().metadata().index(shardId.getIndex());
+            if (indexMetadata == null) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "IndexMetadata for shard %s does not exist in the cluster state", shardId));
+            }
+            indexParts = IndexName.decode(indexMetadata.getIndex().getName());
+            partitionName = indexParts.toPartitionName();
+            orphanedPartition = true;
+        }
+        this.orphanedPartition = orphanedPartition;
+        this.indexParts = indexParts;
+        if (!partitionName.values().isEmpty()) {
+            partitionIdent = partitionName.ident();
+            // Aliases and templates are deprecated and not used anymore.
+            aliasName = null;
+            templateName = null;
         } else {
             partitionIdent = "";
             aliasName = null;
@@ -155,12 +177,7 @@ public class ShardRowContext {
     }
 
     public boolean isOrphanedPartition() {
-        if (aliasName != null && templateName != null) {
-            Metadata metadata = clusterService.state().metadata();
-            return !(metadata.templates().containsKey(templateName) && metadata.hasConcreteIndex(aliasName));
-        } else {
-            return false;
-        }
+        return orphanedPartition;
     }
 
     public boolean isClosed() {
@@ -190,31 +207,28 @@ public class ShardRowContext {
         }
     }
 
-    @Nullable
-    public Long maxSeqNo() {
+    public long maxSeqNo() {
         try {
             var stats = indexShard.seqNoStats();
-            return stats == null ? null : stats.getMaxSeqNo();
+            return stats.getMaxSeqNo();
         } catch (AlreadyClosedException e) {
             return 0L;
         }
     }
 
-    @Nullable
-    public Long localSeqNoCheckpoint() {
+    public long localSeqNoCheckpoint() {
         try {
             var stats = indexShard.seqNoStats();
-            return stats == null ? null : stats.getLocalCheckpoint();
+            return stats.getLocalCheckpoint();
         } catch (AlreadyClosedException e) {
             return 0L;
         }
     }
 
-    @Nullable
-    public Long globalSeqNoCheckpoint() {
+    public long globalSeqNoCheckpoint() {
         try {
             var stats = indexShard.seqNoStats();
-            return stats == null ? null : stats.getGlobalCheckpoint();
+            return stats.getGlobalCheckpoint();
         } catch (AlreadyClosedException e) {
             return 0L;
         }

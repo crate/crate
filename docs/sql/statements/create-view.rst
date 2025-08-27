@@ -8,11 +8,6 @@
 
 Define a new :ref:`view <ddl-views>`.
 
-.. rubric:: Table of contents
-
-.. contents::
-    :local:
-
 
 Synopsis
 ========

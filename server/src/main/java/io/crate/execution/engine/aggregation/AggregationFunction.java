@@ -41,6 +41,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
 import io.crate.types.NumericStorage;
@@ -145,15 +146,26 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
         return null;
     }
 
+    protected Reference getAggReference(List<Reference> aggregationReferences) {
+        if (aggregationReferences.isEmpty()) {
+            return null;
+        }
+        Reference reference = aggregationReferences.getFirst();
+        if (reference == null) {
+            return null;
+        }
+        if (!reference.hasDocValues() || reference.granularity() != RowGranularity.DOC) {
+            return null;
+        }
+        return reference;
+    }
+
     protected DocValueAggregator<?> getNumericDocValueAggregator(
         List<Reference> aggregationReferences,
         TriConsumer<RamAccounting, TPartial, BigDecimal> applyToState) {
 
-        Reference reference = aggregationReferences.get(0);
+        Reference reference = getAggReference(aggregationReferences);
         if (reference == null) {
-            return null;
-        }
-        if (!reference.hasDocValues()) {
             return null;
         }
 

@@ -36,7 +36,7 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.IntegTestCase.ClusterScope;
 import org.elasticsearch.test.IntegTestCase.Scope;
-import org.elasticsearch.test.TestCluster;
+import org.junit.Test;
 
 
 @ClusterScope(scope = Scope.TEST, numDataNodes = 0)
@@ -49,10 +49,15 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
         execute("create table doc.test(x int) with (number_of_replicas = 0)");
         execute("insert into doc.test values(1)");
         ensureGreen();
-        assertIndexInMetaState(dataNode, "test");
-        assertIndexInMetaState(masterNode, "test");
+
+        Index index = resolveIndex("doc.test");
+        String indexUUID = index.getUUID();
+
+        assertIndexInMetaState(dataNode, indexUUID);
+        assertIndexInMetaState(masterNode, indexUUID);
     }
 
+    @Test
     public void testIndexFilesAreRemovedIfAllShardsFromIndexRemoved() throws Exception {
         // this test checks that the index data is removed from a data only node once all shards have been allocated away from it
         String masterNode = cluster().startMasterOnlyNode(Settings.EMPTY);
@@ -63,11 +68,14 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
         execute("create table doc.test(x int) with (number_of_replicas = 0, \"routing.allocation.include._name\" = ?)", new Object[]{node1});
         execute("insert into doc.test values(1)");
         ensureGreen();
-        assertIndexInMetaState(node1, "test");
-        Index resolveIndex = resolveIndex("test");
+
+
+        Index resolveIndex = resolveIndex("doc.test");
+        String indexUUID = resolveIndex.getUUID();
+        assertIndexInMetaState(node1, indexUUID);
         assertIndexDirectoryExists(node1, resolveIndex);
         assertIndexDirectoryDeleted(node2, resolveIndex);
-        assertIndexInMetaState(masterNode, "test");
+        assertIndexInMetaState(masterNode, indexUUID);
         assertIndexDirectoryDeleted(masterNode, resolveIndex);
 
         logger.debug("relocating index...");
@@ -75,9 +83,9 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
         client().health(new ClusterHealthRequest().waitForNoRelocatingShards(true)).get();
         ensureGreen();
         assertIndexDirectoryDeleted(node1, resolveIndex);
-        assertIndexInMetaState(node2, "test");
+        assertIndexInMetaState(node2, indexUUID);
         assertIndexDirectoryExists(node2, resolveIndex);
-        assertIndexInMetaState(masterNode, "test");
+        assertIndexInMetaState(masterNode, indexUUID);
         assertIndexDirectoryDeleted(masterNode, resolveIndex);
 
         execute("drop table doc.test");
@@ -100,11 +108,11 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
         );
     }
 
-    protected void assertIndexInMetaState(final String nodeName, final String indexName) throws Exception {
+    protected void assertIndexInMetaState(final String nodeName, final String indexUUID) throws Exception {
         assertBusy(() -> {
                        logger.info("checking if meta state exists...");
                        try {
-                           assertThat(getIndicesMetadataOnNode(nodeName).containsKey(indexName)).as("Expecting meta state of index " + indexName + " to be on node " + nodeName).isTrue();
+                           assertThat(getIndicesMetadataOnNode(nodeName).containsKey(indexUUID)).as("Expecting meta state of index " + indexUUID + " to be on node " + nodeName).isTrue();
                        } catch (Exception e) {
                            logger.info("failed to load meta state", e);
                            fail("could not load meta state");
@@ -115,7 +123,7 @@ public class MetadataWriteDataNodesIT extends IntegTestCase {
 
 
     private boolean indexDirectoryExists(String nodeName, Index index) {
-        NodeEnvironment nodeEnv = ((TestCluster) cluster()).getInstance(NodeEnvironment.class, nodeName);
+        NodeEnvironment nodeEnv = cluster().getInstance(NodeEnvironment.class, nodeName);
         Path[] paths = nodeEnv.indexPaths(index);
         for (Path path : paths) {
             if (Files.exists(path)) {

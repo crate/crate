@@ -63,7 +63,6 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.TransactionContext;
@@ -124,17 +123,17 @@ public class Indexer {
 
     static class RefResolver implements ReferenceResolver<CollectExpression<IndexItem, Object>> {
 
-        private final PartitionName partitionName;
+        private final List<String> partitionValues;
         private final List<Reference> targetColumns;
         private final DocTableInfo table;
         private final SymbolEvaluator symbolEval;
 
         private RefResolver(SymbolEvaluator symbolEval,
-                            PartitionName partitionName,
+                            List<String> partitionValues,
                             List<Reference> targetColumns,
                             DocTableInfo table) {
             this.symbolEval = symbolEval;
-            this.partitionName = partitionName;
+            this.partitionValues = partitionValues;
             this.targetColumns = targetColumns;
             this.table = table;
         }
@@ -182,7 +181,7 @@ public class Indexer {
             if (ref.granularity() == RowGranularity.PARTITION) {
                 int pIndex = table.partitionedByColumns().indexOf(ref);
                 if (pIndex > -1) {
-                    String val = partitionName.values().get(pIndex);
+                    String val = partitionValues.get(pIndex);
                     return NestableCollectExpression.constant(ref.valueType().implicitCast(val));
                 } else {
                     return NestableCollectExpression.constant(null);
@@ -391,7 +390,7 @@ public class Indexer {
      *
      */
     @SuppressWarnings("unchecked")
-    public Indexer(String indexName,
+    public Indexer(List<String> partitionValues,
                    DocTableInfo table,
                    Version shardVersionCreated,
                    TransactionContext txnCtx,
@@ -402,12 +401,9 @@ public class Indexer {
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
         this.getRef = table::getReference;
-        PartitionName partitionName = table.isPartitioned()
-            ? PartitionName.fromIndexOrTemplate(indexName)
-            : null;
         InputFactory inputFactory = new InputFactory(nodeCtx);
         SymbolEvaluator symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
-        var referenceResolver = new RefResolver(symbolEval, partitionName, targetColumns, table);
+        var referenceResolver = new RefResolver(symbolEval, partitionValues, targetColumns, table);
         Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
             referenceResolver
@@ -743,7 +739,12 @@ public class Indexer {
         }
 
         TranslogWriter translogWriter = new XContentTranslogWriter();
-        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(translogWriter, synthetics::get, columnConstraints, tableVersionCreated);
+        IndexDocumentBuilder docBuilder = new IndexDocumentBuilder(
+            translogWriter,
+            synthetics::get,
+            columnConstraints,
+            tableVersionCreated
+        );
         Object[] values = item.insertValues();
 
         for (int i = 0; i < values.length; i++) {
@@ -834,17 +835,14 @@ public class Indexer {
         return result;
     }
 
-    public static Consumer<IndexItem> createConstraintCheck(String indexName,
-                                                            DocTableInfo table,
+    public static Consumer<IndexItem> createConstraintCheck(DocTableInfo table,
+                                                            List<String> partitionValues,
                                                             TransactionContext txnCtx,
                                                             NodeContext nodeCtx,
                                                             List<Reference> targetColumns) {
         var symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
-        PartitionName partitionName = table.isPartitioned()
-            ? PartitionName.fromIndexOrTemplate(indexName)
-            : null;
         InputFactory inputFactory = new InputFactory(nodeCtx);
-        var referenceResolver = new RefResolver(symbolEval, partitionName, targetColumns, table);
+        var referenceResolver = new RefResolver(symbolEval, partitionValues, targetColumns, table);
         Context<CollectExpression<IndexItem, Object>> ctxForRefs = inputFactory.ctxForRefs(
             txnCtx,
             referenceResolver
@@ -887,15 +885,11 @@ public class Indexer {
         };
     }
 
-    public boolean hasUndeterministicSynthetics() {
-        return !undeterministic.isEmpty();
-    }
-
     public List<Reference> columns() {
         return columns;
     }
 
-    public Collection<Reference> insertColumns(List<Reference> columns) {
+    public List<Reference> insertColumns() {
         if (undeterministic.isEmpty()) {
             return columns;
         }
@@ -921,9 +915,11 @@ public class Indexer {
         return newColumns;
     }
 
-    @SuppressWarnings("unchecked")
     public Object[] addGeneratedValues(IndexItem item) {
         Object[] insertValues = item.insertValues();
+        if (undeterministic.isEmpty()) {
+            return insertValues;
+        }
         //  We don't know in advance how many values we will add: we can have multiple generated sub-columns.
         //  Some of them can have their root listed in the insert/upsert targets (and thus not causing array expansion) and some not.
         List<Object> extendedValues = new ArrayList<>(insertValues.length);
@@ -960,5 +956,9 @@ public class Indexer {
             }
         }
         return extendedValues.toArray();
+    }
+
+    public boolean hasReturnValues() {
+        return returnValueInputs != null;
     }
 }

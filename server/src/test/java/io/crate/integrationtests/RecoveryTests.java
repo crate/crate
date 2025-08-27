@@ -51,7 +51,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Hex;
-import io.crate.test.utils.Blobs;
+import io.crate.test.utils.BlobsUtil;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 0, numClientNodes = 0)
 @ThreadLeakFilters(filters = {RecoveryTests.RecoveryTestThreadFilter.class})
@@ -75,12 +75,12 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
     private ShardId resolveShardId(String index, String digest) {
         return clusterService().operationRouting()
-            .indexShards(clusterService().state(), index, digest, null)
+            .indexShards(clusterService().state(), resolveIndex(index).getUUID(), digest, null)
             .shardId();
     }
 
     private String uploadFile(Client client, String content) {
-        byte[] digest = Blobs.digest(content);
+        byte[] digest = BlobsUtil.digest(content);
         String digestString = Hex.encodeHexString(digest);
         byte[] contentBytes = content.getBytes(StandardCharsets.UTF_8);
         logger.trace("Uploading {} digest {}", content, digestString);
@@ -228,7 +228,7 @@ public class RecoveryTests extends BlobIntegrationTestBase {
 
         BlobIndicesService blobIndicesService = cluster().getInstance(BlobIndicesService.class, node2);
         for (String digest : uploadedDigests) {
-            BlobShard blobShard = blobIndicesService.localBlobShard(BlobIndex.fullIndexName("test"), digest);
+            BlobShard blobShard = blobIndicesService.localBlobShard(resolveIndex(BlobIndex.fullIndexName("test")).getUUID(), digest);
             assertThat(blobShard.blobContainer().getFile(digest).length()).isGreaterThanOrEqualTo(1);
         }
 

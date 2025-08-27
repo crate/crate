@@ -30,7 +30,7 @@ import java.net.http.HttpResponse;
 import java.net.http.HttpResponse.BodyHandlers;
 
 import io.crate.common.Hex;
-import io.crate.test.utils.Blobs;
+import io.crate.test.utils.BlobsUtil;
 
 class BlobHttpClient {
 
@@ -42,8 +42,8 @@ class BlobHttpClient {
 
     public HttpResponse<String> put(String table, String body) throws Exception {
         try (var httpClient = HttpClient.newHttpClient()) {
-            String digest = Hex.encodeHexString(Blobs.digest(body));
-            URI uri = Blobs.url(false, address, table + "/" + digest);
+            String digest = Hex.encodeHexString(BlobsUtil.digest(body));
+            URI uri = BlobsUtil.url(false, address, table + "/" + digest);
             HttpRequest request = HttpRequest.newBuilder(uri)
                 .PUT(BodyPublishers.ofString(body))
                 .build();

@@ -13,11 +13,6 @@ Kills active jobs in the CrateDB cluster.
     versions :ref:`4.3 <version_4.3.0>` and above. Prior version 4.3, the
     ``KILL`` statement can only be run by the ``crate`` superuser.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

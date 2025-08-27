@@ -34,10 +34,12 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.IncompatibleClusterStateVersionException;
+import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -61,6 +63,7 @@ import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
 
 import io.crate.common.io.IOUtils;
+import io.crate.metadata.upgrade.ClusterStateUpgrader;
 
 public class PublicationTransportHandler {
 
@@ -71,6 +74,7 @@ public class PublicationTransportHandler {
 
     private final TransportService transportService;
     private final NamedWriteableRegistry namedWriteableRegistry;
+    private final MetadataUpgradeService metadataUpgradeService;
     private final Function<PublishRequest, PublishWithJoinResponse> handlePublishRequest;
 
     private final AtomicReference<ClusterState> lastSeenClusterState = new AtomicReference<>();
@@ -89,11 +93,14 @@ public class PublicationTransportHandler {
     //  and not log an error if it arrives after the timeout
     private final TransportRequestOptions stateRequestOptions = new TransportRequestOptions(null, Type.STATE);
 
-    public PublicationTransportHandler(TransportService transportService, NamedWriteableRegistry namedWriteableRegistry,
+    public PublicationTransportHandler(TransportService transportService,
+                                       NamedWriteableRegistry namedWriteableRegistry,
+                                       MetadataUpgradeService metadataUpgradeService,
                                        Function<PublishRequest, PublishWithJoinResponse> handlePublishRequest,
                                        BiConsumer<ApplyCommitRequest, ActionListener<Void>> handleApplyCommit) {
         this.transportService = transportService;
         this.namedWriteableRegistry = namedWriteableRegistry;
+        this.metadataUpgradeService = metadataUpgradeService;
         this.handlePublishRequest = handlePublishRequest;
 
         transportService.registerRequestHandler(
@@ -153,7 +160,8 @@ public class PublicationTransportHandler {
                 final ClusterState incomingState;
                 // Close early to release resources used by the de-compression as early as possible
                 try (StreamInput input = in) {
-                    incomingState = ClusterState.readFrom(input, transportService.getLocalNode());
+                    ClusterState tempState = ClusterState.readFrom(input, transportService.getLocalNode());
+                    incomingState = ClusterStateUpgrader.upgrade(tempState, in.getVersion(), metadataUpgradeService);
                 } catch (Exception e) {
                     LOGGER.warn("unexpected error while deserializing an incoming cluster state", e);
                     throw e;
@@ -178,7 +186,12 @@ public class PublicationTransportHandler {
                         try (StreamInput input = in) {
                             diff = ClusterState.readDiffFrom(input, lastSeen.nodes().getLocalNode());
                         }
-                        incomingState = diff.apply(lastSeen); // might throw IncompatibleClusterStateVersionException
+                        incomingState = ClusterStateUpgrader.applyDiff(
+                            lastSeen,
+                            diff,
+                            in.getVersion(),
+                            metadataUpgradeService
+                        );
                     } catch (IncompatibleClusterStateVersionException e) {
                         incompatibleClusterStateDiffReceivedCount.incrementAndGet();
                         throw e;
@@ -223,6 +236,8 @@ public class PublicationTransportHandler {
     }
 
     private static BytesReference serializeFullClusterState(ClusterState clusterState, Version nodeVersion) throws IOException {
+        clusterState = ClusterStateUpgrader.downgrade(clusterState, nodeVersion);
+
         final BytesStreamOutput bStream = new BytesStreamOutput();
         try (StreamOutput stream = new OutputStreamStreamOutput(CompressorFactory.COMPRESSOR.threadLocalOutputStream(bStream))) {
             stream.setVersion(nodeVersion);
@@ -271,14 +286,14 @@ public class PublicationTransportHandler {
             for (DiscoveryNode node : discoveryNodes) {
                 try {
                     if (sendFullVersion || previousState.nodes().nodeExists(node) == false) {
+                        // BWC is handled in the serialization method
                         if (serializedStates.containsKey(node.getVersion()) == false) {
                             serializedStates.put(node.getVersion(), serializeFullClusterState(newState, node.getVersion()));
                         }
                     } else {
                         // will send a diff
-                        if (diff == null) {
-                            diff = newState.diff(previousState);
-                        }
+                        diff = ClusterStateUpgrader.createDiff(previousState, newState, node.getVersion());
+
                         if (serializedDiffs.containsKey(node.getVersion()) == false) {
                             final BytesReference serializedDiff = serializeDiffClusterState(diff, node.getVersion());
                             serializedDiffs.put(node.getVersion(), serializedDiff);
@@ -329,29 +344,18 @@ public class PublicationTransportHandler {
 
         public void sendApplyCommit(DiscoveryNode destination, ApplyCommitRequest applyCommitRequest,
                                     ActionListener<TransportResponse.Empty> listener) {
-            transportService.sendRequest(destination, COMMIT_STATE_ACTION_NAME, applyCommitRequest, stateRequestOptions,
-                new TransportResponseHandler<TransportResponse.Empty>() {
-
-                    @Override
-                    public TransportResponse.Empty read(StreamInput in) {
-                        return TransportResponse.Empty.INSTANCE;
-                    }
-
-                    @Override
-                    public void handleResponse(TransportResponse.Empty response) {
-                        listener.onResponse(response);
-                    }
-
-                    @Override
-                    public void handleException(TransportException exp) {
-                        listener.onFailure(exp);
-                    }
-
-                    @Override
-                    public String executor() {
-                        return ThreadPool.Names.GENERIC;
-                    }
-                });
+            transportService.sendRequest(
+                destination,
+                COMMIT_STATE_ACTION_NAME,
+                applyCommitRequest,
+                stateRequestOptions,
+                new ActionListenerResponseHandler<>(
+                    COMMIT_STATE_ACTION_NAME,
+                    listener,
+                    _ -> TransportResponse.Empty.INSTANCE,
+                    ThreadPool.Names.GENERIC
+                )
+            );
         }
 
         private void sendFullClusterState(DiscoveryNode destination, ActionListener<PublishWithJoinResponse> listener) {

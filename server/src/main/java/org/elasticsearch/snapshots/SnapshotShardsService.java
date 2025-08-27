@@ -28,8 +28,6 @@ import java.util.Map;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -67,6 +65,7 @@ import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportRequestDeduplicator;
 import org.elasticsearch.transport.TransportResponseHandler;
 import org.elasticsearch.transport.TransportService;
+import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
@@ -343,9 +342,16 @@ public class SnapshotShardsService extends AbstractLifecycleComponent implements
                 // we flush first to make sure we get the latest writes snapshotted
                 snapshotRef = indexShard.acquireLastIndexCommit(true);
                 final IndexCommit snapshotIndexCommit = snapshotRef.getIndexCommit();
-                repository.snapshotShard(indexShard.store(), snapshot.getSnapshotId(), indexId,
-                    snapshotRef.getIndexCommit(), getShardStateId(indexShard, snapshotIndexCommit), snapshotStatus, version,
-                    ActionListener.runBefore(listener, snapshotRef::close));
+                repository.snapshotShard(
+                    indexShard.store(),
+                    snapshot.getSnapshotId(),
+                    indexId,
+                    snapshotRef.getIndexCommit(),
+                    getShardStateId(indexShard, snapshotIndexCommit),
+                    snapshotStatus,
+                    version,
+                    listener.runBefore(snapshotRef::close)
+                );
             } catch (Exception e) {
                 IOUtils.close(snapshotRef);
                 throw e;

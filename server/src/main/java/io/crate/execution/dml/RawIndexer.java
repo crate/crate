@@ -35,7 +35,6 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.exceptions.ConversionException;
-import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
@@ -47,7 +46,7 @@ import io.crate.types.DataType;
 
 public class RawIndexer {
 
-    private final String indexName;
+    private final List<String> partitionValues;
     private final DocTableInfo table;
     private final TransactionContext txnCtx;
     private final NodeContext nodeCtx;
@@ -61,14 +60,14 @@ public class RawIndexer {
     private Indexer currentRowIndexer;
     private IndexItem.StaticItem currentItem;
 
-    public RawIndexer(String indexName,
+    public RawIndexer(List<String> partitionValues,
                       DocTableInfo table,
                       Version shardVersionCreated,
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
                       Symbol[] returnValues,
                       @NotNull List<Reference> nonDeterministicSynthetics) {
-        this.indexName = indexName;
+        this.partitionValues = partitionValues;
         this.table = table;
         this.txnCtx = txnCtx;
         this.nodeCtx = nodeCtx;
@@ -100,7 +99,7 @@ public class RawIndexer {
             targetRefs.addAll(nonDeterministicSynthetics);
 
             return new Indexer(
-                indexName,
+                partitionValues,
                 table,
                 shardVersionCreated,
                 txnCtx,
@@ -163,11 +162,7 @@ public class RawIndexer {
         return currentRowIndexer.index(currentItem);
     }
 
-    public boolean hasUndeterministicSynthetics() {
-        return currentRowIndexer.hasUndeterministicSynthetics();
-    }
-
-    public Object[] addGeneratedValues(ShardUpsertRequest.Item item) {
+    public Object[] addGeneratedValues(IndexItem item) {
         return currentRowIndexer.addGeneratedValues(item);
     }
 }

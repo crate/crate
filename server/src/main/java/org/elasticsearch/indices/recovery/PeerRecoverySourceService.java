@@ -164,7 +164,7 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
         LOGGER.trace(
             "[{}][{}] starting recovery to {}",
             request.shardId().getIndex().getName(), request.shardId().id(), request.targetNode());
-        handler.recoverToTarget(ActionListener.runAfter(listener, () -> ongoingRecoveries.remove(shard, handler)));
+        handler.recoverToTarget(listener.runAfter(() -> ongoingRecoveries.remove(shard, handler)));
     }
 
     private void reestablish(ReestablishRecoveryRequest request, ActionListener<RecoveryResponse> listener) {
@@ -180,14 +180,14 @@ public class PeerRecoverySourceService extends AbstractLifecycleComponent implem
 
         @Override
         public void messageReceived(final StartRecoveryRequest request, final TransportChannel channel) throws Exception {
-            recover(request, new ChannelActionListener<>(channel, Actions.START_RECOVERY, request));
+            recover(request, new ChannelActionListener<>(channel));
         }
     }
 
     class ReestablishRecoveryTransportRequestHandler implements TransportRequestHandler<ReestablishRecoveryRequest> {
         @Override
         public void messageReceived(ReestablishRecoveryRequest request, TransportChannel channel) throws Exception {
-            reestablish(request, new ChannelActionListener<>(channel, Actions.REESTABLISH_RECOVERY, request));
+            reestablish(request, new ChannelActionListener<>(channel));
         }
     }
 

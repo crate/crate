@@ -62,6 +62,6 @@ public class TransportAnalyzeActionTest extends ESTestCase {
                 null)
         );
         var stats = samples.createTableStats(references);
-        assertThat(stats.numDocs).isEqualTo(2L);
+        assertThat(stats.numDocs()).isEqualTo(2L);
     }
 }

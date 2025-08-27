@@ -21,6 +21,7 @@
 
 package io.crate.expression.reference;
 
+import java.util.List;
 import java.util.Map;
 
 import io.crate.expression.reference.doc.lucene.StoredRow;
@@ -29,21 +30,21 @@ public final class Doc {
 
     private final StoredRow storedRow;
     private final int docId;
-    private final String index;
+    private final List<String> partitionValues;
     private final String id;
     private final long version;
     private final long seqNo;
     private final long primaryTerm;
 
     public Doc(int docId,
-               String index,
+               List<String> partitionValues,
                String id,
                long version,
                long seqNo,
                long primaryTerm,
                StoredRow storedRow) {
         this.docId = docId;
-        this.index = index;
+        this.partitionValues = partitionValues;
         this.id = id;
         this.version = version;
         this.storedRow = storedRow;
@@ -79,8 +80,8 @@ public final class Doc {
         return storedRow.asMap();
     }
 
-    public String getIndex() {
-        return index;
+    public List<String> getPartitionValues() {
+        return partitionValues;
     }
 
     @Override

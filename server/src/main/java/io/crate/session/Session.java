@@ -623,13 +623,14 @@ public class Session implements AutoCloseable {
         // before any further messages are sent to clients.
         // E.g. PostgresWireProtocol would otherwise send a `ReadyForQuery` message too
         // early.
-        activeExecution = triggerDeferredExecutions();
+        activeExecution = triggerDeferredExecutions(false);
     }
 
-    public CompletableFuture<?> sync() {
+    public CompletableFuture<?> sync(boolean forceBulk) {
         if (activeExecution == null) {
-            return triggerDeferredExecutions();
+            return triggerDeferredExecutions(forceBulk);
         } else {
+            LOGGER.debug("method=sync activeExecution={}", activeExecution);
             var result = activeExecution;
             activeExecution = null;
             return result;
@@ -678,28 +679,32 @@ public class Session implements AutoCloseable {
         result.whenComplete((_, _) -> schedule.cancel(false));
     }
 
-    private CompletableFuture<?> triggerDeferredExecutions() {
-        switch (deferredExecutionsByStmt.size()) {
+    private CompletableFuture<?> triggerDeferredExecutions(boolean forceBulk) {
+        int numDeferred = deferredExecutionsByStmt.size();
+        LOGGER.debug("method=sync deferredExecutions={}", numDeferred);
+        switch (numDeferred) {
             case 0:
-                LOGGER.debug("method=sync deferredExecutions=0");
                 return CompletableFuture.completedFuture(null);
             case 1: {
                 var deferredExecutions = deferredExecutionsByStmt.values().iterator().next();
                 deferredExecutionsByStmt.clear();
-                return exec(deferredExecutions);
+                return exec(deferredExecutions, forceBulk);
             }
             default: {
+                // Mix of different deferred execution is PG specific.
+                // HTTP sync-s at the end of both single/bulk requests, and it's always one statement.
                 // sequentiallize execution to ensure client receives row counts in correct order
                 CompletableFuture<?> allCompleted = null;
                 for (var entry : deferredExecutionsByStmt.entrySet()) {
                     var deferredExecutions = entry.getValue();
                     if (allCompleted == null) {
-                        allCompleted = exec(deferredExecutions);
+                        allCompleted = exec(deferredExecutions, forceBulk);
                     } else {
                         allCompleted = allCompleted
                             // individual rowReceiver will receive failure; must not break execution chain due to failures.
+                            // No need to log execution and as it's handled in the exec() call.
                             .exceptionally(_ -> null)
-                            .thenCompose(_ -> exec(deferredExecutions));
+                            .thenCompose(_ -> exec(deferredExecutions, forceBulk));
                     }
                 }
                 deferredExecutionsByStmt.clear();
@@ -708,8 +713,8 @@ public class Session implements AutoCloseable {
         }
     }
 
-    private CompletableFuture<?> exec(List<DeferredExecution> executions) {
-        if (executions.size() == 1) {
+    private CompletableFuture<?> exec(List<DeferredExecution> executions, boolean forceBulk) {
+        if (executions.size() == 1 && !forceBulk) {
             var toExec = executions.get(0);
             return singleExec(toExec.portal(), toExec.resultReceiver(), toExec.maxRows());
         } else {
@@ -800,8 +805,13 @@ public class Session implements AutoCloseable {
                 cells[0] = Row1.ERROR;
                 cells[1] = t;
             }
-            resultReceiver.setNextRow(row);
-            resultReceiver.allFinished();
+            try {
+                resultReceiver.setNextRow(row);
+            } catch (Exception e) {
+                // Ignore
+            } finally {
+                resultReceiver.allFinished();
+            }
         }
         jobsLogs.logExecutionEnd(jobId, null);
     }

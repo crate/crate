@@ -47,11 +47,6 @@ A simple ``SELECT`` statement can be submitted like this::
     in this document, we use `here documents`_ (i.e. ``EOF``) for multi line
     readability.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _http-param-substitution:
 
@@ -384,8 +379,6 @@ Code   Error
        accessible.
 ------ ---------------------------------------------------------------------
 4008   The name of the column is invalid.
------- ---------------------------------------------------------------------
-4009   CrateDB License is expired. (Deprecated.)
 ------ ---------------------------------------------------------------------
 4010   User is not authorized to perform the SQL statement.
 ------ ---------------------------------------------------------------------

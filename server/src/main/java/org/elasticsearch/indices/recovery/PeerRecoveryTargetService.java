@@ -365,9 +365,9 @@ public class PeerRecoveryTargetService implements IndexEventListener {
             final RecoveryRef recoveryRef = onGoingRecoveries.getRecoverySafe(request.recoveryId(), request.shardId());
             boolean success = false;
             try {
-                recoveryRef.target().handoffPrimaryContext(request.primaryContext(),
-                    ActionListener.runBefore(new ChannelActionListener<>(channel, Actions.HANDOFF_PRIMARY_CONTEXT, request)
-                        .map(v -> TransportResponse.Empty.INSTANCE), recoveryRef::close));
+                ActionListener<Void> listener = new ChannelActionListener<>(channel)
+                    .map(_ -> TransportResponse.Empty.INSTANCE);
+                recoveryRef.target().handoffPrimaryContext(request.primaryContext(), listener.runBefore(recoveryRef::close));
                 success = true;
             } finally {
                 if (success == false) {
@@ -532,7 +532,7 @@ public class PeerRecoveryTargetService implements IndexEventListener {
                                                         final String action, final RecoveryTransportRequest request,
                                                         final CheckedFunction<Void, TransportResponse, Exception> responseFn) {
         final RecoveryTarget recoveryTarget = recoveryRef.target();
-        final ActionListener<TransportResponse> channelListener = new ChannelActionListener<>(channel, action, request);
+        final ActionListener<TransportResponse> channelListener = new ChannelActionListener<>(channel);
         final ActionListener<Void> voidListener = channelListener.map(responseFn);
 
         final long requestSeqNo = request.requestSeqNo();

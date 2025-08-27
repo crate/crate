@@ -50,7 +50,7 @@ public class MixedVersionStorageTest extends CrateDummyClusterServiceUnitTest {
         builder.indexValues(columns, 8, "name8", List.of(8, 80));
         builder.indexValues(columns, 9, "name9", List.of(9, 90));
         try (var tester = builder.build()) {
-            var lookup = StoredRowLookup.create(Version.V_5_9_0, tester.tableInfo(), "t");
+            var lookup = StoredRowLookup.create(Version.V_5_9_0, tester.tableInfo(), List.of());
             var reader = tester.searcher().getTopReaderContext().leaves().getFirst();
             var row = lookup.getStoredRow(new ReaderContext(reader), 0);
             assertThat(row.asRaw()).isNotEmpty();

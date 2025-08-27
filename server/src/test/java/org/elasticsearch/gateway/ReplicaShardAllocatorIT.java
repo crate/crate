@@ -21,6 +21,7 @@ package org.elasticsearch.gateway;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -68,7 +69,6 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
      */
     @Test
     public void testPreferCopyCanPerformNoopRecovery() throws Exception {
-        String indexName = "test";
         String nodeWithPrimary = cluster().startNode();
         execute("""
             create table doc.test (x int)
@@ -81,6 +81,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             )
         """);
 
+        String indexUUID = resolveIndex("doc.test").getUUID();
+
         String nodeWithReplica = cluster().startDataOnlyNode();
         Settings nodeWithReplicaSettings = cluster().dataPathSettings(nodeWithReplica);
 
@@ -90,7 +92,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(0, 80)});
         }
 
-        ensureActivePeerRecoveryRetentionLeasesAdvanced(indexName);
+        ensureActivePeerRecoveryRetentionLeasesAdvanced("test", indexUUID);
         cluster().stopRandomNode(TestCluster.nameFilter(nodeWithReplica));
         if (randomBoolean()) {
             execute("optimize table doc.test with(flush = true)");
@@ -103,9 +105,10 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             if (PeerRecoveryTargetService.Actions.FILES_INFO.equals(action)) {
                 recoveryStarted.countDown();
                 try {
-                    blockRecovery.await();
+                    blockRecovery.await(10, TimeUnit.SECONDS);
                 } catch (InterruptedException e) {
                     Thread.currentThread().interrupt();
+                    fail(e);
                 }
             }
             connection.sendRequest(requestId, action, request, options);
@@ -117,14 +120,17 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             // AllocationService only calls GatewayAllocator if there're unassigned shards
             execute("""
                 create table doc.dummy (x int)
-                with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
+                with (
+                    "number_of_replicas" = 1,
+                    "write.wait_for_active_shards" = 0
+                )
             """);
             assertBusy(() -> {
                 execute("select health from sys.health where table_name = 'test'");
                 assertThat(response).hasRows("GREEN");
-                assertThat(cluster().nodesInclude(indexName)).contains(newNodeWithReplica);
+                assertThat(cluster().nodesInclude(indexUUID)).contains(newNodeWithReplica);
             });
-            assertNoOpRecoveries(indexName);
+            assertNoOpRecoveries("test");
             blockRecovery.countDown();
         } finally {
             transportServiceOnPrimary.clearAllRules();
@@ -138,7 +144,6 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
     @SuppressWarnings("unchecked")
     @Test
     public void testRecentPrimaryInformation() throws Exception {
-        String indexName = "test";
         String nodeWithPrimary = cluster().startNode();
 
         execute("""
@@ -155,6 +160,9 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         DiscoveryNode discoNodeWithReplica = cluster().getInstance(ClusterService.class, nodeWithReplica).localNode();
         Settings nodeWithReplicaSettings = cluster().dataPathSettings(nodeWithReplica);
         ensureGreen();
+
+        String indexUUID = resolveIndex("doc.test").getUUID();
+
         execute("insert into doc.test (x) values (?)", new Object[][] {
             new Object[] { randomIntBetween(10, 100) },
             new Object[] { randomIntBetween(10, 100) },
@@ -197,10 +205,15 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
                 }
             });
             // AllocationService only calls GatewayAllocator if there are unassigned shards
+            // Excluding the new node for allocation to avoid rebalance of the `doc.test` table.
             execute("""
                 create table doc.dummy (x int)
-                with ("number_of_replicas" = 1, "write.wait_for_active_shards" = 0)
-            """);
+                with (
+                    "number_of_replicas" = 1,
+                    "write.wait_for_active_shards" = 0,
+                    "routing.allocation.exclude._name" = ?
+                )
+            """, new Object[] { newNode });
             cluster().startDataOnlyNode(nodeWithReplicaSettings);
 
             // need to wait for events to ensure the reroute has happened since we perform it async when a new node joins.
@@ -225,7 +238,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
             assertBusy(() -> {
                 execute("select health from sys.health where table_name = 'test'");
                 assertThat(response).hasRows("GREEN");
-                assertThat(cluster().nodesInclude(indexName)).contains(newNode);
+                assertThat(cluster().nodesInclude(indexUUID)).contains(newNode);
             });
 
             execute("select recovery['files'] from sys.shards where table_name = 'test'");
@@ -241,7 +254,6 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
     public void testFullClusterRestartPerformNoopRecovery() throws Exception {
         int numOfReplicas = randomIntBetween(1, 2);
         cluster().ensureAtLeastNumDataNodes(numOfReplicas + 2);
-        String indexName = "test";
 
         execute("""
             create table doc.test (x int)
@@ -256,6 +268,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
 
         ensureGreen();
 
+        String indexUUID = resolveIndex("doc.test").getUUID();
+
         execute("insert into doc.test (x) values (?)", new Object[]{randomIntBetween(200, 500)});
 
         execute("refresh table doc.test");
@@ -265,7 +279,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         if (randomBoolean()) {
             execute("optimize table doc.test with (max_num_segments = 1)");
         }
-        ensureActivePeerRecoveryRetentionLeasesAdvanced(indexName);
+        ensureActivePeerRecoveryRetentionLeasesAdvanced("test", indexUUID);
         if (randomBoolean()) {
             execute("alter table doc.test close");
         }
@@ -274,7 +288,7 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         ensureYellow();
         execute("reset global \"cluster.routing.allocation.enable\"");
         ensureGreen();
-        assertNoOpRecoveries(indexName);
+        assertNoOpRecoveries("test");
     }
 
     /**
@@ -334,7 +348,6 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
     public void testDoNotCancelRecoveryForBrokenNode() throws Exception {
         cluster().startMasterOnlyNode();
         String nodeWithPrimary = cluster().startDataOnlyNode();
-        String indexName = "test";
 
         execute("""
             create table doc.test (x int)
@@ -373,14 +386,16 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
     }
 
     @SuppressWarnings("unchecked")
-    private void ensureActivePeerRecoveryRetentionLeasesAdvanced(String indexName) throws Exception {
+    private void ensureActivePeerRecoveryRetentionLeasesAdvanced(String tableName, String indexUUID) throws Exception {
         assertBusy(() -> {
-            Set<String> activeRetentionLeaseIds = clusterService().state().routingTable().index(indexName).shard(0).shards().stream()
+            Set<String> activeRetentionLeaseIds = clusterService().state().routingTable().index(indexUUID).shard(0).shards().stream()
                 .map(shardRouting -> ReplicationTracker.getPeerRecoveryRetentionLeaseId(shardRouting.currentNodeId()))
                 .collect(Collectors.toSet());
             execute(
                 "select seq_no_stats['global_checkpoint'], seq_no_stats['max_seq_no'], retention_leases['leases'] from sys.shards where table_name = ?",
-                new Object[]{indexName});
+                new Object[]{tableName});
+            assertThat(response.rowCount()).isGreaterThan(0);
+            assertThat(response.rows()[0][0]).isNotNull();
             long globalCheckPoint = (long) response.rows()[0][0];
             long maxSeqNo = (long) response.rows()[0][1];
             assertThat(globalCheckPoint).isEqualTo(maxSeqNo);
@@ -394,8 +409,8 @@ public class ReplicaShardAllocatorIT extends IntegTestCase {
         });
     }
 
-    private void assertNoOpRecoveries(String indexName) {
-        execute("select recovery['files'] from sys.shards where table_name = ?", new Object[]{indexName});
+    private void assertNoOpRecoveries(String tableName) {
+        execute("select recovery['files'] from sys.shards where table_name = ?", new Object[]{tableName});
         for (var row : response.rows()) {
             assertThat((Map<String, Object>) row[0]).isNotEmpty();
         }

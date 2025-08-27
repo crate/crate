@@ -21,9 +21,11 @@ package org.elasticsearch.test.engine;
 import java.io.Closeable;
 import java.io.IOException;
 import java.lang.reflect.Constructor;
+import java.util.Arrays;
 import java.util.IdentityHashMap;
 import java.util.Random;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -48,6 +50,8 @@ import io.crate.lucene.CrateLuceneTestCase;
  * since they need to subclass the actual engine
  */
 public final class MockEngineSupport {
+
+    private static final Logger LOGGER = LogManager.getLogger(MockEngineSupport.class);
 
     /**
      * Allows tests to wrap an index reader randomly with a given ratio. This
@@ -202,13 +206,27 @@ public final class MockEngineSupport {
 
         @Override
         public synchronized void close() {
-            if (openSearchers.isEmpty() == false) {
-                AssertionError error = new AssertionError("Unreleased searchers found");
-                for (RuntimeException ex : openSearchers.values()) {
-                    error.addSuppressed(ex);
-                }
-                throw error;
-            }
+             if (openSearchers.isEmpty() == false) {
+                 AssertionError error = new AssertionError("Unreleased searchers found");
+                 // Log the first open searcher location in addition to raising an error to have
+                 // The info in the test-stdout to get a full picture
+                 boolean logNext = true;
+                 for (RuntimeException ex : openSearchers.values()) {
+                     if (logNext) {
+                         logNext = false;
+                         StackTraceElement[] stackTrace = ex.getStackTrace();
+                         LOGGER.error(
+                             "Unreleased searchers: ex={}\n{}",
+                             ex,
+                             Arrays.stream(stackTrace)
+                                 .map(x -> "\t" + x.toString())
+                                 .collect(Collectors.joining("\n"))
+                         );
+                     }
+                     error.addSuppressed(ex);
+                 }
+                 throw error;
+             }
         }
 
         void add(Object key, String source) {

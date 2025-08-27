@@ -46,6 +46,8 @@ import org.elasticsearch.test.transport.CapturingTransport;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.io.IOUtils;
@@ -59,6 +61,8 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
     private TransportService transportService;
     private ShardStateAction shardStateAction;
 
+    @Before
+    @Override
     public void setUp() throws Exception {
         super.setUp();
         threadPool = new TestThreadPool(getClass().getName());
@@ -75,6 +79,8 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         shardStateAction = new ShardStateAction(clusterService, transportService, null, null);
     }
 
+    @After
+    @Override
     public void tearDown() throws Exception {
         try {
             IOUtils.close(transportService, clusterService, transport);
@@ -119,7 +125,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         // we should forward the request containing the current retention leases to the replica
         assertThat(result.replicaRequest()).isSameAs(request);
         // we should start with an empty replication response
-        assertThat(result.finalResponseIfSuccessful.getShardInfo()).isNull();
+        assertThat(result.response.getShardInfo()).isNull();
     }
 
     @Test
@@ -156,7 +162,7 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
         verify(indexShard).persistRetentionLeases();
         // the result should indicate success
         final AtomicBoolean success = new AtomicBoolean();
-        result.runPostReplicaActions(ActionListener.wrap(r -> success.set(true), e -> fail(e.toString())));
+        result.runPostReplicaActions(ActionListener.wrap(_ -> success.set(true), e -> fail(e.toString())));
         assertThat(success.get()).isTrue();
     }
 
@@ -186,5 +192,4 @@ public class RetentionLeaseSyncActionTests extends ESTestCase {
 
         assertThat(action.indexBlockLevel()).isNull();
     }
-
 }

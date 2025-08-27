@@ -47,6 +47,7 @@ import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.spatial.prefix.IntersectsPrefixTreeQuery;
 import org.elasticsearch.Version;
 import org.junit.Test;
+import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AnalyzedRelation;
@@ -61,12 +62,19 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.role.Role;
+import io.crate.sql.SqlFormatter;
+import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexVersionCreated;
 import io.crate.testing.QueryTester;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.SqlExpressions;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.FloatVectorType;
+import io.crate.types.GeoPointType;
+import io.crate.types.GeoShapeType;
+import io.crate.types.NumericType;
+import io.crate.types.ObjectType;
 
 public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
 
@@ -889,7 +897,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_all_eq_on_array_ref() throws Exception {
+    public void test_all_eq_on_array_ref_before_5_9_0() throws Exception {
         var listOfNulls = new ArrayList<Integer>();
         listOfNulls.add(null);
         var listOfOneAndNull = new ArrayList<Integer>();
@@ -902,7 +910,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         QueryTester.Builder builder = new QueryTester.Builder(
             THREAD_POOL,
             clusterService,
-            Version.CURRENT,
+            Version.V_5_8_0,
             "create table tbl (a int[])");
         builder.indexValue("a", List.of(1));
         builder.indexValue("a", List.of(1, 1));
@@ -912,8 +920,132 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         builder.indexValue("a", listOfOneAndNull);
         builder.indexValue("a", listOfTwoAndNull);
         try (QueryTester tester = builder.build()) {
+            assertThat(tester.toQuery("1 = all(a)"))
+                .hasToString("+(+*:* -((a:[2 TO 2147483647] a:[-2147483648 TO 0])~1)) #(NOT (1 <> ANY(a)))");
             assertThat(tester.runQuery("a", "1 = all(a)"))
                 .containsExactly(List.of(1), List.of(1, 1), List.of());
+        }
+    }
+
+    @Test
+    public void test_all_eq_query_generation_on_array_refs() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (a int[], b int[] storage with (columnstore = false), c string[], d string[] storage with (columnstore = false))");
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.toQuery("1 = all(a)"))
+                .hasToString("((+NumNullTermsPerDoc: a +(+*:* -((a:[2 TO 2147483647] a:[-2147483648 TO 0])~1))) _array_length_a:[0 TO 0])~1");
+            assertThat(tester.toQuery("1 = all(b)"))
+                .hasToString("+(+*:* -((b:[2 TO 2147483647] b:[-2147483648 TO 0])~1)) #(NOT (1 <> ANY(b)))");
+            assertThat(tester.toQuery("'abc' = all(c)"))
+                .hasToString("+(+*:* -((c:{abc TO *} c:{* TO abc})~1)) #(NOT ('abc' <> ANY(c)))");
+            assertThat(tester.toQuery("'abc' = all(d)"))
+                .hasToString("+(+*:* -((d:{abc TO *} d:{* TO abc})~1)) #(NOT ('abc' <> ANY(d)))");
+        }
+    }
+
+    @Test
+    public void test_all_eq_query_for_all_types() throws Exception {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
+            if (type.id() == FloatVectorType.ID) {
+                continue;
+            }
+            if (type.id() == ObjectType.ID) {
+                type = ObjectType.of(type.columnPolicy()).setInnerType("x", DataTypes.DOUBLE).build();
+            }
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
+            QueryTester.Builder builder = new QueryTester.Builder(
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                "create table tbl (a " + typeDefinition + "[])");
+            try (QueryTester tester = builder.build()) {
+                var dataGen = DataTypeTesting.getDataGenerator(type);
+                var val1 = dataGen.get();
+                var val2 = dataGen.get();
+
+                var listOfNulls = new ArrayList<>();
+                listOfNulls.add(null);
+                var listOfVal1AndNull = new ArrayList<>();
+                listOfVal1AndNull.add(val1);
+                listOfVal1AndNull.add(null);
+                var listOfVal2AndNull = new ArrayList<>();
+                listOfVal2AndNull.add(val2);
+                listOfVal2AndNull.add(null);
+
+                builder.indexValue("a", List.of(val1));
+                builder.indexValue("a", List.of(val1, val1));
+                builder.indexValue("a", List.of());
+                builder.indexValue("a", listOfNulls);
+                builder.indexValue("a", null);
+                builder.indexValue("a", listOfVal1AndNull);
+                builder.indexValue("a", listOfVal2AndNull);
+
+                String val1Str = Literal.ofUnchecked(type, val1).toString();
+                if (type.id() == GeoPointType.ID) {
+                    PointImpl p = (PointImpl) val1;
+                    val1Str = "[" + p.getX() + "," + p.getY() + "]";
+                } else if (type.id() == GeoShapeType.ID) {
+                    // DataTypeTesting.getDataGenerator generates points only
+                    List<Double> c = (List<Double>) ((Map<String, Object>) val1).get("coordinates");
+                    val1Str = String.format("'POINT (%s %s)'", c.get(0), c.get(1));
+                } else if (type.id() == NumericType.ID) {
+                    // TODO: quoting the numeric literals to preserve precision then correctly match - https://github.com/crate/crate/issues/18220
+                    val1Str = "'" + val1 + "'";
+                }
+                assertThat(tester.runQuery("a", String.format("%s = all(a)", val1Str)))
+                    .containsExactly(List.of(val1), List.of(val1, val1), List.of());
+            }
+        }
+    }
+
+    @Test
+    public void test_all_eq_query_for_all_types_with_columnstore_false() throws Exception {
+        for (DataType<?> type : DataTypeTesting.getStorableTypesExceptArrays(random())) {
+            if (!type.storageSupport().supportsDocValuesOff()) {
+                continue;
+            }
+            if (type.id() == FloatVectorType.ID) {
+                continue;
+            }
+            String typeDefinition = SqlFormatter.formatSql(type.toColumnType(null));
+            QueryTester.Builder builder = new QueryTester.Builder(
+                THREAD_POOL,
+                clusterService,
+                Version.CURRENT,
+                "create table tbl (a " + typeDefinition + "[] storage with (columnstore = false))");
+            try (QueryTester tester = builder.build()) {
+                var dataGen = DataTypeTesting.getDataGenerator(type);
+                var val1 = dataGen.get();
+                var val2 = dataGen.get();
+
+                var listOfNulls = new ArrayList<>();
+                listOfNulls.add(null);
+                var listOfVal1AndNull = new ArrayList<>();
+                listOfVal1AndNull.add(val1);
+                listOfVal1AndNull.add(null);
+                var listOfVal2AndNull = new ArrayList<>();
+                listOfVal2AndNull.add(val2);
+                listOfVal2AndNull.add(null);
+
+                builder.indexValue("a", List.of(val1));
+                builder.indexValue("a", List.of(val1, val1));
+                builder.indexValue("a", List.of());
+                builder.indexValue("a", listOfNulls);
+                builder.indexValue("a", null);
+                builder.indexValue("a", listOfVal1AndNull);
+                builder.indexValue("a", listOfVal2AndNull);
+
+                String val1Str = Literal.ofUnchecked(type, val1).toString();
+                if (type.id() == NumericType.ID) {
+                    // TODO: quoting the numeric literals to preserve precision then correctly match - https://github.com/crate/crate/issues/18220
+                    val1Str = "'" + val1 + "'";
+                }
+                assertThat(tester.runQuery("a", String.format("%s = all(a)", val1Str)))
+                    .containsExactly(List.of(val1), List.of(val1, val1), List.of());
+            }
         }
     }
 

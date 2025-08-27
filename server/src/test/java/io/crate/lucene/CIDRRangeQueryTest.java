@@ -67,7 +67,7 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
-            "create table t (ip_addr ip)"
+            "create table t1 (ip_addr ip)"
         );
         builder.indexValues("ip_addr", valuesToIndex);
         try (QueryTester tester = builder.build()) {
@@ -79,7 +79,7 @@ public class CIDRRangeQueryTest extends CrateDummyClusterServiceUnitTest {
             THREAD_POOL,
             clusterService,
             Version.CURRENT,
-            "create table t (ip_addr ip index off)"
+            "create table t2 (ip_addr ip index off)"
         );
         builder.indexValues("ip_addr", valuesToIndex);
         try (QueryTester tester = builder.build()) {

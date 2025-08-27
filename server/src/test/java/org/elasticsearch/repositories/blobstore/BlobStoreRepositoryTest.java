@@ -70,8 +70,6 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     @ClassRule
     public static final TemporaryFolder TEMPORARY_FOLDER = new TemporaryFolder();
 
-    private File defaultRepositoryLocation;
-
     @Override
     protected Settings nodeSettings(int nodeOrdinal) {
         return Settings.builder().put(super.nodeSettings(nodeOrdinal))
@@ -83,7 +81,7 @@ public class BlobStoreRepositoryTest extends IntegTestCase {
     public void createRepository() throws Exception {
         // BlobStoreRepository operations must run on specific threads
         Thread.currentThread().setName(ThreadPool.Names.GENERIC);
-        defaultRepositoryLocation = TEMPORARY_FOLDER.newFolder();
+        File defaultRepositoryLocation = TEMPORARY_FOLDER.newFolder();
         execute("CREATE REPOSITORY " + REPOSITORY_NAME + " TYPE \"fs\" with (location=?, compress=True)",
                 new Object[]{defaultRepositoryLocation.getAbsolutePath()});
         assertThat(response.rowCount()).isEqualTo(1L);

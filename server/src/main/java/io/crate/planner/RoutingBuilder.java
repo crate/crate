@@ -168,7 +168,7 @@ final class RoutingBuilder {
         }
     }
 
-    public ShardRouting resolveShard(String indexName, String id, String routing) {
-        return routingProvider.forId(clusterState, indexName, id, routing);
+    public ShardRouting resolveShard(String indexUUID, String id, String routing) {
+        return routingProvider.forId(clusterState, indexUUID, id, routing);
     }
 }

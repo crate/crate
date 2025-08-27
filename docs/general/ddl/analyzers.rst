@@ -4,10 +4,6 @@
 Fulltext analyzers
 ==================
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 .. _analyzer-overview:
 

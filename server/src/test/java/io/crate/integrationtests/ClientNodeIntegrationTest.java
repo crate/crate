@@ -48,7 +48,7 @@ public class ClientNodeIntegrationTest extends IntegTestCase {
                 }
 
                 @Override
-                public Sessions sqlOperations() {
+                public Sessions sessions() {
                     return cluster().getInstance(Sessions.class);
                 }
             }

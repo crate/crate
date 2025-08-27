@@ -29,6 +29,7 @@ import static io.crate.session.Session.UNNAMED;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -44,8 +45,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jetbrains.annotations.Nullable;
@@ -56,8 +55,6 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;
-import io.crate.breaker.TypedRowAccounting;
-import io.crate.common.collections.Lists;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
@@ -93,7 +90,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     private final Sessions sessions;
     private final Function<String, CircuitBreaker> circuitBreakerProvider;
     private final Roles roles;
-    private final Netty4CorsConfig corsConfig;
     private final boolean checkJwtProperties;
 
     private Session session;
@@ -101,14 +97,12 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     public SqlHttpHandler(Settings settings,
                           Sessions sessions,
                           Function<String, CircuitBreaker> circuitBreakerProvider,
-                          Roles roles,
-                          Netty4CorsConfig corsConfig) {
+                          Roles roles) {
         super(false);
         this.settings = settings;
         this.sessions = sessions;
         this.circuitBreakerProvider = circuitBreakerProvider;
         this.roles = roles;
-        this.corsConfig = corsConfig;
         this.checkJwtProperties = settings.get(AUTH_HOST_BASED_JWT_ISS_SETTING.getKey()) == null;
     }
 
@@ -190,7 +184,6 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             );
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, mediaType);
         }
-        Netty4CorsHandler.setCorsResponseHeaders(request, resp, corsConfig);
         resp.headers().add(HttpHeaderNames.CONTENT_LENGTH, String.valueOf(content.readableBytes()));
         boolean closeConnection = isCloseConnection(request);
         ChannelPromise promise = ctx.newPromise();
@@ -259,20 +252,16 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
                 MAX_BLOCK_SIZE_IN_BYTES);
             resultReceiver = new RestResultSetReceiver(
-                JsonXContent.builder(),
+                new XContentBuilder(JsonXContent.JSON_XCONTENT, new RamAccountingOutputStream(ramAccounting)),
                 resultFields,
                 description.getFieldNames(),
                 startTimeInNs,
-                new TypedRowAccounting(
-                    Lists.map(resultFields, Symbol::valueType),
-                    ramAccounting
-                ),
                 includeTypes
             );
             resultReceiver.completionFuture().whenComplete((result, error) -> ramAccounting.close());
         }
         session.execute(UNNAMED, 0, resultReceiver);
-        return session.sync()
+        return session.sync(false)
             .thenCompose(ignored -> resultReceiver.completionFuture());
     }
 
@@ -296,8 +285,8 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         }
         var sessionSettings = session.sessionSettings();
         AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
-        return session.sync()
-            .thenApply(ignored -> {
+        return session.sync(true)
+            .thenApply(_ -> {
                 try {
                     return ResultToXContentBuilder.builder(JsonXContent.builder())
                         .cols(emptyList())
@@ -336,5 +325,33 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private static boolean bothProvided(@Nullable List<Object> args, @Nullable List<List<Object>> bulkArgs) {
         return args != null && !args.isEmpty() && bulkArgs != null && !bulkArgs.isEmpty();
+    }
+
+    static final class RamAccountingOutputStream extends ByteArrayOutputStream {
+
+        private final RamAccounting ramAccounting;
+
+        public RamAccountingOutputStream(RamAccounting ramAccounting) {
+            super();
+            this.ramAccounting = ramAccounting;
+        }
+
+        @Override
+        public void write(byte[] b, int off, int len) {
+            ramAccounting.addBytes(len);
+            super.write(b, off, len);
+        }
+
+        @Override
+        public void write(int b) {
+            ramAccounting.addBytes(1);
+            super.write(b);
+        }
+
+        @Override
+        public void close() throws IOException {
+            ramAccounting.release();
+            super.close();
+        }
     }
 }

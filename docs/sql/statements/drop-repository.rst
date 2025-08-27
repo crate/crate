@@ -13,11 +13,6 @@ de-register a repository.
 
     :ref:`CREATE REPOSITORY <sql-create-repository>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _sql-drop-repo-synopsis:
 
@@ -46,7 +41,7 @@ When a repository is de-registered, it is no longer available for use.
 
 .. NOTE::
 
-    A repository can only be dropped when not in use, i.e. when there are no 
+    A repository can only be dropped when not in use, i.e. when there are no
     snapshots being taken.
 
 

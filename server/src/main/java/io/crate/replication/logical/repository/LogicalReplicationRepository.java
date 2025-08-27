@@ -49,7 +49,6 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -74,6 +73,7 @@ import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.RemoteClusters;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
@@ -157,16 +157,16 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
         return getPublicationsState()
             .thenApply(stateResponse -> {
-                List<String> indicesNames = new ArrayList<>();
+                List<String> indexUUIDs = new ArrayList<>();
                 for (var container : stateResponse.metadata().indices().values()) {
                     IndexMetadata im = container.value;
                     if (REPLICATION_INDEX_ROUTING_ACTIVE.get(im.getSettings())) {
-                        indicesNames.add(im.getIndex().getName());
+                        indexUUIDs.add(im.getIndex().getUUID());
                     }
                 }
                 return new SnapshotInfo(
                     snapshotId,
-                    indicesNames,
+                    indexUUIDs,
                     SnapshotState.SUCCESS,
                     Version.CURRENT
                 );
@@ -183,13 +183,6 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .thenApply(remoteClusterStateResp -> {
                 ClusterState remoteClusterState = remoteClusterStateResp.getState();
                 var metadataBuilder = Metadata.builder(remoteClusterState.metadata());
-                for (var cursor : remoteClusterState.metadata().templates().values()) {
-                    // Add subscription name as a setting value which can be used to restrict operations on
-                    // partitioned tables (e.g. forbid writes/creating new partitions)
-                    var settings = addSubscriptionSetting(cursor.value.settings(), subscriptionName);
-                    var templateMetadata = new IndexTemplateMetadata.Builder(cursor.value).settings(settings);
-                    metadataBuilder.put(templateMetadata);
-                }
 
                 // We update all tables with the subscription setting, not only the partitioned ones,
                 // as in getSnapshotIndexMetadata() we don't have access to the whole `Metadata` object.
@@ -387,7 +380,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             ClusterState publisherClusterState = resp.getState();
             var publisherShardRouting = publisherClusterState.routingTable()
                 .shardRoutingTable(
-                    snapshotShardId.getIndexName(),
+                    snapshotShardId.getIndexUUID(),
                     snapshotShardId.id()
                 )
                 .primaryShard();
@@ -395,7 +388,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             // Get the index UUID of the publisher cluster for the metadata request
             var shardId = new ShardId(
                 snapshotShardId.getIndexName(),
-                publisherClusterState.metadata().index(indexId.getName()).getIndexUUID(),
+                indexId.getId(),
                 snapshotShardId.id()
             );
             var restoreUUID = UUIDs.randomBase64UUID();
@@ -476,9 +469,10 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
         return getRemoteClusterState(false, true, Arrays.asList(remoteRelationNames));
     }
 
-    private CompletableFuture<ClusterStateResponse> getRemoteClusterState(boolean includeNodes,
-                                                                          boolean includeRouting,
-                                                                          List<RelationName> relationNames) {
+    @VisibleForTesting
+    CompletableFuture<ClusterStateResponse> getRemoteClusterState(boolean includeNodes,
+                                                                  boolean includeRouting,
+                                                                  List<RelationName> relationNames) {
         Client remoteClient = getRemoteClient();
         var clusterStateRequest = new ClusterStateRequest()
             .relationNames(relationNames)
@@ -486,7 +480,12 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
             .nodes(includeNodes)
             .routingTable(includeRouting)
             .waitForTimeout(new TimeValue(REMOTE_CLUSTER_REPO_REQ_TIMEOUT_IN_MILLI_SEC));
-        return remoteClient.state(clusterStateRequest);
+        return remoteClient.state(clusterStateRequest)
+            .thenApply(r -> new ClusterStateResponse(
+                r.getClusterName(),
+                ClusterState.builder(r.getState())
+                    .metadata(metadataUpgradeService.upgradeMetadata(r.getState().metadata())).build(),
+                r.isWaitForTimedOut()));
     }
 
     private CompletableFuture<Response> getPublicationsState() {
@@ -497,7 +496,7 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
                 logicalReplicationService.subscriptions().get(subscriptionName).connectionInfo().settings().get(ConnectionInfo.USERNAME.getKey())
             )).thenApply(r ->
                 new Response(
-                    metadataUpgradeService.addOrUpgradeRelationMetadata(r.metadata()),
+                    metadataUpgradeService.upgradeMetadata(r.metadata()),
                     r.unknownPublications()
                 ));
     }

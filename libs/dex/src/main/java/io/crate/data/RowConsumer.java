@@ -21,9 +21,12 @@
 
 package io.crate.data;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.concurrent.Killable;
 
 /**
  * A consumer of a {@link BatchIterator}.
@@ -40,8 +43,20 @@ import java.util.function.BiConsumer;
  * <p>
  *     Multiple calls to {@link #accept(BatchIterator, Throwable)} are not allowed.
  * </p>
+ *
+ * <p>
+ * A RowConsumer is <b>optionally</b> {@link Killable}. Note that opposed to
+ * the kill handling on the {@link BatchIterator} where its implementation and
+ * use is mandatory for proper kill management, implementations of the
+ * RowConsumer are free to skip implementing it and users of a RowConsumer
+ * don't have to invoke the kill. That said, if it allows to accelerate a kill
+ * request it should be implemented.
+ *
+ * Also note that RowConsumer's are not responsible for killing the BatchIterator.
+ * Other components are supposed to do that.
+ * </p>
  */
-public interface RowConsumer extends BiConsumer<BatchIterator<Row>, Throwable> {
+public interface RowConsumer extends BiConsumer<BatchIterator<Row>, Throwable>, Killable {
 
     /**
      * Start consumption of the given {@link BatchIterator}.
@@ -66,5 +81,9 @@ public interface RowConsumer extends BiConsumer<BatchIterator<Row>, Throwable> {
      * */
     default boolean requiresScroll() {
         return false;
+    }
+
+    @Override
+    default void kill(Throwable throwable) {
     }
 }

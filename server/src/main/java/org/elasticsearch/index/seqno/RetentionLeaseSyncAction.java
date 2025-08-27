@@ -92,7 +92,10 @@ public class RetentionLeaseSyncAction extends
         assert false : "use RetentionLeaseSyncAction#sync";
     }
 
-    final void sync(ShardId shardId, String primaryAllocationId, long primaryTerm, RetentionLeases retentionLeases,
+    final void sync(ShardId shardId,
+                    String primaryAllocationId,
+                    long primaryTerm,
+                    RetentionLeases retentionLeases,
                     ActionListener<ReplicationResponse> listener) {
         final Request request = new Request(shardId, retentionLeases);
         transportService.sendRequest(
@@ -130,13 +133,15 @@ public class RetentionLeaseSyncAction extends
     protected void shardOperationOnPrimary(Request request,
                                            IndexShard primary,
                                            ActionListener<PrimaryResult<Request, ReplicationResponse>> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             assert request.waitForActiveShards().equals(ActiveShardCount.NONE) : request.waitForActiveShards();
             Objects.requireNonNull(request);
             Objects.requireNonNull(primary);
             primary.persistRetentionLeases();
-            return new WritePrimaryResult<>(request, new ReplicationResponse(), null, null, primary);
-        });
+            listener.onResponse(new WritePrimaryResult<>(request, new ReplicationResponse(), null, primary));
+        } catch (Throwable ex) {
+            listener.onFailure(Exceptions.toException(ex));
+        }
     }
 
     @Override
@@ -145,7 +150,7 @@ public class RetentionLeaseSyncAction extends
         Objects.requireNonNull(replica);
         replica.updateRetentionLeasesOnReplica(request.getRetentionLeases());
         replica.persistRetentionLeases();
-        return new WriteReplicaResult(null, null, replica);
+        return new WriteReplicaResult(null, replica);
     }
 
     @Override
@@ -184,7 +189,6 @@ public class RetentionLeaseSyncAction extends
                     "retentionLeases=" + retentionLeases +
                     ", shardId=" + shardId +
                     ", timeout=" + timeout +
-                    ", index='" + index + '\'' +
                     ", waitForActiveShards=" + waitForActiveShards +
                     '}';
         }

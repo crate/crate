@@ -6,11 +6,6 @@
 
 Lists the tables in the database.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

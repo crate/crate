@@ -38,6 +38,7 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateApplier;
@@ -143,10 +144,12 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     }
 
     class UpdateTask extends PrioritizedRunnable implements UnaryOperator<ClusterState> {
-        final ClusterApplyListener listener;
+        final ActionListener<Void> listener;
         final UnaryOperator<ClusterState> updateFunction;
 
-        UpdateTask(Priority priority, String source, ClusterApplyListener listener,
+        UpdateTask(Priority priority,
+                   String source,
+                   ActionListener<Void> listener,
                    UnaryOperator<ClusterState> updateFunction) {
             super(priority, source);
             this.listener = listener;
@@ -296,8 +299,10 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         }
     }
 
-    public void runOnApplierThread(final String source, Consumer<ClusterState> clusterStateConsumer,
-                                   final ClusterApplyListener listener, Priority priority) {
+    public void runOnApplierThread(final String source,
+                                   Consumer<ClusterState> clusterStateConsumer,
+                                   final ActionListener<Void> listener,
+                                   Priority priority) {
         submitStateUpdateTask(source, ClusterStateTaskConfig.build(priority),
             (clusterState) -> {
                 clusterStateConsumer.accept(clusterState);
@@ -307,13 +312,14 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
     }
 
     public void runOnApplierThread(final String source, Consumer<ClusterState> clusterStateConsumer,
-                                   final ClusterApplyListener listener) {
+                                   final ActionListener<Void> listener) {
         runOnApplierThread(source, clusterStateConsumer, listener, Priority.HIGH);
     }
 
     @Override
-    public void onNewClusterState(final String source, final Supplier<ClusterState> clusterStateSupplier,
-                                  final ClusterApplyListener listener) {
+    public void onNewClusterState(final String source,
+                                  final Supplier<ClusterState> clusterStateSupplier,
+                                  final ActionListener<Void> listener) {
         UnaryOperator<ClusterState> applyFunction = currentState -> {
             ClusterState nextState = clusterStateSupplier.get();
             if (nextState != null) {
@@ -327,16 +333,16 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
 
     private void submitStateUpdateTask(final String source, final ClusterStateTaskConfig config,
                                        final UnaryOperator<ClusterState> executor,
-                                       final ClusterApplyListener listener) {
+                                       final ActionListener<Void> listener) {
         if (!lifecycle.started()) {
             return;
         }
         try {
-            UpdateTask updateTask = new UpdateTask(config.priority(), source, new SafeClusterApplyListener(listener, LOGGER), executor);
+            UpdateTask updateTask = new UpdateTask(config.priority(), source, new SafeClusterApplyListener(source, listener, LOGGER), executor);
             if (config.timeout() != null) {
                 threadPoolExecutor.execute(updateTask, config.timeout(),
                     () -> threadPool.generic().execute(
-                        () -> listener.onFailure(source, new ProcessClusterEventTimeoutException(config.timeout(), source))));
+                        () -> listener.onFailure(new ProcessClusterEventTimeoutException(config.timeout(), source))));
             } else {
                 threadPoolExecutor.execute(updateTask);
             }
@@ -396,7 +402,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
                 "failed to execute cluster state applier in [{}], state:\nversion [{}], source [{}]\n{}",
                 executionTime, previousClusterState.version(), task.source(), previousClusterState), e);
             warnAboutSlowTaskIfNeeded(executionTime, task.source(), stopWatch);
-            task.listener.onFailure(task.source(), e);
+            task.listener.onFailure(e);
             return;
         }
 
@@ -404,7 +410,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
             TimeValue executionTime = TimeValue.timeValueMillis(Math.max(0, currentTimeInMillis() - startTimeMS));
             LOGGER.debug("processing [{}]: took [{}] no change in cluster state", task.source(), executionTime);
             warnAboutSlowTaskIfNeeded(executionTime, task.source(), stopWatch);
-            task.listener.onSuccess(task.source());
+            task.listener.onResponse(null);
         } else {
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.debug("cluster state updated, version [{}], source [{}]\n{}", newClusterState.version(), task.source(),
@@ -419,7 +425,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
                     executionTime, newClusterState.version(),
                     newClusterState.stateUUID());
                 warnAboutSlowTaskIfNeeded(executionTime, task.source(), stopWatch);
-                task.listener.onSuccess(task.source());
+                task.listener.onResponse(null);
             } catch (Exception e) {
                 TimeValue executionTime = TimeValue.timeValueMillis(Math.max(0, currentTimeInMillis() - startTimeMS));
                 if (LOGGER.isTraceEnabled()) {
@@ -434,7 +440,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
                 // failing to apply a cluster state with an exception indicates a bug in validation or in one of the appliers; if we
                 // continue we will retry with the same cluster state but that might not help.
                 assert applicationMayFail();
-                task.listener.onFailure(task.source(), e);
+                task.listener.onFailure(e);
             }
         }
     }
@@ -523,19 +529,21 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         }
     }
 
-    private static class SafeClusterApplyListener implements ClusterApplyListener {
-        private final ClusterApplyListener listener;
+    private static class SafeClusterApplyListener implements ActionListener<Void> {
+        private final ActionListener<Void> listener;
         private final Logger logger;
+        private final String source;
 
-        SafeClusterApplyListener(ClusterApplyListener listener, Logger logger) {
+        SafeClusterApplyListener(String source, ActionListener<Void> listener, Logger logger) {
             this.listener = listener;
             this.logger = logger;
+            this.source = source;
         }
 
         @Override
-        public void onFailure(String source, Exception e) {
+        public void onFailure(Exception e) {
             try {
-                listener.onFailure(source, e);
+                listener.onFailure(e);
             } catch (Exception inner) {
                 inner.addSuppressed(e);
                 logger.error(new ParameterizedMessage(
@@ -544,9 +552,9 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
         }
 
         @Override
-        public void onSuccess(String source) {
+        public void onResponse(Void response) {
             try {
-                listener.onSuccess(source);
+                listener.onResponse(response);
             } catch (Exception e) {
                 logger.error(new ParameterizedMessage(
                     "exception thrown by listener while notifying of cluster state processed from [{}]", source), e);

@@ -9,10 +9,6 @@ Information schema
 are read-only and can be queried to get information about the state of the
 cluster.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 Access
 ======
@@ -102,6 +98,7 @@ number of replicas.
     | pg_catalog         | pg_am                             | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_attrdef                        | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_attribute                      | BASE TABLE |             NULL | NULL               |
+    | pg_catalog         | pg_auth_members                   | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_class                          | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_constraint                     | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_cursors                        | BASE TABLE |             NULL | NULL               |
@@ -152,7 +149,7 @@ number of replicas.
     | sys                | summits                           | BASE TABLE |             NULL | NULL               |
     | sys                | users                             | BASE TABLE |             NULL | NULL               |
     +--------------------+-----------------------------------+------------+------------------+--------------------+
-    SELECT 77 rows in set (... sec)
+    SELECT 78 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
@@ -389,7 +386,7 @@ infinite recursion of your mind, beware!)::
     | interval_type            | text       |               30 |
     | is_generated             | text       |               31 |
     | is_identity              | boolean    |               32 |
-    | is_nullable              | boolean    |               33 |
+    | is_nullable              | text       |               33 |
     | numeric_precision        | integer    |               34 |
     | numeric_precision_radix  | integer    |               35 |
     | numeric_scale            | integer    |               36 |
@@ -424,7 +421,8 @@ infinite recursion of your mind, beware!)::
 | ``ordinal_position``          | The position of the column within the         | ``INTEGER``   |
 |                               | table                                         |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``is_nullable``               | Whether the column is nullable                | ``BOOLEAN``   |
+| ``is_nullable``               | 'YES' if the column is nullable, 'NO'         | ``TEXT``      |
+|                               | if it's not nullable                          |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``data_type``                 | The data type of the column                   | ``TEXT``      |
 |                               |                                               |               |

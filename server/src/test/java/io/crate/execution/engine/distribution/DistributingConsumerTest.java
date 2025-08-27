@@ -40,6 +40,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.test.ESTestCase;
+import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -173,7 +174,12 @@ public class DistributingConsumerTest extends ESTestCase {
             0,
             Collections.singletonList("n1"),
             distributedResultAction::execute,
-            pageSize
+            // killAction and localNodeId are irrelevant for those tests,
+            // They are relevant for the test_dist_result_request_tripped_by_cb_no_stuck_jobs
+            null,
+            null,
+            pageSize,
+            mock(ThreadPool.class)
         );
     }
 

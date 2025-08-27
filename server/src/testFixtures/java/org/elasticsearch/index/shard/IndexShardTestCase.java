@@ -47,7 +47,6 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -108,7 +107,6 @@ import io.crate.common.io.IOUtils;
 import io.crate.concurrent.FutureActionListener;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
@@ -207,7 +205,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
                                           String source,
                                           XContentType xContentType) throws IOException {
         SourceToParse sourceToParse = new SourceToParse(
-            shard.shardId().getIndexName(), id, new BytesArray(source), xContentType);
+            shard.shardId().getIndexUUID(), id, new BytesArray(source), xContentType);
         Engine.IndexResult result;
         if (shard.routingEntry().primary()) {
             result = shard.applyIndexOperationOnPrimary(
@@ -244,9 +242,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         NodeContext nodeCtx = createNodeContext();
         DocTableInfoFactory tableFactory = new DocTableInfoFactory(nodeCtx);
         IndexMetadata indexMetadata = getIndexMetadata.get();
-        Metadata metadata = new Metadata.Builder().put(indexMetadata, false).build();
-        RelationName relationName = RelationName.fromIndexName(indexMetadata.getIndex().getName());
-        return tableFactory.create(relationName, metadata);
+        return tableFactory.create(indexMetadata);
     }
 
     protected void assertDocCount(IndexShard shard, int docDount) throws IOException {
@@ -257,7 +253,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         Engine.DeleteResult result;
         if (shard.routingEntry().primary()) {
             result = shard.applyDeleteOperationOnPrimary(
-                Versions.MATCH_ANY, id, VersionType.INTERNAL, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
+                Versions.MATCH_ANY, id, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
             shard.sync(); // advance local checkpoint
             shard.updateLocalCheckpointForShard(
                 shard.routingEntry().allocationId().getId(),
@@ -354,7 +350,8 @@ public abstract class IndexShardTestCase extends ESTestCase {
                 randomBoolean() ? IndexSettings.INDEX_SOFT_DELETES_RETENTION_OPERATIONS_SETTING.get(Settings.EMPTY) : between(0, 1000))
                 .put(settings)
                 .build();
-        IndexMetadata.Builder metadata = IndexMetadata.builder(shardRouting.getIndexName())
+        IndexMetadata.Builder metadata = IndexMetadata.builder(shardRouting.getIndexUUID())
+            .indexName(shardRouting.index().getName())
             .settings(indexSettings)
             .primaryTerm(0, primaryTerm)
             .putMapping("{ \"properties\": {} }");

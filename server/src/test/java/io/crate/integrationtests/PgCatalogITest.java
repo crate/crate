@@ -33,6 +33,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.auth.Protocol;
+import io.crate.common.unit.TimeValue;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -204,15 +205,17 @@ public class PgCatalogITest extends IntegTestCase {
     @Test
     public void testPgDescriptionTableIsEmpty() {
         execute("select * from pg_description");
-        assertThat(response).isEmpty();
-        assertThat(response).hasColumns("classoid", "description", "objoid", "objsubid");
+        assertThat(response)
+            .isEmpty()
+            .hasColumns("classoid", "description", "objoid", "objsubid");
     }
 
     @Test
     public void testPgShdescriptionTableIsEmpty() {
         execute("select * from pg_shdescription");
-        assertThat(response).isEmpty();
-        assertThat(response).hasColumns("classoid", "description", "objoid");
+        assertThat(response)
+            .isEmpty()
+            .hasColumns("classoid", "description", "objoid");
     }
 
     @UseRandomizedOptimizerRules(0)
@@ -220,8 +223,11 @@ public class PgCatalogITest extends IntegTestCase {
     @UseJdbc(0)
     @UseRandomizedSchema(random = false)
     @UseHashJoins(0)
-    public void testPgSettingsTable() {
-        execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings");
+    public void testPgSettingsTable() throws Exception {
+        // The default timeout is set via system property and is different between local/jenkins and GHA
+        // -> Use a fixed timeout to have deterministic output
+        TimeValue timeout = TimeValue.timeValueSeconds(10);
+        execute("select name, setting, short_desc, min_val, max_val from pg_catalog.pg_settings", new Object[] {}, timeout);
         assertThat(response).hasRows(
             "application_name| NULL| Optional application name. Can be set by a client to identify the application which created the connection| NULL| NULL",
             "datestyle| ISO| Display format for date and time values.| NULL| NULL",
@@ -271,7 +277,7 @@ public class PgCatalogITest extends IntegTestCase {
             "server_version| 14.0| Reports the emulated PostgreSQL version number| NULL| NULL",
             "server_version_num| 140000| Reports the emulated PostgreSQL version number| NULL| NULL",
             "standard_conforming_strings| on| Causes '...' strings to treat backslashes literally.| NULL| NULL",
-            "statement_timeout| 0s| The maximum duration of any statement before it gets killed. Infinite/disabled if 0| NULL| NULL"
+            "statement_timeout| 10s| The maximum duration of any statement before it gets killed. Infinite/disabled if 0| NULL| NULL"
         );
     }
 
@@ -395,7 +401,7 @@ public class PgCatalogITest extends IntegTestCase {
                     LEFT JOIN pg_range ON (pg_range.rngtypid = typ.oid)
                     where typname in ('_int2', '_int4')
                     order by 1, 3, 4, 5
-                    """);
+            """);
         assertThat(response).hasRows(
             "1005| _int2| 0| false| NULL| 21| a| 21",
             "1007| _int4| 0| false| NULL| 23| a| 23"
@@ -514,5 +520,24 @@ public class PgCatalogITest extends IntegTestCase {
         for (int i = 0; i < response.rowCount(); i++) {
             assertThat(response.rows()[i][0]).isNotNull();
         }
+    }
+
+    @Test
+    public void test_pg_auth_members() {
+        execute("CREATE USER \"Arthur\"");
+        execute("CREATE ROLE \"NormalRole1\"");
+        execute("CREATE ROLE \"NormalRole2\"");
+        execute("CREATE ROLE \"SuperDooper\"");
+        execute("GRANT AL TO \"SuperDooper\"");
+        execute("GRANT \"SuperDooper\" TO \"NormalRole2\"");
+        execute("GRANT \"NormalRole1\" TO \"Arthur\"");
+        execute("GRANT \"NormalRole2\" TO \"Arthur\"");
+
+        execute("SELECT oid, roleid, member, grantor, admin_option, inherit_option, set_option " +
+            "FROM pg_catalog.pg_auth_members ORDER BY oid");
+        assertThat(response).hasRows(
+            "-1974470723| -128874565| 1562823286| -450373579| true| true| false",
+            "-895873865| 1562823286| 1487968075| -450373579| true| true| false",
+            "-328885978| 645618296| 1487968075| -450373579| false| true| false");
     }
 }

@@ -12,12 +12,6 @@ comparable to :ref:`aggregation functions <aggregation-functions>`, but window
 functions do not cause multiple rows to be grouped into a single row.
 
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 .. _window-function-call:
 
 Window function call
@@ -727,4 +721,5 @@ Example::
 Aggregate window functions
 ==========================
 
-See :ref:`aggregation`.
+The standard :ref:`aggregation functions<aggregation-functions>` can also be
+used with the ``window`` functionality.

@@ -59,28 +59,40 @@ public abstract class StoredRowLookup implements StoredRow {
 
     public static final Version PARTIAL_STORED_SOURCE_VERSION = Version.V_5_10_0;
 
-    protected final PartitionValueInjector partitionValueInjector;
     protected final DocTableInfo table;
+    private final List<String> partitionValues;
 
     protected int doc;
     protected ReaderContext readerContext;
     protected boolean docVisited = false;
     protected Map<String, Object> parsedSource = null;
 
-    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, String indexName) {
-        return create(shardCreatedVersion, table, indexName, List.of(), false);
+
+    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, List<String> partitionValues) {
+        return create(shardCreatedVersion, table, partitionValues, List.of(), false);
     }
 
-    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, String indexName, List<Symbol> columns, boolean fromTranslog) {
+    public static StoredRowLookup create(Version shardCreatedVersion, DocTableInfo table, List<String> partitionValues, List<Symbol> columns, boolean fromTranslog) {
         if (shardCreatedVersion.before(PARTIAL_STORED_SOURCE_VERSION) || fromTranslog) {
-            return new FullStoredRowLookup(table, indexName, columns);
+            return new FullStoredRowLookup(table, partitionValues, columns);
         }
-        return new ColumnAndStoredRowLookup(table, shardCreatedVersion, indexName, columns);
+        return new ColumnAndStoredRowLookup(table, shardCreatedVersion, partitionValues, columns);
     }
 
-    private StoredRowLookup(DocTableInfo table, String indexName) {
-        this.partitionValueInjector = PartitionValueInjector.create(indexName, table.partitionedByColumns());
+    private StoredRowLookup(DocTableInfo table, List<String> partitionValues) {
         this.table = table;
+        this.partitionValues = partitionValues;
+        assert partitionValues == null || partitionValues.size() == table.partitionedBy().size()
+            : "PartitionName must have values for each partitionedBy column";
+    }
+
+    protected Map<String, Object> injectPartitionValues(Map<String, Object> input) {
+        List<ColumnIdent> partitionedBy = table.partitionedBy();
+        for (int i = 0; i < partitionedBy.size(); i++) {
+            ColumnIdent columnIdent = partitionedBy.get(i);
+            Maps.mergeInto(input, columnIdent.name(), columnIdent.path(), partitionValues.get(i));
+        }
+        return input;
     }
 
     public final StoredRow getStoredRow(ReaderContext context, int doc) {
@@ -137,8 +149,8 @@ public abstract class StoredRowLookup implements StoredRow {
         private final SourceFieldVisitor fieldsVisitor = new SourceFieldVisitor();
         private final SourceParser sourceParser;
 
-        public FullStoredRowLookup(DocTableInfo table, String indexName, List<Symbol> columns) {
-            super(table, indexName);
+        public FullStoredRowLookup(DocTableInfo table, List<String> partitionValues, List<Symbol> columns) {
+            super(table, partitionValues);
             this.sourceParser = new SourceParser(table.lookupNameBySourceKey(), true);
             register(columns);
         }
@@ -159,7 +171,7 @@ public abstract class StoredRowLookup implements StoredRow {
         @Override
         public Map<String, Object> asMap() {
             if (parsedSource == null) {
-                parsedSource = partitionValueInjector.injectValues(sourceParser.parse(loadStoredFields()));
+                parsedSource = injectPartitionValues(sourceParser.parse(loadStoredFields()));
             }
             return parsedSource;
         }
@@ -190,8 +202,8 @@ public abstract class StoredRowLookup implements StoredRow {
         private final List<ColumnExpression> expressions = new ArrayList<>();
         private final ColumnFieldVisitor fieldsVisitor;
 
-        private ColumnAndStoredRowLookup(DocTableInfo table, Version shardVersionCreated, String indexName, List<Symbol> columns) {
-            super(table, indexName);
+        private ColumnAndStoredRowLookup(DocTableInfo table, Version shardVersionCreated, List<String> partitionValues, List<Symbol> columns) {
+            super(table, partitionValues);
             this.fieldsVisitor = new ColumnFieldVisitor(table, shardVersionCreated);
             register(columns);
         }
@@ -292,7 +304,7 @@ public abstract class StoredRowLookup implements StoredRow {
                     Maps.mergeInto(docMap, expr.ident.name(), expr.ident.path(), value);
                 }
             }
-            docMap = partitionValueInjector.injectValues(docMap);
+            docMap = injectPartitionValues(docMap);
             docVisited = true;
             return docMap;
         }

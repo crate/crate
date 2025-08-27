@@ -1635,13 +1635,12 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(printedTable(response.rows())).isEqualTo("t| 04132\n");
     }
 
-
     @Test
     public void testCreateTableWithIllegalCustomSchemaCheckedByES() {
         Asserts.assertSQLError(() -> execute("create table \"AA A\".t (" +
-            "   name string," +
-            "   d timestamp with time zone" +
-            ") partitioned by (d) with (number_of_replicas=0)"))
+                "   name string," +
+                "   d timestamp with time zone" +
+                ") partitioned by (d) with (number_of_replicas=0)"))
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(BAD_REQUEST, 4002)
             .hasMessageContaining("Relation name \"AA A.t\" is invalid.");
@@ -2268,7 +2267,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
             // execute the prepared statement
             session.bind("portalName", "preparedStatement", List.of(), null);
             session.execute("portalName", 0, new BaseResultReceiver());
-            session.sync().get();
+            session.sync(false).get();
         }
         execute("refresh table doc.t2");
 

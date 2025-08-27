@@ -117,7 +117,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             if (responses.get(i) instanceof FailedNodeException exception) {
                 totalShards += nodes.get(exception.nodeId()).size();
                 for (ShardRouting shard : nodes.get(exception.nodeId())) {
-                    exceptions.add(new DefaultShardOperationFailedException(shard.getIndexName(), shard.getId(), exception));
+                    exceptions.add(new DefaultShardOperationFailedException(shard.index().toString(), shard.getId(), exception));
                 }
             } else {
                 NodeResponse response = (NodeResponse) responses.get(i);
@@ -126,7 +126,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
                 successfulShards += response.getSuccessfulShards();
                 for (BroadcastShardOperationFailedException throwable : response.getExceptions()) {
                     if (!SQLExceptions.isShardNotAvailable(throwable)) {
-                        exceptions.add(new DefaultShardOperationFailedException(throwable.getShardId().getIndexName(), throwable.getShardId().id(), throwable));
+                        exceptions.add(new DefaultShardOperationFailedException(throwable.getShardId().getIndex().toString(), throwable.getShardId().id(), throwable));
                     }
                 }
             }
@@ -232,7 +232,7 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
             }
 
             String[] concreteIndices
-                = clusterState.metadata().getIndices(request.partitions(), false, im -> im.getIndex().getName()).toArray(String[]::new);
+                = clusterState.metadata().getIndices(request.partitions(), false, im -> im.getIndex().getUUID()).toArray(String[]::new);
             ClusterBlockException requestBlockException = checkRequestBlock(clusterState, request, concreteIndices);
             if (requestBlockException != null) {
                 throw requestBlockException;
@@ -417,19 +417,9 @@ public abstract class TransportBroadcastByNodeAction<Request extends BroadcastRe
         }
 
         private void onShardOperation(final NodeRequest request, final ShardRouting shardRouting, ActionListener<ShardOperationResult> listener) {
-            ActionListener<ShardOperationResult> wrappedListener = new ActionListener<>() {
-                @Override
-                public void onResponse(ShardOperationResult response) {
-                    listener.onResponse(response);
-                }
-
-                @Override
-                public void onFailure(Exception e) {
-                    BroadcastShardOperationFailedException failure =
-                        new BroadcastShardOperationFailedException(shardRouting.shardId(), "operation " + actionName + " failed", e);
-                    listener.onFailure(failure);
-                }
-            };
+            var wrappedListener = listener.withOnFailure((l, e) ->
+                l.onFailure(new BroadcastShardOperationFailedException(shardRouting.shardId(), "operation " + actionName + " failed", e))
+            );
             try {
                 if (logger.isTraceEnabled()) {
                     logger.trace("[{}]  executing operation for shard [{}]", actionName, shardRouting.shortSummary());

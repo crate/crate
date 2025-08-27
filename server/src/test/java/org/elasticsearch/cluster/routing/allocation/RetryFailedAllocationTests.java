@@ -45,19 +45,19 @@ public class RetryFailedAllocationTests extends ESAllocationTestCase {
 
     private MockAllocationService strategy;
     private ClusterState clusterState;
-    private final String INDEX_NAME = "index";
+    private final String INDEX_UUID = "index-uuid";
 
     @Override
     public void setUp() throws Exception {
         super.setUp();
         Metadata metadata = Metadata.builder().put(
-            IndexMetadata.builder(INDEX_NAME)
+            IndexMetadata.builder(INDEX_UUID)
                 .settings(settings(Version.CURRENT))
                 .numberOfShards(1)
                 .numberOfReplicas(1)
             )
             .build();
-        RoutingTable routingTable = RoutingTable.builder().addAsNew(metadata.index(INDEX_NAME)).build();
+        RoutingTable routingTable = RoutingTable.builder().addAsNew(metadata.index(INDEX_UUID)).build();
         clusterState = ClusterState.builder(ClusterName.DEFAULT)
             .metadata(metadata)
             .routingTable(routingTable)
@@ -69,11 +69,11 @@ public class RetryFailedAllocationTests extends ESAllocationTestCase {
     }
 
     private ShardRouting getPrimary() {
-        return clusterState.routingTable().index(INDEX_NAME).shard(0).primaryShard();
+        return clusterState.routingTable().index(INDEX_UUID).shard(0).primaryShard();
     }
 
     private ShardRouting getReplica() {
-        return clusterState.routingTable().index(INDEX_NAME).shard(0).replicaShards().get(0);
+        return clusterState.routingTable().index(INDEX_UUID).shard(0).replicaShards().get(0);
     }
 
     @Test
@@ -97,7 +97,7 @@ public class RetryFailedAllocationTests extends ESAllocationTestCase {
 
         // Now allocate replica with retry_failed flag set
         AllocationService.CommandsResult result = strategy.reroute(clusterState,
-            new AllocationCommands(new AllocateReplicaAllocationCommand(INDEX_NAME, 0,
+            new AllocationCommands(new AllocateReplicaAllocationCommand(INDEX_UUID, 0,
                 getPrimary().currentNodeId().equals("node1") ? "node2" : "node1")),
             false, true);
         clusterState = result.getClusterState();

@@ -375,7 +375,7 @@ public class SubSelectIntegrationTest extends IntegTestCase {
             newStats.put(
                 new RelationName(sqlExecutor.getCurrentSchema(), "t"),
                 new Stats(100, 64, Map.of()));
-            tableStats.updateTableStats(newStats);
+            tableStats.updateTableStats(newStats::get);
         }
 
         // Left table is expected to be one row, due to the single row subselect in the where clause.
@@ -745,6 +745,9 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute("create table t1 (a object, c object)");
         execute("insert into t1 (a, c) values ({ b = 1 }, { d = { e = 2 }})");
         execute("refresh table t1");
+        execute("select a['b'], c['d']['e'] from t1");
+        assertThat(response).hasRows(
+            "1| 2");
         execute("select a['b'], c['d']['e'] from (select * from t1) t2");
         assertThat(response).hasRows(
             "1| 2");

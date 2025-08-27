@@ -631,7 +631,7 @@ public class PostgresITest extends IntegTestCase {
     }
 
     @Test
-    public void testExecuteBatchWithOneFailingAndNothingExecuted() throws Exception {
+    public void testExecuteBatchWithAnalysisError() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             Statement stmt = conn.createStatement();
             stmt.executeUpdate("create table t (x int) with (number_of_replicas = 0)");
@@ -645,8 +645,23 @@ public class PostgresITest extends IntegTestCase {
             preparedStatement.setString(1, Integer.toString(3));
             preparedStatement.addBatch();
 
-            assertThat(preparedStatement.executeBatch()).isEqualTo(new int[]{0, 0, 0});
+            try {
+                preparedStatement.executeBatch();
+            } catch (BatchUpdateException e) {
+                assertThat(e.getUpdateCounts()).isEqualTo(new int[]{-3, -3, -3});
+                assertThat(e.getNextException().getMessage())
+                    .contains("Cannot cast value `foobar` to type `integer`");
+                // Verify that we can call getNextException() at least as many times as there are batch items.
+                // Actually, this can even be called indefinitely.
+                for (int i = 0; i < e.getUpdateCounts().length; i++) {
+                    Exception next = e.getNextException();
+                    assertThat(next).isInstanceOf(PSQLException.class);
+                    assertThat(next.getMessage())
+                        .contains("Cannot cast value `foobar` to type `integer`");
+                }
+            }
 
+            // Ensure nothing was inserted
             conn.createStatement().executeUpdate("refresh table t");
             ResultSet rs = conn.createStatement().executeQuery("select count(*) from t");
             assertThat(rs.next()).isTrue();
@@ -953,6 +968,22 @@ public class PostgresITest extends IntegTestCase {
             assertBusy(() -> assertThat(jobsLogService.get().activeJobs()).isEmpty());
         }
     }
+
+    @Test
+    public void testExecuteBatchDoesNotLeakSysJobsLog() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            PreparedStatement stmt = conn.prepareStatement("SELECT ?");
+            for (int i = 1; i <= 3; i++) {
+                stmt.setInt(1, i);
+                stmt.addBatch();
+            }
+            stmt.executeBatch();
+        }
+        for (JobsLogService jobsLogService : cluster().getDataNodeInstances(JobsLogService.class)) {
+            assertBusy(() -> assertThat(jobsLogService.get().activeJobs()).isEmpty());
+        }
+    }
+
 
     @Test
     public void test_insert_with_on_conflict_do_nothing_batch_error_resp_is_0_for_conflicting_items() throws Exception {

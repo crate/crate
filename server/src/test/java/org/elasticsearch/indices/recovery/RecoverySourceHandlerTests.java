@@ -181,10 +181,12 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                        boolean lastChunk,
                                        int totalTranslogOps,
                                        ActionListener<Void> listener) {
-                ActionListener.completeWith(listener, () -> {
+                try {
                     multiFileWriter.writeFileChunk(md, position, content, lastChunk);
-                    return null;
-                });
+                    listener.onResponse(null);
+                } catch (Exception ex) {
+                    listener.onFailure(ex);
+                }
             }
         };
         RecoverySourceHandler handler = new RecoverySourceHandler(null, new AsyncRecoveryTarget(target, recoveryExecutor),
@@ -202,7 +204,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         IOUtils.close(reader, store, multiFileWriter, targetStore);
     }
 
-    public StartRecoveryRequest getStartRecoveryRequest() throws IOException {
+    private StartRecoveryRequest getStartRecoveryRequest() throws IOException {
         Store.MetadataSnapshot metadataSnapshot = randomBoolean() ? Store.MetadataSnapshot.EMPTY :
             new Store.MetadataSnapshot(Collections.emptyMap(),
                                        Collections.singletonMap(Engine.HISTORY_UUID_KEY, UUIDs.randomBase64UUID()), randomIntBetween(0, 100));
@@ -336,6 +338,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testSendOperationsConcurrently() throws Throwable {
         final IndexShard shard = mock(IndexShard.class);
         when(shard.state()).thenReturn(IndexShardState.STARTED);
@@ -460,10 +463,12 @@ public class RecoverySourceHandlerTests extends ESTestCase {
                                        boolean lastChunk,
                                        int totalTranslogOps,
                                        ActionListener<Void> listener) {
-                 ActionListener.completeWith(listener, () -> {
+                 try {
                      multiFileWriter.writeFileChunk(md, position, content, lastChunk);
-                     return null;
-                 });
+                     listener.onResponse(null);
+                 } catch (Exception ex) {
+                     listener.onFailure(ex);
+                 }
             }
         };
         RecoverySourceHandler handler = new RecoverySourceHandler(null, new AsyncRecoveryTarget(target, recoveryExecutor), threadPool,
@@ -843,6 +848,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         store.close();
     }
 
+    @Test
     public void testVerifySeqNoStatsWhenRecoverWithSyncId() throws Exception {
         IndexShard shard = mock(IndexShard.class);
         when(shard.state()).thenReturn(IndexShardState.STARTED);
@@ -865,7 +871,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             handler.canSkipPhase1(newMetadataSnapshot(syncId, Long.toString(localCheckpoint), Long.toString(maxSeqNo), numDocs),
                 newMetadataSnapshot(syncId, Long.toString(localCheckpointOnTarget), Long.toString(maxSeqNoOnTarget), numDocs));
         }).isExactlyInstanceOf(AssertionError.class)
-            .hasMessageContaining("try to recover [index][1] with sync id but seq_no stats are mismatched:");
+            .hasMessageContaining("try to recover [index/_na_][1] with sync id but seq_no stats are mismatched:");
     }
 
     private Store.MetadataSnapshot newMetadataSnapshot(String syncId, String localCheckpoint, String maxSeqNo, int numDocs) {
@@ -892,15 +898,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         return new Store(shardId,  INDEX_SETTINGS, baseDirectoryWrapper, new DummyShardLock(shardId));
     }
 
-    static final class FileChunkResponse {
-        final long chunkNumber;
-        final ActionListener<Void> listener;
-
-        FileChunkResponse(long chunkNumber, ActionListener<Void> listener) {
-            this.chunkNumber = chunkNumber;
-            this.listener = listener;
-        }
-    }
+    private record FileChunkResponse(long chunkNumber, ActionListener<Void> listener) {}
 
     private List<StoreFileMetadata> generateFiles(Store store,
                                                   int numFiles,
@@ -1006,7 +1004,6 @@ public class RecoverySourceHandlerTests extends ESTestCase {
 
             @Override
             public void close() {
-
             }
         };
     }

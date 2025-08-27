@@ -23,14 +23,12 @@ package org.elasticsearch.action.admin.indices.create;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_WAIT_FOR_ACTIVE_SHARDS;
-import static org.elasticsearch.gateway.GatewayMetaState.applyUpgrader;
 
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
-import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.Map;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
@@ -48,11 +46,9 @@ import org.elasticsearch.cluster.ack.ClusterStateUpdateResponse;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataCreateIndexService;
-import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
@@ -70,14 +66,17 @@ import org.elasticsearch.indices.ShardLimitValidator;
 import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 import org.joda.time.DateTime;
 import org.joda.time.DateTimeZone;
 
-import io.crate.common.collections.Lists;
+import io.crate.exceptions.RelationUnknown;
+import io.crate.execution.ddl.tables.MappingUtil;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
+import io.crate.metadata.doc.DocTableInfoFactory;
 
 
 /**
@@ -107,21 +106,8 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
     private final AllocationService allocationService;
     private final ActiveShardsObserver activeShardsObserver;
     private final ShardLimitValidator shardLimitValidator;
-    private final ClusterStateTaskExecutor<CreatePartitionsRequest> executor = (currentState, tasks) -> {
-        ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
-        for (CreatePartitionsRequest request : tasks) {
-            try {
-                currentState = executeCreateIndices(currentState, request);
-                builder.success(request);
-            } catch (Exception e) {
-                builder.failure(request, e);
-            }
-        }
-        return builder.build(currentState);
-    };
 
-    private final AtomicBoolean upgraded;
-    private final MetadataUpgradeService metadataUpgradeService;
+    private final DocTableInfoFactory docTableInfoFactory;
 
     @Inject
     public TransportCreatePartitions(TransportService transportService,
@@ -129,15 +115,14 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                                      ThreadPool threadPool,
                                      IndicesService indicesService,
                                      AllocationService allocationService,
-                                     MetadataUpgradeService metadataUpgradeService,
-                                     ShardLimitValidator shardLimitValidator) {
+                                     ShardLimitValidator shardLimitValidator,
+                                     NodeContext nodeContext) {
         super(ACTION.name(), transportService, clusterService, threadPool, CreatePartitionsRequest::new);
         this.indicesService = indicesService;
         this.allocationService = allocationService;
-        this.metadataUpgradeService = metadataUpgradeService;
         this.activeShardsObserver = new ActiveShardsObserver(clusterService);
         this.shardLimitValidator = shardLimitValidator;
-        this.upgraded = new AtomicBoolean(false);
+        this.docTableInfoFactory = new DocTableInfoFactory(nodeContext);
     }
 
     @Override
@@ -156,20 +141,23 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                                    final ActionListener<AcknowledgedResponse> listener) throws ElasticsearchException {
         createIndices(request, ActionListener.wrap(response -> {
             if (response.isAcknowledged()) {
-                List<String> indexNames = request.indexNames();
-                activeShardsObserver.waitForActiveShards(indexNames.toArray(String[]::new), ActiveShardCount.DEFAULT, request.ackTimeout(),
+                final String[] indices = request.partitionValuesList().stream()
+                    .map(partitionValues -> clusterService.state().metadata()
+                        .getIndex(request.relationName(), partitionValues, false, IndexMetadata::getIndexUUID))
+                    .toArray(String[]::new);
+                activeShardsObserver.waitForActiveShards(indices, ActiveShardCount.DEFAULT, request.ackTimeout(),
                     shardsAcked -> {
                         if (!shardsAcked && logger.isInfoEnabled()) {
                             RelationName relationName = request.relationName();
-                            String partitionTemplateName = PartitionName.templateName(relationName.schema(), relationName.name());
-                            IndexTemplateMetadata templateMetadata = state.metadata().templates().get(partitionTemplateName);
+                            RelationMetadata.Table table = state.metadata().getRelation(relationName);
+                            assert table != null : "table should be present in the cluster state";
 
                             logger.info("[{}] Table partitions created, but the operation timed out while waiting for " +
                                          "enough shards to be started. Timeout={}, wait_for_active_shards={}. " +
                                          "Consider decreasing the 'number_of_shards' table setting (currently: {}) or adding nodes to the cluster.",
                                 relationName, request.timeout(),
-                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(templateMetadata.settings()),
-                                INDEX_NUMBER_OF_SHARDS_SETTING.get(templateMetadata.settings()));
+                                SETTING_WAIT_FOR_ACTIVE_SHARDS.get(table.settings()),
+                                INDEX_NUMBER_OF_SHARDS_SETTING.get(table.settings()));
                         }
                         listener.onResponse(new AcknowledgedResponse(response.isAcknowledged()));
                     }, listener::onFailure);
@@ -185,7 +173,10 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
      * This code is more or less the same as the stuff in {@link MetadataCreateIndexService}
      * but optimized for bulk operation without separate mapping/alias/index settings.
      */
-    public ClusterState executeCreateIndices(ClusterState currentState, CreatePartitionsRequest request) throws Exception {
+    public ClusterState executeCreateIndices(ClusterState currentState,
+                                             RelationMetadata.Table table,
+                                             DocTableInfo docTableInfo,
+                                             CreatePartitionsRequest request) throws Exception {
         String removalReason = null;
         Index testIndex = null;
         try {
@@ -198,41 +189,13 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             // All indices in the request are related to a concrete partitioned table and
             // they all match the same template. Thus, we can use any of them to find matching template.
             String firstIndex = partitions.get(0).asIndexName();
-            String templateName = PartitionName.templateName(firstIndex);
-
 
             final Metadata metadata = currentState.metadata();
             Metadata.Builder newMetadataBuilder = Metadata.builder(metadata);
 
-            // After https://github.com/crate/crate/commit/c8edfff8fe7713b071841b9db1aea26e3f500245,
-            // we upgrade templates only on node startup in GatewayMetaState or on logical replication or on a snapshot restore.
-            // That is not enough to prevent old templates being applied on new nodes.
-
-            // Say, we are running a rolling upgrade.
-            // One node has been upgraded to VERSION.CURRENT and a master node, which is on old version < CURRENT
-            // creates partitions/new indices with old metadata/removed settings.
-            // All upgraded nodes will get incoming old template via IndicesClusterStateService
-            // and keep it forever as they already accomplished upgrade-on-startup.
-
-            // We upgrade on the fly as a trade-off to the pre-5.6.0 state
-            // where we used to upgrade template on each cluster change and submit synchronous  request via PutTemplate API to the master node to apply it.
-            // Each new node either never becomes a master and doesn't really need upgrade or eventually upgrades when it becomes a master.
-            // Since upgrade can be expensive for bulk inserts, we do it only once (per active master node).
-            // After re-election, a new master will run it again, but only once.
-            if (upgraded.compareAndSet(false, true)) {
-                upgradeTemplates(metadata, newMetadataBuilder);
-            }
-
-            IndexTemplateMetadata template = newMetadataBuilder.getTemplate(templateName);
-            if (template == null) {
-                // Normally should be impossible, as it would mean that we are inserting into a partitioned table without template,
-                // i.e inserting after CREATE TABLE failed
-                throw new IllegalStateException(String.format(Locale.ENGLISH, "Cannot find a template for partitioned table's index %s", firstIndex));
-            }
-
             // Use only first index to validate that index can be created.
-            // All indices share same template/settings so no need to repeat validation for each index.
-            Settings commonIndexSettings = createCommonIndexSettings(currentState, template);
+            // All indices share same table settings so no need to repeat validation for each index.
+            Settings commonIndexSettings = createCommonIndexSettings(currentState, table.settings());
 
             final int numberOfShards = INDEX_NUMBER_OF_SHARDS_SETTING.get(commonIndexSettings);
             final int numberOfReplicas = IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(commonIndexSettings);
@@ -256,13 +219,15 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                     numTargetShards, indexVersionCreated);
             }
 
-            IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(firstIndex)
+            String tmpUUID = UUIDs.randomBase64UUID();
+            IndexMetadata.Builder tmpImdBuilder = IndexMetadata.builder(tmpUUID)
+                .indexName(firstIndex)
                 .setRoutingNumShards(routingNumShards);
 
             // Set up everything, now locally create the index to see that things are ok, and apply
             final IndexMetadata tmpImd = tmpImdBuilder.settings(Settings.builder()
                     .put(commonIndexSettings)
-                    .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())).build();
+                    .put(IndexMetadata.SETTING_INDEX_UUID, tmpUUID)).build();
             ActiveShardCount waitForActiveShards = tmpImd.getWaitForActiveShards();
             if (!waitForActiveShards.validate(tmpImd.getNumberOfReplicas())) {
                 throw new IllegalArgumentException("invalid wait_for_active_shards[" + waitForActiveShards +
@@ -275,22 +240,32 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
 
             // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
 
-            MappingMetadata mappingMetadata = new MappingMetadata(template.mapping());
+            final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
+                MappingUtil.AllocPosition.forTable(docTableInfo),
+                table.pkConstraintName(),
+                table.columns(),
+                table.primaryKeys(),
+                table.checkConstraints(),
+                table.partitionedBy(),
+                table.columnPolicy(),
+                table.routingColumn()
+            )));
+
+            RoutingTable.Builder routingTableBuilder = RoutingTable.builder(currentState.routingTable());
             ArrayList<String> indexUUIDs = new ArrayList<>(partitions.size());
             for (PartitionName partition : partitions) {
                 String indexName = partition.asIndexName();
-                final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexName)
+                String indexUUID = UUIDs.randomBase64UUID();
+                final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder(indexUUID)
+                    .indexName(indexName)
                     .setRoutingNumShards(routingNumShards)
                     .partitionValues(partition.values())
                     .settings(Settings.builder()
                         .put(commonIndexSettings)
-                        .put(IndexMetadata.SETTING_INDEX_UUID, UUIDs.randomBase64UUID())
+                        .put(IndexMetadata.SETTING_INDEX_UUID, indexUUID)
                     );
 
-                indexMetadataBuilder.putMapping(mappingMetadata);
-                for (var aliasCursor : template.aliases().values()) {
-                    indexMetadataBuilder.putAlias(aliasCursor.value);
-                }
+                indexMetadataBuilder.putMapping(mapping);
                 indexMetadataBuilder.state(IndexMetadata.State.OPEN);
 
                 final IndexMetadata indexMetadata;
@@ -301,42 +276,24 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                     throw e;
                 }
 
-                logger.info("[{}] creating partition, cause [bulk], template {}, shards [{}]/[{}]",
-                    partition, templateName, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
+                logger.info("[{}] creating partition, cause [bulk], shards [{}]/[{}]",
+                    partition, indexMetadata.getNumberOfShards(), indexMetadata.getNumberOfReplicas());
 
                 indexService.getIndexEventListener().beforeIndexAddedToCluster(
                     indexMetadata.getIndex(), indexMetadata.getSettings());
                 newMetadataBuilder.put(indexMetadata, false);
-                indexUUIDs.add(indexMetadata.getIndexUUID());
+                indexUUIDs.add(indexUUID);
+                routingTableBuilder.addAsNew(indexMetadata);
             }
-
-            RelationMetadata relation = metadata.getRelation(request.relationName());
-            if (relation instanceof RelationMetadata.Table table) {
-                newMetadataBuilder.setTable(
-                    table.name(),
-                    table.columns(),
-                    table.settings(),
-                    table.routingColumn(),
-                    table.columnPolicy(),
-                    table.pkConstraintName(),
-                    table.checkConstraints(),
-                    table.primaryKeys(),
-                    table.partitionedBy(),
-                    table.state(),
-                    Lists.concatUnique(table.indexUUIDs(), indexUUIDs),
-                    table.tableVersion() + 1
-                );
-            }
-
+            newMetadataBuilder.addIndexUUIDs(table, indexUUIDs);
             Metadata newMetadata = newMetadataBuilder.build();
 
-            ClusterState updatedState = ClusterState.builder(currentState).metadata(newMetadata).build();
-            RoutingTable.Builder routingTableBuilder = RoutingTable.builder(updatedState.routingTable());
-            for (PartitionName partition : partitions) {
-                routingTableBuilder.addAsNew(updatedState.metadata().index(partition.asIndexName()));
-            }
-            return allocationService.reroute(
-                ClusterState.builder(updatedState).routingTable(routingTableBuilder.build()).build(), "bulk-index-creation");
+            ClusterState updatedState = ClusterState.builder(currentState)
+                .metadata(newMetadata)
+                .routingTable(routingTableBuilder.build())
+                .build();
+
+            return allocationService.reroute(updatedState, "bulk-index-creation");
         } finally {
             if (testIndex != null) {
                 // "probe" index used for validation was partially created - need to clean up
@@ -349,15 +306,6 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
         }
     }
 
-    public void upgradeTemplates(Metadata metadata, Metadata.Builder newMetadataBuilder) {
-        applyUpgrader(
-            metadata.templates(),
-            metadataUpgradeService::upgradeTemplates,
-            newMetadataBuilder::removeTemplate,
-            (_, indexTemplateMetadata) -> newMetadataBuilder.put(indexTemplateMetadata)
-        );
-    }
-
     @VisibleForTesting
     void createIndices(final CreatePartitionsRequest request,
                        final ActionListener<ClusterStateUpdateResponse> listener) {
@@ -365,11 +313,32 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             "bulk-create-indices",
             request,
             ClusterStateTaskConfig.build(Priority.URGENT, request.masterNodeTimeout()),
-            executor,
-            new AckedClusterStateUpdateTask<ClusterStateUpdateResponse>(request, listener) {
+            (currentState, tasks) -> {
+                ClusterStateTaskExecutor.ClusterTasksResult.Builder<CreatePartitionsRequest> builder = ClusterStateTaskExecutor.ClusterTasksResult.builder();
+                for (CreatePartitionsRequest request1 : tasks) {
+                    try {
+                        RelationMetadata.Table table = currentState.metadata().getRelation(request1.relationName());
+                        if (table == null) {
+                            throw new RelationUnknown(request1.relationName());
+                        }
+                        DocTableInfo docTableInfo = docTableInfoFactory.create(table.name(), currentState.metadata());
+                        currentState = executeCreateIndices(currentState, table, docTableInfo, request1);
+                        builder.success(request);
+                    } catch (Exception e) {
+                        builder.failure(request, e);
+                    }
+                }
+                return builder.build(currentState);
+            },
+            new AckedClusterStateUpdateTask<>(request, listener) {
                 @Override
                 public ClusterState execute(ClusterState currentState) throws Exception {
-                    return executeCreateIndices(currentState, request);
+                    RelationMetadata.Table table = currentState.metadata().getRelation(request.relationName());
+                    if (table == null) {
+                        throw new RelationUnknown(request.relationName());
+                    }
+                    DocTableInfo docTableInfo = docTableInfoFactory.create(table.name(), currentState.metadata());
+                    return executeCreateIndices(currentState, table, docTableInfo, request);
                 }
 
                 @Override
@@ -395,13 +364,10 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
         return partitions;
     }
 
-    private Settings createCommonIndexSettings(ClusterState currentState, @Nullable IndexTemplateMetadata template) {
+    private Settings createCommonIndexSettings(ClusterState currentState, Settings tableSettings) {
         Settings.Builder indexSettingsBuilder = Settings.builder();
 
-        // apply template
-        if (template != null) {
-            indexSettingsBuilder.put(template.settings());
-        }
+        indexSettingsBuilder.put(tableSettings);
 
         Version minVersion = currentState.nodes().getSmallestNonClientNodeVersion();
         indexSettingsBuilder.put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), minVersion);

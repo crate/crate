@@ -33,6 +33,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
@@ -300,7 +301,9 @@ public class IndicesStore implements ClusterStateListener, Closeable {
                         LOGGER.debug(() -> new ParameterizedMessage("{} failed to delete unallocated shard, ignoring", shardId), ex);
                     }
                 },
-                (source, e) -> LOGGER.error(() -> new ParameterizedMessage("{} unexpected error during deletion of unallocated shard", shardId), e)
+                ActionListener.wrap(
+                    _ -> {},
+                    err -> LOGGER.error(() -> new ParameterizedMessage("{} unexpected error during deletion of unallocated shard", shardId), err))
             );
         }
 

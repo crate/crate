@@ -20,6 +20,7 @@
 package org.elasticsearch.repositories.blobstore;
 
 import static org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.FileInfo.canonicalName;
+import static org.elasticsearch.snapshots.SnapshotsService.resolveIndexByName;
 
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -1045,7 +1046,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             // write the index metadata for each index in the snapshot
             for (IndexId index : indices) {
                 executor.execute(ActionRunnable.run(allMetaListener, () -> {
-                        final IndexMetadata indexMetaData = clusterMetadata.index(index.getName());
+                        final IndexMetadata indexMetaData = resolveIndexByName(index, clusterMetadata);
                         if (writeIndexGens) {
                             String identifiers = IndexMetaDataGenerations.buildUniqueIdentifier(indexMetaData);
                             IndexMetaDataGenerations existingIndexMetaGenerations = existingRepositoryData.indexMetaDataGenerations();
@@ -1059,7 +1060,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                             indexMetas.put(index, identifiers);
                         } else {
                             INDEX_METADATA_FORMAT.write(
-                                clusterMetadata.index(index.getName()), indexContainer(index), snapshotId.getUUID(), compress);
+                                indexMetaData, indexContainer(index), snapshotId.getUUID(), compress);
                         }
                     }
                 ));
@@ -1463,20 +1464,21 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
                 final Map<SnapshotId, Version> updatedVersionMap = new ConcurrentHashMap<>();
                 final ActionListener<Void> loadAllVersionsListener = MultiActionListener.of(
                     snapshotIdsWithoutVersion.size(),
-                    ActionListener.runAfter(
-                        new ActionListener<Collection<Void>>() {
-                            @Override
-                            public void onResponse(Collection<Void> voids) {
-                                LOGGER.info("Successfully loaded all snapshot's version information for {} from snapshot metadata",
-                                    AllocationService.firstListElementsToCommaDelimitedString(
-                                        snapshotIdsWithoutVersion, SnapshotId::toString, LOGGER.isDebugEnabled()));
-                            }
+                    new ActionListener<Collection<Void>>() {
+                        @Override
+                        public void onResponse(Collection<Void> voids) {
+                            LOGGER.info("Successfully loaded all snapshot's version information for {} from snapshot metadata",
+                                AllocationService.firstListElementsToCommaDelimitedString(
+                                    snapshotIdsWithoutVersion, SnapshotId::toString, LOGGER.isDebugEnabled()));
+                            filterRepositoryDataStep.onResponse(repositoryData.withVersions(updatedVersionMap));
+                        }
 
-                            @Override
-                            public void onFailure(Exception e) {
-                                LOGGER.warn("Failure when trying to load missing version information from snapshot metadata", e);
-                            }
-                        }, () -> filterRepositoryDataStep.onResponse(repositoryData.withVersions(updatedVersionMap)))
+                        @Override
+                        public void onFailure(Exception e) {
+                            LOGGER.warn("Failure when trying to load missing version information from snapshot metadata", e);
+                            filterRepositoryDataStep.onResponse(repositoryData.withVersions(updatedVersionMap));
+                        }
+                    }
                 );
                 for (SnapshotId snapshotId : snapshotIdsWithoutVersion) {
                     threadPool().executor(ThreadPool.Names.SNAPSHOT).execute(ActionRunnable.run(
@@ -1979,8 +1981,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     public void restoreShard(Store store, SnapshotId snapshotId, IndexId indexId, ShardId snapshotShardId,
                              RecoveryState recoveryState, ActionListener<Void> listener) {
         final ShardId shardId = store.shardId();
-        final ActionListener<Void> restoreListener = ActionListener.delegateResponse(listener,
-            (l, e) -> l.onFailure(new IndexShardRestoreFailedException(shardId, "failed to restore snapshot [" + snapshotId + "]", e)));
+        final ActionListener<Void> restoreListener = listener.withOnFailure((l, e) -> l.onFailure(new IndexShardRestoreFailedException(shardId, "failed to restore snapshot [" + snapshotId + "]", e)));
         final Executor executor = threadPool.executor(ThreadPool.Names.SNAPSHOT);
         final BlobContainer container = shardContainer(indexId, snapshotShardId);
         executor.execute(ActionRunnable.wrap(restoreListener, l -> {
@@ -2088,7 +2089,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     private static ActionListener<Void> fileQueueListener(BlockingQueue<BlobStoreIndexShardSnapshot.FileInfo> files,
                                                           int workers,
                                                           ActionListener<Collection<Void>> listener) {
-        return ActionListener.delegateResponse(MultiActionListener.of(workers, listener), (l, e) -> {
+        return MultiActionListener.of(workers, listener).withOnFailure((l, e) -> {
             files.clear(); // Stop uploading the remaining files if we run into any exception
             l.onFailure(e);
         });

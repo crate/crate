@@ -62,6 +62,7 @@ public class ExecutionPhasesRootTaskTest {
             "c1",
             twoNodeRouting,
             RowGranularity.DOC,
+            false,
             List.of(),
             List.of(),
             WhereClause.MATCH_ALL.queryOrFallback(),

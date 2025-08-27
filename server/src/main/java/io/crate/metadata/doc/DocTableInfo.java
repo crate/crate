@@ -22,7 +22,6 @@
 package io.crate.metadata.doc;
 
 import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
-import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -48,10 +47,8 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -81,7 +78,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
@@ -424,7 +420,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         if (whereClause.partitions().isEmpty()) {
             indices = concreteOpenIndices(state.metadata());
         } else {
-            indices = whereClause.partitions().toArray(new String[0]);
+            indices = concreteOpenIndices(state.metadata(), whereClause.partitions());
         }
         return routingProvider.forIndices(
             state,
@@ -472,7 +468,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public String[] concreteIndices(Metadata metadata) {
         boolean strict = !isPartitioned;
         return metadata
-            .getIndices(ident, List.of(), strict, imd -> imd.getIndex().getName())
+            .getIndices(ident, List.of(), strict, imd -> imd.getIndex().getUUID())
             .toArray(String[]::new);
     }
 
@@ -483,9 +479,29 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 ident,
                 List.of(),
                 strict,
-                imd -> imd.getState() == State.OPEN ? imd.getIndex().getName() : null
+                imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
             )
             .toArray(String[]::new);
+    }
+
+    public String[] concreteOpenIndices(Metadata metadata, List<String> partitions) {
+        if (partitions.isEmpty()) {
+            return new String[0];
+        }
+        String[] uuids = new String[partitions.size()];
+        for (int i = 0; i < partitions.size(); i++) {
+            List<String> partitionValues = PartitionName.fromIndexOrTemplate(partitions.get(i)).values();
+            List<String> indexUUIDS = metadata.getIndices(
+                ident,
+                partitionValues,
+                false,
+                imd -> imd.getState() == State.OPEN ? imd.getIndex().getUUID() : null
+            );
+            if (!indexUUIDS.isEmpty()) {
+                uuids[i] = indexUUIDS.getFirst();
+            }
+        }
+        return uuids;
     }
 
     /**
@@ -556,7 +572,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             );
         });
     }
-
 
     /**
      * returns <code>true</code> if this table is a partitioned table,
@@ -1014,7 +1029,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             versionUpgraded,
             closed,
             supportedOperations,
-            tableVersion
+            tableVersion + 1
         );
     }
 
@@ -1070,8 +1085,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         ));
         String[] concreteIndices = concreteIndices(metadata);
         ArrayList<String> indexUUIDs = new ArrayList<>(concreteIndices.length);
-        for (String indexName : concreteIndices) {
-            IndexMetadata indexMetadata = metadata.index(indexName);
+        for (String indexUUID : concreteIndices) {
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
                 throw new UnsupportedOperationException("Cannot create index via DocTableInfo.writeTo");
             }
@@ -1083,7 +1098,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 throw new IllegalArgumentException("Limit of total columns [" + allowedTotalColumns + "] in table [" + ident + "] exceeded");
             }
             var indexNumberOfShards = numberOfShards;
-            if (isPartitioned && IndexName.isPartitioned(indexName)) {
+            if (isPartitioned && indexMetadata.partitionValues().isEmpty() == false) {
                 // if the index is a part of a partitioned table,
                 // the actual value of the index must be used as the value for the whole partitioned table may have changed
                 indexNumberOfShards = indexMetadata.getNumberOfShards();
@@ -1107,29 +1122,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                     .settingsVersion(newSettingsVersion)
             );
         }
-        if (isPartitioned) {
-            String templateName = PartitionName.templateName(ident.schema(), ident.name());
-            IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-            if (indexTemplateMetadata == null) {
-                throw new UnsupportedOperationException("Cannot create template via DocTableInfo.writeTo");
-            }
-            Integer version = indexTemplateMetadata.version();
-            Settings settings = Settings.builder()
-                .put(indexTemplateMetadata.settings())
-                // Override only the settings that might have changed
-                .put(tableParameters.filter(s -> !indexTemplateMetadata.settings().hasValue(s)))
-                .build();
-            var template = new IndexTemplateMetadata.Builder(indexTemplateMetadata)
-                .putMapping(new CompressedXContent(mapping))
-                .settings(settings)
-                .version(version == null ? 1 : version + 1)
-                .build();
-            metadataBuilder.put(template);
-        }
-        return metadataBuilder.setTable(
-            versionCreated.before(DocTableInfo.COLUMN_OID_VERSION)
-                ? NO_OID_COLUMN_OID_SUPPLIER
-                : metadataBuilder.columnOidSupplier(),
+        metadataBuilder.setTable(
+            versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION) ?
+                metadataBuilder.columnOidSupplier() :
+                () -> Metadata.COLUMN_OID_UNASSIGNED,
             ident,
             allColumns,
             tableParameters,
@@ -1143,6 +1139,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             indexUUIDs,
             tableVersion
         );
+        return metadataBuilder;
     }
 
     private boolean addNewReferences(LongSupplier acquireOid,

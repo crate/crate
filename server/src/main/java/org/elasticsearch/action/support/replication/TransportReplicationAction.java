@@ -27,7 +27,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
-import org.elasticsearch.Assertions;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
@@ -264,26 +263,25 @@ public abstract class TransportReplicationAction<
         return null;
     }
 
-    protected boolean retryPrimaryException(final Throwable e) {
+    protected static boolean retryPrimaryException(final Throwable e) {
         return e.getClass() == ReplicationOperation.RetryOnPrimaryException.class
                 || SQLExceptions.isShardNotAvailable(e)
                 || isRetryableClusterBlockException(e);
     }
 
-    boolean isRetryableClusterBlockException(final Throwable e) {
+    private static boolean isRetryableClusterBlockException(final Throwable e) {
         if (e instanceof ClusterBlockException cbe) {
             return cbe.retryable();
         }
         return false;
     }
 
-    protected void handleOperationRequest(final Request request, final TransportChannel channel) {
-        execute(request).whenComplete(new ChannelActionListener<>(channel, actionName, request));
+    private void handleOperationRequest(final Request request, final TransportChannel channel) {
+        execute(request).whenComplete(new ChannelActionListener<>(channel));
     }
 
-    protected void handlePrimaryRequest(final ConcreteShardRequest<Request> request, final TransportChannel channel) {
-        new AsyncPrimaryAction(
-            request, new ChannelActionListener<>(channel, transportPrimaryAction, request)).run();
+    private void handlePrimaryRequest(final ConcreteShardRequest<Request> request, final TransportChannel channel) {
+        new AsyncPrimaryAction(request, new ChannelActionListener<>(channel)).run();
     }
 
     class AsyncPrimaryAction implements RejectableRunnable {
@@ -338,7 +336,7 @@ public abstract class TransportReplicationAction<
                 final ClusterState clusterState = clusterService.state();
                 final IndexMetadata indexMetadata = clusterState.metadata().getIndexSafe(primaryShardReference.routingEntry().index());
 
-                final ClusterBlockException blockException = blockExceptions(clusterState, indexMetadata.getIndex().getName());
+                final ClusterBlockException blockException = blockExceptions(clusterState, indexMetadata.getIndex().getUUID());
                 if (blockException != null) {
                     logger.trace("cluster is blocked, action failed on primary", blockException);
                     throw blockException;
@@ -387,11 +385,19 @@ public abstract class TransportReplicationAction<
                         onCompletionListener.onResponse(response);
                     }, e -> handleException(primaryShardReference, e));
 
-                    new ReplicationOperation<>(primaryRequest.getRequest(), primaryShardReference,
-                        responseListener.map(result -> result.finalResponseIfSuccessful),
-                        newReplicasProxy(), logger, threadPool, actionName, primaryRequest.getPrimaryTerm(), initialRetryBackoffBound,
-                        retryTimeout)
-                        .execute();
+                    var replicationOperation = new ReplicationOperation<>(
+                        primaryRequest.getRequest(),
+                        primaryShardReference,
+                        responseListener.map(result -> result.response),
+                        newReplicasProxy(),
+                        logger,
+                        threadPool,
+                        actionName,
+                        primaryRequest.getPrimaryTerm(),
+                        initialRetryBackoffBound,
+                        retryTimeout
+                    );
+                    replicationOperation.execute();
                 }
             } catch (Exception e) {
                 Releasables.closeIgnoringException(primaryShardReference); // release shard operation lock before responding to caller
@@ -414,24 +420,15 @@ public abstract class TransportReplicationAction<
             Response extends ReplicationResponse>
             implements ReplicationOperation.PrimaryResult<ReplicaRequest> {
         protected final ReplicaRequest replicaRequest;
-        public final Response finalResponseIfSuccessful;
-        public final Exception finalFailure;
+        public final Response response;
 
         /**
          * Result of executing a primary operation
-         * expects <code>finalResponseIfSuccessful</code> or <code>finalFailure</code> to be not-null
+         * expects <code>response</code> to be not-null
          */
-        public PrimaryResult(ReplicaRequest replicaRequest, Response finalResponseIfSuccessful, Exception finalFailure) {
-            assert finalFailure != null ^ finalResponseIfSuccessful != null
-                    : "either a response or a failure has to be not null, " +
-                    "found [" + finalFailure + "] failure and [" + finalResponseIfSuccessful + "] response";
+        public PrimaryResult(ReplicaRequest replicaRequest, Response response) {
             this.replicaRequest = replicaRequest;
-            this.finalResponseIfSuccessful = finalResponseIfSuccessful;
-            this.finalFailure = finalFailure;
-        }
-
-        public PrimaryResult(ReplicaRequest replicaRequest, Response replicationResponse) {
-            this(replicaRequest, replicationResponse, null);
+            this.response = response;
         }
 
         @Override
@@ -441,45 +438,28 @@ public abstract class TransportReplicationAction<
 
         @Override
         public void setShardInfo(ReplicationResponse.ShardInfo shardInfo) {
-            if (finalResponseIfSuccessful != null) {
-                finalResponseIfSuccessful.setShardInfo(shardInfo);
-            }
+            response.setShardInfo(shardInfo);
         }
 
         @Override
         public void runPostReplicationActions(ActionListener<Void> listener) {
-            if (finalFailure != null) {
-                listener.onFailure(finalFailure);
-            } else {
-                listener.onResponse(null);
-            }
+            listener.onResponse(null);
         }
     }
 
     public static class ReplicaResult {
-        final Exception finalFailure;
-
-        public ReplicaResult(Exception finalFailure) {
-            this.finalFailure = finalFailure;
-        }
 
         public ReplicaResult() {
-            this(null);
         }
 
         public void runPostReplicaActions(ActionListener<Void> listener) {
-            if (finalFailure != null) {
-                listener.onFailure(finalFailure);
-            } else {
-                listener.onResponse(null);
-            }
+            listener.onResponse(null);
         }
     }
 
     protected void handleReplicaRequest(final ConcreteReplicaRequest<ReplicaRequest> replicaRequest,
                                         final TransportChannel channel) {
-        new AsyncReplicaAction(
-            replicaRequest, new ChannelActionListener<>(channel, transportReplicaAction, replicaRequest)).run();
+        new AsyncReplicaAction(replicaRequest, new ChannelActionListener<>(channel)).run();
     }
 
     public static class RetryOnReplicaException extends ElasticsearchException {
@@ -586,11 +566,20 @@ public abstract class TransportReplicationAction<
         public void doRun() throws Exception {
             final String actualAllocationId = this.replica.routingEntry().allocationId().getId();
             if (actualAllocationId.equals(replicaRequest.getTargetAllocationID()) == false) {
-                throw new ShardNotFoundException(this.replica.shardId(), "expected allocation id [{}] but found [{}]",
-                    replicaRequest.getTargetAllocationID(), actualAllocationId);
+                throw new ShardNotFoundException(
+                    this.replica.shardId(),
+                    "expected allocation id [{}] but found [{}]",
+                    replicaRequest.getTargetAllocationID(),
+                    actualAllocationId
+                );
             }
-            acquireReplicaOperationPermit(replica, replicaRequest.getRequest(), this, replicaRequest.getPrimaryTerm(),
-                replicaRequest.getGlobalCheckpoint(), replicaRequest.getMaxSeqNoOfUpdatesOrDeletes());
+            acquireReplicaOperationPermit(
+                replica,
+                replicaRequest.getRequest(),
+                this,
+                replicaRequest.getPrimaryTerm(),
+                replicaRequest.getGlobalCheckpoint(),
+                replicaRequest.getMaxSeqNoOfUpdatesOrDeletes());
         }
     }
 
@@ -626,7 +615,7 @@ public abstract class TransportReplicationAction<
         @Override
         public void doRun() {
             final ClusterState state = observer.setAndGetObservedState();
-            final ClusterBlockException blockException = blockExceptions(state, request.shardId().getIndexName());
+            final ClusterBlockException blockException = blockExceptions(state, request.shardId().getIndexUUID());
             if (blockException != null) {
                 if (blockException.retryable()) {
                     logger.trace("cluster is blocked, scheduling a retry", blockException);
@@ -634,56 +623,57 @@ public abstract class TransportReplicationAction<
                 } else {
                     finishAsFailed(blockException);
                 }
-            } else {
-                final IndexMetadata indexMetadata = state.metadata().index(request.shardId().getIndex());
-                if (indexMetadata == null) {
-                    // ensure that the cluster state on the node is at least as high as the node that decided that the index was there
-                    if (state.version() < request.routedBasedOnClusterVersion()) {
-                        logger.trace("failed to find index [{}] for request [{}] despite sender thinking it would be here. " +
-                                "Local cluster state version [{}]] is older than on sending node (version [{}]), scheduling a retry...",
-                            request.shardId().getIndex(), request, state.version(), request.routedBasedOnClusterVersion());
-                        retry(new IndexNotFoundException("failed to find index as current cluster state with version [" + state.version() +
-                            "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]",
-                            request.shardId().getIndexName()));
-                        return;
-                    } else {
-                        finishAsFailed(new IndexNotFoundException(request.shardId().getIndex()));
-                        return;
-                    }
-                }
+                return;
+            }
 
-                if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-                    finishAsFailed(new IndexClosedException(indexMetadata.getIndex()));
+            final IndexMetadata indexMetadata = state.metadata().index(request.shardId().getIndex());
+            if (indexMetadata == null) {
+                // ensure that the cluster state on the node is at least as high as the node that decided that the index was there
+                if (state.version() < request.routedBasedOnClusterVersion()) {
+                    logger.trace("failed to find index [{}] for request [{}] despite sender thinking it would be here. " +
+                            "Local cluster state version [{}]] is older than on sending node (version [{}]), scheduling a retry...",
+                        request.shardId().getIndex(), request, state.version(), request.routedBasedOnClusterVersion());
+                    retry(new IndexNotFoundException("failed to find index as current cluster state with version [" + state.version() +
+                        "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]",
+                        request.shardId().getIndex().toString()));
+                    return;
+                } else {
+                    finishAsFailed(new IndexNotFoundException(request.shardId().getIndex()));
                     return;
                 }
+            }
 
-                if (request.waitForActiveShards() == ActiveShardCount.DEFAULT) {
-                    // if the wait for active shard count has not been set in the request,
-                    // resolve it from the index settings
-                    request.waitForActiveShards(indexMetadata.getWaitForActiveShards());
-                }
+            if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
+                finishAsFailed(new IndexClosedException(indexMetadata.getIndex()));
+                return;
+            }
+
+            if (request.waitForActiveShards() == ActiveShardCount.DEFAULT) {
+                // if the wait for active shard count has not been set in the request,
+                // resolve it from the index settings
+                request.waitForActiveShards(indexMetadata.getWaitForActiveShards());
                 assert request.waitForActiveShards() != ActiveShardCount.DEFAULT :
                     "request waitForActiveShards must be set in resolveRequest";
+            }
 
-                final ShardRouting primary = state.routingTable().shardRoutingTable(request.shardId()).primaryShard();
-                if (primary == null || primary.active() == false) {
-                    logger.trace("primary shard [{}] is not yet active, scheduling a retry: action [{}], request [{}], "
-                        + "cluster state version [{}]", request.shardId(), actionName, request, state.version());
-                    retryBecauseUnavailable(request.shardId(), "primary shard is not active");
-                    return;
-                }
-                if (state.nodes().nodeExists(primary.currentNodeId()) == false) {
-                    logger.trace("primary shard [{}] is assigned to an unknown node [{}], scheduling a retry: action [{}], request [{}], "
-                        + "cluster state version [{}]", request.shardId(), primary.currentNodeId(), actionName, request, state.version());
-                    retryBecauseUnavailable(request.shardId(), "primary shard isn't assigned to a known node.");
-                    return;
-                }
-                final DiscoveryNode node = state.nodes().get(primary.currentNodeId());
-                if (primary.currentNodeId().equals(state.nodes().getLocalNodeId())) {
-                    performLocalAction(state, primary, node, indexMetadata);
-                } else {
-                    performRemoteAction(state, primary, node);
-                }
+            final ShardRouting primary = state.routingTable().shardRoutingTable(request.shardId()).primaryShard();
+            if (primary == null || primary.active() == false) {
+                logger.trace("primary shard [{}] is not yet active, scheduling a retry: action [{}], request [{}], "
+                    + "cluster state version [{}]", request.shardId(), actionName, request, state.version());
+                retryBecauseUnavailable(request.shardId(), "primary shard is not active");
+                return;
+            }
+            if (state.nodes().nodeExists(primary.currentNodeId()) == false) {
+                logger.trace("primary shard [{}] is assigned to an unknown node [{}], scheduling a retry: action [{}], request [{}], "
+                    + "cluster state version [{}]", request.shardId(), primary.currentNodeId(), actionName, request, state.version());
+                retryBecauseUnavailable(request.shardId(), "primary shard isn't assigned to a known node.");
+                return;
+            }
+            final DiscoveryNode node = state.nodes().get(primary.currentNodeId());
+            if (primary.currentNodeId().equals(state.nodes().getLocalNodeId())) {
+                performLocalAction(state, primary, node, indexMetadata);
+            } else {
+                performRemoteAction(state, primary, node);
             }
         }
 
@@ -698,11 +688,19 @@ public abstract class TransportReplicationAction<
 
         private void performRemoteAction(ClusterState state, ShardRouting primary, DiscoveryNode node) {
             if (state.version() < request.routedBasedOnClusterVersion()) {
-                logger.trace("failed to find primary [{}] for request [{}] despite sender thinking it would be here. Local cluster state "
-                        + "version [{}]] is older than on sending node (version [{}]), scheduling a retry...", request.shardId(), request,
-                    state.version(), request.routedBasedOnClusterVersion());
-                retryBecauseUnavailable(request.shardId(), "failed to find primary as current cluster state with version ["
-                    + state.version() + "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]");
+                logger.trace(
+                    "failed to find primary [{}] for request [{}] despite sender thinking it would be here. Local cluster state "
+                        + "version [{}]] is older than on sending node (version [{}]), scheduling a retry...",
+                    request.shardId(),
+                    request,
+                    state.version(),
+                    request.routedBasedOnClusterVersion()
+                );
+
+                retryBecauseUnavailable(
+                    request.shardId(),
+                    "failed to find primary as current cluster state with version [" + state.version() + "] is stale (expected at least [" + request.routedBasedOnClusterVersion() + "]"
+                );
                 return;
             } else {
                 // chasing the node with the active primary for a second hop requires that we are at least up-to-date with the current
@@ -711,8 +709,14 @@ public abstract class TransportReplicationAction<
                 request.routedBasedOnClusterVersion(state.version());
             }
             if (logger.isTraceEnabled()) {
-                logger.trace("send action [{}] on primary [{}] for request [{}] with cluster state version [{}] to [{}]", actionName,
-                    request.shardId(), request, state.version(), primary.currentNodeId());
+                logger.trace(
+                    "send action [{}] on primary [{}] for request [{}] with cluster state version [{}] to [{}]",
+                    actionName,
+                    request.shardId(),
+                    request,
+                    state.version(),
+                    primary.currentNodeId()
+                );
             }
             performAction(node, actionName, false, request);
         }
@@ -879,13 +883,6 @@ public abstract class TransportReplicationAction<
 
         @Override
         public void perform(Request request, ActionListener<PrimaryResult<ReplicaRequest, Response>> listener) {
-            if (Assertions.ENABLED) {
-                listener = listener.map(result -> {
-                    assert result.replicaRequest() == null || result.finalFailure == null : "a replica request [" + result.replicaRequest()
-                        + "] with a primary failure [" + result.finalFailure + "]";
-                    return result;
-                });
-            }
             assert indexShard.getActiveOperationsCount() != 0 : "must perform shard operation under a permit";
             shardOperationOnPrimary(request, indexShard, listener);
         }

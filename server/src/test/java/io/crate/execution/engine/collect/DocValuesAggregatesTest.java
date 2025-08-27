@@ -62,6 +62,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
     private Functions functions;
     private SqlExpressions e;
     private DocTableInfo table;
+    private DocTableInfo partedTable;
 
     @Before
     public void setup() {
@@ -76,7 +77,20 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 )
                 """,
             clusterService);
-        Map<RelationName, AnalyzedRelation> sources = Map.of(name, new TableRelation(this.table));
+        RelationName partedName = new RelationName(DocSchemaInfo.NAME, "tbl_parted");
+        this.partedTable = SQLExecutor.partitionedTableInfo(
+            partedName,
+            """
+                create table tbl_parted (
+                    x long,
+                    y long,
+                    obj object as (col int not null)
+                ) PARTITIONED BY(y, obj['col'])
+                """,
+            clusterService);
+        Map<RelationName, AnalyzedRelation> sources = Map.of(
+            name, new TableRelation(this.table),
+            partedName, new TableRelation(this.partedTable));
         e = new SqlExpressions(sources);
     }
 
@@ -207,6 +221,22 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
                 c -> assertThat(c).isExactlyInstanceOf(SortedNumericDocValueAggregator.class),
                 c -> assertThat(c).isExactlyInstanceOf(SumAggregation.SumLong.class)
             );
+    }
+
+    @Test
+    public void test_create_aggregators_for_partitioned_col_returns_null() {
+        var aggregators = DocValuesAggregates.createAggregators(
+            functions,
+            mock(LuceneReferenceResolver.class),
+            List.of(countAggregation(0),
+                    countAggregation(1),
+                    longSumAggregation(1)
+            ),
+            List.of(e.asSymbol("tbl_parted.y"), e.asSymbol("tbl_parted.obj['col']")),
+            partedTable,
+            Version.CURRENT
+        );
+        assertThat(aggregators).isNull();
     }
 
     private static Aggregation countAggregation(int inputCol) {

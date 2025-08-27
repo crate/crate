@@ -33,6 +33,7 @@ import org.elasticsearch.common.UUIDs;
 import org.junit.Test;
 
 import io.crate.analyze.Id;
+import io.crate.execution.dml.IndexItem;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.symbol.InputColumn;
@@ -47,8 +48,8 @@ import io.crate.testing.SQLExecutor;
 
 public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
-    private static Doc doc(String id, String index, Map<String, Object> source) {
-        return new Doc(1, index, id, 1, 1, 1, new StoredRow() {
+    private static Doc doc(String id, List<String> partitionValues, Map<String, Object> source) {
+        return new Doc(1, partitionValues, id, 1, 1, 1, new StoredRow() {
             @Override
             public Map<String, Object> asMap() {
                 return source;
@@ -74,9 +75,9 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 10, "y", 5);
-        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), List.of(), source);
 
-        UpdateToInsert.Update item = updateToInsert.convert(
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(20) },
             new Object[0]
@@ -98,9 +99,9 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 10, "y", 5);
-        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), List.of(), source);
 
-        UpdateToInsert.Update item = updateToInsert.convert(
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(0) },
             new Object[] { 20 }
@@ -122,8 +123,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 1, "o", Map.of("y", 2));
-        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Doc doc = doc(UUIDs.randomBase64UUID(), List.of(), source);
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(3) },
             new Object[] {}
@@ -145,8 +146,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 1, "y", 5);
-        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Doc doc = doc(UUIDs.randomBase64UUID(), List.of(), source);
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(8) },
             new Object[] {}
@@ -171,10 +172,10 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 12);
-        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
+        Doc doc = doc(UUIDs.randomBase64UUID(), List.of(), source);
 
         Symbol[] assignments = new Symbol[] { Literal.of(8) };
-        UpdateToInsert.Update item = updateToInsert.convert(doc, assignments, new Object[0]);
+        IndexItem item = updateToInsert.convert(doc, assignments, new Object[0]);
         assertThat(item.insertValues())
             .containsExactly(8);
     }
@@ -192,8 +193,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("x", 12);
-        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Doc doc = doc(UUIDs.randomBase64UUID(), List.of(), source);
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1), Literal.of(2) },
             new Object[] {}
@@ -219,8 +220,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         Map<String, Object> source = Map.of("y", 1, "o", Map.of("x", 3));
-        Doc doc = doc("3", table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Doc doc = doc("3", List.of(), source);
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(1) },
             new Object[] {}
@@ -268,8 +269,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             );
 
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
-        Doc doc = doc(UUIDs.randomBase64UUID(), table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Doc doc = doc(UUIDs.randomBase64UUID(), List.of(), source);
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { Literal.of(20) },
             new Object[] { Literal.of(3) }
@@ -308,8 +309,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
 
         Map<String, Object> source = Map.of("x", 1, "y", Map.of("a", 2), "z", 3);
         String id = UUIDs.randomBase64UUID();
-        Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Doc doc = doc(id, List.of(), source);
+        IndexItem item = updateToInsert.convert(
                 doc,
                 new Symbol[] { Literal.of(20) },
                 new Object[] { Literal.of(3) }
@@ -345,8 +346,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
         );
         Map<String, Object> source = Map.of("x", 1, "y", 2, "z", 3);
         String id = Id.encode(List.of("1", "2"), -1);
-        Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Doc doc = doc(id, List.of(), source);
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
             new Object[] { 1, 20 }
@@ -392,8 +393,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             "z", 3
         );
         String id = Id.encode(List.of("1", "2"), -1);
-        Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Doc doc = doc(id, List.of(), source);
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
             new Object[] { 1, 20 }
@@ -433,8 +434,8 @@ public class UpdateToInsertTest extends CrateDummyClusterServiceUnitTest {
             "z", 3
         );
         String id = Id.encode(List.of("1", "10"), -1);
-        Doc doc = doc(id, table.concreteIndices(e.getPlannerContext().clusterState().metadata())[0], source);
-        UpdateToInsert.Update item = updateToInsert.convert(
+        Doc doc = doc(id, List.of(), source);
+        IndexItem item = updateToInsert.convert(
             doc,
             new Symbol[] { new InputColumn(1) },
             new Object[] { 1, 20 }

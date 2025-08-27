@@ -21,7 +21,6 @@ package org.elasticsearch.snapshots;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState.Custom;
@@ -60,18 +59,11 @@ public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireS
         for (int i = 0; i < numberOfIndices; i++) {
             indices.add(new IndexId(randomAlphaOfLength(10), randomAlphaOfLength(10)));
         }
-        List<String> templates = new ArrayList<>();
-        if (includeGlobalState == false) {
-            int numberOfTemplates = randomIntBetween(0, 5);
-            for (int i = 0; i < numberOfTemplates; i++) {
-                templates.add(randomAlphaOfLength(10));
-            }
-        }
         long startTime = randomLong();
         long repositoryStateId = randomLong();
         ImmutableOpenMap.Builder<ShardId, SnapshotsInProgress.ShardSnapshotStatus> builder = ImmutableOpenMap.builder();
         final List<Index> esIndices =
-            indices.stream().map(i -> new Index(i.getName(), randomAlphaOfLength(10))).collect(Collectors.toList());
+            indices.stream().map(i -> new Index(i.getName(), randomAlphaOfLength(10))).toList();
         for (Index idx : esIndices) {
             int shardsCount = randomIntBetween(1, 10);
             for (int j = 0; j < shardsCount; j++) {
@@ -91,7 +83,7 @@ public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireS
             partial,
             randomState(shards),
             indices,
-            templates,
+            List.of(),
             startTime,
             repositoryStateId,
             shards,
@@ -145,7 +137,7 @@ public class SnapshotsInProgressSerializationTests extends AbstractDiffableWireS
     @Override
     protected Custom mutateInstance(Custom instance) {
         List<Entry> entries = new ArrayList<>(((SnapshotsInProgress) instance).entries());
-        boolean addEntry = entries.isEmpty() ? true : randomBoolean();
+        boolean addEntry = entries.isEmpty() || randomBoolean();
         if (addEntry) {
             entries.add(randomSnapshot());
         } else {

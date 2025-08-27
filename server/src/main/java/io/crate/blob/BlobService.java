@@ -21,14 +21,18 @@
 
 package io.crate.blob;
 
+import java.util.List;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.ShardIterator;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.blob.exceptions.MissingHTTPEndpointException;
@@ -36,6 +40,7 @@ import io.crate.blob.transfer.BlobHeadRequestHandler;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
+import io.crate.metadata.RelationName;
 
 public class BlobService extends AbstractLifecycleComponent {
 
@@ -56,8 +61,14 @@ public class BlobService extends AbstractLifecycleComponent {
 
     public RemoteDigestBlob newBlob(String index, String digest) {
         assert client != null : "client for remote digest blob must not be null";
+        RelationName relationName = RelationName.fromIndexName(index);
+        String indexUUID = clusterService.state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        if (indexUUID == null) {
+            throw new IndexNotFoundException(index);
+        }
+
         ShardId shardId = clusterService.operationRouting()
-            .indexShards(clusterService.state(), index, digest, null)
+            .indexShards(clusterService.state(), indexUUID, digest, null)
             .shardId();
         return new RemoteDigestBlob(client, shardId, digest);
     }
@@ -81,8 +92,13 @@ public class BlobService extends AbstractLifecycleComponent {
      * @return null if no redirect is required, Otherwise the address to which should be redirected.
      */
     public String getRedirectAddress(String index, String digest) throws MissingHTTPEndpointException {
+        RelationName relationName = RelationName.fromIndexName(index);
+        String indexUUID = clusterService.state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        if (indexUUID == null) {
+            throw new IndexNotFoundException(index);
+        }
         ShardIterator shards = clusterService.operationRouting().getShards(
-            clusterService.state(), index, null, digest, "_local");
+            clusterService.state(), indexUUID, null, digest, "_local");
 
         String localNodeId = clusterService.localNode().getId();
         DiscoveryNodes nodes = clusterService.state().nodes();
@@ -106,6 +122,11 @@ public class BlobService extends AbstractLifecycleComponent {
     }
 
     public BlobShard localBlobShard(String index, String digest) {
-        return blobIndicesService.localBlobShard(index, digest);
+        RelationName relationName = RelationName.fromIndexName(index);
+        String indexUUID = clusterService.state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        if (indexUUID == null) {
+            throw new IndexNotFoundException(index);
+        }
+        return blobIndicesService.localBlobShard(indexUUID, digest);
     }
 }

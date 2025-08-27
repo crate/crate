@@ -37,6 +37,9 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.kill.KillJobsNodeAction;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
 import io.crate.planner.distribution.DistributionInfo;
@@ -49,6 +52,7 @@ public class DistributingConsumerFactory {
     private final ClusterService clusterService;
     private final Executor responseExecutor;
     private final ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction;
+    private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
     private final ThreadPool threadPool;
 
     @Inject
@@ -58,7 +62,9 @@ public class DistributingConsumerFactory {
         this.clusterService = clusterService;
         this.responseExecutor = threadPool.executor(RESPONSE_EXECUTOR_NAME);
         this.distributedResultAction = req -> node.client().execute(DistributedResultAction.INSTANCE, req);
+        this.killNodeAction = req -> node.client().execute(KillJobsNodeAction.INSTANCE, req);
         this.threadPool = threadPool;
+
     }
 
     public DistributingConsumer create(NodeOperation nodeOperation,
@@ -112,7 +118,10 @@ public class DistributingConsumerFactory {
             bucketIdx,
             nodeOperation.downstreamNodes(),
             distributedResultAction,
-            pageSize
+            killNodeAction,
+            clusterService.localNode().getId(),
+            pageSize,
+            threadPool
         );
     }
 

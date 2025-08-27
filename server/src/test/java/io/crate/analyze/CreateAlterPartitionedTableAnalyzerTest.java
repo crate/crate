@@ -154,7 +154,6 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
         // partitioned columns must be not indexed in mapping
         Map<String, Object> nameMapping = (Map<String, Object>) mappingProperties.get("name");
         assertThat(nameMapping).containsExactly(
-            Map.entry("index", false),
             Map.entry("position", 3),
             Map.entry("type", "keyword")
         );
@@ -181,12 +180,10 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
                 Map.of(
                     "date", Map.of(
                         "format", "epoch_millis||strict_date_optional_time",
-                        "index", false,
                         "position", 2,
                         "type", "date"
                     ),
                     "name", Map.of(
-                        "index", false,
                         "position", 1,
                         "type", "keyword"
                     )
@@ -217,7 +214,6 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
             "position", 3,
             "properties", Map.of(
                 "name", Map.of(
-                    "index", false,
                     "position", 4,
                     "type", "keyword"
                 )
@@ -316,7 +312,6 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
 
         Map<String, Object> oMapping = (Map<String, Object>) mappingProperties.get("id1");
         assertThat(oMapping).isEqualTo(Map.of(
-            "index", false,
             "position", 1,
             "type", "integer"
         ));

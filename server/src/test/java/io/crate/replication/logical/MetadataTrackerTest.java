@@ -24,8 +24,10 @@ package io.crate.replication.logical;
 import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_INDEX_UUID;
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_SUBSCRIPTION_NAME;
 import static io.crate.role.Role.CRATE_USER;
+import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 
@@ -61,6 +63,7 @@ import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.replication.logical.action.PublicationsStateAction;
 import io.crate.replication.logical.action.PublicationsStateAction.Response;
 import io.crate.replication.logical.metadata.ConnectionInfo;
@@ -89,74 +92,57 @@ public class MetadataTrackerTest extends ESTestCase {
             this.clusterState = clusterState;
         }
 
-        public Builder addTable(String name, Map<String, Object> mapping, Settings settings) throws IOException {
-            String indexUUID = UUIDs.randomBase64UUID();
+        public Builder addTable(String name, List<Reference> columns, Settings settings) throws IOException {
             RelationName relationName = RelationName.fromIndexName(name);
-            var indexMetadata = IndexMetadata.builder(name)
-                .putMapping(new MappingMetadata(mapping))
-                .settings(settings(Version.CURRENT).put(SETTING_INDEX_UUID, indexUUID).put(settings))
-                .numberOfShards(1)
-                .numberOfReplicas(0)
+
+            Settings settingsWithDefaults = Settings.builder()
+                .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                .put(INDEX_NUMBER_OF_REPLICAS_SETTING.getKey(), "0")
+                .put(INDEX_NUMBER_OF_SHARDS_SETTING.getKey(), "1")
+                .put(settings)
                 .build();
-            Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata())
-                .put(indexMetadata, true);
-            mdBuilder.setTable(
-                relationName,
-                buildReferences(relationName, mapping),
-                settings,
-                null,
-                ColumnPolicy.STRICT,
-                null,
-                Map.of(),
-                List.of(),
-                List.of(),
-                IndexMetadata.State.OPEN,
-                List.of(indexUUID),
-                1L
-            );
+
+            Metadata metadata = Metadata.builder(clusterState.metadata())
+                .setTable(
+                    relationName,
+                    columns,
+                    settingsWithDefaults,
+                    null,
+                    ColumnPolicy.STRICT,
+                    null,
+                    Map.of(),
+                    List.of(),
+                    List.of(),
+                    IndexMetadata.State.OPEN,
+                    List.of(),
+                    1L
+                )
+                .build();
+
             clusterState = ClusterState.builder(clusterState)
-                .metadata(mdBuilder)
-                .routingTable(RoutingTable.builder(clusterState.routingTable())
-                    .add(IndexRoutingTable.builder(indexMetadata.getIndex())
-                        .addShard(newShardRouting(name, 0, "dummy_node", true, ShardRoutingState.STARTED))
-                        .build())
-                    .build())
+                .metadata(metadata)
                 .incrementVersion()
                 .build();
-            return this;
+
+            RelationMetadata.Table table = metadata.getRelation(relationName);
+            assert table != null : "Table " + relationName + " not found in metadata";
+
+            return addPartition(table, new PartitionName(relationName, List.of()), settingsWithDefaults);
         }
 
-        public Builder addPartition(RelationName relationName, PartitionName partitionName) throws IOException {
-            Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata());
-            RelationMetadata.Table table = clusterState.metadata().getRelation(relationName);
-            if (table == null) {
-                throw new IllegalArgumentException("Table " + relationName + " does not exist in cluster state");
-            }
-
-            String indexUUID = UUIDs.randomBase64UUID();
+        private Builder addPartition(RelationMetadata.Table table, PartitionName partitionName, Settings settings) throws IOException {
+            Map<String, Object> mapping = Map.of();
             var indexMetadata = IndexMetadata.builder(partitionName.asIndexName())
+                .putMapping(new MappingMetadata(mapping))
+                .settings(settings(Version.CURRENT).put(settings).put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID()))
                 .partitionValues(partitionName.values())
-                .putMapping(new MappingMetadata(Map.of()))
-                .settings(settings(Version.CURRENT).put(SETTING_INDEX_UUID, indexUUID))
                 .numberOfShards(1)
                 .numberOfReplicas(0)
                 .build();
-            mdBuilder.put(indexMetadata, true);
-            mdBuilder.setTable(
-                table.name(),
-                table.columns(),
-                table.settings(),
-                table.routingColumn(),
-                table.columnPolicy(),
-                table.pkConstraintName(),
-                table.checkConstraints(),
-                table.primaryKeys(),
-                table.partitionedBy(),
-                table.state(),
-                Lists.concat(table.indexUUIDs(), List.of(indexUUID)),
-                table.tableVersion() + 1L
 
-            );
+            Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata());
+            mdBuilder.put(indexMetadata, true);
+            mdBuilder.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
 
             clusterState = ClusterState.builder(clusterState)
                 .metadata(mdBuilder)
@@ -172,82 +158,83 @@ public class MetadataTrackerTest extends ESTestCase {
 
         public Builder addReplicatingTable(String subscriptionName,
                                            String name,
-                                           Map<String, Object> mapping,
+                                           List<Reference> columns,
                                            Settings settings) throws IOException {
             var newSettings = Settings.builder()
                 .put(settings)
                 .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), subscriptionName)
                 .build();
-            return addTable(name, mapping, newSettings);
+            return addTable(name, columns, newSettings);
         }
 
-        public Builder addPartitionedTable(RelationName relation, List<PartitionName> partitions) throws IOException {
-            Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata());
-            mdBuilder.setTable(
-                relation,
-                buildReferences(relation, Map.of("p1", 1)),
-                Settings.EMPTY,
-                null,
-                ColumnPolicy.STRICT,
-                null,
-                Map.of(),
-                List.of(),
-                List.of(ColumnIdent.of("p1")),
-                IndexMetadata.State.OPEN,
-                List.of(),
-                1L
-            );
+        public Builder addPartitionedTable(RelationName relationName, List<PartitionName> partitions) throws IOException {
+            Metadata metadata = Metadata.builder(clusterState.metadata())
+                .setTable(
+                    relationName,
+                    buildReferences(relationName, Map.of("p1", 1)),
+                    Settings.EMPTY,
+                    null,
+                    ColumnPolicy.STRICT,
+                    null,
+                    Map.of(),
+                    List.of(),
+                    List.of(ColumnIdent.of("p1")),
+                    IndexMetadata.State.OPEN,
+                    List.of(),
+                    1L
+                )
+                .build();
 
             clusterState = ClusterState.builder(clusterState)
-                .metadata(mdBuilder)
+                .metadata(metadata)
                 .incrementVersion()
                 .build();
+
+            RelationMetadata.Table table = metadata.getRelation(relationName);
+            assert table != null : "Table " + relationName + " not found in metadata";
 
             for (var partitionName : partitions) {
-                addPartition(relation, partitionName);
+                addPartition(table, partitionName, Settings.EMPTY);
             }
 
             return this;
         }
 
-        public Builder updateTableMapping(String name, Map<String, Object> newMapping) throws IOException {
+        public Builder addColumn(String name, Reference newColumn) throws IOException {
             RelationName relationName = RelationName.fromIndexName(name);
-            Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata());
             RelationMetadata.Table table = clusterState.metadata().getRelation(relationName);
-            if (table == null) {
-                throw new IllegalArgumentException("Table " + relationName + " does not exist in cluster state");
-            }
-            mdBuilder.setTable(
-                table.name(),
-                buildReferences(relationName, newMapping),
-                table.settings(),
-                table.routingColumn(),
-                table.columnPolicy(),
-                table.pkConstraintName(),
-                table.checkConstraints(),
-                table.primaryKeys(),
-                table.partitionedBy(),
-                table.state(),
-                table.indexUUIDs(),
-                table.tableVersion() + 1L
-            );
+            assert table != null : "Table " + relationName + " not found in metadata";
 
-            for (String indexUUID : table.indexUUIDs()) {
-                var indexMetadata = clusterState.metadata().indexByUUID(indexUUID);
-                IndexMetadata.Builder newIndexMetadata = IndexMetadata.builder(indexMetadata)
-                    .putMapping(new MappingMetadata(newMapping))
-                    .mappingVersion(indexMetadata.getMappingVersion() + 1);
-                mdBuilder.put(newIndexMetadata);
-            }
+            Metadata metadata = Metadata.builder(clusterState.metadata())
+                .setTable(
+                    table.name(),
+                    Lists.concat(table.columns(), List.of(newColumn)),
+                    table.settings(),
+                    table.routingColumn(),
+                    table.columnPolicy(),
+                    table.pkConstraintName(),
+                    table.checkConstraints(),
+                    table.primaryKeys(),
+                    table.partitionedBy(),
+                    table.state(),
+                    table.indexUUIDs(),
+                    table.tableVersion() + 1
+                )
+                .build();
+
+            DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(createNodeContext());
+            var tableInfo = docTableInfoFactory.create(relationName, metadata);
+            Metadata.Builder metadataBuilder = Metadata.builder(metadata);
+            tableInfo.writeTo(metadata, metadataBuilder);
 
             clusterState = ClusterState.builder(clusterState)
-                .metadata(mdBuilder)
+                .metadata(metadataBuilder)
                 .incrementVersion()
                 .build();
             return this;
         }
 
-        public Builder updateTableSettings(String name, Settings newSettings) throws IOException {
+        public Builder updateTableSettings(String name, Settings newSettings) {
             RelationName relationName = RelationName.fromIndexName(name);
             Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata());
             RelationMetadata.Table table = clusterState.metadata().getRelation(relationName);
@@ -270,7 +257,7 @@ public class MetadataTrackerTest extends ESTestCase {
             );
 
             for (String indexUUID : table.indexUUIDs()) {
-                var indexMetadata = clusterState.metadata().indexByUUID(indexUUID);
+                var indexMetadata = clusterState.metadata().index(indexUUID);
                 var updatedSettings = Settings.builder()
                     .put(indexMetadata.getSettings())
                     .put(newSettings)
@@ -365,8 +352,10 @@ public class MetadataTrackerTest extends ESTestCase {
 
     @Before
     public void setUpStates() throws Exception {
+        RelationName relationName = new RelationName(null, "test");
+        SimpleReference reference = new SimpleReference(new ReferenceIdent(relationName, "one"), RowGranularity.DOC, DataTypes.STRING, 1, null);
         PUBLISHER_CLUSTER_STATE = new Builder("publisher")
-            .addTable("test", Map.of("1", "one"), Settings.EMPTY)
+            .addTable("test", List.of(reference), Settings.EMPTY)
             .addPublication("pub1", List.of("test"))
             .build();
 
@@ -380,13 +369,14 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
 
         SUBSCRIBER_CLUSTER_STATE = new Builder("subscriber")
-            .addReplicatingTable("sub1", "test", Map.of("1", "one"), replicatingTableSettings)
+            .addReplicatingTable("sub1", "test", List.of(reference), replicatingTableSettings)
             .addSubscription("sub1", List.of("pub1"), List.of("test"))
             .build();
     }
 
     @Test
     public void test_mappings_is_transferred_between_two_clustering_for_logical_replication() throws Exception {
+        RelationName relationName = RelationName.fromIndexName("test");
         var syncedSubscriberClusterState = MetadataTracker.updateRelations(
             "sub1",
             SubscriptionsMetadata.get(SUBSCRIBER_CLUSTER_STATE.metadata()).get("sub1"),
@@ -399,8 +389,9 @@ public class MetadataTrackerTest extends ESTestCase {
 
         // Let's change the mapping on the publisher publisherClusterState
         Map<String, Object> updatedMapping = Map.of("1", "one", "2", "two");
+        SimpleReference newColumn = new SimpleReference(new ReferenceIdent(relationName, "two"), RowGranularity.DOC, DataTypes.STRING, 1, null);
         var updatedPublisherClusterState = new Builder(PUBLISHER_CLUSTER_STATE)
-            .updateTableMapping("test", updatedMapping)
+            .addColumn("test", newColumn)
             .build();
 
         var updatedResponse = buildPublisherResponse(updatedPublisherClusterState, "pub1");
@@ -415,15 +406,14 @@ public class MetadataTrackerTest extends ESTestCase {
 
         assertThat(SUBSCRIBER_CLUSTER_STATE).isNotEqualTo(syncedSubscriberClusterState);
 
-        RelationName relationName = RelationName.fromIndexName("test");
         RelationMetadata.Table publisherTable = updatedPublisherClusterState.metadata().getRelation(relationName);
         RelationMetadata.Table syncedTable = syncedSubscriberClusterState.metadata().getRelation(relationName);
         assertThat(syncedTable.columns()).isEqualTo(publisherTable.columns());
 
         for (String indexUUID : syncedTable.indexUUIDs()) {
-            IndexMetadata syncedIndexMetadata = syncedSubscriberClusterState.metadata().indexByUUID(indexUUID);
+            IndexMetadata syncedIndexMetadata = syncedSubscriberClusterState.metadata().index(indexUUID);
             String publisherIndexUUID = PUBLISHER_INDEX_UUID.get(syncedIndexMetadata.getSettings());
-            IndexMetadata publisherIndexMetadata = updatedPublisherClusterState.metadata().indexByUUID(publisherIndexUUID);
+            IndexMetadata publisherIndexMetadata = updatedPublisherClusterState.metadata().index(publisherIndexUUID);
             assertThat(syncedIndexMetadata.mapping()).isEqualTo(publisherIndexMetadata.mapping());
         }
     }
@@ -468,7 +458,7 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedTable.settings())).isNotEqualTo(50);
 
         for (String indexUUID : syncedTable.indexUUIDs()) {
-            IndexMetadata indexMetadata = syncedSubscriberClusterState.metadata().indexByUUID(indexUUID);
+            IndexMetadata indexMetadata = syncedSubscriberClusterState.metadata().index(indexUUID);
             assertThat(IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING.get(indexMetadata.getSettings())).isNotEqualTo(50);
         }
     }
@@ -509,7 +499,7 @@ public class MetadataTrackerTest extends ESTestCase {
             .build();
 
         var publisherState = new Builder("publisher")
-            .addTable("t2", Map.of(), Settings.EMPTY)
+            .addTable("t2", List.of(), Settings.EMPTY)
             .addPublication("pub1", List.of("t2"))
             .build();
 
@@ -605,12 +595,12 @@ public class MetadataTrackerTest extends ESTestCase {
 
         var subscriberClusterState = new Builder("subscriber")
             .addSubscription("sub1", List.of("pub1"), List.of("t1"))
-            .addReplicatingTable("sub1", "t1", Map.of(), Settings.EMPTY)
+            .addReplicatingTable("sub1", "t1", List.of(), Settings.EMPTY)
             .build();
 
         var publisherState = new Builder("publisher")
             .addPublication("pub1", List.of("p1", "t1"))
-            .addTable("t1", Map.of(), Settings.EMPTY)
+            .addTable("t1", List.of(), Settings.EMPTY)
             .addPartitionedTable(newRelationName, List.of(newPartitionName))
             .build();
 

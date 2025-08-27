@@ -37,6 +37,7 @@ import java.util.function.Function;
 import org.apache.lucene.search.IndexSearcher;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
@@ -57,7 +58,7 @@ import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
-import io.crate.metadata.IndexName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -71,7 +72,7 @@ public class FetchTask implements Task {
     private final int memoryLimitInBytes;
     private final String localNodeId;
     private final SharedShardContexts sharedShardContexts;
-    private final TreeMap<Integer, RelationName> tableIdents = new TreeMap<>();
+    private final TreeMap<Integer, PartitionName> tableIdents = new TreeMap<>();
     private final Metadata metadata;
     private final List<? extends Routing> routings;
     private final Map<RelationName, Collection<Reference>> toFetch;
@@ -103,13 +104,14 @@ public class FetchTask implements Task {
         this.routings = routings;
         this.toFetch = HashMap.newHashMap(phase.tableIndices().size());
         this.getTableInfo = getTableInfo;
-    }
-
-    private void closeSearchers() {
-        for (var cursor : searchers) {
-            cursor.value.close();
-        }
-        searchers.clear();
+        this.result.whenComplete((_, _) -> {
+            synchronized (jobId) {
+                for (var cursor : searchers) {
+                    cursor.value.close();
+                }
+                searchers.clear();
+            }
+        });
     }
 
     /**
@@ -134,7 +136,7 @@ public class FetchTask implements Task {
     }
 
     @NotNull
-    public RelationName tableIdent(int readerId) {
+    public PartitionName tableIdent(int readerId) {
         var entry = tableIdents.floorEntry(readerId);
         if (entry == null) {
             throw new IllegalArgumentException("No table has been registered for readerId=" + readerId);
@@ -144,7 +146,8 @@ public class FetchTask implements Task {
 
     @NotNull
     public DocTableInfo table(int readerId) {
-        var relationName = tableIdent(readerId);
+        var partitionName = tableIdent(readerId);
+        var relationName = partitionName.relationName();
         var table = getTableInfo.apply(relationName);
         if (table == null) {
             throw new IllegalStateException("TableInfo missing for relation " + relationName);
@@ -167,7 +170,6 @@ public class FetchTask implements Task {
                 synchronized (jobId) {
                     borrowed--;
                     if (borrowed == 0 && killed != null) {
-                        closeSearchers();
                         result.completeExceptionally(killed);
                     }
                 }
@@ -213,7 +215,6 @@ public class FetchTask implements Task {
         synchronized (jobId) {
             killed = throwable;
             if (borrowed == 0) {
-                closeSearchers();
                 result.completeExceptionally(throwable);
             }
         }
@@ -222,7 +223,6 @@ public class FetchTask implements Task {
     public void close() {
         synchronized (jobId) {
             assert borrowed == 0 : "Close shouldn't be called while searchers are in use";
-            closeSearchers();
             if (killed == null) {
                 result.complete(null);
             } else {
@@ -252,23 +252,23 @@ public class FetchTask implements Task {
                     throw t;
                 }
             }
-            return CompletableFuture.allOf(refreshActions.toArray(CompletableFuture[]::new))
-                .thenApply(ignored -> {
-                    synchronized (jobId) {
-                        if (killed == null) {
-                            setupSearchers();
-                        }
+            CompletableFuture<Void> allRefreshed = CompletableFuture.allOf(refreshActions.toArray(CompletableFuture[]::new));
+            return allRefreshed.thenApply(_ -> {
+                synchronized (jobId) {
+                    if (killed == null) {
+                        setupSearchers();
                     }
-                    return null;
-                });
+                }
+                return null;
+            });
         }
     }
 
     private void setupSearchers() {
         HashMap<String, RelationName> index2TableIdent = new HashMap<>();
         for (Map.Entry<RelationName, Collection<String>> entry : phase.tableIndices().entrySet()) {
-            for (String indexName : entry.getValue()) {
-                index2TableIdent.put(indexName, entry.getKey());
+            for (String indexUUID : entry.getValue()) {
+                index2TableIdent.put(indexUUID, entry.getKey());
             }
         }
         Set<RelationName> tablesWithFetchRefs = new HashSet<>();
@@ -281,22 +281,27 @@ public class FetchTask implements Task {
             Map<String, IntIndexedContainer> indexShards = locations.get(localNodeId);
 
             for (Map.Entry<String, IntIndexedContainer> indexShardsEntry : indexShards.entrySet()) {
-                String indexName = indexShardsEntry.getKey();
-                Integer base = phase.bases().get(indexName);
+                String indexUUID = indexShardsEntry.getKey();
+                Integer base = phase.bases().get(indexUUID);
                 if (base == null) {
                     continue;
                 }
-                IndexMetadata indexMetadata = metadata.index(indexName);
+
+                RelationName ident = index2TableIdent.get(indexUUID);
+                assert ident != null : "no relationName found for index " + indexUUID;
+
+                IndexMetadata indexMetadata = metadata.index(indexUUID);
                 if (indexMetadata == null) {
-                    if (IndexName.isPartitioned(indexName)) {
+                    RelationMetadata.Table tableMetadata = metadata.getRelation(ident);
+                    if (tableMetadata != null && tableMetadata.partitionedBy().isEmpty() == false) {
                         continue;
                     }
-                    throw new IndexNotFoundException(indexName);
+                    throw new IndexNotFoundException(indexUUID);
                 }
                 Index index = indexMetadata.getIndex();
-                RelationName ident = index2TableIdent.get(indexName);
-                assert ident != null : "no relationName found for index " + indexName;
-                tableIdents.put(base, ident);
+                PartitionName partitionName = new PartitionName(ident, indexMetadata.partitionValues());
+                boolean isPartitioned = partitionName.values().isEmpty() == false;
+                tableIdents.put(base, partitionName);
                 toFetch.put(ident, new ArrayList<>());
                 for (IntCursor shard : indexShardsEntry.getValue()) {
                     ShardId shardId = new ShardId(index, shard.value);
@@ -310,7 +315,7 @@ public class FetchTask implements Task {
                                 searchers.put(readerId, shardContext.acquireSearcher(source));
                             }
                         } catch (IllegalIndexShardStateException | IndexNotFoundException e) {
-                            if (!IndexName.isPartitioned(indexName)) {
+                            if (!isPartitioned) {
                                 throw e;
                             }
                         }

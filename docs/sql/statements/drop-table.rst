@@ -6,11 +6,6 @@
 
 Remove a table.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

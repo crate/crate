@@ -1874,9 +1874,9 @@ public final class TestCluster implements Closeable {
     /**
      * Returns a set of nodes that have at least one shard of the given index.
      */
-    public synchronized Set<String> nodesInclude(String index) {
-        if (clusterService().state().routingTable().hasIndex(index)) {
-            List<ShardRouting> allShards = clusterService().state().routingTable().allShards(index);
+    public synchronized Set<String> nodesInclude(String indexUUID) {
+        if (clusterService().state().routingTable().hasIndex(indexUUID)) {
+            List<ShardRouting> allShards = clusterService().state().routingTable().allShards(indexUUID);
             DiscoveryNodes discoveryNodes = clusterService().state().nodes();
             Set<String> nodes = new HashSet<>();
             for (ShardRouting shardRouting : allShards) {
@@ -2313,14 +2313,20 @@ public final class TestCluster implements Closeable {
                 .collect(Collectors.joining(",", "[", "]"));
             CircuitBreaker inFlightRequestsBreaker = getInstance(CircuitBreakerService.class, nodeAndClient.name)
                 .getBreaker(CircuitBreaker.IN_FLIGHT_REQUESTS);
+
+            TransportService transportService = getInstance(TransportService.class, nodeAndClient.name);
             try {
                 // see #ensureEstimatedStats()
                 assertBusy(() -> {
                     // ensure that our size accounting on transport level is reset properly
                     long bytesUsed = inFlightRequestsBreaker.getUsed();
+                    String asMsg =
+                        "All incoming requests on node [" + nodeAndClient.name + "] should have finished. "
+                        + "in_flight_requests-bytesUsed=" + bytesUsed
+                        + ", pendingTasks=" + pendingTasks
+                        + ", responseHandlers=" + transportService.getResponseHandlers();
                     assertThat(bytesUsed)
-                        .as("All incoming requests on node [" + nodeAndClient.name + "] should have finished. " +
-                            "Expected 0 but got " + bytesUsed + "; pending tasks [" + pendingTasks + "]")
+                        .as(asMsg)
                         .isEqualTo(0L);
                 }, 1, TimeUnit.MINUTES);
             } catch (Exception e) {
@@ -2369,7 +2375,7 @@ public final class TestCluster implements Closeable {
                 }
 
                 @Override
-                public Sessions sqlOperations() {
+                public Sessions sessions() {
                     return getInstance(Sessions.class);
                 }
             }

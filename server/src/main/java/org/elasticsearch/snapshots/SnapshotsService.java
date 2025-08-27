@@ -107,7 +107,10 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 /**
  * Service responsible for creating snapshots. This service runs all the steps executed on the master node during snapshot creation and
@@ -257,8 +260,8 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 ensureBelowConcurrencyLimit(repositoryName, snapshotName, snapshots, deletionsInProgress);
                 // Store newSnapshot here to be processed in clusterStateProcessed
 
-                HashSet<String> indices = new HashSet<>();
-                HashSet<String> templates = new HashSet<>();
+                HashSet<Index> indices = new HashSet<>();
+                HashSet<RelationName> relationNames = new HashSet<>(request.relationNames());
 
                 List<RelationMetadata.Table> relationsMetadata;
                 if (request.relationNames().isEmpty() && request.partitionNames().isEmpty()) {
@@ -272,26 +275,24 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         .toList();
                 }
                 for (RelationMetadata.Table table : relationsMetadata) {
-                    if (!table.partitionedBy().isEmpty()) {
-                        templates.add(PartitionName.templateName(table.name().schema(), table.name().name()));
-                    }
-                    List<String> relationIndices = currentState.metadata().getIndices(
+                    relationNames.add(table.name());
+                    List<Index> relationIndices = currentState.metadata().getIndices(
                         table.name(),
                         List.of(),
                         false,
-                        im -> im.getIndex().getName()
+                        IndexMetadata::getIndex
                     );
                     indices.addAll(relationIndices);
                 }
 
                 // Resolve indices of concrete partitions
                 for (PartitionName partitionName : request.partitionNames()) {
-                    templates.add(PartitionName.templateName(partitionName.relationName().schema(), partitionName.relationName().name()));
-                    List<String> partitionIndices = currentState.metadata().getIndices(
+                    relationNames.add(partitionName.relationName());
+                    List<Index> partitionIndices = currentState.metadata().getIndices(
                         partitionName.relationName(),
                         partitionName.values(),
                         false,
-                        im -> im.getIndex().getName()
+                        IndexMetadata::getIndex
                     );
                     indices.addAll(partitionIndices);
                 }
@@ -320,7 +321,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     Set<String> missing = new HashSet<>();
                     for (ObjectObjectCursor<ShardId, SnapshotsInProgress.ShardSnapshotStatus> entry : shards) {
                         if (entry.value.state() == ShardState.MISSING) {
-                            missing.add(entry.key.getIndex().getName());
+                            missing.add(entry.key.getIndex().getUUID());
                         }
                     }
                     if (missing.isEmpty() == false) {
@@ -334,7 +335,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     request.includeGlobalState(),
                     request.partial(),
                     indexIds,
-                    templates.stream().toList(),
+                    relationNames.stream().toList(),
                     threadPool.absoluteTimeInMillis(),
                     repositoryData.getGenId(),
                     shards,
@@ -449,21 +450,44 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         if (snapshot.includeGlobalState() == false) {
             // Remove global state from the cluster state
             builder = Metadata.builder();
+            List<String> allIndexUUIDs = new ArrayList<>();
             for (IndexId index : snapshot.indices()) {
-                final IndexMetadata indexMetadata = metadata.index(index.getName());
+                IndexMetadata indexMetadata = resolveIndexByName(index, metadata);
                 if (indexMetadata == null) {
                     assert snapshot.partial() : "Index [" + index + "] was deleted during a snapshot but snapshot was not partial.";
                 } else {
                     builder.put(indexMetadata, false);
+                    allIndexUUIDs.add(indexMetadata.getIndexUUID());
                 }
             }
-            for (String template : snapshot.templates()) {
-                builder.put(metadata.templates().get(template));
+            for (RelationName relationName : snapshot.relationNames()) {
+                RelationMetadata relation = metadata.getRelation(relationName);
+                if (relation != null) {
+                    // Add relation only with the indexUIIDs that are part of the snapshot
+                    List<String> indexUUIDs = relation.indexUUIDs().stream()
+                        .filter(allIndexUUIDs::contains)
+                        .toList();
+                    relation = relation.withIndexUUIDs(indexUUIDs);
+                    builder.setRelation(relation);
+                }
             }
         } else {
             builder = Metadata.builder(metadata);
         }
         return builder.build();
+    }
+
+    /**
+     * Indices inside a snapshot are stored with a unique index UUID that is generated by the repository
+     * when the snapshot is created. Thus, we cannot resolve the index by UUID and must resolve it by name.
+     * TODO: We should consider storing the original index UUID together with the relation name in the repository metadata instead.
+     */
+    public static IndexMetadata resolveIndexByName(IndexId index, Metadata metadata) {
+        IndexParts indexParts = IndexName.decode(index.getName());
+        List<String> partitionValues = indexParts.isPartitioned()
+            ? PartitionName.decodeIdent(indexParts.partitionIdent())
+            : List.of();
+        return metadata.getIndex(indexParts.toRelationName(), partitionValues, false, im -> im);
     }
 
     /**
@@ -811,7 +835,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                         continue;
                     }
                     final ShardId shardId = shardStatus.key;
-                    if (event.indexRoutingTableChanged(shardId.getIndexName())) {
+                    if (event.indexRoutingTableChanged(shardId.getIndexUUID())) {
                         IndexRoutingTable indexShardRoutingTable =
                             event.state().routingTable().index(shardId.getIndex());
                         if (indexShardRoutingTable == null) {
@@ -2072,14 +2096,16 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         final boolean readyToExecute = deletionsInProgress == null || deletionsInProgress.getEntries().stream()
             .noneMatch(entry -> entry.repository().equals(repoName) && entry.state() == SnapshotDeletionsInProgress.State.STARTED);
         for (IndexId index : indices) {
+            String indexUUID = index.getId();
             final String indexName = index.getName();
             final boolean isNewIndex = repositoryData.getIndices().containsKey(indexName) == false;
-            IndexMetadata indexMetadata = metadata.index(indexName);
+            IndexMetadata indexMetadata = resolveIndexByName(index, metadata);
             if (indexMetadata == null) {
                 // The index was deleted before we managed to start the snapshot - mark it as missing.
-                builder.put(new ShardId(indexName, IndexMetadata.INDEX_UUID_NA_VALUE, 0), ShardSnapshotStatus.MISSING);
+                builder.put(new ShardId(indexName, indexUUID, 0), ShardSnapshotStatus.MISSING);
             } else {
-                final IndexRoutingTable indexRoutingTable = routingTable.index(indexName);
+                indexUUID = indexMetadata.getIndexUUID();
+                final IndexRoutingTable indexRoutingTable = routingTable.index(indexUUID);
                 for (int i = 0; i < indexMetadata.getNumberOfShards(); i++) {
                     final ShardId shardId = indexRoutingTable.shard(i).shardId();
                     final String shardRepoGeneration;

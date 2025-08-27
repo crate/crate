@@ -74,7 +74,9 @@ import io.crate.types.StringType;
 import io.crate.types.TimestampType;
 import io.crate.types.UndefinedType;
 
-public class DataTypeTesting {
+public final class DataTypeTesting {
+
+    private DataTypeTesting() {}
 
     public static Set<DataType<?>> getStorableTypesExceptArrays(Random random) {
         return DataTypes.TYPES_BY_NAME_OR_ALIAS

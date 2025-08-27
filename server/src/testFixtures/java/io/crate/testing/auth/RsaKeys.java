@@ -25,7 +25,10 @@ package io.crate.testing.auth;
  * Pre-generated keys used in different tests to avoid expensive key pair generation.
  * Taken from https://jwt.io/#debugger-io (RSA-256).
  */
-public class RsaKeys {
+public final class RsaKeys {
+
+    private RsaKeys() {}
+
     public static final String PRIVATE_KEY_256 = """
         MIIEvwIBADANBgkqhkiG9w0BAQEFAASCBKkwggSlAgEAAoIBAQC7VJTUt9Us8cKj\
         MzEfYyjiWA4R4/M2bS1GB4t7NXp98C3SC6dVMvDuictGeurT8jNbvJZHtCSuYEvu\

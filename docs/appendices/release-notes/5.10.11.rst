@@ -1,0 +1,102 @@
+.. _version_5.10.11:
+
+===============
+Version 5.10.11
+===============
+
+Released on 2025-07-14.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.10.11.
+
+    We recommend that you upgrade to the latest 5.9 release before moving to
+    5.10.11.
+
+    A rolling upgrade from 5.9.x to 5.10.11 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. WARNING::
+
+    *(Added on 2025-08-07)*
+
+    Version 5.10.11 has critical known issues. If you haven't updated to
+    5.10.11 yet, it is recommended to skip 5.10.11 and move to 5.10.12 directly.
+
+    -   Replication errors due to the ``seqNo`` and ``primaryTerm``
+        information missing when replicating new records written as part of
+        ``INSERT INTO`` or ``COPY FROM`` statements from the primary to
+        replica shards when running in a mixed cluster with 5.10.11 and an
+        earlier version.
+
+    -   A regression introduced with 5.10.11 that caused values of
+        undeterministic ``DEFAULT`` and ``GENERATED`` columns to be ``NULL``
+        (instead of having generated values) when using ``UPDATE`` or
+        ``INSERT... ON CONFLICT...`` statements.
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_5.10.0` release notes for a full list of changes in the
+5.10 series.
+
+Fixes
+=====
+
+- Fixed an issue that allowed to :ref:`CREATE tables <ddl-create-table>` with
+  more columns than the limit defined by the
+  :ref:`sql-create-table-mapping-total-fields-limit` setting.
+
+- Fixed an issue that would prevent the
+  :ref:`cluster.routing.allocation.awareness.attributes` and
+  :ref:`cluster.routing.allocation.awareness.force.\*.values` to be shown under
+  the ``settings`` column of the :ref:`sys-cluster` table.
+
+- Fixed an issue that wrongly allowed columns of tables created by
+  :ref:`logical replication <administration-logical-replication>` subscriptions
+  to be renamed, dropped or added.
+
+- Fixed an issue that wrongly allowed tables created by
+  :ref:`logical replication <administration-logical-replication>` publications
+  to be :ref:`swapped<alter_cluster_swap_table>`.
+
+- Fixed an issue that could cause streaming errors, leading to shard failures
+  and re-replication if using ``INSERT INTO`` statements with ``ON CONFLICT``
+  clause combined with bulk requests if some operations ran into a conflict
+  while others didn't.
+
+- Fixed an issue that caused analysis errors of SQL batch/bulk statements to be
+  wrongly reported as runtime errors, resulting in an error per batch instead of
+  a single error for the whole batch operation. Both client interfaces,
+  :ref:`HTTP<interface-http>` and :ref:`PG<interface-postgresql>`, are affected.
+
+- Fixed an issue which caused inserts of object arrays with columns having
+  mixed types to partially fail. It used the type of the first value seen, and
+  failed for the values with a different type.
+  The new behavior is that it will use the type with the higher precendence,
+  and cast the other values if possible.
+
+- Fixed incorrect JSON response formatting for bulk operations with a single
+  argument that results in a runtime error. The response now follows the
+  structure specified in :ref:`bulk-errors <http-bulk-errors>`.
+
+- Fixed an issue that caused a user to have duplicate roles granted by
+  different grantors.
+
+- Fixed an issue that prevented the superuser ``crate`` from revoking granted
+  roles.

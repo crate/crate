@@ -129,7 +129,6 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                     new Request(primary.shardId(), replicaOps, request.maxSeqNoOfUpdatesOrDeletes()),
                     new ReplicationResponse(),
                     location,
-                    null,
                     primary)
                 );
             }, listener::onFailure);
@@ -182,8 +181,8 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                                                  int offset,
                                                  Consumer<List<Engine.Result>> result,
                                                  Consumer<Exception> failure) {
-            var indexName = request.shardId().getIndexName();
-            var currentMappingVersion = clusterService.state().metadata().index(indexName).getMappingVersion();
+            var indexUUID = request.shardId().getIndexUUID();
+            var currentMappingVersion = clusterService.state().metadata().index(indexUUID).getMappingVersion();
             var clusterStateObserver = new ClusterStateObserver(clusterService, new TimeValue(60_000), LOGGER);
             clusterStateObserver.waitForNextChange(
                 new ClusterStateObserver.Listener() {
@@ -202,12 +201,12 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                         failure.accept(new ElasticsearchTimeoutException("Mappings did not update in time"));
                     }
 
-                }, cs -> isIndexMetadataUpdated(cs, indexName, currentMappingVersion)
+                }, cs -> isIndexMetadataUpdated(cs, indexUUID, currentMappingVersion)
             );
         }
 
-        private static boolean isIndexMetadataUpdated(ClusterState cs, String indexName, long mappingVersion) {
-            var indexMetadata = cs.metadata().index(indexName);
+        private static boolean isIndexMetadataUpdated(ClusterState cs, String indexUUID, long mappingVersion) {
+            var indexMetadata = cs.metadata().index(indexUUID);
             if (indexMetadata == null) {
                 return false;
             } else {
@@ -219,7 +218,7 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
         @Override
         protected WriteReplicaResult shardOperationOnReplica(Request request, IndexShard replica) throws Exception {
             Translog.Location location = performOnReplica(request, replica);
-            return new WriteReplicaResult(location, null, replica);
+            return new WriteReplicaResult(location, replica);
         }
 
         private Translog.Location performOnReplica(Request request, IndexShard replica) throws Exception {

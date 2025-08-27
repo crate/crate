@@ -27,7 +27,6 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
-import java.util.Set;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
@@ -56,6 +55,7 @@ import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
@@ -97,9 +97,60 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
 
         @Override
-        public void sendRequest(long requestId, String action, TransportRequest request, TransportRequestOptions options)
-            throws TransportException {
-            sendLocalRequest(requestId, action, request, options);
+        @SuppressWarnings({"unchecked", "rawtypes"})
+        public void sendRequest(long requestId, String action, TransportRequest request, TransportRequestOptions options) throws TransportException {
+            final DirectResponseChannel channel = new DirectResponseChannel(LOGGER, localNode, action, requestId, TransportService.this, threadPool);
+            try {
+                onRequestSent(localNode, requestId, action, request, options);
+                onRequestReceived(requestId, action);
+                final RequestHandlerRegistry reg = getRequestHandler(action);
+                if (reg == null) {
+                    throw new ActionNotFoundTransportException("Action [" + action + "] not found");
+                }
+                final String executor = reg.getExecutor();
+                if (ThreadPool.Names.SAME.equals(executor)) {
+                    //noinspection unchecked
+                    reg.processMessageReceived(request, channel);
+                } else {
+                    threadPool.executor(executor).execute(new RejectableRunnable() {
+                        @Override
+                        public void doRun() throws Exception {
+                            //noinspection unchecked
+                            reg.processMessageReceived(request, channel);
+                        }
+
+                        @Override
+                        public boolean isForceExecution() {
+                            return reg.isForceExecution();
+                        }
+
+                        @Override
+                        public void onFailure(Exception e) {
+                            try {
+                                channel.sendResponse(e);
+                            } catch (Exception inner) {
+                                inner.addSuppressed(e);
+                                LOGGER.warn(() -> new ParameterizedMessage(
+                                        "failed to notify channel of error message for action [{}]", action), inner);
+                            }
+                        }
+
+                        @Override
+                        public String toString() {
+                            return "processing of [" + requestId + "][" + action + "]: " + request;
+                        }
+                    });
+                }
+            } catch (Exception e) {
+                try {
+                    channel.sendResponse(e);
+                } catch (Exception inner) {
+                    inner.addSuppressed(e);
+                    LOGGER.warn(
+                        () -> new ParameterizedMessage(
+                            "failed to notify channel of error message for action [{}]", action), inner);
+                }
+            }
         }
 
         @Override
@@ -166,11 +217,14 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
     }
 
 
-
     public DiscoveryNode getLocalNode() {
         return localNode;
     }
 
+    @VisibleForTesting
+    public Transport.ResponseHandlers getResponseHandlers() {
+        return responseHandlers;
+    }
 
     /**
      * The executor service for this transport service.
@@ -453,15 +507,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                           final String action,
                                                           final TransportRequest request,
                                                           final TransportResponseHandler<T> handler) {
-        final Transport.Connection connection;
-        try {
-            connection = getConnection(node);
-        } catch (NodeNotConnectedException ex) {
-            // the caller might not handle this so we invoke the handler
-            handler.handleException(ex);
-            return;
-        }
-        sendRequest(connection, action, request, TransportRequestOptions.EMPTY, handler);
+        sendRequest(node, action, request, TransportRequestOptions.EMPTY, handler);
     }
 
     public final <T extends TransportResponse> void sendRequest(final DiscoveryNode node,
@@ -471,7 +517,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                 TransportResponseHandler<T> handler) {
         final Transport.Connection connection;
         try {
-            connection = getConnection(node);
+            connection = isLocalNode(node) ? localNodeConnection : connectionManager.getConnection(node);
         } catch (NodeNotConnectedException ex) {
             // the caller might not handle this so we invoke the handler
             handler.handleException(ex);
@@ -504,18 +550,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
             } else {
                 handler.handleException(new TransportException("failed to send", ex));
             }
-        }
-    }
-
-    /**
-     * Returns either a real transport connection or a local node connection if we are using the local node optimization.
-     * @throws NodeNotConnectedException if the given node is not connected
-     */
-    public Transport.Connection getConnection(DiscoveryNode node) {
-        if (isLocalNode(node)) {
-            return localNodeConnection;
-        } else {
-            return connectionManager.getConnection(node);
         }
     }
 
@@ -599,98 +633,8 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         }
     }
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
-    private void sendLocalRequest(long requestId, final String action, final TransportRequest request, TransportRequestOptions options) {
-        final DirectResponseChannel channel = new DirectResponseChannel(LOGGER, localNode, action, requestId, this, threadPool);
-        try {
-            onRequestSent(localNode, requestId, action, request, options);
-            onRequestReceived(requestId, action);
-            final RequestHandlerRegistry reg = getRequestHandler(action);
-            if (reg == null) {
-                throw new ActionNotFoundTransportException("Action [" + action + "] not found");
-            }
-            final String executor = reg.getExecutor();
-            if (ThreadPool.Names.SAME.equals(executor)) {
-                //noinspection unchecked
-                reg.processMessageReceived(request, channel);
-            } else {
-                threadPool.executor(executor).execute(new RejectableRunnable() {
-                    @Override
-                    public void doRun() throws Exception {
-                        //noinspection unchecked
-                        reg.processMessageReceived(request, channel);
-                    }
-
-                    @Override
-                    public boolean isForceExecution() {
-                        return reg.isForceExecution();
-                    }
-
-                    @Override
-                    public void onFailure(Exception e) {
-                        try {
-                            channel.sendResponse(e);
-                        } catch (Exception inner) {
-                            inner.addSuppressed(e);
-                            LOGGER.warn(() -> new ParameterizedMessage(
-                                    "failed to notify channel of error message for action [{}]", action), inner);
-                        }
-                    }
-
-                    @Override
-                    public String toString() {
-                        return "processing of [" + requestId + "][" + action + "]: " + request;
-                    }
-                });
-            }
-
-        } catch (Exception e) {
-            try {
-                channel.sendResponse(e);
-            } catch (Exception inner) {
-                inner.addSuppressed(e);
-                LOGGER.warn(
-                    () -> new ParameterizedMessage(
-                        "failed to notify channel of error message for action [{}]", action), inner);
-            }
-        }
-    }
-
     public TransportAddress[] addressesFromString(String address) throws UnknownHostException {
         return transport.addressesFromString(address);
-    }
-
-    /**
-     * A set of all valid action prefixes.
-     */
-    public static final Set<String> VALID_ACTION_PREFIXES = Set.of(
-            "indices:admin",
-            "indices:monitor",
-            "indices:data/write",
-            "indices:data/read",
-            "indices:internal",
-            "cluster:admin",
-            "cluster:monitor",
-            "cluster:internal",
-            "internal:");
-
-    private void validateActionName(String actionName) {
-        assert isValidActionName(actionName)
-            : "invalid action name [" + actionName + "] must start with one of: " + TransportService.VALID_ACTION_PREFIXES;
-    }
-
-    /**
-     * Returns <code>true</code> iff the action name starts with a valid prefix.
-     *
-     * @see #VALID_ACTION_PREFIXES
-     */
-    private static boolean isValidActionName(String actionName) {
-        for (String prefix : VALID_ACTION_PREFIXES) {
-            if (actionName.startsWith(prefix)) {
-                return true;
-            }
-        }
-        return false;
     }
 
     /**
@@ -705,7 +649,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                           String executor,
                                                                           Writeable.Reader<Request> requestReader,
                                                                           TransportRequestHandler<Request> handler) {
-        validateActionName(action);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
             action, requestReader, handler, executor, false, true);
         transport.registerRequestHandler(reg);
@@ -727,7 +670,6 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                                                                           boolean canTripCircuitBreaker,
                                                                           Writeable.Reader<Request> requestReader,
                                                                           TransportRequestHandler<Request> handler) {
-        validateActionName(action);
         RequestHandlerRegistry<Request> reg = new RequestHandlerRegistry<>(
             action, requestReader, handler, executor, forceExecution, canTripCircuitBreaker);
         transport.registerRequestHandler(reg);
@@ -937,7 +879,11 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
         final TransportService service;
         final ThreadPool threadPool;
 
-        DirectResponseChannel(Logger logger, DiscoveryNode localNode, String action, long requestId, TransportService service,
+        DirectResponseChannel(Logger logger,
+                              DiscoveryNode localNode,
+                              String action,
+                              long requestId,
+                              TransportService service,
                               ThreadPool threadPool) {
             this.logger = logger;
             this.localNode = localNode;

@@ -23,7 +23,6 @@ package io.crate.planner.statement;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -31,6 +30,7 @@ import java.io.IOException;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
 import org.junit.Test;
@@ -129,14 +129,15 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
         Merge merge = plan(
             "copy parted where date = 1395874800000 to directory '/tmp/foo'");
         Collect collect = (Collect) merge.subPlan();
-        String expectedIndex = new PartitionName(
-            new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName();
+
+        String expectedIndexUUID = e.getPlannerContext().clusterState().metadata()
+            .getIndex(new RelationName("doc", "parted"), List.of("1395874800000"), true, IndexMetadata::getIndexUUID);
 
         assertThat(
             ((RoutedCollectPhase) collect.collectPhase()).routing().locations().values().stream()
                 .flatMap(shardsByIndices -> shardsByIndices.keySet().stream())
                 .collect(Collectors.toSet()))
-            .containsExactly(expectedIndex);
+            .containsExactly(expectedIndexUUID);
     }
 
     @Test

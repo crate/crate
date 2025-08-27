@@ -38,6 +38,7 @@ import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
+import org.junit.Test;
 
 public class LocalCheckpointTrackerTests extends ESTestCase {
 
@@ -54,6 +55,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         tracker = createEmptyTracker();
     }
 
+    @Test
     public void testSimplePrimaryProcessed() {
         long seqNo1, seqNo2;
         assertThat(tracker.getProcessedCheckpoint()).isEqualTo(SequenceNumbers.NO_OPS_PERFORMED);
@@ -79,6 +81,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         assertThat(tracker.getMaxSeqNo()).isEqualTo(2L);
     }
 
+    @Test
     public void testSimplePrimaryPersisted() {
         long seqNo1, seqNo2;
         assertThat(tracker.getPersistedCheckpoint()).isEqualTo(SequenceNumbers.NO_OPS_PERFORMED);
@@ -98,6 +101,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         assertThat(tracker.getMaxSeqNo()).isEqualTo(2L);
     }
 
+    @Test
     public void testSimpleReplicaProcessed() {
         assertThat(tracker.getProcessedCheckpoint()).isEqualTo(SequenceNumbers.NO_OPS_PERFORMED);
         assertThat(tracker.hasProcessed(randomNonNegativeLong())).isFalse();
@@ -116,6 +120,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         assertThat(tracker.getMaxSeqNo()).isEqualTo(2L);
     }
 
+    @Test
     public void testSimpleReplicaPersisted() {
         assertThat(tracker.getPersistedCheckpoint()).isEqualTo(SequenceNumbers.NO_OPS_PERFORMED);
         assertThat(tracker.hasProcessed(randomNonNegativeLong())).isFalse();
@@ -129,6 +134,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         assertThat(tracker.getMaxSeqNo()).isEqualTo(2L);
     }
 
+    @Test
     public void testLazyInitialization() {
         /*
          * Previously this would allocate the entire chain of bit sets to the one for the sequence number being marked; for very large
@@ -142,6 +148,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         assertThat(tracker.processedSeqNo).hasSize(1);
     }
 
+    @Test
     public void testSimpleOverFlow() {
         List<Long> seqNoList = new ArrayList<>();
         final boolean aligned = randomBoolean();
@@ -164,6 +171,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         assertThat(tracker.hasProcessed(notCompletedSeqNo)).isFalse();
     }
 
+    @Test
     public void testConcurrentPrimary() throws InterruptedException {
         Thread[] threads = new Thread[randomIntBetween(2, 5)];
         final int opsPerThread = randomIntBetween(10, 20);
@@ -207,6 +215,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testConcurrentReplica() throws InterruptedException {
         Thread[] threads = new Thread[randomIntBetween(2, 5)];
         final int opsPerThread = randomIntBetween(10, 20);
@@ -261,6 +270,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testWaitForOpsToComplete() throws BrokenBarrierException, InterruptedException {
         final int seqNo = randomIntBetween(0, 32);
         final CyclicBarrier barrier = new CyclicBarrier(2);
@@ -298,6 +308,7 @@ public class LocalCheckpointTrackerTests extends ESTestCase {
         thread.join();
     }
 
+    @Test
     public void testContains() {
         final long maxSeqNo = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, 100);
         final long localCheckpoint = randomLongBetween(SequenceNumbers.NO_OPS_PERFORMED, maxSeqNo);

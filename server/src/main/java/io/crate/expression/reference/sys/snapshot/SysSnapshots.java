@@ -32,9 +32,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.SnapshotsInProgress;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.IndexId;
@@ -53,7 +52,6 @@ import io.crate.common.collections.Lists;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.metadata.RelationName;
 
 @Singleton
 public class SysSnapshots {
@@ -104,13 +102,14 @@ public class SysSnapshots {
     private static SysSnapshot toSysSnapshot(Repository repository,
                                              SnapshotId snapshotId,
                                              SnapshotInfo snapshotInfo,
+                                             List<String> concreteIndices,
                                              List<String> partedTables) {
         Version version = snapshotInfo.version();
         return new SysSnapshot(
             snapshotId.getUUID(),
             snapshotId.getName(),
             repository.getMetadata().name(),
-            snapshotInfo.indices(),
+            concreteIndices,
             partedTables,
             snapshotInfo.startTime(),
             snapshotInfo.endTime(),
@@ -147,12 +146,12 @@ public class SysSnapshots {
         return repository.getSnapshotGlobalMetadata(snapshotId).thenCombine(
             repository.getSnapshotInfo(snapshotId),
             (metadata, snapshotInfo) -> {
-                ImmutableOpenMap<String, IndexTemplateMetadata> templates = metadata.templates();
-                List<String> partedTables = new ArrayList<>(templates.size());
-                for (var template : templates.values()) {
-                    partedTables.add(RelationName.fqnFromIndexName(template.value.name()));
-                }
-                return SysSnapshots.toSysSnapshot(repository, snapshotId, snapshotInfo, partedTables);
+                List<String> partedTables = metadata.relations(RelationMetadata.Table.class).stream()
+                    .filter(t -> !t.partitionedBy().isEmpty())
+                    .map(t -> t.name().fqn())
+                    .toList();
+                List<String> concreteIndices = snapshotInfo.indices();
+                return SysSnapshots.toSysSnapshot(repository, snapshotId, snapshotInfo, concreteIndices, partedTables);
             }).exceptionally(t -> {
                 var err = SQLExceptions.unwrap(t);
                 if (err instanceof SnapshotException) {
@@ -193,8 +192,8 @@ public class SysSnapshots {
             SnapshotsService.currentSnapshots(snapshotsInProgress, repositoryName, Collections.emptyList());
         for (SnapshotsInProgress.Entry entry : entries) {
             List<String> partedTables = new ArrayList<>();
-            for (var template : entry.templates()) {
-                partedTables.add(RelationName.fqnFromIndexName(template));
+            for (var relationName : entry.relationNames()) {
+                partedTables.add(relationName.fqn());
             }
             sysSnapshots.add(SysSnapshots.toSysSnapshot(repositoryName, entry, partedTables));
         }

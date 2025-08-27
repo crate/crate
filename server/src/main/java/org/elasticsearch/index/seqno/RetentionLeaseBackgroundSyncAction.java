@@ -149,13 +149,15 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
             final Request request,
             final IndexShard primary,
             ActionListener<PrimaryResult<Request, ReplicationResponse>> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             assert request.waitForActiveShards().equals(ActiveShardCount.NONE) : request.waitForActiveShards();
             Objects.requireNonNull(request);
             Objects.requireNonNull(primary);
             primary.persistRetentionLeases();
-            return new PrimaryResult<>(request, new ReplicationResponse());
-        });
+            listener.onResponse(new PrimaryResult<>(request, new ReplicationResponse()));
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override
@@ -198,7 +200,6 @@ public class RetentionLeaseBackgroundSyncAction extends TransportReplicationActi
                     "retentionLeases=" + retentionLeases +
                     ", shardId=" + shardId +
                     ", timeout=" + timeout +
-                    ", index='" + index + '\'' +
                     ", waitForActiveShards=" + waitForActiveShards +
                     '}';
         }

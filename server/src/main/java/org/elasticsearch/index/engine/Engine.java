@@ -26,7 +26,6 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;
-import java.util.Base64;
 import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
@@ -62,9 +61,6 @@ import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.bytes.BytesReference;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.logging.Loggers;
@@ -85,6 +81,7 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogStats;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
@@ -366,16 +363,19 @@ public abstract class Engine implements Closeable {
         }
 
         /** get the translog location after executing the operation */
+        @Nullable
         public Translog.Location getTranslogLocation() {
             return translogLocation;
         }
 
         /** get document failure while executing the operation {@code null} in case of no failure */
+        @Nullable
         public Exception getFailure() {
             return failure;
         }
 
-        void setTranslogLocation(Translog.Location translogLocation) {
+        @VisibleForTesting
+        public void setTranslogLocation(Translog.Location translogLocation) {
             if (freeze.get() == null) {
                 this.translogLocation = translogLocation;
             } else {
@@ -435,13 +435,6 @@ public abstract class Engine implements Closeable {
             this.found = found;
         }
 
-        /**
-         * use in case of the delete operation failed before getting to internal engine
-         **/
-        public DeleteResult(Exception failure, long version, long term) {
-            this(failure, version, term, SequenceNumbers.UNASSIGNED_SEQ_NO, false);
-        }
-
         public DeleteResult(Exception failure, long version, long term, long seqNo, boolean found) {
             super(failure, version, term, seqNo);
             this.found = found;
@@ -463,22 +456,6 @@ public abstract class Engine implements Closeable {
             super(failure, 0, term, seqNo);
         }
 
-    }
-
-    /**
-     * Attempts to do a special commit where the given syncID is put into the commit data. The attempt
-     * succeeds if there are not pending writes in lucene and the current point is equal to the expected one.
-     *
-     * @param syncId           id of this sync
-     * @param expectedCommitId the expected value of
-     * @return true if the sync commit was made, false o.w.
-     */
-    public abstract SyncedFlushResult syncFlush(String syncId, CommitId expectedCommitId) throws EngineException;
-
-    public enum SyncedFlushResult {
-        SUCCESS,
-        COMMIT_MISMATCH,
-        PENDING_OPERATIONS
     }
 
     protected final GetResult getFromSearcher(Get get, BiFunction<String, SearcherScope, Searcher> searcherFactory,
@@ -851,7 +828,7 @@ public abstract class Engine implements Closeable {
      *                      Otherwise this call will return without blocking.
      * @return the commit Id for the resulting commit
      */
-    public abstract CommitId flush(boolean force, boolean waitIfOngoing) throws EngineException;
+    public abstract void flush(boolean force, boolean waitIfOngoing) throws EngineException;
 
     /**
      * Flushes the state of the engine including the transaction log, clearing memory and persisting
@@ -861,8 +838,8 @@ public abstract class Engine implements Closeable {
      *
      * @return the commit Id for the resulting commit
      */
-    public final CommitId flush() throws EngineException {
-        return flush(false, false);
+    public final void flush() throws EngineException {
+        flush(false, false);
     }
 
 
@@ -1163,20 +1140,14 @@ public abstract class Engine implements Closeable {
         }
 
 
+        @VisibleForTesting
         public Index(Term uid, long primaryTerm, ParsedDocument doc) {
-            this(uid, primaryTerm, doc, Versions.MATCH_ANY);
-        } // TEST ONLY
-
-        Index(Term uid,
-              long primaryTerm,
-              ParsedDocument doc,
-              long version) {
             this(
                 uid,
                 doc,
                 UNASSIGNED_SEQ_NO,
                 primaryTerm,
-                version,
+                Versions.MATCH_ANY,
                 VersionType.INTERNAL,
                 Origin.PRIMARY,
                 System.nanoTime(),
@@ -1185,7 +1156,7 @@ public abstract class Engine implements Closeable {
                 UNASSIGNED_SEQ_NO,
                 0
             );
-        } // TEST ONLY
+        }
 
         public ParsedDocument parsedDoc() {
             return this.doc;
@@ -1268,6 +1239,7 @@ public abstract class Engine implements Closeable {
             this.ifPrimaryTerm = ifPrimaryTerm;
         }
 
+        @VisibleForTesting
         public Delete(String id, Term uid, long primaryTerm) {
             this(
                 id,
@@ -1494,57 +1466,6 @@ public abstract class Engine implements Closeable {
             closedLatch.await();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
-        }
-    }
-
-    public static class CommitId implements Writeable {
-
-        private final byte[] id;
-
-        public CommitId(byte[] id) {
-            assert id != null;
-            this.id = Arrays.copyOf(id, id.length);
-        }
-
-        /**
-         * Read from a stream.
-         */
-        public CommitId(StreamInput in) throws IOException {
-            assert in != null;
-            this.id = in.readByteArray();
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            out.writeByteArray(id);
-        }
-
-        @Override
-        public String toString() {
-            return Base64.getEncoder().encodeToString(id);
-        }
-
-        public boolean idsEqual(byte[] id) {
-            return Arrays.equals(id, this.id);
-        }
-
-        @Override
-        public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-
-            CommitId commitId = (CommitId) o;
-
-            return Arrays.equals(id, commitId.id);
-        }
-
-        @Override
-        public int hashCode() {
-            return Arrays.hashCode(id);
         }
     }
 

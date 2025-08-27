@@ -56,9 +56,8 @@ import io.crate.exceptions.JobKilledException;
 import io.crate.execution.support.ThreadPools;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.RelationName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -90,22 +89,23 @@ public class CountOperation {
 
     public CompletableFuture<Long> count(TransactionContext txnCtx,
                                          Map<String, IntIndexedContainer> indexShardMap,
-                                         Symbol filter) {
+                                         Symbol filter,
+                                         boolean onPartitionedTable) {
         List<CompletableFuture<Supplier<Long>>> futureSuppliers = new ArrayList<>();
         Metadata metadata = clusterService.state().metadata();
         for (Map.Entry<String, IntIndexedContainer> entry : indexShardMap.entrySet()) {
-            String indexName = entry.getKey();
-            IndexMetadata indexMetadata = metadata.index(indexName);
+            String indexUUID = entry.getKey();
+            IndexMetadata indexMetadata = metadata.index(indexUUID);
             if (indexMetadata == null) {
-                if (IndexName.isPartitioned(indexName)) {
+                if (onPartitionedTable) {
                     continue;
                 }
-                throw new IndexNotFoundException(indexName);
+                throw new IndexNotFoundException(indexUUID);
             }
             final Index index = indexMetadata.getIndex();
             for (IntCursor shardCursor : entry.getValue()) {
                 int shardValue = shardCursor.value;
-                futureSuppliers.add(prepareGetCount(txnCtx, index, shardValue, filter));
+                futureSuppliers.add(prepareGetCount(txnCtx, index, shardValue, filter, onPartitionedTable));
             }
         }
         MergePartialCountFunction mergeFunction = new MergePartialCountFunction();
@@ -118,12 +118,16 @@ public class CountOperation {
             )).thenApply(mergeFunction);
     }
 
-    public CompletableFuture<Supplier<Long>> prepareGetCount(TransactionContext txnCtx, Index index, int shardId, Symbol filter) {
+    public CompletableFuture<Supplier<Long>> prepareGetCount(TransactionContext txnCtx,
+                                                             Index index,
+                                                             int shardId,
+                                                             Symbol filter,
+                                                             boolean onPartitionedTable) {
         IndexService indexService;
         try {
             indexService = indicesService.indexServiceSafe(index);
         } catch (IndexNotFoundException e) {
-            if (IndexName.isPartitioned(index.getName())) {
+            if (onPartitionedTable) {
                 return CompletableFuture.completedFuture(() -> 0L);
             } else {
                 return CompletableFuture.failedFuture(e);
@@ -133,7 +137,7 @@ public class CountOperation {
         CompletableFuture<Supplier<Long>> futureCount = new CompletableFuture<>();
         indexShard.awaitShardSearchActive(b -> {
             try {
-                futureCount.complete(() -> syncCount(indexService, indexShard, txnCtx, filter));
+                futureCount.complete(() -> syncCount(indexService, indexShard, txnCtx, filter, onPartitionedTable));
             } catch (Throwable t) {
                 futureCount.completeExceptionally(t);
             }
@@ -145,20 +149,20 @@ public class CountOperation {
     long syncCount(IndexService indexService,
                    IndexShard indexShard,
                    TransactionContext txnCtx,
-                   Symbol filter) {
+                   Symbol filter,
+                   boolean onPartitionedTable) {
         Runnable raiseIfKilled = () -> {
             if (Thread.interrupted()) {
                 throw JobKilledException.of("thread interrupted during count-operation");
             }
         };
         try (Engine.Searcher searcher = indexShard.acquireSearcher("count-operation")) {
-            String indexName = indexShard.shardId().getIndexName();
-            var relationName = RelationName.fromIndexName(indexName);
-            DocTableInfo table = schemas.getTableInfo(relationName);
+            PartitionName partitionName = clusterService.state().metadata().getPartitionName(indexShard.shardId().getIndexUUID());
+            DocTableInfo table = schemas.getTableInfo(partitionName.relationName());
             LuceneQueryBuilder.Context queryCtx = queryBuilder.convert(
                 filter,
                 txnCtx,
-                indexName,
+                partitionName.values(),
                 indexService.indexAnalyzers(),
                 table,
                 indexShard.getVersionCreated(),
@@ -170,7 +174,7 @@ public class CountOperation {
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         } catch (IllegalIndexShardStateException e) {
-            if (IndexName.isPartitioned(e.getIndex().getName())) {
+            if (onPartitionedTable) {
                 return 0L;
             }
             throw e;

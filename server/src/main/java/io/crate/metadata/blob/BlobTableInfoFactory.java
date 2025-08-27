@@ -85,14 +85,19 @@ public class BlobTableInfoFactory implements TableInfoFactory<BlobTableInfo> {
 
                 throw new RelationUnknown(ident);
             }
-            indexMetadata = metadata.indexByUUID(blobTable.indexUUID());
+            indexMetadata = metadata.index(blobTable.indexUUID());
             if (indexMetadata == null) {
                 throw new RelationUnknown(ident);
             }
         }
+        return create(indexMetadata);
+    }
+
+    @Override
+    public BlobTableInfo create(IndexMetadata indexMetadata) {
         Settings settings = indexMetadata.getSettings();
         return new BlobTableInfo(
-            ident,
+            RelationName.fromIndexName(indexMetadata.getIndex().getName()),
             indexMetadata.getIndex().getName(),
             indexMetadata.getNumberOfShards(),
             NumberOfReplicas.getVirtualValue(settings),

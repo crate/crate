@@ -205,6 +205,9 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         new Setting<>(SETTING_DATA_PATH, "", Function.identity(), DataTypes.STRING, Property.IndexScope);
     public static final String INDEX_UUID_NA_VALUE = "_na_";
 
+    public static final String SETTING_INDEX_NAME = "index.name";
+    public static final String INDEX_NAME_NA_VALUE = "_na_";
+
     public static final String INDEX_ROUTING_REQUIRE_GROUP_PREFIX = "index.routing.allocation.require";
     public static final String INDEX_ROUTING_INCLUDE_GROUP_PREFIX = "index.routing.allocation.include";
     public static final String INDEX_ROUTING_EXCLUDE_GROUP_PREFIX = "index.routing.allocation.exclude";
@@ -367,18 +370,6 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     public String getIndexUUID() {
         return index.getUUID();
-    }
-
-    /**
-     * Test whether the current index UUID is the same as the given one. Returns true if either are _na_
-     */
-    public boolean isSameUUID(String otherUUID) {
-        assert otherUUID != null;
-        assert getIndexUUID() != null;
-        if (INDEX_UUID_NA_VALUE.equals(otherUUID) || INDEX_UUID_NA_VALUE.equals(getIndexUUID())) {
-            return true;
-        }
-        return otherUUID.equals(getIndexUUID());
     }
 
     public long getVersion() {
@@ -668,7 +659,9 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
         @Override
         public IndexMetadata apply(IndexMetadata part) {
-            Builder builder = builder(index);
+            String indexUUID = settings.get(SETTING_INDEX_UUID, INDEX_UUID_NA_VALUE);
+            Builder builder = builder(indexUUID);
+            builder.indexName(index);
             builder.version(version);
             builder.mappingVersion(mappingVersion);
             builder.settingsVersion(settingsVersion);
@@ -694,7 +687,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
     }
 
     public static IndexMetadata readFrom(StreamInput in) throws IOException {
-        Builder builder = new Builder(in.readString());
+        Builder builder = new Builder();
+        builder.indexName(in.readString());
         builder.version(in.readLong());
         builder.mappingVersion(in.readVLong());
         builder.settingsVersion(in.readVLong());
@@ -733,6 +727,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             }
             builder.partitionValues(partitionValues);
         }
+
+        String indexUUID = builder.settings.get(SETTING_INDEX_UUID);
+        builder.indexUUID(indexUUID);
+
         return builder.build();
     }
 
@@ -773,8 +771,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         }
     }
 
-    public static Builder builder(String index) {
-        return new Builder(index);
+    public static Builder builder(String indexUUID) {
+        return new Builder(indexUUID);
     }
 
     public static Builder builder(IndexMetadata indexMetadata) {
@@ -783,6 +781,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
     public static class Builder {
 
+        private String indexUUID;
         private String indexName;
         private State state = State.OPEN;
         private long version = 1;
@@ -796,14 +795,19 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private final ImmutableOpenIntMap.Builder<Set<String>> inSyncAllocationIds;
         private Integer routingNumShards;
 
-        public Builder(String indexName) {
-            this.indexName = indexName;
+        public Builder() {
+            this(INDEX_UUID_NA_VALUE);
+        }
+
+        public Builder(String indexUUID) {
+            this.indexUUID = indexUUID;
             this.aliases = ImmutableOpenMap.builder();
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder();
             this.partitionValues = List.of();
         }
 
         public Builder(IndexMetadata indexMetadata) {
+            this.indexUUID = indexMetadata.getIndex().getUUID();
             this.indexName = indexMetadata.getIndex().getName();
             this.state = indexMetadata.state;
             this.version = indexMetadata.version;
@@ -818,12 +822,17 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             this.inSyncAllocationIds = ImmutableOpenIntMap.builder(indexMetadata.inSyncAllocationIds);
         }
 
-        public String index() {
-            return indexName;
+        public Builder indexName(String indexName) {
+            this.indexName = indexName;
+            return this;
         }
 
-        public Builder index(String index) {
-            this.indexName = index;
+        public String indexUUID() {
+            return indexUUID;
+        }
+
+        public Builder indexUUID(String indexUUID) {
+            this.indexUUID = indexUUID;
             return this;
         }
 
@@ -1031,31 +1040,40 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
 
         public IndexMetadata build() {
+            if (indexUUID == null || indexUUID.isEmpty()) {
+                throw new IllegalArgumentException("index uuid must not be null or empty");
+            }
+
             final ImmutableOpenMap.Builder<String, AliasMetadata> tmpAliases = aliases;
-            final Settings tmpSettings = settings;
+            indexName = indexName == null ? indexUUID : indexName;
+            final Settings tmpSettings = Settings.builder()
+                .put(settings)
+                .put(SETTING_INDEX_NAME, indexName)
+                .put(SETTING_INDEX_UUID, indexUUID)
+                .build();
 
             Integer maybeNumberOfShards = settings.getAsInt(SETTING_NUMBER_OF_SHARDS, null);
             if (maybeNumberOfShards == null) {
-                throw new IllegalArgumentException("must specify numberOfShards for index [" + indexName + "]");
+                throw new IllegalArgumentException("must specify numberOfShards for index [" + indexUUID + "]");
             }
             int numberOfShards = maybeNumberOfShards;
             if (numberOfShards <= 0) {
-                throw new IllegalArgumentException("must specify positive number of shards for index [" + indexName + "]");
+                throw new IllegalArgumentException("must specify positive number of shards for index [" + indexUUID + "]");
             }
 
             Integer maybeNumberOfReplicas = settings.getAsInt(SETTING_NUMBER_OF_REPLICAS, null);
             if (maybeNumberOfReplicas == null) {
-                throw new IllegalArgumentException("must specify numberOfReplicas for index [" + indexName + "]");
+                throw new IllegalArgumentException("must specify numberOfReplicas for index [" + indexUUID + "]");
             }
             int numberOfReplicas = maybeNumberOfReplicas;
             if (numberOfReplicas < 0) {
-                throw new IllegalArgumentException("must specify non-negative number of shards for index [" + indexName + "]");
+                throw new IllegalArgumentException("must specify non-negative number of shards for index [" + indexUUID + "]");
             }
 
             int routingPartitionSize = INDEX_ROUTING_PARTITION_SIZE_SETTING.get(settings);
             if (routingPartitionSize != 1 && routingPartitionSize >= getRoutingNumShards()) {
                 throw new IllegalArgumentException("routing partition size [" + routingPartitionSize + "] should be a positive number"
-                        + " less than the number of shards [" + getRoutingNumShards() + "] for [" + indexName + "]");
+                        + " less than the number of shards [" + getRoutingNumShards() + "] for [" + indexUUID + "]");
             }
             // fill missing slots in inSyncAllocationIds with empty set if needed and make all entries immutable
             ImmutableOpenIntMap.Builder<Set<String>> filledInSyncAllocationIds = ImmutableOpenIntMap.builder();
@@ -1111,10 +1129,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
                                                    "number of shard copies [" + (numberOfReplicas + 1) + "]");
             }
 
-            final String uuid = settings.get(SETTING_INDEX_UUID, INDEX_UUID_NA_VALUE);
-
             return new IndexMetadata(
-                new Index(indexName, uuid),
+                new Index(indexName, indexUUID),
                 version,
                 mappingVersion,
                 settingsVersion,
@@ -1149,7 +1165,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             if (parser.currentToken() != XContentParser.Token.FIELD_NAME) {
                 throw new IllegalArgumentException("expected field name but got a " + parser.currentToken());
             }
-            Builder builder = new Builder(parser.currentName());
+            Builder builder = new Builder();
+            builder.indexName(parser.currentName());
 
             String currentFieldName = null;
             XContentParser.Token token = parser.nextToken();
@@ -1259,6 +1276,9 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             if (Assertions.ENABLED) {
                 assert settingsVersion : "settings version should be present for indices created on or after 6.5.0";
             }
+
+            String indexUUID = builder.settings.get(SETTING_INDEX_UUID, INDEX_UUID_NA_VALUE);
+            builder.indexUUID(indexUUID);
             return builder.build();
         }
     }

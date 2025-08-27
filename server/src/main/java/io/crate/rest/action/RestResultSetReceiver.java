@@ -22,6 +22,7 @@
 package io.crate.rest.action;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
@@ -30,7 +31,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.session.ResultReceiver;
 import io.crate.data.Row;
-import io.crate.data.breaker.RowAccounting;
 import io.crate.expression.symbol.Symbol;
 
 class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
@@ -38,7 +38,6 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     private final List<Symbol> outputFields;
     private final ResultToXContentBuilder builder;
     private final long startTimeNs;
-    private final RowAccounting<Row> rowAccounting;
     private final CompletableFuture<XContentBuilder> result = new CompletableFuture<>();
 
     private long rowCount;
@@ -47,11 +46,9 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
                           List<Symbol> outputFields,
                           List<String> outputFieldNames,
                           long startTimeNs,
-                          RowAccounting<Row> rowAccounting,
                           boolean includeTypesOnResponse) throws IOException {
         this.outputFields = outputFields;
         this.startTimeNs = startTimeNs;
-        this.rowAccounting = rowAccounting;
         this.builder = ResultToXContentBuilder.builder(builder);
         this.builder.cols(outputFieldNames);
         if (includeTypesOnResponse) {
@@ -64,13 +61,11 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     @Nullable
     public CompletableFuture<Void> setNextRow(Row row) {
         try {
-            rowAccounting.accountForAndMaybeBreak(row);
             builder.addRow(row, outputFields.size());
             rowCount++;
             return null;
-        } catch (Exception e) {
-            fail(e);
-            return null;
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
         }
     }
 

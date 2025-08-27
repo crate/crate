@@ -34,7 +34,7 @@ public class IdentifiersTest {
         // If this test is failing you are introducing a new reserved keyword which is a breaking change.
         // Either add the new term to `nonReserved` in `SqlBase.4g` or add a breaking changes entry and adapt this test.
         assertThat(
-            (int) Identifiers.KEYWORDS.stream().filter(Identifiers.Keyword::isReserved).count())
+            (int) Identifiers.KEYWORDS.stream().filter(Identifiers.Keyword::reserved).count())
             .isEqualTo(96);
     }
 
@@ -72,7 +72,10 @@ public class IdentifiersTest {
         assertThat(Identifiers.quoteIfNeeded("col_1")).isEqualTo("col_1");
         assertThat(Identifiers.quoteIfNeeded("col['a']")).isEqualTo("\"col['a']\"");
         // current_schema can be a parenthesisless function, and it can also be a column
-        assertThat(Identifiers.quoteIfNeeded("current_schema")).isEqualTo("\"current_schema\"");
+        assertThat(Identifiers.quoteIfNeeded("current_schema")).isEqualTo("current_schema");
         assertThat(Identifiers.quoteFunctionIfNeeded("current_schema")).isEqualTo("current_schema");
+        // current_catalog can be a parenthesisless function, and it can also be a column, it's a reserved keyword
+        assertThat(Identifiers.quoteIfNeeded("current_catalog")).isEqualTo("\"current_catalog\"");
+        assertThat(Identifiers.quoteFunctionIfNeeded("current_catalog")).isEqualTo("current_catalog");
     }
 }

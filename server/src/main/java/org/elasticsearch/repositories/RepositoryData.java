@@ -38,6 +38,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotState;
 import org.elasticsearch.snapshots.SnapshotsService;
@@ -432,8 +433,8 @@ public final class RepositoryData {
      * Resolve the index name to the index id specific to the repository,
      * throwing an exception if the index could not be resolved.
      */
-    public IndexId resolveIndexId(final String indexName) {
-        return Objects.requireNonNull(indices.get(indexName), () -> "Tried to resolve unknown index [" + indexName + "]");
+    public IndexId resolveIndexId(final String index) {
+        return Objects.requireNonNull(indices.get(index), () -> "Tried to resolve unknown index [" + index + "]");
     }
 
     /**
@@ -443,15 +444,15 @@ public final class RepositoryData {
      * @param indicesToResolve names of indices to resolve
      * @param inFlightIds      name to index mapping for currently in-flight snapshots not yet in the repository data to fall back to
      */
-    public List<IndexId> resolveNewIndices(List<String> indicesToResolve, Map<String, IndexId> inFlightIds) {
+    public List<IndexId> resolveNewIndices(List<Index> indicesToResolve, Map<String, IndexId> inFlightIds) {
         List<IndexId> snapshotIndices = new ArrayList<>();
-        for (String index : indicesToResolve) {
-            IndexId indexId = indices.get(index);
+        for (Index index : indicesToResolve) {
+            IndexId indexId = indices.get(index.getName());
             if (indexId == null) {
-                indexId = inFlightIds.get(index);
+                indexId = inFlightIds.get(index.getName());
             }
             if (indexId == null) {
-                indexId = new IndexId(index, UUIDs.randomBase64UUID());
+                indexId = new IndexId(index.getName(), UUIDs.randomBase64UUID());
             }
             snapshotIndices.add(indexId);
         }

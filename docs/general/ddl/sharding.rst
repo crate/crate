@@ -4,11 +4,6 @@
 Sharding
 ========
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _sharding-intro:
 

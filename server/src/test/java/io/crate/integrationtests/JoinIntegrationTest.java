@@ -24,7 +24,6 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -45,7 +44,7 @@ import io.crate.execution.engine.join.RamBlockSizeCalculator;
 import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.metadata.RelationName;
 import io.crate.statistics.Stats;
-import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -56,8 +55,7 @@ import io.crate.types.DataTypes;
 public class JoinIntegrationTest extends IntegTestCase {
 
     @After
-    public void resetStatsAndBreakerSettings() {
-        resetTableStats();
+    public void resetBreakerSettings() {
         execute("reset global indices");
     }
 
@@ -909,12 +907,6 @@ public class JoinIntegrationTest extends IntegTestCase {
             "2| 3");
     }
 
-    private void resetTableStats() {
-        for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
-            tableStats.updateTableStats(new HashMap<>());
-        }
-    }
-
     @Test
     public void testJoinWithLargerRightBranch() throws Exception {
         execute("create table t1 (a integer)");
@@ -924,12 +916,12 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t2 (x) values (1), (3), (4), (4), (5), (6)");
         execute("refresh table t1, t2");
 
-        Iterable<TableStats> tableStatsOnAllNodes = cluster().getInstances(TableStats.class);
-        for (TableStats tableStats : tableStatsOnAllNodes) {
+        Iterable<TableStatsService> tableStatsOnAllNodes = cluster().getInstances(TableStatsService.class);
+        for (TableStatsService tableStats : tableStatsOnAllNodes) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(4L, 16L, Map.of()));
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(6L, 24L, Map.of()));
-            tableStats.updateTableStats(newStats);
+            tableStats.update(newStats);
         }
 
         execute("select a, x from t1 join t2 on t1.a + 1 = t2.x + 1 order by a, x");
@@ -953,13 +945,13 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute("insert into t3 (y) values (0), (1), (2), (3), (4), (5), (6), (7), (8), (9)");
         execute("refresh table t1, t2, t3");
 
-        Iterable<TableStats> tableStatsOnAllNodes = cluster().getInstances(TableStats.class);
-        for (TableStats tableStats : tableStatsOnAllNodes) {
+        Iterable<TableStatsService> tableStatsOnAllNodes = cluster().getInstances(TableStatsService.class);
+        for (TableStatsService tableStats : tableStatsOnAllNodes) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t1"), new Stats(2L, 8L, Map.of()));
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t2"), new Stats(3L, 12L, Map.of()));
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), "t3"), new Stats(10L, 40L, Map.of()));
-            tableStats.updateTableStats(newStats);
+            tableStats.update(newStats);
         }
 
         execute("select a, x, y from t1 join t2 on t1.a = t2.x join t3 on t3.y = t2.x where t1.a < t2.x + 1 " +
@@ -1004,10 +996,10 @@ public class JoinIntegrationTest extends IntegTestCase {
         long tableSizeInBytes = new Random().nextInt(3 * (int) availableMemory);
         long rowSizeBytes = tableSizeInBytes / rowsCount;
 
-        for (TableStats tableStats : cluster().getInstances(TableStats.class)) {
+        for (TableStatsService tableStats : cluster().getInstances(TableStatsService.class)) {
             Map<RelationName, Stats> newStats = new HashMap<>();
             newStats.put(new RelationName(sqlExecutor.getCurrentSchema(), relationName), new Stats(rowsCount, tableSizeInBytes, Map.of()));
-            tableStats.updateTableStats(newStats);
+            tableStats.update(newStats);
         }
 
         RamBlockSizeCalculator ramBlockSizeCalculator = new RamBlockSizeCalculator(

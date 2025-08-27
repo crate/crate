@@ -132,17 +132,18 @@ public class DocLevelCollectTest extends IntegTestCase {
     private Routing routing(String table) {
         Map<String, Map<String, IntIndexedContainer>> locations = new TreeMap<>();
 
-        for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(table)) {
+        String indexUUID = resolveIndex(table).getUUID();
+        for (final ShardRouting shardRouting : clusterService().state().routingTable().allShards(indexUUID)) {
             Map<String, IntIndexedContainer> shardIds = locations.get(shardRouting.currentNodeId());
             if (shardIds == null) {
                 shardIds = new TreeMap<>();
                 locations.put(shardRouting.currentNodeId(), shardIds);
             }
 
-            IntIndexedContainer shardIdSet = shardIds.get(shardRouting.getIndexName());
+            IntIndexedContainer shardIdSet = shardIds.get(shardRouting.getIndexUUID());
             if (shardIdSet == null) {
                 shardIdSet = new IntArrayList();
-                shardIds.put(shardRouting.index().getName(), shardIdSet);
+                shardIds.put(shardRouting.index().getUUID(), shardIdSet);
             }
             shardIdSet.add(shardRouting.id());
         }
@@ -177,12 +178,17 @@ public class DocLevelCollectTest extends IntegTestCase {
     }
 
     private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause) {
+        return getCollectNode(toCollect, routing, whereClause, false);
+    }
+
+    private RoutedCollectPhase getCollectNode(List<Symbol> toCollect, Routing routing, WhereClause whereClause, boolean onPartitionedTable) {
         return new RoutedCollectPhase(
             UUID.randomUUID(),
             1,
             "docCollect",
             routing,
             RowGranularity.DOC,
+            onPartitionedTable,
             toCollect,
             List.of(),
             whereClause.queryOrFallback(),
@@ -210,7 +216,8 @@ public class DocLevelCollectTest extends IntegTestCase {
                 tableInfo.getReference(ColumnIdent.of("date"))
             ),
             routing,
-            WhereClause.MATCH_ALL
+            WhereClause.MATCH_ALL,
+            true
         );
 
         Bucket result = collect(collectNode);

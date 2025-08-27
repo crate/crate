@@ -92,12 +92,15 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
     }
 
     @Override
-    public void shardOperationOnPrimary(final ShardRequest shardRequest, final IndexShard primary,
+    public void shardOperationOnPrimary(final ShardRequest shardRequest,
+                                        final IndexShard primary,
                                         ActionListener<PrimaryResult<ShardRequest, ReplicationResponse>> listener) {
-        ActionListener.completeWith(listener, () -> {
+        try {
             executeShardOperation(shardRequest, primary);
-            return new PrimaryResult<>(shardRequest, new ReplicationResponse());
-        });
+            listener.onResponse(new PrimaryResult<>(shardRequest, new ReplicationResponse()));
+        } catch (Exception ex) {
+            listener.onFailure(ex);
+        }
     }
 
     @Override
@@ -113,7 +116,7 @@ public class TransportVerifyShardBeforeCloseAction extends TransportReplicationA
         }
 
         final ClusterBlocks clusterBlocks = clusterService.state().blocks();
-        if (clusterBlocks.hasIndexBlock(shardId.getIndexName(), request.clusterBlock()) == false) {
+        if (clusterBlocks.hasIndexBlock(shardId.getIndexUUID(), request.clusterBlock()) == false) {
             throw new IllegalStateException("Index shard " + shardId + " must be blocked by " + request.clusterBlock() + " before closing");
         }
 

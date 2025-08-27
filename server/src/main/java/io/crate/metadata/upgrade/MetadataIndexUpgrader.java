@@ -39,6 +39,9 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.Constants;
 import io.crate.common.collections.Maps;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
+import io.crate.metadata.PartitionName;
 import io.crate.server.xcontent.XContentHelper;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -46,8 +49,10 @@ import io.crate.types.ObjectType;
 
 public class MetadataIndexUpgrader {
 
-    public IndexMetadata upgrade(IndexMetadata indexMetadata, IndexTemplateMetadata indexTemplateMetadata) {
-        return createUpdatedIndexMetadata(indexMetadata, indexTemplateMetadata);
+    public IndexMetadata upgrade(IndexMetadata indexMetadata, @Nullable IndexTemplateMetadata indexTemplateMetadata) {
+        IndexMetadata upgraded = createUpdatedIndexMetadata(indexMetadata, indexTemplateMetadata);
+        upgraded = addPartitionValues(upgraded);
+        return upgraded;
     }
 
     /**
@@ -236,5 +241,19 @@ public class MetadataIndexUpgrader {
 
             populateColumnPositionsImpl(indexColumnProperties, templateColumnProperties);
         }
+    }
+
+    private IndexMetadata addPartitionValues(IndexMetadata indexMetadata) {
+        if (indexMetadata.partitionValues().isEmpty() == false) {
+            return indexMetadata;
+        }
+        IndexParts indexParts = IndexName.decode(indexMetadata.getIndex().getName());
+        if (indexParts.isPartitioned() == false) {
+            return indexMetadata;
+        }
+        PartitionName partitionName = indexParts.toPartitionName();
+        IndexMetadata.Builder builder = IndexMetadata.builder(indexMetadata);
+        builder.partitionValues(partitionName.values());
+        return builder.build();
     }
 }

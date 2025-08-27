@@ -63,7 +63,6 @@ import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ReplicationGroup;
 import org.elasticsearch.index.shard.ShardId;
@@ -80,6 +79,7 @@ import org.junit.AfterClass;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.crate.common.unit.TimeValue;
 
@@ -106,7 +106,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
         indexShard = mock(IndexShard.class);
         when(indexShard.getActiveOperationsCount()).thenReturn(IndexShard.OPERATIONS_BLOCKED);
 
-        ShardId shardId = new ShardId("index", "_na_", randomIntBetween(0, 3));
+        ShardId shardId = new ShardId("_na_", "index", randomIntBetween(0, 3));
         when(indexShard.shardId()).thenReturn(shardId);
 
         clusterService = createClusterService(threadPool);
@@ -203,7 +203,7 @@ public class TransportVerifyShardBeforeCloseActionTests extends ESTestCase {
 
     @Test
     public void testShardIsFlushed() throws Throwable {
-        when(indexShard.forceFlush()).thenReturn(new Engine.CommitId(new byte[0]));
+        Mockito.doNothing().when(indexShard).forceFlush();
         executeOnPrimaryOrReplica();
         verify(indexShard, times(1)).forceFlush();
     }

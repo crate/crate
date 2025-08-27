@@ -28,11 +28,6 @@ which is why clients should generally enable ``autocommit``.
     Write operations will still behave as if auto commit was enabled and commit
     or rollback calls are ignored.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _postgres-server-compat:
 
@@ -158,6 +153,7 @@ following tables:
 - `pg_am`_
 - `pg_attrdef <pgsql_pg_attrdef_>`__
 - `pg_attribute <pgsql_pg_attribute_>`__
+- `pg_auth_members`_
 - `pg_class <pgsql_pg_class_>`__
 - `pg_constraint <pgsql_pg_constraint_>`__
 - `pg_cursors <pgsql_pg_cursors_>`__
@@ -368,11 +364,14 @@ JDBC
 Limitations
 '''''''''''
 
-- *Reflection* methods like ``conn.getMetaData().getTables(...)`` won't work
-  since the required tables are unavailable in CrateDB.
+- Versions ``42.7.5``, ``42.7.6`` and ``42.7.7``` do not support some metadata
+  methods when used with CrateDB version ``5.x``, e.g.::
 
-  As a workaround it's possible to use ``SHOW TABLES`` or query the
-  ``information_schema`` tables manually using ``SELECT`` statements.
+      conn.getMetaData().getTables(...)
+
+  These metadata calls only work with CrateDB ``6.0.0`` and later. If you rely
+  on such metadata methods, and you use CrateDB ``5.x`` you should avoid those
+  JDBC versions and use ``42.7.4`` instead.
 
 - ``OBJECT`` and ``GEO_SHAPE`` columns can be streamed as ``JSON`` but require
   `pgjdbc`_ version ``9.4.1210`` or newer.
@@ -533,6 +532,7 @@ CrateDB and we love to hear feedback.
 .. _pg_enum: https://www.postgresql.org/docs/14/catalog-pg-enum.html
 .. _pg_range: https://www.postgresql.org/docs/14/catalog-pg-range.html
 .. _pg_roles: https://www.postgresql.org/docs/14/view-pg-roles.html
+.. _pg_auth_members: https://www.postgresql.org/docs/17/catalog-pg-auth-members.html
 .. _pg_tables: https://www.postgresql.org/docs/14/view-pg-tables.html
 .. _pg_tablespace: https://www.postgresql.org/docs/14/catalog-pg-tablespace.html
 .. _pg_views: https://www.postgresql.org/docs/14/view-pg-views.html

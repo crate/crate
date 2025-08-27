@@ -43,7 +43,8 @@ public class RecoverySettings {
      * Controls the maximum number of file chunk requests that can be sent concurrently from the source node to the target node.
      */
     public static final Setting<Integer> INDICES_RECOVERY_MAX_CONCURRENT_FILE_CHUNKS_SETTING =
-        Setting.intSetting("indices.recovery.max_concurrent_file_chunks", 2, 1, 5, Property.Dynamic, Property.NodeScope);
+        Setting.intSetting("indices.recovery.max_concurrent_file_chunks", 2, 1, 5,
+            Property.Dynamic, Property.NodeScope, Property.Exposed);
 
     /**
      * Controls the maximum number of operation chunk requests that can be sent concurrently from the source node to the target node.

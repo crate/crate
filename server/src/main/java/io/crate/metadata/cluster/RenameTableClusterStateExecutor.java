@@ -29,20 +29,15 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlocks;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.elasticsearch.indices.IndexTemplateMissingException;
 
 import io.crate.common.collections.Lists;
-import io.crate.execution.ddl.Templates;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.RenameTableRequest;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -66,7 +61,6 @@ public class RenameTableClusterStateExecutor {
     public ClusterState execute(ClusterState currentState, RenameTableRequest request) throws Exception {
         RelationName source = request.sourceName();
         RelationName target = request.targetName();
-        boolean isPartitioned = request.isPartitioned();
 
         Metadata currentMetadata = currentState.metadata();
         Metadata.Builder newMetadata = Metadata.builder(currentMetadata);
@@ -74,8 +68,7 @@ public class RenameTableClusterStateExecutor {
         boolean isView = views != null && views.contains(source);
 
         boolean viewExists = views != null && views.contains(target);
-        boolean tableExists = currentMetadata.hasIndex(target.indexNameOrAlias()) || // simple table
-            DDLClusterStateHelpers.templateMetadata(currentMetadata, target) != null; // partitioned table
+        boolean tableExists = currentMetadata.getRelation(target) != null;
         if (viewExists || tableExists) {
             throw new IllegalArgumentException(String.format(
                 Locale.ENGLISH,
@@ -91,76 +84,59 @@ public class RenameTableClusterStateExecutor {
                 .build();
         }
 
-        if (isPartitioned) {
-            IndexTemplateMetadata indexTemplateMetadata = DDLClusterStateHelpers.templateMetadata(currentMetadata, source);
-            if (indexTemplateMetadata == null) {
-                throw new IndexTemplateMissingException("Template for partitioned table is missing");
-            }
-            renameTemplate(newMetadata, indexTemplateMetadata, target);
-        }
-
-
-
         RoutingTable.Builder newRoutingTable = RoutingTable.builder(currentState.routingTable());
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder().blocks(currentState.blocks());
 
         logger.info("renaming table '{}' to '{}'", source.fqn(), target.fqn());
 
-        try {
-            List<IndexMetadata> sourceIndices = currentState.metadata().getIndices(source, List.of(), true, x -> x);
-            for (IndexMetadata sourceIndex : sourceIndices) {
-                String sourceIndexName = sourceIndex.getIndex().getName();
-                newMetadata.remove(sourceIndexName);
-                newRoutingTable.remove(sourceIndexName);
-                blocksBuilder.removeIndexBlocks(sourceIndexName);
+        RelationMetadata.Table table = currentMetadata.getRelation(source);
+        if (table == null) {
+            throw new RelationUnknown(source);
+        }
+        newMetadata
+            .dropRelation(source)
+            .setTable(
+                target,
+                Lists.map(
+                    table.columns(),
+                    ref -> ref.withReferenceIdent(new ReferenceIdent(target, ref.column()))
+                ),
+                table.settings(),
+                table.routingColumn(),
+                table.columnPolicy(),
+                table.pkConstraintName(),
+                table.checkConstraints(),
+                table.primaryKeys(),
+                table.partitionedBy(),
+                table.state(),
+                table.indexUUIDs(),
+                table.tableVersion() + 1
+            );
 
-                IndexMetadata targetMd;
-                if (isPartitioned) {
-                    PartitionName partitionName = PartitionName.fromIndexOrTemplate(sourceIndexName);
-                    String targetIndexName = IndexName.encode(target, partitionName.ident());
-                    targetMd = IndexMetadata.builder(sourceIndex)
-                        .removeAllAliases()
-                        .putAlias(new AliasMetadata(target.indexNameOrAlias()))
-                        .index(targetIndexName)
-                        .build();
-                } else {
-                    targetMd = IndexMetadata.builder(sourceIndex)
-                        .index(target.indexNameOrAlias())
-                        .build();
-                }
-                newMetadata.put(targetMd, true);
-                newRoutingTable.addAsFromCloseToOpen(targetMd);
-                blocksBuilder.addBlocks(targetMd);
+        // TODO: Can be removed once indices are completely based on indexUUIDs
+        List<IndexMetadata> sourceIndices = currentState.metadata().getIndices(source, List.of(), true, x -> x);
+        for (IndexMetadata sourceIndex : sourceIndices) {
+            String sourceIndexUUID = sourceIndex.getIndexUUID();
+            String targetIndexName;
+            if (sourceIndex.partitionValues().isEmpty()) {
+                targetIndexName = target.indexNameOrAlias();
+            } else {
+                PartitionName newPartitionName = new PartitionName(target, sourceIndex.partitionValues());
+                targetIndexName = newPartitionName.asIndexName();
             }
-        } catch (IndexNotFoundException e) {
-            if (isPartitioned == false) {
-                throw e;
-            }
-            // empty partition case, no indices, just a template exists
+
+            newMetadata.remove(sourceIndexUUID);
+            newRoutingTable.remove(sourceIndexUUID);
+            blocksBuilder.removeIndexBlocks(sourceIndexUUID);
+
+            IndexMetadata targetMd = IndexMetadata.builder(sourceIndex)
+                .indexName(targetIndexName)
+                .build();
+            newMetadata.put(targetMd, true);
+            newRoutingTable.addAsFromCloseToOpen(targetMd);
+            blocksBuilder.addBlocks(targetMd);
         }
 
-        RelationMetadata relation = currentMetadata.getRelation(source);
-        if (relation instanceof RelationMetadata.Table table) {
-            newMetadata
-                .dropRelation(source)
-                .setTable(
-                    target,
-                    Lists.map(
-                        table.columns(),
-                        ref -> ref.withReferenceIdent(new ReferenceIdent(target, ref.column()))
-                    ),
-                    table.settings(),
-                    table.routingColumn(),
-                    table.columnPolicy(),
-                    table.pkConstraintName(),
-                    table.checkConstraints(),
-                    table.primaryKeys(),
-                    table.partitionedBy(),
-                    table.state(),
-                    table.indexUUIDs(),
-                    table.tableVersion() + 1
-                );
-        }
         ClusterState clusterStateAfterRename = ClusterState.builder(currentState)
             .metadata(newMetadata)
             .routingTable(newRoutingTable.build())
@@ -171,14 +147,5 @@ public class RenameTableClusterStateExecutor {
             ddlClusterStateService.onRenameTable(clusterStateAfterRename, source, target, request.isPartitioned()),
             "rename-table"
         );
-    }
-
-    private static void renameTemplate(Metadata.Builder newMetadata,
-                                       IndexTemplateMetadata sourceTemplateMetadata,
-                                       RelationName target) {
-        IndexTemplateMetadata.Builder updatedTemplate = Templates.withName(sourceTemplateMetadata, target);
-        newMetadata
-            .removeTemplate(sourceTemplateMetadata.name())
-            .put(updatedTemplate);
     }
 }

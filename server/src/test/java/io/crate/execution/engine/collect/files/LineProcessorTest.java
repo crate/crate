@@ -36,6 +36,7 @@ import io.crate.execution.dsl.phases.FileUriCollectPhase.InputFormat;
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputFactory.Context;
+import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.file.FileLineReferenceResolver;
 import io.crate.expression.reference.file.SourceParsingFailureExpression;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -48,6 +49,7 @@ public class LineProcessorTest {
 
     NodeContext nodeCtx = createNodeContext();
     InputFactory inputFactory = new InputFactory(nodeCtx);
+    ReferenceResolver<LineCollectorExpression<?>> referenceResolver = FileLineReferenceResolver::getImplementation;
 
     @Test
     public void test_line_processor_parses_json_input() throws Exception {
@@ -62,7 +64,7 @@ public class LineProcessorTest {
         );
         Context<LineCollectorExpression<?>> ctxForRefs = inputFactory.ctxForRefs(
             CoordinatorTxnCtx.systemTransactionContext(),
-            FileLineReferenceResolver::getImplementation
+            referenceResolver
         );
         ctxForRefs.add(List.of(
             TestingHelpers.createReference(SysColumns.RAW, DataTypes.STRING),
@@ -96,7 +98,7 @@ public class LineProcessorTest {
         );
         Context<LineCollectorExpression<?>> ctxForRefs = inputFactory.ctxForRefs(
             CoordinatorTxnCtx.systemTransactionContext(),
-            FileLineReferenceResolver::getImplementation
+            referenceResolver
         );
         ctxForRefs.add(List.of(
             TestingHelpers.createReference(SysColumns.RAW, DataTypes.STRING),
@@ -132,7 +134,7 @@ public class LineProcessorTest {
         );
         Context<LineCollectorExpression<?>> ctxForRefs = inputFactory.ctxForRefs(
             CoordinatorTxnCtx.systemTransactionContext(),
-            FileLineReferenceResolver::getImplementation
+            referenceResolver
         );
         ctxForRefs.add(List.of(
             TestingHelpers.createReference(SysColumns.RAW, DataTypes.STRING),
@@ -167,7 +169,7 @@ public class LineProcessorTest {
         );
         Context<LineCollectorExpression<?>> ctxForRefs = inputFactory.ctxForRefs(
             CoordinatorTxnCtx.systemTransactionContext(),
-            FileLineReferenceResolver::getImplementation
+            referenceResolver
         );
         ctxForRefs.add(List.of(
             TestingHelpers.createReference(SysColumns.RAW, DataTypes.STRING),

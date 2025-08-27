@@ -51,9 +51,11 @@ import org.apache.lucene.store.Directory;
 import org.apache.lucene.tests.util.NullInfoStream;
 import org.apache.lucene.util.InfoStream;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
 
+    @Test
     public void testPruneAll() throws IOException {
         try (Directory dir = newDirectory()) {
             IndexWriterConfig iwc = newIndexWriterConfig();
@@ -88,9 +90,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
                     if (extra_source != null) {
                         assertThat(extra_source.nextDoc()).isEqualTo(DocIdSetIterator.NO_MORE_DOCS);
                     }
-                    if (leafReader instanceof CodecReader && reader instanceof StandardDirectoryReader) {
-                        CodecReader codecReader = (CodecReader) leafReader;
-                        StandardDirectoryReader sdr = (StandardDirectoryReader) reader;
+                    if (leafReader instanceof CodecReader codecReader && reader instanceof StandardDirectoryReader sdr) {
                         SegmentInfos segmentInfos = sdr.getSegmentInfos();
                         MergePolicy.MergeSpecification forcedMerges = mp.findForcedDeletesMerges(
                             segmentInfos,
@@ -123,7 +123,7 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
         }
     }
 
-
+    @Test
     public void testPruneSome() throws IOException {
         try (Directory dir = newDirectory()) {
             IndexWriterConfig iwc = newIndexWriterConfig();
@@ -167,11 +167,12 @@ public class RecoverySourcePruneMergePolicyTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testPruneNone() throws IOException {
         try (Directory dir = newDirectory()) {
             IndexWriterConfig iwc = newIndexWriterConfig();
             iwc.setMergePolicy(new RecoverySourcePruneMergePolicy("extra_source",
-                                                                  () -> new MatchAllDocsQuery(), iwc.getMergePolicy()));
+                MatchAllDocsQuery::new, iwc.getMergePolicy()));
             try (IndexWriter writer = new IndexWriter(dir, iwc)) {
                 for (int i = 0; i < 20; i++) {
                     if (i > 0 && randomBoolean()) {

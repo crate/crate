@@ -25,12 +25,9 @@ import java.util.List;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.index.Index;
-import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 /**
@@ -42,26 +39,11 @@ import io.crate.metadata.RelationName;
  */
 public final record AlterTableTarget(RelationName table,
                                      List<Index> indices,
-                                     List<String> partitionValues,
-                                     @Nullable IndexTemplateMetadata templateMetadata) {
+                                     List<String> partitionValues) {
 
     public static AlterTableTarget of(ClusterState state, RelationName table, List<String> partitionValues) {
         Metadata metadata = state.metadata();
         List<Index> indices = metadata.getIndices(table, partitionValues, false, IndexMetadata::getIndex);
-        if (partitionValues.isEmpty()) {
-            String templateName = PartitionName.templateName(table.schema(), table.name());
-            IndexTemplateMetadata indexTemplateMetadata = metadata.templates().get(templateName);
-            return new AlterTableTarget(table, indices, partitionValues, indexTemplateMetadata);
-        } else {
-            return new AlterTableTarget(table, indices, partitionValues, null);
-        }
-    }
-
-    public boolean targetsIndividualPartition() {
-        return !partitionValues.isEmpty();
-    }
-
-    public boolean isEmpty() {
-        return indices.isEmpty() && templateMetadata == null;
+        return new AlterTableTarget(table, indices, partitionValues);
     }
 }

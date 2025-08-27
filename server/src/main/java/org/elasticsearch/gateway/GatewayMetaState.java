@@ -25,15 +25,10 @@ import java.io.Closeable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -46,14 +41,11 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata;
 import org.elasticsearch.cluster.coordination.CoordinationState.PersistedState;
 import org.elasticsearch.cluster.coordination.InMemoryPersistedState;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Manifest;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.service.ClusterService;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
@@ -63,14 +55,9 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import io.crate.common.collections.Tuple;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
-import io.crate.expression.udf.UserDefinedFunctionsMetadata;
-import io.crate.metadata.IndexName;
-import io.crate.metadata.PartitionName;
 
 /**
  * Loads (and maybe upgrades) cluster metadata at startup, and persistently stores cluster metadata for future restarts.
@@ -93,9 +80,9 @@ public class GatewayMetaState implements Closeable {
     private final SetOnce<PersistedState> persistedState = new SetOnce<>();
 
     public PersistedState getPersistedState() {
-        final PersistedState persistedState = this.persistedState.get();
-        assert persistedState != null : "not started";
-        return persistedState;
+        final PersistedState persistedStateTmp = this.persistedState.get();
+        assert persistedStateTmp != null : "not started";
+        return persistedStateTmp;
     }
 
     public Metadata getMetadata() {
@@ -127,7 +114,7 @@ public class GatewayMetaState implements Closeable {
                     }
                 }
 
-                PersistedState persistedState = null;
+                PersistedState persistedStateTmp = null;
                 boolean success = false;
                 try {
                     final ClusterState clusterState = prepareInitialClusterState(
@@ -137,9 +124,9 @@ public class GatewayMetaState implements Closeable {
                             .metadata(upgradeMetadataForNode(metadata, metadataUpgradeService))
                             .build());
                     if (DiscoveryNode.isMasterEligibleNode(settings)) {
-                        persistedState = new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState);
+                        persistedStateTmp = new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState);
                     } else {
-                        persistedState = new AsyncLucenePersistedState(settings,
+                        persistedStateTmp = new AsyncLucenePersistedState(settings,
                             new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState));
                     }
                     if (DiscoveryNode.isDataNode(settings)) {
@@ -155,11 +142,11 @@ public class GatewayMetaState implements Closeable {
                     success = true;
                 } finally {
                     if (success == false) {
-                        IOUtils.closeWhileHandlingException(persistedState);
+                        IOUtils.closeWhileHandlingException(persistedStateTmp);
                     }
                 }
 
-                this.persistedState.set(persistedState);
+                this.persistedState.set(persistedStateTmp);
             } catch (IOException e) {
                 throw new ElasticsearchException("failed to load metadata", e);
             }
@@ -204,74 +191,7 @@ public class GatewayMetaState implements Closeable {
 
     // exposed so it can be overridden by tests
     Metadata upgradeMetadataForNode(Metadata metadata, MetadataUpgradeService metadataUpgradeService) {
-        return upgradeMetadata(metadata, metadataUpgradeService);
-    }
-
-    /**
-     * Elasticsearch 2.0 removed several deprecated features and as well as support for Lucene 3.x. This method calls
-     * {@link MetadataUpgradeService} to makes sure that indices are compatible with the current version. The
-     * MetadataIndexUpgradeService might also update obsolete settings if needed.
-     *
-     * @return input <code>metadata</code> if no upgrade is needed or an upgraded metadata
-     */
-    public static Metadata upgradeMetadata(Metadata metadata, MetadataUpgradeService metadataUpgradeService) {
-        boolean changed = false;
-        final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
-
-        // carries upgraded IndexTemplateMetadata to MetadataIndexUpgradeService.upgradeIndexMetadata
-        final Map<String, IndexTemplateMetadata> upgradedIndexTemplateMetadata = new HashMap<>();
-
-        // upgrade current templates
-        if (applyUpgrader(
-            metadata.templates(),
-            metadataUpgradeService::upgradeTemplates,
-            upgradedMetadata::removeTemplate,
-            (s, indexTemplateMetadata) -> {
-                upgradedIndexTemplateMetadata.put(s, indexTemplateMetadata);
-                upgradedMetadata.put(indexTemplateMetadata);
-            })) {
-            changed = true;
-        }
-
-        // upgrade index meta data
-        for (IndexMetadata indexMetadata : metadata) {
-            String indexName = indexMetadata.getIndex().getName();
-            IndexMetadata newMetadata = metadataUpgradeService.upgradeIndexMetadata(
-                indexMetadata,
-                IndexName.isPartitioned(indexName) ?
-                    upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
-                    null,
-                Version.CURRENT.minimumIndexCompatibilityVersion(),
-                metadata.custom(UserDefinedFunctionsMetadata.TYPE));
-            changed |= indexMetadata != newMetadata;
-            upgradedMetadata.put(newMetadata, false);
-        }
-
-        return changed
-            ? metadataUpgradeService.addOrUpgradeRelationMetadata(upgradedMetadata.build())
-            : metadataUpgradeService.addOrUpgradeRelationMetadata(metadata);
-    }
-
-    public static <Data> boolean applyUpgrader(ImmutableOpenMap<String, Data> existingData,
-                                               UnaryOperator<Map<String, Data>> upgrader,
-                                               Consumer<String> removeData,
-                                               BiConsumer<String, Data> putData) {
-        // collect current data
-        Map<String, Data> existingMap = new HashMap<>();
-        for (ObjectObjectCursor<String, Data> customCursor : existingData) {
-            existingMap.put(customCursor.key, customCursor.value);
-        }
-        // upgrade global custom meta data
-        Map<String, Data> upgradedCustoms = upgrader.apply(existingMap);
-        if (upgradedCustoms.equals(existingMap) == false) {
-            // remove all data first so a plugin can remove custom metadata or templates if needed
-            existingMap.keySet().forEach(removeData);
-            for (Map.Entry<String, Data> upgradedCustomEntry : upgradedCustoms.entrySet()) {
-                putData.accept(upgradedCustomEntry.getKey(), upgradedCustomEntry.getValue());
-            }
-            return true;
-        }
-        return false;
+        return metadataUpgradeService.upgradeMetadata(metadata);
     }
 
     @Override

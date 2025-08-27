@@ -5,11 +5,6 @@
 Snapshots
 =========
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Snapshot
 --------
 
@@ -48,6 +43,13 @@ Creating a repository with the same name will result in an error::
     cr> CREATE REPOSITORY where_my_snapshots_go TYPE fs
     ... WITH (location='another_repo_path', compress=false);
     RepositoryAlreadyExistsException[Repository 'where_my_snapshots_go' already exists]
+
+.. NOTE::
+
+    When upgrading a cluster to a new major version (e.g. from 5.x to 6.x) it's
+    highly advisable, once the cluster is fully upgraded to the new version, to
+    create a new repository using a different data path from the old(s) one(s),
+    and create a new full snapshot of your data.
 
 Creating a snapshot
 ...................
@@ -261,4 +263,3 @@ in the cluster state, so it's not accessible any more.
     DROP OK, 1 row affected (... sec)
     cr> DROP REPOSITORY where_my_snapshots_go;
     DROP OK, 1 row affected (... sec)
-

@@ -26,7 +26,6 @@ import static io.crate.replication.logical.LogicalReplicationSettings.PUBLISHER_
 import static io.crate.replication.logical.LogicalReplicationSettings.REPLICATION_INDEX_ROUTING_ACTIVE;
 
 import java.io.Closeable;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -219,7 +218,7 @@ public final class MetadataTracker implements Closeable {
         CompletableFuture<Response> publicationsState = client.execute(PublicationsStateAction.INSTANCE, request)
             .thenApply(r ->
                 new Response(
-                    metadataUpgradeService.addOrUpgradeRelationMetadata(r.metadata()),
+                    metadataUpgradeService.upgradeMetadata(r.metadata()),
                     r.unknownPublications()
                 ));
         CompletableFuture<Boolean> updatedClusterState = publicationsState.thenCompose(response -> {
@@ -424,7 +423,7 @@ public final class MetadataTracker implements Closeable {
 
         if (updateClusterState) {
             if (LOGGER.isDebugEnabled()) {
-                LOGGER.debug("Updated index metadata for subscription {}", subscriptionName);
+                LOGGER.debug("Updated some relations of subscription {}", subscriptionName);
             }
             return ClusterState.builder(subscriberClusterState).metadata(updatedMetadataBuilder).build();
         } else {
@@ -467,7 +466,7 @@ public final class MetadataTracker implements Closeable {
                                       PublicationsStateAction.Response stateResponse) {
         Map<RelationName, RelationState> subscribedRelations = subscription.relations();
         HashSet<RelationName> relationNamesForStateUpdate = new HashSet<>();
-        ArrayList<TableOrPartition> toRestore = new ArrayList<>();
+        HashSet<TableOrPartition> toRestore = new HashSet<>();
         Metadata subscriberMetadata = subscriberState.metadata();
         Metadata publisherMetadata = stateResponse.metadata();
         for (RelationMetadata.Table table : publisherMetadata.relations(RelationMetadata.Table.class)) {
@@ -484,7 +483,8 @@ public final class MetadataTracker implements Closeable {
                     }
                     continue;
                 }
-                if (!subscriberMetadata.hasIndex(indexName)) {
+                String indexUUID = subscriberMetadata.getIndex(relationName, indexMetadata.partitionValues(), false, IndexMetadata::getIndexUUID);
+                if (indexUUID == null) {
                     String partitionIdent = PartitionName.encodeIdent(indexMetadata.partitionValues());
                     toRestore.add(new TableOrPartition(relationName, partitionIdent));
                     relationNamesForStateUpdate.add(relationName);
@@ -501,7 +501,7 @@ public final class MetadataTracker implements Closeable {
         if (toRestore.isEmpty()) {
             relationNamesForStateUpdate.clear();
         }
-        return new RestoreDiff(toRestore, relationNamesForStateUpdate);
+        return new RestoreDiff(toRestore.stream().toList(), relationNamesForStateUpdate);
     }
 
     private ClusterState processDroppedTablesOrPartitions(String subscriptionName,
@@ -511,10 +511,15 @@ public final class MetadataTracker implements Closeable {
         HashSet<RelationName> changedRelations = new HashSet<>();
         HashSet<Index> partitionsToRemove = new HashSet<>();
         Metadata subscriberMetadata = subscriberClusterState.metadata();
+        Metadata.Builder updatedMetadataBuilder = Metadata.builder(subscriberMetadata);
         for (var relationName : subscription.relations().keySet()) {
             RelationMetadata.Table publisherTable = publisherMetadata.getRelation(relationName);
             if (publisherTable == null) {
                 changedRelations.add(relationName);
+                continue;
+            }
+            RelationMetadata.Table subscriberTable = subscriberMetadata.getRelation(relationName);
+            if (subscriberTable == null) {
                 continue;
             }
             // Check for possible dropped partitions
@@ -528,7 +533,9 @@ public final class MetadataTracker implements Closeable {
             }
         }
 
-        var updatedClusterState = subscriberClusterState;
+        var updatedClusterState = ClusterState.builder(subscriberClusterState)
+            .metadata(updatedMetadataBuilder)
+            .build();
 
         if (partitionsToRemove.isEmpty() == false) {
             updatedClusterState = MetadataDeleteIndexService.deleteIndices(
@@ -537,6 +544,7 @@ public final class MetadataTracker implements Closeable {
                 allocationService,
                 partitionsToRemove
             );
+
         }
         if (changedRelations.isEmpty() == false) {
             HashMap<RelationName, Subscription.RelationState> relations = new HashMap<>();
@@ -576,9 +584,9 @@ public final class MetadataTracker implements Closeable {
         if (publisherMapping != null && subscriberMapping != null) {
             if (publisherIndexMetadata.getMappingVersion() > subscriberIndexMetadata.getMappingVersion()) {
                 if (LOGGER.isDebugEnabled()) {
-                    LOGGER.debug("Updated index mapping {} for subscription {}",
+                    LOGGER.debug("Updated subscriber mapping index={}, newMapping={}",
                         subscriberIndexMetadata.getIndex().getName(),
-                        publisherMapping);
+                        publisherMapping.sourceAsMap());
                 }
                 return publisherMapping;
             }

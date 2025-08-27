@@ -303,7 +303,7 @@ F731	INSERT column privileges			NO
 F741	Referential MATCH types			NO		
 F751	View CHECK enhancements			NO		
 F761	Session management			NO		
-F762	CURRENT_CATALOG			NO		
+F762	CURRENT_CATALOG			YES		
 F763	CURRENT_SCHEMA			YES		
 F771	Connection management			NO		crash shell only
 F781	Self-referencing operations			NO		

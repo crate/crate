@@ -190,7 +190,10 @@ public abstract class TcpTransport extends AbstractLifecycleComponent implements
         private final boolean compress;
         private final AtomicBoolean isClosing = new AtomicBoolean(false);
 
-        NodeChannels(DiscoveryNode node, List<CloseableChannel> channels, ConnectionProfile connectionProfile, Version handshakeVersion) {
+        NodeChannels(DiscoveryNode node,
+                     List<CloseableChannel> channels,
+                     ConnectionProfile connectionProfile,
+                     Version handshakeVersion) {
             this.node = node;
             this.channels = Collections.unmodifiableList(channels);
             assert channels.size() == connectionProfile.getNumConnections() : "expected channels size to be == "

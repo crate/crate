@@ -57,8 +57,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionModule;
-import org.elasticsearch.action.ActionType;
-import org.elasticsearch.action.support.TransportAction;
 import org.elasticsearch.bootstrap.BootstrapCheck;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.client.node.NodeClient;
@@ -219,6 +217,7 @@ import io.crate.role.Roles;
 import io.crate.role.RolesService;
 import io.crate.session.Sessions;
 import io.crate.statistics.TableStats;
+import io.crate.statistics.TableStatsService;
 import io.crate.types.DataTypes;
 import io.crate.udc.service.UDCService;
 
@@ -248,10 +247,10 @@ public class Node implements Closeable {
             key,
             "",
             value -> {
-                if (value.length() > 0 && (Character.isWhitespace(value.charAt(0)) || Character.isWhitespace(value.charAt(value.length() - 1)))) {
+                if (!value.isEmpty() && (Character.isWhitespace(value.charAt(0)) || Character.isWhitespace(value.charAt(value.length() - 1)))) {
                     throw new IllegalArgumentException(key + " cannot have leading or trailing whitespace " + "[" + value + "]");
                 }
-                if (value.length() > 0 && "node.attr.server_name".equals(key)) {
+                if (!value.isEmpty() && "node.attr.server_name".equals(key)) {
                     try {
                         new SNIHostName(value);
                     } catch (IllegalArgumentException e) {
@@ -295,6 +294,7 @@ public class Node implements Closeable {
      * @param environment                the environment for this node
      * @param classpathPlugins           the plugins to be loaded from the classpath
      */
+    @SuppressWarnings({"unchecked", "rawtypes"})
     public Node(final Environment environment, Collection<Class<? extends Plugin>> classpathPlugins) {
         logger = LogManager.getLogger(Node.class);
         final List<Closeable> resourcesToClose = new ArrayList<>(); // register everything we need to release in the case of an error
@@ -689,7 +689,8 @@ public class Node implements Closeable {
                 environment.configFile(),
                 gatewayMetaState,
                 rerouteService,
-                fsHealthService
+                fsHealthService,
+                metadataIndexUpgradeService
             );
             this.nodeService = new NodeService(monitorService, indicesService, transportService);
             DDLClusterStateService ddlClusterStateService = new DDLClusterStateService();
@@ -706,7 +707,6 @@ public class Node implements Closeable {
                 settings,
                 clusterService,
                 nodeContext,
-                tableStats,
                 new NumberOfShards(clusterService),
                 new CreateTableClient(client),
                 rolesManager,
@@ -754,9 +754,20 @@ public class Node implements Closeable {
                 client
             );
 
+            TableStatsService tableStatsService = new TableStatsService(
+                settings,
+                threadPool,
+                clusterService,
+                sessions,
+                nodeEnvironment.nodeDataPaths()[0]
+            );
+            resourcesToClose.add(tableStatsService);
+            tableStats.updateTableStats(tableStatsService::get);
+
             modules.add(b -> {
                     b.bind(Node.class).toInstance(this);
                     b.bind(NodeContext.class).toInstance(nodeContext);
+                    b.bind(TableStatsService.class).toInstance(tableStatsService);
                     b.bind(TableStats.class).toInstance(tableStats);
                     b.bind(Analyzer.class).toInstance(analyzer);
                     b.bind(Sessions.class).toInstance(sessions);
@@ -847,15 +858,14 @@ public class Node implements Closeable {
             // reroute, which needs to call into the allocation service. We close the loop here:
             clusterModule.setExistingShardsAllocators(injector.getInstance(GatewayAllocator.class));
 
-            List<LifecycleComponent> pluginLifecycleComponents = pluginComponents.stream()
+            this.pluginLifecycleComponents = pluginComponents.stream()
                 .filter(p -> p instanceof LifecycleComponent)
                 .map(p -> (LifecycleComponent) p).collect(Collectors.toList());
             pluginLifecycleComponents.addAll(pluginsService.getGuiceServiceClasses().stream()
-                                                 .map(injector::getInstance).collect(Collectors.toList()));
+                                                 .map(injector::getInstance).toList());
             resourcesToClose.addAll(pluginLifecycleComponents);
             resourcesToClose.add(injector.getInstance(PeerRecoverySourceService.class));
-            this.pluginLifecycleComponents = Collections.unmodifiableList(pluginLifecycleComponents);
-            client.initialize(injector.getInstance(new Key<Map<ActionType, TransportAction>>() {}));
+            client.initialize(injector.getInstance(new Key<>() {}));
 
             logger.info("initialized");
 
@@ -981,6 +991,7 @@ public class Node implements Closeable {
         injector.getInstance(FsHealthService.class).start();
         injector.getInstance(RepositoriesService.class).start();
         injector.getInstance(UserDefinedFunctionService.class).start();
+        injector.getInstance(TableStatsService.class).start();
         nodeService.getMonitorService().start();
 
         final ClusterService clusterService = injector.getInstance(ClusterService.class);
@@ -1117,6 +1128,7 @@ public class Node implements Closeable {
 
         injector.getInstance(HttpServerTransport.class).stop();
 
+        injector.getInstance(TableStatsService.class).stop();
         injector.getInstance(UserDefinedFunctionService.class).stop();
         injector.getInstance(SnapshotsService.class).stop();
         injector.getInstance(SnapshotShardsService.class).stop();
@@ -1238,6 +1250,9 @@ public class Node implements Closeable {
         toClose.add(injector.getInstance(BlobService.class));
         toClose.add(() -> stopWatch.stop().start("netty_bootstrap"));
         toClose.add(injector.getInstance(NettyBootstrap.class));
+
+        toClose.add(() -> stopWatch.stop().start("table_stats_service"));
+        toClose.add(injector.getInstance(TableStatsService.class));
 
         for (LifecycleComponent plugin : pluginLifecycleComponents) {
             toClose.add(() -> stopWatch.stop().start("plugin(" + plugin.getClass().getName() + ")"));

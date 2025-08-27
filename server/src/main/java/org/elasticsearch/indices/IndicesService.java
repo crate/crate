@@ -59,6 +59,7 @@ import org.apache.lucene.util.CollectionUtil;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.ResourceAlreadyExistsException;
 import org.elasticsearch.Version;
+import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
@@ -493,7 +494,7 @@ public class IndicesService extends AbstractLifecycleComponent
             );
             closeables.add(() -> service.close("metadata verification", false));
             if (metadata.equals(metadataUpdate) == false) {
-                tableFactory.validateSchema(metadataUpdate);
+                tableFactory.create(metadataUpdate);
                 service.updateMetadata(metadata, metadataUpdate);
             }
         } finally {
@@ -569,7 +570,10 @@ public class IndicesService extends AbstractLifecycleComponent
                             backoffIt
                         );
                     },
-                    (_, e1) -> result.completeExceptionally(e1),
+                    ActionListener.wrap(
+                        _ -> {},
+                        e1 -> result.completeExceptionally(e1)
+                    ),
                     Priority.NORMAL
                 );
             };
@@ -621,7 +625,6 @@ public class IndicesService extends AbstractLifecycleComponent
 
     @Override
     public void removeIndex(final Index index, final IndexRemovalReason reason, final String extraInfo) {
-        final String indexName = index.getName();
         try {
             final IndexService indexService;
             final IndexEventListener listener;
@@ -630,7 +633,7 @@ public class IndicesService extends AbstractLifecycleComponent
                     return;
                 }
 
-                LOGGER.debug("[{}] closing ... (reason [{}])", indexName, reason);
+                LOGGER.debug("[{}] closing ... (reason [{}])", index, reason);
                 Map<String, IndexService> newIndices = new HashMap<>(indices);
                 indexService = newIndices.remove(index.getUUID());
                 assert indexService != null : "IndexService is null for index: " + index;
@@ -668,7 +671,7 @@ public class IndicesService extends AbstractLifecycleComponent
             try {
                 if (clusterState.metadata().hasIndex(index)) {
                     final IndexMetadata indexMetadata = clusterState.metadata().index(index);
-                    throw new IllegalStateException("Can't delete unassigned index store for [" + indexMetadata.getIndex().getName() + "] - it's still part of " +
+                    throw new IllegalStateException("Can't delete unassigned index store for [" + indexMetadata.getIndex() + "] - it's still part of " +
                                                     "the cluster state [" + indexMetadata.getIndexUUID() + "] [" + metadata.getIndexUUID() + "]");
                 }
                 deleteIndexStore(reason, metadata);
@@ -757,7 +760,7 @@ public class IndicesService extends AbstractLifecycleComponent
      */
     public void deleteShardStore(String reason, ShardId shardId, ClusterState clusterState)
             throws IOException, ShardLockObtainFailedException {
-        final IndexMetadata metadata = clusterState.metadata().indices().get(shardId.getIndexName());
+        final IndexMetadata metadata = clusterState.metadata().indices().get(shardId.getIndexUUID());
 
         final IndexSettings indexSettings = buildIndexSettings(metadata);
         ShardDeletionCheckResult shardDeletionCheckResult = canDeleteShardContent(shardId, indexSettings);

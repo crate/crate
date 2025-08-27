@@ -17,11 +17,6 @@ the cluster, its nodes and their shards.
     have been added, removed or modified between versions. Instead, use a
     defined list of the columns that you need to return from the query.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 .. _sys-cluster:
 
 Cluster
@@ -137,6 +132,10 @@ information about the currently applied cluster settings.
     | settings['cluster']['routing']                                                    | object       |
     | settings['cluster']['routing']['allocation']                                      | object       |
     | settings['cluster']['routing']['allocation']['allow_rebalance']                   | text         |
+    | settings['cluster']['routing']['allocation']['awareness']                         | object       |
+    | settings['cluster']['routing']['allocation']['awareness']['attributes']           | text_array   |
+    | settings['cluster']['routing']['allocation']['awareness']['force']                | object       |
+    | settings['cluster']['routing']['allocation']['awareness']['force']['']            | object       |
     | settings['cluster']['routing']['allocation']['balance']                           | object       |
     | settings['cluster']['routing']['allocation']['balance']['index']                  | real         |
     | settings['cluster']['routing']['allocation']['balance']['shard']                  | real         |
@@ -189,6 +188,7 @@ information about the currently applied cluster settings.
     | settings['indices']['recovery']['internal_action_long_timeout']                   | text         |
     | settings['indices']['recovery']['internal_action_timeout']                        | text         |
     | settings['indices']['recovery']['max_bytes_per_sec']                              | text         |
+    | settings['indices']['recovery']['max_concurrent_file_chunks']                     | integer      |
     | settings['indices']['recovery']['recovery_activity_timeout']                      | text         |
     | settings['indices']['recovery']['retry_delay_network']                            | text         |
     | settings['indices']['recovery']['retry_delay_state_sync']                         | text         |
@@ -956,7 +956,11 @@ Table schema
       - Shows the oldest Lucene segment version used in this shard.
       - ``TEXT``
     * - ``num_docs``
-      - The total amount of documents within a shard.
+      - The total number of documents within a shard. Documents inserted after
+        the shard becomes ``idle`` are not included. A ``refresh`` is required
+        to ensure they are counted. See
+        :ref:`refresh interval <sql-create-table-refresh-interval>` for more
+        details about idle tables.
       - ``BIGINT``
     * - ``oprhan_partition``
       - True if this shard belongs to an orphaned partition which doesn't belong to any table anymore.
@@ -1199,7 +1203,11 @@ of shards.
       - Generation number of the segment, increments for each segment written.
       - ``LONG``
     * - ``num_docs``
-      - Number of non-deleted Lucene documents in this segment.
+      - Number of non-deleted Lucene documents in this segment. Documents
+        inserted after the shard becomes ``idle`` are not included. A 
+        ``refresh`` is required to ensure they are counted. See
+        :ref:`refresh interval <sql-create-table-refresh-interval>` for more
+        details about idle tables.
       - ``INTEGER``
     * - ``deleted_docs``
       - Number of deleted Lucene documents in this segment.
@@ -1689,18 +1697,18 @@ CrateDB maintains backward compatibility for tables created in ``majorVersion - 
       - Current Version
       - Current Version
     * -
-      - 3.x
       - 4.x
       - 5.x
-    * - 3.x
-      - ✔️
-      - ✔️
-      - ❌
+      - 6.x
     * - 4.x
+      - ✔️
+      - ✔️
+      - ❌
+    * - 5.x
       - ❌
       - ✔️
       - ✔️
-    * - 5.x
+    * - 6.x
       - ❌
       - ❌
       - ✔️
@@ -1789,7 +1797,7 @@ How to reindex
     +--------------------+
     | version['created'] |
     +--------------------+
-    | 6.0.0              |
+    | 6.1.0              |
     +--------------------+
     SELECT 1 row in set (... sec)
 

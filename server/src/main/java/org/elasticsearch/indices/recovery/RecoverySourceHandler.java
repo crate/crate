@@ -837,7 +837,7 @@ public class RecoverySourceHandler {
                 maxSeqNoOfUpdatesOrDeletes,
                 retentionLeases,
                 mappingVersion,
-                ActionListener.delegateFailure(listener, (l, newCheckpoint) -> {
+                listener.withOnResponse((l, newCheckpoint) -> {
                     targetLocalCheckpoint.updateAndGet(curr -> SequenceNumbers.max(curr, newCheckpoint));
                     l.onResponse(null);
                 }));
@@ -1033,8 +1033,12 @@ public class RecoverySourceHandler {
                 protected void executeChunkRequest(FileChunk request, ActionListener<Void> listener) {
                     cancellableThreads.checkForCancel();
                     recoveryTarget.writeFileChunk(
-                        request.md, request.position, request.content, request.lastChunk, translogOps.getAsInt(),
-                        ActionListener.runBefore(listener, request::close));
+                        request.md,
+                        request.position,
+                        request.content,
+                        request.lastChunk,
+                        translogOps.getAsInt(),
+                        listener.runBefore(request::close));
                 }
 
                 @Override
@@ -1069,18 +1073,12 @@ public class RecoverySourceHandler {
             translogOps.getAsInt(),
             globalCheckpoint,
             sourceMetadata,
-            ActionListener.delegateResponse(
-                listener,
-                (l, e) -> ActionListener.completeWith(
-                    l,
-                    () -> {
-                        StoreFileMetadata[] mds = StreamSupport.stream(sourceMetadata.spliterator(), false).toArray(StoreFileMetadata[]::new);
-                        ArrayUtil.timSort(mds, Comparator.comparingLong(StoreFileMetadata::length)); // check small files first
-                        handleErrorOnSendFiles(store, e, mds);
-                        throw e;
-                    }
-                )
-            )
+            listener.withOnFailure((l, e) -> {
+                StoreFileMetadata[] mds = StreamSupport.stream(sourceMetadata.spliterator(), false).toArray(StoreFileMetadata[]::new);
+                ArrayUtil.timSort(mds, Comparator.comparingLong(StoreFileMetadata::length)); // check small files first
+                handleErrorOnSendFiles(store, e, mds);
+                l.onFailure(e);
+            })
         );
     }
 

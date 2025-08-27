@@ -45,11 +45,6 @@ For example::
     rows in every distinct group of a ``GROUP BY`` statement. Aggregating
     ``SELECT`` statements without ``GROUP BY`` will always return one row.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _aggregation-expressions:
 

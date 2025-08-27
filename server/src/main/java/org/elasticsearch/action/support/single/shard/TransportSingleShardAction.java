@@ -25,6 +25,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.action.ActionListener;
+import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.NoShardAvailableActionException;
 import org.elasticsearch.action.support.ChannelActionListener;
@@ -164,27 +165,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
                     clusterService.localNode(),
                     transportShardAction,
                     request,
-                    new TransportResponseHandler<Response>() {
-                        @Override
-                        public Response read(StreamInput in) throws IOException {
-                            return reader.read(in);
-                        }
-
-                        @Override
-                        public String executor() {
-                            return ThreadPool.Names.SAME;
-                        }
-
-                        @Override
-                        public void handleResponse(final Response response) {
-                            listener.onResponse(response);
-                        }
-
-                        @Override
-                        public void handleException(TransportException exp) {
-                            listener.onFailure(exp);
-                        }
-                    }
+                    new ActionListenerResponseHandler<>(transportShardAction, listener, reader)
                 );
             } else {
                 perform(null);
@@ -270,7 +251,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
         @Override
         public void messageReceived(Request request, final TransportChannel channel) throws Exception {
             // if we have a local operation, execute it on a thread since we don't spawn
-            execute(request).whenComplete(new ChannelActionListener<>(channel, actionName, request));
+            execute(request).whenComplete(new ChannelActionListener<>(channel));
         }
     }
 
@@ -281,9 +262,7 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
             if (logger.isTraceEnabled()) {
                 logger.trace("executing [{}] on shard [{}]", request, request.internalShardId);
             }
-            asyncShardOperation(request,
-                                request.internalShardId,
-                                new ChannelActionListener<>(channel, transportShardAction, request));
+            asyncShardOperation(request, request.internalShardId, new ChannelActionListener<>(channel));
         }
     }
 

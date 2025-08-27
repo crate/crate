@@ -35,7 +35,6 @@ import org.apache.lucene.store.ByteBuffersDirectory;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.env.Environment;
@@ -73,11 +72,10 @@ public final class IndexEnv implements AutoCloseable {
                     DocTableInfo table,
                     ClusterState clusterState,
                     Version indexVersion) throws IOException {
-        String indexName = table.ident().indexNameOrAlias();
-        assert clusterState.metadata().hasIndex(indexName) : "ClusterState must contain the index: " + indexName;
+        Index index = clusterState.metadata().getIndex(table.ident(), List.of(), true, IndexMetadata::getIndex);
+        assert index != null : "ClusterState must contain the index: " + table.ident().fqn();
 
         Path tempDir = CrateLuceneTestCase.createTempDir();
-        Index index = new Index(indexName, UUIDs.randomBase64UUID());
         Settings nodeSettings = Settings.builder()
             .put(IndexMetadata.SETTING_VERSION_CREATED, indexVersion)
             .put("path.home", tempDir.toAbsolutePath())
@@ -90,7 +88,7 @@ public final class IndexEnv implements AutoCloseable {
         IndexModule indexModule = new IndexModule(idxSettings, analysisRegistry, List.of(), Collections.emptyMap());
         nodeEnvironment = new NodeEnvironment(Settings.EMPTY, env);
         luceneReferenceResolver = new LuceneReferenceResolver(
-            indexName,
+            List.of(),
             table.partitionedByColumns(),
             table.primaryKey(),
             indexVersion,

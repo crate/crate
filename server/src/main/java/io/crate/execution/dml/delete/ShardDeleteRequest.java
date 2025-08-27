@@ -21,16 +21,16 @@
 
 package io.crate.execution.dml.delete;
 
-import io.crate.execution.dml.ShardRequest;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.UUID;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.UUID;
+import io.crate.execution.dml.ShardRequest;
 
 public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDeleteRequest.Item> {
 
@@ -73,11 +73,9 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
     public ShardDeleteRequest(StreamInput in) throws IOException {
         super(in);
         int numItems = in.readVInt();
-        if (numItems > 0) {
-            items = new ArrayList<>(numItems);
-            for (int i = 0; i < numItems; i++) {
-                items.add(new ShardDeleteRequest.Item(in));
-            }
+        items = new ArrayList<>(numItems);
+        for (int i = 0; i < numItems; i++) {
+            items.add(new ShardDeleteRequest.Item(in));
         }
         if (in.readBoolean()) {
             skipFromLocation = in.readVInt();
@@ -94,6 +92,13 @@ public class ShardDeleteRequest extends ShardRequest<ShardDeleteRequest, ShardDe
 
         public Item(String id) {
             super(id);
+        }
+
+        public Item(String id, long seqNo, long primaryTerm, long version) {
+            super(id);
+            this.seqNo = seqNo;
+            this.primaryTerm = primaryTerm;
+            this.version = version;
         }
     }
 }

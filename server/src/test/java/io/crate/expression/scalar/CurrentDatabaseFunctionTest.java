@@ -21,10 +21,13 @@
 
 package io.crate.expression.scalar;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import org.junit.Test;
 
-public class CurrentDatabaseFunctionTest extends ScalarTestCase {
+import io.crate.expression.symbol.Symbol;
 
+public class CurrentDatabaseFunctionTest extends ScalarTestCase {
 
     @Test
     public void testCurrentDatabaseReturnsTheDefaultDBName() {
@@ -32,7 +35,19 @@ public class CurrentDatabaseFunctionTest extends ScalarTestCase {
     }
 
     @Test
+    public void testCurrentCatalogReturnsTheDefaultDBName() {
+        assertEvaluate("current_catalog", "crate");
+    }
+
+    @Test
     public void testCurrentDatabaseWithFQNFunctionName() {
         assertEvaluate("pg_catalog.current_database()", "crate");
+    }
+
+    @Test
+    public void test_format_current_catalog() {
+        sqlExpressions.context().allowEagerNormalize(false);
+        Symbol f = sqlExpressions.asSymbol("current_catalog");
+        assertThat(f).hasToString("CURRENT_CATALOG");
     }
 }
