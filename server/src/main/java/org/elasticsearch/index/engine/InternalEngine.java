@@ -638,14 +638,14 @@ public class InternalEngine extends Engine {
                     get.versionType().explainConflictForReads(versionValue.version, get.version())
                 );
             }
-            if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-                get.getIfSeqNo() != versionValue.seqNo || get.getIfPrimaryTerm() != versionValue.term)) {
+            if (get.ifSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
+                get.ifSeqNo() != versionValue.seqNo || get.ifPrimaryTerm() != versionValue.term)) {
 
                 throw new VersionConflictEngineException(
                     shardId,
                     get.id(),
-                    get.getIfSeqNo(),
-                    get.getIfPrimaryTerm(),
+                    get.ifSeqNo(),
+                    get.ifPrimaryTerm(),
                     versionValue.seqNo,
                     versionValue.term
                 );
