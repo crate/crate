@@ -137,7 +137,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         }
 
         @Override
-        protected IndexItemResult insert(Indexer indexer,
+        protected IndexItemResult insert(RelationName tableName,
+                                         Indexer indexer,
                                          ShardUpsertRequest request,
                                          IndexItem item,
                                          IndexShard indexShard,

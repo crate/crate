@@ -33,6 +33,7 @@ import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -77,6 +78,7 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -133,12 +135,13 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                                                                           ShardUpsertRequest request,
                                                                                           AtomicBoolean killed) {
         String indexUUID = indexShard.shardId().getIndexUUID();
-        RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(indexUUID);
+        Metadata metadata = clusterService.state().metadata();
+        RelationMetadata relationMetadata = metadata.getRelation(indexUUID);
         if (relationMetadata == null) {
             throw new RelationUnknown("RelationMetadata for index '" + indexUUID + "' not found in cluster state");
         }
         DocTableInfo tableInfo = schemas.getTableInfo(relationMetadata.name());
-        IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);
+        IndexMetadata indexMetadata = metadata.index(indexUUID);
         assert indexMetadata != null : "IndexMetadata for index " + indexUUID + " not found in cluster state";
         List<String> partitionValues = indexMetadata.partitionValues();
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
@@ -297,12 +300,13 @@ public class TransportShardUpsertAction extends TransportShardAction<
         String indexUUID = indexShard.shardId().getIndexUUID();
         boolean traceEnabled = logger.isTraceEnabled();
 
-        RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(indexUUID);
+        Metadata metadata = clusterService.state().metadata();
+        RelationMetadata relationMetadata = metadata.getRelation(indexUUID);
         if (relationMetadata == null) {
             throw new IllegalStateException("RelationMetadata for index " + indexUUID + " not found in cluster state");
         }
         DocTableInfo tableInfo = schemas.getTableInfo(relationMetadata.name());
-        IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);
+        IndexMetadata indexMetadata = metadata.index(indexUUID);
         assert indexMetadata != null : "IndexMetadata for index " + indexUUID + " not found in cluster state";
         List<String> partitionValues = indexMetadata.partitionValues();
 
@@ -467,6 +471,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     );
                 }
                 return insert(
+                    tableInfo.ident(),
                     indexer,
                     request,
                     indexItem,
@@ -513,7 +518,8 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                   @Nullable Object[] returnValues) {}
 
     @VisibleForTesting
-    protected IndexItemResult insert(Indexer indexer,
+    protected IndexItemResult insert(RelationName tableName,
+                                     Indexer indexer,
                                      ShardUpsertRequest request,
                                      IndexItem item,
                                      IndexShard indexShard,
@@ -526,18 +532,14 @@ public class TransportShardUpsertAction extends TransportShardAction<
             ? indexer.collectSchemaUpdates(item)
             : rawIndexer.collectSchemaUpdates(item);
         if (newColumns.isEmpty() == false) {
-            RelationMetadata relation = clusterService.state().metadata().getRelation(indexShard.shardId().getIndexUUID());
-            if (relation == null) {
-                throw new IllegalStateException("RelationMetadata for index " + indexShard.shardId().getIndexUUID() + " not found in cluster state");
-            }
             var addColumnRequest = new AddColumnRequest(
-                relation.name(),
+                tableName,
                 newColumns,
                 Map.of(),
                 new IntArrayList(0)
             );
             addColumnAction.execute(addColumnRequest).get();
-            DocTableInfo actualTable = schemas.getTableInfo(relation.name());
+            DocTableInfo actualTable = schemas.getTableInfo(tableName);
             if (rawIndexer == null) {
                 indexer.updateTargets(actualTable::getReference);
             } else {
