@@ -164,6 +164,8 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
+import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
@@ -189,6 +191,7 @@ import io.crate.session.Session;
 import io.crate.session.Sessions;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.SqlParser;
+import io.crate.statistics.TableStatsService;
 import io.crate.test.integration.SystemPropsTestLoggingListener;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;
@@ -1129,7 +1132,7 @@ public abstract class IntegTestCase extends ESTestCase {
         for (IndexRoutingTable indexRoutingTable : clusterState.routingTable()) {
             for (IndexShardRoutingTable indexShardRoutingTable : indexRoutingTable) {
                 for (ShardRouting shardRouting : indexShardRoutingTable) {
-                    if (shardRouting.currentNodeId() != null && index.equals(shardRouting.getIndexName())) {
+                    if (shardRouting.currentNodeId() != null && index.equals(shardRouting.getIndexUUID())) {
                         String name = clusterState.nodes().get(shardRouting.currentNodeId()).getName();
                         nodes.add(name);
                         assertThat(Regex.simpleMatch(pattern, name))
@@ -1286,7 +1289,7 @@ public abstract class IntegTestCase extends ESTestCase {
                 }
 
                 @Override
-                public Sessions sqlOperations() {
+                public Sessions sessions() {
                     return cluster().getInstance(Sessions.class);
                 }
             }));
@@ -1317,7 +1320,7 @@ public abstract class IntegTestCase extends ESTestCase {
                 }
 
                 @Override
-                public Sessions sqlOperations() {
+                public Sessions sessions() {
                     return cluster().getInstance(Sessions.class);
                 }
             });
@@ -1342,6 +1345,13 @@ public abstract class IntegTestCase extends ESTestCase {
     @After
     public void resetPageSize() {
         Paging.PAGE_SIZE = ORIGINAL_PAGE_SIZE;
+    }
+
+    @After
+    public void resetTableStats() {
+        for (TableStatsService tableStats : cluster().getInstances(TableStatsService.class)) {
+            tableStats.clear();
+        }
     }
 
     public IntegTestCase(SQLTransportExecutor sqlExecutor) {
@@ -1925,9 +1935,32 @@ public abstract class IntegTestCase extends ESTestCase {
         return false;
     }
 
-    public static Index resolveIndex(String index) {
+    public Index resolveIndex(String indexName) {
         ClusterService clusterService = cluster().getInstance(ClusterService.class);
-        IndexMetadata indexMetadata = clusterService.state().metadata().index(index);
-        return new Index(index, indexMetadata.getIndexUUID());
+        return resolveIndex(indexName, sqlExecutor.getCurrentSchema(), clusterService.state().metadata());
+    }
+
+    public Index resolveIndex(String indexName, List<String> partitionValues) {
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
+        return resolveIndex(indexName, partitionValues, sqlExecutor.getCurrentSchema(), clusterService.state().metadata());
+    }
+
+    public static RelationName resolveRelationName(String indexName, String currentSchema) {
+        IndexParts indexParts = IndexName.decode(indexName);
+        String schema = indexParts.schema();
+        if (indexName.contains(schema) == false) {
+            schema = currentSchema;
+        }
+        return new RelationName(schema, indexParts.table());
+    }
+
+    public static Index resolveIndex(String indexName, String currentSchema, Metadata metadata) {
+        return resolveIndex(indexName, List.of(), currentSchema, metadata);
+    }
+
+    public static Index resolveIndex(String indexName, List<String> partitionValues, String currentSchema, Metadata metadata) {
+        RelationName relationName = resolveRelationName(indexName, currentSchema);
+        return metadata
+            .getIndex(relationName, partitionValues, true, IndexMetadata::getIndex);
     }
 }

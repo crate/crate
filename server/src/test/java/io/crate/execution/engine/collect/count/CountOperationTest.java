@@ -30,7 +30,6 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -51,7 +50,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.table.TableInfo;
@@ -70,15 +68,14 @@ public class CountOperationTest extends IntegTestCase {
         CountOperation countOperation = cluster().getDataNodeInstance(CountOperation.class);
         ClusterService clusterService = cluster().getDataNodeInstance(ClusterService.class);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        Metadata metadata = clusterService.state().metadata();
-        Index index = metadata.index(getFqn("t")).getIndex();
+        Index index = resolveIndex("t");
 
         IntArrayList shards = new IntArrayList(1);
         shards.add(0);
-        Map<String, IntIndexedContainer> indexShards = Map.of(index.getName(), shards);
+        Map<String, IntIndexedContainer> indexShards = Map.of(index.getUUID(), shards);
 
         {
-            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE);
+            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, Literal.BOOLEAN_TRUE, false);
             assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(3L);
         }
 
@@ -90,7 +87,7 @@ public class CountOperationTest extends IntegTestCase {
 
         Symbol filter = sqlExpressions.normalize(sqlExpressions.asSymbol("name = 'Marvin'"));
         {
-            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, filter);
+            CompletableFuture<Long> count = countOperation.count(txnCtx, indexShards, filter, false);
             assertThat(count.get(5, TimeUnit.SECONDS)).isEqualTo(1L);
         }
     }
@@ -101,8 +98,7 @@ public class CountOperationTest extends IntegTestCase {
         execute("insert into doc.t (name, p) values ('Foo', 1)");
         ClusterService clusterService = cluster().getDataNodeInstance(ClusterService.class);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
-        Metadata metadata = clusterService.state().metadata();
-        Index index = metadata.index(new PartitionName(new RelationName("doc", "t"), List.of("1")).asIndexName()).getIndex();
+        Index index = resolveIndex("doc.t", List.of("1"));
         var countOperation = (CountOperation) cluster().getDataNodeInstance(CountOperation.class);
         IndexService indexService = mock(IndexService.class);
         IndexShard indexShard = mock(IndexShard.class);
@@ -115,7 +111,8 @@ public class CountOperationTest extends IntegTestCase {
             indexService,
             indexShard,
             txnCtx,
-            Literal.BOOLEAN_TRUE
+            Literal.BOOLEAN_TRUE,
+            true
         );
         assertThat(count).isEqualTo(0);
     }

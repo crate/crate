@@ -52,7 +52,7 @@ class FetchCollector {
     private final FetchTask fetchTask;
 
     FetchCollector(List<LuceneCollectorExpression<?>> collectorExpressions,
-                   String indexName,
+                   List<String> partitionValues,
                    Streamer<?>[] streamers,
                    FetchTask fetchTask,
                    RamAccounting ramAccounting,
@@ -65,7 +65,7 @@ class FetchCollector {
         this.readerId = readerId;
         var table = fetchTask.table(readerId);
         Version shardCreatedVersion = fetchTask.indexShard(readerId).getVersionCreated();
-        CollectorContext collectorContext = new CollectorContext(readerId, () -> StoredRowLookup.create(shardCreatedVersion, table, indexName));
+        CollectorContext collectorContext = new CollectorContext(readerId, () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues));
         for (LuceneCollectorExpression<?> collectorExpression : this.collectorExpressions) {
             collectorExpression.startCollect(collectorContext);
         }

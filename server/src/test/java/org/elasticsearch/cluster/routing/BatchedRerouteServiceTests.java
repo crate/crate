@@ -38,6 +38,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateUpdateTask;
 import org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.node.DiscoveryNodes.Builder;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Randomness;
@@ -216,11 +217,18 @@ public class BatchedRerouteServiceTests extends ESTestCase {
             }
 
             if (rarely()) {
-                clusterService.getClusterApplierService().onNewClusterState("simulated", () -> {
-                    ClusterState state = clusterService.state();
-                    return ClusterState.builder(state).nodes(DiscoveryNodes.builder(state.nodes())
-                        .masterNodeId(randomBoolean() ? null : state.nodes().getLocalNodeId())).build();
-                }, (source, e) -> { });
+                clusterService.getClusterApplierService().onNewClusterState(
+                    "simulated",
+                    () -> {
+                        ClusterState state = clusterService.state();
+                        Builder nodesBuilder = DiscoveryNodes.builder(state.nodes())
+                            .masterNodeId(randomBoolean() ? null : state.nodes().getLocalNodeId());
+                        return ClusterState.builder(state)
+                            .nodes(nodesBuilder)
+                            .build();
+                    },
+                    ActionListener.wrap(() -> {})
+                );
             }
         }
 

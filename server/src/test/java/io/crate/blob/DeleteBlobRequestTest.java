@@ -23,8 +23,7 @@ package io.crate.blob;
 
 import static io.crate.testing.Asserts.assertThat;
 
-import java.util.UUID;
-
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ESTestCase;
@@ -37,8 +36,9 @@ public class DeleteBlobRequestTest extends ESTestCase {
     @Test
     public void testDeleteBlobRequestStreaming() throws Exception {
         byte[] digest = new byte[]{1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20};
+        String uuid = UUIDs.randomBase64UUID();
         DeleteBlobRequest request = new DeleteBlobRequest(
-            new ShardId("foo", UUID.randomUUID().toString(), 1),
+            new ShardId("foo", uuid, 1),
             digest
         );
         BytesStreamOutput out = new BytesStreamOutput();
@@ -46,7 +46,7 @@ public class DeleteBlobRequestTest extends ESTestCase {
 
         DeleteBlobRequest fromStream = new DeleteBlobRequest(out.bytes().streamInput());
 
-        assertThat(fromStream.index()).isEqualTo("foo");
+        assertThat(fromStream.shardId().getIndexUUID()).isEqualTo(uuid);
         assertThat(fromStream.id()).isEqualTo(Hex.encodeHexString(digest));
     }
 }

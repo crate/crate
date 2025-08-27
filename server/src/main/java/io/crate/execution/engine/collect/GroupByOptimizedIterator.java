@@ -113,6 +113,7 @@ final class GroupByOptimizedIterator {
     @Nullable
     static BatchIterator<Row> tryOptimizeSingleStringKey(IndexShard indexShard,
                                                          DocTableInfo table,
+                                                         List<String> partitionValues,
                                                          LuceneQueryBuilder luceneQueryBuilder,
                                                          BigArrays bigArrays,
                                                          InputFactory inputFactory,
@@ -162,16 +163,15 @@ final class GroupByOptimizedIterator {
 
         RamAccounting ramAccounting = collectTask.getRamAccounting();
 
-        String indexName = indexShard.shardId().getIndexName();
         Version shardCreatedVersion = indexShard.getVersionCreated();
         CollectorContext collectorContext
-            = new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, indexName));
+            = new CollectorContext(sharedShardContext.readerId(), () -> StoredRowLookup.create(shardCreatedVersion, table, partitionValues));
         InputRow inputRow = new InputRow(docCtx.topLevelInputs());
 
         LuceneQueryBuilder.Context queryContext = luceneQueryBuilder.convert(
             collectPhase.where(),
             collectTask.txnCtx(),
-            indexName,
+            partitionValues,
             indexService.indexAnalyzers(),
             table,
             shardCreatedVersion,

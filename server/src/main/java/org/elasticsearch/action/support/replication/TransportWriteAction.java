@@ -33,7 +33,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.mapper.MapperParsingException;
 import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.PrimaryShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.Translog.Location;
@@ -244,20 +243,15 @@ public abstract class TransportWriteAction<
             if (SQLExceptions.isShardNotAvailable(exception) == false) {
                 logger.warn(new ParameterizedMessage("[{}] {}", replica.shardId(), message), exception);
             }
-            // If a write action fails due to the closure of the primary shard
-            // then the replicas should not be marked as failed since they are
-            // still up-to-date with the (now closed) primary shard
-            if (exception instanceof PrimaryShardClosedException == false) {
-                shardStateAction.remoteShardFailed(
-                    replica.shardId(),
-                    replica.allocationId().getId(),
-                    primaryTerm,
-                    true,
-                    message,
-                    exception,
-                    listener
-                );
-            }
+            shardStateAction.remoteShardFailed(
+                replica.shardId(),
+                replica.allocationId().getId(),
+                primaryTerm,
+                true,
+                message,
+                exception,
+                listener
+            );
         }
 
         @Override

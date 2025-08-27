@@ -213,7 +213,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 new AllocateEmptyPrimaryAllocationCommand("test", 0, "node1", false)), false, false);
             fail("expected IllegalArgumentException when allocating empty primary with acceptDataLoss flag set to false");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("allocating an empty primary for " + shardId +
+            assertThat(e.getMessage()).contains("allocating an empty primary for [test][0]" +
                 " can result in data loss. Please confirm by setting the accept_data_loss parameter to true");
         }
 
@@ -223,7 +223,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 new AllocateStalePrimaryAllocationCommand(index, shardId.id(), "node1", false)), false, false);
             fail("expected IllegalArgumentException when allocating stale primary with acceptDataLoss flag set to false");
         } catch (IllegalArgumentException e) {
-            assertThat(e.getMessage()).contains("allocating an empty primary for " + shardId +
+            assertThat(e.getMessage()).contains("allocating an empty primary for [test][0]" +
                 " can result in data loss. Please confirm by setting the accept_data_loss parameter to true");
         }
 
@@ -577,11 +577,12 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             .put("cluster.routing.allocation.node_concurrent_recoveries", 10).build());
 
         logger.info("creating an index with 1 shard, no replica");
+        String indexUUID = UUIDs.randomBase64UUID();
         Metadata metadata = Metadata.builder()
-            .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0))
+            .put(IndexMetadata.builder(indexUUID).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0).indexName("test"))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
-            .addAsNew(metadata.index("test"))
+            .addAsNew(metadata.index(indexUUID))
             .build();
         ClusterState clusterState = ClusterState.builder(org.elasticsearch.cluster.ClusterName.CLUSTER_NAME_SETTING
             .getDefault(Settings.EMPTY)).metadata(metadata).routingTable(routingTable).build();
@@ -601,7 +602,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         logger.info("start primary shard");
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
-        Index index = clusterState.metadata().index("test").getIndex();
+        Index index = clusterState.metadata().index(indexUUID).getIndex();
         MoveAllocationCommand command = new MoveAllocationCommand(index.getName(), 0, "node1", "node2");
         RoutingAllocation routingAllocation = new RoutingAllocation(new AllocationDeciders(Collections.emptyList()),
             new RoutingNodes(clusterState, false), clusterState, ClusterInfo.EMPTY, SnapshotShardSizeInfo.EMPTY, System.nanoTime());
@@ -643,7 +644,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         clusterState = startInitializingShardsAndReroute(allocation, clusterState);
 
         Index index = clusterState.metadata().index("test").getIndex();
-        MoveAllocationCommand command = new MoveAllocationCommand(index.getName(), 0, "node2", "node1");
+        MoveAllocationCommand command = new MoveAllocationCommand(index.getUUID(), 0, "node2", "node1");
         RoutingAllocation routingAllocation = new RoutingAllocation(new AllocationDeciders(Collections.emptyList()),
             new RoutingNodes(clusterState, false), clusterState, ClusterInfo.EMPTY, SnapshotShardSizeInfo.EMPTY, System.nanoTime());
         logger.info("--> executing move allocation command from non-data node");

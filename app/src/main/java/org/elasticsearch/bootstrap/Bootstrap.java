@@ -61,22 +61,12 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.s3.S3RepositoryPlugin;
 
 import io.crate.bootstrap.BootstrapException;
-import io.crate.common.SuppressForbidden;
 import io.crate.ffi.Natives;
 import io.crate.plugin.SrvPlugin;
 
-/**
- * <p>
- * This is a copy of ES src/main/java/org/elasticsearch/bootstrap/Bootstrap.java.
- * <p>
- * With following patches:
- * - CrateNode instead of Node is build/started in order to load the CrateCorePlugin
- * - CrateSettingsPreparer is used instead of InternalSettingsPreparer
- * - disabled security manager setup due to policy problems with plugins
- */
-public class BootstrapProxy {
+public class Bootstrap {
 
-    private static volatile BootstrapProxy INSTANCE;
+    private static Bootstrap INSTANCE;
 
     private static final Collection<Class<? extends Plugin>> DEFAULT_PLUGINS = List.of(
         SrvPlugin.class,
@@ -85,14 +75,14 @@ public class BootstrapProxy {
         Ec2DiscoveryPlugin.class
     );
 
-    private volatile Node node;
+    private final Node node;
     private final CountDownLatch keepAliveLatch = new CountDownLatch(1);
     private final Thread keepAliveThread;
 
     /**
      * creates a new instance
      */
-    BootstrapProxy() {
+    Bootstrap(boolean addShutdownHook, Environment environment) throws BootstrapException {
         keepAliveThread = new Thread(() -> {
             try {
                 keepAliveLatch.await();
@@ -103,6 +93,15 @@ public class BootstrapProxy {
         keepAliveThread.setDaemon(false);
         // keep this thread alive (non daemon thread) until we shutdown
         Runtime.getRuntime().addShutdownHook(new Thread(keepAliveLatch::countDown));
+        setup(addShutdownHook, environment);
+        node = new Node(environment, DEFAULT_PLUGINS) {
+
+            @Override
+            protected void validateNodeBeforeAcceptingRequests(BoundTransportAddress boundTransportAddress,
+                                                               List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
+                BootstrapChecks.check(environment.settings(), boundTransportAddress, bootstrapChecks);
+            }
+        };
     }
 
     /**
@@ -151,7 +150,7 @@ public class BootstrapProxy {
                 } catch (IOException ex) {
                     throw new ElasticsearchException("failed to stop node", ex);
                 } catch (InterruptedException e) {
-                    LogManager.getLogger(BootstrapProxy.class).warn("Thread got interrupted while waiting for the node to shutdown.");
+                    LogManager.getLogger(Bootstrap.class).warn("Thread got interrupted while waiting for the node to shutdown.");
                     Thread.currentThread().interrupt();
                 }
             }));
@@ -166,16 +165,6 @@ public class BootstrapProxy {
         }
 
         IfConfig.logIfNecessary();
-
-        node = new Node(environment, DEFAULT_PLUGINS) {
-
-            @Override
-            protected void validateNodeBeforeAcceptingRequests(BoundTransportAddress boundTransportAddress,
-                                                               List<BootstrapCheck> bootstrapChecks) throws NodeValidationException {
-                BootstrapChecks.check(settings, boundTransportAddress, bootstrapChecks);
-            }
-        };
-
     }
 
     private void start() throws NodeValidationException {
@@ -186,11 +175,11 @@ public class BootstrapProxy {
     public static void stop() throws IOException {
         try {
             IOUtils.close(INSTANCE.node);
-            if (INSTANCE.node != null && INSTANCE.node.awaitClose(10, TimeUnit.SECONDS) == false) {
+            if (INSTANCE.node.awaitClose(10, TimeUnit.SECONDS) == false) {
                 throw new IllegalStateException("Node didn't stop within 10 seconds. Any outstanding requests or tasks might get killed.");
             }
         } catch (InterruptedException e) {
-            LogManager.getLogger(BootstrapProxy.class).warn("Thread got interrupted while waiting for the node to shutdown.");
+            LogManager.getLogger(Bootstrap.class).warn("Thread got interrupted while waiting for the node to shutdown.");
             Thread.currentThread().interrupt();
         } finally {
             INSTANCE.keepAliveLatch.countDown();
@@ -201,7 +190,6 @@ public class BootstrapProxy {
      * This method is invoked by {@link io.crate.bootstrap.CrateDB#main(String[])} to start CrateDB.
      */
     public static void init(Environment environment) throws BootstrapException, NodeValidationException, UserException {
-        INSTANCE = new BootstrapProxy();
         LogConfigurator.setNodeName(Node.NODE_NAME_SETTING.get(environment.settings()));
         try {
             LogConfigurator.configure(environment);
@@ -217,8 +205,7 @@ public class BootstrapProxy {
             // setDefaultUncaughtExceptionHandler
             Thread.setDefaultUncaughtExceptionHandler(new ElasticsearchUncaughtExceptionHandler());
 
-            INSTANCE.setup(true, environment);
-
+            INSTANCE = new Bootstrap(true, environment);
             INSTANCE.start();
         } catch (NodeValidationException | RuntimeException e) {
             // disable console logging, so user does not see the exception twice (jvm will show it already)
@@ -227,7 +214,7 @@ public class BootstrapProxy {
             if (maybeConsoleAppender != null) {
                 Loggers.removeAppender(rootLogger, maybeConsoleAppender);
             }
-            Logger logger = LogManager.getLogger(BootstrapProxy.class);
+            Logger logger = LogManager.getLogger(Bootstrap.class);
             // HACK, it sucks to do this, but we will run users out of disk space otherwise
             if (e instanceof CreationException) {
                 // guice: log the shortened exc to the log file
@@ -250,21 +237,6 @@ public class BootstrapProxy {
 
             throw e;
         }
-    }
-
-    @SuppressForbidden(reason = "System#out")
-    private static void closeSystOut() {
-        System.out.close();
-    }
-
-    @SuppressForbidden(reason = "System#err")
-    private static void closeSysError() {
-        System.err.close();
-    }
-
-    @SuppressForbidden(reason = "Allowed to exit explicitly in bootstrap phase")
-    private static void exit(int status) {
-        System.exit(status);
     }
 
     private static void checkLucene() {

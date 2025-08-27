@@ -27,12 +27,12 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.types.DataType;
 
-public class SQLResponse {
+public final class SQLResponse {
 
-    private String[] cols;
-    private DataType<?>[] colTypes;
-    private Object[][] rows;
-    private long rowCount;
+    private final String[] cols;
+    private final DataType<?>[] colTypes;
+    private final Object[][] rows;
+    private final long rowCount;
 
     SQLResponse(String[] cols,
                 Object[][] rows,

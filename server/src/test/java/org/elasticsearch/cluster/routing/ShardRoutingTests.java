@@ -175,7 +175,7 @@ public class ShardRoutingTests extends ESTestCase {
                     break;
                 case 5:
                     // change primary flag
-                    otherRouting = TestShardRouting.newShardRouting(otherRouting.getIndexName(), otherRouting.id(),
+                    otherRouting = TestShardRouting.newShardRouting(otherRouting.getIndexUUID(), otherRouting.id(),
                                                                     otherRouting.currentNodeId(), otherRouting.relocatingNodeId(), otherRouting.primary() == false,
                                                                     otherRouting.state(), otherRouting.unassignedInfo());
                     break;
@@ -192,7 +192,7 @@ public class ShardRoutingTests extends ESTestCase {
                         unassignedInfo = new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "test");
                     }
 
-                    otherRouting = TestShardRouting.newShardRouting(otherRouting.getIndexName(), otherRouting.id(),
+                    otherRouting = TestShardRouting.newShardRouting(otherRouting.getIndexUUID(), otherRouting.id(),
                                                                     newState == ShardRoutingState.UNASSIGNED ? null :
                                                                         (otherRouting.currentNodeId() == null ? "1" : otherRouting.currentNodeId()),
                                                                     newState == ShardRoutingState.RELOCATING ? "2" : null,
@@ -202,7 +202,7 @@ public class ShardRoutingTests extends ESTestCase {
 
             if (randomBoolean()) {
                 // change unassigned info
-                otherRouting = TestShardRouting.newShardRouting(otherRouting.getIndexName(), otherRouting.id(),
+                otherRouting = TestShardRouting.newShardRouting(otherRouting.getIndexUUID(), otherRouting.id(),
                                                                 otherRouting.currentNodeId(), otherRouting.relocatingNodeId(), otherRouting.primary(), otherRouting.state(),
                                                                 otherRouting.unassignedInfo() == null ? new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "test") :
                                                                     new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, otherRouting.unassignedInfo().getMessage() + "_1"));

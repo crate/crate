@@ -139,11 +139,11 @@ public final class NodeMetadata implements Writeable {
         }
     }
 
-    static class NodeMetadataStateFormat extends MetadataStateFormat<NodeMetadata> {
+    private static class NodeMetadataStateFormat extends MetadataStateFormat<NodeMetadata> {
 
-        private ObjectParser<Builder, Void> objectParser;
+        private final ObjectParser<Builder, Void> objectParser;
 
-        NodeMetadataStateFormat() {
+        private NodeMetadataStateFormat() {
             super("node-");
             objectParser = new ObjectParser<>("node_meta_data", false, Builder::new);
             objectParser.declareString(Builder::setNodeId, new ParseField(NODE_ID_KEY));

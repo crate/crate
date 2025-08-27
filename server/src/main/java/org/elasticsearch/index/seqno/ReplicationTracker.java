@@ -966,6 +966,15 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         return globalCheckpoint;
     }
 
+    public boolean globalNeedsSync() {
+        for (var checkpointState : checkpoints.values()) {
+            if (checkpointState.inSync && checkpointState.globalCheckpoint < globalCheckpoint) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     @Override
     public long getAsLong() {
         return globalCheckpoint;

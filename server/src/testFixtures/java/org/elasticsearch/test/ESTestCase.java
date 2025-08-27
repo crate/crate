@@ -697,9 +697,7 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
                 codeBlock.run();
                 return;
             } catch (AssertionError e) {
-                if (!failures.contains(e)) {
-                    failures.add(e);
-                }
+                failures.add(e);
             }
             sum += timeInMillis;
             Thread.sleep(timeInMillis);
@@ -710,8 +708,11 @@ public abstract class ESTestCase extends CrateLuceneTestCase {
         try {
             codeBlock.run();
         } catch (AssertionError e) {
+            String msg = e.getMessage();
             for (AssertionError failure : failures) {
-                e.addSuppressed(failure);
+                if (!failure.getMessage().equals(msg)) {
+                    e.addSuppressed(failure);
+                }
             }
             throw e;
         }

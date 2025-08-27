@@ -95,7 +95,6 @@ public abstract class MetadataStateFormat<T extends Writeable> {
         try {
             directory.deleteFile(fileName);
         } catch (FileNotFoundException | NoSuchFileException ignored) {
-
         }
         LOGGER.trace("cleaned up {}", stateLocation.resolve(fileName));
     }
@@ -130,13 +129,13 @@ public abstract class MetadataStateFormat<T extends Writeable> {
         }
     }
 
-    private static void copyStateToExtraLocations(List<Tuple<Path, Directory>> stateDirs, String tmpFileName)
+    private static void copyStateToExtraLocations(List<PathDirectory> stateDirs, String tmpFileName)
             throws WriteStateException {
-        Directory srcStateDir = stateDirs.get(0).v2();
+        Directory srcStateDir = stateDirs.get(0).directory();
         for (int i = 1; i < stateDirs.size(); i++) {
-            Tuple<Path, Directory> extraStatePathAndDir = stateDirs.get(i);
-            Path extraStateLocation = extraStatePathAndDir.v1();
-            Directory extraStateDir = extraStatePathAndDir.v2();
+            PathDirectory extraStatePathAndDir = stateDirs.get(i);
+            Path extraStateLocation = extraStatePathAndDir.path();
+            Directory extraStateDir = extraStatePathAndDir.directory();
             try {
                 deleteFileIfExists(extraStateLocation, extraStateDir, tmpFileName);
                 extraStateDir.copyFrom(srcStateDir, tmpFileName, tmpFileName, IOContext.DEFAULT);
@@ -147,33 +146,33 @@ public abstract class MetadataStateFormat<T extends Writeable> {
         }
     }
 
-    private static void performRenames(String tmpFileName, String fileName, final List<Tuple<Path, Directory>> stateDirectories) throws
+    private static void performRenames(String tmpFileName, String fileName, final List<PathDirectory> stateDirectories) throws
             WriteStateException {
-        Directory firstStateDirectory = stateDirectories.get(0).v2();
+        Directory firstStateDirectory = stateDirectories.get(0).directory();
         try {
             firstStateDirectory.rename(tmpFileName, fileName);
         } catch (IOException e) {
             throw new WriteStateException(false, "failed to rename tmp file to final name in the first state location " +
-                    stateDirectories.get(0).v1().resolve(tmpFileName), e);
+                    stateDirectories.get(0).path().resolve(tmpFileName), e);
         }
 
         for (int i = 1; i < stateDirectories.size(); i++) {
-            Directory extraStateDirectory = stateDirectories.get(i).v2();
+            Directory extraStateDirectory = stateDirectories.get(i).directory();
             try {
                 extraStateDirectory.rename(tmpFileName, fileName);
             } catch (IOException e) {
                 throw new WriteStateException(true, "failed to rename tmp file to final name in extra state location " +
-                        stateDirectories.get(i).v1().resolve(tmpFileName), e);
+                        stateDirectories.get(i).path().resolve(tmpFileName), e);
             }
         }
     }
 
-    private static void performStateDirectoriesFsync(List<Tuple<Path, Directory>> stateDirectories) throws WriteStateException {
-        for (int i = 0; i < stateDirectories.size(); i++) {
+    private static void performStateDirectoriesFsync(List<PathDirectory> stateDirectories) throws WriteStateException {
+        for (var stateDirectory : stateDirectories) {
             try {
-                stateDirectories.get(i).v2().syncMetaData();
+                stateDirectory.directory().syncMetaData();
             } catch (IOException e) {
-                throw new WriteStateException(true, "meta data directory fsync has failed " + stateDirectories.get(i).v1(), e);
+                throw new WriteStateException(true, "meta data directory fsync has failed " + stateDirectory.path(), e);
             }
         }
     }
@@ -181,7 +180,7 @@ public abstract class MetadataStateFormat<T extends Writeable> {
     /**
      * Writes the given state to the given directories and performs cleanup of old state files if the write succeeds or
      * newly created state file if write fails.
-     * See also {@link #write(Object, Path...)} and {@link #cleanupOldFiles(long, Path[])}.
+     * See also {@link #write(Writeable, Path...)} and {@link #cleanupOldFiles(long, Path[])}.
      */
     public final long writeAndCleanup(final T state, final Path... locations) throws WriteStateException {
         return write(state, true, locations);
@@ -200,7 +199,7 @@ public abstract class MetadataStateFormat<T extends Writeable> {
      * But if this method succeeds, it does not perform cleanup of old state files.
      * If this write succeeds, but some further write fails, you may want to rollback the transaction and keep old file around.
      * After transaction is finished use {@link #cleanupOldFiles(long, Path[])} for the clean-up.
-     * If this write is not a part of bigger transaction, consider using {@link #writeAndCleanup(Object, Path...)} method instead.
+     * If this write is not a part of bigger transaction, consider using {@link #writeAndCleanup(Writeable, Path...)} method instead.
      *
      * @param state     the state object to write
      * @param locations the locations where the state should be written to.
@@ -230,19 +229,19 @@ public abstract class MetadataStateFormat<T extends Writeable> {
 
         final String fileName = getStateFileName(newGenerationId);
         final String tmpFileName = fileName + ".tmp";
-        List<Tuple<Path, Directory>> directories = new ArrayList<>();
+        List<PathDirectory> directories = new ArrayList<>();
 
         try {
             for (Path location : locations) {
                 Path stateLocation = location.resolve(STATE_DIR_NAME);
                 try {
-                    directories.add(new Tuple<>(location, newDirectory(stateLocation)));
+                    directories.add(new PathDirectory(location, newDirectory(stateLocation)));
                 } catch (IOException e) {
                     throw new WriteStateException(false, "failed to open state directory " + stateLocation, e);
                 }
             }
 
-            writeStateToFirstLocation(state, directories.get(0).v1(), directories.get(0).v2(), tmpFileName);
+            writeStateToFirstLocation(state, directories.get(0).path(), directories.get(0).directory(), tmpFileName);
             copyStateToExtraLocations(directories, tmpFileName);
             performRenames(tmpFileName, fileName, directories);
             performStateDirectoriesFsync(directories);
@@ -252,9 +251,9 @@ public abstract class MetadataStateFormat<T extends Writeable> {
             }
             throw e;
         } finally {
-            for (Tuple<Path, Directory> pathAndDirectory : directories) {
-                deleteFileIgnoreExceptions(pathAndDirectory.v1(), pathAndDirectory.v2(), tmpFileName);
-                IOUtils.closeWhileHandlingException(pathAndDirectory.v2());
+            for (var pathAndDirectory : directories) {
+                deleteFileIgnoreExceptions(pathAndDirectory.path(), pathAndDirectory.directory(), tmpFileName);
+                IOUtils.closeWhileHandlingException(pathAndDirectory.directory());
             }
         }
 
@@ -425,7 +424,7 @@ public abstract class MetadataStateFormat<T extends Writeable> {
         }
         // if we reach this something went wrong
         SQLExceptions.maybeThrowRuntimeAndSuppress(exceptions);
-        if (stateFiles.size() > 0) {
+        if (!stateFiles.isEmpty()) {
             // We have some state files but none of them gave us a usable state
             throw new IllegalStateException("Could not find a state file to recover from among " +
                     stateFiles.stream().map(Path::toAbsolutePath).map(Object::toString).collect(Collectors.joining(", ")));
@@ -486,4 +485,6 @@ public abstract class MetadataStateFormat<T extends Writeable> {
     public String getPrefix() {
         return prefix;
     }
+
+    private record PathDirectory(Path path, Directory directory) {}
 }

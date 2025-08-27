@@ -188,6 +188,7 @@ information about the currently applied cluster settings.
     | settings['indices']['recovery']['internal_action_long_timeout']                   | text         |
     | settings['indices']['recovery']['internal_action_timeout']                        | text         |
     | settings['indices']['recovery']['max_bytes_per_sec']                              | text         |
+    | settings['indices']['recovery']['max_concurrent_file_chunks']                     | integer      |
     | settings['indices']['recovery']['recovery_activity_timeout']                      | text         |
     | settings['indices']['recovery']['retry_delay_network']                            | text         |
     | settings['indices']['recovery']['retry_delay_state_sync']                         | text         |
@@ -1696,18 +1697,18 @@ CrateDB maintains backward compatibility for tables created in ``majorVersion - 
       - Current Version
       - Current Version
     * -
-      - 3.x
       - 4.x
       - 5.x
-    * - 3.x
-      - ✔️
-      - ✔️
-      - ❌
+      - 6.x
     * - 4.x
+      - ✔️
+      - ✔️
+      - ❌
+    * - 5.x
       - ❌
       - ✔️
       - ✔️
-    * - 5.x
+    * - 6.x
       - ❌
       - ❌
       - ✔️
@@ -1796,7 +1797,7 @@ How to reindex
     +--------------------+
     | version['created'] |
     +--------------------+
-    | 6.0.0              |
+    | 6.1.0              |
     +--------------------+
     SELECT 1 row in set (... sec)
 

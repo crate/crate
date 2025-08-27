@@ -257,7 +257,7 @@ public final class NodeEnvironment implements Closeable {
 
             final NodeLock nodeLock;
             try {
-                nodeLock = new NodeLock(logger, environment, dir -> true);
+                nodeLock = new NodeLock(logger, environment, _ -> true);
             } catch (IOException e) {
                 final String message = String.format(
                     Locale.ROOT,
@@ -710,18 +710,18 @@ public final class NodeEnvironment implements Closeable {
         private final ShardId shardId;
         private volatile LockDetails lockDetails;
 
-        InternalShardLock(final ShardId shardId, final String details) {
+        private InternalShardLock(final ShardId shardId, final String details) {
             this.shardId = shardId;
             mutex.acquireUninterruptibly();
             lockDetails = new LockDetails(System.nanoTime(), details);
         }
 
-        protected void release() {
+        private void release() {
             mutex.release();
             decWaitCount();
         }
 
-        void incWaitCount() {
+        private void incWaitCount() {
             synchronized (shardLocks) {
                 assert waitCount > 0 : "waitCount is " + waitCount + " but should be > 0";
                 waitCount++;
@@ -741,7 +741,7 @@ public final class NodeEnvironment implements Closeable {
             }
         }
 
-        void acquire(long timeoutInMillis, final String details) throws ShardLockObtainFailedException {
+        private void acquire(long timeoutInMillis, final String details) throws ShardLockObtainFailedException {
             try {
                 if (mutex.tryAcquire(timeoutInMillis, TimeUnit.MILLISECONDS)) {
                     setDetails(details);
@@ -845,7 +845,7 @@ public final class NodeEnvironment implements Closeable {
      * Returns all folder names in ${data.paths}/nodes/{node.id}/indices folder
      */
     public Set<String> availableIndexFolders() throws IOException {
-        return availableIndexFolders(p -> false);
+        return availableIndexFolders(_ -> false);
     }
 
     /**
@@ -863,17 +863,6 @@ public final class NodeEnvironment implements Closeable {
         }
         return indexFolders;
 
-    }
-
-    /**
-     * Return all directory names in the nodes/{node.id}/indices directory for the given node path.
-     *
-     * @param nodePath the path
-     * @return all directories that could be indices for the given node path.
-     * @throws IOException if an I/O exception occurs traversing the filesystem
-     */
-    public Set<String> availableIndexFoldersForPath(final NodePath nodePath) throws IOException {
-        return availableIndexFoldersForPath(nodePath, p -> false);
     }
 
     /**
@@ -1169,19 +1158,6 @@ public final class NodeEnvironment implements Closeable {
     public static Path resolveCustomLocation(String customDataPath, final ShardId shardId, Path sharedDataPath) {
         return resolveIndexCustomLocation(customDataPath, shardId.getIndex().getUUID(),
             sharedDataPath).resolve(Integer.toString(shardId.id()));
-    }
-
-    /**
-     * Returns the {@code NodePath.path} for this shard.
-     */
-    public static Path shardStatePathToDataPath(Path shardPath) {
-        int count = shardPath.getNameCount();
-
-        // Sanity check:
-        assert Integer.parseInt(shardPath.getName(count - 1).toString()) >= 0;
-        assert "indices".equals(shardPath.getName(count - 3).toString());
-
-        return shardPath.getParent().getParent().getParent();
     }
 
     /**

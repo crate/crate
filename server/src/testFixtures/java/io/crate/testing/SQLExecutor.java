@@ -397,7 +397,6 @@ public class SQLExecutor {
                         settings,
                         clusterService,
                         nodeCtx,
-                        tableStats,
                         null,
                         null,
                         roleManager,
@@ -607,6 +606,26 @@ public class SQLExecutor {
         return (T) plan;
     }
 
+    public <T> T buildPlan(LogicalPlan logicalPlan) {
+        return (T) logicalPlan.build(
+            dependencyMock,
+            getPlannerContext(),
+            Set.of(),
+            new ProjectionBuilder(nodeCtx),
+            LimitAndOffset.NO_LIMIT,
+            0,
+            null,
+            null,
+            Row.EMPTY,
+            new SubQueryResults(emptyMap()) {
+                @Override
+                public Object getSafe(SelectSymbol key) {
+                    return null;
+                }
+            }
+        );
+    }
+
     @SuppressWarnings("unchecked")
     public <T extends LogicalPlan> T logicalPlan(String statement) {
         AnalyzedStatement stmt = analyze(statement, ParamTypeHints.EMPTY);
@@ -634,7 +653,7 @@ public class SQLExecutor {
     }
 
     public void updateTableStats(Map<RelationName, Stats> stats) {
-        tableStats.updateTableStats(stats);
+        tableStats.updateTableStats(stats::get);
     }
 
     public PlanStats planStats() {
@@ -676,9 +695,10 @@ public class SQLExecutor {
                                                             Settings settings,
                                                             @Nullable Map<String, Object> mapping,
                                                             Version smallestNodeVersion) throws IOException {
-        Settings indexSettings = buildSettings(true, settings, smallestNodeVersion);
-        IndexMetadata.Builder metaBuilder = IndexMetadata.builder(indexName)
-            .settings(indexSettings);
+        Settings indexSettings = buildSettings(settings, smallestNodeVersion);
+        IndexMetadata.Builder metaBuilder = IndexMetadata.builder(UUIDs.randomBase64UUID())
+            .settings(indexSettings)
+            .indexName(indexName);
         if (mapping != null) {
             metaBuilder.putMapping(new MappingMetadata(mapping));
         }
@@ -686,7 +706,7 @@ public class SQLExecutor {
         return metaBuilder;
     }
 
-    private static Settings buildSettings(boolean isIndex, Settings settings, Version smallestNodeVersion) {
+    private static Settings buildSettings(Settings settings, Version smallestNodeVersion) {
         Settings.Builder builder = Settings.builder()
             .put(settings);
         if (settings.get(SETTING_VERSION_CREATED) == null) {
@@ -695,7 +715,7 @@ public class SQLExecutor {
         if (settings.get(SETTING_CREATION_DATE) == null) {
             builder.put(SETTING_CREATION_DATE, Instant.now().toEpochMilli());
         }
-        if (isIndex && settings.get(SETTING_INDEX_UUID) == null) {
+        if (settings.get(SETTING_INDEX_UUID) == null) {
             builder.put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID());
         }
 
@@ -801,9 +821,11 @@ public class SQLExecutor {
     public SQLExecutor startShards(String... indices) {
         var clusterState = clusterService.state();
         for (var index : indices) {
-            var indexName = IndexName.decode(index).toRelationName().indexNameOrAlias();
-            final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, INITIALIZING);
-            clusterState = allocationService.applyStartedShards(clusterState, startedShards);
+            List<String> indexUUIDs = clusterState.metadata().getIndices(RelationName.fromIndexName(index), List.of(), true, IndexMetadata::getIndexUUID);
+            for (var indexUUID : indexUUIDs) {
+                final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexUUID, INITIALIZING);
+                clusterState = allocationService.applyStartedShards(clusterState, startedShards);
+            }
         }
         clusterState = allocationService.reroute(clusterState, "reroute after starting");
         ClusterServiceUtils.setState(clusterService, clusterState);
@@ -813,10 +835,12 @@ public class SQLExecutor {
     public SQLExecutor failShards(String... indices) {
         var clusterState = clusterService.state();
         for (var index : indices) {
-            var indexName = IndexName.decode(index).toRelationName().indexNameOrAlias();
-            final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexName, STARTED);
-            for (ShardRouting shard : startedShards) {
-                clusterState = allocationService.applyFailedShard(clusterState, shard, false);
+            List<String> indexUUIDs = clusterState.metadata().getIndices(RelationName.fromIndexName(index), List.of(), true, IndexMetadata::getIndexUUID);
+            for (var indexUUID : indexUUIDs) {
+                final List<ShardRouting> startedShards = clusterState.getRoutingNodes().shardsWithState(indexUUID, STARTED);
+                for (ShardRouting shard : startedShards) {
+                    clusterState = allocationService.applyFailedShard(clusterState, shard, false);
+                }
             }
         }
         clusterState = allocationService.reroute(clusterState, "reroute after failing shards");
@@ -929,6 +953,7 @@ public class SQLExecutor {
         return this;
     }
 
+    @SuppressWarnings("unchecked")
     public SQLExecutor addBlobTable(String createBlobTableStmt) throws IOException {
         CreateBlobTable<Expression> stmt = (CreateBlobTable<Expression>) SqlParser.createStatement(createBlobTableStmt);
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
@@ -968,9 +993,9 @@ public class SQLExecutor {
                                  String owner,
                                  Settings options) throws Exception {
         CreateServerRequest request = new CreateServerRequest(
-            "pg",
-            "jdbc",
-            "crate",
+            serverName,
+            fdw,
+            owner,
             true,
             options
         );

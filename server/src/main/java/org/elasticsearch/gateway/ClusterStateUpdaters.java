@@ -19,7 +19,10 @@
 
 package org.elasticsearch.gateway;
 
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+
+import java.util.Map;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -32,11 +35,11 @@ import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.common.settings.ClusterSettings;
 
-import java.util.Map;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
-import static org.elasticsearch.gateway.GatewayService.STATE_NOT_RECOVERED_BLOCK;
+public final class ClusterStateUpdaters {
 
-public class ClusterStateUpdaters {
+    private ClusterStateUpdaters() {}
 
     private static final Logger LOGGER = LogManager.getLogger(ClusterStateUpdaters.class);
 
@@ -116,34 +119,13 @@ public class ClusterStateUpdaters {
                 .build();
     }
 
-    static ClusterState mixCurrentStateAndRecoveredState(final ClusterState currentState, final ClusterState recoveredState) {
-        assert currentState.metadata().indices().isEmpty();
-
-        final ClusterBlocks.Builder blocks = ClusterBlocks.builder()
-                .blocks(currentState.blocks())
-                .blocks(recoveredState.blocks());
-
-        final Metadata.Builder metadataBuilder = Metadata.builder(recoveredState.metadata());
-        // automatically generate a UID for the metadata if we need to
-        metadataBuilder.generateClusterUuidIfNeeded();
-
-        for (final IndexMetadata indexMetadata : recoveredState.metadata()) {
-            metadataBuilder.put(indexMetadata, false);
-        }
-
-        return ClusterState.builder(currentState)
-                .blocks(blocks)
-                .metadata(metadataBuilder)
-                .build();
-    }
-
     public static ClusterState hideStateIfNotRecovered(ClusterState state) {
         if (state.blocks().hasGlobalBlock(STATE_NOT_RECOVERED_BLOCK)) {
             final ClusterBlocks.Builder blocks = ClusterBlocks.builder().blocks(state.blocks());
             blocks.removeGlobalBlock(Metadata.CLUSTER_READ_ONLY_BLOCK);
             blocks.removeGlobalBlock(Metadata.CLUSTER_READ_ONLY_ALLOW_DELETE_BLOCK);
             for (IndexMetadata indexMetadata: state.metadata()) {
-                blocks.removeIndexBlocks(indexMetadata.getIndex().getName());
+                blocks.removeIndexBlocks(indexMetadata.getIndex().getUUID());
             }
             final Metadata metadata = Metadata.builder()
                     .clusterUUID(state.metadata().clusterUUID())
@@ -157,5 +139,4 @@ public class ClusterStateUpdaters {
         }
         return state;
     }
-
 }

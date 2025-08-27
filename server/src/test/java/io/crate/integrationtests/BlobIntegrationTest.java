@@ -42,14 +42,18 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
 import org.elasticsearch.test.IntegTestCase;
 import org.jetbrains.annotations.Nullable;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.blob.v2.BlobShard;
+import io.crate.metadata.RelationName;
+import io.netty.handler.codec.http.HttpHeaderNames;
 
 @IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.SUITE, numDataNodes = 2)
 @WindowsIncompatible
@@ -81,13 +85,15 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
     }
 
     @Test
+    @Ignore("Flakiness introduced with JDK 24.0.2")
     public void testCorsHeadersAreSet() throws Exception {
         String digest = uploadTinyBlob();
         HttpRequest request = HttpRequest.newBuilder(blobUri(digest))
             .header("Origin", "Http://example.com")
             .build();
         var response = httpClient.send(request, BodyHandlers.discarding());
-        assertThat(response.headers().firstValue("Access-Control-Allow-Origin")).isPresent();
+        assertThat(response.headers().map())
+            .containsEntry(HttpHeaderNames.ACCESS_CONTROL_ALLOW_ORIGIN.toString(), List.of("*"));
     }
 
     @Test
@@ -400,13 +406,20 @@ public class BlobIntegrationTest extends BlobHttpIntegrationTest {
 
     @Nullable
     private BlobShard getBlobShard(String digest) {
+        String indexName = ".blob_test";
+        RelationName relationName = RelationName.fromIndexName(indexName);
+        String indexUUID = clusterService().state().metadata().getIndex(relationName, List.of(), true, IndexMetadata::getIndexUUID);
+        if (indexUUID == null) {
+            throw new IndexNotFoundException(indexName);
+        }
+
         Iterable<BlobIndicesService> services = cluster().getInstances(BlobIndicesService.class);
         Iterator<BlobIndicesService> it = services.iterator();
         BlobShard blobShard = null;
         while (it.hasNext()) {
             BlobIndicesService nextService = it.next();
             try {
-                blobShard = nextService.localBlobShard(".blob_test", digest);
+                blobShard = nextService.localBlobShard(indexUUID, digest);
             } catch (ShardNotFoundException | IndexNotFoundException e) {
                 continue;
             }

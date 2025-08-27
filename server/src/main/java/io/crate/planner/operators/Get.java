@@ -30,6 +30,8 @@ import java.util.SequencedCollection;
 import java.util.SequencedSet;
 import java.util.Set;
 
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.IndexNotFoundException;
@@ -51,8 +53,6 @@ import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexName;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -104,6 +104,7 @@ public class Get implements LogicalPlan {
                                SubQueryResults subQueryResults) {
         HashMap<String, Map<ShardId, SequencedSet<PKAndVersion>>> idsByShardByNode = new HashMap<>();
         DocTableInfo docTableInfo = tableRelation.tableInfo();
+        Metadata metadata = executor.clusterService().state().metadata();
         for (DocKeys.DocKey docKey : docKeys) {
             String id = docKey.getId(plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
             if (id == null) {
@@ -111,13 +112,22 @@ public class Get implements LogicalPlan {
             }
             List<String> partitionValues = docKey.getPartitionValues(
                 plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
-            String indexName = indexName(docTableInfo, partitionValues);
+            List<String> indexUUIDs = metadata.getIndices(docTableInfo.ident(), partitionValues, true, IndexMetadata::getIndexUUID);
+            if (indexUUIDs.isEmpty()) {
+                if (docTableInfo.isPartitioned()) {
+                    // If the table is partitioned and the partition does not exist, we can skip it
+                    continue;
+                }
+                // If the table is not partitioned and the index does not exist, throw an exception
+                throw new IndexNotFoundException(docTableInfo.ident().fqn());
+            }
+            String indexUUID = indexUUIDs.getFirst();
 
             String routing = docKey.getRouting(
                 plannerContext.transactionContext(), plannerContext.nodeContext(), params, subQueryResults);
             ShardRouting shardRouting;
             try {
-                shardRouting = plannerContext.resolveShard(indexName, id, routing);
+                shardRouting = plannerContext.resolveShard(indexUUID, id, routing);
             } catch (IndexNotFoundException e) {
                 if (docTableInfo.isPartitioned()) {
                     continue;
@@ -244,16 +254,6 @@ public class Get implements LogicalPlan {
     @Override
     public <C, R> R accept(LogicalPlanVisitor<C, R> visitor, C context) {
         return visitor.visitGet(this, context);
-    }
-
-    public static String indexName(DocTableInfo tableInfo, @Nullable List<String> partitionValues) {
-        RelationName relation = tableInfo.ident();
-        if (tableInfo.isPartitioned()) {
-            assert partitionValues != null : "values must not be null";
-            return IndexName.encode(relation, PartitionName.encodeIdent(partitionValues));
-        } else {
-            return relation.indexNameOrAlias();
-        }
     }
 
     @Override

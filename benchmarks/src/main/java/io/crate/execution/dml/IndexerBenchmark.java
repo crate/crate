@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.IntStream;
 
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.inject.Injector;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -92,7 +91,7 @@ public class IndexerBenchmark {
         DocTableInfo table = nodeContext.schemas().getTableInfo(new RelationName("doc", "tbl"));
 
         indexer = new Indexer(
-            table.concreteIndices(Metadata.EMPTY_METADATA)[0],
+            List.of(),
             table,
             table.versionCreated(),
             new CoordinatorTxnCtx(session.sessionSettings()),

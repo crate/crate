@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests.disruption.discovery;
 
-import static org.assertj.core.api.Assertions.fail;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.HashSet;
@@ -35,6 +35,7 @@ import org.elasticsearch.cluster.coordination.PublicationTransportHandler;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.disruption.NetworkDisruption;
 import org.elasticsearch.test.disruption.NetworkDisruption.NetworkDisconnect;
@@ -45,8 +46,6 @@ import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.junit.Test;
-
-import io.crate.metadata.IndexName;
 
 
 /**
@@ -160,6 +159,13 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
         execute("create table t (id int primary key, x string) clustered into 1 shards " +
                 "with (number_of_replicas = 0)", null, randomFrom(nonPreferredNodes));
 
+        ClusterService clusterService = cluster().getInstance(ClusterService.class, nonPreferredNodes.iterator().next());
+        Index index = resolveIndex(
+            "t",
+            sqlExecutor.getCurrentSchema(),
+            clusterService.state().metadata()
+        );
+
         cluster().clearDisruptionScheme(false);
         cluster().setDisruptionScheme(isolateAllNodes);
 
@@ -172,10 +178,10 @@ public class DiscoveryDisruptionIT extends AbstractDisruptionTestCase {
         isolateAllNodes.stopDisrupting();
 
         final ClusterState state = client().state(new ClusterStateRequest()).get().getState();
-        if (state.metadata().hasIndex(IndexName.encode(sqlExecutor.getCurrentSchema(), "t", null)) == false) {
-            fail("index 'test' was lost. current cluster state: " + state);
-        }
 
+        assertThat(state.metadata().hasIndex(index))
+            .as("index for relation 't' was lost. current cluster state: " + state)
+            .isTrue();
     }
 
     /**

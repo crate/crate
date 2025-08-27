@@ -80,9 +80,9 @@ public class GatewayMetaState implements Closeable {
     private final SetOnce<PersistedState> persistedState = new SetOnce<>();
 
     public PersistedState getPersistedState() {
-        final PersistedState persistedState = this.persistedState.get();
-        assert persistedState != null : "not started";
-        return persistedState;
+        final PersistedState persistedStateTmp = this.persistedState.get();
+        assert persistedStateTmp != null : "not started";
+        return persistedStateTmp;
     }
 
     public Metadata getMetadata() {
@@ -114,7 +114,7 @@ public class GatewayMetaState implements Closeable {
                     }
                 }
 
-                PersistedState persistedState = null;
+                PersistedState persistedStateTmp = null;
                 boolean success = false;
                 try {
                     final ClusterState clusterState = prepareInitialClusterState(
@@ -124,9 +124,9 @@ public class GatewayMetaState implements Closeable {
                             .metadata(upgradeMetadataForNode(metadata, metadataUpgradeService))
                             .build());
                     if (DiscoveryNode.isMasterEligibleNode(settings)) {
-                        persistedState = new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState);
+                        persistedStateTmp = new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState);
                     } else {
-                        persistedState = new AsyncLucenePersistedState(settings,
+                        persistedStateTmp = new AsyncLucenePersistedState(settings,
                             new LucenePersistedState(persistedClusterStateService, currentTerm, clusterState));
                     }
                     if (DiscoveryNode.isDataNode(settings)) {
@@ -142,11 +142,11 @@ public class GatewayMetaState implements Closeable {
                     success = true;
                 } finally {
                     if (success == false) {
-                        IOUtils.closeWhileHandlingException(persistedState);
+                        IOUtils.closeWhileHandlingException(persistedStateTmp);
                     }
                 }
 
-                this.persistedState.set(persistedState);
+                this.persistedState.set(persistedStateTmp);
             } catch (IOException e) {
                 throw new ElasticsearchException("failed to load metadata", e);
             }

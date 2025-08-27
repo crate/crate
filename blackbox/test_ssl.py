@@ -76,8 +76,12 @@ class SSLIntegrationTest(unittest.TestCase):
         sslkey = join(project_root, 'blackbox', 'certs', 'client1.key')
         assert os.path.exists(sslcert), f'sslcert {sslcert} must exist'
         assert os.path.exists(sslkey), f'sslkey {sslkey} must exist'
-        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLSv1_2)
+        ssl_context = ssl.SSLContext(ssl.PROTOCOL_TLS_CLIENT)
         ssl_context.load_cert_chain(sslcert, sslkey)
+        ssl_context.load_verify_locations(join(project_root, 'blackbox/certs/rootCA.crt'))
+
+        # Cert uses `node1` as CN; Access via IP/localhost would fail hostname validation
+        ssl_context.check_hostname = False
         conn_user = await asyncpg.connect(
             host=crate.addresses.psql.host,
             port=crate.addresses.psql.port,

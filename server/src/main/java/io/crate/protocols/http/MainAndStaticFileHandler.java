@@ -30,25 +30,29 @@ import static java.util.concurrent.CompletableFuture.completedFuture;
 
 import java.io.IOException;
 import java.io.OutputStream;
+import java.nio.channels.ClosedChannelException;
 import java.nio.file.Path;
 import java.util.Locale;
 import java.util.concurrent.CompletableFuture;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.state.TransportClusterState;
 import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.http.netty4.cors.Netty4CorsConfig;
-import org.elasticsearch.http.netty4.cors.Netty4CorsHandler;
 import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
 
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
+import io.netty.buffer.ByteBufUtil;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -62,19 +66,73 @@ import io.netty.handler.codec.http.HttpMethod;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.handler.ssl.NotSslRecordException;
 
 public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHttpRequest> {
 
+    private static final Logger LOGGER = LogManager.getLogger(MainAndStaticFileHandler.class);
+
     private final Path sitePath;
     private final NodeClient client;
-    private final Netty4CorsConfig corsConfig;
     private final String nodeName;
 
-    public MainAndStaticFileHandler(String nodeName, Path home, NodeClient client, Netty4CorsConfig corsConfig) {
+    public MainAndStaticFileHandler(String nodeName, Path home, NodeClient client) {
         this.nodeName = nodeName;
         this.sitePath = home.resolve("lib").resolve("site");
         this.client = client;
-        this.corsConfig = corsConfig;
+    }
+
+    @Override
+    public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        String message = cause.getMessage();
+        if (message == null) {
+            message = cause.getClass().getSimpleName();
+        }
+        switch (cause) {
+            case ClosedChannelException _ -> LOGGER.warn("Channel closed", cause);
+            case NotSslRecordException _ -> {
+                // Raised when clients try to send unencrypted data over an encrypted channel
+                // This can happen when old instances of the Admin UI are running because the
+                // ports of HTTP/HTTPS are the same.
+                LOGGER.debug("Received unencrypted message from '{}'", ctx.channel().remoteAddress());
+                ctx.channel()
+                    .writeAndFlush(new DefaultFullHttpResponse(
+                        HttpVersion.HTTP_1_1,
+                        HttpResponseStatus.BAD_REQUEST
+                    ))
+                    .addListener(ChannelFutureListener.CLOSE);
+            }
+            case EsRejectedExecutionException _ -> {
+                ctx.channel()
+                    .writeAndFlush(new DefaultFullHttpResponse(
+                        HttpVersion.HTTP_1_1,
+                        HttpResponseStatus.TOO_MANY_REQUESTS
+                    ))
+                    .addListener(ChannelFutureListener.CLOSE);
+            }
+            case IOException _ -> {
+                if (message.contains("Connection reset by peer")) {
+                    LOGGER.debug("Connection reset by peer");
+                } else {
+                    LOGGER.warn(message, cause);
+                    send500(ctx, message);
+                }
+            }
+            default -> send500(ctx, message);
+        }
+    }
+
+    private void send500(ChannelHandlerContext ctx, String message) {
+        ByteBuf content = ByteBufUtil.writeUtf8(ctx.alloc(), message);
+        var response = new DefaultFullHttpResponse(
+            HttpVersion.HTTP_1_1,
+            HttpResponseStatus.INTERNAL_SERVER_ERROR,
+            content
+        );
+        HttpUtil.setContentLength(response, message.length());
+        ctx.channel()
+            .writeAndFlush(response)
+            .addListener(ChannelFutureListener.CLOSE);
     }
 
     @Override
@@ -104,7 +162,6 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
     }
 
     private void writeResponse(ChannelHandlerContext ctx, FullHttpRequest req, FullHttpResponse resp) {
-        Netty4CorsHandler.setCorsResponseHeaders(req, resp, corsConfig);
         ChannelPromise promise = ctx.newPromise();
         if (isCloseConnection(req)) {
             promise.addListener(ChannelFutureListener.CLOSE);

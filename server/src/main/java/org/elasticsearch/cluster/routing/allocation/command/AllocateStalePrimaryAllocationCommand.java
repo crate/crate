@@ -19,6 +19,9 @@
 
 package org.elasticsearch.cluster.routing.allocation.command;
 
+import java.io.IOException;
+import java.util.Optional;
+
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RoutingNode;
@@ -33,9 +36,6 @@ import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardNotFoundException;
-
-import java.io.IOException;
-import java.util.Optional;
 
 /**
  * Allocates an unassigned stale primary shard to a specific node. Use with extreme care as this will result in data loss.
@@ -116,7 +116,7 @@ public class AllocateStalePrimaryAllocationCommand extends BasePrimaryAllocation
 
         ShardRouting shardRouting = null;
         for (ShardRouting shard : allocation.routingNodes().unassigned()) {
-            if (shard.getIndexName().equals(index) && shard.getId() == shardId && shard.primary()) {
+            if (shard.getIndexUUID().equals(index) && shard.getId() == shardId && shard.primary()) {
                 shardRouting = shard;
                 break;
             }

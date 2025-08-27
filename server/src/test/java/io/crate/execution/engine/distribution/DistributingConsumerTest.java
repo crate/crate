@@ -174,6 +174,10 @@ public class DistributingConsumerTest extends ESTestCase {
             0,
             Collections.singletonList("n1"),
             distributedResultAction::execute,
+            // killAction and localNodeId are irrelevant for those tests,
+            // They are relevant for the test_dist_result_request_tripped_by_cb_no_stuck_jobs
+            null,
+            null,
             pageSize,
             mock(ThreadPool.class)
         );

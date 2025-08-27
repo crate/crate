@@ -24,11 +24,13 @@ package org.elasticsearch.index.translog;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
+import org.junit.Test;
 
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
 public class TranslogHistoryTest extends IntegTestCase {
 
+    @Test
     public void test_translog_is_trimmed_with_soft_deletes_enabled() throws Exception {
         execute("create table doc.test(x int) clustered into 1 shards with(number_of_replicas=1)");
         ensureGreen();

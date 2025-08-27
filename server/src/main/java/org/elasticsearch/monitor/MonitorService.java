@@ -19,6 +19,8 @@
 
 package org.elasticsearch.monitor;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.NodeEnvironment;
@@ -28,8 +30,6 @@ import org.elasticsearch.monitor.jvm.JvmService;
 import org.elasticsearch.monitor.os.OsService;
 import org.elasticsearch.monitor.process.ProcessService;
 import org.elasticsearch.threadpool.ThreadPool;
-
-import java.io.IOException;
 
 public class MonitorService extends AbstractLifecycleComponent {
 
@@ -77,5 +77,4 @@ public class MonitorService extends AbstractLifecycleComponent {
     protected void doClose() {
         jvmGcMonitorService.close();
     }
-
 }

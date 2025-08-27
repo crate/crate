@@ -32,9 +32,11 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
+import org.junit.Test;
 
 public class CompressibleBytesOutputStreamTests extends ESTestCase {
 
+    @Test
     public void testStreamWithoutCompression() throws IOException {
         BytesStream bStream = new ZeroOutOnCloseStream();
         CompressibleBytesOutputStream stream = new CompressibleBytesOutputStream(bStream, false);
@@ -62,6 +64,7 @@ public class CompressibleBytesOutputStreamTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testStreamWithCompression() throws IOException {
         BytesStream bStream = new ZeroOutOnCloseStream();
         CompressibleBytesOutputStream stream = new CompressibleBytesOutputStream(bStream, true);
@@ -89,6 +92,7 @@ public class CompressibleBytesOutputStreamTests extends ESTestCase {
         }
     }
 
+    @Test
     public void testCompressionWithCallingMaterializeFails() throws IOException {
         BytesStream bStream = new ZeroOutOnCloseStream();
         CompressibleBytesOutputStream stream = new CompressibleBytesOutputStream(bStream, true);

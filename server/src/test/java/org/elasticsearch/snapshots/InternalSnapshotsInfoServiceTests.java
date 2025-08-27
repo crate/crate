@@ -58,7 +58,6 @@ import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
-import org.elasticsearch.cluster.service.ClusterApplier;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
@@ -187,7 +186,7 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
     @Test
     public void testErroneousSnapshotShardSizes() throws Exception {
         final AtomicInteger reroutes = new AtomicInteger();
-        final RerouteService rerouteService = (reason, priority, listener) -> {
+        final RerouteService rerouteService = (_, _, listener) -> {
             reroutes.incrementAndGet();
             listener.onResponse(clusterService.state());
         };
@@ -253,7 +252,7 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
         final SnapshotShardSizeInfo snapshotShardSizeInfo = snapshotsInfoService.snapshotShardSizes();
         for (Map.Entry<InternalSnapshotsInfoService.SnapshotShard, Long> snapshotShard : results.entrySet()) {
             final ShardId shardId = snapshotShard.getKey().shardId();
-            final ShardRouting shardRouting = clusterService.state().routingTable().index(shardId.getIndexName())
+            final ShardRouting shardRouting = clusterService.state().routingTable().index(shardId.getIndexUUID())
                 .shard(shardId.id()).primaryShard();
             assertThat(shardRouting).isNotNull();
 
@@ -343,10 +342,9 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
             clusterState -> addUnassignedShards(clusterState, indexName, nbShards));
 
         // waiting for snapshot shard size fetches to be executed, as we want to verify that they are cleaned up
-        assertBusy(() -> {
+        assertBusy(() ->
             assertThat(snapshotsInfoService.numberOfFailedSnapshotShardSizes() + snapshotsInfoService.numberOfKnownSnapshotShardSizes())
-                .isEqualTo(nbShards);
-        });
+                .isEqualTo(nbShards));
 
         if (randomBoolean()) {
             // simulate initialization and start of the shards
@@ -374,18 +372,8 @@ public class InternalSnapshotsInfoServiceTests extends ESTestCase {
     private void applyClusterState(final String reason, final UnaryOperator<ClusterState> applier) {
         TestFutureUtils.get(future -> clusterService.getClusterApplierService().onNewClusterState(reason,
             () -> applier.apply(clusterService.state()),
-            new ClusterApplier.ClusterApplyListener() {
-                @Override
-                public void onSuccess(String source) {
-                    future.onResponse(source);
-                }
-
-                @Override
-                public void onFailure(String source, Exception e) {
-                    future.onFailure(e);
-                }
-            })
-        );
+            future.map(_ -> (Void) null)
+        ));
     }
 
     private void waitForMaxActiveGenericThreads(final int nbActive) throws Exception {

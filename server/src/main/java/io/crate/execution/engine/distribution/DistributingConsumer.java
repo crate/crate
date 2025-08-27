@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.distribution;
 
+import static io.crate.execution.engine.distribution.TransportDistributedResultAction.broadcastKill;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -28,6 +30,8 @@ import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
+import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
@@ -47,6 +51,8 @@ import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.jobs.kill.KillJobsNodeRequest;
+import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
 
@@ -75,6 +81,8 @@ public class DistributingConsumer implements RowConsumer {
     private final CompletableFuture<Void> completionFuture;
     private final ThreadPool threadPool;
 
+    private final AtomicBoolean consuming = new AtomicBoolean(false);
+
     @VisibleForTesting
     final long maxBytes;
 
@@ -82,6 +90,9 @@ public class DistributingConsumer implements RowConsumer {
     final MultiBucketBuilder multiBucketBuilder;
 
     private volatile Throwable failure;
+
+    private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
+    private final String localNodeId;
 
     public DistributingConsumer(Executor responseExecutor,
                                 UUID jobId,
@@ -91,6 +102,8 @@ public class DistributingConsumer implements RowConsumer {
                                 int bucketIdx,
                                 Collection<String> downstreamNodeIds,
                                 ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction,
+                                ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction,
+                                String localNodeId,
                                 int pageSize,
                                 ThreadPool threadPool) {
         this.threadPool = threadPool;
@@ -102,6 +115,8 @@ public class DistributingConsumer implements RowConsumer {
         this.inputId = inputId;
         this.bucketIdx = bucketIdx;
         this.distributedResultAction = distributedResultAction;
+        this.killNodeAction = killNodeAction;
+        this.localNodeId = localNodeId;
         this.pageSize = pageSize;
         this.buckets = new StreamBucket[downstreamNodeIds.size()];
         this.completionFuture = new CompletableFuture<>();
@@ -115,11 +130,21 @@ public class DistributingConsumer implements RowConsumer {
 
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-        if (failure == null) {
+        Throwable t = failure == null ? this.failure : failure;
+        if (t == null) {
             consumeIt(iterator);
         } else {
-            completionFuture.completeExceptionally(failure);
-            forwardFailure(null, failure);
+            completionFuture.completeExceptionally(t);
+            forwardFailure(null, t);
+        }
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        failure = throwable;
+        // Eagerly release resources without waiting for a response
+        if (consuming.compareAndSet(false, true)) {
+            completionFuture.completeExceptionally(throwable);
         }
     }
 
@@ -129,31 +154,41 @@ public class DistributingConsumer implements RowConsumer {
     }
 
     private void consumeIt(BatchIterator<Row> it) {
-        try {
-            while (it.moveNext()) {
-                multiBucketBuilder.add(it.currentElement());
-                if (multiBucketBuilder.size() >= pageSize || multiBucketBuilder.ramBytesUsed() >= maxBytes) {
-                    forwardResults(it, false);
-                    return;
-                }
-            }
-            if (it.allLoaded()) {
-                forwardResults(it, true);
-            } else {
-                it.loadNextBatch().whenComplete((_, t) -> {
-                    if (t == null) {
-                        consumeIt(it);
-                    } else {
-                        forwardFailure(it, t);
+        consumeIt(it, false);
+    }
+
+    private void consumeIt(BatchIterator<Row> it, boolean force) {
+        if (force || consuming.compareAndSet(false, true)) {
+            try {
+                while (it.moveNext()) {
+                    multiBucketBuilder.add(it.currentElement());
+                    if (multiBucketBuilder.size() >= pageSize || multiBucketBuilder.ramBytesUsed() >= maxBytes) {
+                        forwardResults(it, false);
+                        return;
                     }
-                });
+                }
+                if (it.allLoaded()) {
+                    forwardResults(it, true);
+                } else {
+                    it.loadNextBatch().whenComplete((_, t) -> {
+                        if (t == null) {
+                            consumeIt(it, true);
+                        } else {
+                            forwardFailure(it, t);
+                        }
+                    });
+                }
+            } catch (Throwable t) {
+                forwardFailure(it, t);
             }
-        } catch (Throwable t) {
-            forwardFailure(it, t);
+        } else {
+            assert failure != null : "If consuming is true, it means we got killed";
+            forwardFailure(it, failure);
         }
     }
 
     private void forwardFailure(@Nullable final BatchIterator<Row> it, final Throwable f) {
+        consuming.set(false);
         Throwable failure = SQLExceptions.unwrap(f); // make sure it's streamable
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         var builder = new DistributedResultRequest.Builder(jobId, targetPhaseId, inputId, bucketIdx, failure, false);
@@ -190,6 +225,7 @@ public class DistributingConsumer implements RowConsumer {
     }
 
     private void forwardResults(BatchIterator<Row> it, boolean isLast) {
+        consuming.set(false);
         multiBucketBuilder.build(buckets);
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         for (int i = 0; i < downstreams.size(); i++) {
@@ -269,8 +305,14 @@ public class DistributingConsumer implements RowConsumer {
                 try {
                     var cancellable = threadPool.scheduleUnlessShuttingDown(
                         delay,
-                        ThreadPool.Names.SEARCH,
-                        () -> distributedResultAction.execute(request).whenComplete(this)
+                        ThreadPool.Names.SAME,
+                        () -> {
+                            try {
+                                responseExecutor.execute(() -> distributedResultAction.execute(request).whenComplete(this));
+                            } catch (RejectedExecutionException ex) {
+                                handleFailure(ex);
+                            }
+                        }
                     );
 
                     // shutting down; no retry
@@ -292,7 +334,11 @@ public class DistributingConsumer implements RowConsumer {
             if (isFailureReq) {
                 countdownAndMaybeCloseIt(numActiveRequests, it);
             } else {
-                countdownAndMaybeContinue(it, numActiveRequests, false);
+                String reason = "An error was encountered: " + failure;
+                broadcastKill(killNodeAction, jobId, localNodeId, reason);
+
+                it.close();
+                completionFuture.completeExceptionally(failure);
             }
         }
     }
@@ -360,6 +406,7 @@ public class DistributingConsumer implements RowConsumer {
                ", inputId=" + inputId +
                ", bucketIdx=" + bucketIdx +
                ", downstreams=" + downstreams +
+               ", failure=" + failure +
                '}';
     }
 }

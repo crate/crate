@@ -22,7 +22,10 @@ package org.elasticsearch.monitor;
 import java.lang.management.OperatingSystemMXBean;
 import java.lang.reflect.Method;
 
-public class Probes {
+public final class Probes {
+
+    private Probes() {}
+
     public static short getLoadAndScaleToPercent(Method method, OperatingSystemMXBean osMxBean) {
         if (method != null) {
             try {

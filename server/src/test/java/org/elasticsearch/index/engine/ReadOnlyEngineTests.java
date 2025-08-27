@@ -163,8 +163,7 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 engine.syncTranslog();
                 engine.flushAndClose();
                 readOnlyEngine = new ReadOnlyEngine(engine.engineConfig, null , null, true, UnaryOperator.identity(), true);
-                Engine.CommitId flush = readOnlyEngine.flush(randomBoolean(), true);
-                assertThat(readOnlyEngine.flush(randomBoolean(), true)).isEqualTo(flush);
+                readOnlyEngine.flush(randomBoolean(), true);
             } finally {
                 IOUtils.close(readOnlyEngine);
             }
@@ -228,8 +227,6 @@ public class ReadOnlyEngineTests extends EngineTestCase {
                 assertThatThrownBy(() -> readOnlyEngine.delete(null))
                     .isExactlyInstanceOf(UnsupportedOperationException.class);
                 assertThatThrownBy(() -> readOnlyEngine.noOp(null))
-                    .isExactlyInstanceOf(UnsupportedOperationException.class);
-                assertThatThrownBy(() -> readOnlyEngine.syncFlush(null, null))
                     .isExactlyInstanceOf(UnsupportedOperationException.class);
             }
         }

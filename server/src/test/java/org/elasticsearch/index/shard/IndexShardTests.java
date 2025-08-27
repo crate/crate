@@ -1788,7 +1788,7 @@ public class IndexShardTests extends IndexShardTestCase {
                         ThreadPool.Names.WRITE,
                         ""
                     ))
-                .isExactlyInstanceOf(AssertionError.class)
+                .hasCauseExactlyInstanceOf(AssertionError.class)
                 .hasMessageContaining("in primary mode cannot be a replication target");
         }
 
@@ -1814,15 +1814,15 @@ public class IndexShardTests extends IndexShardTestCase {
         shard.applyDeleteOperationOnReplica(1, primaryTerm, 2, "id");
         shard.getEngine().rollTranslogGeneration(); // isolate the delete in it's own generation
         shard.applyIndexOperationOnReplica(0, primaryTerm, 1, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
-            new SourceToParse(shard.shardId().getIndexName(), "id", new BytesArray("{}"), XContentType.JSON));
+            new SourceToParse(shard.shardId().getIndexUUID(), "id", new BytesArray("{}"), XContentType.JSON));
         shard.applyIndexOperationOnReplica(3, primaryTerm, 3, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
-            new SourceToParse(shard.shardId().getIndexName(), "id-3", new BytesArray("{}"), XContentType.JSON));
+            new SourceToParse(shard.shardId().getIndexUUID(), "id-3", new BytesArray("{}"), XContentType.JSON));
         // Flushing a new commit with local checkpoint=1 allows to skip the translog gen #1 in recovery.
         shard.forceFlush();
         shard.applyIndexOperationOnReplica(2, primaryTerm, 3, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
-            new SourceToParse(shard.shardId().getIndexName(), "id-2", new BytesArray("{}"), XContentType.JSON));
+            new SourceToParse(shard.shardId().getIndexUUID(), "id-2", new BytesArray("{}"), XContentType.JSON));
         shard.applyIndexOperationOnReplica(5, primaryTerm, 1, Translog.UNSET_AUTO_GENERATED_TIMESTAMP, false,
-            new SourceToParse(shard.shardId().getIndexName(), "id-5", new BytesArray("{}"), XContentType.JSON));
+            new SourceToParse(shard.shardId().getIndexUUID(), "id-5", new BytesArray("{}"), XContentType.JSON));
         shard.sync(); // advance local checkpoint
 
         final int translogOps;
@@ -2157,7 +2157,7 @@ public class IndexShardTests extends IndexShardTestCase {
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .build();
         IndexMetadata.Builder indexMetadata = IndexMetadata
-            .builder(shardRouting.getIndexName())
+            .builder(shardRouting.getIndexUUID())
             .settings(settings).primaryTerm(0, 1);
         AtomicBoolean synced = new AtomicBoolean();
         IndexShard primaryShard = newShard(
@@ -2548,7 +2548,7 @@ public class IndexShardTests extends IndexShardTestCase {
             .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
             .build();
-        IndexMetadata metaData = IndexMetadata.builder(shardRouting.getIndexName())
+        IndexMetadata metaData = IndexMetadata.builder(shardRouting.getIndexUUID())
             .settings(settings)
             .primaryTerm(0, 1)
             .build();
@@ -3014,7 +3014,7 @@ public class IndexShardTests extends IndexShardTestCase {
         IndexShard otherShard = newStartedShard(false, settings);
         updateMappings(otherShard, shard.indexSettings().getIndexMetadata());
         SourceToParse sourceToParse = new SourceToParse(
-            shard.shardId().getIndexName(), "1", new BytesArray("{}"), XContentType.JSON);
+            shard.shardId().getIndexUUID(), "1", new BytesArray("{}"), XContentType.JSON);
         otherShard.applyIndexOperationOnReplica(
             1, primaryTerm, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false, sourceToParse);
         ShardRouting primaryShardRouting = shard.routingEntry();
@@ -3152,7 +3152,7 @@ public class IndexShardTests extends IndexShardTestCase {
     @Test
     public void testRecoverFromStoreRemoveStaleOperations() throws Exception {
         IndexShard shard = newStartedShard(false);
-        String indexName = shard.shardId().getIndexName();
+        String indexName = shard.shardId().getIndexUUID();
         // Index #0, index #1
         shard.applyIndexOperationOnReplica(
             0,
@@ -3759,7 +3759,7 @@ public class IndexShardTests extends IndexShardTestCase {
                 if (ids.add(id) == false) { // this is an update
                     indexShard.advanceMaxSeqNoOfUpdatesOrDeletes(i);
                 }
-                SourceToParse sourceToParse = new SourceToParse(indexShard.shardId().getIndexName(), id,
+                SourceToParse sourceToParse = new SourceToParse(indexShard.shardId().getIndexUUID(), id,
                         new BytesArray("{}"), XContentType.JSON);
                 indexShard.applyIndexOperationOnReplica(
                     i,
@@ -3822,7 +3822,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shard.applyIndexOperationOnReplica(
                 seqNo, primaryTerm, 1, UNSET_AUTO_GENERATED_TIMESTAMP, false,
                 new SourceToParse(
-                    shard.shardId.getIndexName(),
+                    shard.shardId.getIndexUUID(),
                     Long.toString(i),
                     new BytesArray("{}"),
                     XContentType.JSON)
@@ -3846,7 +3846,7 @@ public class IndexShardTests extends IndexShardTestCase {
             shard,
             readonlyShardRouting,
             shard.indexSettings.getIndexMetadata(),
-            List.of(idxSettings -> Optional.of(
+            List.of(_ -> Optional.of(
                 engineConfig ->
                     new ReadOnlyEngine(engineConfig, null, null, true, UnaryOperator.identity(), true) {
 

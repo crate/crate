@@ -39,43 +39,44 @@ import io.crate.expression.symbol.format.Style;
 public class SQLPrinter {
 
     public static String print(Object o) {
-        if (o instanceof QueriedSelectRelation) {
-            return print((QueriedSelectRelation) o);
-        } else if (o instanceof OrderBy) {
-            return print((OrderBy) o);
-        } else if (o instanceof Symbol) {
-            return print((Symbol) o);
-        } else if (o instanceof HashSet<?> set) {
-            Object[] elements = set.toArray();
-            Arrays.sort(elements, Comparator.comparing(Object::toString));
-            return print(List.of(elements));
-        } else if (o instanceof Collection<?> collection) {
-            StringJoiner joiner = new StringJoiner(", ");
-            for (var item : collection) {
-                String str = item instanceof Symbol symbol ? symbol.toString(Style.QUALIFIED) : item.toString();
-                joiner.add(str);
+        switch (o) {
+            case QueriedSelectRelation queriedSelectRelation -> {
+                return print(queriedSelectRelation);
             }
-            return joiner.toString();
-        } else if (o == null) {
-            return "null";
-        } else if (o instanceof WhereClause) {
-            WhereClause queryClause = (WhereClause) o;
-            if (queryClause.hasQuery()) {
-                return print(queryClause.query());
+            case OrderBy orderBy -> {
+                return print(orderBy);
+            }
+            case Symbol symbol1 -> {
+                return print(symbol1);
+            }
+            case HashSet<?> set -> {
+                Object[] elements = set.toArray();
+                Arrays.sort(elements, Comparator.comparing(Object::toString));
+                return print(List.of(elements));
+            }
+            case Collection<?> collection -> {
+                StringJoiner joiner = new StringJoiner(", ");
+                for (var item : collection) {
+                    String str = item instanceof Symbol symbol ? symbol.toString(Style.QUALIFIED) : item.toString();
+                    joiner.add(str);
+                }
+                return joiner.toString();
+            }
+            case null -> {
+                return "null";
+            }
+            case WhereClause whereClause when whereClause.hasQuery() -> {
+                return print(whereClause.query());
+            }
+            default -> {
             }
         }
+
         return o.toString();
     }
 
-    public static String print(Collection<Symbol> symbols) {
-        return Lists.joinOn(", ", symbols, x -> x.toString(Style.QUALIFIED));
-    }
-
-
     public static String print(Symbol symbol) {
-        StringBuilder sb = new StringBuilder();
-        sb.append(symbol.toString(Style.QUALIFIED));
-        return sb.toString();
+        return symbol.toString(Style.QUALIFIED);
     }
 
     public static String print(OrderBy orderBy) {

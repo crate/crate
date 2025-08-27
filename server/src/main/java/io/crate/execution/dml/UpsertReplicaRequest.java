@@ -110,6 +110,9 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
                     null,
                     0L
                 );
+                primaryItem.seqNo = item.seqNo();
+                primaryItem.primaryTerm = item.primaryTerm();
+                primaryItem.version = item.version();
                 shardUpsertRequest.add(i, primaryItem);
             }
             shardUpsertRequest.writeTo(out);

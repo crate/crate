@@ -29,7 +29,6 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.engine.VersionConflictEngineException;
@@ -102,25 +101,27 @@ public class TransportShardDeleteAction extends TransportShardAction<
                 Engine.DeleteResult deleteResult = indexShard.applyDeleteOperationOnPrimary(
                     item.version(),
                     item.id(),
-                    VersionType.INTERNAL,
                     item.seqNo(),
                     item.primaryTerm()
                 );
-                translogLocation = deleteResult.getTranslogLocation();
                 Exception failure = deleteResult.getFailure();
                 if (debugEnabled) {
                     logResult("primary", request.shardId(), item.id(), deleteResult);
                 }
                 if (failure == null) {
+                    Translog.Location newTranslogLocation = deleteResult.getTranslogLocation();
+                    if (newTranslogLocation != null) {
+                        translogLocation = newTranslogLocation;
+                    }
+                    Item resultItem = new Item(
+                        item.id(),
+                        deleteResult.getSeqNo(),
+                        deleteResult.getTerm(),
+                        deleteResult.getVersion()
+                    );
+                    replicaRequest.add(location, resultItem);
                     if (deleteResult.isFound()) {
                         shardResponse.add(location);
-                        Item resultItem = new Item(
-                            item.id(),
-                            deleteResult.getSeqNo(),
-                            deleteResult.getTerm(),
-                            deleteResult.getVersion()
-                        );
-                        replicaRequest.add(location, resultItem);
                     } else {
                         var ex = new DocumentMissingException(indexShard.shardId(), item.id());
                         shardResponse.add(location, item.id(), ex, false);

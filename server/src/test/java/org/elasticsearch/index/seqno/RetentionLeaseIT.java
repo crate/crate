@@ -20,7 +20,6 @@
 package org.elasticsearch.index.seqno;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import java.io.Closeable;
@@ -44,6 +43,7 @@ import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.engine.Engine;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
@@ -83,11 +83,15 @@ public class RetentionLeaseIT extends IntegTestCase  {
             new Object[] { numberOfReplicas }
         );
         ensureGreen();
-        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+
+        Index index = resolveIndex("doc.tbl");
+        String indexUUID = index.getUUID();
+
+        final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
             .getInstance(IndicesService.class, primaryShardNodeName)
-            .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+            .getShardOrNull(new ShardId(index, 0));
         // we will add multiple retention leases and expect to see them synced to all replicas
         final int length = randomIntBetween(1, 8);
         final Map<String, RetentionLease> currentRetentionLeases = new HashMap<>();
@@ -107,12 +111,12 @@ public class RetentionLeaseIT extends IntegTestCase  {
             assertThat(currentRetentionLeases).isEqualTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases()));
 
             // check current retention leases have been synced to all replicas
-            for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
+            for (final ShardRouting replicaShard : clusterService().state().routingTable().index(indexUUID).shard(0).replicaShards()) {
                 final String replicaShardNodeId = replicaShard.currentNodeId();
                 final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
                 final IndexShard replica = cluster()
                     .getInstance(IndicesService.class, replicaShardNodeName)
-                    .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                    .getShardOrNull(new ShardId(index, 0));
                 final Map<String, RetentionLease> retentionLeasesOnReplica =
                     RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases());
                 assertThat(retentionLeasesOnReplica).isEqualTo(currentRetentionLeases);
@@ -130,13 +134,16 @@ public class RetentionLeaseIT extends IntegTestCase  {
 
         execute("create table doc.tbl (x int) clustered into 1 shards with (number_of_replicas = ?)",
                 new Object[]{numberOfReplicas});
-
         ensureGreen();
-        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+
+        Index index = resolveIndex("doc.tbl");
+        String indexUUID = index.getUUID();
+
+        final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
             .getInstance(IndicesService.class, primaryShardNodeName)
-            .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+            .getShardOrNull(new ShardId(index, 0));
         final int length = randomIntBetween(1, 8);
         final Map<String, RetentionLease> currentRetentionLeases = new LinkedHashMap<>();
         for (int i = 0; i < length; i++) {
@@ -166,12 +173,12 @@ public class RetentionLeaseIT extends IntegTestCase  {
             assertThat(currentRetentionLeases).isEqualTo(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(primary.loadRetentionLeases()));
 
             // check current retention leases have been synced to all replicas
-            for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
+            for (final ShardRouting replicaShard : clusterService().state().routingTable().index(indexUUID).shard(0).replicaShards()) {
                 final String replicaShardNodeId = replicaShard.currentNodeId();
                 final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
                 final IndexShard replica = cluster()
                     .getInstance(IndicesService.class, replicaShardNodeName)
-                    .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                    .getShardOrNull(new ShardId(index, 0));
                 final Map<String, RetentionLease> retentionLeasesOnReplica =
                     RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases());
                 assertThat(retentionLeasesOnReplica).isEqualTo(currentRetentionLeases);
@@ -200,11 +207,15 @@ public class RetentionLeaseIT extends IntegTestCase  {
             }
         );
         ensureGreen();
-        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+
+        Index index = resolveIndex("doc.tbl");
+        String indexUUID = index.getUUID();
+
+        final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
                 .getInstance(IndicesService.class, primaryShardNodeName)
-                .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                .getShardOrNull(new ShardId(index, 0));
         // we will add multiple retention leases, wait for some to expire, and assert a consistent view between the primary and the replicas
         final int length = randomIntBetween(1, 8);
         for (int i = 0; i < length; i++) {
@@ -221,12 +232,12 @@ public class RetentionLeaseIT extends IntegTestCase  {
             latch.await();
 
             // check current retention leases have been synced to all replicas
-            for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
+            for (final ShardRouting replicaShard : clusterService().state().routingTable().index(indexUUID).shard(0).replicaShards()) {
                 final String replicaShardNodeId = replicaShard.currentNodeId();
                 final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
                 final IndexShard replica = cluster()
                         .getInstance(IndicesService.class, replicaShardNodeName)
-                        .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                        .getShardOrNull(new ShardId(index, 0));
                 assertThat(RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases()))
                     .satisfiesAnyOf(
                         l -> assertThat(l).containsValue(currentRetentionLease),
@@ -245,12 +256,12 @@ public class RetentionLeaseIT extends IntegTestCase  {
 
             // now that all retention leases are expired should have been synced to all replicas
             assertBusy(() -> {
-                for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
+                for (final ShardRouting replicaShard : clusterService().state().routingTable().index(indexUUID).shard(0).replicaShards()) {
                     final String replicaShardNodeId = replicaShard.currentNodeId();
                     final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
                     final IndexShard replica = cluster()
                         .getInstance(IndicesService.class, replicaShardNodeName)
-                        .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                        .getShardOrNull(new ShardId(index, 0));
 
                     assertThat(
                         RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases()).entrySet())
@@ -273,13 +284,15 @@ public class RetentionLeaseIT extends IntegTestCase  {
                 numberOfReplicas,
             }
         );
+        Index index = resolveIndex("doc.tbl");
+        String indexUUID = index.getUUID();
 
         ensureGreen();
-        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+        final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
                 .getInstance(IndicesService.class, primaryShardNodeName)
-                .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                .getShardOrNull(new ShardId(index, 0));
         // we will add multiple retention leases and expect to see them synced to all replicas
         final int length = randomIntBetween(1, 8);
         final Map<String, RetentionLease> currentRetentionLeases = new LinkedHashMap<>(length);
@@ -306,12 +319,12 @@ public class RetentionLeaseIT extends IntegTestCase  {
             }
             assertBusy(() -> {
                 // check all retention leases have been synced to all replicas
-                for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
+                for (final ShardRouting replicaShard : clusterService().state().routingTable().index(indexUUID).shard(0).replicaShards()) {
                     final String replicaShardNodeId = replicaShard.currentNodeId();
                     final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
                     final IndexShard replica = cluster()
                             .getInstance(IndicesService.class, replicaShardNodeName)
-                            .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                            .getShardOrNull(new ShardId(index, 0));
                     assertThat(replica.getRetentionLeases()).isEqualTo(primary.getRetentionLeases());
                 }
             });
@@ -339,11 +352,14 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureYellow();
         execute("alter table doc.tbl set (number_of_replicas = ?)", new Object[] { numberOfReplicas });
 
-        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+        Index index = resolveIndex("doc.tbl");
+        String indexUUID = index.getUUID();
+
+        final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
             .getInstance(IndicesService.class, primaryShardNodeName)
-            .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+            .getShardOrNull(new ShardId(index, 0));
         final int length = randomIntBetween(1, 8);
         final Map<String, RetentionLease> currentRetentionLeases = new HashMap<>();
         for (int i = 0; i < length; i++) {
@@ -384,12 +400,12 @@ public class RetentionLeaseIT extends IntegTestCase  {
         ensureGreen();
 
         // check current retention leases have been synced to all replicas
-        for (final ShardRouting replicaShard : clusterService().state().routingTable().index("tbl").shard(0).replicaShards()) {
+        for (final ShardRouting replicaShard : clusterService().state().routingTable().index(indexUUID).shard(0).replicaShards()) {
             final String replicaShardNodeId = replicaShard.currentNodeId();
             final String replicaShardNodeName = clusterService().state().nodes().get(replicaShardNodeId).getName();
             final IndexShard replica = cluster()
                 .getInstance(IndicesService.class, replicaShardNodeName)
-                .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                .getShardOrNull(new ShardId(index, 0));
             final Map<String, RetentionLease> retentionLeasesOnReplica
                 = RetentionLeaseUtils.toMapExcludingPeerRecoveryRetentionLeases(replica.getRetentionLeases());
             assertThat(retentionLeasesOnReplica).isEqualTo(currentRetentionLeases);
@@ -471,11 +487,14 @@ public class RetentionLeaseIT extends IntegTestCase  {
         );
         ensureGreen();
 
-        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+        Index index = resolveIndex("doc.tbl");
+        String indexUUID = index.getUUID();
+
+        final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
             .getInstance(IndicesService.class, primaryShardNodeName)
-            .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+            .getShardOrNull(new ShardId(index, 0));
 
         final String source = randomAlphaOfLength(8);
         final CountDownLatch latch = new CountDownLatch(1);
@@ -595,11 +614,14 @@ public class RetentionLeaseIT extends IntegTestCase  {
             );
         });
 
-        final String primaryShardNodeId = clusterService().state().routingTable().index("tbl").shard(0).primaryShard().currentNodeId();
+        Index index = resolveIndex("doc.tbl");
+        String indexUUID = index.getUUID();
+
+        final String primaryShardNodeId = clusterService().state().routingTable().index(indexUUID).shard(0).primaryShard().currentNodeId();
         final String primaryShardNodeName = clusterService().state().nodes().get(primaryShardNodeId).getName();
         final IndexShard primary = cluster()
                 .getInstance(IndicesService.class, primaryShardNodeName)
-                .getShardOrNull(new ShardId(resolveIndex("tbl"), 0));
+                .getShardOrNull(new ShardId(index, 0));
 
         final String source = randomAlphaOfLength(8);
         final CountDownLatch latch = new CountDownLatch(1);
@@ -641,5 +663,4 @@ public class RetentionLeaseIT extends IntegTestCase  {
     private static ActionListener<ReplicationResponse> countDownLatchListener(CountDownLatch latch) {
         return ActionListener.wrap(r -> latch.countDown(), RetentionLeaseIT::failWithException);
     }
-
 }

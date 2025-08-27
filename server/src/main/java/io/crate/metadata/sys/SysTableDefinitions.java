@@ -46,7 +46,6 @@ import io.crate.expression.reference.sys.shard.SysAllocations;
 import io.crate.expression.reference.sys.snapshot.SysSnapshots;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.SystemTable;
-import io.crate.role.Permission;
 import io.crate.role.Role;
 import io.crate.role.Roles;
 import io.crate.role.Securable;
@@ -59,6 +58,7 @@ public class SysTableDefinitions {
 
     private final Map<RelationName, StaticTableDefinition<?>> tableDefinitions;
 
+    @SuppressWarnings("unchecked")
     @Inject
     public SysTableDefinitions(ClusterService clusterService,
                                Roles roles,
@@ -112,12 +112,12 @@ public class SysTableDefinitions {
             Map.entry(
                 SysJobsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, user) -> completedFuture(
+                    (_, user) -> completedFuture(
                         () -> StreamSupport.stream(jobsLogs.activeJobs().spliterator(), false)
                             .filter(x ->
                                 user.isSuperUser()
                                 || user.name().equals(x.username())
-                                || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
+                                || roles.hasALPrivileges(user))
                             .iterator()
                     ),
                     SysJobsTableInfo.create(localNode).expressions(),
@@ -127,12 +127,12 @@ public class SysTableDefinitions {
             Map.entry(
                 SysJobsLogTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, user) -> completedFuture(
+                    (_, user) -> completedFuture(
                         () -> StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false)
                             .filter(x ->
                                 user.isSuperUser()
                                 || user.name().equals(x.username())
-                                || roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null))
+                                || roles.hasALPrivileges(user))
                             .iterator()
                     ),
                     SysJobsLogTableInfo.create(localNode).expressions(),
@@ -180,7 +180,8 @@ public class SysTableDefinitions {
                 SysSnapshotRestoreTableInfo.IDENT,
                 new StaticTableDefinition<>(
                     () -> completedFuture(SysSnapshotRestoreTableInfo.snapshotsRestoreInProgress(
-                        clusterService.state().custom(RestoreInProgress.TYPE))),
+                        clusterService.state().custom(RestoreInProgress.TYPE),
+                        clusterService.state())),
                     SysSnapshotRestoreTableInfo.INSTANCE.expressions(),
                     true
                 )
@@ -234,10 +235,10 @@ public class SysTableDefinitions {
             Map.entry(
                 SysSessionsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    (txnCtx, user) -> completedFuture(
+                    (_, user) -> completedFuture(
                         StreamSupport.stream(sessions.getActive().spliterator(), false)
                             .filter(session -> session.isSystemSession() == false
-                                && (roles.hasPrivilege(user, Permission.AL, Securable.CLUSTER, null)
+                                && (roles.hasALPrivileges(user)
                                     || session.sessionSettings().sessionUser().equals(user)))
                         .toList()),
                     SysSessionsTableInfo.create(clusterService::localNode).expressions(),

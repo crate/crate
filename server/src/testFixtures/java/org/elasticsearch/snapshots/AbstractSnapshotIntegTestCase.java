@@ -34,6 +34,7 @@ import org.elasticsearch.cluster.ClusterStateObserver;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
@@ -141,8 +142,11 @@ public abstract class AbstractSnapshotIntegTestCase extends IntegTestCase {
         return masterName;
     }
 
-    public static String blockNodeWithIndex(final String repositoryName, final String indexName) {
-        for(String node : cluster().nodesInclude(indexName)) {
+    public String blockNodeWithIndex(final String repositoryName, final String indexName) {
+        Index index = resolveIndex(indexName);
+        String indexUUID = index.getUUID();
+
+        for(String node : cluster().nodesInclude(indexUUID)) {
             mockRepo(repositoryName, node)
                 .blockOnDataFiles(true);
             return node;

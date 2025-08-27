@@ -51,7 +51,6 @@ import java.util.function.LongSupplier;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
-import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
@@ -917,7 +916,6 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
 
     public Engine.DeleteResult applyDeleteOperationOnPrimary(long version,
                                                              String id,
-                                                             VersionType versionType,
                                                              long ifSeqNo,
                                                              long ifPrimaryTerm) throws IOException {
         return applyDeleteOperation(
@@ -926,7 +924,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             getOperationPrimaryTerm(),
             version,
             id,
-            versionType,
+            VersionType.INTERNAL,
             ifSeqNo,
             ifPrimaryTerm,
             Engine.Operation.Origin.PRIMARY
@@ -963,7 +961,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                 : "op term [ " + opPrimaryTerm + " ] > shard term [" + getOperationPrimaryTerm() + "]";
         ensureWriteAllowed(origin);
         final Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(id));
-        final Engine.Delete delete = prepareDelete(
+        long startTime = System.nanoTime();
+        Engine.Delete delete = new Engine.Delete(
             id,
             uid,
             seqNo,
@@ -971,44 +970,17 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
             version,
             versionType,
             origin,
-            ifSeqNo,
-            ifPrimaryTerm
-        );
-        return delete(engine, delete);
-    }
-
-    private Engine.Delete prepareDelete(String id,
-                                        Term uid,
-                                        long seqNo,
-                                        long primaryTerm,
-                                        long version,
-                                        VersionType versionType,
-                                        Engine.Operation.Origin origin,
-                                        long ifSeqNo,
-                                        long ifPrimaryTerm) {
-        long startTime = System.nanoTime();
-        return new Engine.Delete(
-            id,
-            uid,
-            seqNo,
-            primaryTerm,
-            version,
-            versionType,
-            origin,
             startTime,
             ifSeqNo,
             ifPrimaryTerm
         );
-    }
-
-    private Engine.DeleteResult delete(Engine engine, Engine.Delete delete) throws IOException {
+        if (logger.isTraceEnabled()) {
+            logger.trace("delete [{}] (seq no [{}])", delete.uid().text(), delete.seqNo());
+        }
         active.set(true);
-        final Engine.DeleteResult result;
         delete = indexingOperationListeners.preDelete(shardId, delete);
+        final Engine.DeleteResult result;
         try {
-            if (logger.isTraceEnabled()) {
-                logger.trace("delete [{}] (seq no [{}])", delete.uid().text(), delete.seqNo());
-            }
             result = engine.delete(delete);
         } catch (Exception e) {
             indexingOperationListeners.postDelete(shardId, delete, e);
@@ -1081,19 +1053,13 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         }
     }
 
-    public Engine.SyncedFlushResult syncFlush(String syncId, Engine.CommitId expectedCommitId) {
-        verifyNotClosed();
-        logger.trace("trying to sync flush. sync id [{}]. expected commit id [{}]]", syncId, expectedCommitId);
-        return getEngine().syncFlush(syncId, expectedCommitId);
-    }
-
     /**
      * Executes a flush against the engine
      * @param waitIfOngoing if {@code true} will block until all concurrent flushes are complete
      * @return the commit ID
      */
-    public Engine.CommitId flush(boolean waitIfOngoing) {
-        return flush(false, waitIfOngoing);
+    public void flush(boolean waitIfOngoing) {
+        flush(false, waitIfOngoing);
     }
 
     /**
@@ -1103,8 +1069,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      *
      * @return the commit ID
      */
-    public Engine.CommitId forceFlush() {
-        return flush(true, true);
+    public void forceFlush() {
+        flush(true, true);
     }
 
     /**
@@ -1114,7 +1080,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
      * @param waitIfOngoing if {@code true} then blocks until all concurrent flushes are complete
      * @return the commit ID
      */
-    private Engine.CommitId flush(boolean force, boolean waitIfOngoing) {
+    private void flush(boolean force, boolean waitIfOngoing) {
         logger.trace("flush with waitIfOngoing={}, force={}", waitIfOngoing, force);
         /*
          * We allow flushes while recovery since we allow operations to happen while recovering and we want to keep the translog under
@@ -1123,9 +1089,8 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
          */
         verifyNotClosed();
         final long time = System.nanoTime();
-        final Engine.CommitId commitId = getEngine().flush(force, waitIfOngoing);
+        getEngine().flush(force, waitIfOngoing);
         flushMetric.inc(System.nanoTime() - time);
-        return commitId;
     }
 
     /**
@@ -1455,7 +1420,7 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
                     true,
                     origin,
                     new SourceToParse(
-                        shardId.getIndexName(),
+                        shardId.getIndexUUID(),
                         index.id(),
                         index.getSource(),
                         XContentType.JSON
@@ -2337,19 +2302,15 @@ public class IndexShard extends AbstractIndexShardComponent implements IndicesCl
         final SeqNoStats stats = getEngine().getSeqNoStats(replicationTracker.getGlobalCheckpoint());
         final boolean asyncDurability = indexSettings().getTranslogDurability() == Translog.Durability.ASYNC;
         if (stats.getMaxSeqNo() == stats.getGlobalCheckpoint() || asyncDurability) {
-            final ObjectLongMap<String> globalCheckpoints = getInSyncGlobalCheckpoints();
-            final long globalCheckpoint = replicationTracker.getGlobalCheckpoint();
             // async durability means that the local checkpoint might lag (as it is only advanced on fsync)
             // periodically ask for the newest local checkpoint by syncing the global checkpoint, so that ultimately the global
             // checkpoint can be synced. Also take into account that a shard might be pending sync, which means that it isn't
             // in the in-sync set just yet but might be blocked on waiting for its persisted local checkpoint to catch up to
             // the global checkpoint.
-            final boolean syncNeeded =
+            boolean globalNeedsSync = replicationTracker.globalNeedsSync();
+            boolean syncNeeded =
                 (asyncDurability && (stats.getGlobalCheckpoint() < stats.getMaxSeqNo() || replicationTracker.pendingInSync()))
-                    // check if the persisted global checkpoint
-                    || StreamSupport
-                            .stream(globalCheckpoints.values().spliterator(), false)
-                            .anyMatch(v -> v.value < globalCheckpoint);
+                    || globalNeedsSync;
             // only sync if index is not closed and there is a shard lagging the primary
             if (syncNeeded && indexSettings.getIndexMetadata().getState() == IndexMetadata.State.OPEN) {
                 logger.trace("syncing global checkpoint for [{}]", reason);

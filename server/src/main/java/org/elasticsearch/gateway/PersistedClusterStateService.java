@@ -512,7 +512,7 @@ public class PersistedClusterStateService {
             final Scorer scorer = weight.scorer(leafReaderContext);
             if (scorer != null) {
                 final Bits liveDocs = leafReaderContext.reader().getLiveDocs();
-                final IntPredicate isLiveDoc = liveDocs == null ? i -> true : liveDocs::get;
+                final IntPredicate isLiveDoc = liveDocs == null ? _ -> true : liveDocs::get;
                 final DocIdSetIterator docIdSetIterator = scorer.iterator();
 
                 StoredFields storedFields = leafReaderContext.reader().storedFields();
@@ -569,7 +569,7 @@ public class PersistedClusterStateService {
         }
 
         void prepareCommit(String nodeId, long currentTerm, long lastAcceptedVersion) throws IOException {
-            final Map<String, String> commitData = new HashMap<>(COMMIT_DATA_SIZE);
+            final Map<String, String> commitData = HashMap.newHashMap(COMMIT_DATA_SIZE);
             commitData.put(CURRENT_TERM_KEY, Long.toString(currentTerm));
             commitData.put(LAST_ACCEPTED_VERSION_KEY, Long.toString(lastAcceptedVersion));
             commitData.put(NODE_VERSION_KEY, Integer.toString(Version.CURRENT.internalId));
@@ -716,7 +716,7 @@ public class PersistedClusterStateService {
                     }
                 }
 
-                final Map<String, Long> indexMetadataVersionByUUID = new HashMap<>(previouslyWrittenMetadata.indices().size());
+                final Map<String, Long> indexMetadataVersionByUUID = HashMap.newHashMap(previouslyWrittenMetadata.indices().size());
                 for (ObjectCursor<IndexMetadata> cursor : previouslyWrittenMetadata.indices().values()) {
                     final IndexMetadata indexMetadata = cursor.value;
                     final Long previousValue
@@ -861,17 +861,7 @@ public class PersistedClusterStateService {
             }
         }
 
-        static class WriterStats {
-            final boolean globalMetaUpdated;
-            final long numIndicesUpdated;
-            final long numIndicesUnchanged;
-
-            WriterStats(boolean globalMetaUpdated, long numIndicesUpdated, long numIndicesUnchanged) {
-                this.globalMetaUpdated = globalMetaUpdated;
-                this.numIndicesUpdated = numIndicesUpdated;
-                this.numIndicesUnchanged = numIndicesUnchanged;
-            }
-        }
+        private record WriterStats(boolean globalMetaUpdated, long numIndicesUpdated, long numIndicesUnchanged) {}
 
         private Document makeIndexMetadataDocument(IndexMetadata indexMetadata, DocumentBuffer documentBuffer) throws IOException {
             final Document indexMetadataDocument = makeDocument(INDEX_TYPE_NAME, indexMetadata::writeTo, documentBuffer);

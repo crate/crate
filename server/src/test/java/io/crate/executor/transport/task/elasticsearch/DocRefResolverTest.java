@@ -57,7 +57,7 @@ public class DocRefResolverTest extends ESTestCase {
     private static final DocRefResolver REF_RESOLVER =
         new DocRefResolver(Collections.emptyList());
     private static final Doc GET_RESULT = new Doc(2,
-                                                  "t1",
+                                                  List.of(),
                                                   "abc",
                                                   1L,
                                                   1L,

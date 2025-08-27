@@ -391,7 +391,6 @@ public final class ClusterSettings extends AbstractScopedSettings {
         PageCacheRecycler.WEIGHT_OBJECTS_SETTING,
         PluginsService.MANDATORY_SETTING,
         BootstrapSettings.MEMORY_LOCK_SETTING,
-        BootstrapSettings.CTRLHANDLER_SETTING,
         IndexingMemoryController.INDEX_BUFFER_SIZE_SETTING,
         IndexingMemoryController.MIN_INDEX_BUFFER_SIZE_SETTING,
         IndexingMemoryController.MAX_INDEX_BUFFER_SIZE_SETTING,

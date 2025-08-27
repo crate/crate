@@ -19,16 +19,16 @@
 
 package org.elasticsearch.index.engine;
 
+import java.io.IOException;
+import java.util.Base64;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.apache.lucene.index.SegmentInfos;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.Lucene;
-
-import java.io.IOException;
-import java.util.Base64;
-import java.util.HashMap;
-import java.util.Map;
 
 /** a class the returns dynamic information with respect to the last commit point of this shard */
 public final class CommitStats implements Writeable {
@@ -81,13 +81,6 @@ public final class CommitStats implements Writeable {
     /** base64 version of the commit id (see {@link SegmentInfos#getId()} */
     public String getId() {
         return id;
-    }
-
-    /**
-     * A raw version of the commit id (see {@link SegmentInfos#getId()}
-     */
-    public Engine.CommitId getRawCommitId() {
-        return new Engine.CommitId(Base64.getDecoder().decode(id));
     }
 
     /**

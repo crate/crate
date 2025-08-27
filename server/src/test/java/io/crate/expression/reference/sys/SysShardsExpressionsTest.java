@@ -36,11 +36,15 @@ import java.util.Map;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.util.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.DocsStats;
@@ -52,6 +56,7 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.store.StoreStats;
 import org.elasticsearch.indices.recovery.RecoveryState;
+import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -61,9 +66,10 @@ import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SystemTable;
@@ -74,21 +80,37 @@ import io.crate.metadata.sys.SysSchemaInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
 public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     private ReferenceResolver<?> resolver;
-    private String indexName = "wikipedia_de";
     private IndexShard indexShard;
     private Schemas schemas;
     private String indexUUID;
     private SystemTable<ShardRowContext> sysShards;
 
     @Before
-    public void prepare() {
+    public void prepare() throws Exception {
+        // Add the table so it can be resolved via the metadata
+        String indexName = "wikipedia_de";
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE " + indexName + " (id INT) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, indexName);
+        prepare(relationName, List.of());
+    }
+
+    public void prepare(RelationName relationName, List<String> partitionValues) throws Exception {
+        IndexMetadata indexMetadata = clusterService.state().metadata().getIndex(
+            relationName, partitionValues, true, im -> im);
+        indexUUID = indexMetadata.getIndexUUID();
+        prepare(indexUUID, indexMetadata.getIndex().getName());
+    }
+
+    public void prepare(String indexUUID, String indexName) throws Exception {
         NodeContext nodeCtx = createNodeContext();
-        indexShard = mockIndexShard();
+        indexShard = mockIndexShard(indexName, indexUUID);
         schemas = new Schemas(
             Map.of("sys", new SysSchemaInfo(this.clusterService, List::of)),
             clusterService,
@@ -102,9 +124,8 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         sysShards = schemas.getTableInfo(SysShardsTableInfo.IDENT);
     }
 
-    private IndexShard mockIndexShard() {
+    private IndexShard mockIndexShard(String indexName, String indexUUID) {
         IndexService indexService = mock(IndexService.class);
-        indexUUID = UUIDs.randomBase64UUID();
         Index index = new Index(indexName, indexUUID);
         ShardId shardId = new ShardId(indexName, indexUUID, 1);
 
@@ -240,29 +261,28 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTableNameOfPartition() throws Exception {
-        // expression should return the real table name
-        indexName = IndexName.encode("doc", "wikipedia_de", "foo");
-        prepare();
+        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), List.of("foo"));
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.wikipedia_d1 (id INT, p TEXT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH (number_of_replicas = 0)",
+                partitionName.asIndexName());
+        prepare(partitionName.relationName(), partitionName.values());
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);
-        assertThat(shardExpression.value()).isEqualTo("wikipedia_de");
-
-        // reset indexName
-        indexName = "wikipedia_de";
+        assertThat(shardExpression.value()).isEqualTo("wikipedia_d1");
     }
 
     @Test
     public void testPartitionIdent() throws Exception {
-        indexName = IndexName.encode("doc", "wikipedia_d1", "foo");
-        prepare();
+        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), List.of("foo"));
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.wikipedia_d1 (id INT, p TEXT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH (number_of_replicas = 0)",
+                partitionName.asIndexName());
+        prepare(partitionName.relationName(), partitionName.values());
         Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);
-        assertThat(shardExpression.value()).isEqualTo("foo");
-
-        // reset indexName
-        indexName = "wikipedia_de";
+        assertThat(shardExpression.value()).isEqualTo(partitionName.ident());
     }
 
     @Test
@@ -276,14 +296,29 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrphanPartition() throws Exception {
-        indexName = IndexName.encode("doc", "wikipedia_d1", "foo");
-        prepare();
+        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), List.of("foo"));
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE doc.wikipedia_d1 (id INT, p TEXT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH (number_of_replicas = 0)");
+        // simulate orphan partition
+        String indexUUID = UUIDs.randomBase64UUID();
+        ClusterState newState = ClusterState.builder(clusterService.state())
+            .metadata(Metadata.builder(clusterService.state().metadata())
+                .put(IndexMetadata.builder(indexUUID)
+                    .indexName(partitionName.asIndexName())
+                    .settings(Settings.builder().put(IndexMetadata.SETTING_INDEX_VERSION_CREATED.getKey(), org.elasticsearch.Version.CURRENT))
+                    .numberOfShards(1)
+                    .numberOfReplicas(0)
+                )
+                .build())
+            .build();
+        ClusterServiceUtils.setState(clusterService, newState);
+
+        prepare(indexUUID, partitionName.asIndexName());
+
         Reference refInfo = refInfo("sys.shards.orphan_partition", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);
         assertThat(shardExpression.value()).isEqualTo(true);
-        // reset indexName
-        indexName = "wikipedia_de";
     }
 
     @Test
@@ -296,28 +331,27 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCustomSchemaName() throws Exception {
-        indexName = "my_schema.wikipedia_de";
-        prepare();
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE my_schema.wikipedia_de (id INT) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        RelationName relationName = new RelationName("my_schema", "wikipedia_de");
+        prepare(relationName, List.of());
         Reference refInfo = refInfo("sys.shards.schema_name", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);
         assertThat(shardExpression.value()).isEqualTo("my_schema");
-        // reset indexName
-        indexName = "wikipedia_de";
     }
 
     @Test
     public void testTableNameOfCustomSchema() throws Exception {
         // expression should return the real table name
-        indexName = "my_schema.wikipedia_de";
-        prepare();
+        SQLExecutor.builder(clusterService).build()
+            .addTable("CREATE TABLE my_schema.wikipedia_de (id INT) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
+        RelationName relationName = new RelationName("my_schema", "wikipedia_de");
+        prepare(relationName, List.of());
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);
         assertThat(shardExpression.value()).isEqualTo("wikipedia_de");
-
-        // reset indexName
-        indexName = "wikipedia_de";
     }
 
     @SuppressWarnings("unchecked")
@@ -356,10 +390,9 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void testShardSizeExpressionWhenIndexShardHasBeenClosed() {
-        IndexShard mock = mockIndexShard();
-        when(mock.storeStats()).thenThrow(new AlreadyClosedException("shard already closed"));
-
+    public void testShardSizeExpressionWhenIndexShardHasBeenClosed() throws Exception {
+        IndexShard mock = mockIndexShard(indexShard.shardId().getIndexName(), indexShard.shardId().getIndexUUID());
+        doThrow(new AlreadyClosedException("dummy")).when(mock).storeStats();
         ShardReferenceResolver res = new ShardReferenceResolver(schemas, new ShardRowContext(mock, clusterService));
         Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
         Input<?> shardExpression = res.getImplementation(refInfo);
@@ -369,7 +402,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_retention_lease_is_null_on_index_shard_closed_exception() throws Exception {
-        IndexShard mock = mockIndexShard();
+        IndexShard mock = mockIndexShard(indexShard.shardId().getIndexName(), indexShard.shardId().getIndexUUID());
         var shardId = mock.shardId();
         doThrow(new IndexShardClosedException(shardId)).when(mock).getRetentionLeaseStats();
 

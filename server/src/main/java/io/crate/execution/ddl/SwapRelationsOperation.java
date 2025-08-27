@@ -84,10 +84,10 @@ public class SwapRelationsOperation {
                 IndexMetadata::getIndex
             );
             for (Index index : indices) {
-                String indexName = index.getName();
-                updatedMetadata.remove(indexName);
-                routingBuilder.remove(indexName);
-                updatedState.newIndices.remove(indexName);
+                String indexUUID = index.getUUID();
+                updatedMetadata.remove(indexUUID);
+                routingBuilder.remove(indexUUID);
+                updatedState.newIndices.remove(indexUUID);
             }
 
             updatedMetadata.dropRelation(dropRelation);
@@ -173,6 +173,7 @@ public class SwapRelationsOperation {
             removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.source());
             removeOccurrences(state, blocksBuilder, routingBuilder, updatedMetadata, swapAction.target());
         }
+
         for (RelationNameSwap relationNameSwap : swapRelationsRequest.swapActions()) {
             RelationName source = relationNameSwap.source();
             RelationName target = relationNameSwap.target();
@@ -209,10 +210,10 @@ public class SwapRelationsOperation {
         Metadata metadata = state.metadata();
         List<Index> indices = metadata.getIndices(name, List.of(), false, IndexMetadata::getIndex);
         for (Index index : indices) {
-            String indexName = index.getName();
-            routingBuilder.remove(indexName);
-            updatedMetadata.remove(indexName);
-            blocksBuilder.removeIndexBlocks(indexName);
+            String indexUUID = index.getUUID();
+            routingBuilder.remove(indexUUID);
+            updatedMetadata.remove(indexUUID);
+            blocksBuilder.removeIndexBlocks(indexUUID);
         }
     }
 
@@ -226,7 +227,6 @@ public class SwapRelationsOperation {
         List<Index> sourceIndices = metadata.getIndices(source, List.of(), false, IndexMetadata::getIndex);
         for (Index sourceIndex : sourceIndices) {
             IndexMetadata sourceMd = metadata.getIndexSafe(sourceIndex);
-            IndexMetadata targetMd;
             String targetIndexName;
             if (sourceMd.partitionValues().isEmpty()) {
                 targetIndexName = target.indexNameOrAlias();
@@ -234,10 +234,11 @@ public class SwapRelationsOperation {
                 PartitionName partitionName = new PartitionName(target, sourceMd.partitionValues());
                 targetIndexName = partitionName.asIndexName();
             }
-            targetMd = IndexMetadata.builder(sourceMd)
-                .index(targetIndexName)
+            IndexMetadata targetMd = IndexMetadata.builder(sourceMd)
+                .indexName(targetIndexName)
+                .incrementSettingsVersion()
                 .build();
-            onProcessedIndex.accept(targetIndexName);
+            onProcessedIndex.accept(sourceIndex.getUUID());
             updatedMetadata.put(targetMd, true);
             blocksBuilder.addBlocks(targetMd);
             routingBuilder.addAsFromCloseToOpen(targetMd);

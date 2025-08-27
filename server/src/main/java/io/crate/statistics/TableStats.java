@@ -21,21 +21,22 @@
 
 package io.crate.statistics;
 
+import static io.crate.common.collections.Iterables.sequentialStream;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 
-import java.util.HashMap;
-import java.util.Map;
-import java.util.Set;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.
  */
 public class TableStats {
 
-    private volatile Map<RelationName, Stats> tableStats = new HashMap<>();
+    private volatile Function<RelationName, Stats> tableStats = x -> null;
 
-    public void updateTableStats(Map<RelationName, Stats> tableStats) {
+    public void updateTableStats(Function<RelationName, Stats> tableStats) {
         this.tableStats = tableStats;
     }
 
@@ -48,7 +49,7 @@ public class TableStats {
      * Returns -1 if the table isn't in the cache
      */
     public long numDocs(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY).numDocs;
+        return getStats(relationName).numDocs();
     }
 
     /**
@@ -60,7 +61,7 @@ public class TableStats {
      * Returns -1 if the table isn't in the cache
      */
     public long estimatedSizePerRow(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY).averageSizePerRowInBytes();
+        return getStats(relationName).averageSizePerRowInBytes();
     }
 
     /**
@@ -68,7 +69,7 @@ public class TableStats {
      * for the given table an estimate (avg) based on the column types of the table.
      */
     public long estimatedSizePerRow(TableInfo tableInfo) {
-        Stats stats = tableStats.get(tableInfo.ident());
+        Stats stats = tableStats.apply(tableInfo.ident());
         if (stats == null) {
             // if stats are not available we fall back to estimate the size based on
             // column types. Therefore we need to get the column information.
@@ -78,18 +79,22 @@ public class TableStats {
         }
     }
 
-    public Iterable<ColumnStatsEntry> statsEntries() {
-        Set<Map.Entry<RelationName, Stats>> entries = tableStats.entrySet();
-        return () -> entries.stream()
-            .flatMap(tableEntry -> {
-                Stats stats = tableEntry.getValue();
-                return stats.statsByColumn().entrySet().stream()
-                    .map(columnEntry ->
-                        new ColumnStatsEntry(tableEntry.getKey(), columnEntry.getKey(), columnEntry.getValue()));
+    public Iterable<ColumnStatsEntry> statsEntries(Iterable<RelationName> relationNames) {
+        return () -> sequentialStream(relationNames)
+            .flatMap(relationName -> {
+                Stats stats = getStats(relationName);
+                if (stats == Stats.EMPTY) {
+                    return Stream.empty();
+                } else {
+                    return stats.statsByColumn().entrySet().stream()
+                        .map(columnEntry ->
+                            new ColumnStatsEntry(relationName, columnEntry.getKey(), columnEntry.getValue()));
+                }
             }).iterator();
     }
 
     public Stats getStats(RelationName relationName) {
-        return tableStats.getOrDefault(relationName, Stats.EMPTY);
+        Stats stats = tableStats.apply(relationName);
+        return stats == null ? Stats.EMPTY : stats;
     }
 }

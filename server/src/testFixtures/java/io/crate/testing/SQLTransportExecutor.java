@@ -216,7 +216,7 @@ public class SQLTransportExecutor {
         try {
             try (Session session = newSession()) {
                 session.sessionSettings().statementTimeout(timeout);
-                sessionList.forEach(setting -> exec(setting, session));
+                sessionList.forEach(setting -> exec(setting, null, session, timeout));
                 return FutureUtils.get(execute(stmt, args, session), timeout.millis(), TimeUnit.MILLISECONDS);
             }
         } catch (ElasticsearchTimeoutException ex) {
@@ -249,7 +249,7 @@ public class SQLTransportExecutor {
     }
 
     public Session newSession() {
-        return clientProvider.sqlOperations().newSession(
+        return clientProvider.sessions().newSession(
             new ConnectionProperties(null, null, Protocol.HTTP, null),
             searchPath.currentSchema(),
             Role.CRATE_USER
@@ -257,13 +257,17 @@ public class SQLTransportExecutor {
     }
 
     public SQLResponse executeAs(String stmt, Role user) {
-        try (Session session = clientProvider.sqlOperations()
-            .newSession(new ConnectionProperties(null, null, Protocol.HTTP, null), null, user)) {
-            return FutureUtils.get(execute(stmt, null, session), SQLTransportExecutor.REQUEST_TIMEOUT.millis(), TimeUnit.MILLISECONDS);
+        Sessions sessions = clientProvider.sessions();
+        ConnectionProperties connectionProperties = new ConnectionProperties(null, null, Protocol.HTTP, null);
+        try (Session session = sessions.newSession(connectionProperties, null, user)) {
+            TimeValue requestTimeout = SQLTransportExecutor.REQUEST_TIMEOUT;
+            session.sessionSettings().statementTimeout(requestTimeout);
+            return FutureUtils.get(execute(stmt, null, session), requestTimeout.millis(), TimeUnit.MILLISECONDS);
         }
     }
 
     public SQLResponse exec(String statement, @Nullable Object[] args, Session session, TimeValue timeout) {
+        session.sessionSettings().statementTimeout(timeout);
         return FutureUtils.get(execute(statement, args, session), timeout.millis(), TimeUnit.MILLISECONDS);
     }
 
@@ -289,7 +293,7 @@ public class SQLTransportExecutor {
     private static void execute(String stmt,
                                 @Nullable Object[] args,
                                 ActionListener<SQLResponse> listener,
-                                @Nullable Session session) {
+                                Session session) {
         try {
             session.parse(UNNAMED, stmt, Collections.emptyList());
             List<Object> argsList = args == null ? Collections.emptyList() : Arrays.asList(args);
@@ -340,7 +344,7 @@ public class SQLTransportExecutor {
                 throw new UnsupportedOperationException(
                     "Bulk operations for statements that return result sets is not supported");
             }
-            session.sync(false).whenComplete((Object result, Throwable t) -> {
+            session.sync(false).whenComplete((Object _, Throwable t) -> {
                 if (t == null) {
                     listener.onResponse(bulkResponse);
                 } else {
@@ -599,7 +603,7 @@ public class SQLTransportExecutor {
         @Nullable
         String pgUrl();
 
-        Sessions sqlOperations();
+        Sessions sessions();
     }
 
 

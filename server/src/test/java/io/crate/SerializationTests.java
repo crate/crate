@@ -60,6 +60,6 @@ public class SerializationTests extends ESTestCase {
         assertThat(requestOut.isLast).isEqualTo(requestIn.isLast);
         assertThat(requestOut.content).isEqualTo(requestIn.content);
         assertThat(requestOut.transferId).isEqualTo(requestIn.transferId);
-        assertThat(requestOut.index()).isEqualTo(requestIn.index());
+        assertThat(requestOut.shardId()).isEqualTo(requestIn.shardId());
     }
 }

@@ -223,7 +223,7 @@ public class GatewayAllocator implements ExistingShardsAllocator {
             logger.trace("{} scheduling reroute for {}", shardId, reason);
             assert rerouteService != null;
             rerouteService.reroute("async_shard_fetch", Priority.HIGH, ActionListener.wrap(
-                r -> logger.trace("{} scheduled reroute completed for {}", shardId, reason),
+                _ -> logger.trace("{} scheduled reroute completed for {}", shardId, reason),
                 e -> logger.debug(new ParameterizedMessage("{} scheduled reroute failed for {}", shardId, reason), e)));
         }
     }

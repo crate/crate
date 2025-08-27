@@ -54,7 +54,7 @@ public class MockPgClient extends PgClient {
             pgClient.pageCacheRecycler,
             pgClient.connectionInfo);
         // MockPgClient must only be used if the TransportService is a MockTransportService
-        this.stubTransport = (StubbableTransport) ((MockTransportService ) pgClient.transportService).transport();
+        this.stubTransport = ((MockTransportService ) pgClient.transportService).transport();
     }
 
     @Override
@@ -104,10 +104,12 @@ public class MockPgClient extends PgClient {
             return connection.isClosed();
         }
 
+        @Override
         public Version getVersion() {
             return connection.getVersion();
         }
 
+        @Override
         public Object getCacheKey() {
             return connection.getCacheKey();
         }

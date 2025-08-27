@@ -32,6 +32,8 @@ import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -60,6 +62,7 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumn;
 import io.crate.execution.dml.IndexItem;
@@ -74,7 +77,6 @@ import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -130,9 +132,15 @@ public class TransportShardUpsertAction extends TransportShardAction<
     protected WritePrimaryResult<UpsertReplicaRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                           ShardUpsertRequest request,
                                                                                           AtomicBoolean killed) {
-        ShardResponse shardResponse = new ShardResponse(request.returnValues());
-        String indexName = request.index();
-        DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));
+        String indexUUID = indexShard.shardId().getIndexUUID();
+        RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(indexUUID);
+        if (relationMetadata == null) {
+            throw new RelationUnknown("RelationMetadata for index '" + indexUUID + "' not found in cluster state");
+        }
+        DocTableInfo tableInfo = schemas.getTableInfo(relationMetadata.name());
+        IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);
+        assert indexMetadata != null : "IndexMetadata for index " + indexUUID + " not found in cluster state";
+        List<String> partitionValues = indexMetadata.partitionValues();
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
         // Refresh insertColumns References from table, they could be stale (dynamic references already added)
@@ -156,7 +164,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 insertColumns
             );
             indexer = new Indexer(
-                request.index(),
+                partitionValues,
                 tableInfo,
                 indexShard.getVersionCreated(),
                 txnCtx,
@@ -167,7 +175,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
             firstColumnIdent = indexer.columns().getFirst().column();
         } else {
             indexer = new Indexer(
-                indexName,
+                partitionValues,
                 tableInfo,
                 indexShard.getVersionCreated(),
                 txnCtx,
@@ -181,7 +189,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
         RawIndexer rawIndexer = null;
         if (firstColumnIdent.equals(SysColumns.RAW)) {
             rawIndexer = new RawIndexer(
-                indexName,
+                partitionValues,
                 tableInfo,
                 indexShard.getVersionCreated(),
                 txnCtx,
@@ -191,6 +199,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
             );
         }
 
+        ShardResponse shardResponse = new ShardResponse(request.returnValues());
         Translog.Location translogLocation = null;
         List<UpsertReplicaRequest.Item> replicaItems = new ArrayList<>();
         UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
@@ -224,6 +233,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     item,
                     indexShard,
                     tableInfo,
+                    partitionValues,
                     updateToInsert,
                     rawIndexer
                 );
@@ -284,10 +294,18 @@ public class TransportShardUpsertAction extends TransportShardAction<
     protected WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, UpsertReplicaRequest request) throws IOException {
         List<Reference> columns = request.columns();
         Translog.Location location = null;
-        String indexName = request.index();
+        String indexUUID = indexShard.shardId().getIndexUUID();
         boolean traceEnabled = logger.isTraceEnabled();
-        RelationName relationName = RelationName.fromIndexName(indexName);
-        DocTableInfo tableInfo = schemas.getTableInfo(relationName);
+
+        RelationMetadata relationMetadata = clusterService.state().metadata().getRelation(indexUUID);
+        if (relationMetadata == null) {
+            throw new IllegalStateException("RelationMetadata for index " + indexUUID + " not found in cluster state");
+        }
+        DocTableInfo tableInfo = schemas.getTableInfo(relationMetadata.name());
+        IndexMetadata indexMetadata = clusterService.state().metadata().index(indexUUID);
+        assert indexMetadata != null : "IndexMetadata for index " + indexUUID + " not found in cluster state";
+        List<String> partitionValues = indexMetadata.partitionValues();
+
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
 
         // Refresh insertColumns References from cluster state because ObjectType
@@ -308,7 +326,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
             // in order not to fall back to regular Indexer which cannot handle _raw and persists it as String.
             indexer = null;
             rawIndexer = new RawIndexer(
-                indexName,
+                partitionValues,
                 tableInfo,
                 indexShard.getVersionCreated(),
                 txnCtx,
@@ -319,7 +337,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
         } else {
             rawIndexer = null;
             indexer = new Indexer(
-                indexName,
+                partitionValues,
                 tableInfo,
                 indexShard.getVersionCreated(),
                 txnCtx,
@@ -395,9 +413,6 @@ public class TransportShardUpsertAction extends TransportShardAction<
      *  <li></li>
      * </ul>
      * <p>
-     * @param updatingIndexer is constantly used for UPDATE.
-     * <p>
-     * INSERT... ON CONFLICT... DO UPDATE SET uses both indexers - for insert/update phases correspondingly.
      */
     @Nullable
     private IndexItemResult indexItem(Indexer indexer,
@@ -405,6 +420,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                       ShardUpsertRequest.Item item,
                                       IndexShard indexShard,
                                       DocTableInfo tableInfo,
+                                      List<String> partitionValues,
                                       @Nullable UpdateToInsert updateToInsert,
                                       @Nullable RawIndexer rawIndexer) throws Exception {
         VersionConflictEngineException lastException = null;
@@ -439,6 +455,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                         seqNo,
                         primaryTerm,
                         actualTable,
+                        partitionValues,
                         null,
                         doc -> {
                             if (doc == null) {
@@ -508,16 +525,19 @@ public class TransportShardUpsertAction extends TransportShardAction<
         List<Reference> newColumns = rawIndexer == null
             ? indexer.collectSchemaUpdates(item)
             : rawIndexer.collectSchemaUpdates(item);
-        var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
         if (newColumns.isEmpty() == false) {
+            RelationMetadata relation = clusterService.state().metadata().getRelation(indexShard.shardId().getIndexUUID());
+            if (relation == null) {
+                throw new IllegalStateException("RelationMetadata for index " + indexShard.shardId().getIndexUUID() + " not found in cluster state");
+            }
             var addColumnRequest = new AddColumnRequest(
-                RelationName.fromIndexName(indexShard.shardId().getIndexName()),
+                relation.name(),
                 newColumns,
                 Map.of(),
                 new IntArrayList(0)
             );
             addColumnAction.execute(addColumnRequest).get();
-            DocTableInfo actualTable = schemas.getTableInfo(relationName);
+            DocTableInfo actualTable = schemas.getTableInfo(relation.name());
             if (rawIndexer == null) {
                 indexer.updateTargets(actualTable::getReference);
             } else {

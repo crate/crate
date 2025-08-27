@@ -1,0 +1,81 @@
+.. _version_6.0.1:
+
+==========================
+Version 6.0.1 - Unreleased
+==========================
+
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 6.0.1 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
+    before you upgrade to 6.0.1.
+
+    We recommend that you upgrade to the latest 5.10 release before moving to
+    6.0.1.
+
+    A rolling upgrade from >= 5.10.1 to 6.0.1 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 5.x will not function with 6.x
+    and must be recreated before moving to 6.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_6.0.0` release notes for a full list of changes in the 6.0
+series.
+
+Fixes
+=====
+
+- Fixed an issue that led to replication errors due to the ``seqNo`` and
+  ``primaryTerm`` information missing when replicating new records written as
+  part of ``INSERT INTO`` or ``COPY FROM`` statements from the primary to
+  replica shards when running in a mixed cluster with 6.0.0 and an earlier
+  version before 5.10.11.
+
+- Fixed an issue that could lead to a ``NullPointerException`` when running
+  ``DELETE`` queries.
+
+- Fixed an issue that could cause ``SELECT`` statements to get stuck if executed
+  via a PostgreSQL client that set the ``maxRow`` option as part of an
+  ``EXECUTE`` message and it matched the number of result rows exactly.
+
+- Fixed a regression introduced in 6.0.0 that could cause ``INSERT INTO``
+  statements to get stuck during a network partition.
+
+- Fixed intermittent subscription loss in logical replication during rolling
+  upgrades.
+
+- Fixed an issue that prevented users to change the value of the
+  :ref:`indices.recovery.max_concurrent_file_chunks` setting.
+
+- Fixed an issue that could lead to an ``OutOfMemoryError`` when running a
+  query with aggregations under memory pressure in a multi-node cluster.
+
+- Improved error message when attempting to use a column in ``PARTITION BY``
+  clause of a :ref:`window function <window-functions>`, which is not also
+  included in the ``GROUP BY``, e.g.::
+
+    SELECT sum(x) OVER(PARTITION BY x, y)
+    FROM unnest([1], [6]) AS t (x, y)
+    GROUP BY x

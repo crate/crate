@@ -26,6 +26,7 @@ import static io.crate.cluster.commands.FixCorruptedMetadataCommand.fixIndexName
 import static io.crate.cluster.commands.FixCorruptedMetadataCommand.fixNameOfTemplateMetadata;
 import static io.crate.cluster.commands.FixCorruptedMetadataCommand.fixTemplateName;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_REPLICAS;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_NUMBER_OF_SHARDS;
 import static org.elasticsearch.index.IndexSettings.INDEX_REFRESH_INTERVAL_SETTING;
@@ -37,6 +38,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -180,7 +182,8 @@ public class FixCorruptedMetadataCommandTest {
 
     @Test
     public void test_fixInconsistencyBetweenIndexAndTemplates_with_invalid_non_partitioned_indexMetadata_containing_partitioned_by_column() throws IOException {
-        IndexMetadata.Builder corruptedBuilder = IndexMetadata.builder("m7.s7");
+        String indexUUID = UUIDs.randomBase64UUID();
+        IndexMetadata.Builder corruptedBuilder = IndexMetadata.builder(indexUUID).indexName("m7.s7");
         var corruptedSettings = Settings.builder();
 
         // contains partitioned_by columns -- corrupted
@@ -203,23 +206,24 @@ public class FixCorruptedMetadataCommandTest {
         fixInconsistencyBetweenIndexAndTemplates(corruptedMetadata, upgradedMetadata);
 
         // since the indexMetadata is invalid, it is now partitioned
-        assertThat(upgradedMetadata.get("m7.s7")).isNull();
-        IndexMetadata fixedIndexMetadata = upgradedMetadata.get("m7..partitioned.s7.08000");
+        IndexMetadata fixedIndexMetadata = upgradedMetadata.get(indexUUID);
+        assertThat(fixedIndexMetadata.getIndex().getName()).isEqualTo("m7..partitioned.s7.08000");
         assertThat(fixedIndexMetadata.mapping().source()).isEqualTo(corruptedMetadata.mapping().source());
-        assertThat(fixedIndexMetadata.getSettings().getAsStructuredMap())
-            .isEqualTo(corruptedMetadata.getSettings().getAsStructuredMap());
+        assertThat(fixedIndexMetadata.getSettings().filter(s -> s.equals(IndexMetadata.SETTING_INDEX_NAME) == false).getAsStructuredMap())
+            .isEqualTo(corruptedMetadata.getSettings().filter(s -> s.equals(IndexMetadata.SETTING_INDEX_NAME) == false).getAsStructuredMap());
 
         // Also indexTemplateMetadata is created accordingly.
         IndexTemplateMetadata convertedFromIndexMetadata = upgradedMetadata.getTemplate("m7..partitioned.s7.");
         assertThat(convertedFromIndexMetadata).isNotNull();
         assertThat(convertedFromIndexMetadata.settings().getAsStructuredMap())
-            .isEqualTo(corruptedMetadata.getSettings().getAsStructuredMap());
+            .isEqualTo(corruptedMetadata.getSettings().filter(k -> !k.equals(SETTING_INDEX_UUID)).getAsStructuredMap());
         assertThat(convertedFromIndexMetadata.mapping()).isEqualTo(corruptedMetadata.mapping().source());
     }
 
     @Test
     public void test_fixInconsistencyBetweenIndexAndTemplates_with_invalid_non_partitioned_indexMetadata_containing_partitioned_by_column_and_indexTemplateMetadata() throws IOException {
-        IndexMetadata.Builder corruptedBuilder = IndexMetadata.builder("m7.s7");
+        String indexUUID = UUIDs.randomBase64UUID();
+        IndexMetadata.Builder corruptedBuilder = IndexMetadata.builder(indexUUID).indexName("m7.s7");
         var corruptedSettings = Settings.builder();
 
         // contains partitioned_by columns -- corrupted
@@ -250,17 +254,17 @@ public class FixCorruptedMetadataCommandTest {
         fixInconsistencyBetweenIndexAndTemplates(corruptedMetadata, upgradedMetadata);
 
         // since the indexMetadata is invalid, it is now partitioned
-        assertThat(upgradedMetadata.get("m7.s7")).isNull();
-        IndexMetadata fixedIndexMetadata = upgradedMetadata.get("m7..partitioned.s7.08000");
+        IndexMetadata fixedIndexMetadata = upgradedMetadata.get(indexUUID);
+        assertThat(fixedIndexMetadata.getIndex().getName()).isEqualTo("m7..partitioned.s7.08000");
         assertThat(fixedIndexMetadata.mapping().source()).isEqualTo(corruptedMetadata.mapping().source());
-        assertThat(fixedIndexMetadata.getSettings().getAsStructuredMap())
-            .isEqualTo(corruptedMetadata.getSettings().getAsStructuredMap());
+        assertThat(fixedIndexMetadata.getSettings().filter(s -> s.equals(IndexMetadata.SETTING_INDEX_NAME) == false).getAsStructuredMap())
+            .isEqualTo(corruptedMetadata.getSettings().filter(s -> s.equals(IndexMetadata.SETTING_INDEX_NAME) == false).getAsStructuredMap());
 
         // Also indexTemplateMetadata is created accordingly -- this help verifies that the existing template is overwritten
         IndexTemplateMetadata convertedFromIndexMetadata = upgradedMetadata.getTemplate(existingTemplateName);
         assertThat(convertedFromIndexMetadata).isNotNull();
         assertThat(convertedFromIndexMetadata.settings().getAsStructuredMap())
-            .isEqualTo(corruptedMetadata.getSettings().getAsStructuredMap());
+            .isEqualTo(corruptedMetadata.getSettings().filter(k -> !k.equals(SETTING_INDEX_UUID)).getAsStructuredMap());
         assertThat(convertedFromIndexMetadata.mapping()).isEqualTo(corruptedMetadata.mapping().source());
     }
 
@@ -297,8 +301,8 @@ public class FixCorruptedMetadataCommandTest {
         var afterFix = fixedMetadata.get("m7.s7");
         assertThat(afterFix).isNotNull();
         assertThat(afterFix.mapping().source()).hasToString(mappingForNonPartitioned);
-        assertThat(afterFix.getSettings().getAsStructuredMap())
-            .hasToString("{index={number_of_shards=1, number_of_replicas=1, version={created=" +
+        assertThat(afterFix.getSettings().filter(k -> !k.equals(SETTING_INDEX_UUID)).getAsStructuredMap())
+            .hasToString("{index={name=m7.s7, number_of_shards=1, number_of_replicas=1, version={created=" +
                          Version.CURRENT.internalId + "}}}");
 
         // indexMetadata named 'm7.s7' and indexTemplateMetadata 'm7..partitioned.s7.' cannot co-exist.

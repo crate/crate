@@ -32,7 +32,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.index.IndexService;
 import org.jetbrains.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
@@ -53,6 +52,7 @@ import io.crate.execution.support.ThreadPools;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
@@ -77,11 +77,10 @@ public class NodeFetchOperation {
         }
 
         FetchCollector createCollector(int readerId, RamAccounting ramAccounting) {
-            IndexService indexService = fetchTask.indexService(readerId);
-            String indexName = indexService.index().getName();
+            PartitionName partitionName = fetchTask.tableIdent(readerId);
             var table = fetchTask.table(readerId);
             LuceneReferenceResolver resolver = new LuceneReferenceResolver(
-                indexName,
+                partitionName.values(),
                 table.partitionedByColumns(),
                 table.primaryKey(),
                 fetchTask.indexShard(readerId).getVersionCreated(),
@@ -93,7 +92,7 @@ public class NodeFetchOperation {
             }
             return new FetchCollector(
                 exprs,
-                indexName,
+                partitionName.values(),
                 streamers,
                 fetchTask,
                 ramAccounting,
@@ -186,8 +185,8 @@ public class NodeFetchOperation {
             final int readerId = toFetchCursor.key;
             final IntArrayList docIds = toFetchCursor.value;
 
-            RelationName ident = fetchTask.tableIdent(readerId);
-            final TableFetchInfo tfi = tableFetchInfos.get(ident);
+            PartitionName ident = fetchTask.tableIdent(readerId);
+            final TableFetchInfo tfi = tableFetchInfos.get(ident.relationName());
             assert tfi != null : "tfi must not be null";
 
             var collector = tfi.createCollector(

@@ -1,17 +1,10 @@
 .. _version_5.10.11:
 
-============================
-Version 5.10.11 - Unreleased
-============================
+===============
+Version 5.10.11
+===============
 
-
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 5.10.11 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2025-07-14.
 
 .. NOTE::
 
@@ -34,6 +27,24 @@ Version 5.10.11 - Unreleased
 
 .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
 .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. WARNING::
+
+    *(Added on 2025-08-07)*
+
+    Version 5.10.11 has critical known issues. If you haven't updated to
+    5.10.11 yet, it is recommended to skip 5.10.11 and move to 5.10.12 directly.
+
+    -   Replication errors due to the ``seqNo`` and ``primaryTerm``
+        information missing when replicating new records written as part of
+        ``INSERT INTO`` or ``COPY FROM`` statements from the primary to
+        replica shards when running in a mixed cluster with 5.10.11 and an
+        earlier version.
+
+    -   A regression introduced with 5.10.11 that caused values of
+        undeterministic ``DEFAULT`` and ``GENERATED`` columns to be ``NULL``
+        (instead of having generated values) when using ``UPDATE`` or
+        ``INSERT... ON CONFLICT...`` statements.
 
 .. rubric:: Table of contents
 
