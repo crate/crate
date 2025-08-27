@@ -479,15 +479,15 @@ public abstract class Engine implements Closeable {
                     get.versionType().explainConflictForReads(docIdAndVersion.version, get.version())
                 );
             }
-            if (get.getIfSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
-                get.getIfSeqNo() != docIdAndVersion.seqNo || get.getIfPrimaryTerm() != docIdAndVersion.primaryTerm)) {
+            if (get.ifSeqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO && (
+                get.ifSeqNo() != docIdAndVersion.seqNo || get.ifPrimaryTerm() != docIdAndVersion.primaryTerm)) {
 
                 Releasables.close(searcher);
                 throw new VersionConflictEngineException(
                     shardId,
                     get.id(),
-                    get.getIfSeqNo(),
-                    get.getIfPrimaryTerm(),
+                    get.ifSeqNo(),
+                    get.ifPrimaryTerm(),
                     docIdAndVersion.seqNo,
                     docIdAndVersion.primaryTerm
                 );
@@ -1324,85 +1324,28 @@ public abstract class Engine implements Closeable {
 
     }
 
-    public static class Get {
-        private final Term uid;
-        private final String id;
-        private long version = Versions.MATCH_ANY;
-        private VersionType versionType = VersionType.INTERNAL;
-        private long ifSeqNo = UNASSIGNED_SEQ_NO;
-        private long ifPrimaryTerm = UNASSIGNED_PRIMARY_TERM;
+    public record Get(String id,
+                      Term uid,
+                      long version,
+                      VersionType versionType,
+                      long ifSeqNo,
+                      long ifPrimaryTerm) {
 
         public Get(String id, Term uid) {
-            this.id = id;
-            this.uid = uid;
+            this(
+                id,
+                uid,
+                Versions.MATCH_ANY,
+                VersionType.INTERNAL,
+                UNASSIGNED_SEQ_NO,
+                UNASSIGNED_PRIMARY_TERM
+            );
         }
-
-        public String id() {
-            return id;
-        }
-
-        public Term uid() {
-            return uid;
-        }
-
-        public long version() {
-            return version;
-        }
-
-        public Get version(long version) {
-            this.version = version;
-            return this;
-        }
-
-        public VersionType versionType() {
-            return versionType;
-        }
-
-        public Get versionType(VersionType versionType) {
-            this.versionType = versionType;
-            return this;
-        }
-
-        public Get setIfSeqNo(long seqNo) {
-            this.ifSeqNo = seqNo;
-            return this;
-        }
-
-        public long getIfSeqNo() {
-            return ifSeqNo;
-        }
-
-        public Get setIfPrimaryTerm(long primaryTerm) {
-            this.ifPrimaryTerm = primaryTerm;
-            return this;
-        }
-
-        public long getIfPrimaryTerm() {
-            return ifPrimaryTerm;
-        }
-
     }
 
-    public static class GetResult implements Releasable {
-        @Nullable
-        private final DocIdAndVersion docIdAndVersion;
-        private final Engine.Searcher searcher;
+    public record GetResult(@Nullable DocIdAndVersion docIdAndVersion, Engine.Searcher searcher) implements Releasable {
 
         public static final GetResult NOT_EXISTS = new GetResult(null, null);
-
-        public GetResult(DocIdAndVersion docIdAndVersion, Engine.Searcher searcher) {
-            this.docIdAndVersion = docIdAndVersion;
-            this.searcher = searcher;
-        }
-
-        public Engine.Searcher searcher() {
-            return this.searcher;
-        }
-
-        @Nullable
-        public DocIdAndVersion docIdAndVersion() {
-            return docIdAndVersion;
-        }
 
         public boolean fromTranslog() {
             return docIdAndVersion != null && docIdAndVersion.reader instanceof TranslogLeafReader;
@@ -1410,10 +1353,6 @@ public abstract class Engine implements Closeable {
 
         @Override
         public void close() {
-            release();
-        }
-
-        public void release() {
             Releasables.close(searcher);
         }
     }

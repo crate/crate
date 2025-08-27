@@ -103,12 +103,14 @@ public final class PKLookupOperation {
                                 List<Symbol> columns,
                                 CheckedFunction<Doc, T, Exception> processDoc) {
         Term uidTerm = new Term(SysColumns.Names.ID, Uid.encodeId(id));
-        Engine.Get get = new Engine.Get(id, uidTerm)
-            .version(version)
-            .versionType(versionType)
-            .setIfSeqNo(seqNo)
-            .setIfPrimaryTerm(primaryTerm);
-
+        Engine.Get get = new Engine.Get(
+            id,
+            uidTerm,
+            version,
+            versionType,
+            seqNo,
+            primaryTerm
+        );
         try (Engine.GetResult getResult = shard.get(get)) {
             var docIdAndVersion = getResult.docIdAndVersion();
             if (docIdAndVersion == null) {
