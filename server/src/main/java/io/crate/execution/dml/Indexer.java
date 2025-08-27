@@ -124,6 +124,8 @@ public class Indexer {
     private final List<Reference> assignedColumns;
     @Nullable
     private final Indexer insertOnConflictIndexer;
+    @Nullable
+    private final List<Reference> indexOrder;
 
 
     public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
@@ -409,11 +411,17 @@ public class Indexer {
         if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty()) { // insert-on-conflict
             // onConflictIndexer is built as if a pure update indexer
             this.insertOnConflictIndexer = new Indexer(
-                partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, List.of(), updateColumns, returnValues);
+                partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, List.of(), updateColumns, returnValues) {
+                @Override
+                public List<Reference> indexOrder() {
+                    return insertColumns();
+                }
+            };
             // this indexer is build as if it is an insert indexer
             this.updateToInsert = null;
             this.columns = targetColumns;
             this.assignedColumns = this.columns;
+            this.indexOrder = this.insertOnConflictIndexer.insertColumns();
         } else if (updateColumns != null && updateColumns.length > 0) { // update
             this.insertOnConflictIndexer = null;
             this.updateToInsert = new UpdateToInsert(
@@ -425,11 +433,13 @@ public class Indexer {
             );
             this.columns = this.updateToInsert.columns();
             this.assignedColumns = this.updateToInsert.updateColumns;
+            this.indexOrder = null;
         } else { // insert
             this.insertOnConflictIndexer = null;
             this.updateToInsert = null;
             this.columns = targetColumns;
             this.assignedColumns = this.columns;
+            this.indexOrder = null;
         }
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
@@ -786,38 +796,75 @@ public class Indexer {
         );
         Object[] values = item.insertValues();
 
-        for (int i = 0; i < values.length; i++) {
-            Reference reference = columns.get(i);
-            Object value = valueForInsert(reference.valueType(), values[i]);
-            ColumnConstraint check = columnConstraints.get(reference.column());
-            if (check != null) {
-                check.verify(value);
+        if (indexOrder() == null) {
+            for (int i = 0; i < values.length; i++) {
+                Reference reference = columns.get(i);
+                Object value = valueForInsert(reference.valueType(), values[i]);
+                ColumnConstraint check = columnConstraints.get(reference.column());
+                if (check != null) {
+                    check.verify(value);
+                }
+                if (reference.granularity() == RowGranularity.PARTITION) {
+                    continue;
+                }
+                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
+                if (value == null) {
+                    continue;
+                }
+                translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
+                valueIndexer.indexValue(value, docBuilder);
             }
-            if (reference.granularity() == RowGranularity.PARTITION) {
-                continue;
-            }
-            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-            if (value == null) {
-                continue;
-            }
-            translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
-            valueIndexer.indexValue(value, docBuilder);
-        }
 
-        for (var entry : synthetics.entrySet()) {
-            ColumnIdent column = entry.getKey();
-            if (!column.isRoot()) {
-                continue;
-            }
-            Synthetic synthetic = entry.getValue();
+            for (var entry : synthetics.entrySet()) {
+                ColumnIdent column = entry.getKey();
+                if (!column.isRoot()) {
+                    continue;
+                }
+                Synthetic synthetic = entry.getValue();
 
-            Object value = synthetic.value();
-            if (value == null) {
-                continue;
+                Object value = synthetic.value();
+                if (value == null) {
+                    continue;
+                }
+                ValueIndexer<Object> indexer = synthetic.indexer();
+                translogWriter.writeFieldName(indexer.storageIdentLeafName());
+                indexer.indexValue(value, docBuilder);
             }
-            ValueIndexer<Object> indexer = synthetic.indexer();
-            translogWriter.writeFieldName(indexer.storageIdentLeafName());
-            indexer.indexValue(value, docBuilder);
+        } else {
+            // explicitly control indexing order for insert/update paths of insert-on-conflict on primary/replica
+            for (Reference ref : indexOrder()) {
+                if (columns.contains(ref)) {
+                    int idx = columns.indexOf(ref);
+                    Object value = valueForInsert(ref.valueType(), values[idx]);
+                    ColumnConstraint check = columnConstraints.get(ref.column());
+                    if (check != null) {
+                        check.verify(value);
+                    }
+                    if (ref.granularity() == RowGranularity.PARTITION) {
+                        continue;
+                    }
+                    ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(idx);
+                    if (value != null) {
+                        translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
+                        valueIndexer.indexValue(value, docBuilder);
+                    }
+                }
+                if (synthetics.containsKey(ref.column())) {
+                    ColumnIdent column = ref.column();
+                    if (!column.isRoot()) {
+                        continue;
+                    }
+                    Synthetic synthetic = synthetics.get(column);
+
+                    Object value = synthetic.value();
+                    if (value == null) {
+                        continue;
+                    }
+                    ValueIndexer<Object> indexer = synthetic.indexer();
+                    translogWriter.writeFieldName(indexer.storageIdentLeafName());
+                    indexer.indexValue(value, docBuilder);
+                }
+            }
         }
 
         addIndexColumns(indexColumns, docBuilder);
@@ -888,6 +935,15 @@ public class Indexer {
 
     private static <T> T valueForInsert(DataType<T> valueType, Object value) {
         return valueType.valueForInsert(valueType.sanitizeValue(value));
+    }
+
+    public Object synthetic(Reference r) {
+        assert synthetics.get(r.column()).computed : "must be computed";
+        return synthetics.get(r.column()).computedValue;
+    }
+
+    public List<Reference> indexOrder() {
+        return indexOrder;
     }
 
     @Nullable

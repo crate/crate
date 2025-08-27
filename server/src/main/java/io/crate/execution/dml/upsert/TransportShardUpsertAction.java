@@ -30,7 +30,6 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
-import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -184,25 +183,11 @@ public class TransportShardUpsertAction extends TransportShardAction<
         ShardResponse shardResponse = new ShardResponse(request.returnValues());
         Translog.Location translogLocation = null;
         List<UpsertReplicaRequest.Item> replicaItems = new ArrayList<>();
-        UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
-            request.shardId(),
-            request.jobId(),
-            request.sessionSettings(),
-            // Copy because indexer.insertColumns can be mutated during indexing
-            // to refine types. (undefined[] -> long[], with values being integer[])
-            // Using the refined types can break streaming for the replica
-            // See `test_dynamic_null_array_overridden_to_integer_becomes_null`
-            List.copyOf(indexer.insertColumns()),
-            /* unified insertColumns for insert-on-conflict
-            Stream.concat(
-                indexer.insertColumns().stream(),
-                Optional.ofNullable(indexer.onConflictIndexer())
-                    .map(c -> c.insertColumns().stream())
-                    .orElse(Stream.empty())
-            ).distinct().toList(),
-             */
-            replicaItems
-        );
+        // Copy because indexer.insertColumns can be mutated during indexing
+        // to refine types. (undefined[] -> long[], with values being integer[])
+        // Using the refined types can break streaming for the replica
+        // See `test_dynamic_null_array_overridden_to_integer_becomes_null`
+        var insertColumnsForReplica = List.copyOf(indexer.insertColumns());
         for (ShardUpsertRequest.Item item : request.items()) {
             if (shardResponse.failure() != null) {
                 // Skip all remaining items on replica
@@ -276,6 +261,14 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 break;
             }
         }
+        UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
+            request.shardId(),
+            request.jobId(),
+            request.sessionSettings(),
+            indexer.onConflictIndexer() != null ?
+                indexer.indexOrder() : insertColumnsForReplica,
+            replicaItems
+        );
         return new WritePrimaryResult<>(replicaRequest, shardResponse, translogLocation, indexShard);
     }
 
@@ -364,7 +357,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 // to the replica. When it arrives on the replica, there’s no guarantee that the replica has already
                 // applied the new mapping, so there is no other option than to wait.
                 logger.trace("Mappings are not available on the replica columns={}", newColumns);
-                throw new TransportReplicationAction.RetryOnReplicaException(indexShard.shardId(),
+                throw new RetryOnReplicaException(indexShard.shardId(),
                     "Mappings are not available on the replica yet, triggered update: " + newColumns);
             }
 
@@ -429,6 +422,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                                @Nullable RawIndexer rawIndexer) throws Exception {
         VersionConflictEngineException lastException = null;
         boolean fallBackToUpdate = false;
+        Indexer onConflictIndexer = null;
         boolean hasUpdate = item.updateAssignments() != null && item.updateAssignments().length > 0;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
@@ -452,14 +446,36 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     );
                     if (indexer.onConflictIndexer() != null) {
                         // fix indexItemResult.replicaInsertValues to match unified insertColumns for insert-on-conflict
+                        var mergedInsertColumns = indexer.indexOrder();
+                        Object[] replicaInsertValues = indexItemResult.replicaInsertValues;
+                        Object[] reordered = new Object[mergedInsertColumns.size()];
+                        for (int i = 0; i < mergedInsertColumns.size(); i++) {
+                            Reference insertColumn = mergedInsertColumns.get(i);
+                            if (indexer.insertColumns().contains(insertColumn)) {
+                                reordered[i] = replicaInsertValues[indexer.insertColumns().indexOf(insertColumn)];
+                            } else {
+                                reordered[i] = indexer.synthetic(insertColumn);
+                            }
+                        }
+                        return new IndexItemResult(indexItemResult.result, reordered, indexItemResult.returnValues);
                     }
+                    return indexItemResult;
                 } else {
-                    indexItemResult = indexItemForUpdate(indexer, request, item, indexShard, tableInfo, partitionValues);
-                    if (indexer.onConflictIndexer() != null) {
-                        // fix indexItemResult.replicaInsertValues to match unified insertColumns for insert-on-conflict
+                    indexItemResult = indexItemForUpdate(onConflictIndexer, request, item, indexShard, tableInfo, partitionValues);
+                    // fix indexItemResult.replicaInsertValues to match unified insertColumns for insert-on-conflict
+                    var mergedInsertColumns = onConflictIndexer.indexOrder();
+                    Object[] replicaInsertValues = indexItemResult.replicaInsertValues;
+                    Object[] reordered = new Object[mergedInsertColumns.size()];
+                    for (int i = 0; i < mergedInsertColumns.size(); i++) {
+                        Reference insertColumn = mergedInsertColumns.get(i);
+                        if (onConflictIndexer.insertColumns().contains(insertColumn)) {
+                            reordered[i] = replicaInsertValues[onConflictIndexer.insertColumns().indexOf(insertColumn)];
+                        } else {
+                            reordered[i] = onConflictIndexer.synthetic(insertColumn);
+                        }
                     }
+                    return new IndexItemResult(indexItemResult.result, reordered, indexItemResult.returnValues);
                 }
-                return indexItemResult;
             } catch (VersionConflictEngineException e) {
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
@@ -470,7 +486,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     if (!fallBackToUpdate) {
                         // insert failed, document already exists, try update
                         fallBackToUpdate = true;
-                        indexer = indexer.onConflictIndexer();
+                        onConflictIndexer = indexer.onConflictIndexer();
                         if (logger.isTraceEnabled()) {
                             logger.trace("[{}] Insert conflict on id={}, falling back to UPDATE", indexShard.shardId(), item.id());
                         }
@@ -554,7 +570,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     indexShard.getOperationPrimaryTerm(),
                     version.getPlain(),
                     VersionType.INTERNAL,
-                    Engine.Operation.Origin.PRIMARY,
+                    Origin.PRIMARY,
                     startTime,
                     item.autoGeneratedTimestamp(),
                     isRetry,
@@ -656,7 +672,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
             indexShard.getOperationPrimaryTerm(),
             version,
             VersionType.INTERNAL,
-            Engine.Operation.Origin.PRIMARY,
+            Origin.PRIMARY,
             startTime,
             autoGeneratedTimestamp,
             isRetry,
