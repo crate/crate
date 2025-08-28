@@ -76,3 +76,6 @@ Fixes
     SELECT sum(x) OVER(PARTITION BY x, y)
     FROM unnest([1], [6]) AS t (x, y)
     GROUP BY x
+
+- Fixed an issue that caused a ``NullPointerException`` when inserting ``NULL``
+  to an object column with a non-deterministic sub-column.
