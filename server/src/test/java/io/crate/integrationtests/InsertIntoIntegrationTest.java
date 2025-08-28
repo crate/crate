@@ -2166,6 +2166,11 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
         assertThat(response).hasRows("0| 1| 2| 3| -1| -1| -1");
+
+        execute("insert into t(c,i,o) values (1, 1, null)");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t where c=1");
+        assertThat(response).hasRows("1| 1| NULL| NULL| -1| NULL| NULL");
     }
 
     @Test
@@ -2192,6 +2197,11 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
         assertThat(response).hasRows("0| 1| 2| 3| 1| 1| 1");
+
+        execute("insert into t(c,i,o) values (1, 1, null)");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t where c=1");
+        assertThat(response).hasRows("1| 1| NULL| NULL| 2| NULL| NULL");
     }
 
     @Test
