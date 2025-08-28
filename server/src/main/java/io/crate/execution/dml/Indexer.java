@@ -945,6 +945,10 @@ public class Indexer {
                     assert valueIdx < insertValues.length : "Target columns and values must have the same size";
                     root = (Map<String, Object>) insertValues[valueIdx];
                 }
+                // When a null is assigned to a parent object, do not generate nondeterministic children
+                if (root == null) {
+                    continue;
+                }
                 ColumnIdent child = column.shiftRight();
                 Object value = synthetic.value();
                 // We don't override value if it exists.

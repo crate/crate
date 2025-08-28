@@ -1096,6 +1096,24 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat((int) object.get("x")).isGreaterThan(0);
     }
 
+    public void test_does_not_add_non_deterministic_child_when_parent_is_assigned_to_null() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table tbl (
+                    o object as (
+                        x int as round((random() + 1) * 100)
+                    )
+                )
+                """);
+
+        // insert into tbl values (null)
+        Indexer indexer = getIndexer(e, "tbl", "o");
+        IndexItem item = item((Object) null);
+
+        Object[] insertValues = indexer.addGeneratedValues(item);
+        assertThat(insertValues).containsExactly((Object) null);
+    }
+
     @Test
     public void test_fields_order_in_source_is_deterministic() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
