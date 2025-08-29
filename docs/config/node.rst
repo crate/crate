@@ -330,6 +330,8 @@ Transport settings
   feature, because TCP keep-alives apply to all kinds of long-lived connections
   and not just to transport connections.
 
+.. _conf-node-settings_paths:
+
 Paths
 =====
 
