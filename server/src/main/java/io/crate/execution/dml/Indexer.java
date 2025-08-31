@@ -1015,7 +1015,8 @@ public class Indexer {
                     child.name(),
                     child.path(),
                     value,
-                    Map::putIfAbsent
+                    Map::putIfAbsent,
+                    false // i.e., a user may want to set null to an object column with non-deterministic sub-cols
                 );
             }
         }
