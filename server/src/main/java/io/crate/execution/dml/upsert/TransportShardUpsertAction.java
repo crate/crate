@@ -40,6 +40,7 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.Engine;
@@ -63,7 +64,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
-import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.TransportAddColumn;
 import io.crate.execution.dml.IndexItem;
@@ -138,7 +138,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
         Metadata metadata = clusterService.state().metadata();
         RelationMetadata relationMetadata = metadata.getRelation(indexUUID);
         if (relationMetadata == null) {
-            throw new RelationUnknown("RelationMetadata for index '" + indexUUID + "' not found in cluster state");
+            throw new IndexNotFoundException(indexShard.shardId().getIndex());
         }
         DocTableInfo tableInfo = schemas.getTableInfo(relationMetadata.name());
         IndexMetadata indexMetadata = metadata.index(indexUUID);
@@ -303,7 +303,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
         Metadata metadata = clusterService.state().metadata();
         RelationMetadata relationMetadata = metadata.getRelation(indexUUID);
         if (relationMetadata == null) {
-            throw new IllegalStateException("RelationMetadata for index " + indexUUID + " not found in cluster state");
+            throw new IndexNotFoundException(indexShard.shardId().getIndex());
         }
         DocTableInfo tableInfo = schemas.getTableInfo(relationMetadata.name());
         IndexMetadata indexMetadata = metadata.index(indexUUID);
