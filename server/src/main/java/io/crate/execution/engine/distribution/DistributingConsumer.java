@@ -50,6 +50,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.execution.jobs.kill.KillResponse;
@@ -328,15 +329,21 @@ public class DistributingConsumer implements RowConsumer {
         }
 
         private void handleFailure(Throwable err) {
-            failure = err;
+            // Downstream can receive kill from other nodes and send `JobKilledException` back due to it
+            // We want to preserve original errors that led to the kill
+            if (failure == null || !(err instanceof JobKilledException)) {
+                failure = err;
+            }
             downstream.needsMoreData = false;
             // continue because it's necessary to send something to the other downstreams still waiting for data
             if (isFailureReq) {
                 countdownAndMaybeCloseIt(numActiveRequests, it);
             } else {
-                String reason = "An error was encountered: " + failure;
-                broadcastKill(killNodeAction, jobId, localNodeId, reason);
-
+                // If we get a JobKilled from downstream it was already broadcast
+                if (!(err instanceof JobKilledException)) {
+                    String reason = "An error was encountered: " + err;
+                    broadcastKill(killNodeAction, jobId, localNodeId, reason);
+                }
                 it.close();
                 completionFuture.completeExceptionally(failure);
             }
