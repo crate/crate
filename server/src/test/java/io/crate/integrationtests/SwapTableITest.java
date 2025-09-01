@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -92,12 +93,10 @@ public class SwapTableITest extends IntegTestCase {
         execute("refresh table source, target");
 
         execute("select partition_ident, table_name from information_schema.table_partitions where table_name in ('source', 'target') order by 1");
-        assertThat(response.rowCount()).isEqualTo(2L);
-        String part1Ident = (String) response.rows()[0][0];
-        String part2Ident = (String) response.rows()[1][0];
-        assertThat(printedTable(response.rows()))
-                .isEqualTo(part1Ident + "| source\n" +
-                           part2Ident + "| source\n");
+        assertThat(response).hasRows(
+            "04132| source",
+            "04134| source"
+        );
 
         execute("alter cluster swap table source to target");
         assertThat(printedTable(execute("select * from source order by t").rows()))
@@ -108,9 +107,10 @@ public class SwapTableITest extends IntegTestCase {
                 "select table_name from information_schema.tables where table_name in ('source', 'target') order by 1").rows()))
                 .isEqualTo("source\ntarget\n");
         execute("select partition_ident, table_name from information_schema.table_partitions where table_name in ('source', 'target') order by 1");
-        assertThat(printedTable(response.rows()))
-                .isEqualTo(part1Ident + "| target\n" +
-                           part2Ident + "| target\n");
+        assertThat(response).hasRows(
+            "04132| target",
+            "04134| target"
+        );
     }
 
     @Test

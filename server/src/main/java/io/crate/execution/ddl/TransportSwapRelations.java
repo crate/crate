@@ -140,6 +140,7 @@ public final class TransportSwapRelations extends TransportMasterNodeAction<Swap
         for (RelationName dropRelation : request.dropRelations()) {
             affectedIndices.addAll(metadata.getIndices(dropRelation, List.of(), false, toOpenIndexUUID));
         }
-        return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, affectedIndices.toArray(new String[0]));
+        // return state.blocks().indicesBlockedException(ClusterBlockLevel.METADATA_READ, affectedIndices.toArray(new String[0]));
+        return state.blocks().globalBlockedException(ClusterBlockLevel.METADATA_WRITE);
     }
 }
