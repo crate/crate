@@ -26,8 +26,10 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_TABLE;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.test.IntegTestCase;
@@ -79,40 +81,67 @@ public class OpenCloseTableIntegrationTest extends IntegTestCase {
 
     @Test
     public void test_get_translog_stats_after_close_and_open_table() throws Exception {
-        execute("create table test (x int ) with (number_of_replicas = 0) ");
-        long numberOfDocs = randomIntBetween(0, 50);
-        long uncommittedOps = 0;
-        for (long i = 0; i < numberOfDocs; i++) {
-            execute("insert into test values (?)", new Object[]{i});
-            if (rarely()) {
-                execute("optimize table test with (flush = true)");
-                uncommittedOps = 0;
-            } else {
-                uncommittedOps += 1;
+        execute("""
+            create table test (x int )
+            with (
+                number_of_replicas = 0,
+                refresh_interval = '1m'
+            )
+            """
+        );
+        String translogOpsStmt = """
+            select
+                sum(translog_stats['number_of_operations']),
+                sum(translog_stats['uncommitted_operations']),
+                sum(flush_stats['count'])
+            from
+                sys.shards
+            where
+                table_name = 'test'
+                and primary = true
+            """;
+        long numberOfDocs = randomIntBetween(0, 10);
+        while (true) {
+            long uncommittedOps = 0;
+            for (long i = 0; i < numberOfDocs; i++) {
+                execute("insert into test values (?)", new Object[]{i});
+                assertThat(response).hasRowCount(1);
+                if (rarely()) {
+                    execute("optimize table test with (flush = true)");
+                    uncommittedOps = 0;
+                } else {
+                    uncommittedOps += 1;
+                }
+            }
+            final long uncommittedTranslogOps = uncommittedOps;
+            AtomicBoolean retry = new AtomicBoolean(false);
+            assertBusy(() -> {
+                retry.setPlain(false);
+                execute(translogOpsStmt);
+                assertThat(response).hasRowCount(1);
+                boolean hadImplicitFlush = (long) response.rows()[0][2] > 0;
+                if (hadImplicitFlush) {
+                    // if we have some uncommitted ops that's still good enough
+                    // for the close/open test. Otherwise we retry by inserting
+                    // more docs
+                    retry.setPlain((long) response.rows()[0][0] == 0);
+                    return;
+                }
+                assertThat(response.rows()[0])
+                    .as("(number_of_operations, uncommitted_operations) == not yet flushed inserts")
+                    .isEqualTo(new Object[] { uncommittedTranslogOps, uncommittedTranslogOps, 0L });
+            });
+            if (!retry.getPlain()) {
+                break;
             }
         }
-        final long uncommittedTranslogOps = uncommittedOps;
-        assertBusy(() -> {
-            execute(
-                "select sum(translog_stats['number_of_operations']), sum(translog_stats['uncommitted_operations']) " +
-                "from sys.shards " +
-                "where table_name = 'test' and primary = true " +
-                "group by table_name, primary");
-            assertThat(response.rowCount()).isGreaterThan(0L);
-            assertThat(response.rows()[0][0]).isEqualTo(uncommittedTranslogOps);
-            assertThat(response.rows()[0][1]).isEqualTo(uncommittedTranslogOps);
-        });
 
         execute("alter table test close");
         execute("alter table test open");
         ensureYellow();
 
-        execute(
-            "select sum(translog_stats['number_of_operations']), sum(translog_stats['uncommitted_operations']) " +
-            "from sys.shards " +
-            "where table_name = 'test' and primary = true " +
-            "group by table_name, primary");
-        assertThat(response.rowCount()).isGreaterThan(0);
+        execute(translogOpsStmt);
+        assertThat(response).hasRowCount(1);
         assertThat(response.rows()[0][0]).isEqualTo(0L);
         assertThat(response.rows()[0][1]).isEqualTo(0L);
     }
