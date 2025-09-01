@@ -585,14 +585,15 @@ public class MetadataCreateIndexService {
             indexName = partitionName.asIndexName();
         }
 
-        List<IndexMetadata> existingIndices = currentState.metadata().getIndices(tableName, partitionValues, true, im -> im);
+        Metadata metadata = currentState.metadata();
+        List<IndexMetadata> existingIndices = metadata.getIndices(tableName, partitionValues, false, im -> im);
         if (!existingIndices.isEmpty()) {
             throw new ResourceAlreadyExistsException(existingIndices.getFirst().getIndex().getName());
         }
 
         validateIndexSettings(indexName, concreteIndexSettings, true);
 
-        Metadata.Builder metadataBuilder = Metadata.builder(currentState.metadata());
+        Metadata.Builder metadataBuilder = Metadata.builder(metadata);
         final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
             MappingUtil.AllocPosition.forNewTable(),
             table.pkConstraintName(),

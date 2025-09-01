@@ -1434,4 +1434,10 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             && VERIFIED_BEFORE_CLOSE_SETTING.exists(indexMetadata.getSettings())
             && VERIFIED_BEFORE_CLOSE_SETTING.get(indexMetadata.getSettings());
     }
+
+
+    @Override
+    public String toString() {
+        return "IndexMetadata{" + index + "}";
+    }
 }
