@@ -101,6 +101,7 @@ public class MetadataTrackerTest extends ESTestCase {
                 .put(settings)
                 .build();
 
+            String indexUUID = UUIDs.randomBase64UUID();
             Metadata metadata = Metadata.builder(clusterState.metadata())
                 .setTable(
                     relationName,
@@ -113,7 +114,7 @@ public class MetadataTrackerTest extends ESTestCase {
                     List.of(),
                     List.of(),
                     IndexMetadata.State.OPEN,
-                    List.of(),
+                    List.of(indexUUID),
                     1L
                 )
                 .build();
@@ -126,14 +127,13 @@ public class MetadataTrackerTest extends ESTestCase {
             RelationMetadata.Table table = metadata.getRelation(relationName);
             assert table != null : "Table " + relationName + " not found in metadata";
 
-            return addPartition(table, new PartitionName(relationName, List.of()), settingsWithDefaults);
+            return addPartition(table, indexUUID, new PartitionName(relationName, List.of()), settingsWithDefaults);
         }
 
-        private Builder addPartition(RelationMetadata.Table table, PartitionName partitionName, Settings settings) throws IOException {
+        private Builder addPartition(RelationMetadata.Table table, String indexUUID, PartitionName partitionName, Settings settings) throws IOException {
             Map<String, Object> mapping = Map.of();
-            String indexUUID = UUIDs.randomBase64UUID();
             var indexMetadata = IndexMetadata.builder(indexUUID)
-                .indexName(partitionName.asIndexName())
+                .indexName(indexUUID)
                 .putMapping(new MappingMetadata(mapping))
                 .settings(settings(Version.CURRENT).put(settings))
                 .partitionValues(partitionName.values())
@@ -143,7 +143,9 @@ public class MetadataTrackerTest extends ESTestCase {
 
             Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata());
             mdBuilder.put(indexMetadata, true);
-            mdBuilder.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
+            if (!table.indexUUIDs().contains(indexUUID)) {
+                mdBuilder.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
+            }
 
             clusterState = ClusterState.builder(clusterState)
                 .metadata(mdBuilder)
@@ -195,7 +197,7 @@ public class MetadataTrackerTest extends ESTestCase {
             assert table != null : "Table " + relationName + " not found in metadata";
 
             for (var partitionName : partitions) {
-                addPartition(table, partitionName, Settings.EMPTY);
+                addPartition(table, UUIDs.randomBase64UUID(), partitionName, Settings.EMPTY);
             }
 
             return this;
