@@ -41,6 +41,7 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.execution.jobs.kill.KillResponse;
@@ -238,9 +239,20 @@ public class DistributingConsumer implements RowConsumer {
                                 downstream.nodeId,
                                 t
                             );
-                            failure = SQLExceptions.unwrap(t);
-                            String reason = "An error was encountered: " + failure;
-                            broadcastKill(killNodeAction, jobId, localNodeId, reason);
+                            var err = SQLExceptions.unwrap(t);
+                            // Downstream can receive kill from other nodes and
+                            // send `JobKilledException` back due to it We want
+                            // to preserve original errors that led to the kill
+                            if (failure == null || !(err instanceof JobKilledException)) {
+                                failure = err;
+                            }
+
+                            // If we get a JobKilled from downstream it was already broadcast
+                            if (!(err instanceof JobKilledException)) {
+                                String reason = "An error was encountered: " + err;
+                                broadcastKill(killNodeAction, jobId, localNodeId, reason);
+                            }
+
                             it.close();
                             completionFuture.completeExceptionally(failure);
                         }
