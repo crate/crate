@@ -1747,6 +1747,9 @@ How to reindex
     cr> INSERT INTO rx.tmp_metrics (id, temperature) (SELECT id, temperature FROM rx.metrics);
     INSERT OK, 2 rows affected (... sec)
 
+    cr> REFRESH TABLE rx.tmp_metrics;
+    REFRESH OK, 1 row affected  (... sec)
+
 4. Swap the tables::
 
     cr> ALTER CLUSTER SWAP TABLE rx.tmp_metrics TO rx.metrics;
