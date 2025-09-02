@@ -21,8 +21,8 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_UPGRADED;
-import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
 import java.util.HashMap;
 import java.util.List;
@@ -292,12 +292,6 @@ public class MetadataUpgradeService {
                 if (table.indexUUIDs().contains(indexMetadata.getIndexUUID())) {
                     // already added
                     continue;
-                }
-                if (indexParts.isPartitioned()) {
-                    indexMetadata = IndexMetadata.builder(indexMetadata)
-                        .partitionValues(PartitionName.decodeIdent(indexParts.partitionIdent()))
-                        .build();
-                    newMetadata.put(indexMetadata, false);
                 }
                 newMetadata.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
             }
