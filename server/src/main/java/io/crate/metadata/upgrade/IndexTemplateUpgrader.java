@@ -22,30 +22,20 @@
 package io.crate.metadata.upgrade;
 
 import static io.crate.metadata.upgrade.MetadataIndexUpgrader.removeInvalidPropertyGeneratedByDroppingSysCols;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import io.crate.common.collections.Maps;
-import io.crate.metadata.IndexName;
 import io.crate.server.xcontent.XContentHelper;
 
-@SuppressWarnings("deprecation") // suppressed because this class by design deals with deprecated components
 public final class IndexTemplateUpgrader {
 
     public static final String CRATE_DEFAULTS = "crate_defaults";
@@ -53,64 +43,24 @@ public final class IndexTemplateUpgrader {
     private IndexTemplateUpgrader() {
     }
 
-    public static Map<String, IndexTemplateMetadata> upgrade(Map<String, IndexTemplateMetadata> templates) {
-        HashMap<String, IndexTemplateMetadata> upgradedTemplates = archiveUnknownOrInvalidSettings(templates);
-        upgradedTemplates.remove(CRATE_DEFAULTS);
-        return upgradedTemplates;
-    }
-
-    public static IndexTemplateMetadata upgradeTemplate(IndexTemplateMetadata template) {
-        Settings.Builder settingsBuilder = Settings.builder().put(template.settings());
-        String templateName = template.name();
-
-        // only process partition table templates
-        if (IndexName.isPartitioned(templateName) == false) {
-            return template;
-        }
-
-        Settings settings = DEFAULT_SCOPED_SETTINGS.archiveUnknownOrInvalidSettings(
-            settingsBuilder.build(), _ -> { }, (_, _) -> { })
-            .filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX) == false);
-
-        IndexTemplateMetadata.Builder builder = IndexTemplateMetadata.builder(templateName)
-            .patterns(template.patterns())
-            .settings(settings);
-        var mappingSource = XContentHelper.toMap(template.mapping().compressedReference(), XContentType.JSON);
+    /// Updates the mapping:
+    ///
+    /// - Drops _all
+    /// - Adds column positions
+    /// - Applies fixes for mangled properties caused by dropping sys columns
+    ///
+    public static Map<String, Object> updateMapping(CompressedXContent mapping) {
+        Map<String, Object> mappingSource = XContentHelper.toMap(mapping.compressedReference(), XContentType.JSON);
         Map<String, Object> defaultMapping = Maps.get(mappingSource, "default");
-        boolean updated = removeInvalidPropertyGeneratedByDroppingSysCols(defaultMapping);
-        updated |= populateColumnPositions(defaultMapping);
+        removeInvalidPropertyGeneratedByDroppingSysCols(defaultMapping);
+        populateColumnPositions(defaultMapping);
         if (defaultMapping.containsKey("_all")) {
             // Support for `_all` was removed (in favour of `copy_to`.
             // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
             defaultMapping.remove("_all");
-            updated = true;
         }
-        updated |= MetadataIndexUpgrader.addIndexColumnSources(Maps.get(defaultMapping, "properties"), defaultMapping, "");
-        if (updated) {
-            builder.putMapping(new CompressedXContent(mappingSource));
-        } else {
-            builder.putMapping(template.mapping());
-        }
-
-        for (ObjectObjectCursor<String, AliasMetadata> container : template.aliases()) {
-            builder.putAlias(container.value);
-        }
-
-        return builder.build();
-    }
-
-    /**
-     * Filter out all unknown/old/invalid settings. Archiving them *only* is not working as they would be "un-archived"
-     * by {@link IndexTemplateMetadata.Builder#fromXContent} logic to prefix all settings with `index.` when applying
-     * the new cluster state.
-     */
-    private static HashMap<String, IndexTemplateMetadata> archiveUnknownOrInvalidSettings(Map<String, IndexTemplateMetadata> templates) {
-        HashMap<String, IndexTemplateMetadata> upgradedTemplates = new HashMap<>(templates.size());
-        for (Map.Entry<String, IndexTemplateMetadata> entry : templates.entrySet()) {
-            IndexTemplateMetadata templateMetadata = entry.getValue();
-            upgradedTemplates.put(entry.getKey(), upgradeTemplate(templateMetadata));
-        }
-        return upgradedTemplates;
+        MetadataIndexUpgrader.addIndexColumnSources(Maps.get(defaultMapping, "properties"), defaultMapping, "");
+        return mappingSource;
     }
 
     public static boolean populateColumnPositions(Map<String, Object> mapping) {

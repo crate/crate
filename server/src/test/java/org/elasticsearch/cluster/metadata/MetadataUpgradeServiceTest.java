@@ -27,10 +27,13 @@ import java.io.IOException;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.settings.AbstractScopedSettings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.TestCustomMetadata;
 import org.junit.Before;
 import org.junit.Test;
@@ -40,16 +43,39 @@ import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.IndexName;
+import io.crate.metadata.IndexType;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.SimpleReference;
+import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
 
+@SuppressWarnings("deprecation") // tests deprecated components for BWC
 public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest {
 
     private MetadataUpgradeService metadataUpgradeService;
+    private String minimalTemplateMappingSource =
+        """
+        {
+            "default": {
+                "_meta": {
+                    "partitioned_by": [["p", "integer"]]
+                },
+                "properties": {
+                    "p": {
+                        "type": "integer"
+                    }
+                }
+            }
+        }
+        """;
 
     @Before
     public void setUpUpgradeService() throws Exception {
@@ -59,6 +85,132 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             e.nodeCtx,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
             e.udfService());
+    }
+
+    @Test
+    public void test_default_template_is_removed() throws Exception {
+        IndexTemplateMetadata oldTemplate = IndexTemplateMetadata.builder(IndexTemplateUpgrader.CRATE_DEFAULTS)
+            .patterns(List.of("*"))
+            .putMapping("{\"default\": {}}")
+            .build();
+        Metadata metadata = Metadata.builder(clusterService.state().metadata())
+            .put(oldTemplate)
+            .build();
+        Metadata newMetadata = metadataUpgradeService.upgradeMetadata(metadata);
+        assertThat(newMetadata.templates().get(IndexTemplateUpgrader.CRATE_DEFAULTS)).isNull();
+    }
+
+
+    @Test
+    public void test_archived_settings_are_removed() throws Exception {
+        Settings settings = Settings.builder()
+            .put(AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX + "some.setting", true)   // archived, must be filtered out
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 4)
+            .build();
+
+        String templateName = PartitionName.templateName("doc", "t1");
+        IndexTemplateMetadata template = IndexTemplateMetadata.builder(templateName)
+            .settings(settings)
+            .putMapping(minimalTemplateMappingSource)
+            .patterns(List.of("*"))
+            .build();
+
+        Metadata metadata = Metadata.builder(clusterService.state().metadata())
+            .put(template)
+            .build();
+
+        Metadata newMetadata = metadataUpgradeService.upgradeMetadata(metadata);
+        assertThat(newMetadata.templates().get(templateName)).isNull();
+        RelationMetadata.Table relation = newMetadata.getRelation(new RelationName("doc", "t1"));
+        assertThat(relation).isNotNull();
+        assertThat(relation.settings().keySet()).containsExactly(
+            IndexMetadata.SETTING_NUMBER_OF_SHARDS,
+            IndexMetadata.SETTING_VERSION_CREATED,
+            IndexMetadata.SETTING_VERSION_UPGRADED
+        );
+    }
+
+    @Test
+    public void test_invalid_setting_is_removed_for_template_in_custom_schema() throws Exception {
+        Settings settings = Settings.builder()
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 4)
+            .put("index.recovery.initial_shards", "quorum")
+            .build();
+        String templateName = PartitionName.templateName("foobar", "t1");
+        IndexTemplateMetadata template = IndexTemplateMetadata.builder(templateName)
+            .settings(settings)
+            .putMapping(minimalTemplateMappingSource)
+            .patterns(List.of("*"))
+            .build();
+
+        Metadata metadata = Metadata.builder(clusterService.state().metadata())
+            .put(template)
+            .build();
+        Metadata newMetadata = metadataUpgradeService.upgradeMetadata(metadata);
+
+        assertThat(newMetadata.templates().get(templateName)).isNull();
+        RelationMetadata.Table relation = newMetadata.getRelation(new RelationName("foobar", "t1"));
+        assertThat(relation).isNotNull();
+        assertThat(relation.settings().keySet()).containsExactly(
+            IndexMetadata.SETTING_NUMBER_OF_SHARDS,
+            IndexMetadata.SETTING_VERSION_CREATED,
+            IndexMetadata.SETTING_VERSION_UPGRADED
+        );
+    }
+
+    @Test
+    public void test__dropped_0_is_removed_from_template_mapping() throws Throwable {
+        Settings settings = Settings.builder()
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 4)
+            .build();
+        String templateName = PartitionName.templateName("doc", "events");
+        var template = IndexTemplateMetadata.builder(templateName)
+            .patterns(List.of("*"))
+            .settings(settings)
+            .putMapping(
+                """
+                {
+                    "default": {
+                        "_meta": {
+                            "partitioned_by": [["p", "integer"]]
+                        },
+                        "properties": {
+                            "p": {
+                                "type": "integer"
+                            },
+                            "name": {
+                                "type": "keyword",
+                                "_dropped_0": {
+                                }
+                            }
+                        }
+                    }
+                }
+                """
+            )
+            .build();
+
+        Metadata metadata = Metadata.builder(clusterService.state().metadata())
+            .put(template)
+            .build();
+        Metadata newMetadata = metadataUpgradeService.upgradeMetadata(metadata);
+        RelationName relationName = new RelationName("doc", "events");
+        RelationMetadata.Table relation = newMetadata.getRelation(relationName);
+        assertThat(relation).isNotNull();
+        SimpleReference expectedRef = new SimpleReference(
+            new ReferenceIdent(relationName, "name"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            IndexType.PLAIN,
+            true,
+            true,
+            1,
+            0,
+            false,
+            null
+        );
+        Optional<Reference> match = relation.columns().stream().filter(x -> x.column().name().equals("name")).findAny();
+        assertThat(match).hasValue(expectedRef);
     }
 
 
