@@ -28,7 +28,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 
 import java.io.IOException;
@@ -132,9 +131,11 @@ public class MetadataTrackerTest extends ESTestCase {
 
         private Builder addPartition(RelationMetadata.Table table, PartitionName partitionName, Settings settings) throws IOException {
             Map<String, Object> mapping = Map.of();
-            var indexMetadata = IndexMetadata.builder(partitionName.asIndexName())
+            String indexUUID = UUIDs.randomBase64UUID();
+            var indexMetadata = IndexMetadata.builder(indexUUID)
+                .indexName(partitionName.asIndexName())
                 .putMapping(new MappingMetadata(mapping))
-                .settings(settings(Version.CURRENT).put(settings).put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID()))
+                .settings(settings(Version.CURRENT).put(settings))
                 .partitionValues(partitionName.values())
                 .numberOfShards(1)
                 .numberOfReplicas(0)
@@ -388,7 +389,6 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(SUBSCRIBER_CLUSTER_STATE).isEqualTo(syncedSubscriberClusterState);
 
         // Let's change the mapping on the publisher publisherClusterState
-        Map<String, Object> updatedMapping = Map.of("1", "one", "2", "two");
         SimpleReference newColumn = new SimpleReference(new ReferenceIdent(relationName, "two"), RowGranularity.DOC, DataTypes.STRING, 1, null);
         var updatedPublisherClusterState = new Builder(PUBLISHER_CLUSTER_STATE)
             .addColumn("test", newColumn)
@@ -433,7 +433,7 @@ public class MetadataTrackerTest extends ESTestCase {
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
-        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
+        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().indices().valuesIt().next();
         assertThat(syncedIndexMetadata.getSettings().getAsInt(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), null)).isEqualTo(5);
     }
 
@@ -478,7 +478,7 @@ public class MetadataTrackerTest extends ESTestCase {
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
-        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
+        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().indices().valuesIt().next();
         assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings())).isEqualTo(0);
     }
 
