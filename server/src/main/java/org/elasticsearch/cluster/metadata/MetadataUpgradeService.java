@@ -144,17 +144,24 @@ public class MetadataUpgradeService {
             newMetadata.remove(indexName);
             newMetadata.put(newIndexMetadata, false);
 
-            DocTableInfo docTable = tableFactory.create(newIndexMetadata);
-            IndexParts indexParts = IndexName.decode(indexName);
-            RelationName relationName = indexParts.toRelationName();
-            RelationMetadata relation = newMetadata.getRelation(relationName);
-            LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
-                ? NO_OID_COLUMN_OID_SUPPLIER
-                : newMetadata.columnOidSupplier();
+            String indexUUID = indexMetadata.getIndexUUID();
+            RelationMetadata relation = metadata.getRelation(indexUUID);
+            DocTableInfo docTable = null;
             if (relation == null) {
+                IndexParts indexParts = IndexName.decode(indexName);
+                RelationName relationName = indexParts.toRelationName();
+                relation = newMetadata.getRelation(relationName);
+                docTable = tableFactory.create(newIndexMetadata);
+            }
+            if (relation == null) {
+                assert docTable != null
+                    : "Must have created docTable instance of relation was missing";
+                LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
+                    ? NO_OID_COLUMN_OID_SUPPLIER
+                    : newMetadata.columnOidSupplier();
                 newMetadata.setTable(
                     columnOidSupplier,
-                    relationName,
+                    docTable.ident(),
                     docTable.allReferences(),
                     // If RelationMetadata exist in the cluster state, make sure to override them with
                     // the upgraded settings which currently takes place on IndexMetadata
@@ -171,13 +178,12 @@ public class MetadataUpgradeService {
                     docTable.tableVersion()
                 );
             } else if (relation instanceof RelationMetadata.Table table) {
-                if (table.indexUUIDs().contains(newIndexMetadata.getIndexUUID())) {
-                    // already added
-                    continue;
+                if (!table.indexUUIDs().contains(indexUUID)) {
+                    newMetadata.addIndexUUIDs(table, List.of(indexUUID));
                 }
-                newMetadata.addIndexUUIDs(table, List.of(newIndexMetadata.getIndexUUID()));
+            } else {
+                // TODO: Create RelationMetadata.BlobTable
             }
-
         }
 
         return newMetadata.build();

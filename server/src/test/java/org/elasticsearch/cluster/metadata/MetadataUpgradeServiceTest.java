@@ -30,6 +30,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.AbstractScopedSettings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -51,6 +52,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -336,6 +338,41 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
 
         IndexMetadata createdOnCurrentVersion = upgrade.index("created_on_current");
         assertThat(createdOnCurrentVersion).isEqualTo(indexMetadataCreatedOnCurrentVersion);
+    }
+
+    @Test
+    public void test_doesnot_create_relation_metadata_for_up2date_index_metadata_with_bogus_name() throws Exception {
+        IndexMetadata indexMetadata = IndexMetadata.builder(UUIDs.randomBase64UUID())
+            .indexName("kaputt")
+            .settings(settings(Version.V_6_1_0))
+            .numberOfShards(1)
+            .numberOfReplicas(1)
+            .build();
+
+        RelationName tblName = new RelationName("doc", "tbl");
+        Metadata metadata = Metadata.builder()
+            .put(indexMetadata, false)
+            .setTable(
+                tblName,
+                List.of(),
+                Settings.EMPTY,
+                SysColumns.ID.COLUMN,
+                ColumnPolicy.STRICT,
+                null,
+                Map.of(),
+                List.of(),
+                List.of(),
+                State.OPEN,
+                List.of(indexMetadata.getIndexUUID()),
+                1
+            )
+            .build();
+
+        Metadata upgraded = metadataUpgradeService.upgradeMetadata(metadata);
+        RelationMetadata.Table tblRelation = upgraded.getRelation(tblName);
+        assertThat(tblRelation).isNotNull();
+        RelationMetadata.Table kaputtRelation = upgraded.getRelation(new RelationName("doc", "kaputt"));
+        assertThat(kaputtRelation).isNull();
     }
 
     private static class CustomMetadata extends TestCustomMetadata {
