@@ -29,6 +29,11 @@
       <version>${versions.netty}</version>
     </dependency>
 
+    <dependency>
+      <groupId>io.crate</groupId>
+      <artifactId>crate-libs-shared</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>io.crate</groupId>
