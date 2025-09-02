@@ -24,13 +24,8 @@ import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_U
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.LongSupplier;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,7 +33,6 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
@@ -68,6 +62,7 @@ import io.crate.sql.tree.CheckConstraint;
  * occurs during cluster upgrade, when dangling indices are imported into the cluster or indices
  * are restored from a repository.
  */
+@SuppressWarnings("deprecation") // suppressed because this class by design deals with migrating from deprecated components to non-deprecated.
 public class MetadataUpgradeService {
 
     private static final Logger LOGGER = LogManager.getLogger(MetadataUpgradeService.class);
@@ -76,7 +71,6 @@ public class MetadataUpgradeService {
     private final MetadataIndexUpgrader indexUpgrader;
     private final DocTableInfoFactory tableFactory;
     private final UserDefinedFunctionService userDefinedFunctionService;
-    private final IndexTemplateUpgrader templateUpgrader;
 
     public MetadataUpgradeService(NodeContext nodeContext,
                                   IndexScopedSettings indexScopedSettings,
@@ -84,7 +78,6 @@ public class MetadataUpgradeService {
         this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexScopedSettings = indexScopedSettings;
         this.indexUpgrader = new MetadataIndexUpgrader();
-        this.templateUpgrader = new IndexTemplateUpgrader();
         this.userDefinedFunctionService = userDefinedFunctionService;
     }
 
@@ -96,22 +89,12 @@ public class MetadataUpgradeService {
      * @return input <code>metadata</code> if no upgrade is needed or an upgraded metadata
      */
     public Metadata upgradeMetadata(Metadata metadata) {
-        boolean changed = false;
         final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
 
-        // carries upgraded IndexTemplateMetadata to MetadataIndexUpgradeService.upgradeIndexMetadata
-        final Map<String, IndexTemplateMetadata> upgradedIndexTemplateMetadata = new HashMap<>();
-
-        // upgrade current templates
-        if (applyUpgrader(
-            metadata.templates(),
-            this::upgradeTemplates,
-            upgradedMetadata::removeTemplate,
-            (s, indexTemplateMetadata) -> {
-                upgradedIndexTemplateMetadata.put(s, indexTemplateMetadata);
-                upgradedMetadata.put(indexTemplateMetadata);
-            })) {
-            changed = true;
+        upgradedMetadata.remove(IndexTemplateUpgrader.CRATE_DEFAULTS);
+        for (var cursor : metadata.templates()) {
+            IndexTemplateMetadata template = cursor.value;
+            upgradedMetadata.put(IndexTemplateUpgrader.upgradeTemplate(template));
         }
 
         // upgrade index meta data
@@ -119,46 +102,19 @@ public class MetadataUpgradeService {
             String indexName = indexMetadata.getIndex().getName();
             IndexMetadata newMetadata = upgradeIndexMetadata(
                 indexMetadata,
-                IndexName.isPartitioned(indexName) ?
-                    upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
-                    null,
+                IndexName.isPartitioned(indexName)
+                    ? upgradedMetadata.getTemplate(PartitionName.templateName(indexName))
+                    : null,
                 Version.CURRENT.minimumIndexCompatibilityVersion(),
                 metadata.custom(UserDefinedFunctionsMetadata.TYPE));
-            changed |= indexMetadata != newMetadata;
             // Remove any existing metadata, registered by it's name, for the index
-            if (upgradedMetadata.get(indexName) != null) {
-                changed = true;
-                upgradedMetadata.remove(indexName);
-            }
+            upgradedMetadata.remove(indexName);
             upgradedMetadata.put(newMetadata, false);
         }
 
-        return changed
-            ? addOrUpgradeRelationMetadata(upgradedMetadata.build())
-            : addOrUpgradeRelationMetadata(metadata);
+        return addOrUpgradeRelationMetadata(upgradedMetadata.build());
     }
 
-    private static <Data> boolean applyUpgrader(ImmutableOpenMap<String, Data> existingData,
-                                                UnaryOperator<Map<String, Data>> upgrader,
-                                                Consumer<String> removeData,
-                                                BiConsumer<String, Data> putData) {
-        // collect current data
-        Map<String, Data> existingMap = new HashMap<>();
-        for (ObjectObjectCursor<String, Data> customCursor : existingData) {
-            existingMap.put(customCursor.key, customCursor.value);
-        }
-        // upgrade global custom meta data
-        Map<String, Data> upgradedCustoms = upgrader.apply(existingMap);
-        if (upgradedCustoms.equals(existingMap) == false) {
-            // remove all data first so a plugin can remove custom metadata or templates if needed
-            existingMap.keySet().forEach(removeData);
-            for (Map.Entry<String, Data> upgradedCustomEntry : upgradedCustoms.entrySet()) {
-                putData.accept(upgradedCustomEntry.getKey(), upgradedCustomEntry.getValue());
-            }
-            return true;
-        }
-        return false;
-    }
 
     /**
      * Checks that the index can be upgraded to the current version of the master node.
@@ -171,14 +127,15 @@ public class MetadataUpgradeService {
                                               @Nullable IndexTemplateMetadata indexTemplateMetadata,
                                               Version minimumIndexCompatibilityVersion,
                                               @Nullable UserDefinedFunctionsMetadata userDefinedFunctionsMetadata) {
-        // Throws an exception if there are too-old segments:
         if (isUpgraded(indexMetadata)) {
             return indexMetadata;
         }
         if (userDefinedFunctionsMetadata != null) {
             userDefinedFunctionService.updateImplementations(userDefinedFunctionsMetadata.functionsMetadata());
         }
+        // Throws an exception if there are too-old segments:
         checkSupportedVersion(indexMetadata, minimumIndexCompatibilityVersion);
+
         IndexMetadata newMetadata = indexMetadata;
         // we have to run this first otherwise in we try to create IndexSettings
         // with broken settings and fail in checkMappingsCompatibility
@@ -298,10 +255,6 @@ public class MetadataUpgradeService {
         }
 
         return newMetadata.build();
-    }
-
-    private Map<String, IndexTemplateMetadata> upgradeTemplates(Map<String, IndexTemplateMetadata> templates) {
-        return templateUpgrader.upgrade(templates);
     }
 
 
