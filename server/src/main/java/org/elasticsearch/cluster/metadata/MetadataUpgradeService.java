@@ -260,7 +260,6 @@ public class MetadataUpgradeService {
         }
 
         for (IndexMetadata indexMetadata : metadata) {
-            indexMetadata = upgradeIndexMetadata(indexMetadata, null, Version.V_5_0_0, null);
             DocTableInfo docTable = tableFactory.create(indexMetadata);
             String indexName = indexMetadata.getIndex().getName();
             IndexParts indexParts = IndexName.decode(indexName);
