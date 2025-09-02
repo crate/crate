@@ -37,17 +37,13 @@ import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
 import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.xcontent.XContentType;
-import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.ParamTypeHints;
@@ -67,7 +63,6 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -75,8 +70,8 @@ import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TableInfoFactory;
 import io.crate.metadata.table.Operation;
+import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.replication.logical.metadata.PublicationsMetadata;
-import io.crate.server.xcontent.XContentHelper;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.CheckConstraint;
 import io.crate.sql.tree.ColumnPolicy;
@@ -219,42 +214,26 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
 
     /**
      * Deprecated. Only used for upgrading old templates to new RelationMetadata.
+     *
+     * Note that the {@link DocTableInfo#versionCreated()} of the returned instance could be wrong.
+     * See https://github.com/crate/crate/pull/17178
      */
     @Deprecated
-    public DocTableInfo create(IndexTemplateMetadata indexTemplateMetadata, Metadata metadata) {
-        RelationName relationName = RelationName.fromIndexName(indexTemplateMetadata.name());
-        Map<String, Object> mappingSource = XContentHelper.toMap(
-            indexTemplateMetadata.mapping().compressedReference(),
-            XContentType.JSON
-        );
+    public DocTableInfo create(IndexTemplateMetadata template, Metadata metadata) {
+        RelationName relationName = RelationName.fromIndexName(template.name());
+        Map<String, Object> mappingSource = IndexTemplateUpgrader.updateMapping(template.mapping());
         mappingSource = Maps.getOrDefault(mappingSource, "default", mappingSource);
-        Settings tableParameters = indexTemplateMetadata.settings();
-        Version versionCreated = tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT);
-        // Versions up to 5.9.7 had a bug where ALTER TABLE on a partitioned table could change the `versionCreated` property on the template.
-        // See https://github.com/crate/crate/pull/17178
-        // To mitigate the impact, this looks through partitions and takes their lowest version:
-        Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(
-            metadata,
-            IndicesOptions.LENIENT_EXPAND_OPEN,
-            PartitionName.templatePrefix(relationName.schema(), relationName.name())
-        );
-        for (Index index : concreteIndices) {
-            IndexMetadata indexMetadata = metadata.index(index);
-            if (indexMetadata != null) {
-                versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
-            }
-        }
-
+        Settings tableParameters = template.settings();
         Version versionUpgraded = null;
         boolean isClosed = Maps.getOrDefault(
             Maps.getOrDefault(mappingSource, "_meta", Map.of()), "closed", false);
         State state = isClosed ? State.CLOSE : State.OPEN;
-        Integer tableVersion = indexTemplateMetadata.version();
+        Integer tableVersion = template.version();
         return create(
             relationName,
             mappingSource,
             tableParameters,
-            versionCreated,
+            tableParameters.getAsVersion(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT),
             versionUpgraded,
             state,
             tableVersion == null ? 0 : tableVersion.longValue(),
