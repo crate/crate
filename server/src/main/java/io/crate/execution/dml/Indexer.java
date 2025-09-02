@@ -414,14 +414,14 @@ public class Indexer {
                 partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, List.of(), updateColumns, returnValues) {
                 @Override
                 public List<Reference> indexOrder() {
-                    return insertColumns();
+                    return table.rootColumns();
                 }
             };
             // this indexer is build as if it is an insert indexer
             this.updateToInsert = null;
             this.columns = targetColumns;
             this.assignedColumns = this.columns;
-            this.indexOrder = this.insertOnConflictIndexer.insertColumns();
+            this.indexOrder = table.rootColumns();
         } else if (updateColumns != null && updateColumns.length > 0) { // update
             this.insertOnConflictIndexer = null;
             this.updateToInsert = new UpdateToInsert(

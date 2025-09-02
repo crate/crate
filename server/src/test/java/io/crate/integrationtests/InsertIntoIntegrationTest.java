@@ -2229,7 +2229,6 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
         assertThat(response).hasRows("0| 1| 2| 3| -1| -1| -1");
 
-        //-- flaky?
         execute("insert into t(c,i,o) values (6, 7, {i=8, o={i=9}}), (0, 1, {i=2, o={i=3}}), (5, 6, {i=7, o={i=8}}) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
         execute("refresh table t");
         execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t order by c");
