@@ -143,9 +143,44 @@ public class MetadataUpgradeService {
             // Remove any existing metadata, registered by it's name, for the index
             newMetadata.remove(indexName);
             newMetadata.put(newIndexMetadata, false);
+
+            DocTableInfo docTable = tableFactory.create(newIndexMetadata);
+            IndexParts indexParts = IndexName.decode(indexName);
+            RelationName relationName = indexParts.toRelationName();
+            RelationMetadata relation = newMetadata.getRelation(relationName);
+            LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
+                ? NO_OID_COLUMN_OID_SUPPLIER
+                : newMetadata.columnOidSupplier();
+            if (relation == null) {
+                newMetadata.setTable(
+                    columnOidSupplier,
+                    relationName,
+                    docTable.allReferences(),
+                    // If RelationMetadata exist in the cluster state, make sure to override them with
+                    // the upgraded settings which currently takes place on IndexMetadata
+                    newIndexMetadata.getSettings(),
+                    docTable.clusteredBy(),
+                    docTable.columnPolicy(),
+                    docTable.pkConstraintName(),
+                    docTable.checkConstraints()
+                        .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
+                    docTable.primaryKey(),
+                    docTable.partitionedBy(),
+                    newIndexMetadata.getState(),
+                    List.of(newIndexMetadata.getIndexUUID()),
+                    docTable.tableVersion()
+                );
+            } else if (relation instanceof RelationMetadata.Table table) {
+                if (table.indexUUIDs().contains(newIndexMetadata.getIndexUUID())) {
+                    // already added
+                    continue;
+                }
+                newMetadata.addIndexUUIDs(table, List.of(newIndexMetadata.getIndexUUID()));
+            }
+
         }
 
-        return addOrUpgradeRelationMetadata(newMetadata.build());
+        return newMetadata.build();
     }
 
     private static Settings pruneArchived(Settings settings) {
@@ -220,57 +255,6 @@ public class MetadataUpgradeService {
         checkMappingsCompatibility(newMetadata);
         return markAsUpgraded(newMetadata);
     }
-
-    /**
-     * If {@link RelationMetadata} doesn't exist for simple or partitioned tables, create them using the already
-     * upgraded {@link IndexMetadata} or {@link IndexTemplateMetadata} respectively. If they exist (this is handled in
-     * {@link DocTableInfoFactory#create(RelationName, Metadata)}), then override them to set the settings that have
-     * been upgraded on @link IndexMetadata} or {@link IndexTemplateMetadata}.
-     */
-    private Metadata addOrUpgradeRelationMetadata(Metadata metadata) {
-        Metadata.Builder newMetadata = Metadata.builder(metadata);
-
-        for (IndexMetadata indexMetadata : metadata) {
-            DocTableInfo docTable = tableFactory.create(indexMetadata);
-            String indexName = indexMetadata.getIndex().getName();
-            IndexParts indexParts = IndexName.decode(indexName);
-            RelationName relationName = indexParts.toRelationName();
-            RelationMetadata relation = newMetadata.getRelation(relationName);
-            LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
-                ? NO_OID_COLUMN_OID_SUPPLIER
-                : newMetadata.columnOidSupplier();
-            if (relation == null) {
-                newMetadata.setTable(
-                    columnOidSupplier,
-                    relationName,
-                    docTable.allReferences(),
-                    // If RelationMetadata exist in the cluster state, make sure to override them with
-                    // the upgraded settings which currently takes place on IndexMetadata
-                    indexMetadata.getSettings(),
-                    docTable.clusteredBy(),
-                    docTable.columnPolicy(),
-                    docTable.pkConstraintName(),
-                    docTable.checkConstraints()
-                        .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
-                    docTable.primaryKey(),
-                    docTable.partitionedBy(),
-                    indexMetadata.getState(),
-                    List.of(indexMetadata.getIndexUUID()),
-                    docTable.tableVersion()
-                );
-            } else if (relation instanceof RelationMetadata.Table table) {
-                if (table.indexUUIDs().contains(indexMetadata.getIndexUUID())) {
-                    // already added
-                    continue;
-                }
-                newMetadata.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
-            }
-
-        }
-
-        return newMetadata.build();
-    }
-
 
     /**
      * Checks if the index was already opened by this version of CrateDB and doesn't require any additional checks.
