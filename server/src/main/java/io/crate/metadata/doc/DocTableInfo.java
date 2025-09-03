@@ -483,13 +483,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .toArray(String[]::new);
     }
 
-    public String[] concreteOpenIndices(Metadata metadata, List<String> partitions) {
+    public String[] concreteOpenIndices(Metadata metadata, List<PartitionName> partitions) {
         if (partitions.isEmpty()) {
             return new String[0];
         }
         String[] uuids = new String[partitions.size()];
         for (int i = 0; i < partitions.size(); i++) {
-            List<String> partitionValues = PartitionName.fromIndexOrTemplate(partitions.get(i)).values();
+            List<String> partitionValues = partitions.get(i).values();
             List<String> indexUUIDS = metadata.getIndices(
                 ident,
                 partitionValues,
