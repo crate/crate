@@ -263,20 +263,21 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 HashSet<Index> indices = new HashSet<>();
                 HashSet<RelationName> relationNames = new HashSet<>(request.relationNames());
 
-                List<RelationMetadata.Table> relationsMetadata;
+                Iterable<RelationMetadata.Table> relationsMetadata;
+                Metadata metadata = currentState.metadata();
                 if (request.relationNames().isEmpty() && request.partitionNames().isEmpty()) {
                     // Resolve ALL tables
-                    relationsMetadata = currentState.metadata().relations(RelationMetadata.Table.class);
+                    relationsMetadata = metadata.relations(RelationMetadata.Table.class);
                 } else {
-                    relationsMetadata = request.relationNames().stream()
-                        .map(r -> currentState.metadata().getRelation(r))
+                    relationsMetadata = () -> request.relationNames().stream()
+                        .map(r -> metadata.getRelation(r))
                         .filter(r -> r instanceof RelationMetadata.Table)
                         .map(r -> (RelationMetadata.Table) r)
-                        .toList();
+                        .iterator();
                 }
                 for (RelationMetadata.Table table : relationsMetadata) {
                     relationNames.add(table.name());
-                    List<Index> relationIndices = currentState.metadata().getIndices(
+                    List<Index> relationIndices = metadata.getIndices(
                         table.name(),
                         List.of(),
                         false,
@@ -288,7 +289,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 // Resolve indices of concrete partitions
                 for (PartitionName partitionName : request.partitionNames()) {
                     relationNames.add(partitionName.relationName());
-                    List<Index> partitionIndices = currentState.metadata().getIndices(
+                    List<Index> partitionIndices = metadata.getIndices(
                         partitionName.relationName(),
                         partitionName.values(),
                         false,
@@ -299,7 +300,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
                 LOGGER.trace("[{}][{}] creating snapshot for indices [{}]", repositoryName, snapshotName, indices);
                 final List<IndexId> indexIds = repositoryData.resolveNewIndices(
-                    indices.stream().toList(),
+                    indices,
                     runningSnapshots.stream()
                         .filter(entry -> entry.repository().equals(repositoryName))
                         .flatMap(entry -> entry.indices().stream())
@@ -310,7 +311,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 ImmutableOpenMap<ShardId, ShardSnapshotStatus> shards = shards(
                     snapshots,
                     deletionsInProgress,
-                    currentState.metadata(),
+                    metadata,
                     currentState.routingTable(),
                     indexIds,
                     useShardGenerations(version),

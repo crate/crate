@@ -444,7 +444,7 @@ public final class RepositoryData {
      * @param indicesToResolve names of indices to resolve
      * @param inFlightIds      name to index mapping for currently in-flight snapshots not yet in the repository data to fall back to
      */
-    public List<IndexId> resolveNewIndices(List<Index> indicesToResolve, Map<String, IndexId> inFlightIds) {
+    public List<IndexId> resolveNewIndices(Iterable<Index> indicesToResolve, Map<String, IndexId> inFlightIds) {
         List<IndexId> snapshotIndices = new ArrayList<>();
         for (Index index : indicesToResolve) {
             IndexId indexId = indices.get(index.getName());
