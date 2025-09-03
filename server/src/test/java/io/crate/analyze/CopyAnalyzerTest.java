@@ -265,18 +265,18 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToFileWithPartitionClause() throws Exception {
         BoundCopyTo analysis = analyze(
             "COPY parted PARTITION (date=1395874800000) TO DIRECTORY '/blah'");
-        String parted = new PartitionName(
-            new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        assertThat(analysis.whereClause().partitions()).containsExactly(parted);
+        var partitionName = new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList("1395874800000"));
+        assertThat(analysis.whereClause().partitions()).containsExactly(partitionName);
     }
 
     @Test
     public void testCopyToDirectoryWithPartitionClause() throws Exception {
         BoundCopyTo analysis = analyze(
             "COPY parted PARTITION (date=1395874800000) TO DIRECTORY '/tmp'");
-        String parted = new PartitionName(
-            new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        assertThat(analysis.whereClause().partitions()).containsExactly(parted);
+        var partitionName = new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList("1395874800000"));
+        assertThat(analysis.whereClause().partitions()).containsExactly(partitionName);
         assertThat(analysis.overwrites()).isEmpty();
     }
 
@@ -298,19 +298,19 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testCopyToWithPartitionIdentAndPartitionInWhereClause() throws Exception {
         BoundCopyTo analysis = analyze(
             "COPY parted PARTITION (date=1395874800000) WHERE date = 1395874800000 TO DIRECTORY '/tmp/foo'");
-        String parted = new PartitionName(
-            new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
-        assertThat(analysis.whereClause().partitions()).containsExactly(parted);
+        var partitionName = new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList("1395874800000"));
+        assertThat(analysis.whereClause().partitions()).containsExactly(partitionName);
     }
 
     @Test
     public void testCopyToWithPartitionIdentAndWhereClause() throws Exception {
         BoundCopyTo analysis = analyze(
             "COPY parted PARTITION (date=1395874800000) WHERE id = 1 TO DIRECTORY '/tmp/foo'");
-        String parted = new PartitionName(
-            new RelationName("doc", "parted"), Collections.singletonList("1395874800000")).asIndexName();
+        var partitionName = new PartitionName(
+            new RelationName("doc", "parted"), Collections.singletonList("1395874800000"));
         WhereClause where = analysis.whereClause();
-        assertThat(where.partitions()).containsExactly(parted);
+        assertThat(where.partitions()).containsExactly(partitionName);
         assertThat(where.query()).isFunction("op_=");
     }
 

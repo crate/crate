@@ -26,6 +26,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -181,7 +182,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         WhereClause whereClause = analyzeWhere("select id from parted where date = 1395874800000");
         assertThat(whereClause.queryOrFallback()).isLiteral(true);
         assertThat(whereClause.partitions()).containsExactly(
-            new PartitionName(new RelationName("doc", "parted"), List.of("1395874800000")).asIndexName());
+            new PartitionName(new RelationName("doc", "parted"), List.of("1395874800000")));
     }
 
     @Test
@@ -191,7 +192,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             WhereClause whereClause = analyzeWhere("select id from bool_parted where id = " + v);
             assertThat(whereClause.queryOrFallback()).isLiteral(true);
             assertThat(whereClause.partitions()).containsExactly(
-                new PartitionName(new RelationName("doc", "bool_parted"), List.of(v)).asIndexName());
+                new PartitionName(new RelationName("doc", "bool_parted"), List.of(v)));
         }
     }
 
@@ -203,9 +204,9 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSelectFromPartitionedTable() throws Exception {
-        String partition1 = new PartitionName(new RelationName("doc", "parted"), List.of("1395874800000")).asIndexName();
-        String partition2 = new PartitionName(new RelationName("doc", "parted"), List.of("1395961200000")).asIndexName();
-        String partition3 = new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName();
+        var partition1 = new PartitionName(new RelationName("doc", "parted"), List.of("1395874800000"));
+        var partition2 = new PartitionName(new RelationName("doc", "parted"), List.of("1395961200000"));
+        var partition3 = new PartitionName(new RelationName("doc", "parted"), singletonList(null));
 
         WhereClause whereClause = analyzeWhere("select id, name from parted where date = 1395874800000");
         assertThat(whereClause.partitions()).containsExactly(partition1);
@@ -296,9 +297,9 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         WhereClause whereClause = analyzeWhere(
             "select id, name from parted where date = 1395961200000::timestamptz or id = 1");
         assertThat(whereClause.partitions()).containsExactlyInAnyOrder(
-            ".partitioned.parted.0400",
-            ".partitioned.parted.04732cpp6ksjcc9i60o30c1g",
-            ".partitioned.parted.04732cpp6ks3ed1o60o30c1g");
+            PartitionName.fromIndexOrTemplate(".partitioned.parted.0400"),
+            PartitionName.fromIndexOrTemplate(".partitioned.parted.04732cpp6ksjcc9i60o30c1g"),
+            PartitionName.fromIndexOrTemplate(".partitioned.parted.04732cpp6ks3ed1o60o30c1g"));
         assertThat(whereClause.queryOrFallback())
             .isSQL("((doc.parted.date = 1395961200000::bigint) OR (doc.parted.id = 1))");
     }
@@ -346,7 +347,7 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testEqualGenColOptimization() throws Exception {
         WhereClause whereClause = analyzeWhere("select * from generated_col where y = 1");
         assertThat(whereClause.partitions()).containsExactly(
-            new PartitionName(new RelationName("doc", "generated_col"), List.of("1420070400000", "-1")).asIndexName());
+            new PartitionName(new RelationName("doc", "generated_col"), List.of("1420070400000", "-1")));
     }
 
     @Test
@@ -359,14 +360,14 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testGtGenColOptimization() throws Exception {
         WhereClause whereClause = analyzeWhere("select * from generated_col where ts > '2015-01-02T12:00:00'");
         assertThat(whereClause.partitions()).containsExactly(
-            new PartitionName(new RelationName("doc", "generated_col"), List.of("1420156800000", "-2")).asIndexName());
+            new PartitionName(new RelationName("doc", "generated_col"), List.of("1420156800000", "-2")));
     }
 
     @Test
     public void testGenColRoundingFunctionNoSwappingOperatorOptimization() throws Exception {
         WhereClause whereClause = analyzeWhere("select * from generated_col where ts >= '2015-01-02T12:00:00'");
         assertThat(whereClause.partitions()).containsExactly(
-            new PartitionName(new RelationName("doc", "generated_col"), List.of("1420156800000", "-2")).asIndexName());
+            new PartitionName(new RelationName("doc", "generated_col"), List.of("1420156800000", "-2")));
     }
 
     @Test
@@ -381,21 +382,23 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testMultipleColumnsOptimization() throws Exception {
         WhereClause whereClause = analyzeWhere("select * from generated_col where ts > '2015-01-01T12:00:00' and y = 1");
         assertThat(whereClause.partitions()).containsExactly(
-            new PartitionName(new RelationName("doc", "generated_col"), List.of("1420070400000", "-1")).asIndexName());
+            new PartitionName(new RelationName("doc", "generated_col"), List.of("1420070400000", "-1")));
     }
 
     @Test
     public void testColumnReferencedTwiceInGeneratedColumnPartitioned() throws Exception {
         WhereClause whereClause = analyzeWhere("select * from double_gen_parted where x = 4");
         assertThat(whereClause.query()).isSQL("(doc.double_gen_parted.x = 4)");
-        assertThat(whereClause.partitions()).containsExactly(".partitioned.double_gen_parted.0813a0hm");
+        assertThat(whereClause.partitions())
+            .containsExactly(PartitionName.fromIndexOrTemplate(".partitioned.double_gen_parted.0813a0hm"));
     }
 
     @Test
     public void testOptimizationNonRoundingFunctionGreater() throws Exception {
         WhereClause whereClause = analyzeWhere("select * from double_gen_parted where x > 3");
         assertThat(whereClause.query()).isSQL("(doc.double_gen_parted.x > 3)");
-        assertThat(whereClause.partitions()).containsExactly(".partitioned.double_gen_parted.0813a0hm");
+        assertThat(whereClause.partitions())
+            .containsExactly(PartitionName.fromIndexOrTemplate(".partitioned.double_gen_parted.0813a0hm"));
     }
 
     @Test
@@ -403,8 +406,8 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         WhereClause whereClause = analyzeWhere("select * from generated_col where ts >= '2015-01-01T12:00:00' and ts <= '2015-01-02T00:00:00'");
         RelationName relationName = new RelationName("doc", "generated_col");
         assertThat(whereClause.partitions()).containsExactlyInAnyOrder(
-            new PartitionName(relationName, List.of("1420070400000", "-1")).asIndexName(),
-            new PartitionName(relationName, List.of("1420156800000", "-2")).asIndexName());
+            new PartitionName(relationName, List.of("1420070400000", "-1")),
+            new PartitionName(relationName, List.of("1420156800000", "-2")));
     }
 
     @Test

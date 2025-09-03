@@ -213,7 +213,7 @@ public final class CopyToPlan implements Plan {
         );
         DocTableInfo table = (DocTableInfo) copyTo.tableInfo();
 
-        List<String> partitions = resolvePartitions(
+        List<PartitionName> partitions = resolvePartitions(
             Lists.map(copyTo.table().partitionProperties(), x -> x.map(eval)),
             table,
             metadata);
@@ -268,13 +268,13 @@ public final class CopyToPlan implements Plan {
             settings);
     }
 
-    private static List<String> resolvePartitions(List<Assignment<Object>> partitionProperties,
-                                                  DocTableInfo table,
-                                                  Metadata metadata) {
+    private static List<PartitionName> resolvePartitions(List<Assignment<Object>> partitionProperties,
+                                                         DocTableInfo table,
+                                                         Metadata metadata) {
         if (partitionProperties.isEmpty()) {
             return Collections.emptyList();
         }
         var partitionName = PartitionName.ofAssignments(table, partitionProperties, metadata);
-        return List.of(partitionName.asIndexName());
+        return List.of(partitionName);
     }
 }
