@@ -25,7 +25,6 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.consta
 
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,16 +32,13 @@ import org.elasticsearch.index.Index;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ResourceUnknownException;
-import io.crate.exceptions.UnhandledServerException;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.MapBackedRefResolver;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
@@ -59,23 +55,15 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
     private static final ReferenceResolver<NestableInput<?>> EMPTY_RESOLVER =
         new MapBackedRefResolver(Collections.emptyMap());
 
-    private static ReferenceResolver<NestableInput<?>> createPartitionColumnResolver(Index index, Schemas schemas) {
-        PartitionName partitionName;
-        try {
-            partitionName = PartitionName.fromIndexOrTemplate(index.getName());
-        } catch (IllegalArgumentException e) {
-            throw new UnhandledServerException(String.format(Locale.ENGLISH,
-                "Unable to load PARTITIONED BY columns from partition %s", index.getName()), e);
-        }
-        RelationName relationName = partitionName.relationName();
+    private static ReferenceResolver<NestableInput<?>> createPartitionColumnResolver(Index index, RelationName name, List<String> partitionValues, Schemas schemas) {
         MapBuilder<ColumnIdent, NestableInput<?>> builder = MapBuilder.newMapBuilder();
         try {
-            DocTableInfo info = schemas.getTableInfo(relationName);
+            DocTableInfo info = schemas.getTableInfo(name);
             assert info.isPartitioned() : "table must be partitioned";
             int i = 0;
             int numPartitionedColumns = info.partitionedByColumns().size();
 
-            List<String> partitionValue = partitionName.values();
+            List<String> partitionValue = partitionValues;
             assert partitionValue.size() ==
                    numPartitionedColumns : "invalid number of partitioned columns";
             for (Reference partitionedInfo : info.partitionedByColumns()) {
@@ -87,7 +75,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
             }
         } catch (Exception e) {
             if (e instanceof ResourceUnknownException) {
-                LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, relationName.fqn());
+                LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, name);
             } else {
                 throw e;
             }
@@ -100,12 +88,15 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
 
     public ShardReferenceResolver(Schemas schemas, ShardRowContext shardRowContext) {
         this.shardRowContext = shardRowContext;
-        IndexParts indexParts = shardRowContext.indexParts();
-        if (indexParts.isPartitioned()) {
-            partitionColumnResolver = createPartitionColumnResolver(
-                shardRowContext.indexShard().shardId().getIndex(), schemas);
-        } else {
+        if (shardRowContext.partitionValues().isEmpty()) {
             partitionColumnResolver = EMPTY_RESOLVER;
+        } else {
+            partitionColumnResolver = createPartitionColumnResolver(
+                shardRowContext.indexShard().shardId().getIndex(),
+                shardRowContext.relationName(),
+                shardRowContext.partitionValues(),
+                schemas
+            );
         }
     }
 
