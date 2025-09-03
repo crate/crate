@@ -123,6 +123,12 @@ public sealed interface RelationMetadata extends Writeable permits
                  List<String> indexUUIDs,
                  long tableVersion) implements RelationMetadata {
 
+        public Table {
+            assert (partitionedBy.isEmpty() && indexUUIDs.size() == 1) || !partitionedBy.isEmpty()
+                : "Non-Partitioned table " + name + " must have exactly one indexUUID: " + indexUUIDs;
+        }
+
+
         private static final short ORD = 1;
 
         @Override

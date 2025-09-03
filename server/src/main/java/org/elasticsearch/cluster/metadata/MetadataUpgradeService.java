@@ -21,16 +21,11 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_UPGRADED;
-import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.BiConsumer;
-import java.util.function.Consumer;
 import java.util.function.LongSupplier;
-import java.util.function.UnaryOperator;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -38,14 +33,12 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.support.IndicesOptions;
-import org.elasticsearch.common.collect.ImmutableOpenMap;
+import org.elasticsearch.common.settings.AbstractScopedSettings;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
-
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
@@ -68,6 +61,7 @@ import io.crate.sql.tree.CheckConstraint;
  * occurs during cluster upgrade, when dangling indices are imported into the cluster or indices
  * are restored from a repository.
  */
+@SuppressWarnings("deprecation") // suppressed because this class by design deals with migrating from deprecated components to non-deprecated.
 public class MetadataUpgradeService {
 
     private static final Logger LOGGER = LogManager.getLogger(MetadataUpgradeService.class);
@@ -76,7 +70,6 @@ public class MetadataUpgradeService {
     private final MetadataIndexUpgrader indexUpgrader;
     private final DocTableInfoFactory tableFactory;
     private final UserDefinedFunctionService userDefinedFunctionService;
-    private final IndexTemplateUpgrader templateUpgrader;
 
     public MetadataUpgradeService(NodeContext nodeContext,
                                   IndexScopedSettings indexScopedSettings,
@@ -84,161 +77,41 @@ public class MetadataUpgradeService {
         this.tableFactory = new DocTableInfoFactory(nodeContext);
         this.indexScopedSettings = indexScopedSettings;
         this.indexUpgrader = new MetadataIndexUpgrader();
-        this.templateUpgrader = new IndexTemplateUpgrader();
         this.userDefinedFunctionService = userDefinedFunctionService;
     }
 
-    /**
-     * Elasticsearch 2.0 removed several deprecated features and as well as support for Lucene 3.x. This method calls
-     * {@link MetadataUpgradeService} to makes sure that indices are compatible with the current version. The
-     * MetadataIndexUpgradeService might also update obsolete settings if needed.
-     *
-     * @return input <code>metadata</code> if no upgrade is needed or an upgraded metadata
-     */
     public Metadata upgradeMetadata(Metadata metadata) {
-        boolean changed = false;
-        final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
+        final Metadata.Builder newMetadata = Metadata.builder(metadata);
 
-        // carries upgraded IndexTemplateMetadata to MetadataIndexUpgradeService.upgradeIndexMetadata
-        final Map<String, IndexTemplateMetadata> upgradedIndexTemplateMetadata = new HashMap<>();
-
-        // upgrade current templates
-        if (applyUpgrader(
-            metadata.templates(),
-            this::upgradeTemplates,
-            upgradedMetadata::removeTemplate,
-            (s, indexTemplateMetadata) -> {
-                upgradedIndexTemplateMetadata.put(s, indexTemplateMetadata);
-                upgradedMetadata.put(indexTemplateMetadata);
-            })) {
-            changed = true;
-        }
-
-        // upgrade index meta data
-        for (IndexMetadata indexMetadata : metadata) {
-            String indexName = indexMetadata.getIndex().getName();
-            IndexMetadata newMetadata = upgradeIndexMetadata(
-                indexMetadata,
-                IndexName.isPartitioned(indexName) ?
-                    upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
-                    null,
-                Version.CURRENT.minimumIndexCompatibilityVersion(),
-                metadata.custom(UserDefinedFunctionsMetadata.TYPE));
-            changed |= indexMetadata != newMetadata;
-            // Remove any existing metadata, registered by it's name, for the index
-            if (upgradedMetadata.get(indexName) != null) {
-                changed = true;
-                upgradedMetadata.remove(indexName);
+        // Templates only exist in Metadata from < 6.1.0
+        // If streaming Metadata to nodes < 6.1.0 templates are re-created on demand
+        for (var cursor : metadata.templates()) {
+            String templateName = cursor.key;
+            newMetadata.removeTemplate(templateName);
+            if (templateName == IndexTemplateUpgrader.CRATE_DEFAULTS) {
+                continue;
             }
-            upgradedMetadata.put(newMetadata, false);
-        }
+            IndexTemplateMetadata template = cursor.value;
+            RelationName relationName = IndexName.decode(template.name()).toRelationName();
+            RelationMetadata relation = metadata.getRelation(relationName);
+            assert relation == null
+                : "If there is still a template present there shouldn't be any RelationMetadata";
 
-        return changed
-            ? addOrUpgradeRelationMetadata(upgradedMetadata.build())
-            : addOrUpgradeRelationMetadata(metadata);
-    }
-
-    private static <Data> boolean applyUpgrader(ImmutableOpenMap<String, Data> existingData,
-                                                UnaryOperator<Map<String, Data>> upgrader,
-                                                Consumer<String> removeData,
-                                                BiConsumer<String, Data> putData) {
-        // collect current data
-        Map<String, Data> existingMap = new HashMap<>();
-        for (ObjectObjectCursor<String, Data> customCursor : existingData) {
-            existingMap.put(customCursor.key, customCursor.value);
-        }
-        // upgrade global custom meta data
-        Map<String, Data> upgradedCustoms = upgrader.apply(existingMap);
-        if (upgradedCustoms.equals(existingMap) == false) {
-            // remove all data first so a plugin can remove custom metadata or templates if needed
-            existingMap.keySet().forEach(removeData);
-            for (Map.Entry<String, Data> upgradedCustomEntry : upgradedCustoms.entrySet()) {
-                putData.accept(upgradedCustomEntry.getKey(), upgradedCustomEntry.getValue());
-            }
-            return true;
-        }
-        return false;
-    }
-
-    /**
-     * Checks that the index can be upgraded to the current version of the master node.
-     *
-     * <p>
-     * If the index does not need upgrade it returns the index metadata unchanged, otherwise it returns a modified index metadata. If index
-     * cannot be updated the method throws an exception.
-     */
-    public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
-                                              @Nullable IndexTemplateMetadata indexTemplateMetadata,
-                                              Version minimumIndexCompatibilityVersion,
-                                              @Nullable UserDefinedFunctionsMetadata userDefinedFunctionsMetadata) {
-        // Throws an exception if there are too-old segments:
-        if (isUpgraded(indexMetadata)) {
-            return indexMetadata;
-        }
-        if (userDefinedFunctionsMetadata != null) {
-            userDefinedFunctionService.updateImplementations(userDefinedFunctionsMetadata.functionsMetadata());
-        }
-        checkSupportedVersion(indexMetadata, minimumIndexCompatibilityVersion);
-        IndexMetadata newMetadata = indexMetadata;
-        // we have to run this first otherwise in we try to create IndexSettings
-        // with broken settings and fail in checkMappingsCompatibility
-        newMetadata = archiveBrokenIndexSettings(newMetadata);
-        newMetadata = indexUpgrader.upgrade(newMetadata, indexTemplateMetadata);
-        checkMappingsCompatibility(newMetadata);
-        return markAsUpgraded(newMetadata);
-    }
-
-    /**
-     * If {@link RelationMetadata} doesn't exist for simple or partitioned tables, create them using the already
-     * upgraded {@link IndexMetadata} or {@link IndexTemplateMetadata} respectively. If they exist (this is handled in
-     * {@link DocTableInfoFactory#create(RelationName, Metadata)}), then override them to set the settings that have
-     * been upgraded on @link IndexMetadata} or {@link IndexTemplateMetadata}.
-     */
-    private Metadata addOrUpgradeRelationMetadata(Metadata metadata) {
-        Metadata.Builder newMetadata = Metadata.builder(metadata);
-
-        for (ObjectObjectCursor<String, IndexTemplateMetadata> entry : metadata.templates()) {
-            IndexTemplateMetadata indexTemplateMetadata = entry.value;
-            RelationName relationName = IndexName.decode(indexTemplateMetadata.name()).toRelationName();
-            RelationMetadata.Table table = newMetadata.getRelation(relationName);
-            DocTableInfo docTable = tableFactory.create(indexTemplateMetadata, metadata);
-            Version versionCreated = docTable.versionCreated();
-
-            // Versions up to 5.9.7 had a bug where ALTER TABLE on a partitioned table could change the `versionCreated` property on the template.
-            // See https://github.com/crate/crate/pull/17178
-            // To mitigate the impact, this looks through partitions and takes their lowest version:
-            Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(
-                metadata,
-                IndicesOptions.LENIENT_EXPAND_OPEN,
-                PartitionName.templatePrefix(relationName.schema(), relationName.name())
-            );
-            for (Index index : concreteIndices) {
-                IndexMetadata indexMetadata = metadata.index(index);
-                if (indexMetadata != null) {
-                    versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
-                }
-            }
-            if (versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
-                // Due to https://github.com/crate/crate/pull/17178 the created version in the template
-                // can be wrong; inferring the correct version from partitions can also fail if old partitions
-                // are deleted.
-                // This is another safety mechanism. If a column doesn't have OIDs the table must be from < 5.5.0
-                if (docTable.rootColumns().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
-                    versionCreated = Version.V_5_4_0;
-                }
-            }
+            DocTableInfo docTable = tableFactory.create(template, metadata);
+            Version versionCreated = getFixedVersionCreated(metadata, docTable);
 
             // versionCreated could be missing from the template settings and "calculated" afterwards
             // in DocTableInfo, so put it back to RelationMetadata#parameters
             Settings settings = Settings.builder()
                 // If RelationMetadata exist in the cluster state, make sure to override them with
                 // the upgraded settings which currently takes place on IndexTemplateMetadata
-                .put(indexTemplateMetadata.settings())
+                .put(pruneArchived(template.settings()))
                 .put(SETTING_VERSION_CREATED, versionCreated)
                 .put(SETTING_VERSION_UPGRADED, Version.CURRENT)
                 .build();
+
             newMetadata.setTable(
-                docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
+                versionCreated.before(DocTableInfo.COLUMN_OID_VERSION)
                     ? NO_OID_COLUMN_OID_SUPPLIER
                     : newMetadata.columnOidSupplier(),
                 relationName,
@@ -253,30 +126,46 @@ public class MetadataUpgradeService {
                 docTable.partitionedBy(),
                 docTable.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
                 List.of(),
-                table != null ? table.tableVersion() + 1 : docTable.tableVersion()
+                docTable.tableVersion()
             );
-            // Remove the template, it's not needed anymore
-            newMetadata.removeTemplate(indexTemplateMetadata.name());
         }
 
+        // upgrade index meta data
         for (IndexMetadata indexMetadata : metadata) {
-            indexMetadata = upgradeIndexMetadata(indexMetadata, null, Version.V_5_0_0, null);
-            DocTableInfo docTable = tableFactory.create(indexMetadata);
             String indexName = indexMetadata.getIndex().getName();
-            IndexParts indexParts = IndexName.decode(indexName);
-            RelationName relationName = indexParts.toRelationName();
-            RelationMetadata relation = newMetadata.getRelation(relationName);
-            LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
-                ? NO_OID_COLUMN_OID_SUPPLIER
-                : newMetadata.columnOidSupplier();
+            IndexMetadata newIndexMetadata = upgradeIndexMetadata(
+                indexMetadata,
+                IndexName.isPartitioned(indexName)
+                    ? newMetadata.getTemplate(PartitionName.templateName(indexName))
+                    : null,
+                Version.CURRENT.minimumIndexCompatibilityVersion(),
+                metadata.custom(UserDefinedFunctionsMetadata.TYPE));
+            // Remove any existing metadata, registered by it's name, for the index
+            newMetadata.remove(indexName);
+            newMetadata.put(newIndexMetadata, false);
+
+            String indexUUID = indexMetadata.getIndexUUID();
+            RelationMetadata relation = metadata.getRelation(indexUUID);
+            DocTableInfo docTable = null;
             if (relation == null) {
+                IndexParts indexParts = IndexName.decode(indexName);
+                RelationName relationName = indexParts.toRelationName();
+                relation = newMetadata.getRelation(relationName);
+                docTable = tableFactory.create(newIndexMetadata);
+            }
+            if (relation == null) {
+                assert docTable != null
+                    : "Must have created docTable instance of relation was missing";
+                LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
+                    ? NO_OID_COLUMN_OID_SUPPLIER
+                    : newMetadata.columnOidSupplier();
                 newMetadata.setTable(
                     columnOidSupplier,
-                    relationName,
+                    docTable.ident(),
                     docTable.allReferences(),
                     // If RelationMetadata exist in the cluster state, make sure to override them with
                     // the upgraded settings which currently takes place on IndexMetadata
-                    indexMetadata.getSettings(),
+                    newIndexMetadata.getSettings(),
                     docTable.clusteredBy(),
                     docTable.columnPolicy(),
                     docTable.pkConstraintName(),
@@ -284,33 +173,94 @@ public class MetadataUpgradeService {
                         .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
                     docTable.primaryKey(),
                     docTable.partitionedBy(),
-                    indexMetadata.getState(),
-                    List.of(indexMetadata.getIndexUUID()),
+                    newIndexMetadata.getState(),
+                    List.of(newIndexMetadata.getIndexUUID()),
                     docTable.tableVersion()
                 );
             } else if (relation instanceof RelationMetadata.Table table) {
-                if (table.indexUUIDs().contains(indexMetadata.getIndexUUID())) {
-                    // already added
-                    continue;
+                if (!table.indexUUIDs().contains(indexUUID)) {
+                    newMetadata.addIndexUUIDs(table, List.of(indexUUID));
                 }
-                if (indexParts.isPartitioned()) {
-                    indexMetadata = IndexMetadata.builder(indexMetadata)
-                        .partitionValues(PartitionName.decodeIdent(indexParts.partitionIdent()))
-                        .build();
-                    newMetadata.put(indexMetadata, false);
-                }
-                newMetadata.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
+            } else {
+                // TODO: Create RelationMetadata.BlobTable
             }
-
         }
 
         return newMetadata.build();
     }
 
-    private Map<String, IndexTemplateMetadata> upgradeTemplates(Map<String, IndexTemplateMetadata> templates) {
-        return templateUpgrader.upgrade(templates);
+    private static Settings pruneArchived(Settings settings) {
+        return IndexScopedSettings.DEFAULT_SCOPED_SETTINGS.archiveUnknownOrInvalidSettings(
+            settings,
+            _ -> {},
+            (_, _) -> {}
+        ).filter(k -> !k.startsWith(AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX));
     }
 
+
+    /// Return a "fixed" version
+    ///
+    /// See https://github.com/crate/crate/pull/17178
+    /// In versions up to 5.9.7 ALTER TABLE on a partitioned table could change the
+    /// `versionCreated` property on the template.
+    ///
+    private static Version getFixedVersionCreated(Metadata metadata, DocTableInfo docTable) {
+        Version versionCreated = docTable.versionCreated();
+
+        // Look through partitions and takes their lowest version
+        RelationName relationName = docTable.ident();
+        Index[] concreteIndices = IndexNameExpressionResolver.concreteIndices(
+            metadata,
+            IndicesOptions.LENIENT_EXPAND_OPEN,
+            PartitionName.templatePrefix(relationName.schema(), relationName.name())
+        );
+        for (Index index : concreteIndices) {
+            IndexMetadata indexMetadata = metadata.index(index);
+            if (indexMetadata != null) {
+                versionCreated = Version.min(versionCreated, indexMetadata.getCreationVersion());
+            }
+        }
+
+        // If partitions were deleted the above logic can still yield wrong versions.
+        // This does another "correction" by checking oid assignment
+        // If a column doesn't have OIDs the table must be from < 5.5.0
+        if (versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
+            if (docTable.rootColumns().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
+                versionCreated = Version.V_5_4_0;
+            }
+        }
+        return versionCreated;
+    }
+
+
+    /**
+     * Checks that the index can be upgraded to the current version of the master node.
+     *
+     * <p>
+     * If the index does not need upgrade it returns the index metadata unchanged, otherwise it returns a modified index metadata. If index
+     * cannot be updated the method throws an exception.
+     */
+    public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
+                                              @Nullable IndexTemplateMetadata indexTemplateMetadata,
+                                              Version minimumIndexCompatibilityVersion,
+                                              @Nullable UserDefinedFunctionsMetadata userDefinedFunctionsMetadata) {
+        if (isUpgraded(indexMetadata)) {
+            return indexMetadata;
+        }
+        if (userDefinedFunctionsMetadata != null) {
+            userDefinedFunctionService.updateImplementations(userDefinedFunctionsMetadata.functionsMetadata());
+        }
+        // Throws an exception if there are too-old segments:
+        checkSupportedVersion(indexMetadata, minimumIndexCompatibilityVersion);
+
+        IndexMetadata newMetadata = indexMetadata;
+        // we have to run this first otherwise in we try to create IndexSettings
+        // with broken settings and fail in checkMappingsCompatibility
+        newMetadata = archiveBrokenIndexSettings(newMetadata);
+        newMetadata = indexUpgrader.upgrade(newMetadata, indexTemplateMetadata);
+        checkMappingsCompatibility(newMetadata);
+        return markAsUpgraded(newMetadata);
+    }
 
     /**
      * Checks if the index was already opened by this version of CrateDB and doesn't require any additional checks.

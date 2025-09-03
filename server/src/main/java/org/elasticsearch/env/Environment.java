@@ -87,8 +87,7 @@ public class Environment {
         this(settings, configPath, PathUtils.get(System.getProperty("java.io.tmpdir")));
     }
 
-    // Should only be called directly by this class's unit tests
-    Environment(final Settings settings, final Path configPath, final Path tmpPath) {
+    private Environment(final Settings settings, final Path configPath, final Path tmpPath) {
         final Path homeFile;
         if (PATH_HOME_SETTING.exists(settings)) {
             homeFile = PathUtils.get(PATH_HOME_SETTING.get(settings)).normalize();
@@ -97,7 +96,7 @@ public class Environment {
         }
 
         if (configPath != null) {
-            configFile = configPath.normalize();
+            configFile = homeFile.resolve(configPath.toString()).normalize().toAbsolutePath();
         } else {
             configFile = homeFile.resolve("config");
         }
@@ -111,7 +110,7 @@ public class Environment {
             if (dataPaths.isEmpty() == false) {
                 dataFiles = new Path[dataPaths.size()];
                 for (int i = 0; i < dataPaths.size(); i++) {
-                    dataFiles[i] = PathUtils.get(dataPaths.get(i));
+                    dataFiles[i] = homeFile.resolve(dataPaths.get(i)).normalize().toAbsolutePath();
                 }
             } else {
                 dataFiles = new Path[]{homeFile.resolve("data")};
@@ -135,13 +134,13 @@ public class Environment {
         } else {
             repoFiles = new Path[repoPaths.size()];
             for (int i = 0; i < repoPaths.size(); i++) {
-                repoFiles[i] = PathUtils.get(repoPaths.get(i));
+                repoFiles[i] = homeFile.resolve(repoPaths.get(i)).normalize().toAbsolutePath();
             }
         }
 
         // this is trappy, Setting#get(Settings) will get a fallback setting yet return false for Settings#exists(Settings)
         if (PATH_LOGS_SETTING.exists(settings)) {
-            logsFile = PathUtils.get(PATH_LOGS_SETTING.get(settings)).normalize();
+            logsFile = homeFile.resolve(PATH_LOGS_SETTING.get(settings)).normalize().toAbsolutePath();
         } else {
             logsFile = homeFile.resolve("logs");
         }

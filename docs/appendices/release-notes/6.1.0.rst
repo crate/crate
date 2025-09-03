@@ -50,6 +50,13 @@ Breaking Changes
   Previously, it was returning ``BOOLEAN`` values, and now it returns ``'YES'``
   or ``'NO'``, in order to be compatible with the SQL specification.
 
+- Changed behavior of relative paths defined for :ref:`path.conf <path.conf>`,
+  :ref:`path.data <path.data>`, :ref:`path.repo <path.repo>` and
+  :ref:`path.logs <path.logs>`, to use the value of
+  :ref:`CRATE_HOME <conf-env-crate-home>` as the basis directory, against which
+  the relative paths are resolved, thus conforming to the behavior already
+  described in the :ref:`documentation <conf-node-settings_paths>`.
+
 Deprecations
 ============
 

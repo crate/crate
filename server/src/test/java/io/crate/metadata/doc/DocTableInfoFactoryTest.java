@@ -120,12 +120,21 @@ public class DocTableInfoFactoryTest extends ESTestCase {
         String mapping = """
             {
                 "default": {
+                    "_meta" : {
+                        "partitioned_by" : [ [ "p", "integer"] ]
+                    },
                     "properties": {
                         "id": {
                             "type": "integer",
                             "position": 1,
                             "index": "not_analyzed",
                             "oid": 1
+                        },
+                        "p": {
+                            "type": "integer",
+                            "position": 2,
+                            "index": "not_analyzed",
+                            "oid": 2
                         }
                     }
                 }
@@ -167,8 +176,16 @@ public class DocTableInfoFactoryTest extends ESTestCase {
         String mapping = """
             {
                 "default": {
+                    "_meta": {
+                        "partitioned_by": [["p", "integer"]]
+                    },
                     "properties": {
                         "id": {
+                            "type": "integer",
+                            "position": 2,
+                            "index": "not_analyzed"
+                        },
+                        "p": {
                             "type": "integer",
                             "position": 1,
                             "index": "not_analyzed"

@@ -169,6 +169,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                 }
 
                 ClusterState newState = ClusterState.builder(currentState).build();
+                List<String> newIndexUUIDs = isPartitioned ? List.of() : List.of(UUIDs.randomBase64UUID());
                 Metadata newMetadata = Metadata.builder(newState.metadata())
                     .setTable(
                         relationName,
@@ -181,7 +182,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                         request.primaryKeys(),
                         request.partitionedBy(),
                         State.OPEN,
-                        List.of(),
+                        newIndexUUIDs,
                         0
                     ).build();
                 table = newMetadata.getRelation(relationName);
@@ -190,11 +191,8 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                 newState = ClusterState.builder(newState).metadata(newMetadata).build();
 
                 if (!isPartitioned) {
-                    String newIndexUUID = UUIDs.randomBase64UUID();
+                    String newIndexUUID = newIndexUUIDs.get(0);
                     newState = createIndexService.add(newState, table, newIndexUUID, List.of(), Settings.EMPTY);
-                    Metadata.Builder mdBuilder = Metadata.builder(newState.metadata());
-                    newMetadata = mdBuilder.addIndexUUIDs(table, List.of(newIndexUUID)).build();
-                    newState = ClusterState.builder(newState).metadata(newMetadata).build();
                 }
 
                 return newState;

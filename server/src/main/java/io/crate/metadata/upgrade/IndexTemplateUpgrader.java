@@ -22,94 +22,45 @@
 package io.crate.metadata.upgrade;
 
 import static io.crate.metadata.upgrade.MetadataIndexUpgrader.removeInvalidPropertyGeneratedByDroppingSysCols;
-import static org.elasticsearch.common.settings.AbstractScopedSettings.ARCHIVED_SETTINGS_PREFIX;
-import static org.elasticsearch.common.settings.IndexScopedSettings.DEFAULT_SCOPED_SETTINGS;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.ColumnPositionResolver;
-import org.elasticsearch.cluster.metadata.IndexTemplateMetadata;
 import org.elasticsearch.common.compress.CompressedXContent;
-import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
-
 import io.crate.common.collections.Maps;
-import io.crate.metadata.IndexName;
 import io.crate.server.xcontent.XContentHelper;
 
-public class IndexTemplateUpgrader {
+public final class IndexTemplateUpgrader {
 
-    private final Logger logger;
-    public static final String TEMPLATE_NAME = "crate_defaults";
+    public static final String CRATE_DEFAULTS = "crate_defaults";
 
-    public IndexTemplateUpgrader() {
-        this.logger = LogManager.getLogger(IndexTemplateUpgrader.class);
+    private IndexTemplateUpgrader() {
     }
 
-    public Map<String, IndexTemplateMetadata> upgrade(Map<String, IndexTemplateMetadata> templates) {
-        HashMap<String, IndexTemplateMetadata> upgradedTemplates = archiveUnknownOrInvalidSettings(templates);
-        upgradedTemplates.remove(TEMPLATE_NAME);
-        return upgradedTemplates;
-    }
-
-    /**
-     * Filter out all unknown/old/invalid settings. Archiving them *only* is not working as they would be "un-archived"
-     * by {@link IndexTemplateMetadata.Builder#fromXContent} logic to prefix all settings with `index.` when applying
-     * the new cluster state.
-     */
-    private HashMap<String, IndexTemplateMetadata> archiveUnknownOrInvalidSettings(Map<String, IndexTemplateMetadata> templates) {
-        HashMap<String, IndexTemplateMetadata> upgradedTemplates = new HashMap<>(templates.size());
-        for (Map.Entry<String, IndexTemplateMetadata> entry : templates.entrySet()) {
-            IndexTemplateMetadata templateMetadata = entry.getValue();
-            Settings.Builder settingsBuilder = Settings.builder().put(templateMetadata.settings());
-            String templateName = entry.getKey();
-
-            // only process partition table templates
-            if (IndexName.isPartitioned(templateName) == false) {
-                upgradedTemplates.put(templateName, templateMetadata);
-                continue;
-            }
-
-            Settings settings = DEFAULT_SCOPED_SETTINGS.archiveUnknownOrInvalidSettings(
-                settingsBuilder.build(), e -> { }, (e, ex) -> { })
-                .filter(k -> k.startsWith(ARCHIVED_SETTINGS_PREFIX) == false);
-
-            IndexTemplateMetadata.Builder builder = IndexTemplateMetadata.builder(templateName)
-                .patterns(templateMetadata.patterns())
-                .settings(settings);
-            var mappingSource = XContentHelper.toMap(templateMetadata.mapping().compressedReference(), XContentType.JSON);
-            Map<String, Object> defaultMapping = Maps.get(mappingSource, "default");
-            boolean updated = removeInvalidPropertyGeneratedByDroppingSysCols(defaultMapping);
-            updated |= populateColumnPositions(defaultMapping);
-            if (defaultMapping.containsKey("_all")) {
-                // Support for `_all` was removed (in favour of `copy_to`.
-                // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
-                defaultMapping.remove("_all");
-                updated = true;
-            }
-            updated |= MetadataIndexUpgrader.addIndexColumnSources(Maps.get(defaultMapping, "properties"), defaultMapping, "");
-            if (updated) {
-                builder.putMapping(new CompressedXContent(mappingSource));
-            } else {
-                builder.putMapping(templateMetadata.mapping());
-            }
-
-            for (ObjectObjectCursor<String, AliasMetadata> container : templateMetadata.aliases()) {
-                builder.putAlias(container.value);
-            }
-            upgradedTemplates.put(templateName, builder.build());
+    /// Updates the mapping:
+    ///
+    /// - Drops _all
+    /// - Adds column positions
+    /// - Applies fixes for mangled properties caused by dropping sys columns
+    ///
+    public static Map<String, Object> updateMapping(CompressedXContent mapping) {
+        Map<String, Object> mappingSource = XContentHelper.toMap(mapping.compressedReference(), XContentType.JSON);
+        Map<String, Object> defaultMapping = Maps.get(mappingSource, "default");
+        removeInvalidPropertyGeneratedByDroppingSysCols(defaultMapping);
+        populateColumnPositions(defaultMapping);
+        if (defaultMapping.containsKey("_all")) {
+            // Support for `_all` was removed (in favour of `copy_to`.
+            // We never utilized this but always set `_all: {enabled: false}` if you created a table using SQL in earlier version, so we can safely drop it.
+            defaultMapping.remove("_all");
         }
-        return upgradedTemplates;
+        MetadataIndexUpgrader.addIndexColumnSources(Maps.get(defaultMapping, "properties"), defaultMapping, "");
+        return mappingSource;
     }
 
     public static boolean populateColumnPositions(Map<String, Object> mapping) {
@@ -120,6 +71,7 @@ public class IndexTemplateUpgrader {
         return columnPositionResolver.numberOfColumnsToReposition() > 0;
     }
 
+    @SuppressWarnings("unchecked")
     private static void populateColumnPositions(String parentName,
                                                 Map<String, Object> mapping,
                                                 int currentDepth,

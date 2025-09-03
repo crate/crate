@@ -28,7 +28,6 @@ import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_REPLICAS_SETTING;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.INDEX_NUMBER_OF_SHARDS_SETTING;
-import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_INDEX_UUID;
 import static org.elasticsearch.cluster.routing.TestShardRouting.newShardRouting;
 
 import java.io.IOException;
@@ -102,6 +101,7 @@ public class MetadataTrackerTest extends ESTestCase {
                 .put(settings)
                 .build();
 
+            String indexUUID = UUIDs.randomBase64UUID();
             Metadata metadata = Metadata.builder(clusterState.metadata())
                 .setTable(
                     relationName,
@@ -114,7 +114,7 @@ public class MetadataTrackerTest extends ESTestCase {
                     List.of(),
                     List.of(),
                     IndexMetadata.State.OPEN,
-                    List.of(),
+                    List.of(indexUUID),
                     1L
                 )
                 .build();
@@ -127,14 +127,15 @@ public class MetadataTrackerTest extends ESTestCase {
             RelationMetadata.Table table = metadata.getRelation(relationName);
             assert table != null : "Table " + relationName + " not found in metadata";
 
-            return addPartition(table, new PartitionName(relationName, List.of()), settingsWithDefaults);
+            return addPartition(table, indexUUID, new PartitionName(relationName, List.of()), settingsWithDefaults);
         }
 
-        private Builder addPartition(RelationMetadata.Table table, PartitionName partitionName, Settings settings) throws IOException {
+        private Builder addPartition(RelationMetadata.Table table, String indexUUID, PartitionName partitionName, Settings settings) throws IOException {
             Map<String, Object> mapping = Map.of();
-            var indexMetadata = IndexMetadata.builder(partitionName.asIndexName())
+            var indexMetadata = IndexMetadata.builder(indexUUID)
+                .indexName(indexUUID)
                 .putMapping(new MappingMetadata(mapping))
-                .settings(settings(Version.CURRENT).put(settings).put(SETTING_INDEX_UUID, UUIDs.randomBase64UUID()))
+                .settings(settings(Version.CURRENT).put(settings))
                 .partitionValues(partitionName.values())
                 .numberOfShards(1)
                 .numberOfReplicas(0)
@@ -142,7 +143,9 @@ public class MetadataTrackerTest extends ESTestCase {
 
             Metadata.Builder mdBuilder = Metadata.builder(clusterState.metadata());
             mdBuilder.put(indexMetadata, true);
-            mdBuilder.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
+            if (!table.indexUUIDs().contains(indexUUID)) {
+                mdBuilder.addIndexUUIDs(table, List.of(indexMetadata.getIndexUUID()));
+            }
 
             clusterState = ClusterState.builder(clusterState)
                 .metadata(mdBuilder)
@@ -194,7 +197,7 @@ public class MetadataTrackerTest extends ESTestCase {
             assert table != null : "Table " + relationName + " not found in metadata";
 
             for (var partitionName : partitions) {
-                addPartition(table, partitionName, Settings.EMPTY);
+                addPartition(table, UUIDs.randomBase64UUID(), partitionName, Settings.EMPTY);
             }
 
             return this;
@@ -388,7 +391,6 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(SUBSCRIBER_CLUSTER_STATE).isEqualTo(syncedSubscriberClusterState);
 
         // Let's change the mapping on the publisher publisherClusterState
-        Map<String, Object> updatedMapping = Map.of("1", "one", "2", "two");
         SimpleReference newColumn = new SimpleReference(new ReferenceIdent(relationName, "two"), RowGranularity.DOC, DataTypes.STRING, 1, null);
         var updatedPublisherClusterState = new Builder(PUBLISHER_CLUSTER_STATE)
             .addColumn("test", newColumn)
@@ -433,7 +435,7 @@ public class MetadataTrackerTest extends ESTestCase {
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
-        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
+        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().indices().valuesIt().next();
         assertThat(syncedIndexMetadata.getSettings().getAsInt(IndexSettings.MAX_NGRAM_DIFF_SETTING.getKey(), null)).isEqualTo(5);
     }
 
@@ -478,7 +480,7 @@ public class MetadataTrackerTest extends ESTestCase {
             updatedResponse,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS
         );
-        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().index("test");
+        var syncedIndexMetadata = syncedSubscriberClusterState.metadata().indices().valuesIt().next();
         assertThat(INDEX_NUMBER_OF_REPLICAS_SETTING.get(syncedIndexMetadata.getSettings())).isEqualTo(0);
     }
 

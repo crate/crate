@@ -9,7 +9,7 @@ ssl.keystore_filepath: ../server/src/test/resources/keystore.pcks12 # working di
 ssl.keystore_password: keystorePassword
 ssl.keystore_key_password: keystorePassword
 
-path.repo: ../sandbox/crate/repo # working dir is ${PROJEC_DIR}/app
+path.repo: repo # working dir is ${PROJEC_DIR}/app
 
 http.cors.enabled: true
 http.cors.allow-origin: "*"
