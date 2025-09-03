@@ -287,7 +287,6 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPartitionIdentOfNonPartition() throws Exception {
-        // expression should return NULL on non partitioned tables
         Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);

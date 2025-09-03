@@ -130,8 +130,8 @@ public class SysShardsTableInfo {
 
     public static SystemTable<ShardRowContext> create(Roles roles) {
         return SystemTable.<ShardRowContext>builder(IDENT, RowGranularity.SHARD)
-            .add("schema_name", STRING, r -> r.indexParts().schema())
-            .add("table_name", STRING, r -> r.indexParts().table())
+            .add("schema_name", STRING, r -> r.relationName().schema())
+            .add("table_name", STRING, r -> r.relationName().name())
             .add("id", INTEGER, ShardRowContext::id)
             .add("partition_ident", STRING, ShardRowContext::partitionIdent)
             .add("partition_uuid", STRING, ShardRowContext::partitionUUID)
