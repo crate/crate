@@ -51,7 +51,6 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
@@ -144,14 +143,13 @@ public final class DeletePlanner {
             if (!where.partitions().isEmpty()
                 && (!where.hasQuery() || Literal.BOOLEAN_TRUE.equals(where.query()))) {
                 List<PartitionName> partitionValues = new ArrayList<>(where.partitions().size());
-                for (String partition : where.partitions()) {
-                    partitionValues.add(new PartitionName(
-                        table.relationName(), IndexName.decode(partition).partitionIdent()));
+                for (PartitionName partition : where.partitions()) {
+                    partitionValues.add(partition);
                 }
                 dependencies.client().execute(
                     TransportDropPartitionsAction.ACTION,
                     new DropPartitionsRequest(table.relationName(), partitionValues)
-                ).whenComplete(new OneRowActionListener<>(consumer, ignoredResponse -> Row1.ROW_COUNT_UNKNOWN));
+                ).whenComplete(new OneRowActionListener<>(consumer, _ -> Row1.ROW_COUNT_UNKNOWN));
                 return;
             }
 
