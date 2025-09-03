@@ -30,6 +30,8 @@ import java.util.function.Supplier;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
@@ -41,29 +43,24 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobShard;
 import io.crate.common.Suppliers;
-import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.IndexName;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 public class ShardRowContext {
 
+    private final RelationName relationName;
     private final IndexShard indexShard;
     @Nullable
     private final BlobShard blobShard;
     private final ClusterService clusterService;
     private final Supplier<Long> sizeSupplier;
-    private final IndexParts indexParts;
     private final String partitionIdent;
+    private final List<String> partitionValues;
     private final int id;
     private final String path;
     @Nullable
     private final String blobPath;
-    @Nullable
-    private final String aliasName;
-    @Nullable
-    private final String templateName;
     private final boolean orphanedPartition;
 
     public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
@@ -91,39 +88,33 @@ public class ShardRowContext {
         this.sizeSupplier = sizeSupplier;
         ShardId shardId = indexShard.shardId();
         this.id = shardId.id();
-        IndexParts indexParts;
-        PartitionName partitionName;
-        boolean orphanedPartition;
-        try {
-            partitionName = clusterService.state().metadata().getPartitionName(shardId.getIndexUUID());
-            RelationName relationName = partitionName.relationName();
-            indexParts = new IndexParts(relationName.schema(), relationName.name(), partitionName.ident());
-            orphanedPartition = false;
-        } catch (RelationUnknown e) {
-            // Orphaned partition, no metadata available
-            IndexMetadata indexMetadata = clusterService.state().metadata().index(shardId.getIndex());
-            if (indexMetadata == null) {
-                throw new IllegalArgumentException(
-                    String.format(Locale.ENGLISH, "IndexMetadata for shard %s does not exist in the cluster state", shardId));
-            }
-            indexParts = IndexName.decode(indexMetadata.getIndex().getName());
-            partitionName = indexParts.toPartitionName();
+        Metadata metadata = clusterService.state().metadata();
+        IndexMetadata index = metadata.index(shardId.getIndexUUID());
+        if (index == null) {
+            throw new IllegalArgumentException(
+                String.format(Locale.ENGLISH, "IndexMetadata for shard %s does not exist in the cluster state", shardId));
+        }
+        @Nullable
+        RelationMetadata relation = metadata.getRelation(shardId.getIndexUUID());
+        if (relation == null) {
             orphanedPartition = true;
-        }
-        this.orphanedPartition = orphanedPartition;
-        this.indexParts = indexParts;
-        if (!partitionName.values().isEmpty()) {
-            partitionIdent = partitionName.ident();
-            // Aliases and templates are deprecated and not used anymore.
-            aliasName = null;
-            templateName = null;
+            relationName = IndexName.decode(shardId.getIndexName()).toRelationName();
         } else {
-            partitionIdent = "";
-            aliasName = null;
-            templateName = null;
+            orphanedPartition = false;
+            relationName = relation.name();
         }
+        partitionValues = index.partitionValues();
+        partitionIdent = partitionValues.isEmpty() ? "" : PartitionName.encodeIdent(index.partitionValues());
         path = indexShard.shardPath().getDataPath().toString();
         blobPath = blobShard == null ? null : blobShard.blobContainer().getBaseDirectory().toString();
+    }
+
+    public RelationName relationName() {
+        return relationName;
+    }
+
+    public List<String> partitionValues() {
+        return partitionValues;
     }
 
     public IndexShard indexShard() {
@@ -134,14 +125,11 @@ public class ShardRowContext {
         return clusterService;
     }
 
-    public IndexParts indexParts() {
-        return indexParts;
-    }
-
     public Long size() {
         return sizeSupplier.get();
     }
 
+    @Nullable
     public String partitionIdent() {
         return partitionIdent;
     }
