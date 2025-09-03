@@ -34,6 +34,7 @@ import io.crate.exceptions.VersioningValidationException;
 import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.doc.SysColumns;
 
 public class WhereClause {
@@ -66,7 +67,7 @@ public class WhereClause {
     @Nullable
     private final Symbol query;
     private final Set<Symbol> clusteredBy;
-    private final List<String> partitions;
+    private final List<PartitionName> partitions;
 
     public WhereClause(@Nullable Symbol query) {
         this.query = query;
@@ -75,7 +76,7 @@ public class WhereClause {
     }
 
     public WhereClause(@Nullable Symbol normalizedQuery,
-                       @Nullable List<String> partitions,
+                       @Nullable List<PartitionName> partitions,
                        Set<Symbol> clusteredBy) {
         this.clusteredBy = clusteredBy;
         this.partitions = Objects.requireNonNullElse(partitions, List.of());
@@ -143,7 +144,7 @@ public class WhereClause {
      * <p>
      * Note that the NO_MATCH case has to be tested separately.
      */
-    public List<String> partitions() {
+    public List<PartitionName> partitions() {
         return partitions;
     }
 

@@ -129,8 +129,8 @@ public final class WhereClauseOptimizer {
                 WhereClauseAnalyzer.PartitionResult partitionResult =
                     WhereClauseAnalyzer.resolvePartitions(boundQuery, table, txnCtx, nodeCtx, metadata);
                 return new WhereClause(
-                    partitionResult.query,
-                    partitionResult.partitions,
+                    partitionResult.query(),
+                    partitionResult.partitions(),
                     clusteredBy
                 );
             } else {
