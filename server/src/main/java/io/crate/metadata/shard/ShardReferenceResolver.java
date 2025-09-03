@@ -24,13 +24,14 @@ package io.crate.metadata.shard;
 import static io.crate.execution.engine.collect.NestableCollectExpression.constant;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.index.Index;
 
-import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
@@ -56,31 +57,31 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
         new MapBackedRefResolver(Collections.emptyMap());
 
     private static ReferenceResolver<NestableInput<?>> createPartitionColumnResolver(Index index, RelationName name, List<String> partitionValues, Schemas schemas) {
-        MapBuilder<ColumnIdent, NestableInput<?>> builder = MapBuilder.newMapBuilder();
+        DocTableInfo info;
         try {
-            DocTableInfo info = schemas.getTableInfo(name);
-            assert info.isPartitioned() : "table must be partitioned";
-            int i = 0;
-            int numPartitionedColumns = info.partitionedByColumns().size();
-
-            List<String> partitionValue = partitionValues;
-            assert partitionValue.size() ==
-                   numPartitionedColumns : "invalid number of partitioned columns";
-            for (Reference partitionedInfo : info.partitionedByColumns()) {
-                builder.put(
-                    partitionedInfo.column(),
-                    constant(partitionedInfo.valueType().implicitCast(partitionValue.get(i)))
-                );
-                i++;
-            }
+            info = schemas.getTableInfo(name);
         } catch (Exception e) {
             if (e instanceof ResourceUnknownException) {
                 LOGGER.error("Orphaned partition '{}' with missing table '{}' found", index, name);
+                return new MapBackedRefResolver(Map.of());
             } else {
                 throw e;
             }
         }
-        return new MapBackedRefResolver(builder.immutableMap());
+        assert info.isPartitioned() : "table must be partitioned";
+        int i = 0;
+        int numPartitionedColumns = info.partitionedByColumns().size();
+        HashMap<ColumnIdent, NestableInput<?>> pValues = HashMap.newHashMap(numPartitionedColumns);
+        assert partitionValues.size() ==
+                numPartitionedColumns : "invalid number of partitioned columns";
+        for (Reference partitionedInfo : info.partitionedByColumns()) {
+            pValues.put(
+                partitionedInfo.column(),
+                constant(partitionedInfo.valueType().implicitCast(partitionValues.get(i)))
+            );
+            i++;
+        }
+        return new MapBackedRefResolver(Collections.unmodifiableMap(pValues));
     }
 
     private final ShardRowContext shardRowContext;
