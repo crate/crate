@@ -1167,15 +1167,10 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("update t set c=999 returning *");
         assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 999");
-
-        execute("update t set o=null");
-        execute("refresh table t");
-        execute("select * from t");
-        assertThat(response).hasRows("1| 2| 3| NULL| 999");
     }
 
     @Test
-    public void test_update_modifies_assigned_default_columns() {
+    public void test_update_assigning_values_to_default_columns() {
         execute("""
             create table t (
                 a int default -1,
@@ -1206,24 +1201,6 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("update t set a=1, b=2, i=3, o={a=4, b=5, i=6, o={a=7, b=8, i=9}}, c=10 returning *");
         assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
-
-        execute("update t set o['o']['a']=11, o['o']['b']=12, o['o']['i']=13 returning *");
-        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=11, b=12, i=13}}| 10");
-
-        execute("update t set o['o']['b']=null, o['b']=null, b=null, o['o']['a']=null, o['a']=null, a=null");
-        execute("refresh table t");
-        execute("select * from t");
-        assertThat(response).hasRows("NULL| NULL| 3| {a=NULL, b=NULL, i=6, o={a=NULL, b=NULL, i=13}}| 10");
-
-        execute("update t set o['o']=null");
-        execute("refresh table t");
-        execute("select * from t");
-        assertThat(response).hasRows("NULL| NULL| 3| {a=NULL, b=NULL, i=6, o=NULL}| 10");
-
-        execute("update t set a=11, b=22, i=33, o={a=44, b=55, i=66, o={a=77, b=88, i=99}}, c=1010");
-        execute("refresh table t");
-        execute("select * from t");
-        assertThat(response).hasRows("11| 22| 33| {a=44, b=55, i=66, o={a=77, b=88, i=99}}| 1010");
     }
 
     @Test
@@ -1313,5 +1290,110 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRows("11| NULL| 1| NULL| 10");
+    }
+
+    @Test
+    public void test_update_assigning_values_to_default_columns_by_subscript_expressions_or_by_assigning_to_parent_object() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set o['o']['a']=11, o['o']['b']=12, o['o']['i']=13 returning *");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=11, b=12, i=13}}| 10");
+
+        execute("update t set o['o']['b']=null, o['b']=null, b=null, o['o']['a']=null, o['a']=null, a=null");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("NULL| NULL| 3| {a=NULL, b=NULL, i=6, o={a=NULL, b=NULL, i=13}}| 10");
+
+        execute("update t set o=null");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("NULL| NULL| 3| NULL| 10");
+
+        execute("update t set o={}");
+        execute("refresh table t");
+        execute("select a, b, i, o['a'], o['b'] is not null, o['i'] is null, o['o']['a'], o['o']['b'] is not null, o['o']['i'] is null, c from t");
+        assertThat(response).hasRows("NULL| NULL| 3| -1| true| true| -1| true| true| 10");
+
+        execute("update t set o['o']=null");
+        execute("refresh table t");
+        execute("select a, b, i, o['a'], o['b'] is not null, o['i'] is null, o['o']['a'], o['o']['b'], o['o']['i'], c from t");
+        assertThat(response).hasRows("NULL| NULL| 3| -1| true| true| NULL| NULL| NULL| 10");
+
+        execute("update t set o['o']={}");
+        execute("refresh table t");
+        execute("select a, b, i, o['a'], o['b'] is not null, o['i'] is null, o['o']['a'], o['o']['b'] is not null, o['o']['i'] is null, c from t");
+        assertThat(response).hasRows("NULL| NULL| 3| -1| true| true| -1| true| true| 10");
+    }
+
+    @Test
+    public void test_update_object_column_with_generated_sub_columns() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=1, b=5, i=6, o={a=1, b=8, i=9}}, 0)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=1, b=5, i=6, o={a=1, b=8, i=9}}| 0");
+
+        execute("update t set o['o']['b']=null, o['b']=null, b=null, o['o']['a']=null, o['a']=null, a=null, c=null");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("NULL| NULL| 3| {a=NULL, b=NULL, i=6, o={a=NULL, b=NULL, i=9}}| NULL");
+
+        execute("update t set o=null");
+        execute("refresh table t");
+        execute("select a, b IS NOT NULL, i, o, c from t");
+        assertThat(response).hasRows("NULL| true| 3| NULL| NULL");
+
+        execute("update t set o={}, c=7");
+        execute("refresh table t");
+        execute("select a, b is not null, i, o['a'], o['b'] is not null, o['i'] is null, o['o']['a'], o['o']['b'] is not null, o['o']['i'] is null, c from t");
+        assertThat(response).hasRows("8| true| 3| 8| true| true| 8| true| true| 7");
+
+        execute("update t set o['o']=null");
+        execute("refresh table t");
+        execute("select a, b is not null, i, o['a'], o['b'] is not null, o['i'] is null, o['o']['a'], o['o']['b'], o['o']['i'], c from t");
+        assertThat(response).hasRows("8| true| 3| 8| true| true| NULL| NULL| NULL| 7");
+
+        execute("update t set o['o']={}");
+        execute("refresh table t");
+        execute("select a, b is not null, i, o['a'], o['b'] is not null, o['i'] is null, o['o']['a'], o['o']['b'] is not null, o['o']['i'] is null, c from t");
+        assertThat(response).hasRows("8| true| 3| 8| true| true| 8| true| true| 7");
     }
 }

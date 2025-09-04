@@ -471,9 +471,10 @@ public class Indexer {
             if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
-            // never re-generate default columns for UPDATE
+            // never re-generate default root columns for UPDATE
+            // for sub-columns default columns may need to be generated, i.e. update t set o={}, where o has default sub-cols
             boolean isUpdate = updateColumns != null && updateColumns.length > 0 && targetColumns.isEmpty();
-            if (isUpdate) {
+            if (isUpdate && ref.column().isRoot()) {
                 continue;
             }
             ColumnIdent column = ref.column();
