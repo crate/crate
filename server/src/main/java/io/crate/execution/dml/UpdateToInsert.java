@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.dml.upsert;
+package io.crate.execution.dml;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,8 +34,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.Id;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
-import io.crate.execution.dml.IndexItem;
-import io.crate.execution.dml.Indexer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.reference.Doc;
@@ -50,6 +48,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.types.ObjectType;
 
 /**
  * Uses a stored document to convert an UPDATE into an absolute INSERT
@@ -143,7 +142,7 @@ public final class UpdateToInsert {
 
     private final DocTableInfo table;
     private final Evaluator eval;
-    private final List<Reference> updateColumns;
+    final List<Reference> updateColumns;
     private final ArrayList<Reference> columns;
 
 
@@ -192,17 +191,15 @@ public final class UpdateToInsert {
         if (insertColumns != null) {
             this.columns.addAll(insertColumns);
         }
-        for (var ref : table.defaultExpressionColumns()) {
-            if (!ref.defaultExpression().isDeterministic() && !this.columns.contains(ref)) {
-                this.columns.add(ref);
-            }
-        }
         for (var ref : table.generatedColumns()) {
-            if (!ref.isDeterministic() && !this.columns.contains(ref)) {
+            if (ref.column().isRoot() && !ref.isDeterministic() && !this.columns.contains(ref)) {
                 this.columns.add(ref);
             }
         }
         for (var ref : table.rootColumns()) {
+            // The Indexer later on injects the generated column values
+            // We only include them here if they are provided in the `updateColumns` to validate
+            // that users provided the right value (otherwise they'd get ignored and we'd generate them later)
             if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                 continue;
             }
@@ -248,15 +245,21 @@ public final class UpdateToInsert {
             if (updateIdx >= 0) {
                 Symbol symbol = updateAssignments[updateIdx];
                 Object value = symbol.accept(eval, values).value();
-                assert ref.column().isRoot()
-                    : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                 insertValues[i] = value;
             } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
                 insertValues[i] = null;
-            } else if (ref.defaultExpression() != null && !ref.defaultExpression().isDeterministic()) {
-                insertValues[i] = null;
             } else {
                 insertValues[i] = ref.accept(eval, values).value();
+                // Remove the generated children such that Indexer can generate it
+                if (ref.valueType().id() == ObjectType.ID) {
+                    for (var child : table.getLeafReferences(ref)) {
+                        if (child.isGenerated() &&
+                            (!child.isDeterministic() || ((GeneratedReference) child).referencedReferences().stream().anyMatch(updateColumns::contains))) {
+                            //Maps.mergeInto((Map<String, Object>) insertValues[i], child.column().shiftRight().name(), child.column().shiftRight().path(), null);
+                            Maps.removeByPath((Map<String, Object>) insertValues[i], Arrays.asList(child.column().shiftRight().fqn().split("\\.")));
+                        }
+                    }
+                }
             }
         }
         for (int i = 0; i < updateColumns.size(); i++) {

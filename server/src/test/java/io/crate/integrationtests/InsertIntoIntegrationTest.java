@@ -50,6 +50,7 @@ import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.metadata.PartitionName;
 import io.crate.testing.SQLResponse;
@@ -1980,68 +1981,46 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
     }
 
-    @Test
-    public void test_non_deterministic_sub_column_not_included_in_target_cols() {
-        execute("""
-            CREATE TABLE tbl (
-                a int PRIMARY KEY,
-                b text,
-                o1 object as (
-                    sub int as round((random() + 1) * 100)
-                )
-            )
-            """
-        );
-        execute("INSERT INTO tbl(a) VALUES (1)");
-        execute("refresh table tbl");
-
-        // Replication of non-deterministic sub-columns had 2 issues:
-        // 1. Used to fail with IndexOutOfBoundsException when preparing replica request
-        //    because values size was less than columns size.
-        //    This is solved now by having dedicated indexers for INSERT and for UPSERT/UPDATE.
-        // 2. If object column is not updated, it's supposed to be taken from the existing doc.
-        //    Object was taken but sub-column used to be re-generated and merged into existing object.
-        execute("SELECT o1['sub'] FROM tbl");
-        int generatedBeforeUpsert = (int) response.rows()[0][0];
-        assertThat(generatedBeforeUpsert).isGreaterThan(0);
-
-
-        execute("INSERT INTO tbl(a) VALUES (1) " +
-            "ON CONFLICT (a) DO UPDATE SET b = 'updated'"
-        );
-        execute("refresh table tbl");
-
-        // Some iterations to ensure it hits both primary and replica
-        // Ensure that non-deterministic sub-column is not re-genrated on replicas.
-        for (int i = 0; i < 10; i++) {
-            execute("SELECT o1['sub'] FROM tbl");
-            assertThat(response.rows()[0][0]).isEqualTo(generatedBeforeUpsert);
-        }
-    }
-
-
     /**
-     * Tests a regression introduced in 5.3 (https://github.com/crate/crate/issues/15171).
+     * Covers all scenarios during INSERT INTO ON CONFLICT,
+     * including a regression introduced in 5.3 (https://github.com/crate/crate/issues/15171).
      */
     @Test
-    public void test_insert_on_conflict_with_non_deterministic_column_succeed_on_replication() throws Exception {
-        execute("""
+    public void test_insert_on_conflict_with_all_default_and_generated_variants() throws Exception {
+        execute(
+            """
             CREATE TABLE tbl (
                id int PRIMARY KEY,
-               value DOUBLE PRECISION,
-               value_text TEXT,
-               rnd_col int GENERATED ALWAYS AS random() + 10
-            ) with (number_of_replicas = 1)""");
+               x int,
+               y int default 0,
+               write_ts as current_timestamp,
+               z double precision default random(),
+               x2 as x * 2
+            ) with (number_of_replicas = 1)
+            """
+        );
 
         ensureGreen();
         execute(
             """
-            INSERT INTO tbl (id, value) VALUES (1, 99999)
-            ON CONFLICT (id) DO UPDATE SET value = excluded.value
+            INSERT INTO tbl (id, x) VALUES (1, 1)
+            ON CONFLICT (id) DO UPDATE SET x = excluded.x
             """
         );
         assertThat(response.rowCount()).isEqualTo(1);
         execute("refresh table tbl");
+        execute("select y, write_ts, z, x2 from tbl");
+        Object[] row = response.rows()[0];
+        Integer y = (Integer) row[0];
+        Long writeTs = (Long) row[1];
+        Double z = (Double) row[2];
+        Integer x2 = (Integer) row[3];
+        assertThat(y).isEqualTo(0);
+        assertThat(writeTs).isNotNull();
+        assertThat(z)
+            .isGreaterThanOrEqualTo(0.0)
+            .isLessThanOrEqualTo(1.0);
+        assertThat(x2).isEqualTo(2);
 
         execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 'tbl'");
 
@@ -2052,8 +2031,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         execute(
             """
-            INSERT INTO tbl (id, value) VALUES (?, ?)
-            ON CONFLICT (id) DO UPDATE SET value = excluded.value
+            INSERT INTO tbl (id, x) VALUES (?, ?)
+            ON CONFLICT (id) DO UPDATE SET x = excluded.x
             """,
             new Object[][] {
                 new Object[] { 1, 200 }, // conflict
@@ -2065,6 +2044,34 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response)
             .as("No underreplicated/failed shards due to streaming errors")
             .hasRows("0");
+
+        execute("refresh table tbl");
+        execute("select y, write_ts, z, x, x2 from tbl where id = 1");
+        Object[] updatedRow = response.rows()[0];
+        Integer updatedY = (Integer) updatedRow[0];
+        Long updatedWriteTs = (Long) updatedRow[1];
+        Double updatedZ = (Double) updatedRow[2];
+        Integer updatedX = (Integer) updatedRow[3];
+        Integer updatedX2 = (Integer) updatedRow[4];
+        assertThat(updatedY)
+            .as("Default value does not change")
+            .isEqualTo(0);
+
+        assertThat(updatedWriteTs)
+            .as("Update must have re-evaluated the generated expression")
+            .isGreaterThan(writeTs);
+
+        assertThat(updatedZ)
+            .as("Undeterministic default value is not re-evaluated")
+            .isEqualTo(z);
+
+        assertThat(updatedX)
+            .as("x has new value assigned in on conflict clause")
+            .isEqualTo(200);
+
+        assertThat(updatedX2)
+            .as("x had new value, x2 must re-evaluate")
+            .isEqualTo(400);
     }
 
     @Test
@@ -2134,5 +2141,229 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             // but constantly less than 57000.
             assertThat((long) response.rows()[0][0]).isLessThan(57000);
         }
+    }
+
+    @Test
+    public void test_unassigned_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t(c,i,o) values (0, 1, {i=2, o={i=3}})");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
+        assertThat(response).hasRows("0| 1| 2| 3| -1| -1| -1");
+    }
+
+    @Test
+    public void test_unassigned_default_sub_columns_when_parent_object_is_assigned_as_null() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t(c,i,o) values (0, 0, null)");
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b'], o['o']['b'], c, o['o'] from t");
+        assertThat(response).hasRows("-1| NULL| NULL| 0| NULL| NULL| true| NULL| NULL| 0| NULL");
+    }
+
+    @Test
+    public void test_unassigned_default_sub_columns_when_parent_object_is_assigned_as_empty_object() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t(c,i,o) values (0, 0, {})");
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("-1| -1| -1| 0| NULL| NULL| true| true| true| 0");
+    }
+
+    @Test
+    public void test_unassigned_generated_columns() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t(c,i,o) values (0, 1, {i=2, o={i=3}})");
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("1| 1| 1| 1| 2| 3| true| true| true| 0");
+    }
+
+    @Test
+    public void test_unassigned_generated_sub_columns_when_parent_object_is_assigned_as_null() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t(c,i,o) values (0, 1, null)");
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("1| NULL| NULL| 1| NULL| NULL| true| NULL| NULL| 0");
+    }
+
+    @Test
+    public void test_unassigned_generated_sub_columns_when_parent_object_is_assigned_as_empty_object() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t(c,i,o) values (0, 1, {})");
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("1| 1| 1| 1| NULL| NULL| true| true| true| 0");
+    }
+
+    @Test
+    public void test_unassigned_generated_sub_columns_when_referenced_ref_is_assigned_as_null() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t(c) values (null)");
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("NULL| NULL| NULL| NULL| NULL| NULL| true| true| true| NULL");
+    }
+
+    @UseJdbc(0)
+    @Test
+    public void test_assigned_generated_columns() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+
+        // deterministic col/sub-cols are validated
+        assertThatThrownBy(() -> execute("insert into t(c, a) values (0, 0)"))
+            .isExactlyInstanceOf(SQLParseException.class)
+            .hasMessage("Given value 0 for generated column a does not match calculation (c + 1) = 1");
+        assertThatThrownBy(() -> execute("insert into t(c, o) values (0, {a=0})"))
+            .isExactlyInstanceOf(SQLParseException.class)
+            .hasMessage("Given value 0 for generated column o['a'] does not match calculation (c + 1) = 1");
+        assertThatThrownBy(() -> execute("insert into t(c, o) values (0, {o={a=0}})"))
+            .isExactlyInstanceOf(SQLParseException.class)
+            .hasMessage("Given value 0 for generated column o['o']['a'] does not match calculation (c + 1) = 1");
+
+        // nondeterministic col/sub-cols are not validated
+        execute("insert into t(c, b) values (0, 0)");
+        execute("insert into t(c, o) values (1, {b=0})");
+        execute("insert into t(c, o) values (2, {o={b=0}})");
+        execute("refresh table t");
+        execute("select count(*) from t");
+        assertThat(response).hasRows("3");
     }
 }
