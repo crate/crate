@@ -643,6 +643,13 @@ public class Indexer {
                     columns.set(idx, newRef);
                     valueIndexers.set(idx, newRef.valueType().valueIndexer(newRef.ident().tableIdent(), newRef, getRef));
                 }
+            } else if (ArrayType.unnest(oldRef.valueType()).id() == ObjectType.ID) {
+                // object types in 'columns' may be outdated - missing newly added child types
+                Reference newRef = getRef.apply(oldRef.column());
+                if (!newRef.equals(oldRef)) {
+                    columns.set(idx, newRef);
+                    valueIndexers.get(idx).updateTargets(getRef);
+                }
             } else {
                 valueIndexers.get(idx).updateTargets(getRef);
             }
