@@ -201,6 +201,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
             super.writeTo(out);
             out.writeVInt(values.length);
             for (int i = 0; i < values.length; i++) {
+                System.out.println("streaming " + columns.get(i).column() + " " + values[i]);
                 Streamer<Object> streamer = (Streamer<Object>) columns.get(i).valueType().streamer();
                 Object v = values[i];
                 streamer.writeValueTo(out, v);

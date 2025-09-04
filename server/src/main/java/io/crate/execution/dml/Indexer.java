@@ -122,6 +122,7 @@ public class Indexer {
     @Nullable
     private final UpdateToInsert updateToInsert;
     private final List<Reference> assignedColumns;
+    private final Supplier<List<Reference>> indexingOrder;
 
 
     public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
@@ -404,6 +405,7 @@ public class Indexer {
                    List<Reference> targetColumns,
                    @Nullable String[] updateColumns,
                    @Nullable Symbol[] returnValues) {
+        this.indexingOrder = () -> ((DocTableInfo) (nodeCtx.schemas() == null ? table : nodeCtx.schemas().getTableInfo(table.ident()))).rootColumns();
         if (updateColumns != null && updateColumns.length > 0) {
             this.updateToInsert = new UpdateToInsert(
                 nodeCtx,
@@ -775,38 +777,40 @@ public class Indexer {
         );
         Object[] values = item.insertValues();
 
-        for (int i = 0; i < values.length; i++) {
-            Reference reference = columns.get(i);
-            Object value = valueForInsert(reference.valueType(), values[i]);
-            ColumnConstraint check = columnConstraints.get(reference.column());
-            if (check != null) {
-                check.verify(value);
+        for (Reference ref : indexingOrder.get()) {
+            if (columns.contains(ref)) {
+                int idx = columns.indexOf(ref);
+                Object value = valueForInsert(ref.valueType(), values[idx]);
+                ColumnConstraint check = columnConstraints.get(ref.column());
+                if (check != null) {
+                    check.verify(value);
+                }
+                if (ref.granularity() == RowGranularity.PARTITION) {
+                    continue;
+                }
+                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(idx);
+                if (value != null) {
+                    translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
+                    valueIndexer.indexValue(value, docBuilder);
+                    System.out.println("indexing: " + ref + " value: " + value);
+                }
             }
-            if (reference.granularity() == RowGranularity.PARTITION) {
-                continue;
-            }
-            ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-            if (value == null) {
-                continue;
-            }
-            translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
-            valueIndexer.indexValue(value, docBuilder);
-        }
+            if (synthetics.containsKey(ref.column())) {
+                ColumnIdent column = ref.column();
+                if (!column.isRoot()) {
+                    continue;
+                }
+                Synthetic synthetic = synthetics.get(column);
 
-        for (var entry : synthetics.entrySet()) {
-            ColumnIdent column = entry.getKey();
-            if (!column.isRoot()) {
-                continue;
+                Object value = synthetic.value();
+                if (value == null) {
+                    continue;
+                }
+                ValueIndexer<Object> indexer = synthetic.indexer();
+                translogWriter.writeFieldName(indexer.storageIdentLeafName());
+                indexer.indexValue(value, docBuilder);
+                System.out.println("indexing synthetics: " + ref + " value: " + value);
             }
-            Synthetic synthetic = entry.getValue();
-
-            Object value = synthetic.value();
-            if (value == null) {
-                continue;
-            }
-            ValueIndexer<Object> indexer = synthetic.indexer();
-            translogWriter.writeFieldName(indexer.storageIdentLeafName());
-            indexer.indexValue(value, docBuilder);
         }
 
         addIndexColumns(indexColumns, docBuilder);

@@ -273,6 +273,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
 
     @Override
     protected WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, UpsertReplicaRequest request) throws IOException {
+        System.out.println("on replica");
         List<Reference> columns = request.columns();
         Translog.Location location = null;
         String indexUUID = indexShard.shardId().getIndexUUID();
