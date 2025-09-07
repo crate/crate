@@ -422,6 +422,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                                @Nullable RawIndexer rawIndexer) throws Exception {
         VersionConflictEngineException lastException = null;
         boolean fallBackToUpdate = false;
+        Indexer onConflictIndexer = null;
         boolean hasUpdate = item.updateAssignments() != null && item.updateAssignments().length > 0;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
@@ -444,7 +445,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     );
                 } else {
                     return indexItemForUpdate(
-                        indexer, request, item, indexShard, tableInfo, partitionValues);
+                        onConflictIndexer, request, item, indexShard, tableInfo, partitionValues);
                 }
             } catch (VersionConflictEngineException e) {
                 lastException = e;
@@ -456,6 +457,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     if (!fallBackToUpdate) {
                         // insert failed, document already exists, try update
                         fallBackToUpdate = true;
+                        onConflictIndexer = indexer.onConflictIndexer();
                         if (logger.isTraceEnabled()) {
                             logger.trace("[{}] Insert conflict on id={}, falling back to UPDATE", indexShard.shardId(), item.id());
                         }

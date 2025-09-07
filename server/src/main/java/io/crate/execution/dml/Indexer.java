@@ -124,6 +124,7 @@ public class Indexer {
     private final UpdateToInsert updateToInsert;
     private final List<Reference> assignedColumns;
     private final Supplier<List<Reference>> indexingOrder;
+    private final Indexer onConflictIndexer;
 
 
     public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
@@ -407,7 +408,14 @@ public class Indexer {
                    @Nullable String[] updateColumns,
                    @Nullable Symbol[] returnValues) {
         this.indexingOrder = () -> ((DocTableInfo) (nodeCtx.schemas() == null ? table : nodeCtx.schemas().getTableInfo(table.ident()))).rootColumns();
-        if (updateColumns != null && updateColumns.length > 0) {
+        if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty()) { // insert-on-conflict
+            this.onConflictIndexer = new Indexer(
+                partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, List.of(), updateColumns, returnValues);
+            this.updateToInsert = null;
+            this.columns = targetColumns;
+            this.assignedColumns = this.columns;
+        } else if (updateColumns != null && updateColumns.length > 0) { // update
+            this.onConflictIndexer = null;
             this.updateToInsert = new UpdateToInsert(
                 nodeCtx,
                 txnCtx,
@@ -417,7 +425,8 @@ public class Indexer {
             );
             this.columns = this.updateToInsert.columns();
             this.assignedColumns = this.updateToInsert.updateColumns;
-        } else {
+        } else { // insert
+            this.onConflictIndexer = null;
             this.updateToInsert = null;
             this.columns = targetColumns;
             this.assignedColumns = this.columns;
@@ -1043,6 +1052,10 @@ public class Indexer {
             }
         }
         return extendedValues.toArray();
+    }
+
+    public Indexer onConflictIndexer() {
+        return this.onConflictIndexer;
     }
 
     public boolean hasReturnValues() {
