@@ -67,6 +67,7 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
+import io.crate.exceptions.ConversionException;
 import io.crate.execution.ddl.tables.AddColumnRequest;
 import io.crate.execution.ddl.tables.AlterTableTask;
 import io.crate.execution.ddl.tables.TransportAddColumn;
@@ -114,9 +115,9 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             table.versionCreated(),
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
-            Stream.of(columns)
+            new ArrayList<>(Stream.of(columns)
                 .map(x -> table.resolveColumn(x, true, false))
-                .toList(),
+                .toList()),
             null, null
         );
     }
@@ -158,7 +159,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            List.of(o),
+            new ArrayList<>(List.of(o)),
             null, null
         );
 
@@ -167,7 +168,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         DocTableInfo actualTable = addColumns(executor, table, newColumns);
         indexer.updateTargets(actualTable::getReference);
-        ParsedDocument parsedDoc = indexer.index(item);
+        ParsedDocument parsedDoc = indexer.index(item, actualTable.rootColumns());
         assertThat(parsedDoc.doc().getFields())
             .hasSize(10);
 
@@ -198,7 +199,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            List.of(o),
+            new ArrayList<>(List.of(o)),
             null, null
         );
 
@@ -212,7 +213,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo actualTable = addColumns(executor, table, newColumns);
 
         indexer.updateTargets(actualTable::getReference);
-        ParsedDocument parsedDoc = indexer.index(item);
+        ParsedDocument parsedDoc = indexer.index(item, actualTable.rootColumns());
         assertThat(parsedDoc.doc().getFields())
             .hasSize(11);
 
@@ -262,7 +263,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            List.of(o),
+            new ArrayList<>(List.of(o)),
             null, null
         );
 
@@ -271,7 +272,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         DocTableInfo actualTable = addColumns(executor, table, newColumns);
         indexer.updateTargets(actualTable::getReference);
-        ParsedDocument parsedDoc = indexer.index(item);
+        ParsedDocument parsedDoc = indexer.index(item, actualTable.rootColumns());
 
         assertThat(newColumns)
             .satisfiesExactly(
@@ -825,16 +826,18 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             Version.CURRENT,
             new CoordinatorTxnCtx(e.getSessionSettings()),
             e.nodeCtx,
-            List.of(
+            new ArrayList<>(List.of(
                 table.getReference(ColumnIdent.of("x")),
                 table.getDynamic(ColumnIdent.of("y"), true, false),
                 table.getDynamic(ColumnIdent.of("z"), true, false)
-            ),
+            )),
             null, null
         );
         IndexItem item = item(42, "Hello", 21);
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
-        ParsedDocument doc = indexer.index(item);
+        DocTableInfo actualTable = addColumns(e, table, newColumns);
+        indexer.updateTargets(actualTable::getReference);
+        ParsedDocument doc = indexer.index(item, actualTable.rootColumns());
         assertThat(newColumns).satisfiesExactly(
             x -> assertThat(x)
                 .hasName("y")
@@ -845,7 +848,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 .hasType(DataTypes.LONG)
                 .hasPosition(-2)
         );
-        assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
+        assertThat(source(doc, actualTable)).isEqualToIgnoringWhitespace(
             """
             {"x": 42, "y": "Hello", "z": 21}
             """
@@ -1256,22 +1259,23 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            List.of(x, y),
+            new ArrayList<>(List.of(x, y)),
             null, null
         );
         IndexItem item = item(10, List.of(List.of(1, 2), List.of(3, 4)));
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
-        ParsedDocument doc = indexer.index(item);
+        DocTableInfo actualTable = addColumns(executor, table, newColumns);
+        indexer.updateTargets(actualTable::getReference);
+        ParsedDocument doc = indexer.index(item, actualTable.rootColumns());
         assertThat(newColumns).satisfiesExactly(
             column -> assertThat(column)
                 .hasName("y")
                 .hasType(new ArrayType<>(new ArrayType<>(DataTypes.LONG)))
         );
-        assertThat(source(doc, table)).isEqualTo("""
+        assertThat(source(doc, actualTable)).isEqualTo("""
             {"x":10,"y":[[1,2],[3,4]]}"""
         );
-        // NB: We can't test translog assertions, as the test does not update DocTableInfo
-        // with the new dynamic reference.
+        assertTranslogParses(doc, actualTable);
     }
 
     @Test
@@ -1340,24 +1344,16 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table = e.resolveTableInfo("tbl");
 
         var indexer = getIndexer(e, "tbl", "i", "empty_arr", "a");
-        indexer.updateTargets(table::getReference);
         IndexItem item = item(1, List.of(), "foo");
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
+        DocTableInfo actualTable = addColumns(e, table, newColumns);
+        indexer.updateTargets(actualTable::getReference);
         assertThat(newColumns).satisfiesExactly(
             ref1 -> assertThat(ref1.column()).isEqualTo(ColumnIdent.of("empty_arr")),
             ref2 -> assertThat(ref2.column()).isEqualTo(ColumnIdent.of("a"))
         );
-        ParsedDocument doc = indexer.index(item);
-        // `_u_a` is not a valid real-world scenario, as column `a` would have been
-        // added implicitly with an `AddColumnRequest` in `TransportShardUpsertAction`,
-        // and therefore would be assigned an oid.
-        assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
-            """
-            {"1":1,"_u_empty_arr":[],"_u_a":"foo"}
-            """
-        );
-        // prefix is stripped on non _raw lookups
-        assertThat(source(doc, table)).isEqualToIgnoringWhitespace(
+        ParsedDocument doc = indexer.index(item, actualTable.rootColumns());
+        assertThat(source(doc, actualTable)).isEqualToIgnoringWhitespace(
             """
             {"a":"foo","i":1,"empty_arr":[]}
             """
@@ -1373,7 +1369,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 );
 
         var indexer = getIndexer(e, "tbl", "empty_arr");
-        ParsedDocument doc = indexer.index(item(List.of()));
+        var indexItem = item(List.of());
+        var newColumns = indexer.collectSchemaUpdates(indexItem);
+        DocTableInfo actualTable = addColumns(e, e.resolveTableInfo("tbl"), newColumns);
+        indexer.updateTargets(actualTable::getReference);
+        ParsedDocument doc = indexer.index(indexItem, actualTable.rootColumns());
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
                 """
                 {"empty_arr":[]}
@@ -1519,8 +1519,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         newColumns = indexer.collectSchemaUpdates(item(value2));
         assertThat(newColumns).isEmpty();
 
-        assertThatThrownBy(() -> indexer.index(item(value1)))
-            .isExactlyInstanceOf(ClassCastException.class);
+        assertThatThrownBy(() -> indexer.index(item(value1), newTable.rootColumns()))
+            .isExactlyInstanceOf(ConversionException.class);
     }
 
 

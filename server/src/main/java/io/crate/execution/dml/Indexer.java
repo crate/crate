@@ -44,6 +44,7 @@ import org.apache.lucene.document.Field;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Maps;
@@ -763,8 +764,9 @@ public class Indexer {
      * {@link #collectSchemaUpdates(IndexItem)}) have been added to the cluster
      * state.
      */
+    @VisibleForTesting
     @SuppressWarnings("unchecked")
-    public ParsedDocument index(IndexItem item) throws IOException {
+    ParsedDocument index(IndexItem item, List<Reference> indexOrder) throws IOException {
         assert item.insertValues().length <= valueIndexers.size()
             : "Number of values must be less than or equal the number of targetColumns/valueIndexers";
 
@@ -784,7 +786,7 @@ public class Indexer {
         );
         Object[] values = item.insertValues();
 
-        for (Reference ref : indexingOrder.get()) {
+        for (Reference ref : indexOrder) {
             if (columns.contains(ref)) {
                 int idx = columns.indexOf(ref);
                 Object value = valueForInsert(ref.valueType(), values[idx]);
@@ -827,6 +829,10 @@ public class Indexer {
         }
 
         return docBuilder.build(item.id());
+    }
+
+    public ParsedDocument index(IndexItem item) throws IOException {
+        return index(item, indexingOrder.get());
     }
 
     /**
