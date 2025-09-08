@@ -26,7 +26,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.snapshots.RestoreService.resolveRelations;
 import static org.elasticsearch.test.IntegTestCase.resolveIndex;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -139,12 +138,13 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_resolve_partitioned_table_index_from_snapshot() throws Exception {
+        List<String> partitionValues = PartitionName.decodeIdent("046jcchm6krj4e1g60o30c0");
         SQLExecutor.builder(clusterService).build()
-            .addTable("CREATE TABLE doc.restoreme (id INT, name STRING) PARTITIONED BY (name)", ".partitioned.restoreme.046jcchm6krj4e1g60o30c0");
+            .addTable("CREATE TABLE doc.restoreme (id INT, name STRING) PARTITIONED BY (name)", partitionValues);
 
         Metadata metadata = clusterService.state().metadata();
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme");
-        String indexUUID1 = resolveIndex("doc.restoreme", PartitionName.decodeIdent("046jcchm6krj4e1g60o30c0"), null, metadata).getUUID();
+        String indexUUID1 = resolveIndex("doc.restoreme", partitionValues, null, metadata).getUUID();
 
         SnapshotInfo snapshotInfo = new SnapshotInfo(
             new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),
@@ -226,20 +226,21 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_resolve_multi_tables_index_names_from_snapshot() throws Exception {
+        String partitionIdent = "046jcchm6krj4e1g60o30c0";
+        List<String> partitionValues = PartitionName.decodeIdent(partitionIdent);
         SQLExecutor.builder(clusterService).build()
             .addTable("CREATE TABLE doc.my_table (id INT, name STRING)")
-            .addTable("CREATE TABLE doc.my_partitioned_table (id INT, name STRING) PARTITIONED BY (name)", ".partitioned.my_partitioned_table.046jcchm6krj4e1g60o30c0");
+            .addTable("CREATE TABLE doc.my_partitioned_table (id INT, name STRING) PARTITIONED BY (name)", partitionValues);
 
         RelationName relationName1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table");
         RelationName relationName2 = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table");
         Metadata metadata = clusterService.state().metadata();
         String indexUUID1 = resolveIndex("doc.my_table", null, metadata).getUUID();
-        String indexUUID2 = resolveIndex("doc.my_partitioned_table", PartitionName.decodeIdent("046jcchm6krj4e1g60o30c0"), null, metadata).getUUID();
+        String indexUUID2 = resolveIndex("doc.my_partitioned_table", partitionValues, null, metadata).getUUID();
 
-        List<String> resolvedIndices = new ArrayList<>();
         List<TableOrPartition> tablesToRestore = List.of(
             new TableOrPartition(relationName1, null),
-            new TableOrPartition(relationName2, "046jcchm6krj4e1g60o30c0")
+            new TableOrPartition(relationName2, partitionIdent)
         );
         SnapshotInfo snapshotInfo = new SnapshotInfo(
             new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),

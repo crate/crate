@@ -202,16 +202,17 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
     public void test_partitioned_tables() throws Exception {
         resetClusterService();
         RelationName relationName = new RelationName("doc", "parted");;
-        PartitionName partitionName = new PartitionName(relationName, List.of("p1"));
-        var tableName = partitionName.asIndexName();
+        List<String> partitionValues = List.of("p1");
+        PartitionName partitionName = new PartitionName(relationName, partitionValues);
+        var indexName = partitionName.asIndexName();
         SQLExecutor.builder(clusterService).build()
             .addTable("CREATE TABLE doc.parted (id INT, p TEXT) PARTITIONED BY (p) " +
-                      "CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 2)", tableName);
+                      "CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 2)", partitionValues);
 
         var indexUUID = clusterService.state().metadata()
-            .getIndex(partitionName.relationName(), partitionName.values(), true, IndexMetadata::getIndexUUID);
+            .getIndex(partitionName.relationName(), partitionValues, true, IndexMetadata::getIndexUUID);
         var indexRoutingTableBuilder = IndexRoutingTable
-            .builder(new Index(tableName, indexUUID))
+            .builder(new Index(indexName, indexUUID))
             .addShard(TestShardRouting.newShardRouting(indexUUID,
                                                        1,
                                                        "node_1",

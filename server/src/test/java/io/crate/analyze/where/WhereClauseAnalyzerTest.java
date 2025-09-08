@@ -53,7 +53,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.WhereClauseOptimizer.DetailedQuery;
 import io.crate.planner.operators.SubQueryResults;
@@ -80,7 +79,6 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
              "  name string," +
              "  tags array(string)" +
              ") clustered by (id)");
-        RelationName docParted = new RelationName("doc", "parted");
         builder.addTable(
             "create table doc.parted (" +
             "   id integer," +
@@ -88,18 +86,17 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "   date timestamp with time zone," +
             "   obj object (ignored)" +
             ") partitioned by (date)",
-            new PartitionName(docParted, singletonList("1395874800000")).asIndexName(),
-            new PartitionName(docParted, singletonList("1395961200000")).asIndexName(),
-            new PartitionName(docParted, singletonList(null)).asIndexName()
+            singletonList("1395874800000"),
+            singletonList("1395961200000"),
+            singletonList(null)
         );
-        RelationName docBooleanParted = new RelationName("doc", "bool_parted");
         builder.addTable(
             "create table doc.bool_parted (" +
                 "   id boolean" +
                 ") partitioned by (id)",
-            new PartitionName(docBooleanParted, singletonList("false")).asIndexName(),
-            new PartitionName(docBooleanParted, singletonList("true")).asIndexName(),
-            new PartitionName(docBooleanParted, singletonList(null)).asIndexName()
+            singletonList("false"),
+            singletonList("true"),
+            singletonList(null)
         );
         builder.addTable(
             "create table doc.users_multi_pk (" +
@@ -118,7 +115,6 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             "   i4 integer primary key" +
             ")"
         );
-        RelationName docGeneratedCol = new RelationName("doc", "generated_col");
         builder.addTable(
             "create table doc.generated_col (" +
                 "   ts timestamp with time zone ," +
@@ -128,18 +124,17 @@ public class WhereClauseAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 "   minus_y as y * -1," +
                 "   x_incr as x + 1" +
                 ") partitioned by (day, minus_y)",
-            new PartitionName(docGeneratedCol, List.of("1420070400000", "-1")).asIndexName(),
-            new PartitionName(docGeneratedCol, List.of("1420156800000", "-2")).asIndexName()
+            List.of("1420070400000", "-1"),
+            List.of("1420156800000", "-2")
         );
-        RelationName docDoubleGenParted = new RelationName(DocSchemaInfo.NAME, "double_gen_parted");
         builder.addTable(
             "create table doc.double_gen_parted (" +
                 "   x integer," +
                 "   x1 as x + 1," +
                 "   x2 as x + 2" +
                 ") partitioned by (x1, x2)",
-            new PartitionName(docDoubleGenParted, List.of("4", "5")).toString(),
-            new PartitionName(docDoubleGenParted, List.of("5", "6")).toString()
+            List.of("4", "5"),
+            List.of("5", "6")
         );
     }
 

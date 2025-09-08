@@ -53,7 +53,8 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPartitionWithMeta() throws Exception {
-        PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("1"));
+        List<String> partitionValues = List.of("1");
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), partitionValues);
         e.addTable(
             """
                 create table doc.tbl (
@@ -64,7 +65,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
                 partitioned by (p)
                 with (number_of_replicas = 4)
             """,
-            partitionName.asIndexName()
+            partitionValues
         );
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService, e.schemas());
         Iterator<PartitionInfo> iter = partitioninfos.iterator();
@@ -78,7 +79,8 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPartitionWithMetaMultiCol() throws Exception {
-        PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), List.of("foo", "2"));
+        List<String> partitionValues = List.of("foo", "2");
+        PartitionName partitionName = new PartitionName(new RelationName("doc", "tbl"), partitionValues);
         e.addTable(
             """
                 create table doc.tbl (
@@ -90,7 +92,7 @@ public class PartitionInfosTest extends CrateDummyClusterServiceUnitTest {
                 partitioned by (p1, p2)
                 with (number_of_replicas = 4)
             """,
-            partitionName.asIndexName()
+            partitionValues
         );
         Iterable<PartitionInfo> partitioninfos = new PartitionInfos(clusterService, e.schemas());
         Iterator<PartitionInfo> iter = partitioninfos.iterator();

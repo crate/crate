@@ -261,11 +261,15 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testTableNameOfPartition() throws Exception {
-        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), List.of("foo"));
-        SQLExecutor.builder(clusterService).build()
-            .addTable("CREATE TABLE doc.wikipedia_d1 (id INT, p TEXT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH (number_of_replicas = 0)",
-                partitionName.asIndexName());
-        prepare(partitionName.relationName(), partitionName.values());
+        List<String> partitionValues = List.of("foo");
+        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), partitionValues);
+        SQLExecutor.builder(clusterService)
+            .build()
+            .addTable(
+                "CREATE TABLE doc.wikipedia_d1 (id INT, p TEXT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH (number_of_replicas = 0)",
+                partitionValues
+            );
+        prepare(partitionName.relationName(), partitionValues);
         Reference refInfo = refInfo("sys.shards.table_name", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);
@@ -274,11 +278,15 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testPartitionIdent() throws Exception {
-        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), List.of("foo"));
-        SQLExecutor.builder(clusterService).build()
-            .addTable("CREATE TABLE doc.wikipedia_d1 (id INT, p TEXT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH (number_of_replicas = 0)",
-                partitionName.asIndexName());
-        prepare(partitionName.relationName(), partitionName.values());
+        List<String> partitionValues = List.of("foo");
+        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), partitionValues);
+        SQLExecutor.builder(clusterService)
+            .build()
+            .addTable(
+                "CREATE TABLE doc.wikipedia_d1 (id INT, p TEXT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH (number_of_replicas = 0)",
+                partitionValues
+            );
+        prepare(partitionName.relationName(), partitionValues);
         Reference refInfo = refInfo("sys.shards.partition_ident", DataTypes.STRING, RowGranularity.SHARD);
         Input<?> shardExpression = resolver.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);

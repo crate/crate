@@ -48,8 +48,9 @@ public class DeletePartitionsTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(relationName, singletonList("1395874800000")).asIndexName(),
-                new PartitionName(relationName, singletonList("1395961200000")).asIndexName());
+                singletonList("1395874800000"),
+                singletonList("1395961200000")
+            );
         DeletePartitions plan = e.plan("delete from parted_pks where date = ?");
 
         Object[] args1 = {"1395874800000"};

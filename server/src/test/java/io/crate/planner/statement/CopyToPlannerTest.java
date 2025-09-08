@@ -23,6 +23,7 @@ package io.crate.planner.statement;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
@@ -40,7 +41,6 @@ import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.SysColumns;
@@ -57,6 +57,9 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
 
     @Before
     public void prepare() throws IOException {
+        List<String> p1Values = singletonList("1395874800000");
+        List<String> p2Values = singletonList("1395961200000");
+        List<String> p3Values = singletonList(null);
         e = SQLExecutor.builder(clusterService)
             .setNumNodes(2)
             .build()
@@ -68,17 +71,17 @@ public class CopyToPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone," +
                 "   obj object" +
                 ") partitioned by (date) ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+                p1Values,
+                p2Values,
+                p3Values
             )
             .addTable(
                 "create table parted_generated (" +
                 "   ts timestamp with time zone," +
                 "   day as date_trunc('day', ts)" +
                 ") partitioned by (day) ",
-                new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_generated"), List.of("1395961200000")).asIndexName()
+                p1Values,
+                p2Values
             );
     }
 

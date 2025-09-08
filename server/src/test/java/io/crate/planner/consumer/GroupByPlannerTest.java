@@ -24,6 +24,7 @@ package io.crate.planner.consumer;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -47,9 +48,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -683,8 +682,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone," +
                 "   city string" +
                 ") clustered by (city) partitioned by (date) ",
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
+                singletonList("1395874800000"),
+                singletonList("1395961200000")
             );
 
         // only one partition hit
@@ -715,8 +714,8 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp with time zone," +
                 "   city string" +
                 ") clustered by (city) partitioned by (date) ",
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "clustered_parted"), singletonList("1395961200000")).asIndexName()
+                singletonList("1395874800000"),
+                singletonList("1395961200000")
             );
         Merge plan = e.plan("select date from clustered_parted group by date order by date");
         Merge reduceMerge = (Merge) plan.subPlan();

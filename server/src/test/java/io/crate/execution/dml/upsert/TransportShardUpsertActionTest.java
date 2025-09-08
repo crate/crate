@@ -92,7 +92,8 @@ import io.crate.types.DataTypes;
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
 
     private static final RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
-    private static final String PARTITION_INDEX = new PartitionName(TABLE_IDENT, List.of("1395874800000")).asIndexName();
+    private static final List<String> PARTITION_VALUES = List.of("1395874800000");
+    private static final String PARTITION_INDEX = new PartitionName(TABLE_IDENT, PARTITION_VALUES).asIndexName();
     private static final SimpleReference ID_REF = new SimpleReference(
         new ReferenceIdent(TABLE_IDENT, "id"),
         RowGranularity.DOC,
@@ -160,7 +161,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     @Before
     public void prepare() throws Exception {
         SQLExecutor.builder(clusterService).build()
-            .addTable("create table doc.characters (id int, p int) PARTITIONED BY (p)", PARTITION_INDEX);
+            .addTable("create table doc.characters (id int, p int) PARTITIONED BY (p)", PARTITION_VALUES);
         charactersIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of(), true, IndexMetadata::getIndexUUID);
         partitionIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of("1395874800000"), true, IndexMetadata::getIndexUUID);
 

@@ -37,8 +37,6 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -65,9 +63,9 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                 "   id int primary key, " +
                 "   date timestamp with time zone primary key" +
                 ") partitioned by (date)",
-                new PartitionName(new RelationName("doc", "parted_pk"), List.of("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pk"), List.of("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pk"), singletonList(null)).asIndexName()
+                List.of("1395874800000"),
+                List.of("1395961200000"),
+                singletonList(null)
             )
             .addTable("""
                 create table partdatebin (
@@ -76,8 +74,8 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                     month as date_bin(INTERVAL '28' DAY, ts, 0)
                 ) partitioned by (month)
                 """,
-                new PartitionName(new RelationName("doc", "partdatebin"), List.of("1676352000000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "partdatebin"), List.of("1687767893000")).asIndexName()
+                List.of("1676352000000"),
+                List.of("1687767893000")
             )
             // Important, ts_month has a type different from date_trunc return type to provoke implicit cast addition
             .addTable("""
@@ -86,8 +84,8 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                     ts_month TIMESTAMP as date_trunc('month', ts)
                 ) partitioned by (ts_month)
                 """,
-                new PartitionName(new RelationName("doc", "partdatetrunc"), List.of("1676352000000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "partdatetrunc"), List.of("1687767893000")).asIndexName()
+                List.of("1676352000000"),
+                List.of("1687767893000")
             )
             // Important, ts_month doesn't have type declared and expression is just a CAST.
             .addTable("""
@@ -96,8 +94,8 @@ public class WhereClauseOptimizerTest extends CrateDummyClusterServiceUnitTest {
                     ts_month as cast(ts as TIMESTAMP WITH TIME ZONE)
                 ) partitioned by (ts_month)
                 """,
-                new PartitionName(new RelationName("doc", "partcast"), List.of("1676352000000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "partcast"), List.of("1687767893000")).asIndexName()
+                List.of("1676352000000"),
+                List.of("1687767893000")
             );
     }
 

@@ -25,6 +25,7 @@ import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
@@ -50,7 +51,6 @@ import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -82,9 +82,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   obj object," +
                 "   primary key (id, date)" +
                 ") partitioned by (date) clustered by (id) ",
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList(null)).asIndexName()
+                singletonList("1395874800000"),
+                singletonList("1395961200000"),
+                singletonList(null)
             )
             .addTable(
                 "create table users (" +

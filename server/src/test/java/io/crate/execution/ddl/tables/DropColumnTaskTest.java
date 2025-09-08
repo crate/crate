@@ -35,7 +35,6 @@ import org.junit.Test;
 
 import io.crate.analyze.DropColumn;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -275,9 +274,10 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table doc.parted(x int check (x > 0), y int check (y > 0)) " +
                                  "partitioned by (x)" ,
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("2")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName());
+                singletonList("1"),
+                singletonList("2"),
+                singletonList(null)
+            );
         DocTableInfo tbl = e.resolveTableInfo("doc.parted");
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");

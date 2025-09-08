@@ -394,11 +394,12 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_generated_partitioned_column_is_not_indexed_or_included_in_source() throws Exception {
-        PartitionName partition = new PartitionName(new RelationName("doc", "tbl"), List.of("3"));
+        List<String> partitionValues = List.of("3");
+        PartitionName partition = new PartitionName(new RelationName("doc", "tbl"), partitionValues);
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable(
                 "create table doc.tbl (x int, p int as x + 2) partitioned by (p)",
-                partition.asIndexName()
+                partitionValues
             );
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(ColumnIdent.of("x"));
