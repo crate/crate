@@ -101,7 +101,7 @@ public class BlobIndicesService implements IndexEventListener {
     @Override
     public void afterIndexRemoved(Index index,
                                   IndexSettings indexSettings,
-                                  IndicesClusterStateService.AllocatedIndices.IndexRemovalReason reason) {
+                                  IndicesClusterStateService.IndexRemovalReason reason) {
         String indexName = index.getName();
         String indexUUID = index.getUUID();
         if (isBlobIndex(indexName)) {
