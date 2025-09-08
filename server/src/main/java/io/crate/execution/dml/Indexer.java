@@ -1058,6 +1058,14 @@ public class Indexer {
         return this.onConflictIndexer;
     }
 
+    public List<Reference> indexOrder() {
+        return this.indexingOrder.get();
+    }
+
+    public Object synthetic(Reference r) {
+        return synthetics.get(r.column()).computedValue;
+    }
+
     public boolean hasReturnValues() {
         return returnValueInputs != null;
     }

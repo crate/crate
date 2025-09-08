@@ -1323,7 +1323,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("update t set o['o']['b']=null, o['b']=null, b=null, o['o']['a']=null, o['a']=null, a=null");
         execute("refresh table t");
         execute("select * from t");
-        assertThat(response).hasRows("NULL| NULL| 3| {a=NULL, b=NULL, i=6, o={a=NULL, b=NULL, i=13}}| 10");
+        assertThat(response).hasRows("NULL| NULL| 3| {a=NULL, b=NULL, i=6, o={a=NULL, b=NULL, i=13}}| 10"); // TODO: flaky
 
         execute("update t set o=null");
         execute("refresh table t");
