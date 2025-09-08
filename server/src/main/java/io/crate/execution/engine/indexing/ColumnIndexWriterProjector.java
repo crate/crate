@@ -61,7 +61,7 @@ public class ColumnIndexWriterProjector implements Projector {
     private final ShardingUpsertExecutor shardingUpsertExecutor;
 
     public ColumnIndexWriterProjector(ClusterService clusterService,
-                                      BiConsumer<String, IndexItem> constraintsChecker,
+                                      BiConsumer<PartitionName, IndexItem> constraintsChecker,
                                       NodeLimits nodeJobsCounter,
                                       CircuitBreaker queryCircuitBreaker,
                                       RamAccounting ramAccounting,
@@ -73,7 +73,6 @@ public class ColumnIndexWriterProjector implements Projector {
                                       int targetTableNumShards,
                                       int targetTableNumReplicas,
                                       Supplier<PartitionName> partitionResolver,
-                                      Supplier<String> indexUUIDResolver,
                                       Client elasticsearchClient,
                                       List<ColumnIdent> primaryKeyIdents,
                                       List<? extends Symbol> primaryKeySymbols,
@@ -149,13 +148,12 @@ public class ColumnIndexWriterProjector implements Projector {
             builder::newRequest,
             collectExpressions,
             partitionResolver,
-            indexUUIDResolver,
             autoCreateIndices,
             elasticsearchClient,
             targetTableNumShards,
             targetTableNumReplicas,
             upsertResultContext,
-            upsertResults -> false,
+            _ -> false,
             UpsertResults::resultsToFailure
         );
     }

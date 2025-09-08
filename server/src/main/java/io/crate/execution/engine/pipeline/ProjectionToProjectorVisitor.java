@@ -125,7 +125,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.IndexUUID;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
@@ -443,7 +442,6 @@ public class ProjectionToProjectorVisitor
             targetTableNumReplicas,
             elasticsearchClient,
             PartitionName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
-            IndexUUID.createResolver(state.metadata(), projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             projection.rawSourceReference(),
             projection.primaryKeys(),
             projection.ids(),
@@ -483,12 +481,11 @@ public class ProjectionToProjectorVisitor
         int targetTableNumShards = tableInfo.numberOfShards();
         int targetTableNumReplicas = NumberOfReplicas.effectiveNumReplicas(tableInfo.parameters(), state.nodes());
 
-        final Map<String, Consumer<IndexItem>> validatorsCache = new HashMap<>();
-        BiConsumer<String, IndexItem> constraintsChecker = (indexUUID, indexItem) -> checkConstraints(
+        final Map<PartitionName, Consumer<IndexItem>> validatorsCache = new HashMap<>();
+        BiConsumer<PartitionName, IndexItem> constraintsChecker = (partition, indexItem) -> checkConstraints(
             indexItem,
-            indexUUID,
+            partition,
             nodeCtx.schemas().getTableInfo(projection.tableIdent()),
-            PartitionName.decodeIdent(projection.partitionIdent()),
             context.txnCtx,
             nodeCtx,
             validatorsCache,
@@ -508,7 +505,6 @@ public class ProjectionToProjectorVisitor
             targetTableNumShards,
             targetTableNumReplicas,
             PartitionName.createResolver(projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
-            IndexUUID.createResolver(state.metadata(), projection.tableIdent(), projection.partitionIdent(), partitionedByInputs),
             elasticsearchClient,
             projection.primaryKeys(),
             projection.ids(),
