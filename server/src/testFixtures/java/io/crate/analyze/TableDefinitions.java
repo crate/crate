@@ -23,7 +23,8 @@ package io.crate.analyze;
 
 import static java.util.Collections.singletonList;
 
-import io.crate.metadata.PartitionName;
+import java.util.List;
+
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
 
@@ -88,11 +89,13 @@ public final class TableDefinitions {
         "  obj object" +
         ")" +
         " partitioned by (date)";
-    public static final String[] TEST_PARTITIONED_TABLE_PARTITIONS = new String[] {
-        new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-        new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-        new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
-    };
+
+    @SuppressWarnings("unchecked")
+    public static final List<String>[] TEST_PARTITIONED_TABLE_PARTITIONS = List.of(
+        singletonList("1395874800000"),
+        singletonList("1395961200000"),
+        singletonList(null)
+    ).toArray(new List[0]);
 
     public static final String PARTED_PKS_TABLE_DEFINITION =
         "create table doc.parted_pks (" +

@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -32,7 +33,6 @@ import org.junit.Test;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -107,8 +107,9 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         // alter table tbl rename column x to y; -- where y is a partitioned by col
         var e = SQLExecutor.of(clusterService)
             .addTable("create table doc.tbl (o object as (o2 object as (x int)), x int) partitioned by (o['o2']['x'], x)",
-                new PartitionName(new RelationName("doc", "tbl"), List.of("1", "2")).asIndexName(),
-                new PartitionName(new RelationName("doc", "tbl"), List.of("3", "4")).asIndexName());
+                List.of("1", "2"),
+                List.of("3", "4")
+            );
         DocTableInfo tbl = e.resolveTableInfo("doc.tbl");
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         Reference refToRename = tbl.getReference(ColumnIdent.of("x"));

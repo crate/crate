@@ -264,7 +264,7 @@ public class PartitionNameTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(
                 "create table doc.users (x int, p1 int) partitioned by (p1)",
-                ".partitioned.users.041j2c0"
+                PartitionName.decodeIdent("041j2c0")
             );
 
         DocTableInfo tableInfo = e.resolveTableInfo("doc.users");

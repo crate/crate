@@ -88,7 +88,6 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -1800,7 +1799,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void testSelectPartitionedTableOrderBy() throws Exception {
-        RelationName multiPartName = new RelationName("doc", "multi_parted");
+        List<String> p1Values = Arrays.asList("1395874800000", "0");
+        List<String> p2Values = Arrays.asList("1395961200000", "-100");
+        List<String> p3Values = Arrays.asList(null, "-100");
         var executor = SQLExecutor.of(clusterService)
             .addTable(
                 "create table doc.multi_parted (" +
@@ -1809,9 +1810,9 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
                 "   num long," +
                 "   obj object as (name string)" +
                 ") partitioned by (date, obj['name'])",
-                new PartitionName(multiPartName, Arrays.asList("1395874800000", "0")).toString(),
-                new PartitionName(multiPartName, Arrays.asList("1395961200000", "-100")).toString(),
-                new PartitionName(multiPartName, Arrays.asList(null, "-100")).toString()
+                p1Values,
+                p2Values,
+                p3Values
             );
         QueriedSelectRelation relation = executor.analyze(
             "select id from multi_parted order by id, abs(num)");

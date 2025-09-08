@@ -319,7 +319,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         SQLExecutor.of(clusterService)
             .addTable(
                 "CREATE TABLE doc.p1 (id int, p int) partitioned by (p)",
-                new PartitionName(new RelationName("doc", "p1"), singletonList("1")).asIndexName()
+                List.of("1")
             );
         var publication = new Publication("some_user", true, List.of());
 
@@ -357,7 +357,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         SQLExecutor.of(clusterService)
             .addTable(
                 "CREATE TABLE doc.p1 (id int, p int) partitioned by (p)",
-                new PartitionName(new RelationName("doc", "p1"), singletonList("1")).asIndexName()
+                List.of("1")
             );
         var publication = new Publication(
             "some_user",
@@ -405,7 +405,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
 
         SQLExecutor.of(clusterService)
             .addTable("CREATE TABLE doc.t1 (id int)")
-            .addTable("CREATE TABLE doc.t2 (id int, p int) PARTITIONED BY (p)", partitionName.asIndexName())
+            .addTable("CREATE TABLE doc.t2 (id int, p int) PARTITIONED BY (p)", List.of("1"))
             .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", true, List.of());
 

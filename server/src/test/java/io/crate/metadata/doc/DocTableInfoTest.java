@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -54,7 +55,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -709,7 +709,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_write_to_preserves_number_of_shards_of_partitions() throws Exception {
         RelationName relationName = new RelationName("doc", "tbl");
-        var partitionIndexName = new PartitionName(relationName, singletonList("1")).asIndexName();
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable(
                 """
@@ -718,7 +717,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                         p int
                     ) clustered into 2 shards partitioned by (p) with (number_of_replicas=0)
                     """,
-                partitionIndexName
+                singletonList("1")
             );
 
         ClusterState state = clusterService.state();

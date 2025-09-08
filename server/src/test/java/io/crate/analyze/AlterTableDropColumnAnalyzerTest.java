@@ -37,8 +37,6 @@ import org.junit.Test;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.PartitionName;
-import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
@@ -258,8 +256,10 @@ public class AlterTableDropColumnAnalyzerTest extends CrateDummyClusterServiceUn
             .addTable(
                 TableDefinitions.TEST_PARTITIONED_TABLE_DEFINITION,
                 TableDefinitions.TEST_PARTITIONED_TABLE_PARTITIONS)
-            .addTable("CREATE TABLE t2 (o object AS (oo object AS(ooa int))) PARTITIONED BY (o['oo']['ooa'])",
-                                 new PartitionName(new RelationName("doc", "t2"), singletonList("1")).asIndexName());
+            .addTable(
+                "CREATE TABLE t2 (o object AS (oo object AS(ooa int))) PARTITIONED BY (o['oo']['ooa'])",
+                singletonList("1")
+            );
 
         assertThatThrownBy(() -> e.analyze("ALTER TABLE parted DROP COLUMN date"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)

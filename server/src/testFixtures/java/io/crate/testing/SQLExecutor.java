@@ -21,7 +21,6 @@
 
 package io.crate.testing;
 
-import static io.crate.blob.v2.BlobIndex.fullIndexName;
 import static io.crate.testing.DiscoveryNodes.newFakeAddress;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.emptyMap;
@@ -692,9 +691,9 @@ public class SQLExecutor {
     }
 
     private static IndexMetadata.Builder getIndexMetadata(String indexName,
-                                                            Settings settings,
-                                                            @Nullable Map<String, Object> mapping,
-                                                            Version smallestNodeVersion) throws IOException {
+                                                          Settings settings,
+                                                          @Nullable Map<String, Object> mapping,
+                                                          Version smallestNodeVersion) throws IOException {
         Settings indexSettings = buildSettings(settings, smallestNodeVersion);
         IndexMetadata.Builder metaBuilder = IndexMetadata.builder(UUIDs.randomBase64UUID())
             .settings(indexSettings)
@@ -702,7 +701,6 @@ public class SQLExecutor {
         if (mapping != null) {
             metaBuilder.putMapping(new MappingMetadata(mapping));
         }
-
         return metaBuilder;
     }
 
@@ -722,12 +720,13 @@ public class SQLExecutor {
         return builder.build();
     }
 
-    public SQLExecutor addTable(String createTableStmt, String... partitions) throws IOException {
+    @SafeVarargs
+    public final SQLExecutor addTable(String createTableStmt, List<String>... partitions) throws IOException {
         return addTable(createTableStmt, Settings.EMPTY, partitions);
     }
 
     @SuppressWarnings("unchecked")
-    public SQLExecutor addTable(String createTableStmt, Settings customSettings, String... partitions) throws IOException {
+    public SQLExecutor addTable(String createTableStmt, Settings customSettings, List<String> ... partitionValues) throws IOException {
         CreateTable<Expression> stmt = (CreateTable<Expression>) SqlParser.createStatement(createTableStmt);
         CoordinatorTxnCtx txnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
         AnalyzedCreateTable analyzedCreateTable = createTableAnalyzer.analyze(
@@ -743,10 +742,10 @@ public class SQLExecutor {
         );
         boolean partitioned = boundCreateTable.isPartitioned();
         if (!partitioned) {
-            if (partitions.length > 0) {
+            if (partitionValues.length > 0) {
                 throw new IllegalArgumentException("Cannot set partitions manually for unpartitioned tables");
             }
-            partitions = new String[] { boundCreateTable.tableName().indexNameOrAlias() };
+            partitionValues = new List[] { List.of() };
         }
         ClusterState prevState = clusterService.state();
         var combinedSettings = Settings.builder()
@@ -771,15 +770,15 @@ public class SQLExecutor {
         List<String> indexUUIDs = new ArrayList<>();
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(prevState.blocks());
-        for (String partition : partitions) {
+        for (List<String> values : partitionValues) {
             IndexMetadata.Builder imdBuilder = getIndexMetadata(
-                partition,
+                new PartitionName(analyzedCreateTable.relationName(), values).asIndexName(),
                 combinedSettings,
                 mapping, // Each partition has the same mapping.
                 smallestVersion
             );
             if (partitioned) {
-                imdBuilder.partitionValues(PartitionName.fromIndexOrTemplate(partition).values());
+                imdBuilder.partitionValues(values);
             }
             IndexMetadata indexMetadata = imdBuilder.build();
             mdBuilder.put(indexMetadata, true);
@@ -970,7 +969,7 @@ public class SQLExecutor {
         ClusterState prevState = clusterService.state();
         RelationName relationName = analyzedStmt.relationName();
         IndexMetadata indexMetadata = getIndexMetadata(
-            fullIndexName(relationName.name()),
+            relationName.indexNameOrAlias(),
             settings,
             Collections.emptyMap(),
             prevState.nodes().getSmallestNonClientNodeVersion()

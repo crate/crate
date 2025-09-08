@@ -24,6 +24,7 @@ package io.crate.planner;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Collection;
@@ -72,7 +73,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -171,8 +171,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build()
             .addTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_pks"), singletonList("1395961200000")).asIndexName()
+                singletonList("1395874800000"),
+                singletonList("1395961200000")
             );
 
         LogicalPlan plan = e.logicalPlan("select name, date from parted_pks where id = 1 and date = 0");
@@ -326,8 +326,8 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .build()
             .addTable(
                 TableDefinitions.PARTED_PKS_TABLE_DEFINITION,
-                new PartitionName(relationName, List.of("1395874800000")).asIndexName(),
-                new PartitionName(relationName, List.of("1395961200000")).asIndexName()
+                List.of("1395874800000"),
+                List.of("1395961200000")
             );
 
         String partition1UUID = clusterService.state().metadata().getIndex(
@@ -459,9 +459,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(relationName, singletonList("1395874800000")).asIndexName(),
-                new PartitionName(relationName, singletonList("1395961200000")).asIndexName(),
-                new PartitionName(relationName, singletonList(null)).asIndexName()
+                singletonList("1395874800000"),
+                singletonList("1395961200000"),
+                singletonList(null)
             );
 
         String partition1UUID = clusterService.state().metadata().getIndex(
@@ -491,9 +491,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+                singletonList("1395874800000"),
+                singletonList("1395961200000"),
+                singletonList(null)
             );
 
         assertThatThrownBy(() -> e.plan("select name from parted order by year(date)"))
@@ -550,9 +550,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(relationName, singletonList("1395874800000")).asIndexName(),
-                new PartitionName(relationName, singletonList("1395961200000")).asIndexName(),
-                new PartitionName(relationName, singletonList(null)).asIndexName()
+                singletonList("1395874800000"),
+                singletonList("1395961200000"),
+                singletonList(null)
             );
 
         String partition2UUID = clusterService.state().metadata().getIndex(
@@ -1096,9 +1096,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   date timestamp without time zone," +
                 "   obj object" +
                 ") partitioned by (date) clustered into 1 shards ",
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395874800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList("1395961200000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted"), singletonList(null)).asIndexName()
+                singletonList("1395874800000"),
+                singletonList("1395961200000"),
+                singletonList(null)
             );
 
         String statement = "select * from (select * from parted) t where date is null";
@@ -1459,8 +1459,9 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
                 "   ts timestamp without time zone, " +
                 "   p as date_trunc('month', ts) " +
                 ") partitioned by (p)",
-                new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1577836800000")).asIndexName(),
-                new PartitionName(new RelationName("doc", "parted_by_generated"), singletonList("1580515200000")).asIndexName());
+                singletonList("1577836800000"),
+                singletonList("1580515200000")
+            );
 
         String expectedPartitionUUID = clusterService.state().metadata().getIndex(
             new RelationName("doc", "parted_by_generated"), List.of("1580515200000"), true, IndexMetadata::getIndexUUID);
