@@ -60,7 +60,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     private final List<? extends CollectExpression<Row, ?>> expressions;
     private final List<? extends CollectExpression<Row, ?>> sourceInfoExpressions;
     private final ItemFactory<TItem> itemFactory;
-    private final Supplier<String> indexNameResolver;
+    private final Supplier<PartitionName> partitionResolver;
     private final Supplier<String> indexUUIDResolver;
     private final ClusterService clusterService;
     private final boolean autoCreateIndices;
@@ -76,7 +76,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
     public GroupRowsByShard(ClusterService clusterService,
                             BiConsumer<String, IndexItem> constraintsChecker,
                             RowShardResolver rowShardResolver,
-                            Supplier<String> indexNameResolver,
+                            Supplier<PartitionName> partitionResolver,
                             Supplier<String> indexUUIDResolver,
                             List<? extends CollectExpression<Row, ?>> expressions,
                             ItemFactory<TItem> itemFactory,
@@ -88,7 +88,7 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         this.clusterService = clusterService;
         this.constraintsChecker = constraintsChecker;
         this.rowShardResolver = rowShardResolver;
-        this.indexNameResolver = indexNameResolver;
+        this.partitionResolver = partitionResolver;
         this.indexUUIDResolver = indexUUIDResolver;
         this.expressions = expressions;
         this.sourceInfoExpressions = upsertContext.getSourceInfoExpressions();
@@ -98,25 +98,6 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
         this.sourceUriInput = upsertContext.getSourceUriInput();
         this.lineNumberInput = upsertContext.getLineNumberInput();
         this.autoCreateIndices = autoCreateIndices;
-    }
-
-    public GroupRowsByShard(ClusterService clusterService,
-                            BiConsumer<String, IndexItem> constraintsChecker,
-                            RowShardResolver rowShardResolver,
-                            Supplier<String> indexNameResolver,
-                            Supplier<String> indexUUIDResolver,
-                            List<? extends CollectExpression<Row, ?>> expressions,
-                            ItemFactory<TItem> itemFactory,
-                            boolean autoCreateIndices) {
-        this(clusterService,
-            constraintsChecker,
-            rowShardResolver,
-            indexNameResolver,
-            indexUUIDResolver,
-            expressions,
-            itemFactory,
-            autoCreateIndices,
-            UpsertResultContext.forRowCount());
     }
 
     /**
@@ -176,13 +157,13 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
             RowSourceInfo rowSourceInfo = RowSourceInfo.emptyMarkerOrNewInstance(sourceUri, lineNumber);
             ShardLocation shardLocation = getShardLocation(indexUUID, id, routing);
             if (shardLocation == null) {
-                String indexName = indexNameResolver.get();
+                PartitionName partitionName = partitionResolver.get();
                 // Validation is done before creating an index in order to ensure
                 // that no "bad partitions" will be left behind in case of validation failure.
                 if (item instanceof IndexItem indexItem) {
                     constraintsChecker.accept(indexUUID, indexItem);
                 }
-                shardedRequests.add(item, indexName, routing, rowSourceInfo);
+                shardedRequests.add(item, partitionName, routing, rowSourceInfo);
             } else {
                 shardedRequests.add(item, shardLocation, rowSourceInfo);
             }

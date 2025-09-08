@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
+import java.util.function.Supplier;
 
 import org.apache.commons.codec.binary.Base32;
 import org.apache.lucene.util.UnicodeUtil;
@@ -41,6 +42,8 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.collections.Lists;
+import io.crate.data.Input;
 import io.crate.exceptions.PartitionUnknownException;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.Assignment;
@@ -352,5 +355,25 @@ public class PartitionName implements Writeable {
      */
     public static String templatePrefix(String schemaName, String tableName) {
         return templateName(schemaName, tableName) + "*";
+    }
+
+    public static Supplier<PartitionName> createResolver(RelationName relation,
+                                                         @Nullable String partitionIdent,
+                                                         @Nullable List<Input<?>> partitionedByInputs) {
+        if (partitionIdent == null && (partitionedByInputs == null || partitionedByInputs.isEmpty())) {
+            PartitionName partitionName = new PartitionName(relation, List.of());
+            return () -> partitionName;
+        }
+        if (partitionIdent == null) {
+            return () -> {
+                List<String> values = Lists.map(
+                    partitionedByInputs,
+                    input -> DataTypes.STRING.implicitCast(input.value())
+                );
+                return new PartitionName(relation, values);
+            };
+        }
+        PartitionName partitionName = new PartitionName(relation, partitionIdent);
+        return () -> partitionName;
     }
 }

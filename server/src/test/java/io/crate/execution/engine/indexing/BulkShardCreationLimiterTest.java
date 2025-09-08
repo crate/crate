@@ -49,7 +49,7 @@ public class BulkShardCreationLimiterTest extends ESTestCase {
         );
         shardedRequests.add(
             new ShardDeleteRequest.Item("id1"),
-            new PartitionName(relationName, List.of("1")).asIndexName(),
+            new PartitionName(relationName, List.of("1")),
             null,
             RowSourceInfo.EMPTY_INSTANCE
         );
