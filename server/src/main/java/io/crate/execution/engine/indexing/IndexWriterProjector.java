@@ -82,7 +82,6 @@ public class IndexWriterProjector implements Projector {
                                 int targetTableNumReplicas,
                                 Client elasticsearchClient,
                                 Supplier<PartitionName> partitionResolver,
-                                Supplier<String> indexUUIDResolver,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
                                 List<? extends Symbol> primaryKeySymbols,
@@ -133,7 +132,7 @@ public class IndexWriterProjector implements Projector {
         Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator = UpsertResults::resultsToFailure;
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
-            (ignored1, ignored2) -> {},
+            (_, _) -> {},
             nodeJobsCounter,
             queryCircuitBreaker,
             ramAccounting,
@@ -146,7 +145,6 @@ public class IndexWriterProjector implements Projector {
             builder::newRequest,
             collectExpressions,
             partitionResolver,
-            indexUUIDResolver,
             autoCreateIndices,
             elasticsearchClient,
             targetTableNumShards,

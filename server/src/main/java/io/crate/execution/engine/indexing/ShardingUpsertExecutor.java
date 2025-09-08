@@ -105,7 +105,7 @@ public class ShardingUpsertExecutor
     private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
 
     ShardingUpsertExecutor(ClusterService clusterService,
-                           BiConsumer<String, IndexItem> constraintsChecker,
+                           BiConsumer<PartitionName, IndexItem> constraintsChecker,
                            NodeLimits nodeJobsCounter,
                            CircuitBreaker queryCircuitBreaker,
                            RamAccounting ramAccounting,
@@ -118,7 +118,6 @@ public class ShardingUpsertExecutor
                            Function<ShardId, ShardUpsertRequest> requestFactory,
                            List<? extends CollectExpression<Row, ?>> expressions,
                            Supplier<PartitionName> partitionResolver,
-                           Supplier<String> indexUUIDResolver,
                            boolean autoCreateIndices,
                            Client elasticsearchClient,
                            int targetTableNumShards,
@@ -143,7 +142,6 @@ public class ShardingUpsertExecutor
             constraintsChecker,
             rowShardResolver,
             partitionResolver,
-            indexUUIDResolver,
             expressions,
             itemFactory,
             autoCreateIndices,

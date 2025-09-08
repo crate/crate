@@ -54,7 +54,6 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.IndexUUID;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
@@ -96,7 +95,6 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             NumberOfReplicas.effectiveNumReplicas(table.parameters(), state.nodes()),
             cluster().client(),
             PartitionName.createResolver(bulkImportIdent, null, null),
-            IndexUUID.createResolver(state.metadata(), bulkImportIdent, null, null),
             new SimpleReference(new ReferenceIdent(bulkImportIdent, SysColumns.RAW),
                           RowGranularity.DOC,
                           DataTypes.STRING,
