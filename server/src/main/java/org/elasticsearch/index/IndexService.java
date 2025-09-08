@@ -78,7 +78,6 @@ import org.elasticsearch.index.shard.ShardPath;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.cluster.IndicesClusterStateService;
 import org.elasticsearch.plugins.IndexStorePlugin;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
@@ -98,7 +97,7 @@ import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
 
-public class IndexService extends AbstractIndexComponent implements IndicesClusterStateService.AllocatedIndex<IndexShard> {
+public class IndexService extends AbstractIndexComponent implements Iterable<IndexShard> {
 
     private final IndexEventListener eventListener;
     private final NodeEnvironment nodeEnv;
@@ -214,7 +213,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
     /**
      * Return the shard with the provided id, or null if there is no such shard.
      */
-    @Override
     @Nullable
     public IndexShard getShardOrNull(int shardId) {
         return shards.get(shardId);
@@ -416,7 +414,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         }
     }
 
-    @Override
     public synchronized void removeShard(int shardId, String reason) {
         final ShardId sId = new ShardId(index(), shardId);
         final IndexShard indexShard;
@@ -495,7 +492,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         return indexSettings;
     }
 
-    @Override
     public void validateMapping(Metadata metadata, final IndexMetadata newIndexMetadata) {
         var indexName = newIndexMetadata.getIndex().getName();
         if (IndexName.isDangling(indexName)) {
@@ -560,7 +556,6 @@ public class IndexService extends AbstractIndexComponent implements IndicesClust
         metadataListeners.add(listener);
     }
 
-    @Override
     public synchronized void updateMetadata(final IndexMetadata currentIndexMetadata, final IndexMetadata newIndexMetadata) {
         final boolean updateIndexSettings = indexSettings.updateIndexMetadata(newIndexMetadata);
 

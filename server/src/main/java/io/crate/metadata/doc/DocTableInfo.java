@@ -52,7 +52,6 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
@@ -484,13 +483,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .toArray(String[]::new);
     }
 
-    public String[] concreteOpenIndices(Metadata metadata, List<String> partitions) {
+    public String[] concreteOpenIndices(Metadata metadata, List<PartitionName> partitions) {
         if (partitions.isEmpty()) {
             return new String[0];
         }
         String[] uuids = new String[partitions.size()];
         for (int i = 0; i < partitions.size(); i++) {
-            List<String> partitionValues = PartitionName.fromIndexOrTemplate(partitions.get(i)).values();
+            List<String> partitionValues = partitions.get(i).values();
             List<String> indexUUIDS = metadata.getIndices(
                 ident,
                 partitionValues,
@@ -534,7 +533,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             ident,
             List.of(),
             false,
-            imd -> PartitionName.fromIndexOrTemplate(imd.getIndex().getName())
+            imd -> new PartitionName(ident, imd.partitionValues())
         );
     }
 
@@ -543,9 +542,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return List.of();
         }
         return metadata.getIndices(ident, List.of(), false, indexMetadata -> {
-            Index index = indexMetadata.getIndex();
-            PartitionName partitionName = PartitionName.fromIndexOrTemplate(index.getName());
-            List<String> values = partitionName.values();
+            List<String> values = indexMetadata.partitionValues();
+            PartitionName partitionName = new PartitionName(ident, values);
             Map<String, Object> valuesMap = HashMap.newHashMap(values.size());
             assert values.size() == partitionedBy.size()
                 : "Number of values in partitionIdent must match number of partitionedBy columns";
