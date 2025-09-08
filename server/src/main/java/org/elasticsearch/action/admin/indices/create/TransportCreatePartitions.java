@@ -299,7 +299,7 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
                 // "probe" index used for validation was partially created - need to clean up
                 indicesService.removeIndex(
                     testIndex,
-                    IndicesClusterStateService.AllocatedIndices.IndexRemovalReason.NO_LONGER_ASSIGNED,
+                    IndicesClusterStateService.IndexRemovalReason.NO_LONGER_ASSIGNED,
                     removalReason != null ? removalReason : "failed to create index"
                 );
             }

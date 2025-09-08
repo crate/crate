@@ -22,8 +22,6 @@ package org.elasticsearch.index;
 import java.util.Collection;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -33,7 +31,8 @@ import org.elasticsearch.index.shard.IndexEventListener;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
+import org.elasticsearch.indices.cluster.IndicesClusterStateService.IndexRemovalReason;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * A composite {@link IndexEventListener} that forwards all callbacks to an immutable list of IndexEventListener

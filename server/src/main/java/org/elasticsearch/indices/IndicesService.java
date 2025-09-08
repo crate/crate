@@ -101,7 +101,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexingOperationListener;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.cluster.IndicesClusterStateService;
+import org.elasticsearch.indices.cluster.IndicesClusterStateService.IndexRemovalReason;
 import org.elasticsearch.indices.recovery.PeerRecoveryTargetService;
 import org.elasticsearch.indices.recovery.RecoveryState;
 import org.elasticsearch.node.Node;
@@ -122,7 +122,7 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfoFactory;
 
 public class IndicesService extends AbstractLifecycleComponent
-    implements IndicesClusterStateService.AllocatedIndices<IndexShard, IndexService>, IndexService.ShardStoreDeleter {
+    implements Iterable<IndexService>, IndexService.ShardStoreDeleter {
 
     private static final Logger LOGGER = LogManager.getLogger(IndicesService.class);
 
@@ -310,10 +310,17 @@ public class IndicesService extends AbstractLifecycleComponent
     /**
      * Returns an IndexService for the specified index if exists otherwise returns <code>null</code>.
      */
-    @Override
     @Nullable
     public IndexService indexService(Index index) {
         return indices.get(index.getUUID());
+    }
+
+    @Nullable
+    public IndexShard getShardOrNull(ShardId shardId) {
+        IndexService indexService = indexService(shardId.getIndex());
+        return indexService == null
+            ? null
+            : indexService.getShardOrNull(shardId.id());
     }
 
     /**
@@ -336,9 +343,9 @@ public class IndicesService extends AbstractLifecycleComponent
      *                               per-index listeners
      * @throws ResourceAlreadyExistsException if the index already exists.
      */
-    @Override
-    public synchronized IndexService createIndex(
-            final IndexMetadata indexMetadata, final List<IndexEventListener> builtInListeners, final boolean writeDanglingIndices) throws IOException {
+    public synchronized IndexService createIndex(final IndexMetadata indexMetadata,
+                                                 final List<IndexEventListener> builtInListeners,
+                                                 final boolean writeDanglingIndices) throws IOException {
 
         ensureChangesAllowed();
         if (indexMetadata.getIndexUUID().equals(IndexMetadata.INDEX_UUID_NA_VALUE)) {
@@ -583,7 +590,6 @@ public class IndicesService extends AbstractLifecycleComponent
         }
     }
 
-    @Override
     public CompletableFuture<IndexShard> createShard(ClusterState state,
                                                      ShardRouting shardRouting,
                                                      RecoveryState recoveryState,
@@ -623,7 +629,6 @@ public class IndicesService extends AbstractLifecycleComponent
             });
     }
 
-    @Override
     public void removeIndex(final Index index, final IndexRemovalReason reason, final String extraInfo) {
         try {
             final IndexService indexService;
@@ -664,7 +669,6 @@ public class IndicesService extends AbstractLifecycleComponent
      * Deletes an index that is not assigned to this node. This method cleans up all disk folders relating to the index
      * but does not deal with in-memory structures. For those call {@link #removeIndex(Index, IndexRemovalReason, String)}
      */
-    @Override
     public void deleteUnassignedIndex(String reason, IndexMetadata metadata, ClusterState clusterState) {
         if (nodeEnv.hasNodeFile()) {
             Index index = metadata.getIndex();
@@ -811,7 +815,6 @@ public class IndicesService extends AbstractLifecycleComponent
      * @param clusterState {@code ClusterState} to ensure the index is not part of it
      * @return IndexMetadata for the index loaded from disk
      */
-    @Override
     @Nullable
     public IndexMetadata verifyIndexIsDeleted(final Index index, final ClusterState clusterState) {
         // this method should only be called when we know the index (name + uuid) is not part of the cluster state
@@ -976,9 +979,9 @@ public class IndicesService extends AbstractLifecycleComponent
      * @param index the index to process the pending deletes for
      * @param timeout the timeout used for processing pending deletes
      */
-    @Override
-    public void processPendingDeletes(Index index, IndexSettings indexSettings, TimeValue timeout)
-            throws IOException, InterruptedException, ShardLockObtainFailedException {
+    public void processPendingDeletes(Index index,
+                                      IndexSettings indexSettings,
+                                      TimeValue timeout) throws IOException, InterruptedException, ShardLockObtainFailedException {
         LOGGER.debug("{} processing pending deletes", index);
         final long startTimeNS = System.nanoTime();
         final List<ShardLock> shardLocks = nodeEnv.lockAllForIndex(index, indexSettings, "process pending deletes", timeout.millis());

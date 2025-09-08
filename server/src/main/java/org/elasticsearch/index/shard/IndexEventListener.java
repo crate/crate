@@ -24,8 +24,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
-import org.elasticsearch.indices.cluster.IndicesClusterStateService.AllocatedIndices.IndexRemovalReason;
-
+import org.elasticsearch.indices.cluster.IndicesClusterStateService.IndexRemovalReason;
 import org.jetbrains.annotations.Nullable;
 
 /**
