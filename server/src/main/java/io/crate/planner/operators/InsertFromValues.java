@@ -95,13 +95,13 @@ import io.crate.execution.engine.indexing.GroupRowsByShard;
 import io.crate.execution.engine.indexing.ItemFactory;
 import io.crate.execution.engine.indexing.ShardLocation;
 import io.crate.execution.engine.indexing.ShardedRequests;
+import io.crate.execution.engine.indexing.UpsertResultContext;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
 import io.crate.expression.InputRow;
 import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexUUID;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
@@ -213,7 +213,7 @@ public class InsertFromValues implements LogicalPlan {
             onConflictColumns = assignments.targetNames();
         }
 
-        var indexNameResolver = IndexName.createResolver(
+        var partitionResolver = PartitionName.createResolver(
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
             partitionedByInputs
@@ -243,7 +243,7 @@ public class InsertFromValues implements LogicalPlan {
                 constraintsChecker,
                 onConflictAssignments,
                 insertInputs,
-                indexNameResolver,
+                partitionResolver,
                 indexUUIDResolver,
                 context,
                 plannerContext,
@@ -366,7 +366,7 @@ public class InsertFromValues implements LogicalPlan {
             context.add(writerProjection.clusteredBy());
         }
 
-        var indexNameResolver = IndexName.createResolver(
+        var partitionResolver = PartitionName.createResolver(
             writerProjection.tableIdent(),
             writerProjection.partitionIdent(),
             partitionedByInputs
@@ -423,7 +423,7 @@ public class InsertFromValues implements LogicalPlan {
                     constraintsChecker,
                     assignmentSources,
                     insertInputs,
-                    indexNameResolver,
+                    partitionResolver,
                     indexUUIDResolver,
                     context,
                     plannerContext,
@@ -487,7 +487,7 @@ public class InsertFromValues implements LogicalPlan {
         createRowsByShardGrouper(BiConsumer<String, IndexItem> constraintsChecker,
                                  Symbol[] onConflictAssignments,
                                  ArrayList<Input<?>> insertInputs,
-                                 Supplier<String> indexNameResolver,
+                                 Supplier<PartitionName> partitionResolver,
                                  Supplier<String> indexUUIDResolver,
                                  InputFactory.Context<CollectExpression<Row, ?>> collectContext,
                                  PlannerContext plannerContext,
@@ -516,11 +516,12 @@ public class InsertFromValues implements LogicalPlan {
             clusterService,
             constraintsChecker,
             rowShardResolver,
-            indexNameResolver,
+            partitionResolver,
             indexUUIDResolver,
             collectContext.expressions(),
             itemFactory,
-            true
+            true,
+            UpsertResultContext.forRowCount()
         );
     }
 
