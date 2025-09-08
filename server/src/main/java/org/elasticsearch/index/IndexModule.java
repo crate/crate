@@ -83,10 +83,6 @@ public final class IndexModule {
     public static final Setting<Boolean> INDEX_QUERY_CACHE_ENABLED_SETTING =
             Setting.boolSetting("index.queries.cache.enabled", true, Property.IndexScope);
 
-    // for test purposes only
-    public static final Setting<Boolean> INDEX_QUERY_CACHE_EVERYTHING_SETTING =
-        Setting.boolSetting("index.queries.cache.everything", false, Property.IndexScope);
-
     private final IndexSettings indexSettings;
     private final AnalysisRegistry analysisRegistry;
     private final Collection<Function<IndexSettings, Optional<EngineFactory>>> engineFactoryProviders;

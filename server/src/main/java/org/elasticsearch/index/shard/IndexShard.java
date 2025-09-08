@@ -58,7 +58,6 @@ import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.Term;
-import org.apache.lucene.search.Query;
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
@@ -94,7 +93,6 @@ import org.elasticsearch.common.util.concurrent.RunOnce;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.gateway.WriteStateException;
 import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexModule;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.IndexSettings;
@@ -300,24 +298,7 @@ public class IndexShard extends AbstractIndexShardComponent {
             this::getSafeCommitInfo,
             pendingReplicationActions);
 
-        // the query cache is a node-level thing, however we want the most popular filters
-        // to be computed on a per-shard basis
-        if (IndexModule.INDEX_QUERY_CACHE_EVERYTHING_SETTING.get(settings)) {
-            cachingPolicy = new QueryCachingPolicy() {
-
-                @Override
-                public void onUse(Query query) {
-
-                }
-
-                @Override
-                public boolean shouldCache(Query query) {
-                    return true;
-                }
-            };
-        } else {
-            cachingPolicy = new UsageTrackingQueryCachingPolicy();
-        }
+        cachingPolicy = new UsageTrackingQueryCachingPolicy();
         indexShardOperationPermits = new IndexShardOperationPermits(shardId, threadPool);
         refreshListeners = buildRefreshListeners();
         lastSearcherAccess.set(threadPool.relativeTimeInMillis());
