@@ -296,6 +296,10 @@ public class Indexer {
             this.computed = false;
             this.computedValue = null;
         }
+
+        public boolean isComputed() {
+            return this.computed;
+        }
     }
 
     public interface ColumnConstraint {
@@ -1012,6 +1016,10 @@ public class Indexer {
         }
 
         for (var synthetic : undeterministic) {
+            // synthetic columns not yet computed imply 'null' were indexed, do not generated values for them
+            if (!synthetic.isComputed()) {
+                continue;
+            }
             ColumnIdent column = synthetic.ref.column();
             Object value = synthetic.value();
             if (column.isRoot()) {

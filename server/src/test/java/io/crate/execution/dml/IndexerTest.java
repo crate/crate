@@ -1093,6 +1093,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         // Object column "o" is not in the insert targets and value is not provided.
         Indexer indexer = getIndexer(e, "tbl", "a");
         IndexItem item = item(1);
+        indexer.index(item);
 
         Object[] insertValues = indexer.addGeneratedValues(item);
         assertThat(insertValues).hasSize(2);
