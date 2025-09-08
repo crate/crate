@@ -52,6 +52,7 @@ import org.elasticsearch.Assertions;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
@@ -493,11 +494,16 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
     }
 
     public void validateMapping(Metadata metadata, final IndexMetadata newIndexMetadata) {
-        var indexName = newIndexMetadata.getIndex().getName();
+        Index index = newIndexMetadata.getIndex();
+        String indexName = index.getName();
         if (IndexName.isDangling(indexName)) {
             return;
         }
-        RelationName relationName = RelationName.fromIndexName(indexName);
+        RelationMetadata relation = metadata.getRelation(index.getUUID());
+        if (relation == null) {
+            throw new IndexNotFoundException(index);
+        }
+        RelationName relationName = relation.name();
         SchemaInfo schemaInfo = nodeContext.schemas().getOrCreateSchemaInfo(relationName.schema());
         var tableInfo = schemaInfo.create(relationName, metadata);
         TranslogIndexer indexer = getTranslogIndexer(tableInfo);
