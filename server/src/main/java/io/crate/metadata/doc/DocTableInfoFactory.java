@@ -188,6 +188,14 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         );
     }
 
+    /**
+     * Only needed for BWC to build {@link org.elasticsearch.cluster.metadata.RelationMetadata.Table} out of
+     * old {@link IndexMetadata} entries.
+     * See {@link org.elasticsearch.cluster.metadata.MetadataUpgradeService#upgradeMetadata(Metadata)}.
+     *
+     * @deprecated use {@link #create(RelationName, Metadata)} instead
+     */
+    @Deprecated
     @Nullable
     public DocTableInfo create(IndexMetadata indexMetadata) {
         String indexName = indexMetadata.getIndex().getName();

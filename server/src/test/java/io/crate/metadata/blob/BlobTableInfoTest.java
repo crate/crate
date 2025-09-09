@@ -39,7 +39,6 @@ public class BlobTableInfoTest extends ESTestCase {
 
     private BlobTableInfo info = new BlobTableInfo(
         new RelationName("blob", "dummy"),
-        ".blob_dummy",
         5,
         "0",
         Settings.EMPTY,

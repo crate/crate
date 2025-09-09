@@ -58,7 +58,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final RelationName ident;
     private final int numberOfShards;
     private final String numberOfReplicas;
-    private final String index;
     private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
     private final String blobsPath;
     private final Settings tableParameters;
@@ -70,7 +69,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private static final List<ColumnIdent> PRIMARY_KEY = List.of(ColumnIdent.of("digest"));
 
     public BlobTableInfo(RelationName ident,
-                         String index,
                          int numberOfShards,
                          String numberOfReplicas,
                          Settings tableParameters,
@@ -78,9 +76,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                          @Nullable Version versionCreated,
                          @Nullable Version versionUpgraded,
                          boolean closed) {
-        assert ident.indexNameOrAlias().equals(index) : "RelationName indexName must match index";
         this.ident = ident;
-        this.index = index;
         this.numberOfShards = numberOfShards;
         this.numberOfReplicas = numberOfReplicas;
         this.blobsPath = blobsPath;

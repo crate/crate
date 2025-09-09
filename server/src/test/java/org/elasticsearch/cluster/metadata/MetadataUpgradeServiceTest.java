@@ -375,6 +375,25 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         assertThat(kaputtRelation).isNull();
     }
 
+    @Test
+    public void test_creates_blob_relationmetadata_for_old_indexmetadata() throws Exception {
+        RelationName tblName = new RelationName("blob", "myblobs");
+        IndexMetadata indexMetadata = IndexMetadata.builder(UUIDs.randomBase64UUID())
+            .indexName(tblName.indexNameOrAlias())
+            .settings(settings(Version.V_5_10_11))
+            .numberOfShards(1)
+            .numberOfReplicas(1)
+            .build();
+
+        Metadata metadata = Metadata.builder()
+            .put(indexMetadata, false)
+            .build();
+
+        Metadata upgraded = metadataUpgradeService.upgradeMetadata(metadata);
+        RelationMetadata relation = upgraded.getRelation(tblName);
+        assertThat(relation).isExactlyInstanceOf(RelationMetadata.BlobTable.class);
+    }
+
     private static class CustomMetadata extends TestCustomMetadata {
         public static final String TYPE = "custom_md_1";
 
