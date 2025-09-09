@@ -491,63 +491,6 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         return metadata.getIndex(indexParts.toRelationName(), partitionValues, false, im -> im);
     }
 
-    /**
-     * Returns status of the currently running snapshots
-     * <p>
-     * This method is executed on master node
-     * </p>
-     *
-     * @param snapshotsInProgress snapshots in progress in the cluster state
-     * @param repository          repository id
-     * @param snapshots           list of snapshots that will be used as a filter, empty list means no snapshots are filtered
-     * @return list of metadata for currently running snapshots
-     */
-    public static List<SnapshotsInProgress.Entry> currentSnapshots(@Nullable SnapshotsInProgress snapshotsInProgress,
-                                                                   String repository,
-                                                                   List<String> snapshots) {
-        if (snapshotsInProgress == null || snapshotsInProgress.entries().isEmpty()) {
-            return Collections.emptyList();
-        }
-        if ("_all".equals(repository)) {
-            return snapshotsInProgress.entries();
-        }
-        if (snapshotsInProgress.entries().size() == 1) {
-            // Most likely scenario - one snapshot is currently running
-            // Check this snapshot against the query
-            SnapshotsInProgress.Entry entry = snapshotsInProgress.entries().get(0);
-            if (entry.snapshot().getRepository().equals(repository) == false) {
-                return Collections.emptyList();
-            }
-            if (snapshots.isEmpty() == false) {
-                for (String snapshot : snapshots) {
-                    if (entry.snapshot().getSnapshotId().getName().equals(snapshot)) {
-                        return snapshotsInProgress.entries();
-                    }
-                }
-                return Collections.emptyList();
-            } else {
-                return snapshotsInProgress.entries();
-            }
-        }
-        List<SnapshotsInProgress.Entry> builder = new ArrayList<>();
-        for (SnapshotsInProgress.Entry entry : snapshotsInProgress.entries()) {
-            if (entry.snapshot().getRepository().equals(repository) == false) {
-                continue;
-            }
-            if (snapshots.isEmpty() == false) {
-                for (String snapshot : snapshots) {
-                    if (entry.snapshot().getSnapshotId().getName().equals(snapshot)) {
-                        builder.add(entry);
-                        break;
-                    }
-                }
-            } else {
-                builder.add(entry);
-            }
-        }
-        return unmodifiableList(builder);
-    }
-
     @Override
     public void applyClusterState(ClusterChangedEvent event) {
         try {
