@@ -31,6 +31,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -67,6 +68,7 @@ public class SysSnapshots {
     public CompletableFuture<Iterable<SysSnapshot>> currentSnapshots() {
         ArrayList<CompletableFuture<List<SysSnapshot>>> sysSnapshots = new ArrayList<>();
         ClusterState state = clusterService.state();
+        Metadata metadata = state.metadata();
         for (Repository repository : getRepositories.get()) {
             var futureSnapshots = repository.getRepositoryData().thenCompose(repositoryData -> {
                 Collection<SnapshotId> snapshotIds = repositoryData.getSnapshotIds();
@@ -78,11 +80,10 @@ public class SysSnapshots {
             });
             sysSnapshots.add(futureSnapshots);
 
-
             final SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE);
             List<SysSnapshot> inProgressSnapshots = Lists.map(
                 SnapshotsService.currentSnapshots(snapshotsInProgress, repository.getMetadata().name(), List.of()),
-                SysSnapshot::of
+                entry -> SysSnapshot.of(metadata, entry)
             );
             sysSnapshots.add(CompletableFuture.completedFuture(inProgressSnapshots));
         }

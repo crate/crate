@@ -21,19 +21,21 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
-import org.elasticsearch.repositories.IndexId;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.IndexName;
@@ -44,8 +46,9 @@ import io.crate.metadata.RelationName;
 public record SysSnapshot(String uuid,
                           String name,
                           String repository,
+                          List<RelationName> tables,
+                          List<PartitionName> partitions,
                           List<String> concreteIndices,
-                          List<String> partitionedTables,
                           Long started,
                           Long finished,
                           String version,
@@ -55,15 +58,44 @@ public record SysSnapshot(String uuid,
                           int totalShards,
                           Boolean includeGlobalState) {
 
-    public static SysSnapshot of(SnapshotsInProgress.Entry inProgressEntry) {
+
+    @Nullable
+    private static IndexMetadata getIndexMetadata(Metadata metadata, String indexName) {
+        for (var cursor : metadata.indices().values()) {
+            IndexMetadata indexMetadata = cursor.value;
+            if (indexMetadata.getIndex().getName().equals(indexName)) {
+                return indexMetadata;
+            }
+        }
+        return null;
+    }
+
+    public static SysSnapshot of(Metadata metadata, SnapshotsInProgress.Entry inProgressEntry) {
         Snapshot snapshot = inProgressEntry.snapshot();
         SnapshotId snapshotId = snapshot.getSnapshotId();
+        ArrayList<PartitionName> partitions = new ArrayList<>();
+        ArrayList<String> indexNames = new ArrayList<>();
+        // TODO: Consider changing the inProgressRepresentation to include PartitionName or relationName+partitionValues?
+        for (var indexId : inProgressEntry.indices()) {
+            String indexName = indexId.getName();
+            IndexMetadata indexMetadata = getIndexMetadata(metadata, indexName);
+            assert indexMetadata != null
+                : "There must be indexMetadata for any index in SnapshotsInProgress.Entry";
+            RelationMetadata relation = metadata.getRelation(indexMetadata.getIndexUUID());
+            assert relation != null
+                : "If an index is in a SnapshotsInProgress.Entry the relationMetadata for it must exist";
+            if (!indexMetadata.partitionValues().isEmpty()) {
+                partitions.add(new PartitionName(relation.name(), indexMetadata.partitionValues()));
+            }
+            indexNames.add(indexName);
+        }
         return new SysSnapshot(
             snapshotId.getUUID(),
             snapshotId.getName(),
             snapshot.getRepository(),
-            Lists.map(inProgressEntry.indices(), IndexId::getName),
-            Lists.map(inProgressEntry.relationNames(), RelationName::fqn),
+            inProgressEntry.relationNames(),
+            partitions,
+            indexNames,
             inProgressEntry.startTime(),
             0L,
             Version.CURRENT.toString(),
@@ -75,18 +107,37 @@ public record SysSnapshot(String uuid,
         );
     }
 
-    public static SysSnapshot of(Metadata metadata, String repoName, SnapshotInfo info) {
+    public static SysSnapshot of(Metadata snapshotMetadata, String repoName, SnapshotInfo info) {
         SnapshotId snapshotId = info.snapshotId();
         Version version = info.version();
+        List<String> indexNames = info.indexNames();
+        ArrayList<PartitionName> partitions = new ArrayList<>();
+        LinkedHashSet<RelationName> relations = new LinkedHashSet<>();
+        relations.addAll(Lists.mapLazy(snapshotMetadata.relations(RelationMetadata.Table.class), RelationMetadata::name));
+        for (String indexName : indexNames) {
+            IndexMetadata indexMetadata = getIndexMetadata(snapshotMetadata, indexName);
+            RelationMetadata relation = indexMetadata == null ? null : snapshotMetadata.getRelation(indexMetadata.getIndexUUID());
+            // Old snapshots might not have indexMetadata or relation metadata
+            if (relation == null) {
+                IndexParts indexParts = IndexName.decode(indexName);
+                if (indexParts.isPartitioned()) {
+                    partitions.add(indexParts.toPartitionName());
+                }
+                relations.add(indexParts.toRelationName());
+            } else {
+                relations.add(relation.name());
+                if (!indexMetadata.partitionValues().isEmpty()) {
+                    partitions.add(new PartitionName(relation.name(), indexMetadata.partitionValues()));
+                }
+            }
+        }
         return new SysSnapshot(
             snapshotId.getUUID(),
             snapshotId.getName(),
             repoName,
-            info.indices(),
-            metadata.relations(RelationMetadata.Table.class).stream()
-                .filter(x -> !x.partitionedBy().isEmpty())
-                .map(x -> x.name().fqn())
-                .toList(),
+            List.copyOf(relations),
+            partitions,
+            indexNames,
             info.startTime(),
             info.endTime(),
             version == null ? null : version.toString(),
@@ -105,6 +156,7 @@ public record SysSnapshot(String uuid,
             repoName,
             List.of(),
             List.of(),
+            List.of(),
             null,
             null,
             null,
@@ -116,29 +168,7 @@ public record SysSnapshot(String uuid,
         );
     }
 
-
-    public List<String> tables() {
-        return Stream.concat(concreteIndices.stream().map(RelationName::fqnFromIndexName), partitionedTables.stream())
-            .distinct()
-            .toList();
-    }
-
-    public List<RelationName> relationNames() {
-        return Stream.concat(
-                concreteIndices.stream().map(RelationName::fromIndexName),
-                partitionedTables.stream().map(RelationName::fromIndexName)
-            )
-            .distinct()
-            .toList();
-    }
-
-    public List<PartitionName> tablePartitions() {
-        return concreteIndices.stream()
-            .map(IndexName::decode)
-            .filter(IndexParts::isPartitioned)
-            .map(indexParts -> new PartitionName(
-                new RelationName(indexParts.schema(), indexParts.table()),
-                indexParts.partitionIdent()))
-            .toList();
+    public List<String> tableNames() {
+        return Lists.map(tables, RelationName::fqn);
     }
 }

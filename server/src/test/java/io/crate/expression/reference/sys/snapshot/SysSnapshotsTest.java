@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -270,14 +270,13 @@ public class SysSnapshotsTest extends ESTestCase {
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
         when(clusterService.state().custom(SnapshotsInProgress.TYPE)).thenReturn(SnapshotsInProgress.of(List.of(entry)));
         List<String> names = new ArrayList<>();
-        List<List<String>> tables = new ArrayList<>();
+        List<RelationName> tables = new ArrayList<>();
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1), clusterService);
         sysSnapshots.currentSnapshots().get().forEach(sysSnapshot -> {
             names.add(sysSnapshot.name());
-            tables.add(sysSnapshot.tables());
+            tables.addAll(sysSnapshot.tables());
         });
         assertThat(names).containsExactlyInAnyOrder("snapshot");
-        assertThat(tables).hasSize(1);
-        assertThat(tables.get(0)).containsExactlyInAnyOrder("my_schema.empty_parted_table");
+        assertThat(tables).containsExactly(relationName);
     }
 }
