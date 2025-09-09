@@ -33,6 +33,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Fail.fail;
 import static org.assertj.core.data.Offset.offset;
 
 import java.util.HashMap;
@@ -2437,21 +2438,30 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         int ob = (int) response.rows()[0][0];
         int oob = (int) response.rows()[0][1];
 
-        execute("""
-            insert into t values
-                (1, 2, 3, {}, 10),
-                (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 11),
-                (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 11)
-            on conflict (c) do update set a=11, b=22, i=33, o={}
-            """);
-        execute("refresh table t");
-        // check c=10 row
-        execute("select a, b, i, o['a'], o['i'], o['o']['a'], o['o']['i'], c from t where c=10");
-        assertThat(response).hasRows("11| 22| 33| -1| NULL| -1| NULL| 10");
-        execute("select o['b'], o['o']['b'] from t");
-        //TODO: when empty object is assigned due to conflict, nondeterministic default columns are re-generated; I think this makes sense actually.
-        //assertThat(response.rows()[0][0]).isEqualTo(ob);
-        //assertThat(response.rows()[0][1]).isEqualTo(oob);
+        for (int i = 0; i < 5; i++) {
+            execute("""
+                insert into t values
+                    (1, 2, 3, {}, 10),
+                    (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 11),
+                    (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 11)
+                on conflict (c) do update set a=11, b=22, i=33, o={}
+                """);
+            execute("refresh table t");
+            // check c=10 row
+            execute("select a, b, i, o['a'], o['i'], o['o']['a'], o['o']['i'], c from t where c=10");
+            assertThat(response).hasRows("11| 22| 33| -1| NULL| -1| NULL| 10");
+            execute("select o['b'], o['o']['b'] from t where c=10");
+            try {
+                // updating the parent object to an empty object must re-generate nondeterministic sub-columns
+                // looping just in case the random values happened to be -1
+                assertThat(response.rows()[0][0]).isNotEqualTo(ob).isNotNull();
+                assertThat(response.rows()[0][1]).isNotEqualTo(oob).isNotNull();
+            } catch (AssertionError e) {
+                if (i == 4) {
+                    fail();
+                }
+            }
+        }
 
         // check c=11 row
         execute("select a, b, i, o['a'], o['i'], o['o']['a'], o['o']['i'], c from t where c=11");
@@ -2726,17 +2736,23 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
         assertThat(response).hasRows("0| 1| 2| 3| 1| 1| 1");
-        execute("select b, o['b'], o['o']['b'] from t");
 
-        execute("update t set b=-1, o['b']=-1, o['o']['b']=-1");
-
-        execute("insert into t(c,i,o) values (6, 7, {i=8, o={i=9}}), (0, 1, {i=2, o={i=3}}), (5, 6, {i=7, o={i=8}}) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
-        execute("refresh table t");
-        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t order by c");
-        assertThat(response).hasRows("0| 11| 22| 33| 1| 1| 1", "5| 6| 7| 8| 6| 6| 6", "6| 7| 8| 9| 7| 7| 7");
-        execute("select b, o['b'], o['o']['b'] from t where c=0");
-        assertThat(response.rows()[0][0]).isNotEqualTo(-1).isNotNull();
-        assertThat(response.rows()[0][1]).isNotEqualTo(-1).isNotNull();
-        assertThat(response.rows()[0][2]).isNotEqualTo(-1).isNotNull();
+        for (int i = 0; i < 5; i++) {
+            execute("insert into t(c,i,o) values (6, 7, {i=8, o={i=9}}), (0, 1, {i=2, o={i=3}}), (5, 6, {i=7, o={i=8}}) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
+            execute("refresh table t");
+            execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t order by c");
+            assertThat(response).hasRows("0| 11| 22| 33| 1| 1| 1", "5| 6| 7| 8| 6| 6| 6", "6| 7| 8| 9| 7| 7| 7");
+            execute("select b, o['b'], o['o']['b'] from t where c=0");
+            // nondeterministic generated columns are generated for do-update-set paths
+            // looping just in case the random values happened to be -1
+            try {
+                assertThat(response.rows()[0][0]).isNotEqualTo(-1).isNotNull();
+                assertThat(response.rows()[0][1]).isNotEqualTo(-1).isNotNull();
+                assertThat(response.rows()[0][2]).isNotEqualTo(-1).isNotNull();
+                return;
+            } catch (AssertionError e) {
+            }
+        }
+        fail();
     }
 }
