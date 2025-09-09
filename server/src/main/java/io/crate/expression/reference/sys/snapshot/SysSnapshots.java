@@ -39,10 +39,8 @@ import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.repositories.Repository;
 import org.elasticsearch.snapshots.SnapshotException;
 import org.elasticsearch.snapshots.SnapshotId;
-import org.elasticsearch.snapshots.SnapshotsService;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import io.crate.common.collections.Lists;
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
@@ -66,7 +64,7 @@ public class SysSnapshots {
     }
 
     public CompletableFuture<Iterable<SysSnapshot>> currentSnapshots() {
-        ArrayList<CompletableFuture<List<SysSnapshot>>> sysSnapshots = new ArrayList<>();
+        ArrayList<CompletableFuture<List<SysSnapshot>>> remoteSnapshots = new ArrayList<>();
         ClusterState state = clusterService.state();
         Metadata metadata = state.metadata();
         for (Repository repository : getRepositories.get()) {
@@ -78,19 +76,15 @@ public class SysSnapshots {
                 }
                 return CompletableFutures.allSuccessfulAsList(snapshots);
             });
-            sysSnapshots.add(futureSnapshots);
-
-            final SnapshotsInProgress snapshotsInProgress = state.custom(SnapshotsInProgress.TYPE);
-            List<SysSnapshot> inProgressSnapshots = Lists.map(
-                SnapshotsService.currentSnapshots(snapshotsInProgress, repository.getMetadata().name(), List.of()),
-                entry -> SysSnapshot.of(metadata, entry)
-            );
-            sysSnapshots.add(CompletableFuture.completedFuture(inProgressSnapshots));
+            remoteSnapshots.add(futureSnapshots);
         }
-        return CompletableFutures.allSuccessfulAsList(sysSnapshots).thenApply(data -> {
+        return CompletableFutures.allSuccessfulAsList(remoteSnapshots).thenApply(data -> {
             ArrayList<SysSnapshot> result = new ArrayList<>();
             for (Collection<SysSnapshot> datum : data) {
                 result.addAll(datum);
+            }
+            for (var inProgressEntry : state.custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY).entries()) {
+                result.add(SysSnapshot.of(metadata, inProgressEntry));
             }
             return result;
         });

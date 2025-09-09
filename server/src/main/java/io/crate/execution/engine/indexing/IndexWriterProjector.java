@@ -61,6 +61,7 @@ import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 
@@ -80,8 +81,7 @@ public class IndexWriterProjector implements Projector {
                                 int targetTableNumShards,
                                 int targetTableNumReplicas,
                                 Client elasticsearchClient,
-                                Supplier<String> indexNameResolver,
-                                Supplier<String> indexUUIDResolver,
+                                Supplier<PartitionName> partitionResolver,
                                 Reference rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
                                 List<? extends Symbol> primaryKeySymbols,
@@ -132,7 +132,7 @@ public class IndexWriterProjector implements Projector {
         Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator = UpsertResults::resultsToFailure;
         shardingUpsertExecutor = new ShardingUpsertExecutor(
             clusterService,
-            (ignored1, ignored2) -> {},
+            (_, _) -> {},
             nodeJobsCounter,
             queryCircuitBreaker,
             ramAccounting,
@@ -144,8 +144,7 @@ public class IndexWriterProjector implements Projector {
             itemFactory,
             builder::newRequest,
             collectExpressions,
-            indexNameResolver,
-            indexUUIDResolver,
+            partitionResolver,
             autoCreateIndices,
             elasticsearchClient,
             targetTableNumShards,

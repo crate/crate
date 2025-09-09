@@ -58,12 +58,11 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         this.ramAccounting = ramAccounting;
     }
 
-    public void add(TItem item, String indexName, String routing, RowSourceInfo rowSourceInfo) {
+    public void add(TItem item, PartitionName partitionName, String routing, RowSourceInfo rowSourceInfo) {
         long itemSizeInBytes = item.ramBytesUsed();
         ramAccounting.addBytes(itemSizeInBytes);
         usedMemoryEstimate += itemSizeInBytes;
-        PartitionName partitionName = PartitionName.fromIndexOrTemplate(indexName);
-        List<ItemAndRoutingAndSourceInfo<TItem>> items = itemsByMissingPartition.computeIfAbsent(partitionName, k -> new ArrayList<>());
+        List<ItemAndRoutingAndSourceInfo<TItem>> items = itemsByMissingPartition.computeIfAbsent(partitionName, _ -> new ArrayList<>());
         items.add(new ItemAndRoutingAndSourceInfo<>(item, routing, rowSourceInfo));
     }
 
@@ -88,7 +87,7 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
 
     void addFailedItem(String sourceUri, String readFailure, Long lineNumber) {
         List<ReadFailureAndLineNumber> itemsWithFailure = itemsWithFailureBySourceUri.computeIfAbsent(
-            sourceUri, k -> new ArrayList<>());
+            sourceUri, _ -> new ArrayList<>());
         itemsWithFailure.add(new ReadFailureAndLineNumber(readFailure, lineNumber));
     }
 

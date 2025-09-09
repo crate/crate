@@ -67,6 +67,7 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
 import io.crate.execution.jobs.NodeLimits;
+import io.crate.metadata.PartitionName;
 
 public class ShardingUpsertExecutor
     implements Function<BatchIterator<Row>, CompletableFuture<? extends Iterable<? extends Row>>> {
@@ -104,7 +105,7 @@ public class ShardingUpsertExecutor
     private final Function<UpsertResults, Throwable> earlyTerminationExceptionGenerator;
 
     ShardingUpsertExecutor(ClusterService clusterService,
-                           BiConsumer<String, IndexItem> constraintsChecker,
+                           BiConsumer<PartitionName, IndexItem> constraintsChecker,
                            NodeLimits nodeJobsCounter,
                            CircuitBreaker queryCircuitBreaker,
                            RamAccounting ramAccounting,
@@ -116,8 +117,7 @@ public class ShardingUpsertExecutor
                            ItemFactory<ShardUpsertRequest.Item> itemFactory,
                            Function<ShardId, ShardUpsertRequest> requestFactory,
                            List<? extends CollectExpression<Row, ?>> expressions,
-                           Supplier<String> indexNameResolver,
-                           Supplier<String> indexUUIDResolver,
+                           Supplier<PartitionName> partitionResolver,
                            boolean autoCreateIndices,
                            Client elasticsearchClient,
                            int targetTableNumShards,
@@ -141,8 +141,7 @@ public class ShardingUpsertExecutor
             clusterService,
             constraintsChecker,
             rowShardResolver,
-            indexNameResolver,
-            indexUUIDResolver,
+            partitionResolver,
             expressions,
             itemFactory,
             autoCreateIndices,
