@@ -29,99 +29,20 @@ import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
-public class SysSnapshot {
+public record SysSnapshot(String uuid,
+                          String name,
+                          String repository,
+                          List<String> concreteIndices,
+                          List<String> partitionedTables,
+                          Long started,
+                          Long finished,
+                          String version,
+                          String state,
+                          List<String> failures,
+                          String reason,
+                          int totalShards,
+                          Boolean includeGlobalState) {
 
-    private final String uuid;
-    private final String name;
-    private final String repository;
-    private final List<String> concreteIndices;
-    private final List<String> partitionedTables;
-    private final Long started;
-    private final Long finished;
-    private final String version;
-    private final String state;
-    private final String reason;
-    private final int totalShards;
-    private final Boolean includeGlobalState;
-
-    private final List<String> snapshotShardFailures;
-
-    public SysSnapshot(String uuid,
-                       String name,
-                       String repository,
-                       List<String> concreteIndices,
-                       List<String> partitionedTables,
-                       Long started,
-                       Long finished,
-                       String version,
-                       String state,
-                       List<String> snapshotShardFailures,
-                       String reason,
-                       int totalShards,
-                       Boolean includeGlobalState
-                       ) {
-        this.uuid = uuid;
-        this.name = name;
-        this.repository = repository;
-        this.concreteIndices = concreteIndices;
-        this.partitionedTables = partitionedTables;
-        this.started = started;
-        this.finished = finished;
-        this.version = version;
-        this.state = state;
-        this.snapshotShardFailures = snapshotShardFailures;
-        this.reason = reason;
-        this.totalShards = totalShards;
-        this.includeGlobalState = includeGlobalState;
-    }
-
-    public String uuid() {
-        return uuid;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public String repository() {
-        return repository;
-    }
-
-    public List<String> concreteIndices() {
-        return concreteIndices;
-    }
-
-    public Long started() {
-        return started;
-    }
-
-    public Long finished() {
-        return finished;
-    }
-
-    public String version() {
-        return version;
-    }
-
-    public String state() {
-        return state;
-    }
-
-    public List<String> failures() {
-        return snapshotShardFailures;
-    }
-
-    public String reason() {
-        return reason;
-    }
-
-    public int totalShards() {
-        return totalShards;
-    }
-
-    public Boolean includeGlobalState() {
-        return includeGlobalState;
-    }
 
     public List<String> tables() {
         return Stream.concat(concreteIndices.stream().map(RelationName::fqnFromIndexName), partitionedTables.stream())
@@ -147,6 +68,4 @@ public class SysSnapshot {
                 indexParts.partitionIdent()))
             .toList();
     }
-
-
 }
