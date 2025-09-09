@@ -52,6 +52,7 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 
@@ -60,7 +61,7 @@ public class ColumnIndexWriterProjector implements Projector {
     private final ShardingUpsertExecutor shardingUpsertExecutor;
 
     public ColumnIndexWriterProjector(ClusterService clusterService,
-                                      BiConsumer<String, IndexItem> constraintsChecker,
+                                      BiConsumer<PartitionName, IndexItem> constraintsChecker,
                                       NodeLimits nodeJobsCounter,
                                       CircuitBreaker queryCircuitBreaker,
                                       RamAccounting ramAccounting,
@@ -71,8 +72,7 @@ public class ColumnIndexWriterProjector implements Projector {
                                       Settings settings,
                                       int targetTableNumShards,
                                       int targetTableNumReplicas,
-                                      Supplier<String> indexNameResolver,
-                                      Supplier<String> indexUUIDResolver,
+                                      Supplier<PartitionName> partitionResolver,
                                       Client elasticsearchClient,
                                       List<ColumnIdent> primaryKeyIdents,
                                       List<? extends Symbol> primaryKeySymbols,
@@ -147,14 +147,13 @@ public class ColumnIndexWriterProjector implements Projector {
             itemFactory,
             builder::newRequest,
             collectExpressions,
-            indexNameResolver,
-            indexUUIDResolver,
+            partitionResolver,
             autoCreateIndices,
             elasticsearchClient,
             targetTableNumShards,
             targetTableNumReplicas,
             upsertResultContext,
-            upsertResults -> false,
+            _ -> false,
             UpsertResults::resultsToFailure
         );
     }

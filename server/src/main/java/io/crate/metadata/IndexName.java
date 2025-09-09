@@ -22,9 +22,7 @@
 package io.crate.metadata;
 
 import java.nio.charset.StandardCharsets;
-import java.util.List;
 import java.util.function.BiFunction;
-import java.util.function.Supplier;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,14 +32,8 @@ import org.elasticsearch.indices.InvalidIndexNameException;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
-import com.github.benmanes.caffeine.cache.Caffeine;
-import com.github.benmanes.caffeine.cache.LoadingCache;
-
 import io.crate.blob.v2.BlobIndex;
-import io.crate.common.collections.Lists;
-import io.crate.data.Input;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.types.DataTypes;
 
 public final class IndexName {
 
@@ -180,36 +172,6 @@ public final class IndexName {
         return indexName.startsWith(".") &&
                !indexName.startsWith(PARTITIONED_TABLE_PART) &&
                !BlobIndex.isBlobIndex(indexName);
-    }
-
-    public static Supplier<String> createResolver(RelationName relationName,
-                                                  @Nullable String partitionIdent,
-                                                  @Nullable List<Input<?>> partitionedByInputs) {
-        if (partitionIdent == null && (partitionedByInputs == null || partitionedByInputs.isEmpty())) {
-            return createResolver(relationName);
-        }
-        if (partitionIdent == null) {
-            final RelationName relationName1 = relationName;
-            final List<Input<?>> partitionedByInputs1 = partitionedByInputs;
-            assert partitionedByInputs1.size() > 0 : "must have at least 1 partitionedByInput";
-            final LoadingCache<List<String>, String> cache = Caffeine.newBuilder()
-                .executor(Runnable::run)
-                .initialCapacity(10)
-                .maximumSize(20)
-                .build(key -> IndexName.encode(relationName1, PartitionName.encodeIdent(key)));
-            return () -> {
-                // copy because the values of the inputs are mutable
-                List<String> partitions = Lists.map(partitionedByInputs1, input -> DataTypes.STRING.implicitCast(input.value()));
-                return cache.get(partitions);
-            };
-        }
-        String indexName = IndexName.encode(relationName, partitionIdent);
-        return () -> indexName;
-    }
-
-    public static Supplier<String> createResolver(final RelationName relationName) {
-        String indexNameOrAlias = relationName.indexNameOrAlias();
-        return () -> indexNameOrAlias;
     }
 
     private static void assertPartitionPrefix(String prefix) {

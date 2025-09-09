@@ -56,7 +56,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.IndexName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
@@ -111,8 +111,7 @@ public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTe
             5,
             1,
             mock(Client.class),
-            IndexName.createResolver(BULK_IMPORT_IDENT),
-            IndexName.createResolver(BULK_IMPORT_IDENT),
+            PartitionName.createResolver(BULK_IMPORT_IDENT, null, null),
             RAW_SOURCE_REFERENCE,
             Collections.singletonList(ID_IDENT),
             Collections.<Symbol>singletonList(new InputColumn(1)),
