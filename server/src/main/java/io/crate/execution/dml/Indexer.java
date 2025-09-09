@@ -488,7 +488,7 @@ public class Indexer {
                 continue;
             }
             // never re-generate default root columns for UPDATE
-            // for sub-columns default columns may need to be generated, i.e. update t set o={}, where o has default sub-cols
+            // default sub-columns may need to be re-generated, i.e. update t set o={}, where o has default sub-cols
             boolean isUpdate = updateColumns != null && updateColumns.length > 0 && targetColumns.isEmpty();
             if (isUpdate && ref.column().isRoot()) {
                 continue;
