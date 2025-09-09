@@ -29,6 +29,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Fail.fail;
 
 import java.util.HashMap;
 import java.util.List;
@@ -1160,13 +1161,10 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("select * from t");
         assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
 
-        execute("update t set c=99");
+        execute("update t set i=33, o['i']=66, o['o']['i']=99, c=1010");
         execute("refresh table t");
         execute("select * from t");
-        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 99");
-
-        execute("update t set c=999 returning *");
-        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 999");
+        assertThat(response).hasRows("1| 2| 33| {a=4, b=5, i=66, o={a=7, b=8, i=99}}| 1010");
     }
 
     @Test
@@ -1272,6 +1270,22 @@ public class UpdateIntegrationTest extends IntegTestCase {
         assertThat(response).hasRows("-1| true| NULL| -1| true| NULL");
         execute("select a, b, i from t");
         assertThat(response).hasRows("1| 2| 3"); // unchanged
+
+        // updating the parent object to an empty object must re-generate nondeterministic sub-columns
+        // looping just in case the random values happened to be the same
+        execute("select o['b'], o['o']['b'] from t");
+        int ob = (int) response.rows()[0][0];
+        int oob = (int) response.rows()[0][0];
+        for (int i = 0; i < 5; i++) {
+            try {
+                execute("update t set o={} returning o['b'], o['o']['b']");
+                assertThat(response.rows()[0][0]).isNotEqualTo(ob).isNotNull();
+                assertThat(response.rows()[0][1]).isNotEqualTo(oob).isNotNull();
+                return;
+            } catch (AssertionError e) {
+            }
+        }
+        fail();
     }
 
     @Test
@@ -1378,9 +1392,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("select b=-1 and o['b']=-1 and o['o']['b']=-1 from t");
         assertThat(response).hasRows("false");
 
-        execute("update t set b=-1, i=1, o={b=-1, i=1, o={b=-1, i=1}}, c=10 returning *");
-        //TODO: new bug found(fails on master) - o['a'] and o['o']['a'] missing
-        //assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");
+        execute("update t set b=-1, i=1, o={b=-1, i=1, o={b=-1, i=1}}, c=10");
         execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");

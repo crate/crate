@@ -164,6 +164,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
             super(id);
             this.values = values;
             this.pkValues = pkValues;
+            System.out.println("pkValues: " + String.join("", pkValues));
             this.seqNo = seqNo;
             this.primaryTerm = primaryTerm;
             this.version = version;
