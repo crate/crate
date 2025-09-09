@@ -57,7 +57,7 @@ public class NodeContext {
             var tableInfoFactory = new DocTableInfoFactory(nodeCtx);
             BlobSchemaInfo blobSchemaInfo = new BlobSchemaInfo(
                 clusterService,
-                new BlobTableInfoFactory(clusterService.getSettings(), environment));
+                new BlobTableInfoFactory(environment));
             Map<String, SchemaInfo> systemSchemas = Map.of(
                 SysSchemaInfo.NAME, new SysSchemaInfo(clusterService, nodeCtx.roles()),
                 InformationSchemaInfo.NAME, new InformationSchemaInfo(),

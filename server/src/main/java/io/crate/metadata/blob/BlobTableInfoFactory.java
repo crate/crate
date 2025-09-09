@@ -23,19 +23,14 @@ package io.crate.metadata.blob;
 
 import java.nio.file.Path;
 
-import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.metadata.IndexNameExpressionResolver;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
-import org.elasticsearch.index.Index;
-import org.elasticsearch.index.IndexNotFoundException;
-import org.jetbrains.annotations.Nullable;
 
-import io.crate.blob.v2.BlobIndex;
 import io.crate.blob.v2.BlobIndicesService;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.RelationName;
@@ -53,75 +48,46 @@ public class BlobTableInfoFactory implements TableInfoFactory<BlobTableInfo> {
     private final Path[] dataFiles;
     private final Path globalBlobPath;
 
-    public BlobTableInfoFactory(Settings settings, Environment environment) {
+    public BlobTableInfoFactory(Environment environment) {
         this.dataFiles = environment.dataFiles();
-        this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(settings);
-    }
-
-    @Nullable
-    private IndexMetadata resolveIndexMetadata(String tableName, Metadata metadata) {
-        String indexName = BlobIndex.fullIndexName(tableName);
-        Index index;
-        try {
-            index = IndexNameExpressionResolver.concreteIndices(metadata, IndicesOptions.STRICT_EXPAND_OPEN, indexName)[0];
-        } catch (IndexNotFoundException ex) {
-            // Fallback to 6.0+
-            return null;
-        }
-        return metadata.index(index);
+        this.globalBlobPath = BlobIndicesService.getGlobalBlobPath(environment.settings());
     }
 
     @Override
     public BlobTableInfo create(RelationName ident, Metadata metadata) {
-
-        // Blob tables can be read from pre-6.0 state, try to resolve it in the old way
-        // TODO: Remove BWC code on a version that won't read persisted state from <6.0.0
-        IndexMetadata indexMetadata = resolveIndexMetadata(ident.name(), metadata);
-
-        if (indexMetadata == null) {
-            // Read blob table persisted in version 6.0+
-            RelationMetadata.BlobTable blobTable = metadata.getRelation(ident);
-            if (blobTable == null) {
-
-                throw new RelationUnknown(ident);
-            }
-            indexMetadata = metadata.index(blobTable.indexUUID());
-            if (indexMetadata == null) {
-                throw new RelationUnknown(ident);
-            }
+        RelationMetadata.BlobTable blobTable = metadata.getRelation(ident);
+        if (blobTable == null) {
+            throw new RelationUnknown(ident);
         }
-        return create(indexMetadata);
-    }
-
-    @Override
-    public BlobTableInfo create(IndexMetadata indexMetadata) {
-        Settings settings = indexMetadata.getSettings();
+        String indexUUID = blobTable.indexUUID();
+        IndexMetadata indexMetadata = metadata.index(indexUUID);
+        if (indexMetadata == null) {
+            throw new RelationUnknown(ident);
+        }
+        Settings tableSettings = blobTable.settings();
+        Settings indexSettings = indexMetadata.getSettings();
         return new BlobTableInfo(
-            RelationName.fromIndexName(indexMetadata.getIndex().getName()),
-            indexMetadata.getIndex().getName(),
+            ident,
             indexMetadata.getNumberOfShards(),
-            NumberOfReplicas.getVirtualValue(settings),
-            settings,
-            blobsPath(settings),
-            IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(settings),
-            settings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
-            indexMetadata.getState() == IndexMetadata.State.CLOSE);
+            NumberOfReplicas.getVirtualValue(indexSettings),
+            tableSettings,
+            blobsPath(tableSettings),
+            indexMetadata.getCreationVersion(),
+            indexSettings.getAsVersion(IndexMetadata.SETTING_VERSION_UPGRADED, null),
+            blobTable.state() == State.CLOSE
+        );
     }
 
     private String blobsPath(Settings indexMetadataSettings) {
-        String blobsPath;
         String blobsPathStr = BlobIndicesService.SETTING_INDEX_BLOBS_PATH.get(indexMetadataSettings);
         if (Strings.hasLength(blobsPathStr)) {
-            blobsPath = blobsPathStr;
-        } else {
-            Path path = globalBlobPath;
-            if (path != null) {
-                blobsPath = path.toString();
-            } else {
-                // TODO: should we set this to null because there is no special blobPath?
-                blobsPath = dataFiles[0].toString();
-            }
+            return blobsPathStr;
         }
-        return blobsPath;
+        Path path = globalBlobPath;
+        if (path == null) {
+            return dataFiles[0].toString();
+        } else {
+            return path.toString();
+        }
     }
 }

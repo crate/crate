@@ -40,6 +40,7 @@ import org.elasticsearch.index.Index;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.blob.v2.BlobIndex;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.IndexName;
@@ -146,43 +147,55 @@ public class MetadataUpgradeService {
 
             String indexUUID = indexMetadata.getIndexUUID();
             RelationMetadata relation = metadata.getRelation(indexUUID);
-            DocTableInfo docTable = null;
+            DocTableInfo tableInfo = null;
             if (relation == null) {
                 IndexParts indexParts = IndexName.decode(indexName);
                 RelationName relationName = indexParts.toRelationName();
                 relation = newMetadata.getRelation(relationName);
-                docTable = tableFactory.create(newIndexMetadata);
+                if (!BlobIndex.isBlobIndex(indexName)) {
+                    tableInfo = tableFactory.create(newIndexMetadata);
+                }
             }
             if (relation == null) {
-                assert docTable != null
-                    : "Must have created docTable instance of relation was missing";
-                LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
-                    ? NO_OID_COLUMN_OID_SUPPLIER
-                    : newMetadata.columnOidSupplier();
-                newMetadata.setTable(
-                    columnOidSupplier,
-                    docTable.ident(),
-                    docTable.allReferences(),
-                    // If RelationMetadata exist in the cluster state, make sure to override them with
-                    // the upgraded settings which currently takes place on IndexMetadata
-                    newIndexMetadata.getSettings(),
-                    docTable.clusteredBy(),
-                    docTable.columnPolicy(),
-                    docTable.pkConstraintName(),
-                    docTable.checkConstraints()
-                        .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
-                    docTable.primaryKey(),
-                    docTable.partitionedBy(),
-                    newIndexMetadata.getState(),
-                    List.of(newIndexMetadata.getIndexUUID()),
-                    docTable.tableVersion()
-                );
+                if (tableInfo instanceof DocTableInfo docTable) {
+                    LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
+                        ? NO_OID_COLUMN_OID_SUPPLIER
+                        : newMetadata.columnOidSupplier();
+                    newMetadata.setTable(
+                        columnOidSupplier,
+                        docTable.ident(),
+                        docTable.allReferences(),
+                        // If RelationMetadata exist in the cluster state, make sure to override them with
+                        // the upgraded settings which currently takes place on IndexMetadata
+                        newIndexMetadata.getSettings(),
+                        docTable.clusteredBy(),
+                        docTable.columnPolicy(),
+                        docTable.pkConstraintName(),
+                        docTable.checkConstraints()
+                            .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
+                        docTable.primaryKey(),
+                        docTable.partitionedBy(),
+                        newIndexMetadata.getState(),
+                        List.of(newIndexMetadata.getIndexUUID()),
+                        docTable.tableVersion()
+                    );
+                } else if (BlobIndex.isBlobIndex(indexName)) {
+                    newMetadata.setBlobTable(
+                        RelationName.fromIndexName(indexName),
+                        indexUUID,
+                        newIndexMetadata.getSettings(),
+                        newIndexMetadata.getState()
+                    );
+                } else {
+                    throw new AssertionError("If the relation is missing we need a DocTableInfo instance or it must be a blob index");
+                }
             } else if (relation instanceof RelationMetadata.Table table) {
                 if (!table.indexUUIDs().contains(indexUUID)) {
                     newMetadata.addIndexUUIDs(table, List.of(indexUUID));
                 }
-            } else {
-                // TODO: Create RelationMetadata.BlobTable
+            } else if (relation instanceof RelationMetadata.BlobTable blobTable) {
+                assert blobTable.indexUUID().equals(indexUUID)
+                    : "If there exists a RelationMetadata.BlobTable entry the incoming IndexMetadata indexUUID must match";
             }
         }
 
