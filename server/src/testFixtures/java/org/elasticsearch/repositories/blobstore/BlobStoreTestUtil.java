@@ -213,7 +213,7 @@ public final class BlobStoreTestUtil {
         // Assert that for each snapshot, the relevant metadata was written to index and shard folders
         for (SnapshotId snapshotId: snapshotIds) {
             SnapshotInfo snapshotInfo = repository.getSnapshotInfo(snapshotId).get();
-            for (String index : snapshotInfo.indices()) {
+            for (String index : snapshotInfo.indexNames()) {
                 final IndexId indexId = repositoryData.resolveIndexId(index);
                 assertThat(indices).containsKey(indexId.getId());
                 final BlobContainer indexContainer = indices.get(indexId.getId());

@@ -21,132 +21,154 @@
 
 package io.crate.expression.reference.sys.snapshot;
 
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.stream.Stream;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.SnapshotsInProgress;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.snapshots.Snapshot;
+import org.elasticsearch.snapshots.SnapshotId;
+import org.elasticsearch.snapshots.SnapshotInfo;
+import org.elasticsearch.snapshots.SnapshotShardFailure;
+import org.elasticsearch.snapshots.SnapshotState;
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.common.collections.Lists;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
-public class SysSnapshot {
+public record SysSnapshot(String uuid,
+                          String name,
+                          String repository,
+                          List<RelationName> tables,
+                          List<PartitionName> partitions,
+                          List<String> concreteIndices,
+                          Long started,
+                          Long finished,
+                          String version,
+                          String state,
+                          List<String> failures,
+                          String reason,
+                          int totalShards,
+                          Boolean includeGlobalState) {
 
-    private final String uuid;
-    private final String name;
-    private final String repository;
-    private final List<String> concreteIndices;
-    private final List<String> partitionedTables;
-    private final Long started;
-    private final Long finished;
-    private final String version;
-    private final String state;
-    private final String reason;
-    private final int totalShards;
-    private final Boolean includeGlobalState;
 
-    private final List<String> snapshotShardFailures;
-
-    public SysSnapshot(String uuid,
-                       String name,
-                       String repository,
-                       List<String> concreteIndices,
-                       List<String> partitionedTables,
-                       Long started,
-                       Long finished,
-                       String version,
-                       String state,
-                       List<String> snapshotShardFailures,
-                       String reason,
-                       int totalShards,
-                       Boolean includeGlobalState
-                       ) {
-        this.uuid = uuid;
-        this.name = name;
-        this.repository = repository;
-        this.concreteIndices = concreteIndices;
-        this.partitionedTables = partitionedTables;
-        this.started = started;
-        this.finished = finished;
-        this.version = version;
-        this.state = state;
-        this.snapshotShardFailures = snapshotShardFailures;
-        this.reason = reason;
-        this.totalShards = totalShards;
-        this.includeGlobalState = includeGlobalState;
+    @Nullable
+    private static IndexMetadata getIndexMetadata(Metadata metadata, String indexName) {
+        for (var cursor : metadata.indices().values()) {
+            IndexMetadata indexMetadata = cursor.value;
+            if (indexMetadata.getIndex().getName().equals(indexName)) {
+                return indexMetadata;
+            }
+        }
+        return null;
     }
 
-    public String uuid() {
-        return uuid;
+    public static SysSnapshot of(Metadata metadata, SnapshotsInProgress.Entry inProgressEntry) {
+        Snapshot snapshot = inProgressEntry.snapshot();
+        SnapshotId snapshotId = snapshot.getSnapshotId();
+        ArrayList<PartitionName> partitions = new ArrayList<>();
+        ArrayList<String> indexNames = new ArrayList<>();
+        // TODO: Consider changing the inProgressRepresentation to include PartitionName or relationName+partitionValues?
+        for (var indexId : inProgressEntry.indices()) {
+            String indexName = indexId.getName();
+            IndexMetadata indexMetadata = getIndexMetadata(metadata, indexName);
+            assert indexMetadata != null
+                : "There must be indexMetadata for any index in SnapshotsInProgress.Entry";
+            RelationMetadata relation = metadata.getRelation(indexMetadata.getIndexUUID());
+            assert relation != null
+                : "If an index is in a SnapshotsInProgress.Entry the relationMetadata for it must exist";
+            if (!indexMetadata.partitionValues().isEmpty()) {
+                partitions.add(new PartitionName(relation.name(), indexMetadata.partitionValues()));
+            }
+            indexNames.add(indexName);
+        }
+        return new SysSnapshot(
+            snapshotId.getUUID(),
+            snapshotId.getName(),
+            snapshot.getRepository(),
+            inProgressEntry.relationNames(),
+            partitions,
+            indexNames,
+            inProgressEntry.startTime(),
+            0L,
+            Version.CURRENT.toString(),
+            SnapshotState.IN_PROGRESS.name(),
+            List.of(),
+            inProgressEntry.failure(),
+            inProgressEntry.shards().size(),
+            inProgressEntry.includeGlobalState()
+        );
     }
 
-    public String name() {
-        return name;
+    public static SysSnapshot of(Metadata snapshotMetadata, String repoName, SnapshotInfo info) {
+        SnapshotId snapshotId = info.snapshotId();
+        Version version = info.version();
+        List<String> indexNames = info.indexNames();
+        ArrayList<PartitionName> partitions = new ArrayList<>();
+        LinkedHashSet<RelationName> relations = new LinkedHashSet<>();
+        relations.addAll(Lists.mapLazy(snapshotMetadata.relations(RelationMetadata.Table.class), RelationMetadata::name));
+        for (String indexName : indexNames) {
+            IndexMetadata indexMetadata = getIndexMetadata(snapshotMetadata, indexName);
+            RelationMetadata relation = indexMetadata == null ? null : snapshotMetadata.getRelation(indexMetadata.getIndexUUID());
+            // Old snapshots might not have indexMetadata or relation metadata
+            if (relation == null) {
+                IndexParts indexParts = IndexName.decode(indexName);
+                if (indexParts.isPartitioned()) {
+                    partitions.add(indexParts.toPartitionName());
+                }
+                relations.add(indexParts.toRelationName());
+            } else {
+                relations.add(relation.name());
+                if (!indexMetadata.partitionValues().isEmpty()) {
+                    partitions.add(new PartitionName(relation.name(), indexMetadata.partitionValues()));
+                }
+            }
+        }
+        return new SysSnapshot(
+            snapshotId.getUUID(),
+            snapshotId.getName(),
+            repoName,
+            List.copyOf(relations),
+            partitions,
+            indexNames,
+            info.startTime(),
+            info.endTime(),
+            version == null ? null : version.toString(),
+            info.state().name(),
+            Lists.map(info.shardFailures(), SnapshotShardFailure::toString),
+            info.reason(),
+            info.totalShards(),
+            info.includeGlobalState()
+        );
     }
 
-    public String repository() {
-        return repository;
+    public static SysSnapshot ofMissingInfo(String repoName, SnapshotId snapshotId) {
+        return new SysSnapshot(
+            snapshotId.getUUID(),
+            snapshotId.getName(),
+            repoName,
+            List.of(),
+            List.of(),
+            List.of(),
+            null,
+            null,
+            null,
+            SnapshotState.FAILED.name(),
+            List.of(),
+            null, // We don't show info retrieval error, "reason" shows only snapshotting operation error.
+            0,
+            null
+        );
     }
 
-    public List<String> concreteIndices() {
-        return concreteIndices;
+    public List<String> tableNames() {
+        return Lists.map(tables, RelationName::fqn);
     }
-
-    public Long started() {
-        return started;
-    }
-
-    public Long finished() {
-        return finished;
-    }
-
-    public String version() {
-        return version;
-    }
-
-    public String state() {
-        return state;
-    }
-
-    public List<String> failures() {
-        return snapshotShardFailures;
-    }
-
-    public String reason() {
-        return reason;
-    }
-
-    public int totalShards() {
-        return totalShards;
-    }
-
-    public Boolean includeGlobalState() {
-        return includeGlobalState;
-    }
-
-    public List<String> tables() {
-        return Stream.concat(concreteIndices.stream().map(RelationName::fqnFromIndexName), partitionedTables.stream())
-            .distinct()
-            .toList();
-    }
-
-    public List<RelationName> relationNames() {
-        return Stream.concat(
-                concreteIndices.stream().map(RelationName::fromIndexName),
-                partitionedTables.stream().map(RelationName::fromIndexName)
-            )
-            .distinct()
-            .toList();
-    }
-
-    public List<PartitionName> tablePartitions() {
-        return concreteIndices.stream()
-            .map(IndexName::decode)
-            .filter(IndexParts::isPartitioned)
-            .map(indexParts -> new PartitionName(
-                new RelationName(indexParts.schema(), indexParts.table()),
-                indexParts.partitionIdent()))
-            .toList();
-    }
-
-
 }

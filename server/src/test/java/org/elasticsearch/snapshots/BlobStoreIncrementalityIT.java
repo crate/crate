@@ -327,7 +327,7 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
         Collection<IndexMetadata> indexMetadataList = repository.getSnapshotIndexMetadata(
                 repositoryData,
                 snapshotInfo.snapshotId(),
-                snapshotInfo.indices().stream().map(repositoryData::resolveIndexId).toList()
+                snapshotInfo.indexNames().stream().map(repositoryData::resolveIndexId).toList()
             ).get(10, TimeUnit.SECONDS);
         for (IndexMetadata indexMetadata : indexMetadataList) {
             if (indexMetadata != null) {
