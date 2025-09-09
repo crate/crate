@@ -227,11 +227,6 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, Writeable {
         this(snapshotId, indices, state, null, version, 0L, 0L, 0, 0, Collections.emptyList(), null);
     }
 
-    public SnapshotInfo(SnapshotId snapshotId, List<String> indices, long startTime, Boolean includeGlobalState) {
-        this(snapshotId, indices, SnapshotState.IN_PROGRESS, null, Version.CURRENT, startTime, 0L, 0, 0,
-            Collections.emptyList(), includeGlobalState);
-    }
-
     public SnapshotInfo(SnapshotId snapshotId, List<String> indices, long startTime, String reason, long endTime,
                         int totalShards, List<SnapshotShardFailure> shardFailures, Boolean includeGlobalState) {
         this(snapshotId, indices, snapshotState(reason, shardFailures), reason, Version.CURRENT,
@@ -313,7 +308,7 @@ public final class SnapshotInfo implements Comparable<SnapshotInfo>, Writeable {
      *
      * @return list of indices
      */
-    public List<String> indices() {
+    public List<String> indexNames() {
         return indices;
     }
 

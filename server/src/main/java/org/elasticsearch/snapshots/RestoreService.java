@@ -305,7 +305,7 @@ public class RestoreService implements ClusterStateApplier {
             // Before Version 6.0.0, no relations (and indices) are present in the snapshot metadata, we must use the
             // indices from the snapshot info.
             if (snapshotInfo.version().before(Version.V_6_0_0)) {
-                snapshotInfo.indices().forEach(indexName -> {
+                snapshotInfo.indexNames().forEach(indexName -> {
                     IndexParts indexParts = IndexName.decode(indexName);
                     List<String> partitionValues = indexParts.isPartitioned()
                         ? PartitionName.decodeIdent(indexParts.partitionIdent())

@@ -342,7 +342,7 @@ public class MockEventuallyConsistentRepository extends BlobStoreRepository {
                                         assertThat(
                                             existingInfo.shardFailures()).containsExactlyInAnyOrder(
                                                 updatedInfo.shardFailures().toArray(new SnapshotShardFailure[]{}));
-                                        assertThat(existingInfo.indices()).isEqualTo(updatedInfo.indices());
+                                        assertThat(existingInfo.indexNames()).isEqualTo(updatedInfo.indexNames());
                                         return; // No need to add a write for this since we didn't change content
                                     } catch (Exception e) {
                                         // Rethrow as AssertionError here since kind exception might otherwise be swallowed and logged by
