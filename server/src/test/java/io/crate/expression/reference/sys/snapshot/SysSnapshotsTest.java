@@ -39,6 +39,7 @@ import java.util.stream.StreamSupport;
 
 import org.assertj.core.api.Assertions;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.SnapshotsInProgress;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RepositoryMetadata;
@@ -111,7 +112,9 @@ public class SysSnapshotsTest extends ESTestCase {
             .getSnapshotInfo(s3);
 
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        when(clusterService.state().custom(SnapshotsInProgress.TYPE)).thenReturn(null);
+        ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
+            .build();
+        when(clusterService.state()).thenReturn(state);
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1), clusterService);
         Stream<SysSnapshot> currentSnapshots = StreamSupport.stream(
             Spliterators.spliteratorUnknownSize(sysSnapshots.currentSnapshots().get().iterator(), Spliterator.ORDERED),
@@ -169,7 +172,8 @@ public class SysSnapshotsTest extends ESTestCase {
             .getSnapshotInfo(sid1);
 
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        when(clusterService.state().custom(SnapshotsInProgress.TYPE)).thenReturn(null);
+        ClusterState state = ClusterState.EMPTY_STATE;
+        when(clusterService.state()).thenReturn(state);
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1), clusterService);
         Iterable<SysSnapshot> iterable = sysSnapshots.currentSnapshots().get();
         SysSnapshot sysSnapshot = iterable.iterator().next();
@@ -207,7 +211,7 @@ public class SysSnapshotsTest extends ESTestCase {
             .getSnapshotInfo(sid1);
 
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        when(clusterService.state().custom(SnapshotsInProgress.TYPE)).thenReturn(null);
+        when(clusterService.state()).thenReturn(ClusterState.EMPTY_STATE);
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1), clusterService);
         Iterable<SysSnapshot> iterable = sysSnapshots.currentSnapshots().get();
         SysSnapshot sysSnapshot = iterable.iterator().next();
@@ -226,7 +230,7 @@ public class SysSnapshotsTest extends ESTestCase {
         when(r1.getMetadata().name()).thenReturn(null); // Not important for this test, avoiding NPE.
 
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        when(clusterService.state().custom(SnapshotsInProgress.TYPE)).thenReturn(null);
+        when(clusterService.state()).thenReturn(ClusterState.EMPTY_STATE);
         SysSnapshots sysSnapshots = new SysSnapshots(() -> List.of(r1), clusterService);
         CompletableFuture<Iterable<SysSnapshot>> currentSnapshots = sysSnapshots.currentSnapshots();
         Iterable<SysSnapshot> iterable = currentSnapshots.get(5, TimeUnit.SECONDS);
@@ -268,7 +272,10 @@ public class SysSnapshotsTest extends ESTestCase {
             Version.CURRENT
         );
         ClusterService clusterService = mock(ClusterService.class, Answers.RETURNS_DEEP_STUBS);
-        when(clusterService.state().custom(SnapshotsInProgress.TYPE)).thenReturn(SnapshotsInProgress.of(List.of(entry)));
+        ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
+            .putCustom(SnapshotsInProgress.TYPE, SnapshotsInProgress.of(List.of(entry)))
+            .build();
+        when(clusterService.state()).thenReturn(state);
         List<String> names = new ArrayList<>();
         List<RelationName> tables = new ArrayList<>();
         SysSnapshots sysSnapshots = new SysSnapshots(() -> Collections.singletonList(r1), clusterService);
