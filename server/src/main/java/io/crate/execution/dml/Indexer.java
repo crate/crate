@@ -851,7 +851,6 @@ public class Indexer {
                     if (value != null) {
                         translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
                         valueIndexer.indexValue(value, docBuilder);
-                        System.out.println("indexing: " + ref + " value: " + value);
                     }
                 }
                 if (synthetics.containsKey(ref.column())) {
@@ -868,7 +867,6 @@ public class Indexer {
                     ValueIndexer<Object> indexer = synthetic.indexer();
                     translogWriter.writeFieldName(indexer.storageIdentLeafName());
                     indexer.indexValue(value, docBuilder);
-                    System.out.println("indexing synthetics: " + ref + " value: " + value);
                 }
             }
         }
