@@ -406,7 +406,9 @@ public abstract class AggregationTestCase extends ESTestCase {
             CoordinatorTxnCtx.systemTransactionContext(),
             nodeCtx,
             targetColumns,
-                null, null
+            null,
+            null,
+            table::rootColumns
         );
 
         final long startTime = System.nanoTime();
