@@ -78,7 +78,7 @@ import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterModule;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.cluster.metadata.AutoExpandReplicas;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
@@ -652,7 +652,7 @@ public abstract class IntegTestCase extends ESTestCase {
     /**
      * Waits for all relocating shards to become active using the cluster health API.
      */
-    public ClusterHealthStatus waitForRelocation() {
+    public Health waitForRelocation() {
         return waitForRelocation(null);
     }
 
@@ -660,7 +660,7 @@ public abstract class IntegTestCase extends ESTestCase {
      * Waits for all relocating shards to become active and the cluster has reached the given health status
      * using the cluster health API.
      */
-    public ClusterHealthStatus waitForRelocation(ClusterHealthStatus status) {
+    public Health waitForRelocation(Health status) {
         ClusterHealthRequest request = new ClusterHealthRequest().waitForNoRelocatingShards(true).waitForEvents(Priority.LANGUID);
         if (status != null) {
             request.waitForStatus(status);

@@ -20,30 +20,28 @@
 package org.elasticsearch.cluster.health;
 
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
+public enum Health implements Writeable {
+    GREEN,
+    YELLOW,
+    RED();
 
-public enum ClusterHealthStatus implements Writeable {
-    GREEN((byte) 0),
-    YELLOW((byte) 1),
-    RED((byte) 2);
-
-    private byte value;
-
-    ClusterHealthStatus(byte value) {
-        this.value = value;
+    public short severity() {
+        return (short) (ordinal() + 1);
     }
 
     public byte value() {
-        return value;
+        return (byte) ordinal();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        out.writeByte(value);
+        out.writeByte(value());
     }
 
     /**
@@ -51,24 +49,20 @@ public enum ClusterHealthStatus implements Writeable {
      *
      * @throws IllegalArgumentException if the value is unrecognized
      */
-    public static ClusterHealthStatus readFrom(StreamInput in) throws IOException {
+    public static Health readFrom(StreamInput in) throws IOException {
         return fromValue(in.readByte());
     }
 
-    public static ClusterHealthStatus fromValue(byte value) throws IOException {
-        switch (value) {
-            case 0:
-                return GREEN;
-            case 1:
-                return YELLOW;
-            case 2:
-                return RED;
-            default:
-                throw new IllegalArgumentException("No cluster health status for value [" + value + "]");
-        }
+    public static Health fromValue(byte value) throws IOException {
+        return switch (value) {
+            case 0 -> GREEN;
+            case 1 -> YELLOW;
+            case 2 -> RED;
+            default -> throw new IllegalArgumentException("No cluster health status for value [" + value + "]");
+        };
     }
 
-    public static ClusterHealthStatus fromString(String status) {
+    public static Health fromString(String status) {
         if (status.equalsIgnoreCase("green")) {
             return GREEN;
         } else if (status.equalsIgnoreCase("yellow")) {

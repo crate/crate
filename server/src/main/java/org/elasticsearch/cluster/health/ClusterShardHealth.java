@@ -57,7 +57,7 @@ public final class ClusterShardHealth implements Writeable {
                 int initializingShards = (int) parsedObjects[i++];
                 int unassignedShards = (int) parsedObjects[i++];
                 String statusStr = (String) parsedObjects[i];
-                ClusterHealthStatus status = ClusterHealthStatus.fromString(statusStr);
+                Health status = Health.fromString(statusStr);
                 return new ClusterShardHealth(
                     shardId,
                     status,
@@ -80,7 +80,7 @@ public final class ClusterShardHealth implements Writeable {
     }
 
     private final int shardId;
-    private final ClusterHealthStatus status;
+    private final Health status;
     private final int activeShards;
     private final int relocatingShards;
     private final int initializingShards;
@@ -106,13 +106,13 @@ public final class ClusterShardHealth implements Writeable {
                 computeUnassignedShards++;
             }
         }
-        ClusterHealthStatus computeStatus;
+        Health computeStatus;
         final ShardRouting primaryRouting = shardRoutingTable.primaryShard();
         if (primaryRouting.active()) {
             if (computeActiveShards == shardRoutingTable.size()) {
-                computeStatus = ClusterHealthStatus.GREEN;
+                computeStatus = Health.GREEN;
             } else {
-                computeStatus = ClusterHealthStatus.YELLOW;
+                computeStatus = Health.YELLOW;
             }
         } else {
             computeStatus = getInactivePrimaryHealth(primaryRouting);
@@ -127,7 +127,7 @@ public final class ClusterShardHealth implements Writeable {
 
     public ClusterShardHealth(final StreamInput in) throws IOException {
         shardId = in.readVInt();
-        status = ClusterHealthStatus.fromValue(in.readByte());
+        status = Health.fromValue(in.readByte());
         activeShards = in.readVInt();
         relocatingShards = in.readVInt();
         initializingShards = in.readVInt();
@@ -138,7 +138,7 @@ public final class ClusterShardHealth implements Writeable {
     /**
      * For XContent Parser and serialization tests
      */
-    ClusterShardHealth(int shardId, ClusterHealthStatus status, int activeShards, int relocatingShards, int initializingShards,
+    ClusterShardHealth(int shardId, Health status, int activeShards, int relocatingShards, int initializingShards,
         int unassignedShards, boolean primaryActive) {
         this.shardId = shardId;
         this.status = status;
@@ -153,7 +153,7 @@ public final class ClusterShardHealth implements Writeable {
         return shardId;
     }
 
-    public ClusterHealthStatus getStatus() {
+    public Health getStatus() {
         return status;
     }
 
@@ -199,7 +199,7 @@ public final class ClusterShardHealth implements Writeable {
      *
      * NB: this method should *not* be called on active shards nor on non-primary shards.
      */
-    public static ClusterHealthStatus getInactivePrimaryHealth(final ShardRouting shardRouting) {
+    public static Health getInactivePrimaryHealth(final ShardRouting shardRouting) {
         assert shardRouting.primary() : "cannot invoke on a replica shard: " + shardRouting;
         assert shardRouting.active() == false : "cannot invoke on an active shard: " + shardRouting;
         assert shardRouting.unassignedInfo() != null : "cannot invoke on a shard with no UnassignedInfo: " + shardRouting;
@@ -210,9 +210,9 @@ public final class ClusterShardHealth implements Writeable {
                 && (recoveryType == RecoverySource.Type.EMPTY_STORE
                     || recoveryType == RecoverySource.Type.LOCAL_SHARDS
                     || recoveryType == RecoverySource.Type.SNAPSHOT)) {
-            return ClusterHealthStatus.YELLOW;
+            return Health.YELLOW;
         } else {
-            return ClusterHealthStatus.RED;
+            return Health.RED;
         }
     }
 

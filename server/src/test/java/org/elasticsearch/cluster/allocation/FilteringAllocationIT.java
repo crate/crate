@@ -32,7 +32,7 @@ import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsActi
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -266,7 +266,7 @@ public class FilteringAllocationIT extends IntegTestCase {
                 new Object[]{excludeNodeIdsAsString});
 
         logger.info("--> waiting for relocation");
-        waitForRelocation(ClusterHealthStatus.GREEN);
+        waitForRelocation(Health.GREEN);
 
         ClusterState state = client().state(new ClusterStateRequest()).get().getState();
 
@@ -283,7 +283,7 @@ public class FilteringAllocationIT extends IntegTestCase {
                 new Object[]{excludeNodeIdsAsString});
 
         logger.info("--> waiting for relocation");
-        waitForRelocation(ClusterHealthStatus.GREEN);
+        waitForRelocation(Health.GREEN);
 
         state = client().state(new ClusterStateRequest()).get().getState();
 

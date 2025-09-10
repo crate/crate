@@ -42,7 +42,7 @@ public class ClusterHealthAllocationTests extends ESAllocationTestCase {
         if (randomBoolean()) {
             clusterState = addNode(clusterState, "node_m", true);
         }
-        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.GREEN);
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(Health.GREEN);
 
         Metadata metadata = Metadata.builder()
             .put(IndexMetadata.builder("test")
@@ -55,28 +55,28 @@ public class ClusterHealthAllocationTests extends ESAllocationTestCase {
         MockAllocationService allocation = createAllocationService();
         clusterState = applyStartedShardsUntilNoChange(clusterState, allocation);
         assertThat(clusterState.nodes().getDataNodes().size()).isEqualTo(0);
-        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.RED);
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(Health.RED);
 
         clusterState = addNode(clusterState, "node_d1", false);
         assertThat(clusterState.nodes().getDataNodes().size()).isEqualTo(1);
         clusterState = applyStartedShardsUntilNoChange(clusterState, allocation);
-        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.YELLOW);
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(Health.YELLOW);
 
         clusterState = addNode(clusterState, "node_d2", false);
         clusterState = applyStartedShardsUntilNoChange(clusterState, allocation);
-        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.GREEN);
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(Health.GREEN);
 
         clusterState = removeNode(clusterState, "node_d1", allocation);
-        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.YELLOW);
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(Health.YELLOW);
 
         clusterState = removeNode(clusterState, "node_d2", allocation);
-        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.RED);
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(Health.RED);
 
         routingTable = RoutingTable.builder(routingTable).remove("test").build();
         metadata = Metadata.builder(clusterState.metadata()).remove("test").build();
         clusterState = ClusterState.builder(clusterState).routingTable(routingTable).metadata(metadata).build();
         assertThat(clusterState.nodes().getDataNodes().size()).isEqualTo(0);
-        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(ClusterHealthStatus.GREEN);
+        assertThat(getClusterHealthStatus(clusterState)).isEqualTo(Health.GREEN);
     }
 
     private ClusterState addNode(ClusterState clusterState, String nodeName, boolean isMaster) {
@@ -90,7 +90,7 @@ public class ClusterHealthAllocationTests extends ESAllocationTestCase {
             .nodes(DiscoveryNodes.builder(clusterState.nodes()).remove(nodeName)).build(), true, "reroute");
     }
 
-    private ClusterHealthStatus getClusterHealthStatus(ClusterState clusterState) {
+    private Health getClusterHealthStatus(ClusterState clusterState) {
         return new ClusterStateHealth(clusterState).getStatus();
     }
 
