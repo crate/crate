@@ -25,8 +25,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.health.ClusterShardHealth;
+import org.elasticsearch.cluster.health.HealthStatus;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -39,19 +39,9 @@ import io.crate.metadata.RelationName;
 
 record TableHealth(RelationName relationName,
                    @Nullable String partitionIdent,
-                   Health health,
+                   HealthStatus health,
                    long missingShards,
                    long underreplicatedShards) {
-
-    enum Health {
-        GREEN,
-        YELLOW,
-        RED;
-
-        public short severity() {
-            return (short) (ordinal() + 1);
-        }
-    }
 
     public static Iterable<TableHealth> compute(ClusterState clusterState) {
         Metadata metadata = clusterState.metadata();
@@ -80,7 +70,7 @@ record TableHealth(RelationName relationName,
                         }
                         if (shardRouting.primary()) {
                             var healthStatus = ClusterShardHealth.getInactivePrimaryHealth(shardRouting);
-                            if (healthStatus == ClusterHealthStatus.YELLOW) {
+                            if (healthStatus == HealthStatus.YELLOW) {
                                 missingNewPrimaryShards += 1;
                             } else {
                                 missingUsedPrimaryShards += 1;
@@ -90,9 +80,9 @@ record TableHealth(RelationName relationName,
                         }
                     }
                 }
-                Health health = missingUsedPrimaryShards > 0
-                    ? Health.RED
-                    : (underreplicatedShards + missingNewPrimaryShards) > 0 ? Health.YELLOW : Health.GREEN;
+                HealthStatus health = missingUsedPrimaryShards > 0
+                    ? HealthStatus.RED
+                    : (underreplicatedShards + missingNewPrimaryShards) > 0 ? HealthStatus.YELLOW : HealthStatus.GREEN;
                 result.add(new TableHealth(
                     relation.name(),
                     PartitionName.encodeIdent(indexMetadata.partitionValues()),

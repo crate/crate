@@ -42,7 +42,7 @@ public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, W
     private final int initializingShards;
     private final int unassignedShards;
     private final int activePrimaryShards;
-    private final ClusterHealthStatus status;
+    private final HealthStatus status;
     private final Map<Integer, ClusterShardHealth> shards;
 
     public ClusterIndexHealth(final IndexMetadata indexMetadata, final IndexRoutingTable indexRoutingTable) {
@@ -57,7 +57,7 @@ public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, W
         }
 
         // update the index status
-        ClusterHealthStatus computeStatus = ClusterHealthStatus.GREEN;
+        HealthStatus computeStatus = HealthStatus.GREEN;
         int computeActivePrimaryShards = 0;
         int computeActiveShards = 0;
         int computeRelocatingShards = 0;
@@ -72,15 +72,15 @@ public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, W
             computeInitializingShards += shardHealth.getInitializingShards();
             computeUnassignedShards += shardHealth.getUnassignedShards();
 
-            if (shardHealth.getStatus() == ClusterHealthStatus.RED) {
-                computeStatus = ClusterHealthStatus.RED;
-            } else if (shardHealth.getStatus() == ClusterHealthStatus.YELLOW && computeStatus != ClusterHealthStatus.RED) {
+            if (shardHealth.getStatus() == HealthStatus.RED) {
+                computeStatus = HealthStatus.RED;
+            } else if (shardHealth.getStatus() == HealthStatus.YELLOW && computeStatus != HealthStatus.RED) {
                 // do not override an existing red
-                computeStatus = ClusterHealthStatus.YELLOW;
+                computeStatus = HealthStatus.YELLOW;
             }
         }
         if (shards.isEmpty()) { // might be since none has been created yet (two phase index creation)
-            computeStatus = ClusterHealthStatus.RED;
+            computeStatus = HealthStatus.RED;
         }
 
         this.status = computeStatus;
@@ -100,7 +100,7 @@ public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, W
         relocatingShards = in.readVInt();
         initializingShards = in.readVInt();
         unassignedShards = in.readVInt();
-        status = ClusterHealthStatus.fromValue(in.readByte());
+        status = HealthStatus.fromValue(in.readByte());
 
         int size = in.readVInt();
         shards = new HashMap<>(size);
@@ -142,7 +142,7 @@ public final class ClusterIndexHealth implements Iterable<ClusterShardHealth>, W
         return unassignedShards;
     }
 
-    public ClusterHealthStatus getStatus() {
+    public HealthStatus getStatus() {
         return status;
     }
 
