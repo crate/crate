@@ -460,6 +460,8 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     );
                     if (indexer.onConflictIndexer() != null) {
                         // Reorder indexItemResult.replicaInsertValues such that the orders are equal for insert and on-conflict cases
+                        // the indexer order can be retrieved from indexer.insertOrder() not onConflictIndexer.indexOrder(),
+                        // the latter is equivalent to an Indexer for UPDATE, returning an empty list
                         var order = indexer.indexOrder();
                         Object[] replicaInsertValues = indexItemResult.replicaInsertValues;
                         Object[] reordered = new Object[order.size()];
@@ -478,7 +480,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     IndexItemResult indexItemResult = indexItemForUpdate(
                         onConflictIndexer, request, item, indexShard, tableInfo, partitionValues);
                     // Reorder indexItemResult.replicaInsertValues such that the orders are equal for insert and on-conflict cases
-                    var order = onConflictIndexer.indexOrder();
+                    var order = indexer.indexOrder();
                     Object[] replicaInsertValues = indexItemResult.replicaInsertValues;
                     Object[] reordered = new Object[order.size()];
                     for (int i = 0; i < order.size(); i++) {
