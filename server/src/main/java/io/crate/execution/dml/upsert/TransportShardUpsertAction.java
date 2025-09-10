@@ -276,10 +276,6 @@ public class TransportShardUpsertAction extends TransportShardAction<
             request.shardId(),
             request.jobId(),
             request.sessionSettings(),
-            // Copy because indexer.insertColumns can be mutated during indexing
-            // to refine types. (undefined[] -> long[], with values being integer[])
-            // Using the refined types can break streaming for the replica
-            // See `test_dynamic_null_array_overridden_to_integer_becomes_null`
             indexer.onConflictIndexer() != null ? insertOnConflictColumns : insertColumnsForReplica,
             replicaItems
         );
@@ -479,6 +475,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     IndexItemResult indexItemResult = indexItemForUpdate(
                         onConflictIndexer, request, item, indexShard, tableInfo, partitionValues);
                     // Reorder indexItemResult.replicaInsertValues such that the orders are equal for insert and on-conflict cases
+                    assert indexer.indexOrder().equals(onConflictIndexer.indexOrder()) : "Both indexers' index orders are the same, either can be used";
                     var order = indexer.indexOrder();
                     Object[] replicaInsertValues = indexItemResult.replicaInsertValues;
                     Object[] reordered = new Object[order.size()];

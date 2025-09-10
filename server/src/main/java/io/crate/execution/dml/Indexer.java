@@ -25,6 +25,7 @@ package io.crate.execution.dml;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -109,6 +110,9 @@ import io.crate.types.ObjectType;
 public class Indexer {
 
     private final List<ValueIndexer<?>> valueIndexers;
+    /**
+     * target columns for INSERT and target columns for UPDATE converted to INSERT
+     */
     private final List<Reference> columns;
     private final Map<ColumnIdent, Synthetic> synthetics;
     private final List<CollectExpression<IndexItem, Object>> expressions;
@@ -122,9 +126,13 @@ public class Indexer {
     private final Version tableVersionCreated;
     @Nullable
     private final UpdateToInsert updateToInsert;
-    private final List<Reference> assignedColumns;
-    private final Supplier<List<Reference>> indexingOrder;
     private final Indexer onConflictIndexer;
+    /**
+     * Supplier for the indexing order of documents' attributes.
+     * This must include dynamically added columns.
+     * Currently, the indexing order follows {@link DocTableInfo#rootColumns()}
+     */
+    private final Supplier<List<Reference>> indexOrder;
 
 
     public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
@@ -411,13 +419,38 @@ public class Indexer {
                    List<Reference> targetColumns,
                    @Nullable String[] updateColumns,
                    @Nullable Symbol[] returnValues) {
+        this(
+            partitionValues,
+            table,
+            shardVersionCreated,
+            txnCtx,
+            nodeCtx,
+            targetColumns,
+            updateColumns,
+            returnValues,
+            () -> ((DocTableInfo) nodeCtx.schemas().getTableInfo(table.ident())).rootColumns()
+        );
+    }
+
+    @VisibleForTesting
+    @SuppressWarnings("unchecked")
+    public Indexer(List<String> partitionValues,
+                   DocTableInfo table,
+                   Version shardVersionCreated,
+                   TransactionContext txnCtx,
+                   NodeContext nodeCtx,
+                   List<Reference> targetColumns,
+                   @Nullable String[] updateColumns,
+                   @Nullable Symbol[] returnValues,
+                   Supplier<List<Reference>> indexOrder) {
+        List<Reference> assignedColumns; // assignedColumns are columns explicitly assigned by users; updateColumns for UPDATE and targetColumns for INSERT
+        this.indexOrder = indexOrder;
         if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty()) { // insert-on-conflict
             this.onConflictIndexer = new Indexer(
                 partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, List.of(), updateColumns, returnValues);
             this.updateToInsert = null;
             this.columns = targetColumns;
-            this.assignedColumns = this.columns;
-            this.indexingOrder = () -> ((DocTableInfo) (nodeCtx.schemas() == null ? table : nodeCtx.schemas().getTableInfo(table.ident()))).rootColumns();
+            assignedColumns = targetColumns;
         } else if (updateColumns != null && updateColumns.length > 0) { // update
             this.onConflictIndexer = null;
             this.updateToInsert = new UpdateToInsert(
@@ -428,14 +461,12 @@ public class Indexer {
                 targetColumns
             );
             this.columns = this.updateToInsert.columns();
-            this.assignedColumns = this.updateToInsert.updateColumns;
-            this.indexingOrder = List::of;
+            assignedColumns = this.updateToInsert.updateColumns;
         } else { // insert
             this.onConflictIndexer = null;
             this.updateToInsert = null;
             this.columns = targetColumns;
-            this.assignedColumns = this.columns;
-            this.indexingOrder = List::of;
+            assignedColumns = targetColumns;
         }
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
@@ -485,13 +516,15 @@ public class Indexer {
             Input<?> input = ctxForRefs.add(expression);
             tableConstraints.add(new TableCheckConstraint(input, constraint));
         }
+
+        boolean isUpdate = updateColumns != null && updateColumns.length > 0 && targetColumns.isEmpty();
+
         for (var ref : table.defaultExpressionColumns()) {
             if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
             // never re-generate default root columns for UPDATE
             // default sub-columns may need to be re-generated, i.e. update t set o={}, where o has default sub-cols
-            boolean isUpdate = updateColumns != null && updateColumns.length > 0 && targetColumns.isEmpty();
             if (isUpdate && ref.column().isRoot()) {
                 continue;
             }
@@ -801,31 +834,29 @@ public class Indexer {
         );
         Object[] values = item.insertValues();
 
-        if (indexOrder.isEmpty()) {
-            for (int i = 0; i < values.length; i++) {
-                Reference reference = columns.get(i);
-                Object value = valueForInsert(reference.valueType(), values[i]);
-                ColumnConstraint check = columnConstraints.get(reference.column());
+        for (Reference ref : indexOrder) {
+            int idx = columns.indexOf(ref);
+            if (idx >= 0) {
+                Object value = valueForInsert(ref.valueType(), values[idx]);
+                ColumnConstraint check = columnConstraints.get(ref.column());
                 if (check != null) {
                     check.verify(value);
                 }
-                if (reference.granularity() == RowGranularity.PARTITION) {
+                if (ref.granularity() == RowGranularity.PARTITION) {
                     continue;
                 }
-                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-                if (value == null) {
-                    continue;
+                if (value != null) {
+                    ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(idx);
+                    translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
+                    valueIndexer.indexValue(value, docBuilder);
                 }
-                translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
-                valueIndexer.indexValue(value, docBuilder);
             }
-
-            for (var entry : synthetics.entrySet()) {
-                ColumnIdent column = entry.getKey();
+            if (synthetics.containsKey(ref.column())) {
+                ColumnIdent column = ref.column();
                 if (!column.isRoot()) {
                     continue;
                 }
-                Synthetic synthetic = entry.getValue();
+                Synthetic synthetic = synthetics.get(column);
 
                 Object value = synthetic.value();
                 if (value == null) {
@@ -834,40 +865,6 @@ public class Indexer {
                 ValueIndexer<Object> indexer = synthetic.indexer();
                 translogWriter.writeFieldName(indexer.storageIdentLeafName());
                 indexer.indexValue(value, docBuilder);
-            }
-        } else {
-            for (Reference ref : indexOrder) {
-                if (columns.contains(ref)) {
-                    int idx = columns.indexOf(ref);
-                    Object value = valueForInsert(ref.valueType(), values[idx]);
-                    ColumnConstraint check = columnConstraints.get(ref.column());
-                    if (check != null) {
-                        check.verify(value);
-                    }
-                    if (ref.granularity() == RowGranularity.PARTITION) {
-                        continue;
-                    }
-                    ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(idx);
-                    if (value != null) {
-                        translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
-                        valueIndexer.indexValue(value, docBuilder);
-                    }
-                }
-                if (synthetics.containsKey(ref.column())) {
-                    ColumnIdent column = ref.column();
-                    if (!column.isRoot()) {
-                        continue;
-                    }
-                    Synthetic synthetic = synthetics.get(column);
-
-                    Object value = synthetic.value();
-                    if (value == null) {
-                        continue;
-                    }
-                    ValueIndexer<Object> indexer = synthetic.indexer();
-                    translogWriter.writeFieldName(indexer.storageIdentLeafName());
-                    indexer.indexValue(value, docBuilder);
-                }
             }
         }
 
@@ -881,7 +878,7 @@ public class Indexer {
     }
 
     public ParsedDocument index(IndexItem item) throws IOException {
-        return index(item, indexingOrder.get());
+        return index(item, indexOrder.get());
     }
 
     /**
@@ -900,14 +897,14 @@ public class Indexer {
     public UpdateBuild buildForUpdate(Doc storedDoc,
                                       Symbol[] updateAssignments,
                                       @Nullable Object[] excludedValues) throws IOException {
-        assert this.updateToInsert != null;
+        assert this.updateToInsert != null : "UpdateToInsert must not be null when Indexer is handling an UPDATE";
         var converted = updateToInsert.convert(storedDoc, updateAssignments, excludedValues);
         var newCols = collectSchemaUpdates(converted);
         Supplier<ParsedDocument> doc = () -> {
             try {
                 return index(converted);
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
         };
         return new UpdateBuild(doc, () -> addGeneratedValues(converted), newCols, converted);
@@ -1103,7 +1100,7 @@ public class Indexer {
     }
 
     public List<Reference> indexOrder() {
-        return this.indexingOrder.get();
+        return this.indexOrder.get();
     }
 
     public Object synthetic(Reference r) {

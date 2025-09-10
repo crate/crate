@@ -250,12 +250,15 @@ public final class UpdateToInsert {
                 insertValues[i] = null;
             } else {
                 insertValues[i] = ref.accept(eval, values).value();
-                // Remove the generated children such that Indexer can generate it
+                // object columns' generated sub-columns' values are removed such that they can be re-generated while indexing.
+                // deterministic generated sub-columns must be re-generated if its referenced-reference is updated
+                // nondeterministic generated sub-columns must always be re-generated
+                // TODO: ((GeneratedReference) child).referencedReferences().stream().anyMatch(updateColumns::contains)) seems not enough
+                // if referencedReference is a child of another object, and that parent object is updated, above anyMatch will fail won't be re-generated.
                 if (ref.valueType().id() == ObjectType.ID) {
                     for (var child : table.getLeafReferences(ref)) {
                         if (child.isGenerated() &&
                             (!child.isDeterministic() || ((GeneratedReference) child).referencedReferences().stream().anyMatch(updateColumns::contains))) {
-                            //Maps.mergeInto((Map<String, Object>) insertValues[i], child.column().shiftRight().name(), child.column().shiftRight().path(), null);
                             Maps.removeByPath((Map<String, Object>) insertValues[i], Arrays.asList(child.column().shiftRight().fqn().split("\\.")));
                         }
                     }
