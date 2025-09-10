@@ -78,14 +78,14 @@ public class SysClusterHealth {
                 // shard level health is only set to RED if there are missing primary shards that were
                 // allocated before see {@link ClusterShardHealth#getInactivePrimaryHealth()}.
                 // Otherwise, the table health is set to YELLOW.
-                if (health == TableHealth.Health.RED || tableHealth.getMissingShards() > 0) {
+                if (health == TableHealth.Health.RED || tableHealth.missingShards() > 0) {
                     finalDescription = "One or more tables are missing shards";
                 } else if (health == TableHealth.Health.YELLOW) {
                     finalDescription = "One or more tables have underreplicated shards";
                 }
             }
-            missingShards += tableHealth.getMissingShards();
-            underreplicatedShards += tableHealth.getUnderreplicatedShards();
+            missingShards += tableHealth.missingShards();
+            underreplicatedShards += tableHealth.underreplicatedShards();
         }
         return List.of(new ClusterHealth(health, finalDescription, missingShards, underreplicatedShards, numPendingTasks));
     }

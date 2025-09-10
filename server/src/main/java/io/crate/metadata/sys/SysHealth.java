@@ -33,12 +33,12 @@ public class SysHealth {
     public static final RelationName IDENT = new RelationName(SysSchemaInfo.NAME, "health");
 
     static SystemTable<TableHealth> INSTANCE = SystemTable.<TableHealth>builder(IDENT)
-        .add("table_name", STRING, TableHealth::getTableName)
-        .add("table_schema", STRING, TableHealth::getTableSchema)
-        .add("partition_ident", STRING, TableHealth::getPartitionIdent)
-        .add("health", STRING, TableHealth::getHealth)
-        .add("severity", SHORT, TableHealth::getSeverity)
-        .add("missing_shards", LONG, TableHealth::getMissingShards)
-        .add("underreplicated_shards", LONG, TableHealth::getUnderreplicatedShards)
+        .add("table_name", STRING, x -> x.relationName().name())
+        .add("table_schema", STRING, x -> x.relationName().schema())
+        .add("partition_ident", STRING, TableHealth::partitionIdent)
+        .add("health", STRING, TableHealth::healthText)
+        .add("severity", SHORT, TableHealth::severity)
+        .add("missing_shards", LONG, TableHealth::missingShards)
+        .add("underreplicated_shards", LONG, TableHealth::underreplicatedShards)
         .build();
 }
