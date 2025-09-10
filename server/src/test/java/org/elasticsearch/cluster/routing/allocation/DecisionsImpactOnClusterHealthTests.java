@@ -30,8 +30,8 @@ import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ESAllocationTestCase;
 import org.elasticsearch.cluster.EmptyClusterInfoService;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.health.ClusterStateHealth;
+import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -63,7 +63,7 @@ public class DecisionsImpactOnClusterHealthTests extends ESAllocationTestCase {
         AllocationDecider decider = new TestAllocateDecision(Decision.NO);
         // if deciders say NO to allocating a primary shard, then the cluster health should be RED
         runAllocationTest(
-            settings, indexName, Collections.singleton(decider), ClusterHealthStatus.RED
+            settings, indexName, Collections.singleton(decider), Health.RED
         );
     }
 
@@ -75,7 +75,7 @@ public class DecisionsImpactOnClusterHealthTests extends ESAllocationTestCase {
         AllocationDecider decider = new TestAllocateDecision(Decision.THROTTLE);
         // if deciders THROTTLE allocating a primary shard, stay in YELLOW state
         runAllocationTest(
-            settings, indexName, Collections.singleton(decider), ClusterHealthStatus.YELLOW
+            settings, indexName, Collections.singleton(decider), Health.YELLOW
         );
     }
 
@@ -96,7 +96,7 @@ public class DecisionsImpactOnClusterHealthTests extends ESAllocationTestCase {
         };
         // if deciders say YES to allocating primary shards, stay in YELLOW state
         ClusterState clusterState = runAllocationTest(
-            settings, indexName, Collections.singleton(decider), ClusterHealthStatus.YELLOW
+            settings, indexName, Collections.singleton(decider), Health.YELLOW
         );
         // make sure primaries are initialized
         RoutingTable routingTable = clusterState.routingTable();
@@ -108,7 +108,7 @@ public class DecisionsImpactOnClusterHealthTests extends ESAllocationTestCase {
     private ClusterState runAllocationTest(final Settings settings,
                                            final String indexName,
                                            final Set<AllocationDecider> allocationDeciders,
-                                           final ClusterHealthStatus expectedStatus) throws IOException {
+                                           final Health expectedStatus) throws IOException {
 
         final String clusterName = "test-cluster";
         final AllocationService allocationService = newAllocationService(settings, allocationDeciders);

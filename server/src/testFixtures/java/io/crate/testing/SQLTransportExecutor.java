@@ -53,7 +53,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.ESTestCase;
 import org.jetbrains.annotations.NotNull;
@@ -521,26 +521,26 @@ public class SQLTransportExecutor {
     }
 
     public void ensureGreen() throws Exception {
-        ensureState(ClusterHealthStatus.GREEN, null);
+        ensureState(Health.GREEN, null);
     }
 
     public void ensureGreen(Integer expectedNumNodes) throws Exception {
-        ensureState(ClusterHealthStatus.GREEN, expectedNumNodes);
+        ensureState(Health.GREEN, expectedNumNodes);
     }
 
     public void ensureYellowOrGreen(Integer expectedNumNOdes) throws Exception {
-        ensureState(ClusterHealthStatus.YELLOW, expectedNumNOdes);
+        ensureState(Health.YELLOW, expectedNumNOdes);
     }
 
     public void ensureYellowOrGreen() throws Exception {
-        ensureState(ClusterHealthStatus.YELLOW, null);
+        ensureState(Health.YELLOW, null);
     }
 
     @SuppressWarnings("unchecked")
-    private void ensureState(ClusterHealthStatus state, @Nullable Integer expectedNumNodes) throws Exception {
+    private void ensureState(Health state, @Nullable Integer expectedNumNodes) throws Exception {
         assertThat(state)
             .as("ensureState can only be used to check for GREEN or YELLOW state")
-            .isNotEqualTo(ClusterHealthStatus.RED);
+            .isNotEqualTo(Health.RED);
         ESTestCase.assertBusy(() -> {
             SQLResponse response;
             try {
@@ -584,7 +584,7 @@ public class SQLTransportExecutor {
 
             String color = (String) clusterHealth.get("health");
             List<String> statesToCheck;
-            if (state == ClusterHealthStatus.GREEN) {
+            if (state == Health.GREEN) {
                 assertThat(color).isEqualTo("GREEN");
                 statesToCheck = (List<String>) shardsState.get("all_states");
             } else {

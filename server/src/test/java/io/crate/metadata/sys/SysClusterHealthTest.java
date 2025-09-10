@@ -31,6 +31,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
+import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.discovery.MasterNotDiscoveredException;
 import org.elasticsearch.rest.RestStatus;
 import org.junit.Test;
@@ -44,7 +45,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
     public void test_green_no_tables() {
         var healths = SysClusterHealth.compute(clusterService.state(), 0);
         var expected = new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.GREEN,
+            Health.GREEN,
             "",
             0,
             0,
@@ -61,7 +62,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
 
         var healths = SysClusterHealth.compute(clusterService.state(), 0);
         var expected = new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.GREEN,
+            Health.GREEN,
             "",
             0,
             0,
@@ -87,7 +88,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
             .build();
         var healths = SysClusterHealth.compute(newState, 0);
         var expected = new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.YELLOW,
+            Health.YELLOW,
             "cannot write metadata",
             0,
             0,
@@ -103,7 +104,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
 
         var healths = SysClusterHealth.compute(clusterService.state(), 0);
         var expected = new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.YELLOW,
+            Health.YELLOW,
             "One or more tables are missing shards",
             4,
             4,
@@ -115,7 +116,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
 
         healths = SysClusterHealth.compute(clusterService.state(), 0);
         expected = new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.YELLOW,
+            Health.YELLOW,
             "One or more tables have underreplicated shards",
             0,
             4,
@@ -145,7 +146,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
             .build();
         var healths = SysClusterHealth.compute(newState, 0);
         var expected = new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.YELLOW,
+            Health.YELLOW,
             "Cannot write metadata",    // cluster level message takes precedence
             0,
             4,
@@ -174,7 +175,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
                 .build();
         var healths = SysClusterHealth.compute(newState, 0);
         var expected = new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.RED,
+            Health.RED,
             "recovering",   // cluster level message takes precedence
             -1,
             -1,
@@ -192,7 +193,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
 
         var healths = SysClusterHealth.compute(clusterService.state(), 0);
         var expected = new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.RED,
+            Health.RED,
             "One or more tables are missing shards",
             4,
             0,
@@ -205,7 +206,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
     public void test_pending_tasks() throws Exception {
         var healths = SysClusterHealth.compute(clusterService.state(), 1);
         assertThat(healths).containsExactly(new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.GREEN,
+            Health.GREEN,
             "",
             0,
             0,
@@ -214,7 +215,7 @@ public class SysClusterHealthTest extends CrateDummyClusterServiceUnitTest {
 
         healths = SysClusterHealth.compute(clusterService.state(), 0);
         assertThat(healths).containsExactly(new SysClusterHealth.ClusterHealth(
-            TableHealth.Health.GREEN,
+            Health.GREEN,
             "",
             0,
             0,

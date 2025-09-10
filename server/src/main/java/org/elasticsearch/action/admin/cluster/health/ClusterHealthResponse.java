@@ -24,9 +24,9 @@ import java.util.Map;
 import java.util.Objects;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
 import org.elasticsearch.cluster.health.ClusterIndexHealth;
 import org.elasticsearch.cluster.health.ClusterStateHealth;
+import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
@@ -42,7 +42,7 @@ public class ClusterHealthResponse extends TransportResponse {
     private final TimeValue taskMaxWaitingTime;
     private final ClusterStateHealth clusterStateHealth;
 
-    private ClusterHealthStatus clusterHealthStatus;
+    private Health clusterHealthStatus;
     private boolean timedOut = false;
 
     public ClusterHealthResponse(String clusterName, String[] concreteIndices, ClusterState clusterState, int numberOfPendingTasks,
@@ -116,7 +116,7 @@ public class ClusterHealthResponse extends TransportResponse {
         this.timedOut = timedOut;
     }
 
-    public ClusterHealthStatus getStatus() {
+    public Health getStatus() {
         return clusterHealthStatus;
     }
 
@@ -125,7 +125,7 @@ public class ClusterHealthResponse extends TransportResponse {
      *
      * @param status The override status. Must not be null.
      */
-    public void setStatus(ClusterHealthStatus status) {
+    public void setStatus(Health status) {
         if (status == null) {
             throw new IllegalArgumentException("'status' must not be null");
         }
@@ -153,7 +153,7 @@ public class ClusterHealthResponse extends TransportResponse {
 
     public ClusterHealthResponse(StreamInput in) throws IOException {
         clusterName = in.readString();
-        clusterHealthStatus = ClusterHealthStatus.fromValue(in.readByte());
+        clusterHealthStatus = Health.fromValue(in.readByte());
         clusterStateHealth = new ClusterStateHealth(in);
         numberOfPendingTasks = in.readInt();
         timedOut = in.readBoolean();
