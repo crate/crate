@@ -21,14 +21,20 @@
 
 package io.crate.metadata.sys;
 
-import java.util.stream.StreamSupport;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.health.ClusterIndexHealth;
-import org.elasticsearch.cluster.health.ClusterStateHealth;
+import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.health.ClusterShardHealth;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.routing.IndexRoutingTable;
+import org.elasticsearch.cluster.routing.RoutingTable;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.IndexName;
+import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
 record TableHealth(RelationName relationName,
@@ -48,35 +54,55 @@ record TableHealth(RelationName relationName,
     }
 
     public static Iterable<TableHealth> compute(ClusterState clusterState) {
-        var clusterHealth = new ClusterStateHealth(clusterState);
-        return StreamSupport.stream(clusterHealth.spliterator(), false)
-            .filter(i -> IndexName.isDangling(i.getIndex()) == false)
-            .map(TableHealth::map)::iterator;
-    }
+        Metadata metadata = clusterState.metadata();
+        RoutingTable routingTable = clusterState.routingTable();
+        List<RelationMetadata> relations = metadata.relations(RelationMetadata.class);
+        ArrayList<TableHealth> result = new ArrayList<>();
+        for (var relation : relations) {
+            for (String indexUUID : relation.indexUUIDs()) {
+                IndexMetadata indexMetadata = metadata.index(indexUUID);
+                IndexRoutingTable indexRoutingTable = routingTable.index(indexUUID);
+                if (indexMetadata == null || indexRoutingTable == null) {
+                    continue;
+                }
 
-    private static TableHealth map(ClusterIndexHealth indexHealth) {
-        var indexParts = IndexName.decode(indexHealth.getIndex());
-        String partitionIdent = null;
-        if (indexParts.isPartitioned()) {
-            partitionIdent = indexParts.partitionIdent();
+                // Distinguish between new shards and shards that have been assigned before
+                // to decide health:
+                // Missing primaries for a new partition/table is okay (yellow)
+                // Missing primaries for shards that were assigned already are bad (red)
+                int missingNewPrimaryShards = 0;
+                int missingUsedPrimaryShards = 0;
+                int underreplicatedShards = 0;
+                for (var indexShardRoutingTable : indexRoutingTable) {
+                    for (var shardRouting : indexShardRoutingTable) {
+                        if (shardRouting.active()) {
+                            continue;
+                        }
+                        if (shardRouting.primary()) {
+                            var healthStatus = ClusterShardHealth.getInactivePrimaryHealth(shardRouting);
+                            if (healthStatus == ClusterHealthStatus.YELLOW) {
+                                missingNewPrimaryShards += 1;
+                            } else {
+                                missingUsedPrimaryShards += 1;
+                            }
+                        } else {
+                            underreplicatedShards += 1;
+                        }
+                    }
+                }
+                Health health = missingUsedPrimaryShards > 0
+                    ? Health.RED
+                    : (underreplicatedShards + missingNewPrimaryShards) > 0 ? Health.YELLOW : Health.GREEN;
+                result.add(new TableHealth(
+                    relation.name(),
+                    PartitionName.encodeIdent(indexMetadata.partitionValues()),
+                    health,
+                    missingNewPrimaryShards + missingUsedPrimaryShards,
+                    underreplicatedShards
+                ));
+            }
         }
-
-        int missingPrimaryShards = Math.max(
-            0,
-            indexHealth.getNumberOfShards() - indexHealth.getActivePrimaryShards()
-        );
-        int underreplicatedShards = Math.max(
-            0,
-            indexHealth.getUnassignedShards() + indexHealth.getInitializingShards() - missingPrimaryShards
-        );
-
-        return new TableHealth(
-            indexParts.toRelationName(),
-            partitionIdent,
-            TableHealth.Health.valueOf(indexHealth.getStatus().name()),
-            missingPrimaryShards,
-            underreplicatedShards
-        );
+        return result;
     }
 
     public String fqn() {
