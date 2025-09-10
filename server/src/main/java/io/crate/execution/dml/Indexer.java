@@ -411,13 +411,13 @@ public class Indexer {
                    List<Reference> targetColumns,
                    @Nullable String[] updateColumns,
                    @Nullable Symbol[] returnValues) {
-        this.indexingOrder = () -> ((DocTableInfo) (nodeCtx.schemas() == null ? table : nodeCtx.schemas().getTableInfo(table.ident()))).rootColumns();
         if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty()) { // insert-on-conflict
             this.onConflictIndexer = new Indexer(
                 partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, List.of(), updateColumns, returnValues);
             this.updateToInsert = null;
             this.columns = targetColumns;
             this.assignedColumns = this.columns;
+            this.indexingOrder = () -> ((DocTableInfo) (nodeCtx.schemas() == null ? table : nodeCtx.schemas().getTableInfo(table.ident()))).rootColumns();
         } else if (updateColumns != null && updateColumns.length > 0) { // update
             this.onConflictIndexer = null;
             this.updateToInsert = new UpdateToInsert(
@@ -429,11 +429,13 @@ public class Indexer {
             );
             this.columns = this.updateToInsert.columns();
             this.assignedColumns = this.updateToInsert.updateColumns;
+            this.indexingOrder = List::of;
         } else { // insert
             this.onConflictIndexer = null;
             this.updateToInsert = null;
             this.columns = targetColumns;
             this.assignedColumns = this.columns;
+            this.indexingOrder = List::of;
         }
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
@@ -799,30 +801,31 @@ public class Indexer {
         );
         Object[] values = item.insertValues();
 
-        for (Reference ref : indexOrder) {
-            if (columns.contains(ref)) {
-                int idx = columns.indexOf(ref);
-                Object value = valueForInsert(ref.valueType(), values[idx]);
-                ColumnConstraint check = columnConstraints.get(ref.column());
+        if (indexOrder.isEmpty()) {
+            for (int i = 0; i < values.length; i++) {
+                Reference reference = columns.get(i);
+                Object value = valueForInsert(reference.valueType(), values[i]);
+                ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
                     check.verify(value);
                 }
-                if (ref.granularity() == RowGranularity.PARTITION) {
+                if (reference.granularity() == RowGranularity.PARTITION) {
                     continue;
                 }
-                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(idx);
-                if (value != null) {
-                    translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
-                    valueIndexer.indexValue(value, docBuilder);
-                    System.out.println("indexing: " + ref + " value: " + value);
+                ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
+                if (value == null) {
+                    continue;
                 }
+                translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
+                valueIndexer.indexValue(value, docBuilder);
             }
-            if (synthetics.containsKey(ref.column())) {
-                ColumnIdent column = ref.column();
+
+            for (var entry : synthetics.entrySet()) {
+                ColumnIdent column = entry.getKey();
                 if (!column.isRoot()) {
                     continue;
                 }
-                Synthetic synthetic = synthetics.get(column);
+                Synthetic synthetic = entry.getValue();
 
                 Object value = synthetic.value();
                 if (value == null) {
@@ -831,7 +834,42 @@ public class Indexer {
                 ValueIndexer<Object> indexer = synthetic.indexer();
                 translogWriter.writeFieldName(indexer.storageIdentLeafName());
                 indexer.indexValue(value, docBuilder);
-                System.out.println("indexing synthetics: " + ref + " value: " + value);
+            }
+        } else {
+            for (Reference ref : indexOrder) {
+                if (columns.contains(ref)) {
+                    int idx = columns.indexOf(ref);
+                    Object value = valueForInsert(ref.valueType(), values[idx]);
+                    ColumnConstraint check = columnConstraints.get(ref.column());
+                    if (check != null) {
+                        check.verify(value);
+                    }
+                    if (ref.granularity() == RowGranularity.PARTITION) {
+                        continue;
+                    }
+                    ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(idx);
+                    if (value != null) {
+                        translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
+                        valueIndexer.indexValue(value, docBuilder);
+                        System.out.println("indexing: " + ref + " value: " + value);
+                    }
+                }
+                if (synthetics.containsKey(ref.column())) {
+                    ColumnIdent column = ref.column();
+                    if (!column.isRoot()) {
+                        continue;
+                    }
+                    Synthetic synthetic = synthetics.get(column);
+
+                    Object value = synthetic.value();
+                    if (value == null) {
+                        continue;
+                    }
+                    ValueIndexer<Object> indexer = synthetic.indexer();
+                    translogWriter.writeFieldName(indexer.storageIdentLeafName());
+                    indexer.indexValue(value, docBuilder);
+                    System.out.println("indexing synthetics: " + ref + " value: " + value);
+                }
             }
         }
 
