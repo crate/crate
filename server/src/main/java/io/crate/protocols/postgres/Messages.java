@@ -508,13 +508,19 @@ public class Messages {
      * @return
      */
     private static ChannelFuture sendShortMsg(Channel channel, char msgType, final String traceLogMsg) {
-        ByteBuf buffer = channel.alloc().buffer(5).touch("Allocated");
-        buffer.writeByte(msgType).touch("added msgType");
-        buffer.writeInt(4).touch("added 4");
-
+        ByteBuf buffer = null;
+        try {
+            buffer = channel.alloc().buffer(5).touch("Allocated");
+            buffer.writeByte(msgType).touch("added msgType");
+            buffer.writeInt(4).touch("added 4");
+        } catch (Exception e) {
+            LOGGER.info("Error on alloc and write buffer", e);
+            throw e; // Shouldn't happen, otherwise it's a leak
+        }
         ChannelFuture channelFuture = channel.write(buffer);
         channelFuture.addListener((ChannelFutureListener) future -> LOGGER.info(traceLogMsg));
         return channelFuture;
+
     }
 
     static ChannelFuture sendPortalSuspended(Channel channel) {
