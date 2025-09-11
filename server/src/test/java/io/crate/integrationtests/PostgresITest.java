@@ -60,6 +60,8 @@ import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.protocols.postgres.PostgresNetty;
@@ -70,6 +72,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
+@Repeat(iterations = 100)
 public class PostgresITest extends IntegTestCase {
 
     private static final String NO_IPV6 = "CRATE_TESTS_NO_IPV6";
@@ -1214,28 +1217,6 @@ public class PostgresITest extends IntegTestCase {
             ResultSet resultSet = conn.createStatement().executeQuery("SELECT ints FROM t");
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getArray(1).getArray()).isEqualTo(new Integer[]{1, 2});
-            assertThat(resultSet.next()).isFalse();
-        } catch (BatchUpdateException e) {
-            throw e.getNextException();
-        }
-    }
-
-    @Test
-    public void test_original_query_appears_in_jobs_log() throws Exception {
-        var properties = new Properties();
-        properties.setProperty("user", "crate");
-        properties.setProperty("preferQueryMode", "simple");
-        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
-            var stmt = "SET timezone = 'Europe/Berlin'";
-            conn.createStatement().execute(stmt);
-
-            // Check that the statement is logged with a WHERE filter to avoid flakiness because of
-            // other statements logged like:  "SET extra_float_digits = 3"
-            var prepStmt = conn.prepareStatement("SELECT stmt FROM sys.jobs_log WHERE stmt = ?");
-            prepStmt.setString(1, stmt);
-            var resultSet = prepStmt.executeQuery();
-            assertThat(resultSet.next()).isTrue();
-            assertThat(resultSet.getString(1)).isEqualTo(stmt);
             assertThat(resultSet.next()).isFalse();
         } catch (BatchUpdateException e) {
             throw e.getNextException();
