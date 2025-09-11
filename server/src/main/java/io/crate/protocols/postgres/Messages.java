@@ -508,14 +508,12 @@ public class Messages {
      * @return
      */
     private static ChannelFuture sendShortMsg(Channel channel, char msgType, final String traceLogMsg) {
-        ByteBuf buffer = channel.alloc().buffer(5);
-        buffer.writeByte(msgType);
-        buffer.writeInt(4);
+        ByteBuf buffer = channel.alloc().buffer(5).touch("Allocated");
+        buffer.writeByte(msgType).touch("added msgType");
+        buffer.writeInt(4).touch("added 4");
 
         ChannelFuture channelFuture = channel.write(buffer);
-        if (LOGGER.isTraceEnabled()) {
-            channelFuture.addListener((ChannelFutureListener) future -> LOGGER.trace(traceLogMsg));
-        }
+        channelFuture.addListener((ChannelFutureListener) future -> LOGGER.info(traceLogMsg));
         return channelFuture;
     }
 
