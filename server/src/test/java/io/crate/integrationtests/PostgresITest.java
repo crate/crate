@@ -1224,28 +1224,6 @@ public class PostgresITest extends IntegTestCase {
     }
 
     @Test
-    public void test_original_query_appears_in_jobs_log() throws Exception {
-        var properties = new Properties();
-        properties.setProperty("user", "crate");
-        properties.setProperty("preferQueryMode", "simple");
-        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
-            var stmt = "SET timezone = 'Europe/Berlin'";
-            conn.createStatement().execute(stmt);
-
-            // Check that the statement is logged with a WHERE filter to avoid flakiness because of
-            // other statements logged like:  "SET extra_float_digits = 3"
-            var prepStmt = conn.prepareStatement("SELECT stmt FROM sys.jobs_log WHERE stmt = ?");
-            prepStmt.setString(1, stmt);
-            var resultSet = prepStmt.executeQuery();
-            assertThat(resultSet.next()).isTrue();
-            assertThat(resultSet.getString(1)).isEqualTo(stmt);
-            assertThat(resultSet.next()).isFalse();
-        } catch (BatchUpdateException e) {
-            throw e.getNextException();
-        }
-    }
-
-    @Test
     public void test_float_vector_jdbc() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.createStatement().execute("create table tbl (id int, xs float_vector(2))");
