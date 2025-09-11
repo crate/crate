@@ -43,6 +43,8 @@ import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
+
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Paging;
@@ -72,6 +74,7 @@ public class GroupByAggregateTest extends IntegTestCase {
 
     @Test
     @UseJdbc(value = 0) // To avoid wrapping into PSQLException
+    @Repeat(iterations = 100)
     public void test_dist_result_request_tripped_by_cb_no_stuck_jobs() throws Exception {
         this.setup.groupBySetup("integer");
         for (TransportService transportService : cluster().getDataOrMasterNodeInstances(TransportService.class)) {
