@@ -48,18 +48,21 @@ public class TransportSyncRetentionLeasesAction extends TransportBroadcastByNode
     SyncRetentionLeasesRequest, BroadcastResponse, ReplicationResponse> {
 
     private final IndicesService indicesService;
+    private final ThreadPool threadPool;
 
     @Inject
     public TransportSyncRetentionLeasesAction(ClusterService clusterService,
                                               TransportService transportService,
-                                              IndicesService indicesService) {
+                                              IndicesService indicesService,
+                                              ThreadPool threadPool) {
         super(SyncRetentionLeasesAction.NAME,
             clusterService,
             transportService,
             SyncRetentionLeasesRequest::new,
-            ThreadPool.Names.FORCE_MERGE,
+            ThreadPool.Names.SAME,
             true);
         this.indicesService = indicesService;
+        this.threadPool = threadPool;
     }
 
     @Override
@@ -87,19 +90,21 @@ public class TransportSyncRetentionLeasesAction extends TransportBroadcastByNode
     protected void shardOperation(SyncRetentionLeasesRequest request,
                                   ShardRouting shardRouting,
                                   ActionListener<ReplicationResponse> listener) throws IOException {
-        Index index = shardRouting.shardId().getIndex();
-        IndexService indexService = indicesService.indexServiceSafe(index);
-        IndexShard indexShard = indexService.getShard(shardRouting.shardId().id());
-        indexShard.runUnderPrimaryPermit(
-            () -> indexShard.syncRetentionLeases(true, listener),
-            e -> {
-                logger.warn("Retention lease sync failed on shard " + indexShard.shardId(), e);
-                // Listener here wraps an exception in a BroadcastShardOperationFailedException when handling failure.
-                listener.onFailure(e);
-            },
-            ThreadPool.Names.SAME,
-            "retention lease sync"
-        );
+        threadPool.executor(ThreadPool.Names.FORCE_MERGE).execute(() -> {
+            Index index = shardRouting.shardId().getIndex();
+            IndexService indexService = indicesService.indexServiceSafe(index);
+            IndexShard indexShard = indexService.getShard(shardRouting.shardId().id());
+            indexShard.runUnderPrimaryPermit(
+                () -> indexShard.syncRetentionLeases(true, listener),
+                e -> {
+                    logger.warn("Retention lease sync failed on shard " + indexShard.shardId(), e);
+                    // Listener here wraps an exception in a BroadcastShardOperationFailedException when handling failure.
+                    listener.onFailure(e);
+                },
+                ThreadPool.Names.SAME,
+                "retention lease sync"
+            );
+        });
     }
 
     @Override
