@@ -81,9 +81,9 @@ public class TransportForceMergeAction extends TransportBroadcastByNodeAction<Fo
     @Override
     protected void shardOperation(ForceMergeRequest request, ShardRouting shardRouting, ActionListener<EmptyResult> listener) throws IOException {
         threadPool.executor(ThreadPool.Names.FORCE_MERGE).execute(() -> {
-            IndexShard indexShard = indicesService.indexServiceSafe(shardRouting.shardId().getIndex()).getShard(shardRouting.shardId().id());
-            indexShard.flush(false);
             try {
+                IndexShard indexShard = indicesService.indexServiceSafe(shardRouting.shardId().getIndex()).getShard(shardRouting.shardId().id());
+                indexShard.flush(false);
                 indexShard.forceMerge(request);
                 listener.onResponse(EmptyResult.INSTANCE);
             } catch (Exception e) {
