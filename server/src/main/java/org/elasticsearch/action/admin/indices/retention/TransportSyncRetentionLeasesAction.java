@@ -37,6 +37,8 @@ import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -46,18 +48,21 @@ public class TransportSyncRetentionLeasesAction extends TransportBroadcastByNode
     SyncRetentionLeasesRequest, BroadcastResponse, ReplicationResponse> {
 
     private final IndicesService indicesService;
+    private final ThreadPool threadPool;
 
     @Inject
     public TransportSyncRetentionLeasesAction(ClusterService clusterService,
                                               TransportService transportService,
-                                              IndicesService indicesService) {
+                                              IndicesService indicesService,
+                                              ThreadPool threadPool) {
         super(SyncRetentionLeasesAction.NAME,
             clusterService,
             transportService,
             SyncRetentionLeasesRequest::new,
-            ThreadPool.Names.FORCE_MERGE,
+            ThreadPool.Names.SAME,
             true);
         this.indicesService = indicesService;
+        this.threadPool = threadPool;
     }
 
     @Override
@@ -76,18 +81,24 @@ public class TransportSyncRetentionLeasesAction extends TransportBroadcastByNode
     }
 
     @Override
-    protected void shardOperation(SyncRetentionLeasesRequest request, ShardRouting shardRouting, ActionListener<ReplicationResponse> listener) throws IOException {
-        IndexShard indexShard = indicesService.indexServiceSafe(shardRouting.shardId().getIndex()).getShard(shardRouting.shardId().id());
-        indexShard.runUnderPrimaryPermit(
-            () -> indexShard.syncRetentionLeases(true, listener),
-            e -> {
-                logger.warn("Retention lease sync failed on shard " + indexShard.shardId(), e);
-                // Listener here wraps an exception in a BroadcastShardOperationFailedException when handling failure.
-                listener.onFailure(e);
-            },
-            ThreadPool.Names.SAME,
-            "retention lease sync"
-        );
+    protected void shardOperation(SyncRetentionLeasesRequest request,
+                                  ShardRouting shardRouting,
+                                  ActionListener<ReplicationResponse> listener) throws IOException {
+        threadPool.executor(ThreadPool.Names.FORCE_MERGE).execute(() -> {
+            Index index = shardRouting.shardId().getIndex();
+            IndexService indexService = indicesService.indexServiceSafe(index);
+            IndexShard indexShard = indexService.getShard(shardRouting.shardId().id());
+            indexShard.runUnderPrimaryPermit(
+                () -> indexShard.syncRetentionLeases(true, listener),
+                e -> {
+                    logger.warn("Retention lease sync failed on shard " + indexShard.shardId(), e);
+                    // Listener here wraps an exception in a BroadcastShardOperationFailedException when handling failure.
+                    listener.onFailure(e);
+                },
+                ThreadPool.Names.SAME,
+                "retention lease sync"
+            );
+        });
     }
 
     @Override

@@ -45,20 +45,23 @@ import org.elasticsearch.transport.TransportService;
 public class TransportForceMergeAction extends TransportBroadcastByNodeAction<ForceMergeRequest, ForceMergeResponse, TransportBroadcastByNodeAction.EmptyResult> {
 
     private final IndicesService indicesService;
+    private final ThreadPool threadPool;
 
     @Inject
     public TransportForceMergeAction(ClusterService clusterService,
                                      TransportService transportService,
-                                     IndicesService indicesService) {
+                                     IndicesService indicesService,
+                                     ThreadPool threadPool) {
         super(
             ForceMergeAction.NAME,
             clusterService,
             transportService,
             ForceMergeRequest::new,
-            ThreadPool.Names.FORCE_MERGE,
+            ThreadPool.Names.SAME,
             true
         );
         this.indicesService = indicesService;
+        this.threadPool = threadPool;
     }
 
     @Override
@@ -78,10 +81,16 @@ public class TransportForceMergeAction extends TransportBroadcastByNodeAction<Fo
 
     @Override
     protected void shardOperation(ForceMergeRequest request, ShardRouting shardRouting, ActionListener<EmptyResult> listener) throws IOException {
-        IndexShard indexShard = indicesService.indexServiceSafe(shardRouting.shardId().getIndex()).getShard(shardRouting.shardId().id());
-        indexShard.flush(new FlushRequest());
-        indexShard.forceMerge(request);
-        listener.onResponse(EmptyResult.INSTANCE);
+        threadPool.executor(ThreadPool.Names.FORCE_MERGE).execute(() -> {
+            try {
+                IndexShard indexShard = indicesService.indexServiceSafe(shardRouting.shardId().getIndex()).getShard(shardRouting.shardId().id());
+                indexShard.flush(new FlushRequest());
+                indexShard.forceMerge(request);
+                listener.onResponse(EmptyResult.INSTANCE);
+            } catch (Exception e) {
+                listener.onFailure(e);
+            }
+        });
     }
 
     /**
