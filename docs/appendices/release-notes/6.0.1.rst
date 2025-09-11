@@ -82,3 +82,7 @@ Fixes
 
 - Fixed an issue that caused a ``NullPointerException`` when inserting ``NULL``
   to an object column with a non-deterministic sub-column.
+
+- Fixed the usage of the ``FORCE_MERGE`` thread pool to support parallel shard
+  operations per node when increasing the pools size. As the default size is
+  ``1``, this change does not affect existing installations.
