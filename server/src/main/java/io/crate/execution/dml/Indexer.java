@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -39,7 +40,9 @@ import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.function.Supplier;
+import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.util.Strings;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.elasticsearch.Version;
@@ -428,8 +431,8 @@ public class Indexer {
             targetColumns,
             updateColumns,
             returnValues,
-            () -> ((DocTableInfo) nodeCtx.schemas().getTableInfo(table.ident())).rootColumns()
-        );
+            () -> ((DocTableInfo) nodeCtx.schemas().getTableInfo(table.ident())).rootColumns(),
+            false);
     }
 
     @VisibleForTesting
@@ -442,15 +445,27 @@ public class Indexer {
                    List<Reference> targetColumns,
                    @Nullable String[] updateColumns,
                    @Nullable Symbol[] returnValues,
-                   Supplier<List<Reference>> indexOrder) {
+                   Supplier<List<Reference>> indexOrder,
+                   boolean isOnConflictIndexer) {
         List<Reference> assignedColumns; // assignedColumns are columns explicitly assigned by users; updateColumns for UPDATE and targetColumns for INSERT
-        this.indexOrder = indexOrder;
-        if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty()) { // insert-on-conflict
+        // insert-on-conflict - an indexer with a nested onConflictIndexer
+        if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty() && !isOnConflictIndexer) {
             this.onConflictIndexer = new Indexer(
-                partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, List.of(), updateColumns, returnValues);
+                partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, targetColumns, updateColumns, returnValues, this::indexOrder, true);
             this.updateToInsert = null;
             this.columns = targetColumns;
             assignedColumns = targetColumns;
+            this.indexOrder = () -> {
+                Map<ColumnIdent, Reference> indexOrderForInsertOnConflict = indexOrder.get().stream().collect(
+                    Collectors.toMap(Reference::column, Function.identity(), (a, b) -> a, LinkedHashMap::new));
+                // extend indexOrder with dynamically added columns in on-conflict clause
+                onConflictIndexer().columns.forEach(r -> {
+                    if (!indexOrderForInsertOnConflict.containsKey(r.column())) {
+                        indexOrderForInsertOnConflict.put(r.column(), r);
+                    }
+                });
+                return new ArrayList<>(indexOrderForInsertOnConflict.values());
+            };
         } else if (updateColumns != null && updateColumns.length > 0) { // update
             this.onConflictIndexer = null;
             this.updateToInsert = new UpdateToInsert(
@@ -462,11 +477,13 @@ public class Indexer {
             );
             this.columns = this.updateToInsert.columns();
             assignedColumns = this.updateToInsert.updateColumns;
+            this.indexOrder = indexOrder;
         } else { // insert
             this.onConflictIndexer = null;
             this.updateToInsert = null;
             this.columns = targetColumns;
             assignedColumns = targetColumns;
+            this.indexOrder = indexOrder;
         }
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
@@ -833,10 +850,15 @@ public class Indexer {
             tableVersionCreated
         );
         Object[] values = item.insertValues();
+        System.out.println("columns: " + Strings.join(columns, ','));
+        System.out.println("synthetics: " + Strings.join(synthetics.keySet(), ','));
+        System.out.println("indexOrder: " + Strings.join(indexOrder, ','));
+        System.out.println("values: " + Arrays.toString(values));
 
         for (Reference ref : indexOrder) {
             int idx = columns.indexOf(ref);
-            if (idx >= 0) {
+            // for insert-on-conflict columns.size() > values.length is possible to be able to process both INSERT and UPDATE rows
+            if (idx >= 0 && idx < values.length) {
                 Object value = valueForInsert(ref.valueType(), values[idx]);
                 ColumnConstraint check = columnConstraints.get(ref.column());
                 if (check != null) {
@@ -848,6 +870,7 @@ public class Indexer {
                 if (value != null) {
                     ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(idx);
                     translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
+                    System.out.println("indexing: " + ref.column() + " value: " + value);
                     valueIndexer.indexValue(value, docBuilder);
                 }
             }
@@ -1101,10 +1124,6 @@ public class Indexer {
 
     public List<Reference> indexOrder() {
         return this.indexOrder.get();
-    }
-
-    public Object synthetic(Reference r) {
-        return synthetics.get(r.column()).computedValue;
     }
 
     public boolean hasReturnValues() {

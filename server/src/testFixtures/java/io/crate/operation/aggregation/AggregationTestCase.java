@@ -408,8 +408,8 @@ public abstract class AggregationTestCase extends ESTestCase {
             targetColumns,
             null,
             null,
-            table::rootColumns
-        );
+            table::rootColumns,
+            false);
 
         final long startTime = System.nanoTime();
         for (Object[] row : data) {

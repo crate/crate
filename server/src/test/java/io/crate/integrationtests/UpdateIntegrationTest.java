@@ -1389,8 +1389,8 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select a, i, o['a'], o['i'], o['o']['a'], o['o']['i'], c from t");
         assertThat(response).hasRows("101| 1| 101| 1| 101| 1| 100");
-        execute("select b=-1 and o['b']=-1 and o['o']['b']=-1 from t");
-        assertThat(response).hasRows("false");
+        execute("select b=-1, o['b']=-1, o['o']['b']=-1 from t"); // nondeterministic generated columns are re-generated
+        assertThat(response).hasRows("false| false| false");
 
         execute("update t set b=-1, i=1, o={b=-1, i=1, o={b=-1, i=1}}, c=10");
         execute("refresh table t");

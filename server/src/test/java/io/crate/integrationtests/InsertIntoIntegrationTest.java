@@ -2453,12 +2453,12 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             execute("select o['b'], o['o']['b'] from t where c=10");
             try {
                 // updating the parent object to an empty object must re-generate nondeterministic sub-columns
-                // looping just in case the random values happened to be -1
                 assertThat(response.rows()[0][0]).isNotEqualTo(ob).isNotNull();
                 assertThat(response.rows()[0][1]).isNotEqualTo(oob).isNotNull();
+                break;
             } catch (AssertionError e) {
                 if (i == 4) {
-                    fail();
+                    fail(e);
                 }
             }
         }
@@ -2716,15 +2716,15 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("""
             create table t (
                 a int generated always as c+1,
-                b int generated always as round(random() * 10),
+                b timestamp generated always as now(),
                 i int,
                 o object as (
                     a int generated always as c+1,
-                    b int generated always as round(random() * 10),
+                    b timestamp generated always as now(),
                     i int,
                     o object as (
                         a int generated always as c+1,
-                        b int generated always as round(random() * 10),
+                        b timestamp generated always as now(),
                         i int
                     )
                 ),
@@ -2736,23 +2736,43 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
         assertThat(response).hasRows("0| 1| 2| 3| 1| 1| 1");
+        execute("select b, o['b'], o['o']['b'] from t");
+        long b = (long) response.rows()[0][0];
+        long ob = (long) response.rows()[0][1];
+        long oob = (long) response.rows()[0][2];
 
-        for (int i = 0; i < 5; i++) {
-            execute("insert into t(c,i,o) values (6, 7, {i=8, o={i=9}}), (0, 1, {i=2, o={i=3}}), (5, 6, {i=7, o={i=8}}) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
-            execute("refresh table t");
-            execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t order by c");
-            assertThat(response).hasRows("0| 11| 22| 33| 1| 1| 1", "5| 6| 7| 8| 6| 6| 6", "6| 7| 8| 9| 7| 7| 7");
-            execute("select b, o['b'], o['o']['b'] from t where c=0");
-            // nondeterministic generated columns are generated for do-update-set paths
-            // looping just in case the random values happened to be -1
-            try {
-                assertThat(response.rows()[0][0]).isNotEqualTo(-1).isNotNull();
-                assertThat(response.rows()[0][1]).isNotEqualTo(-1).isNotNull();
-                assertThat(response.rows()[0][2]).isNotEqualTo(-1).isNotNull();
-                return;
-            } catch (AssertionError e) {
-            }
-        }
-        fail();
+        execute("insert into t(c,i,o) values (6, 7, {i=8, o={i=9}}), (0, 1, {i=2, o={i=3}}), (5, 6, {i=7, o={i=8}}) on conflict (c) do update set i=11, o['i']=22, o['o']['i']=33");
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t order by c");
+        assertThat(response).hasRows("0| 11| 22| 33| 1| 1| 1", "5| 6| 7| 8| 6| 6| 6", "6| 7| 8| 9| 7| 7| 7");
+        execute("select b, o['b'], o['o']['b'] from t where c=0");
+        // nondeterministic generated columns are re-generated for do-update-set paths
+        assertThat((long) response.rows()[0][0]).isNotEqualTo(b);
+        assertThat((long) response.rows()[0][1]).isNotEqualTo(ob);
+        assertThat((long) response.rows()[0][2]).isNotEqualTo(oob);
+    }
+
+    @Test
+    public void test_insert_on_conflict_dynamic_column_addition() {
+        execute("create table t (a int primary key) with (column_policy='dynamic')");
+
+        // insert dynamically adds 'b'
+        execute("insert into t(a,b) values (1,2) on conflict (a) do update set c=3");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2");
+
+        // update dynamically adds 'c'
+        execute("insert into t(a,b) values (1,2) on conflict (a) do update set c=3");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3");
+
+        // insert dynamically adds 'd', update dynamically adds 'e'
+        execute("insert into t(a,d) values (1,4), (2,4) on conflict (a) do update set e=5");
+        execute("refresh table t");
+        execute("select * from t order by a");
+        assertThat(response.cols()).containsExactly("a", "b", "c", "d", "e");
+        assertThat(response).hasRows("1| 2| 3| NULL| 5", "2| NULL| NULL| 4| NULL");
     }
 }

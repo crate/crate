@@ -27,6 +27,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.logging.log4j.util.Strings;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -198,6 +199,8 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
 
         @SuppressWarnings("unchecked")
         public void writeTo(StreamOutput out, List<Reference> columns) throws IOException {
+            System.out.println("streaming: " + Strings.join(columns, ','));
+            System.out.println("streaming values: " + Arrays.toString(values));
             super.writeTo(out);
             out.writeVInt(values.length);
             for (int i = 0; i < values.length; i++) {
