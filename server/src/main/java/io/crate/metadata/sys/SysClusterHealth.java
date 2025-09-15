@@ -31,6 +31,7 @@ import java.util.Set;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlock;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
+import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.rest.RestStatus;
 
 import io.crate.metadata.RelationName;
@@ -57,7 +58,7 @@ public class SysClusterHealth {
         if (!blocksRed.isEmpty()) {
             var block = blocksRed.iterator().next();
             ClusterHealth clusterHealth = new ClusterHealth(
-                TableHealth.Health.RED,
+                Health.RED,
                 block.description(),
                 -1,
                 -1,
@@ -66,11 +67,11 @@ public class SysClusterHealth {
             return List.of(clusterHealth);
         }
         Set<ClusterBlock> blocksYellow = clusterState.blocks().global(ClusterBlockLevel.METADATA_WRITE);
-        final TableHealth.Health clusterHealth = !blocksYellow.isEmpty() ? TableHealth.Health.YELLOW : TableHealth.Health.GREEN;
+        final Health clusterHealth = !blocksYellow.isEmpty() ? Health.YELLOW : Health.GREEN;
         final String description = !blocksYellow.isEmpty() ? blocksYellow.iterator().next().description() : "";
         long missingShards = 0;
         long underreplicatedShards = 0;
-        TableHealth.Health health = clusterHealth;
+        Health health = clusterHealth;
         String finalDescription = description;
         for (var tableHealth : TableHealth.compute(clusterState)) {
             if (tableHealth.health().severity() > health.severity()) {
@@ -78,19 +79,19 @@ public class SysClusterHealth {
                 // shard level health is only set to RED if there are missing primary shards that were
                 // allocated before see {@link ClusterShardHealth#getInactivePrimaryHealth()}.
                 // Otherwise, the table health is set to YELLOW.
-                if (health == TableHealth.Health.RED || tableHealth.getMissingShards() > 0) {
+                if (health == Health.RED || tableHealth.missingShards() > 0) {
                     finalDescription = "One or more tables are missing shards";
-                } else if (health == TableHealth.Health.YELLOW) {
+                } else if (health == Health.YELLOW) {
                     finalDescription = "One or more tables have underreplicated shards";
                 }
             }
-            missingShards += tableHealth.getMissingShards();
-            underreplicatedShards += tableHealth.getUnderreplicatedShards();
+            missingShards += tableHealth.missingShards();
+            underreplicatedShards += tableHealth.underreplicatedShards();
         }
         return List.of(new ClusterHealth(health, finalDescription, missingShards, underreplicatedShards, numPendingTasks));
     }
 
-    public record ClusterHealth(TableHealth.Health health,
+    public record ClusterHealth(Health health,
                                 String description,
                                 long missingShards,
                                 long underreplicatedShards,

@@ -21,158 +21,100 @@
 
 package io.crate.metadata.sys;
 
-import java.util.stream.StreamSupport;
+import java.util.ArrayList;
+import java.util.List;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.health.ClusterIndexHealth;
-import org.elasticsearch.cluster.health.ClusterStateHealth;
+import org.elasticsearch.cluster.health.ClusterShardHealth;
+import org.elasticsearch.cluster.health.Health;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.routing.IndexRoutingTable;
+import org.elasticsearch.cluster.routing.RoutingTable;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.IndexName;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
-class TableHealth {
-
-    enum Health {
-        GREEN,
-        YELLOW,
-        RED;
-
-        public short severity() {
-            return (short) (ordinal() + 1);
-        }
-    }
+record TableHealth(RelationName relationName,
+                   @Nullable String partitionIdent,
+                   Health health,
+                   long missingShards,
+                   long underreplicatedShards) {
 
     public static Iterable<TableHealth> compute(ClusterState clusterState) {
-        var clusterHealth = new ClusterStateHealth(clusterState);
-        return StreamSupport.stream(clusterHealth.spliterator(), false)
-            .filter(i -> IndexName.isDangling(i.getIndex()) == false)
-            .map(TableHealth::map)::iterator;
-    }
+        Metadata metadata = clusterState.metadata();
+        RoutingTable routingTable = clusterState.routingTable();
+        List<RelationMetadata> relations = metadata.relations(RelationMetadata.class);
+        ArrayList<TableHealth> result = new ArrayList<>();
+        for (var relation : relations) {
+            for (String indexUUID : relation.indexUUIDs()) {
+                IndexMetadata indexMetadata = metadata.index(indexUUID);
+                IndexRoutingTable indexRoutingTable = routingTable.index(indexUUID);
+                if (indexMetadata == null || indexRoutingTable == null) {
+                    continue;
+                }
 
-    private static TableHealth map(ClusterIndexHealth indexHealth) {
-        var indexParts = IndexName.decode(indexHealth.getIndex());
-        String partitionIdent = null;
-        if (indexParts.isPartitioned()) {
-            partitionIdent = indexParts.partitionIdent();
+                // Distinguish between new shards and shards that have been assigned before
+                // to decide health:
+                // Missing primaries for a new partition/table is okay (yellow)
+                // Missing primaries for shards that were assigned already are bad (red)
+                int missingNewPrimaryShards = 0;
+                int missingUsedPrimaryShards = 0;
+                int underreplicatedShards = 0;
+                for (var indexShardRoutingTable : indexRoutingTable) {
+                    for (var shardRouting : indexShardRoutingTable) {
+                        if (shardRouting.active()) {
+                            continue;
+                        }
+                        if (shardRouting.primary()) {
+                            var healthStatus = ClusterShardHealth.getInactivePrimaryHealth(shardRouting);
+                            if (healthStatus == Health.YELLOW) {
+                                missingNewPrimaryShards += 1;
+                            } else {
+                                missingUsedPrimaryShards += 1;
+                            }
+                        } else {
+                            underreplicatedShards += 1;
+                        }
+                    }
+                }
+                Health health = missingUsedPrimaryShards > 0
+                    ? Health.RED
+                    : (underreplicatedShards + missingNewPrimaryShards) > 0 ? Health.YELLOW : Health.GREEN;
+                result.add(new TableHealth(
+                    relation.name(),
+                    PartitionName.encodeIdent(indexMetadata.partitionValues()),
+                    health,
+                    missingNewPrimaryShards + missingUsedPrimaryShards,
+                    underreplicatedShards
+                ));
+            }
         }
-
-        int missingPrimaryShards = Math.max(
-            0,
-            indexHealth.getNumberOfShards() - indexHealth.getActivePrimaryShards()
-        );
-        int underreplicatedShards = Math.max(
-            0,
-            indexHealth.getUnassignedShards() + indexHealth.getInitializingShards() - missingPrimaryShards
-        );
-
-        return new TableHealth(
-            indexParts.table(),
-            indexParts.schema(),
-            partitionIdent,
-            TableHealth.Health.valueOf(indexHealth.getStatus().name()),
-            missingPrimaryShards,
-            underreplicatedShards
-        );
-    }
-
-
-    private final String tableName;
-    private final String tableSchema;
-    @Nullable
-    private final String partitionIdent;
-    private final Health health;
-    private final long missingShards;
-    private final long underreplicatedShards;
-    private final String fqn;
-
-    TableHealth(String tableName,
-                String tableSchema,
-                @Nullable String partitionIdent,
-                Health health,
-                long missingShards,
-                long underreplicatedShards) {
-        this.tableName = tableName;
-        this.tableSchema = tableSchema;
-        this.partitionIdent = partitionIdent;
-        this.health = health;
-        this.missingShards = missingShards;
-        this.underreplicatedShards = underreplicatedShards;
-        fqn = IndexName.encode(tableSchema, tableName, null);
-    }
-
-    public String getTableName() {
-        return tableName;
-    }
-
-    public String getTableSchema() {
-        return tableSchema;
-    }
-
-    @Nullable
-    public String getPartitionIdent() {
-        return partitionIdent;
-    }
-
-    public Health health() {
-        return health;
-    }
-
-    public String getHealth() {
-        return health.toString();
-    }
-
-    public short getSeverity() {
-        return health.severity();
-    }
-
-    public long getMissingShards() {
-        return missingShards;
-    }
-
-    public long getUnderreplicatedShards() {
-        return underreplicatedShards;
+        return result;
     }
 
     public String fqn() {
-        return fqn;
+        return relationName.fqn();
+    }
+
+    public String healthText() {
+        return health.toString();
+    }
+
+    public short severity() {
+        return health.severity();
     }
 
     @Override
     public String toString() {
         return "TableHealth{" +
-               "name='" + tableName + '\'' +
-               ", schema='" + tableSchema + '\'' +
+               "name='" + relationName + '\'' +
                ", partitionIdent='" + partitionIdent + '\'' +
                ", health=" + health +
                ", missingShards=" + missingShards +
                ", underreplicatedShards=" + underreplicatedShards +
                '}';
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-
-        TableHealth that = (TableHealth) o;
-
-        if (missingShards != that.missingShards) return false;
-        if (underreplicatedShards != that.underreplicatedShards) return false;
-        if (!tableName.equals(that.tableName)) return false;
-        if (!tableSchema.equals(that.tableSchema)) return false;
-        if (partitionIdent != null ? !partitionIdent.equals(that.partitionIdent) : that.partitionIdent != null)
-            return false;
-        return health == that.health;
-    }
-
-    @Override
-    public int hashCode() {
-        int result = tableName.hashCode();
-        result = 31 * result + tableSchema.hashCode();
-        result = 31 * result + (partitionIdent != null ? partitionIdent.hashCode() : 0);
-        result = 31 * result + health.hashCode();
-        result = 31 * result + (int) (missingShards ^ (missingShards >>> 32));
-        result = 31 * result + (int) (underreplicatedShards ^ (underreplicatedShards >>> 32));
-        return result;
     }
 }

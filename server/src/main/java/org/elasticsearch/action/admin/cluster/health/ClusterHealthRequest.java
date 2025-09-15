@@ -27,7 +27,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.support.ActiveShardCount;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.action.support.master.MasterNodeReadRequest;
-import org.elasticsearch.cluster.health.ClusterHealthStatus;
+import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -38,7 +38,7 @@ import io.crate.common.unit.TimeValue;
 public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthRequest> {
 
     private TimeValue timeout = new TimeValue(30, TimeUnit.SECONDS);
-    private ClusterHealthStatus waitForStatus;
+    private Health waitForStatus;
     private boolean waitForNoRelocatingShards = false;
     private boolean waitForNoInitializingShards = false;
     private ActiveShardCount waitForActiveShards = ActiveShardCount.NONE;
@@ -69,21 +69,21 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
         return this.timeout(TimeValue.parseTimeValue(timeout, null, getClass().getSimpleName() + ".timeout"));
     }
 
-    public ClusterHealthStatus waitForStatus() {
+    public Health waitForStatus() {
         return waitForStatus;
     }
 
-    public ClusterHealthRequest waitForStatus(ClusterHealthStatus waitForStatus) {
+    public ClusterHealthRequest waitForStatus(Health waitForStatus) {
         this.waitForStatus = waitForStatus;
         return this;
     }
 
     public ClusterHealthRequest waitForGreenStatus() {
-        return waitForStatus(ClusterHealthStatus.GREEN);
+        return waitForStatus(Health.GREEN);
     }
 
     public ClusterHealthRequest waitForYellowStatus() {
-        return waitForStatus(ClusterHealthStatus.YELLOW);
+        return waitForStatus(Health.YELLOW);
     }
 
     public boolean waitForNoRelocatingShards() {
@@ -194,7 +194,7 @@ public class ClusterHealthRequest extends MasterNodeReadRequest<ClusterHealthReq
         }
         timeout = in.readTimeValue();
         if (in.readBoolean()) {
-            waitForStatus = ClusterHealthStatus.fromValue(in.readByte());
+            waitForStatus = Health.fromValue(in.readByte());
         }
         waitForNoRelocatingShards = in.readBoolean();
         waitForActiveShards = ActiveShardCount.readFrom(in);
