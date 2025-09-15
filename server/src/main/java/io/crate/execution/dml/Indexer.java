@@ -455,6 +455,7 @@ public class Indexer {
             this.updateToInsert = null;
             this.columns = targetColumns;
             assignedColumns = targetColumns;
+            // indexOrder must contain all dynamic columns
             this.indexOrder = () -> {
                 Map<ColumnIdent, Reference> indexOrderForInsertOnConflict = indexOrder.get().stream().collect(
                     Collectors.toMap(Reference::column, Function.identity(), (a, b) -> a, LinkedHashMap::new));
@@ -872,6 +873,7 @@ public class Indexer {
                     translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
                     System.out.println("indexing: " + ref.column() + " value: " + value);
                     valueIndexer.indexValue(value, docBuilder);
+                    continue;
                 }
             }
             if (synthetics.containsKey(ref.column())) {
@@ -888,6 +890,7 @@ public class Indexer {
                 ValueIndexer<Object> indexer = synthetic.indexer();
                 translogWriter.writeFieldName(indexer.storageIdentLeafName());
                 indexer.indexValue(value, docBuilder);
+                System.out.println("index synthetic " + synthetic.ref + " value: " + value);
             }
         }
 
@@ -930,7 +933,7 @@ public class Indexer {
                 throw new UncheckedIOException(e);
             }
         };
-        return new UpdateBuild(doc, () -> addGeneratedValues(converted), newCols, converted);
+        return new UpdateBuild(doc, () -> addGeneratedValues(converted, false), newCols, converted);
     }
 
     /**
@@ -1058,19 +1061,31 @@ public class Indexer {
         return newColumns;
     }
 
-    public Object[] addGeneratedValues(IndexItem item) {
+    public Object[] addGeneratedValues(IndexItem item, boolean forRawIndexer) {
         Object[] insertValues = item.insertValues();
-        if (undeterministic.isEmpty()) {
+        // TODO: I think we can remove below return completely but it causes copy-from tests to fail, would not uncover that for now.
+        if (forRawIndexer && undeterministic.isEmpty()) {
             return insertValues;
         }
-        //  We don't know in advance how many values we will add: we can have multiple generated sub-columns.
-        //  Some of them can have their root listed in the insert/upsert targets (and thus not causing array expansion) and some not.
+
+        List<Reference> insertColumns = onConflictIndexer() == null ? insertColumns() : onConflictIndexer().insertColumns();
         List<Object> extendedValues = new ArrayList<>(insertValues.length);
         Collections.addAll(extendedValues, insertValues);
-        for (int i = insertValues.length; i < columns.size(); i++) {
+        for (int i = insertValues.length; i < insertColumns.size(); i++) {
             extendedValues.add(null);
         }
 
+        // insert-on-conflict: insert path may need to insert a value so the column must be streamed then update path must stream the correct value
+        if (onConflictIndexer() != null) {
+            for (var synthetic : synthetics.values()) {
+                Reference ref = synthetic.ref;
+                if (ref.column().isRoot() && ref.defaultExpression() != null && ref.defaultExpression().isDeterministic() && synthetic.isComputed()) {
+                    int idx = insertColumns.indexOf(ref);
+                    assert idx >= 0 && idx < extendedValues.size() : "We know how many values are to be streamed: insertColumns()";
+                    extendedValues.set(idx, synthetic.computedValue);
+                }
+            }
+        }
         for (var synthetic : undeterministic) {
             // synthetic columns not yet computed imply 'null' were indexed, do not generated values for them
             if (!synthetic.isComputed()) {
@@ -1079,26 +1094,23 @@ public class Indexer {
             ColumnIdent column = synthetic.ref.column();
             Object value = synthetic.value();
             if (column.isRoot()) {
-                int idx = Reference.indexOf(columns, column);
-                if (idx == -1) {
-                    extendedValues.add(value);
-                } else {
-                    extendedValues.set(idx, value);
-                }
+                int idx = Reference.indexOf(insertColumns, column);
+                assert idx >= 0 && idx < extendedValues.size() : "We know how many values are to be streamed: insertColumns()";
+                extendedValues.set(idx, value);
             } else {
-                int valueIdx = Reference.indexOf(columns, column.getRoot());
+                int valueIdx = Reference.indexOf(insertColumns, column.getRoot());
                 Map<String, Object> root;
-                if (valueIdx == -1) {
-                    // Object column is unused in the insert statement and doesn't exist in targets.
-                    root = new HashMap<>();
-                    extendedValues.add(root);
-                } else {
-                    assert valueIdx < insertValues.length : "Target columns and values must have the same size";
-                    root = (Map<String, Object>) insertValues[valueIdx];
-                }
-                // When a null is assigned to a parent object, do not generate nondeterministic children
+                assert valueIdx >= 0 && valueIdx < extendedValues.size() : "We know how many values are to be streamed: insertColumns()";
+                root = (Map<String, Object>) extendedValues.get(valueIdx);
                 if (root == null) {
-                    continue;
+                    if (Reference.indexOf(this.columns, column.getRoot()) >= 0) {
+                        // When a null is assigned to a parent object, do not generate nondeterministic children
+                        continue;
+                    } else {
+                        // when the parent object is omitted in an insert stmt, generated the parent
+                        root = new HashMap<>();
+                        extendedValues.set(valueIdx, root);
+                    }
                 }
                 ColumnIdent child = column.shiftRight();
                 // We don't override value if it exists.

@@ -279,6 +279,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
 
     @Override
     protected WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, UpsertReplicaRequest request) throws IOException {
+        System.out.println("replica");
         if (request.items().size() > 0)
             System.out.println("replica: " + Strings.join(request.columns(), ',') + " values: " + Arrays.toString(request.items().get(0).insertValues()));
         List<Reference> columns = request.columns();
@@ -662,7 +663,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
         switch (result.getResultType()) {
             case SUCCESS:
                 Object[] replicaInsertValues = rawIndexer == null
-                    ? indexer.addGeneratedValues(item)
+                    ? indexer.addGeneratedValues(item, false)
                     : rawIndexer.addGeneratedValues(item);
 
                 // returnValues need to be generated based on updated item to get access to seqNo/term

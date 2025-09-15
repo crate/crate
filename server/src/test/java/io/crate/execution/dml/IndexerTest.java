@@ -1069,7 +1069,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(source).containsKeys("o", "z");
         assertThat((Map<String, ?>) source.get("o")).containsKeys("x", "y");
 
-        Object[] insertValues = indexer.addGeneratedValues(item);
+        Object[] insertValues = indexer.addGeneratedValues(item, false);
         assertThat(insertValues).hasSize(2);
         assertThat((Map<String, ?>) insertValues[0]).containsKeys("x", "y");
         assertThat((long) insertValues[1]).isGreaterThanOrEqualTo(now);
@@ -1095,7 +1095,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = item(1);
         indexer.index(item);
 
-        Object[] insertValues = indexer.addGeneratedValues(item);
+        Object[] insertValues = indexer.addGeneratedValues(item, false);
         assertThat(insertValues).hasSize(2);
         Map<String, Object> object = (Map<String, Object>) insertValues[1];
         assertThat((int) object.get("x")).isGreaterThan(0);
@@ -1115,7 +1115,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         Indexer indexer = getIndexer(e, "tbl", "o");
         IndexItem item = item((Object) null);
 
-        Object[] insertValues = indexer.addGeneratedValues(item);
+        Object[] insertValues = indexer.addGeneratedValues(item, false);
         assertThat(insertValues).containsExactly((Object) null);
     }
 

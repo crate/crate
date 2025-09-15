@@ -164,6 +164,6 @@ public class RawIndexer {
     }
 
     public Object[] addGeneratedValues(IndexItem item) {
-        return currentRowIndexer.addGeneratedValues(item);
+        return currentRowIndexer.addGeneratedValues(item, true);
     }
 }
