@@ -23,7 +23,6 @@ package io.crate.protocols.postgres;
 
 import java.net.SocketAddress;
 import java.util.ArrayDeque;
-import java.util.concurrent.atomic.AtomicReference;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -47,13 +46,11 @@ import io.netty.util.ReferenceCountUtil;
 public class DelayableWriteChannel implements Channel {
 
     private final Channel delegate;
-    private final AtomicReference<DelayedWrites> delay = new AtomicReference<>(null);
+    private DelayedWrites delay = null;
 
     public DelayableWriteChannel(Channel channel) {
         this.delegate = channel;
-        channel.closeFuture().addListener(f -> {
-            discardDelayedWrites();
-        });
+        channel.closeFuture().addListener(_ -> discardDelayedWrites());
     }
 
     @Override
@@ -129,26 +126,6 @@ public class DelayableWriteChannel implements Channel {
     @Override
     public ChannelFuture write(Object msg) {
         return this.write(msg, newPromise());
-    }
-
-    @Override
-    public ChannelFuture write(Object msg, ChannelPromise promise) {
-        DelayedWrites currentDelay = delay.get();
-        if (currentDelay != null) {
-            currentDelay.add(msg, () -> delegate.write(msg, promise));
-            return promise;
-        }
-        return delegate.write(msg, promise);
-    }
-
-    @Override
-    public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
-        DelayedWrites currentDelay = delay.get();
-        if (currentDelay != null) {
-            currentDelay.add(msg, () -> delegate.writeAndFlush(msg, promise));
-            return promise;
-        }
-        return delegate.writeAndFlush(msg, promise);
     }
 
     @Override
@@ -285,47 +262,67 @@ public class DelayableWriteChannel implements Channel {
         return delegate;
     }
 
-    public void discardDelayedWrites() {
-        DelayedWrites currentDelay = delay.getAndSet(null);
-        if (currentDelay != null) {
-            var parent = currentDelay.parent;
+
+    @Override
+    public ChannelFuture write(Object msg, ChannelPromise promise) {
+        synchronized (this) {
+            if (delay != null) {
+                delay.add(msg, () -> delegate.write(msg, promise));
+                return promise;
+            }
+        }
+        return delegate.write(msg, promise);
+    }
+
+    @Override
+    public ChannelFuture writeAndFlush(Object msg, ChannelPromise promise) {
+        synchronized (this) {
+            if (delay != null) {
+                delay.add(msg, () -> delegate.writeAndFlush(msg, promise));
+                return promise;
+            }
+        }
+        return delegate.writeAndFlush(msg, promise);
+    }
+
+    public synchronized void discardDelayedWrites() {
+        if (delay != null) {
+            var parent = delay.parent;
             while (parent != null) {
                 parent.discard();
                 parent = parent.parent;
             }
-            currentDelay.discard();
+            delay.discard();
+            delay = null;
         }
     }
 
-    public void writePendingMessages(DelayedWrites delayedWrites) {
-        delay.compareAndSet(delayedWrites, null);
+    public synchronized void writePendingMessages(DelayedWrites delayedWrites) {
+        if (delay == delayedWrites) {
+            delay = null;
+        }
         delayedWrites.writeDelayed();
     }
 
-    public void writePendingMessages() {
-        DelayedWrites currentDelay = delay.getAndSet(null);
-        if (currentDelay != null) {
-            var parent = currentDelay.parent;
+    public synchronized void writePendingMessages() {
+        if (delay != null) {
+            var parent = delay.parent;
             while (parent != null) {
                 parent.writeDelayed();
                 parent = parent.parent;
             }
-            currentDelay.writeDelayed();
+            delay.writeDelayed();
+            delay = null;
         }
     }
 
     public DelayedWrites delayWrites() {
-        return delay.updateAndGet(DelayedWrites::new);
+        DelayedWrites delayedWrites = new DelayedWrites(delay);
+        delay = delayedWrites;
+        return delayedWrites;
     }
 
-    static class DelayedMsg {
-        final Runnable runnable;
-        final Object msg;
-
-        public DelayedMsg(Object msg, Runnable runnable) {
-            this.runnable = runnable;
-            this.msg = msg;
-        }
+    record DelayedMsg(Object msg, Runnable runnable) {
     }
 
     static class DelayedWrites {
@@ -339,25 +336,19 @@ public class DelayableWriteChannel implements Channel {
 
         public void discard() {
             DelayedMsg delayedMsg;
-            synchronized (delayed) {
-                while ((delayedMsg = delayed.poll()) != null) {
-                    ReferenceCountUtil.safeRelease(delayedMsg.msg);
-                }
+            while ((delayedMsg = delayed.poll()) != null) {
+                ReferenceCountUtil.safeRelease(delayedMsg.msg);
             }
         }
 
         public void add(Object msg, Runnable runnable) {
-            synchronized (delayed) {
-                delayed.add(new DelayedMsg(msg, runnable));
-            }
+            delayed.add(new DelayedMsg(msg, runnable));
         }
 
         private void writeDelayed() {
             DelayedMsg delayedMsg;
-            synchronized (delayed) {
-                while ((delayedMsg = delayed.poll()) != null) {
-                    delayedMsg.runnable.run();
-                }
+            while ((delayedMsg = delayed.poll()) != null) {
+                delayedMsg.runnable.run();
             }
         }
     }
