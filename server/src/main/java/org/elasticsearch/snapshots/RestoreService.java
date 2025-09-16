@@ -481,7 +481,7 @@ public class RestoreService implements ClusterStateApplier {
                         mdBuilder.put(updatedIndexMetadata, true);
                         renamedIndex = updatedIndexMetadata.getIndex();
                     } else {
-                        validateExistingIndex(currentIndexMetadata, snapshotIndexMetadata, targetIndexName);
+                        validateExistingIndex(targetName, currentIndexMetadata, snapshotIndexMetadata, targetIndexName);
                         // Index exists and it's closed - open it in metadata and start recovery
                         IndexMetadata.Builder indexMdBuilder = IndexMetadata.builder(snapshotIndexMetadata).state(IndexMetadata.State.OPEN);
                         indexMdBuilder.version(Math.max(snapshotIndexMetadata.getVersion(), 1 + currentIndexMetadata.getVersion()));
@@ -660,16 +660,14 @@ public class RestoreService implements ClusterStateApplier {
             }
         }
 
-        private void validateExistingIndex(IndexMetadata currentIndexMetadata, IndexMetadata snapshotIndexMetadata, String renamedIndex) {
+        private void validateExistingIndex(RelationName targetName, IndexMetadata currentIndexMetadata, IndexMetadata snapshotIndexMetadata, String renamedIndex) {
             // Index exist - checking that it's closed
             if (currentIndexMetadata.getState() != IndexMetadata.State.CLOSE) {
                 // TODO: Enable restore for open indices
-                IndexParts indexParts = IndexName.decode(renamedIndex);
-                RelationName relationName = new RelationName(indexParts.schema(), indexParts.table());
-                if (indexParts.isPartitioned()) {
-                    throw new PartitionAlreadyExistsException(new PartitionName(relationName, indexParts.partitionIdent()));
+                if (currentIndexMetadata.partitionValues().isEmpty()) {
+                    throw new RelationAlreadyExists(targetName);
                 } else {
-                    throw new RelationAlreadyExists(relationName);
+                    throw new PartitionAlreadyExistsException(new PartitionName(targetName, PartitionName.encodeIdent(currentIndexMetadata.partitionValues())));
                 }
             }
             // Make sure that the number of shards is the same. That's the only thing that we cannot change
