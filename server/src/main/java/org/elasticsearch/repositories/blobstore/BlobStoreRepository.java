@@ -1111,7 +1111,10 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
     }
 
     @Override
-    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData, SnapshotId snapshotId, Collection<IndexId> indexIds) {
+    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(Metadata snapshotMetadata,
+                                                                                 RepositoryData repositoryData,
+                                                                                 SnapshotId snapshotId,
+                                                                                 Collection<IndexId> indexIds) {
         try {
             var result = new ArrayList<IndexMetadata>(indexIds.size());
             for (IndexId index : indexIds) {

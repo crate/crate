@@ -40,6 +40,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 
@@ -213,6 +214,7 @@ public final class BlobStoreTestUtil {
         // Assert that for each snapshot, the relevant metadata was written to index and shard folders
         for (SnapshotId snapshotId: snapshotIds) {
             SnapshotInfo snapshotInfo = repository.getSnapshotInfo(snapshotId).get();
+            Metadata metadata = repository.getSnapshotGlobalMetadata(snapshotId).get(5, TimeUnit.SECONDS);
             for (String index : snapshotInfo.indexNames()) {
                 final IndexId indexId = repositoryData.resolveIndexId(index);
                 assertThat(indices).containsKey(indexId.getId());
@@ -220,7 +222,12 @@ public final class BlobStoreTestUtil {
                 assertThat(indexContainer.listBlobs()).containsKey(
                     String.format(Locale.ROOT, BlobStoreRepository.METADATA_NAME_FORMAT,
                         repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, indexId)));
-                IndexMetadata indexMetadata = repository.getSnapshotIndexMetadata(repositoryData, snapshotId, List.of(indexId)).get().stream().toList().getFirst();
+                IndexMetadata indexMetadata = repository.getSnapshotIndexMetadata(
+                    metadata,
+                    repositoryData,
+                    snapshotId,
+                    List.of(indexId)
+                ).get().stream().toList().getFirst();
                 for (Map.Entry<String, BlobContainer> entry : indexContainer.children().entrySet()) {
                     // Skip Lucene MockFS extraN directory
                     if (entry.getKey().startsWith("extra")) {
