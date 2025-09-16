@@ -47,6 +47,13 @@ series.
 Fixes
 =====
 
+- Fixed a race condition in the PostgreSQL wire protocol implementation that
+  could lead to it swallowing outbound messages. This led to undefined client
+  behavior and a memory leak on the server The JDBC client for example would
+  sometimes fail with::
+
+    Received resultset tuples, but no field structure for them
+
 - Fixed an issue that led to replication errors due to the ``seqNo`` and
   ``primaryTerm`` information missing when replicating new records written as
   part of ``INSERT INTO`` or ``COPY FROM`` statements from the primary to
