@@ -334,6 +334,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         throw new IndexNotFoundException(index);
     }
 
+    /// Lookup [IndexMetadata][IndexMetadata] by name. This variant should be avoided.
+    /// Use [index(Index)][#index(Index)] or [index(String)][#index(String)] instead.
+    @Nullable
+    public IndexMetadata getIndexByName(String indexName) {
+        for (var cursor : indices.values()) {
+            IndexMetadata indexMetadata = cursor.value;
+            if (indexMetadata.getIndex().getName().equals(indexName)) {
+                return indexMetadata;
+            }
+        }
+        return null;
+    }
+
     /**
      * @return indexName -> indexMetadata
      **/
