@@ -35,6 +35,7 @@ import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.index.Index;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
@@ -53,8 +54,8 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE my_schema.table2 (id INT, name STRING)");
 
         Metadata metadata = clusterService.state().metadata();
-        String indexUUID1 = resolveIndex("my_schema.table1", null, metadata).getUUID();
-        String indexUUID2 = resolveIndex("my_schema.table2", null, metadata).getUUID();
+        Index index1 = resolveIndex("my_schema.table1", null, metadata);
+        Index index2 = resolveIndex("my_schema.table2", null, metadata);
 
         RelationName relationName1 = new RelationName("my_schema", "table1");
         RelationName relationName2 = new RelationName("my_schema", "table2");
@@ -90,10 +91,10 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
 
         RestoreService.RestoreRelation relation1 = restoreRelations.get(relationName1);
         assertThat(relation1).isNotNull();
-        assertThat(relation1.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID1, List.of()));
+        assertThat(relation1.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(index1, List.of()));
         RestoreService.RestoreRelation relation2 = restoreRelations.get(relationName2);
         assertThat(relation2).isNotNull();
-        assertThat(relation2.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID2, List.of()));
+        assertThat(relation2.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(index2, List.of()));
     }
 
     @Test
@@ -144,7 +145,7 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
 
         Metadata metadata = clusterService.state().metadata();
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme");
-        String indexUUID1 = resolveIndex("doc.restoreme", partitionValues, null, metadata).getUUID();
+        Index index1 = resolveIndex("doc.restoreme", partitionValues, null, metadata);
 
         SnapshotInfo snapshotInfo = new SnapshotInfo(
             new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),
@@ -177,7 +178,7 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
 
         RestoreService.RestoreRelation relation = restoreRelations.get(relationName);
         assertThat(relation).isNotNull();
-        assertThat(relation.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID1, List.of("626572800000")));
+        assertThat(relation.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(index1, List.of("626572800000")));
     }
 
     @Test
@@ -235,8 +236,8 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
         RelationName relationName1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table");
         RelationName relationName2 = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table");
         Metadata metadata = clusterService.state().metadata();
-        String indexUUID1 = resolveIndex("doc.my_table", null, metadata).getUUID();
-        String indexUUID2 = resolveIndex("doc.my_partitioned_table", partitionValues, null, metadata).getUUID();
+        Index index1 = resolveIndex("doc.my_table", null, metadata);
+        Index index2 = resolveIndex("doc.my_partitioned_table", partitionValues, null, metadata);
 
         List<TableOrPartition> tablesToRestore = List.of(
             new TableOrPartition(relationName1, null),
@@ -269,9 +270,9 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
 
         RestoreService.RestoreRelation relation1 = restoreRelations.get(relationName1);
         assertThat(relation1).isNotNull();
-        assertThat(relation1.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID1, List.of()));
+        assertThat(relation1.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(index1, List.of()));
         RestoreService.RestoreRelation relation2 = restoreRelations.get(relationName2);
         assertThat(relation2).isNotNull();
-        assertThat(relation2.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(indexUUID2, List.of("626572800000")));
+        assertThat(relation2.restoreIndices()).containsExactly(new RestoreService.RestoreIndex(index2, List.of("626572800000")));
     }
 }
