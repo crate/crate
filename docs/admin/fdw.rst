@@ -4,12 +4,6 @@
 Foreign Data Wrappers
 =====================
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
-
 Foreign data wrappers allow you to make data in foreign systems available as
 tables within CrateDB. You can then query these foreign tables like regular user
 tables.

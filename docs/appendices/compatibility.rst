@@ -14,11 +14,6 @@ page.
 
     :ref:`SQL: Syntax reference <sql>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _appendix-compat-notes:
 

@@ -12,10 +12,6 @@ between a value and an array and return ``true``, ``false``, or ``NULL``.
 
     :ref:`sql_subquery_expressions`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 .. _sql_in_array_comparison:
 

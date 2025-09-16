@@ -15,11 +15,6 @@ rows) with CrateDB.
 
     :ref:`General use: Querying <dql>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _dml-inserting-data:
 
@@ -141,7 +136,7 @@ changing a field's data type or convert a normal table into a partitioned one.
     When inserting data from a query, there is no error message returned when
     rows fail to be inserted, they are instead skipped, and the number of
     rows affected is decreased to reflect the actual number of rows for which
-    the operation succeeded. 
+    the operation succeeded.
 
 Example of changing a field's data type, in this case, changing the
 ``position`` data type from ``integer`` to ``smallint``::

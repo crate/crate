@@ -6,11 +6,6 @@
 
 Remove a custom analyzer.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 Synopsis
 ========
 

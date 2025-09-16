@@ -8,9 +8,6 @@
 
 Fetch rows from a cursor.
 
-.. contents::
-   :local:
-
 .. _sql-fetch-synopsis:
 
 Synopsis

@@ -14,12 +14,6 @@ add a new publication to the current cluster.
     :ref:`ALTER PUBLICATION <sql-alter-publication>`
     :ref:`DROP PUBLICATION <sql-drop-publication>`
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-   :depth: 2
-
 
 .. _sql-create-publication-synopsis:
 

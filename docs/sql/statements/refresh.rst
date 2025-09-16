@@ -8,11 +8,6 @@
 
 Refresh one or more tables explicitly.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
-
 
 .. _sql-refresh-synopsis:
 

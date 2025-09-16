@@ -7,10 +7,6 @@
 
 Delete an existing snapshot and all files referenced only by this snapshot.
 
-.. rubric:: Table of contents
-
-.. contents::
-   :local:
 
 Synopsis
 ========
