@@ -44,31 +44,6 @@ public class IndexNameExpressionResolver {
     /**
      * Translates the provided index expression into actual concrete indices, properly deduplicated.
      *
-     * @param metadata          the cluster state metadata containing all the data to resolve to expressions to concrete indices
-     * @param options           defines how the aliases or indices need to be resolved to concrete indices
-     * @param indexExpressions  expressions that can be resolved to alias or index names.
-     * @return the resolved concrete indices based on the cluster state, indices options and index expressions
-     * @throws IndexNotFoundException if one of the index expressions is pointing to a missing index or alias and the
-     * provided indices options in the context don't allow such a case, or if the final result of the indices resolution
-     * contains no indices and the indices options in the context don't allow such a case.
-     * @throws IllegalArgumentException if one of the aliases resolve to multiple indices and the provided
-     * indices options in the context don't allow such a case.
-     *
-     * @deprecated indices should be resolved via {@link Metadata#getIndices(io.crate.metadata.RelationName, List, boolean, java.util.function.Function)
-     */
-    @Deprecated
-    public static String[] concreteIndexNames(Metadata metadata, IndicesOptions options, String... indexExpressions) {
-        Index[] indexes = concreteIndices(metadata, options, indexExpressions);
-        String[] names = new String[indexes.length];
-        for (int i = 0; i < indexes.length; i++) {
-            names[i] = indexes[i].getName();
-        }
-        return names;
-    }
-
-    /**
-     * Translates the provided index expression into actual concrete indices, properly deduplicated.
-     *
      * @param metadata          metadata from the cluster state containing all the data to resolve to expressions to concrete indices
      * @param options           defines how the aliases or indices need to be resolved to concrete indices
      * @param indexExpressions  expressions that can be resolved to alias or index names.
@@ -139,17 +114,6 @@ public class IndexNameExpressionResolver {
         return concreteIndices.toArray(new Index[concreteIndices.size()]);
     }
 
-
-    /**
-     * Identifies whether the array containing index names given as argument refers to all indices
-     * The empty or null array identifies all indices
-     *
-     * @param aliasesOrIndices the array containing index names
-     * @return true if the provided array maps to all indices, false otherwise
-     */
-    public static boolean isAllIndices(List<String> aliasesOrIndices) {
-        return aliasesOrIndices == null || aliasesOrIndices.isEmpty() || Metadata.ALL.equals(aliasesOrIndices.get(0));
-    }
 
     /**
      * Resolves the list of expressions into other expressions if possible (possible concrete indices and aliases, but

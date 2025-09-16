@@ -165,7 +165,7 @@ public final class ActiveShardCount implements Writeable {
             if (waitForActiveShards == ActiveShardCount.DEFAULT) {
                 waitForActiveShards = SETTING_WAIT_FOR_ACTIVE_SHARDS.get(indexMetadata.getSettings());
             }
-            for (final IntObjectCursor<IndexShardRoutingTable> shardRouting : indexRoutingTable.getShards()) {
+            for (final IntObjectCursor<IndexShardRoutingTable> shardRouting : indexRoutingTable.shards()) {
                 if (waitForActiveShards.enoughShardsActive(shardRouting.value) == false) {
                     // not enough active shard copies yet
                     return false;

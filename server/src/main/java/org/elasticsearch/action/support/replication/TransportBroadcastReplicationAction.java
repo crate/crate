@@ -113,7 +113,7 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
         for (IndexRoutingTable routing : clusterState.metadata().getIndices(
             request.partitions(), false, im -> clusterState.routingTable().indicesRouting().get(im.getIndex().getUUID())
         )) {
-            for (var shardRouting : routing.getShards()) {
+            for (var shardRouting : routing.shards()) {
                 shardIds.add(shardRouting.value.shardId());
             }
         }

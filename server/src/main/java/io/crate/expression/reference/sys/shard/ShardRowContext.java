@@ -67,7 +67,7 @@ public class ShardRowContext {
         this(indexShard, null, clusterService, Suppliers.memoizeWithExpiration(() -> {
             try {
                 StoreStats storeStats = indexShard.storeStats();
-                return storeStats.getSizeInBytes();
+                return storeStats.sizeInBytes();
             } catch (AlreadyClosedException e) {
                 return 0L;
             }
