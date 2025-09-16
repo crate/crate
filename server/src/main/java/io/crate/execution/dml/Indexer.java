@@ -32,6 +32,7 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -447,19 +448,19 @@ public class Indexer {
                    @Nullable Symbol[] returnValues,
                    Supplier<List<Reference>> indexOrder,
                    boolean isOnConflictIndexer) {
-        List<Reference> assignedColumns; // assignedColumns are columns explicitly assigned by users; updateColumns for UPDATE and targetColumns for INSERT
-        // insert-on-conflict - an indexer with a nested onConflictIndexer
+        // assignedColumns are columns explicitly assigned by users; updateColumns for UPDATE and targetColumns for INSERT
+        List<Reference> assignedColumns;
+        // insert-on-conflict: an indexer (used to index un-conflicted rows) with a child onConflictIndexer(used to index conflicted rows)
         if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty() && !isOnConflictIndexer) {
             this.onConflictIndexer = new Indexer(
                 partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, targetColumns, updateColumns, returnValues, this::indexOrder, true);
             this.updateToInsert = null;
             this.columns = targetColumns;
             assignedColumns = targetColumns;
-            // indexOrder must contain all dynamic columns
             this.indexOrder = () -> {
                 Map<ColumnIdent, Reference> indexOrderForInsertOnConflict = indexOrder.get().stream().collect(
                     Collectors.toMap(Reference::column, Function.identity(), (a, b) -> a, LinkedHashMap::new));
-                // extend indexOrder with dynamically added columns in on-conflict clause
+                // extend indexOrder with dynamically added columns from conflicted rows
                 onConflictIndexer().columns.forEach(r -> {
                     if (!indexOrderForInsertOnConflict.containsKey(r.column())) {
                         indexOrderForInsertOnConflict.put(r.column(), r);
@@ -566,9 +567,10 @@ public class Indexer {
             }
         }
         for (var ref : table.generatedColumns()) {
-            if (targetColumns.contains(ref) || ref.granularity() == RowGranularity.PARTITION) {
+            if (ref.granularity() == RowGranularity.PARTITION) {
                 continue;
             }
+
             // never generate generated columns if assigned
             if (assignedColumns.contains(ref)) {
                 continue;
@@ -1068,6 +1070,8 @@ public class Indexer {
             return insertValues;
         }
 
+        assert onConflictIndexer() == null || new HashSet<>(onConflictIndexer().insertColumns().stream().map(Reference::column).toList())
+            .containsAll(insertColumns().stream().map(Reference::column).toList()) : "onConflictIndexer().insertColumns() is a superset of this.insertColumns()";
         List<Reference> insertColumns = onConflictIndexer() == null ? insertColumns() : onConflictIndexer().insertColumns();
         List<Object> extendedValues = new ArrayList<>(insertValues.length);
         Collections.addAll(extendedValues, insertValues);

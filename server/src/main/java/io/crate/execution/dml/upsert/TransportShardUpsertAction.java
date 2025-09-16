@@ -187,12 +187,18 @@ public class TransportShardUpsertAction extends TransportShardAction<
         Translog.Location translogLocation = null;
         List<UpsertReplicaRequest.Item> replicaItems = new ArrayList<>();
 
-        // Copy because indexer.insertColumns can be mutated during indexing
-        // to refine types. (undefined[] -> long[], with values being integer[])
-        // Using the refined types can break streaming for the replica
-        // See `test_dynamic_null_array_overridden_to_integer_becomes_null`
-        var insertColumnsForReplica = indexer.onConflictIndexer() == null ?
-            List.copyOf(indexer.insertColumns()) : List.copyOf(indexer.onConflictIndexer().insertColumns());
+        UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
+            request.shardId(),
+            request.jobId(),
+            request.sessionSettings(),
+            // Copy because indexer.insertColumns can be mutated during indexing
+            // to refine types. (undefined[] -> long[], with values being integer[])
+            // Using the refined types can break streaming for the replica
+            // See `test_dynamic_null_array_overridden_to_integer_becomes_null`
+            indexer.onConflictIndexer() == null ?
+                List.copyOf(indexer.insertColumns()) : List.copyOf(indexer.onConflictIndexer().insertColumns()),
+            replicaItems
+        );
 
         for (ShardUpsertRequest.Item item : request.items()) {
             if (shardResponse.failure() != null) {
@@ -267,13 +273,6 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 break;
             }
         }
-        UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
-            request.shardId(),
-            request.jobId(),
-            request.sessionSettings(),
-            insertColumnsForReplica,
-            replicaItems
-        );
         return new WritePrimaryResult<>(replicaRequest, shardResponse, translogLocation, indexShard);
     }
 

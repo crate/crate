@@ -245,6 +245,8 @@ public final class UpdateToInsert {
             if (updateIdx >= 0) {
                 Symbol symbol = updateAssignments[updateIdx];
                 Object value = symbol.accept(eval, values).value();
+                assert ref.column().isRoot()
+                        : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                 insertValues[i] = value;
             } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
                 insertValues[i] = null;
