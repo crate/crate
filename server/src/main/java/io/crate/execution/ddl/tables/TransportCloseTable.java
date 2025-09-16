@@ -544,7 +544,7 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 return;
             }
 
-            final ImmutableOpenIntMap<IndexShardRoutingTable> shards = indexRoutingTable.getShards();
+            final ImmutableOpenIntMap<IndexShardRoutingTable> shards = indexRoutingTable.shards();
             final ActionListener<ReplicationResponse> multiListener = new MultiActionListener<>(
                 shards.size(),
                 // collector (supplier, accumulator, finisher) for "all acked" (=!any failed)

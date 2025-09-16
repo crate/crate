@@ -216,15 +216,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.aliasAndIndexLookup = aliasAndIndexLookup;
     }
 
-    private ImmutableOpenMap<String, IndexMetadata> buildIndicesByUUIDMap() {
-        ImmutableOpenMap.Builder<String, IndexMetadata> builder = ImmutableOpenMap.builder();
-        for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
-            IndexMetadata indexMetadata = cursor.value;
-            builder.put(indexMetadata.getIndexUUID(), indexMetadata);
-        }
-        return builder.build();
-    }
-
     public long version() {
         return this.version;
     }

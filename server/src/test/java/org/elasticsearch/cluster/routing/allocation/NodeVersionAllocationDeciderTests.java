@@ -408,7 +408,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
 
         // Make sure that primary shards are only allocated on the new node
         for (int i = 0; i < numberOfShards; i++) {
-            assertThat(state.routingTable().index("test").getShards().get(i).primaryShard().currentNodeId()).isEqualTo("newNode");
+            assertThat(state.routingTable().index("test").shards().get(i).primaryShard().currentNodeId()).isEqualTo("newNode");
         }
     }
 

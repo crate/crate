@@ -209,7 +209,7 @@ public final class ReservoirSampler {
                             = getCollectorExpressions(indexMetadata.partitionValues(), docTable, indexShard.getVersionCreated(), columns);
                         searchersToRelease.add(new ShardExpressions(indexShard, indexMetadata.partitionValues(), searcher, docTable, expressions));
                         totalNumDocs += searcher.getIndexReader().numDocs();
-                        totalSizeInBytes += indexShard.storeStats().getSizeInBytes();
+                        totalSizeInBytes += indexShard.storeStats().sizeInBytes();
                         // We do the sampling in 2 phases. First we get the docIds;
                         // then we retrieve the column values for the sampled docIds.
                         // we do this in 2 phases because the reservoir sampling might override previously seen

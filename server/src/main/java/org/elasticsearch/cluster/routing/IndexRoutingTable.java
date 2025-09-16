@@ -21,7 +21,6 @@ package org.elasticsearch.cluster.routing;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.List;
@@ -37,7 +36,6 @@ import org.elasticsearch.cluster.routing.RecoverySource.ExistingStoreRecoverySou
 import org.elasticsearch.cluster.routing.RecoverySource.LocalShardsRecoverySource;
 import org.elasticsearch.cluster.routing.RecoverySource.PeerRecoverySource;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
-import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.collect.ImmutableOpenIntMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -46,7 +44,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.snapshots.Snapshot;
 
 import com.carrotsearch.hppc.cursors.IntCursor;
-import com.carrotsearch.hppc.cursors.IntObjectCursor;
 
 /**
  * The {@link IndexRoutingTable} represents routing information for a single
@@ -66,27 +63,14 @@ import com.carrotsearch.hppc.cursors.IntObjectCursor;
 public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> implements Iterable<IndexShardRoutingTable> {
 
     private final Index index;
-    private final ShardShuffler shuffler;
 
     // note, we assume that when the index routing is created, ShardRoutings are created for all possible number of
     // shards with state set to UNASSIGNED
     private final ImmutableOpenIntMap<IndexShardRoutingTable> shards;
 
-    private final List<ShardRouting> allActiveShards;
-
     IndexRoutingTable(Index index, ImmutableOpenIntMap<IndexShardRoutingTable> shards) {
         this.index = index;
-        this.shuffler = new RotationShardShuffler(Randomness.get().nextInt());
         this.shards = shards;
-        List<ShardRouting> allActiveShards = new ArrayList<>();
-        for (IntObjectCursor<IndexShardRoutingTable> cursor : shards) {
-            for (ShardRouting shardRouting : cursor.value) {
-                if (shardRouting.active()) {
-                    allActiveShards.add(shardRouting);
-                }
-            }
-        }
-        this.allActiveShards = Collections.unmodifiableList(allActiveShards);
     }
 
     /**
@@ -200,10 +184,6 @@ public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> imple
         return shards;
     }
 
-    public ImmutableOpenIntMap<IndexShardRoutingTable> getShards() {
-        return shards();
-    }
-
     public IndexShardRoutingTable shard(int shardId) {
         return shards.get(shardId);
     }
@@ -264,13 +244,6 @@ public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> imple
             shards.addAll(shardRoutingTable.shardsWithState(state));
         }
         return shards;
-    }
-
-    /**
-     * Returns an unordered iterator over all active shards (including replicas).
-     */
-    public ShardsIterator randomAllActiveShardsIt() {
-        return new PlainShardsIterator(shuffler.shuffle(allActiveShards));
     }
 
     @Override

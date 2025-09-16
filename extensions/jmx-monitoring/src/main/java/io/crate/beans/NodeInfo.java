@@ -140,7 +140,7 @@ public class NodeInfo implements NodeInfoMXBean {
             if (shard == null) {
                 return null;
             }
-            return new Tuple<>(shard.state(), shard.storeStats().getSizeInBytes());
+            return new Tuple<>(shard.state(), shard.storeStats().sizeInBytes());
         }
     }
 }

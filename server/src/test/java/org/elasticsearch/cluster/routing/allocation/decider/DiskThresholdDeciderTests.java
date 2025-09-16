@@ -806,12 +806,12 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         // and therefor we will have sufficient disk space on node1.
         ClusterState result = strategy.reroute(clusterState, "reroute");
         assertThat(result).isEqualTo(clusterState);
-        assertThat(result.routingTable().index("test").getShards().get(0).primaryShard().state()).isEqualTo(STARTED);
-        assertThat(result.routingTable().index("test").getShards().get(0).primaryShard().currentNodeId()).isEqualTo("node1");
-        assertThat(result.routingTable().index("test").getShards().get(0).primaryShard().relocatingNodeId()).isNull();
-        assertThat(result.routingTable().index("test").getShards().get(1).primaryShard().state()).isEqualTo(RELOCATING);
-        assertThat(result.routingTable().index("test").getShards().get(1).primaryShard().currentNodeId()).isEqualTo("node1");
-        assertThat(result.routingTable().index("test").getShards().get(1).primaryShard().relocatingNodeId()).isEqualTo("node2");
+        assertThat(result.routingTable().index("test").shards().get(0).primaryShard().state()).isEqualTo(STARTED);
+        assertThat(result.routingTable().index("test").shards().get(0).primaryShard().currentNodeId()).isEqualTo("node1");
+        assertThat(result.routingTable().index("test").shards().get(0).primaryShard().relocatingNodeId()).isNull();
+        assertThat(result.routingTable().index("test").shards().get(1).primaryShard().state()).isEqualTo(RELOCATING);
+        assertThat(result.routingTable().index("test").shards().get(1).primaryShard().currentNodeId()).isEqualTo("node1");
+        assertThat(result.routingTable().index("test").shards().get(1).primaryShard().relocatingNodeId()).isEqualTo("node2");
     }
 
     @Test
@@ -865,7 +865,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
             new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), cis, EmptySnapshotsInfoService.INSTANCE);
         ClusterState result = strategy.reroute(clusterState, "reroute");
 
-        ShardRouting shardRouting = result.routingTable().index("test").getShards().get(0).primaryShard();
+        ShardRouting shardRouting = result.routingTable().index("test").shards().get(0).primaryShard();
         assertThat(shardRouting.state()).isEqualTo(UNASSIGNED);
         assertThat(shardRouting.currentNodeId()).isNull();
         assertThat(shardRouting.relocatingNodeId()).isNull();

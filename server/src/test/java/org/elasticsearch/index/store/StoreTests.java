@@ -749,17 +749,17 @@ private void readIndexInputFullyWithRandomSeeks(IndexInput indexInput) throws IO
         }
         final long reservedBytes =  randomBoolean() ? StoreStats.UNKNOWN_RESERVED_BYTES :randomLongBetween(0L, Integer.MAX_VALUE);
         StoreStats stats = store.stats(reservedBytes);
-        assertThat(stats.getSize().getBytes()).isEqualTo(initialStoreSize);
+        assertThat(stats.size().getBytes()).isEqualTo(initialStoreSize);
         assertThat(stats.getReservedSize().getBytes()).isEqualTo(reservedBytes);
 
         stats.add(null);
-        assertThat(stats.getSize().getBytes()).isEqualTo(initialStoreSize);
+        assertThat(stats.size().getBytes()).isEqualTo(initialStoreSize);
         assertThat(stats.getReservedSize().getBytes()).isEqualTo(reservedBytes);
 
         final long otherStatsBytes = randomLongBetween(0L, Integer.MAX_VALUE);
         final long otherStatsReservedBytes = randomBoolean() ? StoreStats.UNKNOWN_RESERVED_BYTES :randomLongBetween(0L, Integer.MAX_VALUE);
         stats.add(new StoreStats(otherStatsBytes, otherStatsReservedBytes));
-        assertThat(stats.getSize().getBytes()).isEqualTo(initialStoreSize + otherStatsBytes);
+        assertThat(stats.size().getBytes()).isEqualTo(initialStoreSize + otherStatsBytes);
         assertThat(stats.getReservedSize().getBytes()).isEqualTo(Math.max(reservedBytes, 0L) + Math.max(otherStatsReservedBytes, 0L));
 
         Directory dir = store.directory();
@@ -775,7 +775,7 @@ private void readIndexInputFullyWithRandomSeeks(IndexInput indexInput) throws IO
 
         assertThat(numNonExtraFiles(store) > 0).isTrue();
         stats = store.stats(0L);
-        assertThat(length + initialStoreSize).isEqualTo(stats.getSizeInBytes());
+        assertThat(length + initialStoreSize).isEqualTo(stats.sizeInBytes());
 
         deleteContent(store.directory());
         IOUtils.close(store);
