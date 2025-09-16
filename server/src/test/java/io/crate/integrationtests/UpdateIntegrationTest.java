@@ -1593,4 +1593,24 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("select * from t");
         assertThat(response).hasRows("11| NULL| 3| {a=11, b=NULL, i=6, o={a=11, b=NULL, i=9}}| 10");
     }
+
+    @Test
+    public void test_generated_column_referencing_sub_column_of_another_object() {
+        execute("create table t (a int, o object as (a int, b int as a+o['a']+o2['c']), o2 object as (c int))");
+        execute("insert into t values (1, {a=10}, {c=20})");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| {a=10, b=31}| {c=20}");
+
+        execute("update t set o2['c']=100");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| {a=10, b=111}| {c=100}");
+
+        // indirectly updating o2['c']
+        execute("update t set o2={c=200}");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| {a=10, b=211}| {c=200}");
+    }
 }

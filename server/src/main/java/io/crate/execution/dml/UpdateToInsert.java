@@ -253,15 +253,26 @@ public final class UpdateToInsert {
             } else {
                 insertValues[i] = ref.accept(eval, values).value();
                 // object columns' generated sub-columns' values are removed such that they can be re-generated while indexing.
-                // deterministic generated sub-columns must be re-generated if its referenced-reference is updated
-                // nondeterministic generated sub-columns must always be re-generated
-                // TODO: ((GeneratedReference) child).referencedReferences().stream().anyMatch(updateColumns::contains)) seems not enough
-                // if referencedReference is a child of another object, and that parent object is updated, above anyMatch will fail won't be re-generated.
                 if (ref.valueType().id() == ObjectType.ID) {
                     for (var child : table.getLeafReferences(ref)) {
-                        if (child.isGenerated() &&
-                            (!child.isDeterministic() || ((GeneratedReference) child).referencedReferences().stream().anyMatch(updateColumns::contains))) {
-                            Maps.removeByPath((Map<String, Object>) insertValues[i], Arrays.asList(child.column().shiftRight().fqn().split("\\.")));
+                        if (child.isGenerated()) {
+                            // nondeterministic generated sub-columns must always be re-generated
+                            if (!child.isDeterministic() ||
+                                    // deterministic generated sub-columns must be re-generated if its referenced-reference is updated
+                                    ((GeneratedReference) child).referencedReferences().stream().anyMatch(referencedRef -> {
+                                        if (updateColumns.contains(referencedRef)) {
+                                            return true;
+                                        }
+                                        // a referenced-ref can be a child of another object, and it can be updated indirectly by an update to the parent.
+                                        for (ColumnIdent parent : referencedRef.column().parents()) {
+                                            if (updateColumns.contains(table.getReference(parent))) {
+                                                return true;
+                                            }
+                                        }
+                                        return false;
+                                    })) {
+                                Maps.removeByPath((Map<String, Object>) insertValues[i], Arrays.asList(child.column().shiftRight().fqn().split("\\.")));
+                            }
                         }
                     }
                 }
