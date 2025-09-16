@@ -35,7 +35,6 @@ import org.elasticsearch.snapshots.SnapshotId;
 import org.elasticsearch.snapshots.SnapshotInfo;
 import org.elasticsearch.snapshots.SnapshotShardFailure;
 import org.elasticsearch.snapshots.SnapshotState;
-import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.IndexName;
@@ -59,17 +58,6 @@ public record SysSnapshot(String uuid,
                           Boolean includeGlobalState) {
 
 
-    @Nullable
-    private static IndexMetadata getIndexMetadata(Metadata metadata, String indexName) {
-        for (var cursor : metadata.indices().values()) {
-            IndexMetadata indexMetadata = cursor.value;
-            if (indexMetadata.getIndex().getName().equals(indexName)) {
-                return indexMetadata;
-            }
-        }
-        return null;
-    }
-
     public static SysSnapshot of(Metadata metadata, SnapshotsInProgress.Entry inProgressEntry) {
         Snapshot snapshot = inProgressEntry.snapshot();
         SnapshotId snapshotId = snapshot.getSnapshotId();
@@ -78,7 +66,7 @@ public record SysSnapshot(String uuid,
         // TODO: Consider changing the inProgressRepresentation to include PartitionName or relationName+partitionValues?
         for (var indexId : inProgressEntry.indices()) {
             String indexName = indexId.getName();
-            IndexMetadata indexMetadata = getIndexMetadata(metadata, indexName);
+            IndexMetadata indexMetadata = metadata.getIndexByName(indexName);
             assert indexMetadata != null
                 : "There must be indexMetadata for any index in SnapshotsInProgress.Entry";
             RelationMetadata relation = metadata.getRelation(indexMetadata.getIndexUUID());
@@ -115,7 +103,7 @@ public record SysSnapshot(String uuid,
         LinkedHashSet<RelationName> relations = new LinkedHashSet<>();
         relations.addAll(Lists.mapLazy(snapshotMetadata.relations(RelationMetadata.Table.class), RelationMetadata::name));
         for (String indexName : indexNames) {
-            IndexMetadata indexMetadata = getIndexMetadata(snapshotMetadata, indexName);
+            IndexMetadata indexMetadata = snapshotMetadata.getIndexByName(indexName);
             RelationMetadata relation = indexMetadata == null ? null : snapshotMetadata.getRelation(indexMetadata.getIndexUUID());
             // Old snapshots might not have indexMetadata or relation metadata
             if (relation == null) {

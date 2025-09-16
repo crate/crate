@@ -20,7 +20,6 @@
 package org.elasticsearch.repositories.blobstore;
 
 import static org.elasticsearch.index.snapshots.blobstore.BlobStoreIndexShardSnapshot.FileInfo.canonicalName;
-import static org.elasticsearch.snapshots.SnapshotsService.resolveIndexByName;
 
 import java.io.FilterInputStream;
 import java.io.IOException;
@@ -1046,7 +1045,7 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
             // write the index metadata for each index in the snapshot
             for (IndexId index : indices) {
                 executor.execute(ActionRunnable.run(allMetaListener, () -> {
-                        final IndexMetadata indexMetaData = resolveIndexByName(index, clusterMetadata);
+                        final IndexMetadata indexMetaData = clusterMetadata.getIndexByName(index.getName());
                         if (writeIndexGens) {
                             String identifiers = IndexMetaDataGenerations.buildUniqueIdentifier(indexMetaData);
                             IndexMetaDataGenerations existingIndexMetaGenerations = existingRepositoryData.indexMetaDataGenerations();
