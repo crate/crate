@@ -22,13 +22,17 @@
 package io.crate.beans;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
+import org.elasticsearch.cluster.routing.ShardRoutingState;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
@@ -36,8 +40,8 @@ import org.elasticsearch.indices.IndicesService;
 
 import io.crate.common.collections.Tuple;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 
 public class NodeInfo implements NodeInfoMXBean {
 
@@ -68,23 +72,37 @@ public class NodeInfo implements NodeInfoMXBean {
     }
 
     public ShardStats getShardStats() {
-        var total = 0;
-        var replicas = 0;
-        var unassigned = 0;
-        var primaries = 0;
-        var cs = this.clusterState.get();
-        var localNodeId = cs.nodes().getLocalNodeId();
-        var isMasterNode = cs.nodes().isLocalNodeElectedMaster();
-        for (var shardRouting : shardsForOpenIndices(cs)) {
-            if (localNodeId.equals(shardRouting.currentNodeId())) {
-                total++;
-                if (shardRouting.primary()) {
-                    primaries++;
-                } else {
-                    replicas++;
+        int total = 0;
+        int replicas = 0;
+        int unassigned = 0;
+        int primaries = 0;
+        var clusterState = this.clusterState.get();
+        Metadata metadata = clusterState.metadata();
+        String localNodeId = clusterState.nodes().getLocalNodeId();
+        boolean isMasterNode = clusterState.nodes().isLocalNodeElectedMaster();
+
+        for (var indexRoutingTable : clusterState.routingTable()) {
+            Index index = indexRoutingTable.getIndex();
+            IndexMetadata indexMetadata = metadata.index(index);
+            if (indexRoutingTable == null || indexMetadata.getState() == State.CLOSE) {
+                continue;
+            }
+            for (var cursor : indexRoutingTable.shards()) {
+                IndexShardRoutingTable indexShardRoutingTable = cursor.value;
+                for (var shardRouting : indexShardRoutingTable.shards()) {
+                    if (isMasterNode && shardRouting.unassigned()) {
+                        unassigned++;
+                    }
+                    if (!localNodeId.equals(shardRouting.currentNodeId())) {
+                        continue;
+                    }
+                    total++;
+                    if (shardRouting.primary()) {
+                        primaries++;
+                    } else {
+                        replicas++;
+                    }
                 }
-            } else if (isMasterNode && shardRouting.unassigned()) {
-                unassigned++;
             }
         }
         return new ShardStats(total, primaries, replicas, unassigned);
@@ -92,40 +110,49 @@ public class NodeInfo implements NodeInfoMXBean {
 
     @Override
     public List<ShardInfo> getShardInfo() {
-        var cs = this.clusterState.get();
-        var localNodeId = cs.nodes().getLocalNodeId();
-        var result = new ArrayList<ShardInfo>();
-        for (var shardRouting : shardsForOpenIndices(cs)) {
-            var shardId = shardRouting.shardId();
-            if (localNodeId.equals(shardRouting.currentNodeId())) {
-                var shardStateAndSize = shardStateAndSizeProvider.apply(shardId);
-                if (shardStateAndSize != null) {
+        var clusterState = this.clusterState.get();
+        Metadata metadata = clusterState.metadata();
+        String localNodeId = clusterState.nodes().getLocalNodeId();
+        ArrayList<ShardInfo> result = new ArrayList<>();
+
+        for (var indexRoutingTable : clusterState.routingTable()) {
+            Index index = indexRoutingTable.getIndex();
+            IndexMetadata indexMetadata = metadata.index(index);
+            if (indexRoutingTable == null || indexMetadata.getState() == State.CLOSE) {
+                continue;
+            }
+            for (var cursor : indexRoutingTable.shards()) {
+                IndexShardRoutingTable indexShardRoutingTable = cursor.value;
+                for (var shardRouting : indexShardRoutingTable.shards()) {
+                    if (!localNodeId.equals(shardRouting.currentNodeId())) {
+                        continue;
+                    }
+                    ShardId shardId = shardRouting.shardId();
+                    Tuple<IndexShardState, Long> stats = shardStateAndSizeProvider.apply(shardId);
+                    if (stats == null) {
+                        continue;
+                    }
                     PartitionName partitionName;
                     try {
-                        partitionName = cs.metadata().getPartitionName(shardId.getIndexUUID());
+                        partitionName = clusterState.metadata().getPartitionName(shardId.getIndexUUID());
                     } catch (RelationUnknown | IndexNotFoundException e) {
                         continue; // skip shards of indices that are not in the metadata
                     }
+                    ShardRoutingState routingState = shardRouting.state();
+                    RelationName relationName = partitionName.relationName();
                     result.add(new ShardInfo(
                         shardId.id(),
-                        partitionName.relationName().schema(),
-                        partitionName.relationName().name(),
+                        relationName.schema(),
+                        relationName.name(),
                         partitionName.ident() == null ? "" : partitionName.ident(),
-                        shardRouting.state().name(),
-                        shardStateAndSize.v1().name(),
-                        shardStateAndSize.v2())
+                        routingState.name(),
+                        stats.v1().name(),
+                        stats.v2())
                     );
                 }
             }
         }
         return result;
-    }
-
-    private static Iterable<ShardRouting> shardsForOpenIndices(ClusterState clusterState) {
-        var concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllOpenIndices())
-            .filter(index -> !IndexName.isDangling(index))
-            .toArray(String[]::new);
-        return clusterState.routingTable().allShards(concreteIndices);
     }
 
     public static class ShardStateAndSizeProvider implements Function<ShardId, Tuple<IndexShardState, Long>> {
