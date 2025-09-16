@@ -22,6 +22,7 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
@@ -69,6 +70,7 @@ import org.elasticsearch.threadpool.ThreadPoolStats;
 import org.junit.Test;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.unit.TimeValue;
@@ -318,6 +320,7 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
 
 
     @Test
+    @Repeat (iterations = 50)
     public void test_swap_table_after_snapshot_blocked_on_data_node() throws Exception {
         cluster().startMasterOnlyNode();
         String dataNode = cluster().startDataOnlyNode();
@@ -331,19 +334,10 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         unblockNode(repoName, dataNode);
         assertThat(snapshot).succeedsWithin(5, TimeUnit.SECONDS);
         SnapshotInfo snapshotInfo = snapshot.join();
-        // Shards can become temporarily unavailable during a table swap, which can cause snapshots to abort
-        if (snapshotInfo.state() == SnapshotState.SUCCESS) {
-            execute("drop table tbl1");
-            execute("drop table tbl2");
-            execute("restore snapshot r1.s1 ALL with (wait_for_completion = true)");
-        } else if (snapshotInfo.state() == SnapshotState.FAILED) {
-            assertThat(snapshotInfo.reason()).isEqualTo("aborted");
-        } else {
-            assertThat(snapshotInfo.shardFailures()).isNotEmpty();
-            for (SnapshotShardFailure shardFailures : snapshotInfo.shardFailures()) {
-                assertThat(shardFailures.reason()).isEqualTo("aborted");
-            }
-        }
+        assertThat(snapshotInfo.state()).isEqualTo(SnapshotState.SUCCESS);
+        execute("drop table tbl1");
+        execute("drop table tbl2");
+        execute("restore snapshot r1.s1 ALL with (wait_for_completion = true)");
 
         // can still create new snapshots after
         execute("create snapshot r1.s2 all with (wait_for_completion = true)");
