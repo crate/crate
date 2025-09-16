@@ -76,7 +76,8 @@ public abstract class RestoreOnlyRepository implements Repository {
     }
 
     @Override
-    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData,
+    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(Metadata snapshotMetadata,
+                                                                                 RepositoryData repositoryData,
                                                                                  SnapshotId snapshotId,
                                                                                  Collection<IndexId> indexIds) {
         return CompletableFuture.failedFuture(

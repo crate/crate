@@ -214,11 +214,18 @@ public class LogicalReplicationRepository extends AbstractLifecycleComponent imp
 
 
     @Override
-    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(RepositoryData repositoryData,
+    public CompletableFuture<Collection<IndexMetadata>> getSnapshotIndexMetadata(Metadata snapshotMetadata,
+                                                                                 RepositoryData repositoryData,
                                                                                  SnapshotId snapshotId,
                                                                                  Collection<IndexId> indexIds) {
         assert SNAPSHOT_ID.equals(snapshotId) : "SubscriptionRepository only supports " + SNAPSHOT_ID + " as the SnapshotId";
-        var remoteRelationNames = indexIds.stream().map(indexId -> IndexName.decode(indexId.getName()).toRelationName()).toArray(RelationName[]::new);
+        var remoteRelationNames = indexIds.stream().map(indexId -> {
+            IndexMetadata indexMetadata = snapshotMetadata.getIndexByName(indexId.getName());
+            if (indexMetadata == null) {
+                return IndexName.decode(indexId.getName()).toRelationName();
+            }
+            return snapshotMetadata.getRelation(indexMetadata.getIndexUUID()).name();
+        }).toArray(RelationName[]::new);
         return getRemoteClusterState(remoteRelationNames).thenApply(response -> {
             var result = new ArrayList<IndexMetadata>();
             ClusterState remoteClusterState = response.getState();
