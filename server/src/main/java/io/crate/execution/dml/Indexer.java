@@ -39,7 +39,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.function.Consumer;
 import java.util.function.Function;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.apache.lucene.document.Document;
@@ -129,12 +128,11 @@ public class Indexer {
     @Nullable
     private final UpdateToInsert updateToInsert;
     private final Indexer onConflictIndexer;
-    /**
-     * Supplier for the indexing order of documents' attributes.
-     * This must include dynamically added columns.
-     * Currently, the indexing order follows {@link DocTableInfo#rootColumns()}
-     */
-    private final Supplier<List<Reference>> indexOrder;
+
+    /// Indexing order for the columns;
+    /// Starts out as [rootColumns][DocTableInfo#rootColumns()] but is updated
+    /// after dynamic column additions;
+    private List<Reference> indexOrder;
 
 
     public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
@@ -429,7 +427,6 @@ public class Indexer {
             targetColumns,
             updateColumns,
             returnValues,
-            () -> ((DocTableInfo) nodeCtx.schemas().getTableInfo(table.ident())).rootColumns(),
             false);
     }
 
@@ -443,28 +440,25 @@ public class Indexer {
                    List<Reference> targetColumns,
                    @Nullable String[] updateColumns,
                    @Nullable Symbol[] returnValues,
-                   Supplier<List<Reference>> indexOrder,
                    boolean isOnConflictIndexer) {
         // assignedColumns are columns explicitly assigned by users; updateColumns for UPDATE and targetColumns for INSERT
         List<Reference> assignedColumns;
         // insert-on-conflict: an indexer (used to index un-conflicted rows) with a child onConflictIndexer(used to index conflicted rows)
         if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty() && !isOnConflictIndexer) {
             this.onConflictIndexer = new Indexer(
-                partitionValues, table, shardVersionCreated, txnCtx, nodeCtx, targetColumns, updateColumns, returnValues, this::indexOrder, true);
+                partitionValues,
+                table,
+                shardVersionCreated,
+                txnCtx,
+                nodeCtx,
+                targetColumns,
+                updateColumns,
+                returnValues,
+                true
+            );
             this.updateToInsert = null;
             this.columns = targetColumns;
             assignedColumns = targetColumns;
-            this.indexOrder = () -> {
-                Map<ColumnIdent, Reference> indexOrderForInsertOnConflict = indexOrder.get().stream().collect(
-                    Collectors.toMap(Reference::column, Function.identity(), (a, _) -> a, LinkedHashMap::new));
-                // extend indexOrder with dynamically added columns from conflicted rows
-                onConflictIndexer().columns.forEach(r -> {
-                    if (!indexOrderForInsertOnConflict.containsKey(r.column())) {
-                        indexOrderForInsertOnConflict.put(r.column(), r);
-                    }
-                });
-                return new ArrayList<>(indexOrderForInsertOnConflict.values());
-            };
         } else if (updateColumns != null && updateColumns.length > 0) { // update
             this.onConflictIndexer = null;
             this.updateToInsert = new UpdateToInsert(
@@ -476,14 +470,13 @@ public class Indexer {
             );
             this.columns = this.updateToInsert.columns();
             assignedColumns = this.updateToInsert.updateColumns();
-            this.indexOrder = indexOrder;
         } else { // insert
             this.onConflictIndexer = null;
             this.updateToInsert = null;
             this.columns = targetColumns;
             assignedColumns = targetColumns;
-            this.indexOrder = indexOrder;
         }
+        this.indexOrder = table.rootColumns();
         this.synthetics = new HashMap<>();
         this.writeOids = table.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION);
         this.getRef = table::getReference;
@@ -676,7 +669,8 @@ public class Indexer {
      *
      * @param getRef A function that returns a reference for a given column ident based on the current cluster state
      */
-    public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+    public void updateTargets(DocTableInfo newTable) {
+        Function<ColumnIdent, Reference> getRef = newTable::getReference;
         var it = columns.iterator();
         var idx = 0;
         while (it.hasNext()) {
@@ -730,6 +724,20 @@ public class Indexer {
             Synthetic synthetic = entry.getValue();
             ValueIndexer<Object> indexer = synthetic.indexer();
             indexer.updateTargets(getRef);
+        }
+
+        if (onConflictIndexer == null) {
+            indexOrder = newTable.rootColumns();
+        } else {
+            Map<ColumnIdent, Reference> indexOrderForInsertOnConflict = newTable.rootColumns().stream()
+                .collect(Collectors.toMap(Reference::column, Function.identity(), (a, _) -> a, LinkedHashMap::new));
+
+            // extend indexOrder with dynamically added columns from conflicted rows
+            onConflictIndexer.columns.forEach(r -> {
+                indexOrderForInsertOnConflict.putIfAbsent(r.column(), r);
+            });
+            indexOrder = new ArrayList<>(indexOrderForInsertOnConflict.values());
+            onConflictIndexer.indexOrder = indexOrder;
         }
     }
 
@@ -897,7 +905,7 @@ public class Indexer {
     }
 
     public ParsedDocument index(IndexItem item) throws IOException {
-        return index(item, indexOrder.get());
+        return index(item, indexOrder);
     }
 
     public IndexItem updateToInsert(Doc doc, @Nullable Symbol[] updateAssignments, Object[] excluded) {
@@ -1107,10 +1115,6 @@ public class Indexer {
 
     public Indexer onConflictIndexer() {
         return this.onConflictIndexer;
-    }
-
-    public List<Reference> indexOrder() {
-        return this.indexOrder.get();
     }
 
     public boolean hasReturnValues() {

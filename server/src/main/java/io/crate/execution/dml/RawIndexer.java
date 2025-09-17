@@ -27,7 +27,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
-import java.util.function.Function;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
@@ -145,9 +144,9 @@ public class RawIndexer {
         return currentRowIndexer.collectSchemaUpdates(currentItem);
     }
 
-    public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+    public void updateTargets(DocTableInfo newTable) {
         for (var indexer : indexers.values()) {
-            indexer.updateTargets(getRef);
+            indexer.updateTargets(newTable);
         }
     }
 

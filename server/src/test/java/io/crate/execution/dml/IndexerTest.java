@@ -167,7 +167,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = item(value);
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         DocTableInfo actualTable = addColumns(executor, table, newColumns);
-        indexer.updateTargets(actualTable::getReference);
+        indexer.updateTargets(actualTable);
         ParsedDocument parsedDoc = indexer.index(item, actualTable.rootColumns());
         assertThat(parsedDoc.doc().getFields())
             .hasSize(10);
@@ -212,7 +212,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         //  2. the correct data type, in this case the `o['obj']` must contain its new members 'y' + 'z'
         DocTableInfo actualTable = addColumns(executor, table, newColumns);
 
-        indexer.updateTargets(actualTable::getReference);
+        indexer.updateTargets(actualTable);
         ParsedDocument parsedDoc = indexer.index(item, actualTable.rootColumns());
         assertThat(parsedDoc.doc().getFields())
             .hasSize(11);
@@ -271,7 +271,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = item(value);
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         DocTableInfo actualTable = addColumns(executor, table, newColumns);
-        indexer.updateTargets(actualTable::getReference);
+        indexer.updateTargets(actualTable);
         ParsedDocument parsedDoc = indexer.index(item, actualTable.rootColumns());
 
         assertThat(newColumns)
@@ -784,7 +784,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable(stmt);
 
         DocTableInfo table = e.resolveTableInfo("tbl");
-        try (var indexEnv = new IndexEnv(
+        try (var _ = new IndexEnv(
                 e.nodeCtx,
                 THREAD_POOL,
                 table,
@@ -836,7 +836,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = item(42, "Hello", 21);
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         DocTableInfo actualTable = addColumns(e, table, newColumns);
-        indexer.updateTargets(actualTable::getReference);
+        indexer.updateTargets(actualTable);
         ParsedDocument doc = indexer.index(item, actualTable.rootColumns());
         assertThat(newColumns).satisfiesExactly(
             x -> assertThat(x)
@@ -1142,7 +1142,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
             if (collectedNewColumns.isEmpty() == false) {
                 DocTableInfo actualTable = addColumns(e, table, collectedNewColumns);
-                indexer.updateTargets(actualTable::getReference);
+                indexer.updateTargets(actualTable);
             }
             ParsedDocument doc = indexer.index(item);
             if (source == null) {
@@ -1266,7 +1266,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = item(10, List.of(List.of(1, 2), List.of(3, 4)));
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         DocTableInfo actualTable = addColumns(executor, table, newColumns);
-        indexer.updateTargets(actualTable::getReference);
+        indexer.updateTargets(actualTable);
         ParsedDocument doc = indexer.index(item, actualTable.rootColumns());
         assertThat(newColumns).satisfiesExactly(
             column -> assertThat(column)
@@ -1348,7 +1348,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         IndexItem item = item(1, List.of(), "foo");
         List<Reference> newColumns = indexer.collectSchemaUpdates(item);
         DocTableInfo actualTable = addColumns(e, table, newColumns);
-        indexer.updateTargets(actualTable::getReference);
+        indexer.updateTargets(actualTable);
         assertThat(newColumns).satisfiesExactly(
             ref1 -> assertThat(ref1.column()).isEqualTo(ColumnIdent.of("empty_arr")),
             ref2 -> assertThat(ref2.column()).isEqualTo(ColumnIdent.of("a"))
@@ -1373,7 +1373,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         var indexItem = item(List.of());
         var newColumns = indexer.collectSchemaUpdates(indexItem);
         DocTableInfo actualTable = addColumns(e, e.resolveTableInfo("tbl"), newColumns);
-        indexer.updateTargets(actualTable::getReference);
+        indexer.updateTargets(actualTable);
         ParsedDocument doc = indexer.index(indexItem, actualTable.rootColumns());
         assertThat(doc.source().utf8ToString()).isEqualToIgnoringWhitespace(
                 """
@@ -1516,7 +1516,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
 
         DocTableInfo newTable = addColumns(sqlExecutor, table, newColumns);
 
-        indexer.updateTargets(newTable::getReference);
+        indexer.updateTargets(newTable);
         newColumns = indexer.collectSchemaUpdates(item(value2));
         assertThat(newColumns).isEmpty();
 
