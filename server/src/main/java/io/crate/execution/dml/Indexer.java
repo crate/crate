@@ -25,7 +25,6 @@ package io.crate.execution.dml;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
@@ -413,7 +412,6 @@ public class Indexer {
     /**
      *
      */
-    @SuppressWarnings("unchecked")
     public Indexer(List<String> partitionValues,
                    DocTableInfo table,
                    Version shardVersionCreated,
@@ -902,33 +900,8 @@ public class Indexer {
         return index(item, indexOrder.get());
     }
 
-    /**
-     *
-     * @param doc must be called after {@link Indexer#updateTargets(Function)}
-     */
-    public record UpdateBuild(Supplier<ParsedDocument> doc,
-                              Supplier<Object[]> replicaItems,
-                              List<Reference> newColumns,
-                              IndexItem indexItem) {
-    }
-
-    /**
-     * @param excludedValues provided for insert-on-conflict only, null for pure UPDATE
-     */
-    public UpdateBuild buildForUpdate(Doc storedDoc,
-                                      Symbol[] updateAssignments,
-                                      @Nullable Object[] excludedValues) throws IOException {
-        assert this.updateToInsert != null : "UpdateToInsert must not be null when Indexer is handling an UPDATE";
-        var converted = updateToInsert.convert(storedDoc, updateAssignments, excludedValues);
-        var newCols = collectSchemaUpdates(converted);
-        Supplier<ParsedDocument> doc = () -> {
-            try {
-                return index(converted);
-            } catch (IOException e) {
-                throw new UncheckedIOException(e);
-            }
-        };
-        return new UpdateBuild(doc, () -> addGeneratedValues(converted, false), newCols, converted);
+    public IndexItem updateToInsert(Doc doc, @Nullable Symbol[] updateAssignments, Object[] excluded) {
+        return updateToInsert.convert(doc, updateAssignments, excluded);
     }
 
     /**

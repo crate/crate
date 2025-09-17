@@ -75,7 +75,6 @@ import io.crate.execution.dml.UpsertReplicaRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.engine.collect.PKLookupOperation;
 import io.crate.execution.jobs.TasksService;
-import io.crate.expression.reference.Doc;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -498,24 +497,30 @@ public class TransportShardUpsertAction extends TransportShardAction<
             try {
                 boolean isRetry = retryCount > 0 || request.isRetry();
                 AtomicLong version = new AtomicLong();
-                final Doc[] docHolder = new Doc[1];
                 // Get most-recent table info, could have changed (new columns, dropped columns)
                 DocTableInfo actual = isRetry ? schemas.getTableInfo(tableInfo.ident()) : tableInfo;
                 String id = item.id();
                 Object[] excluded = item.insertValues();
-                PKLookupOperation.withDoc(
-                    indexShard, id, item.version(), VersionType.INTERNAL,
-                    seqNo, primaryTerm, actual, partitionValues, null,
+                final long startTime = System.nanoTime();
+                IndexItem newIndexItem = PKLookupOperation.withDoc(
+                    indexShard,
+                    id,
+                    item.version(),
+                    VersionType.INTERNAL,
+                    seqNo,
+                    primaryTerm,
+                    actual,
+                    partitionValues,
+                    null,
                     doc -> {
-                        if (doc == null) throw new DocumentMissingException(indexShard.shardId(), id);
+                        if (doc == null) {
+                            throw new DocumentMissingException(indexShard.shardId(), id);
+                        }
                         version.setPlain(doc.getVersion());
-                        docHolder[0] = doc;
-                        return item;
+                        return indexer.updateToInsert(doc, item.updateAssignments(), excluded);
                     }
                 );
-                var build = indexer.buildForUpdate(docHolder[0], item.updateAssignments(), excluded);
-                final long startTime = System.nanoTime();
-                List<Reference> newColumns = build.newColumns();
+                List<Reference> newColumns = indexer.collectSchemaUpdates(newIndexItem);
                 if (newColumns.isEmpty() == false) {
                     var addColumnRequest = new AddColumnRequest(
                         tableInfo.ident(),
@@ -527,13 +532,15 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     DocTableInfo actualTable = schemas.getTableInfo(tableInfo.ident());
                     indexer.updateTargets(actualTable::getReference);
                 }
+                ParsedDocument parsedDoc = indexer.index(newIndexItem);
+                Object[] replicaItems = indexer.addGeneratedValues(newIndexItem, false);
                 return indexHelper(
-                    build.doc().get(),
-                    build.indexItem().id(),
+                    parsedDoc,
+                    newIndexItem.id(),
                     indexer,
-                    build.indexItem(),
+                    newIndexItem,
                     indexShard,
-                    build.replicaItems().get(),
+                    replicaItems,
                     isRetry,
                     version.getPlain(),
                     startTime,
