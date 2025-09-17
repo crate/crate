@@ -119,8 +119,8 @@ Default clause
 ^^^^^^^^^^^^^^
 
 The optional default clause defines the default value of the column. The value
-is inserted when the column is a target of an ``INSERT`` or ``COPY FROM``
-statement that doesn't contain an explicit value for it.
+is inserted when the column is a target of an ``INSERT``, ``UPDATE``, or
+``COPY FROM`` statement that doesn't contain an explicit value for it.
 
 The default clause :ref:`expression <gloss-expression>` is variable-free, it
 means that subqueries and cross-references to other columns are not allowed.
@@ -177,6 +177,11 @@ The ``GENERATED ALWAYS`` part of the syntax is optional.
 
     :ref:`Data definition: Generated columns <ddl-generated-columns>`
 
+.. NOTE::
+
+   Default columns and generated columns that are sub-columns of object columns
+   are generated when the parent object is re-assigned and are assigned to
+   ``null`` when any of their parent objects is assigned to ``null``.
 
 .. _sql-create-table-table-constraints:
 

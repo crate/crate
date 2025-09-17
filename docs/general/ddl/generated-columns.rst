@@ -31,8 +31,8 @@ expression if omitted::
 
    For a full syntax description, see :ref:`sql-create-table`.
 
-Generated columns are read-only. Their values are computed as needed for every
-``INSERT`` and ``UPDATE`` operation.
+The values of generated columns are computed as needed for every ``INSERT``,
+``UPDATE`` and ``COPY FROM`` operation.
 
 For example::
 
@@ -75,6 +75,33 @@ against the result of applying the generation expression::
     ... VALUES (100.0, 2.0, 12.0);
     SQLParseException[Given value 12.0 for generated column quotient does not match calculation (dividend / divisor) = 50.0]
 
+If values are supplied for generated columns with non-deterministic scalar
+functions, these values are not validated::
+
+    cr> CREATE TABLE generated_random
+    ... (a int, b generated always as random() + 10);
+    CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO generated_random(a, b)
+    ... VALUES(1, 2);
+    INSERT OK, 1 row affected (... sec)
+
+.. Hidden: Refresh::
+
+    cr> refresh table generated_random;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT * FROM generated_random;
+    +---+-----+
+    | a |   b |
+    +---+-----+
+    | 1 | 2.0 |
+    +---+-----+
+    SELECT 1 row in set (... sec)
 
 .. _ddl-generated-columns-last-modified:
 
@@ -115,6 +142,8 @@ from existing columns in the table::
 .. Hidden: drop tables::
 
     cr> DROP TABLE computed;
+    DROP OK, 1 row affected (... sec)
+    cr> DROP TABLE generated_random;
     DROP OK, 1 row affected (... sec)
     cr> DROP TABLE computed_non_deterministic;
     DROP OK, 1 row affected (... sec)
