@@ -23,13 +23,11 @@ package io.crate.execution.dml.upsert;
 
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.logging.log4j.util.Strings;
 import org.apache.lucene.index.Term;
 import org.elasticsearch.action.support.replication.ReplicationOperation;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
@@ -276,9 +274,6 @@ public class TransportShardUpsertAction extends TransportShardAction<
 
     @Override
     protected WriteReplicaResult processRequestItemsOnReplica(IndexShard indexShard, UpsertReplicaRequest request) throws IOException {
-        System.out.println("replica");
-        if (request.items().size() > 0)
-            System.out.println("replica: " + Strings.join(request.columns(), ',') + " values: " + Arrays.toString(request.items().get(0).insertValues()));
         List<Reference> columns = request.columns();
         Translog.Location location = null;
         String indexUUID = indexShard.shardId().getIndexUUID();

@@ -255,24 +255,26 @@ public final class UpdateToInsert {
                 // object columns' generated sub-columns' values are removed such that they can be re-generated while indexing.
                 if (ref.valueType().id() == ObjectType.ID) {
                     for (var child : table.getLeafReferences(ref)) {
-                        if (child.isGenerated()) {
-                            // nondeterministic generated sub-columns must always be re-generated
-                            if (!child.isDeterministic() ||
-                                    // deterministic generated sub-columns must be re-generated if its referenced-reference is updated
-                                    ((GeneratedReference) child).referencedReferences().stream().anyMatch(referencedRef -> {
-                                        if (updateColumns.contains(referencedRef)) {
+                        if (!(child instanceof GeneratedReference genRef)) {
+                            continue;
+                        }
+                        // nondeterministic generated sub-columns must always be re-generated
+                        if (!genRef.isDeterministic() ||
+                                // deterministic generated sub-columns must be re-generated if its referenced-reference is updated
+                                genRef.referencedReferences().stream().anyMatch(referencedRef -> {
+                                    if (updateColumns.contains(referencedRef)) {
+                                        return true;
+                                    }
+                                    // a referenced-ref can be a child of another object, and it can be updated indirectly by an update to the parent.
+                                    for (ColumnIdent parent : referencedRef.column().parents()) {
+                                        if (updateColumns.contains(table.getReference(parent))) {
                                             return true;
                                         }
-                                        // a referenced-ref can be a child of another object, and it can be updated indirectly by an update to the parent.
-                                        for (ColumnIdent parent : referencedRef.column().parents()) {
-                                            if (updateColumns.contains(table.getReference(parent))) {
-                                                return true;
-                                            }
-                                        }
-                                        return false;
-                                    })) {
-                                Maps.removeByPath((Map<String, Object>) insertValues[i], Arrays.asList(child.column().shiftRight().fqn().split("\\.")));
-                            }
+                                    }
+                                    return false;
+                                })) {
+
+                            Maps.removeByPath((Map<String, Object>) insertValues[i], child.column().path());
                         }
                     }
                 }

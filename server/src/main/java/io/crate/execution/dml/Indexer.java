@@ -43,7 +43,6 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
-import org.apache.logging.log4j.util.Strings;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.elasticsearch.Version;
@@ -853,10 +852,6 @@ public class Indexer {
             tableVersionCreated
         );
         Object[] values = item.insertValues();
-        System.out.println("columns: " + Strings.join(columns, ','));
-        System.out.println("synthetics: " + Strings.join(synthetics.keySet(), ','));
-        System.out.println("indexOrder: " + Strings.join(indexOrder, ','));
-        System.out.println("values: " + Arrays.toString(values));
 
         for (Reference ref : indexOrder) {
             int idx = columns.indexOf(ref);
@@ -873,7 +868,6 @@ public class Indexer {
                 if (value != null) {
                     ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(idx);
                     translogWriter.writeFieldName(valueIndexer.storageIdentLeafName());
-                    System.out.println("indexing: " + ref.column() + " value: " + value);
                     valueIndexer.indexValue(value, docBuilder);
                     continue;
                 }
@@ -892,7 +886,6 @@ public class Indexer {
                 ValueIndexer<Object> indexer = synthetic.indexer();
                 translogWriter.writeFieldName(indexer.storageIdentLeafName());
                 indexer.indexValue(value, docBuilder);
-                System.out.println("index synthetic " + synthetic.ref + " value: " + value);
             }
         }
 
