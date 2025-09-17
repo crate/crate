@@ -35,6 +35,7 @@ import org.junit.Test;
 
 import io.crate.analyze.Id;
 import io.crate.execution.dml.IndexItem;
+import io.crate.execution.dml.UpdateToInsert;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.expression.symbol.InputColumn;

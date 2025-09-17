@@ -143,7 +143,7 @@ public final class QueryTester implements AutoCloseable {
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 List.of(table.getReference(ColumnIdent.fromPath(column))),
-                null
+                null, null
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), new Object[] { value }, -1L, -1L);
             ParsedDocument parsedDocument = indexer.index(item);
@@ -159,7 +159,7 @@ public final class QueryTester implements AutoCloseable {
                 plannerContext.transactionContext(),
                 plannerContext.nodeContext(),
                 Lists.map(columns, c -> table.getReference(ColumnIdent.fromPath(c))),
-                null
+                null, null
             );
             var item = new IndexItem.StaticItem("dummy-id", List.of(), values, -1L, -1L);
             ParsedDocument parsedDocument = indexer.index(item);

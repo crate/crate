@@ -132,8 +132,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         }
 
         @Override
-        protected IndexItemResult insert(Indexer indexer,
-                                         ShardUpsertRequest request,
+        protected IndexItemResult insert(RelationName tableName,
+                                         Indexer indexer,
                                          IndexItem item,
                                          IndexShard indexShard,
                                          boolean isRetry,
@@ -143,7 +143,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 item.id(),
-                "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\'');
+                "document with id: " + item.id() + " already exists in '" + indexShard.shardId().getIndexName() + '\'');
         }
     }
 
@@ -173,6 +173,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         Schemas schemas = mock(Schemas.class);
         when(tableInfo.columns()).thenReturn(Collections.<Reference>emptyList());
         when(tableInfo.versionCreated()).thenReturn(Version.CURRENT);
+        when(tableInfo.ident()).thenReturn(mock(RelationName.class));
         when(schemas.getTableInfo(any(RelationName.class))).thenReturn(tableInfo);
 
         var dynamicLongColRef = new SimpleReference(
@@ -267,7 +268,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardResponse response = result.finalResponseIfSuccessful;
         assertThat(response.failures()).satisfiesExactly(
             f -> assertThat(f.error().getMessage()).isEqualTo(
-                "[1]: version conflict, document with id: 1 already exists in 'characters'"));
+                "[1]: version conflict, document with id: 1 already exists in ''"));
     }
 
     @Test
