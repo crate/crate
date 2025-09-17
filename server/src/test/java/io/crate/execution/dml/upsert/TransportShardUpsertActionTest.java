@@ -194,6 +194,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         Schemas schemas = mock(Schemas.class);
         when(tableInfo.rootColumns()).thenReturn(Collections.<Reference>emptyList());
         when(tableInfo.versionCreated()).thenReturn(Version.CURRENT);
+        when(tableInfo.ident()).thenReturn(mock(RelationName.class));
         when(schemas.getTableInfo(any(RelationName.class))).thenReturn(tableInfo);
 
         var dynamicLongColRef = new SimpleReference(
