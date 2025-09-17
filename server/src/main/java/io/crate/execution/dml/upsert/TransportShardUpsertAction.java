@@ -517,18 +517,14 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 final long startTime = System.nanoTime();
                 List<Reference> newColumns = build.newColumns();
                 if (newColumns.isEmpty() == false) {
-                    RelationMetadata relation = clusterService.state().metadata().getRelation(indexShard.shardId().getIndexUUID());
-                    if (relation == null) {
-                        throw new IllegalStateException("RelationMetadata for index " + indexShard.shardId().getIndexUUID() + " not found in cluster state");
-                    }
                     var addColumnRequest = new AddColumnRequest(
-                        relation.name(),
+                        tableInfo.ident(),
                         newColumns,
                         Map.of(),
                         new IntArrayList(0)
                     );
                     addColumnAction.execute(addColumnRequest).get();
-                    DocTableInfo actualTable = schemas.getTableInfo(relation.name());
+                    DocTableInfo actualTable = schemas.getTableInfo(tableInfo.ident());
                     indexer.updateTargets(actualTable::getReference);
                 }
                 return indexHelper(
