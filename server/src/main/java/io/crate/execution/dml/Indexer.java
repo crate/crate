@@ -265,7 +265,7 @@ public class Indexer {
     /**
      * For DEFAULT expressions or GENERATED columns.
      *
-     * <p>Computed values are stored and re-used per-row for:</p>
+     * <p>Computed values are stored and reused per-row for:</p>
      * <ul>
      *  <li>Sending values of non-deterministic functions to replica</li>
      *  <li>Computing RETURNING expression, referring to GENERATED or DEFAULT columns.</li>
@@ -456,7 +456,7 @@ public class Indexer {
             assignedColumns = targetColumns;
             this.indexOrder = () -> {
                 Map<ColumnIdent, Reference> indexOrderForInsertOnConflict = indexOrder.get().stream().collect(
-                    Collectors.toMap(Reference::column, Function.identity(), (a, b) -> a, LinkedHashMap::new));
+                    Collectors.toMap(Reference::column, Function.identity(), (a, _) -> a, LinkedHashMap::new));
                 // extend indexOrder with dynamically added columns from conflicted rows
                 onConflictIndexer().columns.forEach(r -> {
                     if (!indexOrderForInsertOnConflict.containsKey(r.column())) {
@@ -595,7 +595,7 @@ public class Indexer {
             Context<Input<?>> ctxForReturnValues = inputFactory.ctxForRefs(
                 txnCtx,
                 ref -> {
-                    // Using Synthethic if available, it caches results to ensure non-deterministic functions yield the same result
+                    // Using Synthetic if available, it caches results to ensure non-deterministic functions yield the same result
                     // across indexing and return values
                     Synthetic synthetic = synthetics.get(ref.column());
                     if (synthetic == null) {
@@ -1071,7 +1071,7 @@ public class Indexer {
                 int valueIdx = Reference.indexOf(insertColumns, column.getRoot());
                 Map<String, Object> root;
                 assert valueIdx >= 0 && valueIdx < extendedValues.size() : "We know how many values are to be streamed: insertColumns()";
-                root = (Map<String, Object>) extendedValues.get(valueIdx);
+                root = castMapUnchecked(extendedValues.get(valueIdx));
                 if (root == null) {
                     if (Reference.indexOf(this.columns, column.getRoot()) >= 0) {
                         // When a null is assigned to a parent object, do not generate nondeterministic children
@@ -1098,6 +1098,11 @@ public class Indexer {
             }
         }
         return extendedValues.toArray();
+    }
+
+    @SuppressWarnings("unchecked")
+    private static Map<String, Object> castMapUnchecked(Object value) {
+        return (Map<String, Object>) value;
     }
 
     public Indexer onConflictIndexer() {
