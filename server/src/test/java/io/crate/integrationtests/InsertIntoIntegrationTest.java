@@ -1988,7 +1988,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
                 a int PRIMARY KEY,
                 b text,
                 o1 object as (
-                    sub int as round((random() + 1) * 100)
+                    sub as gen_random_text_uuid()
                 )
             )
             """
@@ -2003,11 +2003,10 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         // 2. If object column is not updated, it's supposed to be taken from the existing doc.
         //    Object was taken but sub-column used to be re-generated and merged into existing object.
         execute("SELECT o1['sub'] FROM tbl");
-        int generatedBeforeUpsert = (int) response.rows()[0][0];
-        assertThat(generatedBeforeUpsert).isGreaterThan(0);
+        String generatedBeforeUpsert = (String) response.rows()[0][0];
 
         // Some iterations to ensure it hits both primary and replica
-        // Ensure that non-deterministic sub-column is not re-genrated on replicas.
+        // Ensure that non-deterministic sub-column is not re-generated on replicas.
         for (int i = 0; i < 10; i++) {
             execute("SELECT o1['sub'] FROM tbl");
             assertThat(response.rows()[0][0]).isEqualTo(generatedBeforeUpsert);
@@ -2019,11 +2018,15 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         );
         execute("refresh table tbl");
 
+        execute("SELECT o1['sub'] FROM tbl");
+        String updatedGenerated = (String) response.rows()[0][0];
+        assertThat(updatedGenerated).isNotEqualTo(generatedBeforeUpsert);
+
         // Some iterations to ensure it hits both primary and replica
-        // Ensure that non-deterministic sub-column is not re-genrated on replicas.
+        // Ensure that non-deterministic sub-column is not re-generated on replicas.
         for (int i = 0; i < 10; i++) {
             execute("SELECT o1['sub'] FROM tbl");
-            assertThat(response.rows()[0][0]).isNotEqualTo(generatedBeforeUpsert).isNotNull();
+            assertThat(response.rows()[0][0]).isEqualTo(updatedGenerated);
         }
     }
 
