@@ -142,7 +142,7 @@ public final class UpdateToInsert {
 
     private final DocTableInfo table;
     private final Evaluator eval;
-    final List<Reference> updateColumns;
+    private final List<Reference> updateColumns;
     private final ArrayList<Reference> columns;
 
 
@@ -309,5 +309,9 @@ public final class UpdateToInsert {
 
     public List<Reference> columns() {
         return columns;
+    }
+
+    public List<Reference> updateColumns() {
+        return updateColumns;
     }
 }

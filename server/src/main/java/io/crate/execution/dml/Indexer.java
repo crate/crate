@@ -478,7 +478,7 @@ public class Indexer {
                 targetColumns
             );
             this.columns = this.updateToInsert.columns();
-            assignedColumns = this.updateToInsert.updateColumns;
+            assignedColumns = this.updateToInsert.updateColumns();
             this.indexOrder = indexOrder;
         } else { // insert
             this.onConflictIndexer = null;
