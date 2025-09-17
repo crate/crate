@@ -113,8 +113,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private String partitionIndexUUID;
 
     static class TestingTransportShardUpsertAction extends TransportShardUpsertAction {
-
-
         public TestingTransportShardUpsertAction(ThreadPool threadPool,
                                                  ClusterService clusterService,
                                                  TransportService transportService,
@@ -136,7 +134,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         }
 
         @Override
-        protected IndexItemResult insert(Indexer indexer,
+        protected IndexItemResult insert(RelationName tableName,
+                                         Indexer indexer,
                                          ShardUpsertRequest request,
                                          IndexItem item,
                                          IndexShard indexShard,
@@ -147,7 +146,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             throw new VersionConflictEngineException(
                 indexShard.shardId(),
                 item.id(),
-                "document with id: " + item.id() + " already exists in '" + request.shardId().getIndexName() + '\'');
+                "document with id: " + item.id() + " already exists in '" + request.shardId() + '\'');
         }
     }
 
@@ -187,6 +186,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         Schemas schemas = mock(Schemas.class);
         when(tableInfo.rootColumns()).thenReturn(Collections.<Reference>emptyList());
         when(tableInfo.versionCreated()).thenReturn(Version.CURRENT);
+        when(tableInfo.ident()).thenReturn(mock(RelationName.class));
         when(schemas.getTableInfo(any(RelationName.class))).thenReturn(tableInfo);
 
         var dynamicLongColRef = new SimpleReference(
@@ -281,7 +281,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ShardResponse response = result.response;
         assertThat(response.failures()).satisfiesExactly(
             f -> assertThat(f.error().getMessage()).isEqualTo(
-                "[1]: version conflict, document with id: 1 already exists in 'characters'"));
+                "[1]: version conflict, document with id: 1 already exists in '[characters][0]'"));
     }
 
     @Test

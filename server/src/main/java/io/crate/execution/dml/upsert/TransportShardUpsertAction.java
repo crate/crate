@@ -25,6 +25,7 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -85,10 +86,10 @@ import io.crate.metadata.doc.SysColumns;
  */
 @Singleton
 public class TransportShardUpsertAction extends TransportShardAction<
-        ShardUpsertRequest,
-        UpsertReplicaRequest,
-        ShardUpsertRequest.Item,
-        UpsertReplicaRequest.Item> {
+    ShardUpsertRequest,
+    UpsertReplicaRequest,
+    ShardUpsertRequest.Item,
+    UpsertReplicaRequest.Item> {
 
     private static final int MAX_RETRY_LIMIT = 100_000; // upper bound to prevent unlimited retries on unexpected states
     private final Schemas schemas;
@@ -130,7 +131,6 @@ public class TransportShardUpsertAction extends TransportShardAction<
     protected WritePrimaryResult<UpsertReplicaRequest, ShardResponse> processRequestItems(IndexShard indexShard,
                                                                                           ShardUpsertRequest request,
                                                                                           AtomicBoolean killed) {
-        ShardResponse shardResponse = new ShardResponse(request.returnValues());
         String indexName = request.shardId().getIndexName();
         DocTableInfo tableInfo = schemas.getTableInfo(RelationName.fromIndexName(indexName));
         TransactionContext txnCtx = TransactionContext.of(request.sessionSettings());
@@ -143,40 +143,17 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 insertColumns.add(updatedRef == null ? ref : updatedRef);
             }
         }
-
-        UpdateToInsert updateToInsert = null;
-        Indexer indexer;
-        ColumnIdent firstColumnIdent;
-        if (request.updateColumns() != null && request.updateColumns().length > 0) {
-            updateToInsert = new UpdateToInsert(
-                nodeCtx,
-                txnCtx,
-                tableInfo,
-                request.updateColumns(),
-                insertColumns
-            );
-            indexer = new Indexer(
-                request.shardId().getIndexName(),
-                tableInfo,
-                indexShard.getVersionCreated(),
-                txnCtx,
-                nodeCtx,
-                updateToInsert.columns(),
-                request.returnValues()
-            );
-            firstColumnIdent = indexer.columns().getFirst().column();
-        } else {
-            indexer = new Indexer(
-                indexName,
-                tableInfo,
-                indexShard.getVersionCreated(),
-                txnCtx,
-                nodeCtx,
-                insertColumns,
-                request.returnValues()
-            );
-            firstColumnIdent = indexer.columns().getFirst().column();
-        }
+        Indexer indexer = new Indexer(
+            indexName,
+            tableInfo,
+            indexShard.getVersionCreated(),
+            txnCtx,
+            nodeCtx,
+            insertColumns,
+            request.updateColumns(),
+            request.returnValues()
+        );
+        ColumnIdent firstColumnIdent = indexer.columns().getFirst().column();
 
         RawIndexer rawIndexer = null;
         if (firstColumnIdent.equals(SysColumns.RAW)) {
@@ -191,6 +168,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
             );
         }
 
+        ShardResponse shardResponse = new ShardResponse(request.returnValues());
         Translog.Location translogLocation = null;
         List<UpsertReplicaRequest.Item> replicaItems = new ArrayList<>();
         UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
@@ -201,7 +179,8 @@ public class TransportShardUpsertAction extends TransportShardAction<
             // to refine types. (undefined[] -> long[], with values being integer[])
             // Using the refined types can break streaming for the replica
             // See `test_dynamic_null_array_overridden_to_integer_becomes_null`
-            List.copyOf(indexer.insertColumns()),
+            indexer.onConflictIndexer() == null ?
+                List.copyOf(indexer.insertColumns()) : List.copyOf(indexer.onConflictIndexer().insertColumns()),
             replicaItems
         );
         for (ShardUpsertRequest.Item item : request.items()) {
@@ -218,15 +197,10 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 continue;
             }
             try {
-                IndexItemResult indexItemResult = indexItem(
-                    indexer,
-                    request,
-                    item,
-                    indexShard,
-                    tableInfo,
-                    updateToInsert,
-                    rawIndexer
-                );
+                boolean pureUpdate = item.insertValues() == null;
+                IndexItemResult indexItemResult = pureUpdate
+                    ? update(indexer, request, item, indexShard, tableInfo)
+                    : insertOrUpdate(indexer, request, item, indexShard, tableInfo, rawIndexer);
                 if (indexItemResult != null) {
                     IndexResult result = indexItemResult.result;
                     if (result.getTranslogLocation() != null) {
@@ -325,6 +299,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 txnCtx,
                 nodeCtx,
                 targetColumns,
+                null,
                 null
             );
         }
@@ -387,78 +362,39 @@ public class TransportShardUpsertAction extends TransportShardAction<
         return new WriteReplicaResult(location, indexShard);
     }
 
-    /**
-     * @param indexer is constantly used for:
-     * <ul>
-     *  <li>INSERT</li>
-     *  <li>INSERT... ON CONFLICT DO NOTHING</li>
-     *  <li></li>
-     * </ul>
-     * <p>
-     * @param updatingIndexer is constantly used for UPDATE.
-     * <p>
-     * INSERT... ON CONFLICT... DO UPDATE SET uses both indexers - for insert/update phases correspondingly.
-     */
     @Nullable
-    private IndexItemResult indexItem(Indexer indexer,
-                                      ShardUpsertRequest request,
-                                      ShardUpsertRequest.Item item,
-                                      IndexShard indexShard,
-                                      DocTableInfo tableInfo,
-                                      @Nullable UpdateToInsert updateToInsert,
-                                      @Nullable RawIndexer rawIndexer) throws Exception {
+    private IndexItemResult insertOrUpdate(Indexer indexer,
+                                           ShardUpsertRequest request,
+                                           ShardUpsertRequest.Item item,
+                                           IndexShard indexShard,
+                                           DocTableInfo tableInfo,
+                                           @Nullable RawIndexer rawIndexer) throws Exception {
         VersionConflictEngineException lastException = null;
-        Object[] insertValues = item.insertValues();
-        boolean tryInsertFirst = insertValues != null;
+        boolean fallBackToUpdate = false;
+        Indexer onConflictIndexer = null;
         boolean hasUpdate = item.updateAssignments() != null && item.updateAssignments().length > 0;
-        long seqNo = item.seqNo();
-        long primaryTerm = item.primaryTerm();
-        IndexItem indexItem = item;
         for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
             try {
                 boolean isRetry = retryCount > 0 || request.isRetry();
                 AtomicLong version = new AtomicLong();
-                if (tryInsertFirst) {
+                if (!fallBackToUpdate) {
                     version.setPlain(request.duplicateKeyAction() == DuplicateKeyAction.OVERWRITE
                         ? Versions.MATCH_ANY
                         : Versions.MATCH_DELETED);
-                } else {
-                    DocTableInfo actualTable = tableInfo;
-                    if (isRetry) {
-                        // Get most-recent table info, could have changed (new columns, dropped columns)
-                        actualTable = schemas.getTableInfo(tableInfo.ident());
-                    }
-                    assert updateToInsert != null;
-                    assert hasUpdate;
-                    String id = item.id();
-                    indexItem = PKLookupOperation.withDoc(
+                    return insert(
+                        tableInfo.ident(),
+                        indexer,
+                        request,
+                        item,
                         indexShard,
-                        id,
-                        item.version(),
-                        VersionType.INTERNAL,
-                        seqNo,
-                        primaryTerm,
-                        actualTable,
-                        null,
-                        doc -> {
-                            if (doc == null) {
-                                throw new DocumentMissingException(indexShard.shardId(), id);
-                            }
-                            version.setPlain(doc.getVersion());
-                            return updateToInsert.convert(doc, item.updateAssignments(), insertValues);
-                        }
+                        isRetry,
+                        rawIndexer,
+                        version.getPlain(),
+                        item.autoGeneratedTimestamp()
                     );
+                } else {
+                    return update(onConflictIndexer, request, item, indexShard, tableInfo);
                 }
-                return insert(
-                    indexer,
-                    request,
-                    indexItem,
-                    indexShard,
-                    isRetry,
-                    rawIndexer,
-                    version.getPlain(),
-                    item.autoGeneratedTimestamp()
-                );
             } catch (VersionConflictEngineException e) {
                 lastException = e;
                 if (request.duplicateKeyAction() == DuplicateKeyAction.IGNORE) {
@@ -466,11 +402,15 @@ public class TransportShardUpsertAction extends TransportShardAction<
                     return null;
                 }
                 if (hasUpdate) {
-                    if (tryInsertFirst) {
+                    if (!fallBackToUpdate) {
                         // insert failed, document already exists, try update
-                        tryInsertFirst = false;
+                        fallBackToUpdate = true;
+                        onConflictIndexer = indexer.onConflictIndexer();
+                        if (logger.isTraceEnabled()) {
+                            logger.trace("[{}] Insert conflict on id={}, falling back to UPDATE", indexShard.shardId(), item.id());
+                        }
                         continue;
-                    } else if (seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && item.version() == Versions.MATCH_ANY) {
+                    } else if (item.seqNo() == SequenceNumbers.UNASSIGNED_SEQ_NO && item.version() == Versions.MATCH_ANY) {
                         if (logger.isTraceEnabled()) {
                             logger.trace("[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
                                 indexShard.shardId(), item.id(), item.version(), retryCount);
@@ -491,12 +431,88 @@ public class TransportShardUpsertAction extends TransportShardAction<
         throw lastException;
     }
 
+    @Nullable
+    private IndexItemResult update(Indexer indexer,
+                                   ShardUpsertRequest request,
+                                   ShardUpsertRequest.Item item,
+                                   IndexShard indexShard,
+                                   DocTableInfo tableInfo) throws Exception {
+        VersionConflictEngineException lastException = null;
+        final long seqNo = item.seqNo();
+        final long primaryTerm = item.primaryTerm();
+        for (int retryCount = 0; retryCount < MAX_RETRY_LIMIT; retryCount++) {
+            try {
+                boolean isRetry = retryCount > 0 || request.isRetry();
+                AtomicLong version = new AtomicLong();
+                // Get most-recent table info, could have changed (new columns, dropped columns)
+                DocTableInfo actual = isRetry ? schemas.getTableInfo(tableInfo.ident()) : tableInfo;
+                String id = item.id();
+                Object[] excluded = item.insertValues();
+                final long startTime = System.nanoTime();
+                IndexItem newIndexItem = PKLookupOperation.withDoc(
+                    indexShard,
+                    id,
+                    item.version(),
+                    VersionType.INTERNAL,
+                    seqNo,
+                    primaryTerm,
+                    actual,
+                    null,
+                    doc -> {
+                        if (doc == null) {
+                            throw new DocumentMissingException(indexShard.shardId(), id);
+                        }
+                        version.setPlain(doc.getVersion());
+                        return indexer.updateToInsert(doc, item.updateAssignments(), excluded);
+                    }
+                );
+                List<Reference> newColumns = indexer.collectSchemaUpdates(newIndexItem);
+                if (newColumns.isEmpty() == false) {
+                    DocTableInfo actualTable = updateSchema(tableInfo.ident(), newColumns);
+                    indexer.updateTargets(actualTable);
+                }
+                ParsedDocument parsedDoc = indexer.index(newIndexItem);
+                Object[] replicaItems = indexer.addGeneratedValues(newIndexItem, false);
+                return indexParsedDoc(
+                    parsedDoc,
+                    newIndexItem.id(),
+                    indexer,
+                    newIndexItem,
+                    indexShard,
+                    replicaItems,
+                    isRetry,
+                    version.getPlain(),
+                    startTime,
+                    item.autoGeneratedTimestamp());
+            } catch (VersionConflictEngineException e) {
+                lastException = e;
+                if (seqNo == SequenceNumbers.UNASSIGNED_SEQ_NO && item.version() == Versions.MATCH_ANY) {
+                    if (logger.isTraceEnabled()) {
+                        logger.trace("[{}] VersionConflict, retrying operation for document id={}, version={} retryCount={}",
+                            indexShard.shardId(), item.id(), item.version(), retryCount);
+                    }
+                    continue;
+                }
+                throw e;
+            }
+        }
+        logger.warn(
+            "[{}] VersionConflict for document id={}, version={} exceeded retry limit of {}, will stop retrying",
+            indexShard.shardId(),
+            item.id(),
+            item.version(),
+            MAX_RETRY_LIMIT
+        );
+        throw lastException;
+    }
+
     public record IndexItemResult(IndexResult result,
                                   Object[] replicaInsertValues,
                                   @Nullable Object[] returnValues) {}
 
     @VisibleForTesting
-    protected IndexItemResult insert(Indexer indexer,
+    protected IndexItemResult insert(RelationName tableName,
+                                     Indexer indexer,
                                      ShardUpsertRequest request,
                                      IndexItem item,
                                      IndexShard indexShard,
@@ -508,29 +524,50 @@ public class TransportShardUpsertAction extends TransportShardAction<
         List<Reference> newColumns = rawIndexer == null
             ? indexer.collectSchemaUpdates(item)
             : rawIndexer.collectSchemaUpdates(item);
-        var relationName = RelationName.fromIndexName(indexShard.shardId().getIndexName());
         if (newColumns.isEmpty() == false) {
-            var addColumnRequest = new AddColumnRequest(
-                RelationName.fromIndexName(indexShard.shardId().getIndexName()),
-                newColumns,
-                Map.of(),
-                new IntArrayList(0)
-            );
-            addColumnAction.execute(addColumnRequest).get();
-            DocTableInfo actualTable = schemas.getTableInfo(relationName);
+            DocTableInfo actualTable = updateSchema(tableName, newColumns);
             if (rawIndexer == null) {
-                indexer.updateTargets(actualTable::getReference);
+                indexer.updateTargets(actualTable);
             } else {
-                rawIndexer.updateTargets(actualTable::getReference);
+                rawIndexer.updateTargets(actualTable);
             }
         }
 
         ParsedDocument parsedDoc = rawIndexer == null ? indexer.index(item) : rawIndexer.index();
-        Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
+        Object[] replicaInsertValues = rawIndexer == null ?
+            indexer.addGeneratedValues(item, false) : rawIndexer.addGeneratedValues(item);
+        return indexParsedDoc(
+            parsedDoc, item.id(), indexer, item, indexShard, replicaInsertValues, isRetry, version, startTime, autoGeneratedTimestamp);
+    }
+
+
+    private DocTableInfo updateSchema(RelationName tableName,
+                                      List<Reference> newColumns) throws InterruptedException, ExecutionException {
+        var addColumnRequest = new AddColumnRequest(
+            tableName,
+            newColumns,
+            Map.of(),
+            new IntArrayList(0)
+        );
+        addColumnAction.execute(addColumnRequest).get();
+        return schemas.getTableInfo(tableName);
+    }
+
+    private IndexItemResult indexParsedDoc(ParsedDocument parsedDocument,
+                                           String id,
+                                           Indexer indexer,
+                                           IndexItem item,
+                                           IndexShard indexShard,
+                                           Object[] replicaInsertValues,
+                                           boolean isRetry,
+                                           long version,
+                                           long startTime,
+                                           long autoGeneratedTimestamp) throws Exception {
+        Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(id));
         assert VersionType.INTERNAL.validateVersionForWrites(version);
         Engine.Index index = new Engine.Index(
             uid,
-            parsedDoc,
+            parsedDocument,
             SequenceNumbers.UNASSIGNED_SEQ_NO,
             indexShard.getOperationPrimaryTerm(),
             version,
@@ -545,13 +582,9 @@ public class TransportShardUpsertAction extends TransportShardAction<
         IndexResult result = indexShard.index(index);
         switch (result.getResultType()) {
             case SUCCESS:
-                Object[] replicaInsertValues = rawIndexer == null
-                    ? indexer.addGeneratedValues(item)
-                    : rawIndexer.addGeneratedValues(item);
-
                 // returnValues need to be generated based on updated item to get access to seqNo/term
-                Object[] returnValues = indexer.hasReturnValues()
-                    ? indexer.returnValues(new IndexItem.StaticItem(
+                Object[] returnValues = indexer.hasReturnValues() ?
+                    indexer.returnValues(new IndexItem.StaticItem(
                         item.id(),
                         item.pkValues(),
                         replicaInsertValues,

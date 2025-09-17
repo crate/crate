@@ -167,7 +167,7 @@ public final class Maps {
                                  String key,
                                  List<String> path,
                                  Object value) {
-        mergeInto(source, key, path, value, Map::put);
+        mergeInto(source, key, path, value, Map::put, true);
     }
 
     /**
@@ -178,18 +178,23 @@ public final class Maps {
                                  String key,
                                  List<String> path,
                                  Object value,
-                                 TriConsumer<Map<String, Object>, String, Object> writer) {
+                                 TriConsumer<Map<String, Object>, String, Object> writer,
+                                 boolean createPaths) {
         if (path.isEmpty()) {
             writer.accept(source, key, value);
         } else {
             if (source.containsKey(key)) {
                 Map<String, Object> contents = (Map<String, Object>) source.get(key);
                 if (contents == null) {
-                    contents = new HashMap<>();
-                    source.put(key, contents);
+                    if (createPaths) {
+                        contents = new HashMap<>();
+                        source.put(key, contents);
+                    } else {
+                        return;
+                    }
                 }
                 String nextKey = path.get(0);
-                mergeInto(contents, nextKey, path.subList(1, path.size()), value, writer);
+                mergeInto(contents, nextKey, path.subList(1, path.size()), value, writer, createPaths);
             } else {
                 writer.accept(source, key, nestedMaps(path, value));
             }
