@@ -47,6 +47,11 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a regression introduced in 5.10.11 that caused generated columns or
+  `DEFAULT` clauses to not be evaluated on an ``UPDATE`` or ``INSERT INTO (..)
+  ON CONFLICT`` statement, leading to documents containing `null`
+  values.
+
 - Fixed a race condition in the PostgreSQL wire protocol implementation that
   could lead to it swallowing outbound messages. This led to undefined client
   behavior and a memory leak on the server The JDBC client for example would
