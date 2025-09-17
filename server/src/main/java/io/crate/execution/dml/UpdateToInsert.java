@@ -19,7 +19,7 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.dml.upsert;
+package io.crate.execution.dml;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -34,8 +34,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.Id;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
-import io.crate.execution.dml.IndexItem;
-import io.crate.execution.dml.Indexer;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.BaseImplementationSymbolVisitor;
 import io.crate.expression.reference.Doc;
@@ -50,6 +48,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
+import io.crate.types.ObjectType;
 
 /**
  * Uses a stored document to convert an UPDATE into an absolute INSERT
@@ -192,17 +191,15 @@ public final class UpdateToInsert {
         if (insertColumns != null) {
             this.columns.addAll(insertColumns);
         }
-        for (var ref : table.defaultExpressionColumns()) {
-            if (!ref.defaultExpression().isDeterministic() && !this.columns.contains(ref)) {
-                this.columns.add(ref);
-            }
-        }
         for (var ref : table.generatedColumns()) {
-            if (!ref.isDeterministic() && !this.columns.contains(ref)) {
+            if (ref.column().isRoot() && !ref.isDeterministic() && !this.columns.contains(ref)) {
                 this.columns.add(ref);
             }
         }
         for (var ref : table.columns()) {
+            // The Indexer later on injects the generated column values
+            // We only include them here if they are provided in the `updateColumns` to validate
+            // that users provided the right value (otherwise they'd get ignored and we'd generate them later)
             if (ref instanceof GeneratedReference && !updateColumnList.contains(ref.column().fqn())) {
                 continue;
             }
@@ -249,14 +246,38 @@ public final class UpdateToInsert {
                 Symbol symbol = updateAssignments[updateIdx];
                 Object value = symbol.accept(eval, values).value();
                 assert ref.column().isRoot()
-                    : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
+                        : "If updateColumns.indexOf(reference-from-table.columns()) is >= 0 it must be a top level reference";
                 insertValues[i] = value;
             } else if (ref instanceof GeneratedReference genRef && !genRef.isDeterministic()) {
                 insertValues[i] = null;
-            } else if (ref.defaultExpression() != null && !ref.defaultExpression().isDeterministic()) {
-                insertValues[i] = null;
             } else {
                 insertValues[i] = ref.accept(eval, values).value();
+                // object columns' generated sub-columns' values are removed such that they can be re-generated while indexing.
+                if (ref.valueType().id() == ObjectType.ID) {
+                    for (var child : table.getLeafReferences(ref)) {
+                        if (!(child instanceof GeneratedReference genRef)) {
+                            continue;
+                        }
+                        // nondeterministic generated sub-columns must always be re-generated
+                        if (!genRef.isDeterministic() ||
+                                // deterministic generated sub-columns must be re-generated if its referenced-reference is updated
+                                genRef.referencedReferences().stream().anyMatch(referencedRef -> {
+                                    if (updateColumns.contains(referencedRef)) {
+                                        return true;
+                                    }
+                                    // a referenced-ref can be a child of another object, and it can be updated indirectly by an update to the parent.
+                                    for (ColumnIdent parent : referencedRef.column().parents()) {
+                                        if (updateColumns.contains(table.getReference(parent))) {
+                                            return true;
+                                        }
+                                    }
+                                    return false;
+                                })) {
+
+                            Maps.removeByPath((Map<String, Object>) insertValues[i], child.column().path());
+                        }
+                    }
+                }
             }
         }
         for (int i = 0; i < updateColumns.size(); i++) {
@@ -290,5 +311,9 @@ public final class UpdateToInsert {
 
     public List<Reference> columns() {
         return columns;
+    }
+
+    public List<Reference> updateColumns() {
+        return updateColumns;
     }
 }

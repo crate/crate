@@ -61,8 +61,7 @@ public class IndexDocumentBuilder {
         TranslogWriter translogWriter,
         ValueIndexer.Synthetics synthetics,
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
-        Version tableVersionCreated
-    ) {
+        Version tableVersionCreated) {
         this(
             new Document(),
             translogWriter,
@@ -81,8 +80,7 @@ public class IndexDocumentBuilder {
         Map<ColumnIdent, Indexer.ColumnConstraint> constraints,
         Version tableVersionCreated,
         boolean addStoredField,
-        boolean addArrayLengthField
-    ) {
+        boolean addArrayLengthField) {
         this.doc = doc;
         this.translogWriter = translogWriter;
         this.synthetics = synthetics;

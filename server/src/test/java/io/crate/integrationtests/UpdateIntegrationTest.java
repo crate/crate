@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.assertj.core.api.Fail.fail;
 
 import java.util.HashMap;
 import java.util.List;
@@ -1133,5 +1134,483 @@ public class UpdateIntegrationTest extends IntegTestCase {
 
         execute("update test set a = a + 98");
         assertThat(response).hasRowCount(1);
+    }
+
+    @Test
+    public void test_update_does_not_modify_unassigned_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set i=33, o['i']=66, o['o']['i']=99, c=1010");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 33| {a=4, b=5, i=66, o={a=7, b=8, i=99}}| 1010");
+    }
+
+    @Test
+    public void test_can_assign_values_to_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set a=11, b=22, i=33, o={a=44, b=55, i=66, o={a=77, b=88, i=99}}, c=1010");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| 22| 33| {a=44, b=55, i=66, o={a=77, b=88, i=99}}| 1010");
+
+        execute("update t set a=1, b=2, i=3, o={a=4, b=5, i=6, o={a=7, b=8, i=9}}, c=10 returning *");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+    }
+
+    @Test
+    public void test_can_assign_values_to_default_columns_via_subscript_expressions() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set o['a']=44, o['b']=55, o['i']=66, o['o']['a']=77, o['o']['b']=88, o['o']['i']=99, c=1010");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=44, b=55, i=66, o={a=77, b=88, i=99}}| 1010");
+    }
+
+    @Test
+    public void test_can_assign_object_containing_default_sub_columns_to_empty_object() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set o['o']={}");
+        execute("refresh table t");
+        execute("select o['o']['a'], o['o']['b']>=0, o['o']['i'] from t");
+        assertThat(response).hasRows("-1| true| NULL");
+        execute("select a, b, i, o['a'], o['b'], o['i'] from t");
+        assertThat(response).hasRows("1| 2| 3| 4| 5| 6"); // unchanged
+
+        execute("update t set o={}");
+        execute("refresh table t");
+        execute("select o['a'], o['b']>=0, o['i'], o['o']['a'], o['o']['b']>=0, o['o']['i'] from t");
+        assertThat(response).hasRows("-1| true| NULL| -1| true| NULL");
+        execute("select a, b, i from t");
+        assertThat(response).hasRows("1| 2| 3"); // unchanged
+
+        // updating the parent object to an empty object must re-generate nondeterministic sub-columns
+        // looping just in case the random values happened to be the same
+        execute("select o['b'], o['o']['b'] from t");
+        int ob = (int) response.rows()[0][0];
+        int oob = (int) response.rows()[0][0];
+        for (int i = 0; i < 5; i++) {
+            try {
+                execute("update t set o={} returning o['b'], o['o']['b']");
+                assertThat(response.rows()[0][0]).isNotEqualTo(ob).isNotNull();
+                assertThat(response.rows()[0][1]).isNotEqualTo(oob).isNotNull();
+                return;
+            } catch (AssertionError e) {
+            }
+        }
+        fail();
+    }
+
+    @Test
+    public void test_can_assign_object_containing_default_sub_columns_to_null() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set o['o']=null");
+        execute("refresh table t");
+        execute("select o['o']['a'], o['o']['b'], o['o']['i'] from t");
+        assertThat(response).hasRows("NULL| NULL| NULL");
+        execute("select a, b, i, o['a'], o['b'], o['i'] from t");
+        assertThat(response).hasRows("1| 2| 3| 4| 5| 6"); // unchanged
+
+        execute("update t set o=null");
+        execute("refresh table t");
+        execute("select o['a'], o['b'], o['i'], o['o']['a'], o['o']['b'], o['o']['i'] from t");
+        assertThat(response).hasRows("NULL| NULL| NULL| NULL| NULL| NULL");
+        execute("select a, b, i from t");
+        assertThat(response).hasRows("1| 2| 3"); // unchanged
+    }
+
+    @Test
+    public void test_can_assign_default_columns_to_null() {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (1, 2, 3, {a=4, b=5, i=6, o={a=7, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 10");
+
+        execute("update t set a=null, b=null, o['a']=null, o['b']=null, o['o']['a']=null, o['o']['b']=null");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("NULL| NULL| 3| {a=NULL, b=NULL, i=6, o={a=NULL, b=NULL, i=9}}| 10");
+    }
+
+    @Test
+    public void test_update_regenerates_unassigned_generated_columns() {
+        // update stmt regenerates generated columns if the source columns are updated
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (11, -1, 1, {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");
+
+        execute("update t set c=100");
+        execute("refresh table t");
+        execute("select a, i, o['a'], o['i'], o['o']['a'], o['o']['i'], c from t");
+        assertThat(response).hasRows("101| 1| 101| 1| 101| 1| 100");
+        execute("select b=-1, o['b']=-1, o['o']['b']=-1 from t"); // nondeterministic generated columns are re-generated
+        assertThat(response).hasRows("false| false| false");
+
+        execute("update t set b=-1, i=1, o={b=-1, i=1, o={b=-1, i=1}}, c=10");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");
+
+        execute("update t set b=null, o=null");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| NULL| 1| NULL| 10");
+    }
+
+    @Test
+    public void test_assign_object_column_containing_generated_sub_columns_to_null() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (11, -1, 1, {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");
+
+        execute("update t set o['o']=null");
+        execute("refresh table t");
+        execute("select o['o']['a'], o['o']['b'], o['o']['i'] from t");
+        assertThat(response).hasRows("NULL| NULL| NULL");
+        execute("select a, o['a'], i, o['i'] from t");
+        assertThat(response).hasRows("11| 11| 1| 1"); // unchanged
+        execute("select b!=-1, o['b']!=-1 from t");
+        assertThat(response).hasRows("true| true"); // changed
+
+        execute("update t set b=-1");
+        execute("refresh table t");
+
+        execute("update t set o=null");
+        execute("refresh table t");
+        execute("select o['a'], o['b'], o['i'], o['o']['a'], o['o']['b'], o['o']['i'] from t");
+        assertThat(response).hasRows("NULL| NULL| NULL| NULL| NULL| NULL");
+        execute("select a, i from t");
+        assertThat(response).hasRows("11| 1"); // unchanged
+        execute("select b!=-1 from t");
+        assertThat(response).hasRows("true"); // changed
+    }
+
+    @Test
+    public void test_assign_object_column_containing_generated_sub_columns_to_null_and_update_referenced_ref() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (11, -1, 1, {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| -1| 1| {a=11, b=-1, i=1, o={a=11, b=-1, i=1}}| 10");
+
+        execute("update t set o['o']=null, c=100"); // since c=100, a, o['a'], ['o']['a'] must be updated
+        execute("refresh table t");
+        execute("select o['o']['a'], o['o']['b'], o['o']['i'] from t");
+        assertThat(response).hasRows("NULL| NULL| NULL"); // o['o']['a'] cannot be generated when the parent obj is null
+        execute("select i, o['i'] from t");
+        assertThat(response).hasRows("1| 1"); // unchanged
+        execute("select b!=-1, o['b']!=-1, a, o['a'] from t");
+        assertThat(response).hasRows("true| true| 101| 101"); // changed
+
+        execute("update t set b=-1");
+        execute("refresh table t");
+
+        execute("update t set o=null, c=100"); // since c=100, a, o['a'], ['o']['a'] must be updated
+        execute("refresh table t");
+        execute("select o['a'], o['b'], o['i'], o['o']['a'], o['o']['b'], o['o']['i'] from t");
+        assertThat(response).hasRows("NULL| NULL| NULL| NULL| NULL| NULL"); // o['a'], o['o']['a'] cannot be generated when the parent obj is null
+        execute("select i from t");
+        assertThat(response).hasRows("1"); // unchanged
+        execute("select b!=-1, a from t");
+        assertThat(response).hasRows("true| 101"); // changed
+    }
+
+    @Test
+    public void test_can_assign_to_generated_columns() {
+        // any values to nondeterministic generated columns and only valid values to deterministic generated columns
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (11, 2, 3, {a=11, b=5, i=6, o={a=11, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| 2| 3| {a=11, b=5, i=6, o={a=11, b=8, i=9}}| 10");
+
+        execute("update t set a=101, b=22, i=33, o={a=101, b=55, i=66, o={a=101, b=88, i=99}}, c=100");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("101| 22| 33| {a=101, b=55, i=66, o={a=101, b=88, i=99}}| 100");
+
+        execute("update t set a=11, b=2, i=3, o={a=11, b=5, i=6, o={a=11, b=8, i=9}}, c=10 returning *");
+        assertThat(response).hasRows("11| 2| 3| {a=11, b=5, i=6, o={a=11, b=8, i=9}}| 10");
+    }
+
+    @Test
+    public void test_can_assign_to_generated_columns_via_subscript_expression() {
+        // any values to nondeterministic generated columns and only valid values to deterministic generated columns
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (11, 2, 3, {a=11, b=5, i=6, o={a=11, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| 2| 3| {a=11, b=5, i=6, o={a=11, b=8, i=9}}| 10");
+
+        // nondeterministic generated columns are always re-generated: b, o['b'] or can be assigned: o['o']['b']
+        execute("update t set o['o']['a']=11, o['o']['b']=12, o['o']['i']=13 returning b=-1, o['b']=-1, o['o']");
+        assertThat(response).hasRows("false| false| {a=11, b=12, i=13}");
+    }
+
+    @Test
+    public void test_can_assign_nondeterministic_generated_columns_to_null() {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        execute("insert into t values (11, 2, 3, {a=11, b=5, i=6, o={a=11, b=8, i=9}}, 10)");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| 2| 3| {a=11, b=5, i=6, o={a=11, b=8, i=9}}| 10");
+
+        execute("update t set b=null, o['b']=null, o['o']['b']=null");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("11| NULL| 3| {a=11, b=NULL, i=6, o={a=11, b=NULL, i=9}}| 10");
+    }
+
+    @Test
+    public void test_generated_column_referencing_sub_column_of_another_object() {
+        execute("create table t (a int, o object as (a int, b int as a+o['a']+o2['c']), o2 object as (c int))");
+        execute("insert into t values (1, {a=10}, {c=20})");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| {a=10, b=31}| {c=20}");
+
+        execute("update t set o2['c']=100");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| {a=10, b=111}| {c=100}");
+
+        // indirectly updating o2['c']
+        execute("update t set o2={c=200}");
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("1| {a=10, b=211}| {c=200}");
     }
 }
