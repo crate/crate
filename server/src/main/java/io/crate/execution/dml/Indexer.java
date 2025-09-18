@@ -188,9 +188,18 @@ public class Indexer {
             }
             int pkIndex = table.primaryKey().indexOf(column);
             if (pkIndex > -1) {
-                return NestableCollectExpression.forFunction(item ->
-                    ref.valueType().implicitCast(item.pkValues().get(pkIndex))
-                );
+                return NestableCollectExpression.forFunction(item -> {
+                    // create table t (a int generated always as c+1, b int, c int primary key);
+                    // insert into t(c) values (0);
+                    // update t set b=-1;
+                    // when replicating the UPDATE query, 'a' needs to resolve 'c' which is PK and is not available in
+                    // item.pkValues(), fall back to search targetColumns.
+                    if (pkIndex < item.pkValues().size()) {
+                        return ref.valueType().implicitCast(item.pkValues().get(pkIndex));
+                    } else {
+                        return item.insertValues()[targetColumns.indexOf(ref)];
+                    }
+                });
             }
             int index = targetColumns.indexOf(ref);
             if (index > -1) {
