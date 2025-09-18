@@ -32,6 +32,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.shard.ShardId;
@@ -322,9 +323,11 @@ public class BlobStoreIncrementalityIT extends AbstractSnapshotIntegTestCase {
                                                                   final SnapshotInfo snapshotInfo) throws Exception {
         BlobStoreRepository repository = (BlobStoreRepository) repositoriesService.repository(repositoryName);
         RepositoryData repositoryData = getRepositoryData(repository);
+        Metadata snapshotMetadata = repository.getSnapshotGlobalMetadata(snapshotInfo.snapshotId()).get(5, TimeUnit.SECONDS);
 
         final Map<ShardId, IndexShardSnapshotStatus> shardStatus = new HashMap<>();
         Collection<IndexMetadata> indexMetadataList = repository.getSnapshotIndexMetadata(
+                snapshotMetadata,
                 repositoryData,
                 snapshotInfo.snapshotId(),
                 snapshotInfo.indexNames().stream().map(repositoryData::resolveIndexId).toList()
