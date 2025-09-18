@@ -17,7 +17,7 @@ pipeline {
           agent { label 'small' }
           steps {
             sh 'git clean -xdff'
-	    checkout scm
+            checkout scm
             sh './blackbox/bin/sphinx'
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }
@@ -30,7 +30,7 @@ pipeline {
           steps {
             sh 'git clean -xdff'
             checkout scm
-            sh './mvnw compile'
+            sh './mvnw -T1C compile'
             sh '''
               x=(~/.m2/jdks/jdk-$(./mvnw help:evaluate -Dexpression=versions.jdk -q -DforceStdout)*); JAVA_HOME="$x/" ./mvnw test \
                 -DforkCount=8 \
