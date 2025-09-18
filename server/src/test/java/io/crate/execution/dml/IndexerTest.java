@@ -34,6 +34,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -1552,6 +1553,33 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         StoredField storedField = (StoredField) storedFields.getFirst();
         assertThat(storedField.name()).isEqualTo("_array_values_1");
         assertThat(storedField.binaryValue().utf8ToString()).isEqualTo("{\"1\":[{\"2\":[{\"3\":1}]}]}");
+    }
+
+    @Test
+    public void test_replica_indexer_for_update_on_generated_column_referencing_pk_column() throws IOException {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table t (
+                a int generated always as c+1,
+                b int,
+                c int primary key
+            )
+            """
+            );
+        DocTableInfo table = executor.resolveTableInfo("t");
+
+        // captures the indexer state and the item when `update t set b=-1` is streamed to a replica indexer
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            new ArrayList<>(List.of(table.getReference(ColumnIdent.of("b")), table.getReference(ColumnIdent.of("c")))),
+            null, null
+        );
+        var item = new IndexItem.StaticItem("0", List.of(), new Object[]{-1, 0}, 0L, 0L);
+        indexer.collectSchemaUpdates(item); // checks that it does not throw any IndexOutOfBoundsExceptions
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
