@@ -235,6 +235,9 @@ public final class SourceParser {
                 values.put(fieldName, value);
             }
         }
+        if (values.isEmpty() && requiredColumns.isEmpty() == false) {
+            requiredColumns.keySet().forEach(key -> values.put(key, null));
+        }
         return values;
     }
 
