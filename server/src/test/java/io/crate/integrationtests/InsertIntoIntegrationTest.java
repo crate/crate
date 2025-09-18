@@ -48,6 +48,7 @@ import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.randomizedtesting.annotations.Repeat;
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
@@ -59,6 +60,7 @@ import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(minNumDataNodes = 2)
+@Seed("5916EC967261019A")
 public class InsertIntoIntegrationTest extends IntegTestCase {
 
     private final Setup setup = new Setup(sqlExecutor);
