@@ -169,7 +169,7 @@ public class ChildMemoryCircuitBreaker implements CircuitBreaker {
                     ByteSizeValue.humanReadableBytes(memoryBytesLimit)
                 );
             }
-            if (memoryBytesLimit > 0 && newUsed > memoryBytesLimit) {
+            if (memoryBytesLimit > 0 && newUsed > memoryBytesLimit || label.contains("mergeOnHandler")) {
                 logger.warn(
                     "[{}] New used memory {} [{}] for data of [{}] would be larger than configured breaker: {} [{}], breaking",
                     this.name,
