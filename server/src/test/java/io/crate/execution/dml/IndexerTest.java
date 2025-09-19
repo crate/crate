@@ -648,33 +648,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_fields_are_omitted_in_source_for_null_values() throws Exception {
-        SQLExecutor e = SQLExecutor.of(clusterService)
-            .addTable("create table tbl (x int, o object as (y int))");
-
-        DocTableInfo table = e.resolveTableInfo("tbl");
-        Indexer indexer = new Indexer(
-            table.ident().indexNameOrAlias(),
-            table,
-            Version.CURRENT,
-            new CoordinatorTxnCtx(e.getSessionSettings()),
-            e.nodeCtx,
-            List.of(
-                table.getReference(ColumnIdent.of("x")),
-                table.getReference(ColumnIdent.of("o"))
-            ),
-            null, null
-        );
-
-        HashMap<String, Object> o = new HashMap<>();
-        o.put("y", null);
-        ParsedDocument doc = indexer.index(item(null, o));
-        assertThat(source(doc, table)).isEqualTo(
-            "{\"o\":{}}"
-        );
-    }
-
-    @Test
     public void test_indexing_float_results_in_float_field() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x float)");
@@ -1580,6 +1553,41 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         );
         var item = new IndexItem.StaticItem("0", List.of(), new Object[]{-1, 0}, 0L, 0L);
         indexer.collectSchemaUpdates(item); // checks that it does not throw any IndexOutOfBoundsExceptions
+    }
+
+    @Test
+    public void test_null_valued_sub_columns_are_stored() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table t (
+                    o object as (a int, b int as o['a']+1, c int)
+                )
+                """
+            );
+        DocTableInfo table = executor.resolveTableInfo("t");
+
+        Indexer indexer = new Indexer(
+            table.ident().indexNameOrAlias(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            new ArrayList<>(List.of(table.getReference(ColumnIdent.of("o")))),
+            null, null
+        );
+        // update t set o['a']=null, o['c']=1
+        ParsedDocument parsedDocument = indexer.index(item(MapBuilder.newMapBuilder().put("a", null).put("c", 1).map()));
+        assertThat(source(parsedDocument, table)).isEqualTo("{\"o\":{\"a\":null,\"b\":null,\"c\":1}}");
+
+        // notice null valued sub-columns and non-null sub-columns are persisted differently
+        Map<String, Object> storedValue = new HashMap<>();
+        storedValue.put("a", null);
+        storedValue.put("b", null);
+        assertThat(parsedDocument.doc().getField("1").binaryValue()) // "1" is the oid for 'o'
+            .isEqualTo(ObjectIndexer.toBytes(storedValue, Version.CURRENT).toBytesRef());
+        assertThat(parsedDocument.doc().getField("4").numericValue()).isEqualTo(1); // "4" is the oid for 'c'
+
+        assertTranslogParses(parsedDocument, table);
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {

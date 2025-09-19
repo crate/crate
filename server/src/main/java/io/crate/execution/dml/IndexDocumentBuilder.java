@@ -104,12 +104,8 @@ public class IndexDocumentBuilder {
         return translogWriter;
     }
 
-    /**
-     * @return a generated value for the given column if one exists, otherwise null
-     */
-    public Object getSyntheticValue(ColumnIdent columnIdent) {
-        Input<Object> input = synthetics.get(columnIdent);
-        return input == null ? null : input.value();
+    public Input<Object> getSynthetic(ColumnIdent columnIdent) {
+        return synthetics.get(columnIdent);
     }
 
     /**
