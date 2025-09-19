@@ -59,6 +59,7 @@ import org.junit.rules.TemporaryFolder;
 import org.locationtech.spatial4j.shape.Point;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
+import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.analyze.validator.SemanticSortValidator;
@@ -1331,6 +1332,7 @@ public class TransportSQLActionTest extends IntegTestCase {
     }
 
     @Test
+    @Repeat(iterations = 200)
     public void testSelectFailingSearchScript() throws Exception {
         execute("create table t (i integer, l long, d double) clustered into 1 shards with (number_of_replicas=0)");
         ensureYellow();
