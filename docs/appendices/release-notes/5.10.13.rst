@@ -59,3 +59,6 @@ Fixes
 - Fixed an issue that caused ``ArrayIndexOutOfBoundsExeption`` when executing
   ``COPY FROM`` on a table containing non-deterministic generated or default
   columns.
+
+- Fixed an issue where null-valued sub-columns of objects were omitted when
+  queried.
