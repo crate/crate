@@ -131,6 +131,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 columnsToStore.put(k, v);
             }
             if (v == null) {
+                translogWriter.writeFieldName(k);
+                translogWriter.writeValue(v);
                 columnsToStore.put(k, null);
             }
         });
