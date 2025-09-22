@@ -35,6 +35,7 @@ import org.mockito.Answers;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row1;
+import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
@@ -50,9 +51,12 @@ public class ResultSetReceiverTest {
     public void testChannelIsPeriodicallyFlushedToAvoidConsumingTooMuchMemory() {
         Channel channel = mock(Channel.class, Answers.RETURNS_DEEP_STUBS);
         when(channel.isWritable()).thenReturn(true);
+        DelayableWriteChannel delayableWriteChannel = new DelayableWriteChannel(channel);
+        DelayedWrites delayWrites = delayableWriteChannel.delayWrites();
         ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
             "select * from t",
-            channel,
+            delayableWriteChannel,
+            delayWrites,
             AccessControl.DISABLED,
             Collections.singletonList(PGTypes.get(DataTypes.INTEGER)),
             null
@@ -67,9 +71,12 @@ public class ResultSetReceiverTest {
     @Test
     public void test_channel_is_flushed_if_not_writable_anymore() {
         Channel channel = mock(Channel.class, Answers.RETURNS_DEEP_STUBS);
+        DelayableWriteChannel delayableWriteChannel = new DelayableWriteChannel(channel);
+        DelayedWrites delayWrites = delayableWriteChannel.delayWrites();
         ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
             "select * from t",
-            channel,
+            delayableWriteChannel,
+            delayWrites,
             AccessControl.DISABLED,
             Collections.singletonList(PGTypes.get(DataTypes.INTEGER)),
             null
@@ -100,9 +107,12 @@ public class ResultSetReceiverTest {
                 return promise;
             }
         };
+        DelayableWriteChannel delayableWriteChannel = new DelayableWriteChannel(channel);
+        DelayedWrites delayWrites = delayableWriteChannel.delayWrites();
         ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
             "select * from t",
-            channel,
+            delayableWriteChannel,
+            delayWrites,
             AccessControl.DISABLED,
             Collections.singletonList(PGTypes.get(DataTypes.INTEGER)),
             null
