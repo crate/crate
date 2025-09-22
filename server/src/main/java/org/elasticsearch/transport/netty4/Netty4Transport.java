@@ -277,7 +277,8 @@ public class Netty4Transport extends TcpTransport {
             maybeInjectSSL(ch);
             ch.pipeline().addLast("logging", loggingHandler);
             // using a dot as a prefix means this cannot come from any settings parsed
-            ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, Netty4Transport.this));
+            var handler = new Netty4MessageChannelHandler(pageCacheRecycler, Netty4Transport.this);
+            ch.pipeline().addLast("dispatcher", handler);
         }
 
         @Override
@@ -319,7 +320,8 @@ public class Netty4Transport extends TcpTransport {
             ch.attr(CHANNEL_KEY).set(nettyTcpChannel);
             serverAcceptedChannel(nettyTcpChannel);
             ch.pipeline().addLast("logging", loggingHandler);
-            ch.pipeline().addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, Netty4Transport.this));
+            var handler = new Netty4MessageChannelHandler(pageCacheRecycler, Netty4Transport.this);
+            ch.pipeline().addLast("dispatcher", handler);
         }
 
         @Override

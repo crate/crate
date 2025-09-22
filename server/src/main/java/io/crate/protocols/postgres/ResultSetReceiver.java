@@ -29,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
-import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.session.BaseResultReceiver;
 import io.netty.channel.Channel;
@@ -38,11 +37,9 @@ import io.netty.channel.ChannelFuture;
 class ResultSetReceiver extends BaseResultReceiver {
 
     private final String query;
-    private final DelayableWriteChannel channel;
+    private final Channel channel;
     private final List<PGType<?>> columnTypes;
     private final AccessControl accessControl;
-    private final Channel directChannel;
-    private final DelayedWrites delayedWrites;
 
     @Nullable
     private final FormatCodes.FormatCode[] formatCodes;
@@ -50,15 +47,12 @@ class ResultSetReceiver extends BaseResultReceiver {
     private long rowCount = 0;
 
     ResultSetReceiver(String query,
-                      DelayableWriteChannel channel,
-                      DelayedWrites delayedWrites,
+                      Channel channel,
                       AccessControl accessControl,
                       List<PGType<?>> columnTypes,
                       @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
-        this.delayedWrites = delayedWrites;
-        this.directChannel = channel.bypassDelay();
         this.accessControl = accessControl;
         this.columnTypes = columnTypes;
         this.formatCodes = formatCodes;
@@ -73,9 +67,9 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Nullable
     public CompletableFuture<Void> setNextRow(Row row) {
         rowCount++;
-        ChannelFuture sendDataRow = Messages.sendDataRow(directChannel, row, columnTypes, formatCodes);
+        ChannelFuture sendDataRow = Messages.sendDataRow(channel, row, columnTypes, formatCodes);
         CompletableFuture<Void> future;
-        boolean isWritable = directChannel.isWritable();
+        boolean isWritable = channel.isWritable();
         if (isWritable) {
             future = null;
         } else {
@@ -95,36 +89,33 @@ class ResultSetReceiver extends BaseResultReceiver {
         // Flush the channel only every 1000 rows for better performance.
         // But flushing must be forced once the channel outbound buffer is full (= channel not in writable state)
         if (isWritable == false || rowCount % 1000 == 0) {
-            directChannel.flush();
+            channel.flush();
         }
         return future;
     }
 
     @Override
     public void batchFinished() {
-        ChannelFuture sendPortalSuspended = Messages.sendPortalSuspended(directChannel);
-        channel.writePendingMessages(delayedWrites);
+        ChannelFuture sendPortalSuspended = Messages.sendPortalSuspended(channel);
         channel.flush();
 
         // Trigger the completion future but by-pass `sendCompleteComplete`
         // This resultReceiver shouldn't be used anymore. The next `execute` message
         // from the client will create a new one.
-        sendPortalSuspended.addListener(f -> super.allFinished());
+        sendPortalSuspended.addListener(_ -> super.allFinished());
     }
 
     @Override
     public void allFinished() {
-        ChannelFuture sendCommandComplete = Messages.sendCommandComplete(directChannel, query, rowCount);
-        channel.writePendingMessages(delayedWrites);
+        ChannelFuture sendCommandComplete = Messages.sendCommandComplete(channel, query, rowCount);
         channel.flush();
-        sendCommandComplete.addListener(f -> super.allFinished());
+        sendCommandComplete.addListener(_ -> super.allFinished());
     }
 
     @Override
     public void fail(@NotNull Throwable throwable) {
-        ChannelFuture sendErrorResponse = Messages.sendErrorResponse(directChannel, accessControl, throwable);
-        channel.writePendingMessages(delayedWrites);
+        ChannelFuture sendErrorResponse = Messages.sendErrorResponse(channel, accessControl, throwable);
         channel.flush();
-        sendErrorResponse.addListener(f -> super.fail(throwable));
+        sendErrorResponse.addListener(_ -> super.fail(throwable));
     }
 }
