@@ -70,7 +70,6 @@ import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
-import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 
@@ -168,7 +167,6 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         }
         var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup();
         bootstrap = NettyBootstrap.newServerBootstrap(settings, eventLoopGroup);
-        bootstrap.childOption(ChannelOption.AUTO_READ, false);
         inboundStatsHandler = new Netty4InboundStatsHandler(statsTracker, LOGGER);
         outboundStatsHandler = new Netty4OutboundStatsHandler(statsTracker, LOGGER);
 
@@ -189,8 +187,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                     chPipeline -> {
                         var nettyTcpChannel = new CloseableChannel(ch, true);
                         ch.attr(Netty4Transport.CHANNEL_KEY).set(nettyTcpChannel);
-                        var handler = new Netty4MessageChannelHandler(pageCacheRecycler, transport, false);
-                        chPipeline.addLast("dispatcher", handler);
+                        chPipeline.addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, transport));
                     },
                     authentication,
                     sslContextProvider
