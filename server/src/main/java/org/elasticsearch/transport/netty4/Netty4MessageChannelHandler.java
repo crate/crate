@@ -43,9 +43,17 @@ public final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
 
     private final Netty4Transport transport;
     private final InboundPipeline pipeline;
+    private final boolean autoRead;
 
     public Netty4MessageChannelHandler(PageCacheRecycler recycler, Netty4Transport transport) {
+        this(recycler, transport, true);
+    }
+
+    /// @param autoRead indicates if the underlying serverBootstrap/channel uses autoRead.
+    ///                 if false, this handler will call ctx.read() explicitly after each channelRead
+    public Netty4MessageChannelHandler(PageCacheRecycler recycler, Netty4Transport transport, boolean autoRead) {
         this.transport = transport;
+        this.autoRead = autoRead;
         final ThreadPool threadPool = transport.getThreadPool();
         final Transport.RequestHandlers requestHandlers = transport.getRequestHandlers();
         this.pipeline = new InboundPipeline(
@@ -69,6 +77,9 @@ public final class Netty4MessageChannelHandler extends ChannelDuplexHandler {
         final BytesReference wrapped = Netty4Utils.toBytesReference(buffer);
         try (ReleasableBytesReference reference = new ReleasableBytesReference(wrapped, buffer::release)) {
             pipeline.handleBytes(channel, reference);
+        }
+        if (!autoRead) {
+            ctx.read();
         }
     }
 

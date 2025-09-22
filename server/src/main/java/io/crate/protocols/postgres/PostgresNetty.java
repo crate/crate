@@ -58,7 +58,6 @@ import org.jetbrains.annotations.Nullable;
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;
 
-import io.crate.session.Sessions;
 import io.crate.auth.Authentication;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.netty.NettyBootstrap;
@@ -66,10 +65,12 @@ import io.crate.protocols.ConnectionStats;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.protocols.ssl.SslSettings;
 import io.crate.role.Roles;
+import io.crate.session.Sessions;
 import io.crate.types.DataTypes;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
+import io.netty.channel.ChannelOption;
 import io.netty.channel.ChannelPipeline;
 import io.netty.handler.ssl.SslContext;
 
@@ -167,6 +168,7 @@ public class PostgresNetty extends AbstractLifecycleComponent {
         }
         var eventLoopGroup = nettyBootstrap.getSharedEventLoopGroup();
         bootstrap = NettyBootstrap.newServerBootstrap(settings, eventLoopGroup);
+        bootstrap.childOption(ChannelOption.AUTO_READ, false);
         inboundStatsHandler = new Netty4InboundStatsHandler(statsTracker, LOGGER);
         outboundStatsHandler = new Netty4OutboundStatsHandler(statsTracker, LOGGER);
 
@@ -187,7 +189,8 @@ public class PostgresNetty extends AbstractLifecycleComponent {
                     chPipeline -> {
                         var nettyTcpChannel = new CloseableChannel(ch, true);
                         ch.attr(Netty4Transport.CHANNEL_KEY).set(nettyTcpChannel);
-                        chPipeline.addLast("dispatcher", new Netty4MessageChannelHandler(pageCacheRecycler, transport));
+                        var handler = new Netty4MessageChannelHandler(pageCacheRecycler, transport, false);
+                        chPipeline.addLast("dispatcher", handler);
                     },
                     authentication,
                     sslContextProvider
