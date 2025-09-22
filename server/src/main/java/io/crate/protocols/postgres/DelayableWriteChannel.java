@@ -316,7 +316,7 @@ public class DelayableWriteChannel implements Channel {
         }
     }
 
-    public DelayedWrites delayWrites() {
+    public synchronized DelayedWrites delayWrites() {
         DelayedWrites delayedWrites = new DelayedWrites(delay);
         delay = delayedWrites;
         return delayedWrites;
