@@ -47,6 +47,11 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a regression introduced in 5.10.11 that caused generated columns or
+  `DEFAULT` clauses to not be evaluated on an ``UPDATE`` or ``INSERT INTO (..)
+  ON CONFLICT`` statement, leading to documents containing `null`
+  values.
+
 - Fixed a race condition in the PostgreSQL wire protocol implementation that
   could lead to it swallowing outbound messages. This led to undefined client
   behavior and a memory leak on the server The JDBC client for example would
@@ -86,6 +91,9 @@ Fixes
 
 - Fixed an issue that caused a ``NullPointerException`` when inserting ``NULL``
   to an object column with a non-deterministic sub-column.
+
+- Fixed an issue that caused an ``IndexOutOfBoundsException`` when updating
+  a ``generated column`` that references a ``PRIMARY KEY`` column.
 
 - Fixed the usage of the ``FORCE_MERGE`` thread pool to support parallel shard
   operations per node when increasing the pools size. As the default size is
