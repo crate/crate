@@ -352,8 +352,13 @@ public class TransportClusterHealth extends TransportMasterNodeReadAction<Cluste
             LOGGER.trace("Calculating health based on state version [{}]", clusterState.version());
         }
 
-        String[] concreteIndices = clusterState.metadata().getConcreteAllIndices();
-        return new ClusterHealthResponse(clusterState.getClusterName().value(), concreteIndices, clusterState, numberOfPendingTasks,
-                numberOfInFlightFetch, UnassignedInfo.getNumberOfDelayedUnassigned(clusterState), pendingTaskTimeInQueue);
+        return new ClusterHealthResponse(
+            clusterState.getClusterName().value(),
+            clusterState,
+            numberOfPendingTasks,
+            numberOfInFlightFetch,
+            UnassignedInfo.getNumberOfDelayedUnassigned(clusterState),
+            pendingTaskTimeInQueue
+        );
     }
 }

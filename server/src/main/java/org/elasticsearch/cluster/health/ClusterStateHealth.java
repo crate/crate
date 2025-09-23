@@ -29,11 +29,11 @@ import java.util.Objects;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
-import org.elasticsearch.cluster.routing.IndexRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.rest.RestStatus;
 
 
@@ -56,28 +56,16 @@ public final class ClusterStateHealth implements Iterable<ClusterIndexHealth>, W
      * @param clusterState The current cluster state. Must not be null.
      */
     public ClusterStateHealth(final ClusterState clusterState) {
-        this(clusterState, clusterState.metadata().getConcreteAllIndices());
-    }
-
-    /**
-     * Creates a new <code>ClusterStateHealth</code> instance considering the current cluster state and the provided index names.
-     *
-     * @param clusterState    The current cluster state. Must not be null.
-     * @param concreteIndices An array of index names to consider. Must not be null but may be empty.
-     */
-    public ClusterStateHealth(final ClusterState clusterState, final String[] concreteIndices) {
         numberOfNodes = clusterState.nodes().getSize();
         numberOfDataNodes = clusterState.nodes().getDataNodes().size();
         indices = new HashMap<>();
-        for (String index : concreteIndices) {
-            IndexRoutingTable indexRoutingTable = clusterState.routingTable().index(index);
+        for (var indexRoutingTable : clusterState.routingTable()) {
+            Index index = indexRoutingTable.getIndex();
             IndexMetadata indexMetadata = clusterState.metadata().index(index);
-            if (indexRoutingTable == null) {
+            if (indexMetadata == null) {
                 continue;
             }
-
             ClusterIndexHealth indexHealth = new ClusterIndexHealth(indexMetadata, indexRoutingTable);
-
             indices.put(indexHealth.getIndex(), indexHealth);
         }
 

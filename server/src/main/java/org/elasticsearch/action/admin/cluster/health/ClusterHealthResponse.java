@@ -45,14 +45,18 @@ public class ClusterHealthResponse extends TransportResponse {
     private Health clusterHealthStatus;
     private boolean timedOut = false;
 
-    public ClusterHealthResponse(String clusterName, String[] concreteIndices, ClusterState clusterState, int numberOfPendingTasks,
-                                 int numberOfInFlightFetch, int delayedUnassignedShards, TimeValue taskMaxWaitingTime) {
+    public ClusterHealthResponse(String clusterName,
+                                 ClusterState clusterState,
+                                 int numberOfPendingTasks,
+                                 int numberOfInFlightFetch,
+                                 int delayedUnassignedShards,
+                                 TimeValue taskMaxWaitingTime) {
         this.clusterName = clusterName;
         this.numberOfPendingTasks = numberOfPendingTasks;
         this.numberOfInFlightFetch = numberOfInFlightFetch;
         this.delayedUnassignedShards = delayedUnassignedShards;
         this.taskMaxWaitingTime = taskMaxWaitingTime;
-        this.clusterStateHealth = new ClusterStateHealth(clusterState, concreteIndices);
+        this.clusterStateHealth = new ClusterStateHealth(clusterState);
         this.clusterHealthStatus = clusterStateHealth.getStatus();
     }
 
