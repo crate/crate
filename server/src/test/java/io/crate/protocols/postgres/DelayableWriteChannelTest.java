@@ -23,6 +23,7 @@ package io.crate.protocols.postgres;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Queue;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.elasticsearch.test.ESTestCase;
@@ -30,6 +31,7 @@ import org.junit.Test;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
+import io.netty.channel.Channel;
 import io.netty.channel.embedded.EmbeddedChannel;
 
 public class DelayableWriteChannelTest extends ESTestCase {
@@ -76,5 +78,38 @@ public class DelayableWriteChannelTest extends ESTestCase {
         } finally {
             innerChannel.finishAndReleaseAll();
         }
+    }
+
+    @Test
+    public void test_write_pending_writes_in_correct_order() throws Exception {
+        EmbeddedChannel embeddedChannel = new EmbeddedChannel();
+        var channel = new DelayableWriteChannel(embeddedChannel);
+
+        channel.delayWrites();
+        writeByte(channel, 1);
+
+        channel.delayWrites();
+        writeByte(channel, 2);
+
+        channel.delayWrites();
+        writeByte(channel, 3);
+
+        channel.writePendingMessages();
+        channel.flush();
+
+        Queue<Object> outboundMessages = embeddedChannel.outboundMessages();
+        assertThat(outboundMessages).hasSize(3);
+        ByteBuf msg1 = ((ByteBuf) outboundMessages.poll());
+        assertThat(msg1.getByte(0)).isEqualTo((byte) 1);
+        ByteBuf msg2 = ((ByteBuf) outboundMessages.poll());
+        assertThat(msg2.getByte(0)).isEqualTo((byte) 2);
+        ByteBuf msg3 = ((ByteBuf) outboundMessages.poll());
+        assertThat(msg3.getByte(0)).isEqualTo((byte) 3);
+    }
+
+    private void writeByte(Channel channel, int b) {
+        ByteBuf buffer = Unpooled.buffer(1);
+        buffer.setByte(0, b);
+        channel.write(buffer);
     }
 }
