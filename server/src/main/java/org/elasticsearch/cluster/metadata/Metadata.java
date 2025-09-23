@@ -163,8 +163,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final int totalOpenIndexShards;
     private final int numberOfShards;
 
-    private final String[] allIndices;
-
     private final SortedMap<String, AliasOrIndex> aliasAndIndexLookup;
 
     Metadata(String clusterUUID,
@@ -178,7 +176,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
              ImmutableOpenMap<String, IndexTemplateMetadata> templates,
              ImmutableOpenMap<String, Custom> customs,
              ImmutableOpenMap<String, SchemaMetadata> schemas,
-             String[] allIndices,
              SortedMap<String, AliasOrIndex> aliasAndIndexLookup) {
         this.clusterUUID = clusterUUID;
         this.clusterUUIDCommitted = clusterUUIDCommitted;
@@ -206,7 +203,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.totalOpenIndexShards = totalOpenIndexShards;
         this.numberOfShards = numberOfShards;
 
-        this.allIndices = allIndices;
         this.aliasAndIndexLookup = aliasAndIndexLookup;
     }
 
@@ -260,13 +256,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     public SortedMap<String, AliasOrIndex> getAliasAndIndexLookup() {
         return aliasAndIndexLookup;
-    }
-
-    /**
-     * Returns all the concrete indices.
-     */
-    public String[] getConcreteAllIndices() {
-        return allIndices;
     }
 
     public boolean hasIndex(String indexUUID) {
@@ -975,13 +964,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = Collections.unmodifiableSortedMap(buildAliasAndIndexLookup());
 
-
-            // build all concrete indices arrays:
-            // TODO: I think we can remove these arrays. it isn't worth the effort, for operations on all indices.
-            // When doing an operation across all indices, most of the time is spent on actually going to all shards and
-            // do the required operations, the bottleneck isn't resolving expressions into concrete indices.
-            String[] allIndicesArray = allIndices.toArray(new String[allIndices.size()]);
-
             return new Metadata(
                 clusterUUID,
                 clusterUUIDCommitted,
@@ -994,7 +976,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 templates.build(),
                 customs.build(),
                 schemas.build(),
-                allIndicesArray,
                 aliasAndIndexLookup
             );
         }
