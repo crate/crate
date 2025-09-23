@@ -81,9 +81,6 @@ class ResultSetReceiver extends BaseResultReceiver {
         } else {
             future = new CompletableFuture<>();
             sendDataRow.addListener(f -> {
-                if (f.isDone() == false) {
-                    return;
-                }
                 if (f.isSuccess()) {
                     future.complete(null);
                 } else {
@@ -109,7 +106,7 @@ class ResultSetReceiver extends BaseResultReceiver {
         // Trigger the completion future but by-pass `sendCompleteComplete`
         // This resultReceiver shouldn't be used anymore. The next `execute` message
         // from the client will create a new one.
-        sendPortalSuspended.addListener(f -> super.allFinished());
+        sendPortalSuspended.addListener(_ -> super.allFinished());
     }
 
     @Override
@@ -117,7 +114,7 @@ class ResultSetReceiver extends BaseResultReceiver {
         ChannelFuture sendCommandComplete = Messages.sendCommandComplete(directChannel, query, rowCount);
         channel.writePendingMessages(delayedWrites);
         channel.flush();
-        sendCommandComplete.addListener(f -> super.allFinished());
+        sendCommandComplete.addListener(_ -> super.allFinished());
     }
 
     @Override
@@ -125,6 +122,6 @@ class ResultSetReceiver extends BaseResultReceiver {
         ChannelFuture sendErrorResponse = Messages.sendErrorResponse(directChannel, accessControl, throwable);
         channel.writePendingMessages(delayedWrites);
         channel.flush();
-        sendErrorResponse.addListener(f -> super.fail(throwable));
+        sendErrorResponse.addListener(_ -> super.fail(throwable));
     }
 }
