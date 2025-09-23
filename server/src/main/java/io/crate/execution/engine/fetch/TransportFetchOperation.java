@@ -97,7 +97,8 @@ public class TransportFetchOperation implements FetchOperation {
                 // Projectors usually operate single-threaded and can receive a RamAccounting instance that is not thread-safe
                 // So we must ensure thread-safety here.
                 synchronized (ramAccounting) {
-                    ramAccounting.addBytes(usedBytes);
+                    // Max value with shift to avoid overflows
+                    ramAccounting.addBytes(Long.MAX_VALUE - Integer.MAX_VALUE);
                 }
             },
             MAX_BLOCK_SIZE_IN_BYTES
