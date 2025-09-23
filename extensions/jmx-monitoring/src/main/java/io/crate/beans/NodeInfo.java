@@ -38,7 +38,6 @@ import org.elasticsearch.index.shard.IndexShardState;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 
-import io.crate.common.collections.Tuple;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -48,12 +47,12 @@ public class NodeInfo implements NodeInfoMXBean {
     public static final String NAME = "io.crate.monitoring:type=NodeInfo";
 
     private final Supplier<ClusterState> clusterState;
-    private final Function<ShardId, Tuple<IndexShardState, Long>> shardStateAndSizeProvider;
+    private final Function<ShardId, ShardStateStoreSize> getShardStateAndSize;
 
     public NodeInfo(Supplier<ClusterState> clusterState,
-                    Function<ShardId, Tuple<IndexShardState, Long>> shardStateAndSizeProvider) {
+                    Function<ShardId, ShardStateStoreSize> getShardStateAndSize) {
         this.clusterState = clusterState;
-        this.shardStateAndSizeProvider = shardStateAndSizeProvider;
+        this.getShardStateAndSize = getShardStateAndSize;
     }
 
     @Override
@@ -128,8 +127,8 @@ public class NodeInfo implements NodeInfoMXBean {
                         continue;
                     }
                     ShardId shardId = shardRouting.shardId();
-                    Tuple<IndexShardState, Long> stats = shardStateAndSizeProvider.apply(shardId);
-                    if (stats == null) {
+                    ShardStateStoreSize stateAndStoreSize = getShardStateAndSize.apply(shardId);
+                    if (stateAndStoreSize == null) {
                         continue;
                     }
                     PartitionName partitionName;
@@ -146,8 +145,8 @@ public class NodeInfo implements NodeInfoMXBean {
                         relationName.name(),
                         partitionName.ident() == null ? "" : partitionName.ident(),
                         routingState.name(),
-                        stats.v1().name(),
-                        stats.v2())
+                        stateAndStoreSize.state().name(),
+                        stateAndStoreSize.storeSizeBytes())
                     );
                 }
             }
@@ -155,19 +154,22 @@ public class NodeInfo implements NodeInfoMXBean {
         return result;
     }
 
-    public static class ShardStateAndSizeProvider implements Function<ShardId, Tuple<IndexShardState, Long>> {
+    public record ShardStateStoreSize(IndexShardState state, long storeSizeBytes) {
+    }
+
+    public static class ShardStateAndSizeProvider implements Function<ShardId, ShardStateStoreSize> {
         private final IndicesService indicesService;
 
         public ShardStateAndSizeProvider(IndicesService indicesService) {
             this.indicesService = indicesService;
         }
 
-        public Tuple<IndexShardState, Long> apply(ShardId shardId) {
+        public ShardStateStoreSize apply(ShardId shardId) {
             var shard = indicesService.getShardOrNull(shardId);
             if (shard == null) {
                 return null;
             }
-            return new Tuple<>(shard.state(), shard.storeStats().sizeInBytes());
+            return new ShardStateStoreSize(shard.state(), shard.storeStats().sizeInBytes());
         }
     }
 }
