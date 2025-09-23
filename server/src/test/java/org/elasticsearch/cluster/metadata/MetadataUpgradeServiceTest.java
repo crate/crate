@@ -30,6 +30,7 @@ import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.IndexScopedSettings;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.TestCustomMetadata;
 import org.junit.Before;
 import org.junit.Test;
@@ -183,6 +184,21 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
 
         IndexMetadata createdOnCurrentVersion = upgrade.index("created_on_current");
         assertThat(createdOnCurrentVersion).isEqualTo(indexMetadataCreatedOnCurrentVersion);
+    }
+
+    @Test
+    public void test_blob_table_is_added_to_RelationMetadata() {
+        var relationName = new RelationName("blob", "b1");
+        var metadataBuilder = Metadata.builder();
+        var indexMetadataBuilder = IndexMetadata.builder(relationName.indexNameOrAlias())
+            .settings(Settings.builder().put("index.version.created", Version.V_5_10_12))
+            .numberOfShards(1)
+            .numberOfReplicas(0);
+
+        metadataBuilder.put(indexMetadataBuilder);
+        var upgradedMetadata = metadataUpgradeService.upgradeMetadata(metadataBuilder.build());
+        assertThat((RelationMetadata) upgradedMetadata.getRelation(relationName))
+            .isExactlyInstanceOf(RelationMetadata.BlobTable.class);
     }
 
     private static class CustomMetadata extends TestCustomMetadata {
