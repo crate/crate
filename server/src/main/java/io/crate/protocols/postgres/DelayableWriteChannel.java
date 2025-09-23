@@ -23,6 +23,7 @@ package io.crate.protocols.postgres;
 
 import java.net.SocketAddress;
 import java.util.ArrayDeque;
+import java.util.ArrayList;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -287,10 +288,10 @@ public class DelayableWriteChannel implements Channel {
 
     public synchronized void discardDelayedWrites() {
         if (delay != null) {
-            var parent = delay.parent;
+            var parent = delay.previous;
             while (parent != null) {
                 parent.discard();
-                parent = parent.parent;
+                parent = parent.previous;
             }
             delay.discard();
             delay = null;
@@ -305,14 +306,27 @@ public class DelayableWriteChannel implements Channel {
     }
 
     public synchronized void writePendingMessages() {
-        if (delay != null) {
-            var parent = delay.parent;
-            while (parent != null) {
-                parent.writeDelayed();
-                parent = parent.parent;
-            }
+        if (delay == null) {
+            return;
+        }
+        var previous = delay.previous;
+        if (previous == null) {
             delay.writeDelayed();
             delay = null;
+            return;
+        }
+
+        // Need to emit messages in original order
+        // -> traverse to start of chain; then process from there
+        ArrayList<DelayedWrites> delayedWrites = new ArrayList<>();
+        delayedWrites.add(delay);
+        delay = null;
+        while (previous != null) {
+            delayedWrites.add(previous);
+            previous = previous.previous;
+        }
+        for (int i = delayedWrites.size() - 1; i >= 0; i--) {
+            delayedWrites.get(i).writeDelayed();
         }
     }
 
@@ -325,13 +339,21 @@ public class DelayableWriteChannel implements Channel {
     record DelayedMsg(Object msg, Runnable runnable) {
     }
 
+    /// Writes that have been held back
+    /// Can be chained via `previous`. For example in a msg flow like:
+    ///
+    /// (P=parse, B=bind, D=describe, E=execute)
+    ///
+    /// PBDE -> delayWrites1 (prev=null)     // DelayWriteChannel.delay = 1
+    /// PBDE -> delayWrites2 (prev=1)        // DelayWriteChannel.delay = 2
+    /// PBDE -> delayWrites3 (prev=2)        // DelayWriteChannel.delay = 3
     static class DelayedWrites {
 
         private final ArrayDeque<DelayedMsg> delayed = new ArrayDeque<>();
-        private final DelayedWrites parent;
+        private final DelayedWrites previous;
 
-        public DelayedWrites(@Nullable DelayedWrites parent) {
-            this.parent = parent;
+        public DelayedWrites(@Nullable DelayedWrites previous) {
+            this.previous = previous;
         }
 
         public void discard() {
