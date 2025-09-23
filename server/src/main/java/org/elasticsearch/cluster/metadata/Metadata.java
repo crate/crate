@@ -164,7 +164,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final int numberOfShards;
 
     private final String[] allIndices;
-    private final String[] allClosedIndices;
 
     private final SortedMap<String, AliasOrIndex> aliasAndIndexLookup;
 
@@ -180,7 +179,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
              ImmutableOpenMap<String, Custom> customs,
              ImmutableOpenMap<String, SchemaMetadata> schemas,
              String[] allIndices,
-             String[] allClosedIndices,
              SortedMap<String, AliasOrIndex> aliasAndIndexLookup) {
         this.clusterUUID = clusterUUID;
         this.clusterUUIDCommitted = clusterUUIDCommitted;
@@ -209,7 +207,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.numberOfShards = numberOfShards;
 
         this.allIndices = allIndices;
-        this.allClosedIndices = allClosedIndices;
         this.aliasAndIndexLookup = aliasAndIndexLookup;
     }
 
@@ -270,10 +267,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
      */
     public String[] getConcreteAllIndices() {
         return allIndices;
-    }
-
-    public String[] getConcreteAllClosedIndices() {
-        return allClosedIndices;
     }
 
     public boolean hasIndex(String indexUUID) {
@@ -995,7 +988,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             // When doing an operation across all indices, most of the time is spent on actually going to all shards and
             // do the required operations, the bottleneck isn't resolving expressions into concrete indices.
             String[] allIndicesArray = allIndices.toArray(new String[allIndices.size()]);
-            String[] allClosedIndicesArray = allClosedIndices.toArray(new String[allClosedIndices.size()]);
 
             return new Metadata(
                 clusterUUID,
@@ -1010,7 +1002,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 customs.build(),
                 schemas.build(),
                 allIndicesArray,
-                allClosedIndicesArray,
                 aliasAndIndexLookup
             );
         }
