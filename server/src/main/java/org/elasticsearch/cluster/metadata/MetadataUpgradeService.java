@@ -43,6 +43,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.blob.v2.BlobIndex;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.metadata.IndexName;
@@ -234,24 +235,33 @@ public class MetadataUpgradeService {
                 ? NO_OID_COLUMN_OID_SUPPLIER
                 : newMetadata.columnOidSupplier();
             if (relation == null) {
-                newMetadata.setTable(
-                    columnOidSupplier,
-                    relationName,
-                    docTable.allReferences(),
-                    // If RelationMetadata exist in the cluster state, make sure to override them with
-                    // the upgraded settings which currently takes place on IndexMetadata
-                    indexMetadata.getSettings(),
-                    docTable.clusteredBy(),
-                    docTable.columnPolicy(),
-                    docTable.pkConstraintName(),
-                    docTable.checkConstraints()
-                        .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
-                    docTable.primaryKey(),
-                    docTable.partitionedBy(),
-                    indexMetadata.getState(),
-                    List.of(indexMetadata.getIndexUUID()),
-                    docTable.tableVersion()
-                );
+                if (BlobIndex.isBlobIndex(indexName)) {
+                    newMetadata.setBlobTable(
+                        RelationName.fromIndexName(indexName),
+                        indexMetadata.getIndexUUID(),
+                        indexMetadata.getSettings(),
+                        indexMetadata.getState()
+                    );
+                } else {
+                    newMetadata.setTable(
+                        columnOidSupplier,
+                        relationName,
+                        docTable.allReferences(),
+                        // If RelationMetadata exist in the cluster state, make sure to override them with
+                        // the upgraded settings which currently takes place on IndexMetadata
+                        indexMetadata.getSettings(),
+                        docTable.clusteredBy(),
+                        docTable.columnPolicy(),
+                        docTable.pkConstraintName(),
+                        docTable.checkConstraints()
+                            .stream().collect(Collectors.toMap(CheckConstraint::name, CheckConstraint::expressionStr)),
+                        docTable.primaryKey(),
+                        docTable.partitionedBy(),
+                        indexMetadata.getState(),
+                        List.of(indexMetadata.getIndexUUID()),
+                        docTable.tableVersion()
+                    );
+                }
             } else if (relation instanceof RelationMetadata.Table table) {
                 if (table.indexUUIDs().contains(indexMetadata.getIndexUUID())) {
                     // already added
