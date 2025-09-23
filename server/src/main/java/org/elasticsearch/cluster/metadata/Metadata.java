@@ -937,19 +937,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             // 2) The aliasAndIndexLookup can be updated instead of rebuilding it all the time.
 
             final Set<String> allIndices = new HashSet<>(indices.size());
-            final List<String> allOpenIndices = new ArrayList<>();
-            final List<String> allClosedIndices = new ArrayList<>();
             final Set<String> duplicateAliasesIndices = new HashSet<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 final IndexMetadata indexMetadata = cursor.value;
                 final String uuid = indexMetadata.getIndex().getUUID();
                 boolean added = allIndices.add(uuid);
                 assert added : "double index named [" + uuid + "]";
-                if (indexMetadata.getState() == IndexMetadata.State.OPEN) {
-                    allOpenIndices.add(uuid);
-                } else if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-                    allClosedIndices.add(uuid);
-                }
                 indexMetadata.getAliases().keysIt().forEachRemaining(duplicateAliasesIndices::add);
             }
             duplicateAliasesIndices.retainAll(allIndices);
