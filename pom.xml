@@ -330,7 +330,7 @@
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>5.18.0</versions.mockito>
-    <versions.jdbc>42.7.7</versions.jdbc>
+    <versions.jdbc>42.7.8</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
     <versions.azure_keyvault>1.2.6</versions.azure_keyvault>
