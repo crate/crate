@@ -1584,6 +1584,33 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         indexer.collectSchemaUpdates(item); // checks that it does not throw any IndexOutOfBoundsExceptions
     }
 
+    @Test
+    public void test_index_object_with_null_valued_sub_fields() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table t (
+                    o object as (a int, b int as o['a']+1)
+            )
+            """
+            );
+        DocTableInfo table = executor.resolveTableInfo("t");
+
+        Indexer indexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            new ArrayList<>(List.of(table.getReference(ColumnIdent.of("o")))),
+            null, null
+        );
+        // update t set o['a']=null
+        ParsedDocument parsedDocument = indexer.index(item(MapBuilder.newMapBuilder().put("a", null).map()));
+        assertThat(source(parsedDocument, table)).isEqualTo("{\"o\":{}}");
+        assertThat(parsedDocument.doc().getValues("1")).isEmpty();
+        assertTranslogParses(parsedDocument, table);
+    }
+
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
         assertTranslogParses(doc, info, Version.CURRENT);
     }

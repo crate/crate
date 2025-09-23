@@ -125,30 +125,26 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         }
         Map<String, Object> columnsToStore = new HashMap<>();
         value.forEach((k, v) -> {
-            if (children.containsKey(k) == false) {
+            if (v != null && children.containsKey(k) == false) {
                 translogWriter.writeFieldName(this.unknownColumnPrefix + k);
                 translogWriter.writeValue(v);
                 columnsToStore.put(k, v);
             }
-            if (v == null) {
-                columnsToStore.put(k, null);
-            }
         });
         if (docBuilder.maybeAddStoredField()) {
             if (columnsToStore.isEmpty() == false) {
-                // We have unknown or null values that can't be reconstructed from doc values
+                // We have unknown non-null values that can't be reconstructed from doc values
                 // at read time, so we need to store them explicitly
                 docBuilder.addField(new StoredField(
                     ref.storageIdentLeafName(),
                     toBytes(columnsToStore, docBuilder.getTableVersionCreated()).toBytesRef()
                 ));
-            } else if (value.isEmpty()) {
-                // A completely empty object doesn't store anything in doc values, so we need to
-                // store a marker here to reconstruct it at read time and distinguish it from a
-                // null value
+            } else if (value.isEmpty() || value.values().stream().allMatch(Objects::isNull)) {
+                // An empty object (or object with only nulls) doesn't store anything in doc values, so we need to
+                // store a marker here to reconstruct it at read time and distinguish it from a null value
                 docBuilder.addField(new StoredField(
                     ref.storageIdentLeafName(),
-                    toBytes(value, docBuilder.getTableVersionCreated()).toBytesRef()
+                    toBytes(Map.of(), docBuilder.getTableVersionCreated()).toBytesRef()
                 ));
             }
         }

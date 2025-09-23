@@ -2590,7 +2590,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
             """);
         execute("refresh table t");
         execute("select * from t");
-        assertThat(response).hasRows("NULL| NULL| NULL| {a=NULL, b=NULL, i=NULL, o={a=NULL, b=NULL, i=NULL}}| 1");
+        assertThat(response).hasRows("NULL| NULL| NULL| {o={}}| 1");
 
         execute("""
             insert into t values
@@ -2601,7 +2601,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select * from t order by c");
         assertThat(response).hasRows(
-            "NULL| NULL| NULL| {a=NULL, b=NULL, i=NULL, o={a=NULL, b=NULL, i=NULL}}| 1",
+            "NULL| NULL| NULL| {o={}}| 1",
             "1| 2| 3| {a=4, b=5, i=6, o={a=7, b=8, i=9}}| 2");
 
         execute("""
@@ -2613,8 +2613,8 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select * from t order by c");
         assertThat(response).hasRows(
-            "NULL| NULL| NULL| {a=NULL, b=NULL, i=NULL, o={a=NULL, b=NULL, i=NULL}}| 1",
-            "NULL| NULL| NULL| {a=NULL, b=NULL, i=NULL, o={a=NULL, b=NULL, i=NULL}}| 2");
+            "NULL| NULL| NULL| {o={}}| 1",
+            "NULL| NULL| NULL| {o={}}| 2");
     }
 
     @Test
