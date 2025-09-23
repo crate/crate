@@ -131,7 +131,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             readKeyData(channel);
             readReadyForQueryMessage(channel);
             Messages.writeCString(buffer, ";".getBytes(StandardCharsets.UTF_8));
-            ctx.handleSimpleQuery(() -> {}, buffer, channel);
+            ctx.handleSimpleQuery(buffer, new DelayableWriteChannel(channel));
         } finally {
             buffer.release();
         }
@@ -862,7 +862,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         try {
             // the actual statements don't have to be valid as they are not executed
             Messages.writeCString(query, statements.getBytes(StandardCharsets.UTF_8));
-            ctx.handleSimpleQuery(() -> {}, query, channel);
+            DelayableWriteChannel delayChannel = new DelayableWriteChannel(channel);
+            ctx.handleSimpleQuery(query, delayChannel);
+            delayChannel.writePendingMessages();
         } finally {
             query.release();
         }
