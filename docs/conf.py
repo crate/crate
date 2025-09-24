@@ -26,6 +26,9 @@ extensions.append('crate.sphinx.csv')
 linkcheck_ignore = [
     'https://www.iso.org/obp/ui/.*',  # Breaks accessibility via JS ¯\_(ツ)_/¯
     'https://dev.mysql.com/.*',  # 403 Client Error: Forbidden for url
+
+     # 403, best guess: The AI-down-your-throat company MS put up AI crawler blocking rules and link check is a casualty
+    'https://www.npmjs.com/package/pg-cursor',
 ]
 linkcheck_retries = 3
 
