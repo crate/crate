@@ -32,9 +32,9 @@ Released on 2018/05/16.
 
     Before upgrading, you should `back up your data`_.
 
-.. _rolling upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
-.. _full restart upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _rolling upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
+.. _full restart upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
 
 .. rubric:: Table of contents
 
@@ -312,8 +312,8 @@ Other Changes
   ``sys.nodes`` table.
 
 
-.. _Admin UI: https://crate.io/docs/clients/admin-ui/en/latest/
-.. _backup: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
-.. _full cluster restart: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
+.. _Admin UI: https://cratedb.com/docs/crate/admin-ui/en/latest/
+.. _backup: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _full cluster restart: https://cratedb.com/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
 .. _HTTP Authorization header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization
-.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated

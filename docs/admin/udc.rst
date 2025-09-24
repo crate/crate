@@ -96,4 +96,4 @@ activated::
          CrateDB 4.5.0, see also `Farewell to the CrateDB Enterprise License`_.
 
 
-.. _Farewell to the CrateDB Enterprise License: https://crate.io/blog/farewell-to-the-cratedb-enterprise-license-faq
+.. _Farewell to the CrateDB Enterprise License: https://cratedb.com/blog/farewell-to-the-cratedb-enterprise-license-faq

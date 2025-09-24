@@ -18,9 +18,9 @@ Released on 2017/12/22.
 
     Before upgrading, you should `back up your data`_.
 
-.. _rolling upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
-.. _full restart upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _rolling upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
+.. _full restart upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
 
 .. rubric:: Table of contents
 
@@ -193,4 +193,4 @@ Changes
   version 2.8.1.
 
 
-.. _CrateDB command line shell: https://crate.io/docs/crate/crash/en/latest/
+.. _CrateDB command line shell: https://cratedb.com/docs/crate/crash/en/latest/

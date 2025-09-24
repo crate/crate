@@ -119,4 +119,4 @@ Example for combining custom routing and shard definition::
     CREATE OK, 1 row affected (... sec)
 
 
-.. _Sharding Guide: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html
+.. _Sharding Guide: https://cratedb.com/docs/crate/howtos/en/latest/performance/sharding.html

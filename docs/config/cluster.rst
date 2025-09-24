@@ -1490,5 +1490,5 @@ clusters during the recovery.
    cr> RESET GLOBAL "memory.operation_limit"
    RESET OK, 1 row affected (... sec)
 
-.. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
-.. _multi-zone setup how-to guide: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html
+.. _bootstrap checks: https://cratedb.com/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
+.. _multi-zone setup how-to guide: https://cratedb.com/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html

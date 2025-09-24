@@ -84,10 +84,10 @@ Here are some considerations:
    fit for purpose, i.e. use SSDs, increase RAM up to 64 GB, and use multiple
    CPU cores when you can. But if you want to dynamically increase (or
    decrease) the capacity of your cluster, `add (or remove) nodes
-   <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-node-setup.html>`_.
+   <https://cratedb.com/docs/crate/howtos/en/latest/clustering/multi-node-setup.html>`_.
 
 -  If availability is a concern, you can add `nodes across multiple zones
-   <https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html>`_
+   <https://cratedb.com/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html>`_
    (e.g. different data centers or geographical regions). The more available
    your CrateDB cluster is, the more likely it is to withstand external
    failures like a zone going down.
@@ -104,7 +104,7 @@ Here are some considerations:
    across the cluster.
 
 -  CrateDB works well as part of a `data pipeline
-   <https://crate.io/docs/tools/streamsets/>`_, especially if you’re working
+   <https://cratedb.com/docs/tools/streamsets/>`_, especially if you’re working
    with high-volume data. If you have a message queue in front of CrateDB, you
    can configure it with backups and replay the data flow for a specific
    timeframe. This can be used to recover from issues that affect your data

@@ -315,7 +315,7 @@ network interface) you must add the following line to your :ref:`config` file::
    If you bind to a network reachable IP address, you must follow the
    instructions in the new `bootstrap checks`_ guide.
 
-.. _bootstrap checks: https://crate.io/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
+.. _bootstrap checks: https://cratedb.com/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
 
 
 Heap Size
@@ -351,4 +351,4 @@ Tables that have been created with CrateDB version ``0.54.x`` or smaller and
 that contain a column of type ``BOOLEAN`` must be re-created_ to be able to
 perform all supported operations on that column.
 
-.. _re-created: https://crate.io/docs/crate/reference/en/latest/sql/system.html#tables-need-to-be-recreated
+.. _re-created: https://cratedb.com/docs/crate/reference/en/latest/sql/system.html#tables-need-to-be-recreated

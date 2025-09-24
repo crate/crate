@@ -1651,7 +1651,7 @@ severity level:
 .. figure:: ../_static/cluster-checks-critical.png
    :align: center
 
-.. _admin console: https://crate.io/docs/connect/admin_ui/
+.. _admin console: https://cratedb.com/docs/connect/admin_ui/
 
 Current Checks
 --------------
@@ -2666,4 +2666,4 @@ contains the state for each replicated relation in each subscription.
 
 .. vale on
 
-.. _Farewell to the CrateDB Enterprise License: https://crate.io/blog/farewell-to-the-cratedb-enterprise-license-faq
+.. _Farewell to the CrateDB Enterprise License: https://cratedb.com/blog/farewell-to-the-cratedb-enterprise-license-faq

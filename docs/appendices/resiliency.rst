@@ -183,7 +183,7 @@ There are two different versions of the same row using the same version number.
 When the primary shard rejoins the cluster and its data is replicated, the
 update that was made on the replicated shard is lost but the new version number
 matches the lost update. This will break `Optimistic Concurrency Control
-<https://crate.io/docs/reference/sql/occ.html>`_.
+<https://cratedb.com/docs/reference/sql/occ.html>`_.
 
 .. _resiliency_replicas_fall_out_of_sync:
 

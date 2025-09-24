@@ -241,4 +241,4 @@ In the statement above, if ``col_a`` had a primary key constraint and the value
     optional.
 
 
-.. _unnest: https://crate.io/docs/crate/howtos/en/latest/performance/inserts/methods.html#unnest
+.. _unnest: https://cratedb.com/docs/crate/howtos/en/latest/performance/inserts/methods.html#unnest
