@@ -23,7 +23,7 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.apache.lucene.codecs.Codec;
-import org.apache.lucene.codecs.lucene101.Lucene101Codec;
+import org.apache.lucene.codecs.lucene103.Lucene103Codec;
 
 /**
  * Since Lucene 4.0 low level index segments are read and written through a
@@ -45,9 +45,9 @@ public class CodecService {
     public CodecService() {
         final var codecs = new HashMap<String, Codec>();
         codecs.put(DEFAULT_CODEC,
-            new CrateCodec(Lucene101Codec.Mode.BEST_SPEED));
+            new CrateCodec(Lucene103Codec.Mode.BEST_SPEED));
         codecs.put(BEST_COMPRESSION_CODEC,
-            new CrateCodec(Lucene101Codec.Mode.BEST_COMPRESSION));
+            new CrateCodec(Lucene103Codec.Mode.BEST_COMPRESSION));
         codecs.put(LUCENE_DEFAULT_CODEC, Codec.getDefault());
         for (String codec : Codec.availableCodecs()) {
             codecs.put(codec, Codec.forName(codec));
