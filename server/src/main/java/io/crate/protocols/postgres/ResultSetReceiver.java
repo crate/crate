@@ -29,7 +29,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
-import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.session.BaseResultReceiver;
 import io.netty.channel.Channel;
@@ -42,7 +41,6 @@ class ResultSetReceiver extends BaseResultReceiver {
     private final List<PGType<?>> columnTypes;
     private final AccessControl accessControl;
     private final Channel directChannel;
-    private final DelayedWrites delayedWrites;
 
     @Nullable
     private final FormatCodes.FormatCode[] formatCodes;
@@ -51,13 +49,11 @@ class ResultSetReceiver extends BaseResultReceiver {
 
     ResultSetReceiver(String query,
                       DelayableWriteChannel channel,
-                      DelayedWrites delayedWrites,
                       AccessControl accessControl,
                       List<PGType<?>> columnTypes,
                       @Nullable FormatCodes.FormatCode[] formatCodes) {
         this.query = query;
         this.channel = channel;
-        this.delayedWrites = delayedWrites;
         this.directChannel = channel.bypassDelay();
         this.accessControl = accessControl;
         this.columnTypes = columnTypes;
@@ -100,7 +96,6 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Override
     public void batchFinished() {
         ChannelFuture sendPortalSuspended = Messages.sendPortalSuspended(directChannel);
-        channel.writePendingMessages(delayedWrites);
         channel.flush();
 
         // Trigger the completion future but by-pass `sendCompleteComplete`
@@ -112,7 +107,6 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Override
     public void allFinished() {
         ChannelFuture sendCommandComplete = Messages.sendCommandComplete(directChannel, query, rowCount);
-        channel.writePendingMessages(delayedWrites);
         channel.flush();
         sendCommandComplete.addListener(_ -> super.allFinished());
     }
@@ -120,7 +114,6 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Override
     public void fail(@NotNull Throwable throwable) {
         ChannelFuture sendErrorResponse = Messages.sendErrorResponse(directChannel, accessControl, throwable);
-        channel.writePendingMessages(delayedWrites);
         channel.flush();
         sendErrorResponse.addListener(_ -> super.fail(throwable));
     }

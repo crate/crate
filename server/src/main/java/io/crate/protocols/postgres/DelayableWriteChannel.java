@@ -298,13 +298,6 @@ public class DelayableWriteChannel implements Channel {
         }
     }
 
-    public synchronized void writePendingMessages(DelayedWrites delayedWrites) {
-        if (delay == delayedWrites) {
-            delay = null;
-        }
-        delayedWrites.writeDelayed();
-    }
-
     public synchronized void writePendingMessages() {
         if (delay == null) {
             return;

@@ -61,7 +61,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSetting;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
-import io.crate.protocols.postgres.DelayableWriteChannel.DelayedWrites;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
@@ -264,16 +263,17 @@ public class PostgresWireProtocol {
     }
 
     private static class ReadyForQueryCallback implements BiConsumer<Object, Throwable> {
-        private final Channel channel;
+        private final DelayableWriteChannel channel;
         private final TransactionState transactionState;
 
-        private ReadyForQueryCallback(Channel channel, TransactionState transactionState) {
+        private ReadyForQueryCallback(DelayableWriteChannel channel, TransactionState transactionState) {
             this.channel = channel;
             this.transactionState = transactionState;
         }
 
         @Override
         public void accept(Object result, Throwable t) {
+            channel.writePendingMessages();
             sendReadyForQuery(channel, transactionState);
         }
     }
@@ -719,7 +719,7 @@ public class PostgresWireProtocol {
         // To ensure clients receive messages in the correct order we delay all writes
         // The "finish" logic of the ResultReceivers writes out all pending writes/unblocks the channel
 
-        DelayedWrites delayedWrites = channel.delayWrites();
+        channel.delayWrites();
         ResultReceiver<?> resultReceiver;
         if (outputTypes == null) {
             // this is a DML query
@@ -727,7 +727,6 @@ public class PostgresWireProtocol {
             resultReceiver = new RowCountReceiver(
                 query,
                 channel,
-                delayedWrites,
                 getAccessControl.apply(session.sessionSettings())
             );
         } else {
@@ -735,7 +734,6 @@ public class PostgresWireProtocol {
             resultReceiver = new ResultSetReceiver(
                 query,
                 channel,
-                delayedWrites,
                 getAccessControl.apply(session.sessionSettings()),
                 Lists.map(outputTypes, PGTypes::get),
                 session.getResultFormatCodes(portalName)
@@ -814,8 +812,6 @@ public class PostgresWireProtocol {
                                                    String query,
                                                    DelayableWriteChannel channel,
                                                    Session.TimeoutToken timeoutToken) {
-        CompletableFuture<?> result = new CompletableFuture<>();
-
         AccessControl accessControl = getAccessControl.apply(session.sessionSettings());
         try {
 
@@ -831,11 +827,9 @@ public class PostgresWireProtocol {
             List<Symbol> fields = describeResult.getFields();
 
             if (fields == null) {
-                DelayedWrites delayedWrites = channel.delayWrites();
                 RowCountReceiver rowCountReceiver = new RowCountReceiver(
                     query,
                     channel,
-                    delayedWrites,
                     accessControl
                 );
                 session.execute("", 0, rowCountReceiver);
@@ -847,11 +841,9 @@ public class PostgresWireProtocol {
                     null,
                     describeResult.relation()
                 );
-                DelayedWrites delayedWrites = channel.delayWrites();
                 ResultSetReceiver resultSetReceiver = new ResultSetReceiver(
                     query,
                     channel,
-                    delayedWrites,
                     accessControl,
                     Lists.map(fields, x -> PGTypes.get(x.valueType())),
                     null
@@ -862,8 +854,7 @@ public class PostgresWireProtocol {
         } catch (Throwable t) {
             channel.discardDelayedWrites();
             Messages.sendErrorResponse(channel, accessControl, t);
-            result.completeExceptionally(t);
-            return result;
+            return CompletableFuture.failedFuture(t);
         }
     }
 

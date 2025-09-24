@@ -50,6 +50,7 @@ import java.util.function.Function;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.junit.Before;
 import org.junit.BeforeClass;
 import org.junit.Test;
@@ -59,6 +60,8 @@ import org.postgresql.jdbc.PreferQueryMode;
 import org.postgresql.util.PGobject;
 import org.postgresql.util.PSQLException;
 import org.postgresql.util.PSQLState;
+
+import com.carrotsearch.randomizedtesting.annotations.Seed;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
@@ -70,6 +73,7 @@ import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2, numClientNodes = 0, supportsDedicatedMasters = false)
+@Seed("8775A19D72F9F7EC:205C1045F52D8DBB")
 public class PostgresITest extends IntegTestCase {
 
     private static final String NO_IPV6 = "CRATE_TESTS_NO_IPV6";
@@ -478,6 +482,7 @@ public class PostgresITest extends IntegTestCase {
     }
 
     @Test
+    @TestLogging("io.crate.session.Sessions:TRACE,io.crate.protocols.postgres.Messages:TRACE,io.crate.protocols.postgres.PostgresWireProtocol:TRACE")
     public void testFetchSize() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             conn.createStatement().executeUpdate("create table t (x int) with (number_of_replicas = 0)");
@@ -502,6 +507,9 @@ public class PostgresITest extends IntegTestCase {
                     Collections.sort(result);
                     assertThat(result).containsExactly(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19);
                     assertThat(resultSet.next()).isFalse();
+                } catch (Throwable t) {
+                    logger.error(t);
+                    throw t;
                 }
             }
         }
