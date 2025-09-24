@@ -47,4 +47,6 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue where null-valued sub-columns of object columns were not
+  omitted such that ``{a = NULL}`` was incorrectly preserved instead of being
+  indexed as an empty object, ``{}``.

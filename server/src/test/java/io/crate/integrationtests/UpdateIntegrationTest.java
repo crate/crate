@@ -1356,7 +1356,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("update t set a=null, b=null, o['a']=null, o['b']=null, o['o']['a']=null, o['o']['b']=null");
         execute("refresh table t");
         execute("select * from t");
-        assertThat(response).hasRows("NULL| NULL| 3| {a=NULL, b=NULL, i=6, o={a=NULL, b=NULL, i=9}}| 10");
+        assertThat(response).hasRows("NULL| NULL| 3| {i=6, o={i=9}}| 10");
     }
 
     @Test
@@ -1591,7 +1591,7 @@ public class UpdateIntegrationTest extends IntegTestCase {
         execute("update t set b=null, o['b']=null, o['o']['b']=null");
         execute("refresh table t");
         execute("select * from t");
-        assertThat(response).hasRows("11| NULL| 3| {a=11, b=NULL, i=6, o={a=11, b=NULL, i=9}}| 10");
+        assertThat(response).hasRows("11| NULL| 3| {a=11, i=6, o={a=11, i=9}}| 10");
     }
 
     @Test

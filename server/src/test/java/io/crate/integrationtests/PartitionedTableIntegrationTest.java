@@ -1800,7 +1800,7 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                 "order by number");
         assertThat(response.rowCount()).isEqualTo(2L);
         assertThat(printedTable(response.rows())).isEqualTo(
-            "{sessionid=NULL}\n" +
+            "{}\n" +
             "NULL\n");
 
         execute("select data " +
