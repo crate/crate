@@ -47,4 +47,6 @@ series.
 Fixes
 =====
 
-None
+- Fixed a regression introduced in :ref:`version_6.0.0`. When upgrading
+  from a ``5.x`` cluster it changed metadata for blob tables in a way that
+  is not forward compatible with 6.1.
