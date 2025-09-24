@@ -523,5 +523,5 @@ Older Versions
 For older versions, see the 0.57.8 CHANGES.txt_ file.
 
 .. _CHANGES.txt: https://github.com/crate/crate/blob/ed8a1c1f786891f3c4cde403baca37751037db14/CHANGES.txt
-.. _the CrateDB download page: https://crate.io/download/
+.. _the CrateDB download page: https://cratedb.com/download/
 .. _the release archives: https://cdn.crate.io/downloads/releases/

@@ -25,8 +25,8 @@ Released on 2023-04-04.
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
 
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
-.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 
 

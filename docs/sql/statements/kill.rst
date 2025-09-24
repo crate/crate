@@ -58,5 +58,5 @@ Parameters
   as a string literal.
 
 
-.. _CrateDB Cloud: https://crate.io/products/cratedb-cloud/
+.. _CrateDB Cloud: https://cratedb.com/products/cratedb-cloud/
 .. _UUID: https://en.wikipedia.org/wiki/Universally_unique_identifier

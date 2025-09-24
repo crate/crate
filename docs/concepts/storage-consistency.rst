@@ -37,7 +37,7 @@ With read operations, there is no difference between executing the
 operation on the primary shard or on any of the replicas. CrateDB
 randomly assigns a shard when routing an operation. It is possible to
 configure this behavior if required, see our best practice guide on
-`multi zone setups <https://crate.io/docs/crate/howtos/en/latest/scaling/multi-zone-setup.html>`_
+`multi zone setups <https://cratedb.com/docs/crate/howtos/en/latest/scaling/multi-zone-setup.html>`_
 for more details.
 
 Write operations are handled differently than reads. Such operations are
@@ -256,5 +256,5 @@ flow for an ``ALTER TABLE`` statement which changes the schema of a table:
 .. _Elasticsearch: https://www.elasticsearch.org/
 .. _Lucene: https://lucene.apache.org/core/
 .. _WAL: https://en.wikipedia.org/wiki/Write-ahead_logging
-.. _Optimistic Concurrency Control: https://crate.io/docs/crate/reference/sql/occ.html
-.. _refresh: https://crate.io/docs/crate/reference/sql/refresh.html
+.. _Optimistic Concurrency Control: https://cratedb.com/docs/crate/reference/sql/occ.html
+.. _refresh: https://cratedb.com/docs/crate/reference/sql/refresh.html

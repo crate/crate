@@ -21,5 +21,5 @@ CrateDB has two primary client interfaces:
    clients
 
 
-.. _Connecting to CrateDB: https://crate.io/docs/crate/tutorials/en/latest/first-use.html
-.. _Client Libraries: https://crate.io/docs/crate/clients-tools/en/latest/
+.. _Connecting to CrateDB: https://cratedb.com/docs/crate/tutorials/en/latest/first-use.html
+.. _Client Libraries: https://cratedb.com/docs/crate/clients-tools/en/latest/

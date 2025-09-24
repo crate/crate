@@ -803,7 +803,7 @@ sharing`_ settings in CrateDB allow for configuring these.
   a substantial security risk) and by prepending a ``/`` the string will be
   treated as a :ref:`regular expression <gloss-regular-expression>`. For
   example ``/https?:\/\/crate.io/`` will allow requests from
-  ``https://crate.io`` and ``https://crate.io``. This setting disallows any
+  ``https://cratedb.com`` and ``https://crate.io``. This setting disallows any
   origin by default.
 
 .. _http.cors.max-age:

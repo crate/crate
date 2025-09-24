@@ -213,13 +213,13 @@ Options
 +---------------------+-----------------------------------------------------+
 
 
-.. _deployment guide: https://crate.io/docs/crate/howtos/en/latest/deployment/index.html
-.. _Detach a node from its cluster: https://crate.io/docs/crate/howtos/en/latest/best-practices/crate-node.html#detach-a-node-from-its-cluster
-.. _CrateDB installation tutorial: https://crate.io/docs/crate/tutorials/en/latest/install.html
-.. _graceful stop: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html#step-2-graceful-stop
+.. _deployment guide: https://cratedb.com/docs/crate/howtos/en/latest/deployment/index.html
+.. _Detach a node from its cluster: https://cratedb.com/docs/crate/howtos/en/latest/best-practices/crate-node.html#detach-a-node-from-its-cluster
+.. _CrateDB installation tutorial: https://cratedb.com/docs/crate/tutorials/en/latest/install.html
+.. _graceful stop: https://cratedb.com/docs/crate/howtos/en/latest/admin/rolling-upgrade.html#step-2-graceful-stop
 .. _PATH: https://kb.iu.edu/d/acar
-.. _Perform an unsafe cluster bootstrap: https://crate.io/docs/crate/howtos/en/latest/best-practices/crate-node.html#perform-an-unsafe-cluster-bootstrap
-.. _Repurpose a node: https://crate.io/docs/crate/howtos/en/latest/best-practices/crate-node.html#repurpose-a-node
-.. _Rolling Upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
-.. _troubleshooting guide: https://crate.io/docs/crate/howtos/en/latest/best-practices/crate-node.html
+.. _Perform an unsafe cluster bootstrap: https://cratedb.com/docs/crate/howtos/en/latest/best-practices/crate-node.html#perform-an-unsafe-cluster-bootstrap
+.. _Repurpose a node: https://cratedb.com/docs/crate/howtos/en/latest/best-practices/crate-node.html#repurpose-a-node
+.. _Rolling Upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
+.. _troubleshooting guide: https://cratedb.com/docs/crate/howtos/en/latest/best-practices/crate-node.html
 .. _Troubleshooting with crate-node CLI: `troubleshooting guide`_
