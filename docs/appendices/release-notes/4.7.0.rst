@@ -18,7 +18,7 @@ Released on 2022-01-25.
 
     Before upgrading, you should `back up your data`_.
 
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
 
 
 

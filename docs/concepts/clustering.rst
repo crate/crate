@@ -185,7 +185,7 @@ the latest voting configuration.
 .. NOTE::
 
    Special `settings and considerations
-   <https://crate.io/docs/crate/reference/en/5.1/concepts/clustering.html#master-node-election>`_
+   <https://cratedb.com/docs/crate/reference/en/5.1/concepts/clustering.html#master-node-election>`_
    applied prior to CrateDB version 4.0.0.
 
 .. _concept-discovery:

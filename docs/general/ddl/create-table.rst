@@ -237,7 +237,7 @@ of functionality that CrateDB supports. For example:
 .. _data availability: https://en.wikipedia.org/wiki/High_availability
 .. _data redundancy: https://en.wikipedia.org/wiki/Data_redundancy
 .. _disaster recovery: https://en.wikipedia.org/wiki/Disaster_recovery
-.. _How-to guides\: Tuning partitions for insert performance: https://crate.io/docs/crate/howtos/en/latest/performance/inserts/bulk.html#split-your-tables-into-partitions
-.. _How-to guides\: Tuning sharding performance: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html
+.. _How-to guides\: Tuning partitions for insert performance: https://cratedb.com/docs/crate/howtos/en/latest/performance/inserts/bulk.html#split-your-tables-into-partitions
+.. _How-to guides\: Tuning sharding performance: https://cratedb.com/docs/crate/howtos/en/latest/performance/sharding.html
 .. _parallelize: https://en.wikipedia.org/wiki/Distributed_computing
 .. _service resilience: https://en.wikipedia.org/wiki/Resilience_(network)

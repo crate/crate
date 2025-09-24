@@ -31,5 +31,5 @@ massive amounts of data in real-time.
    appendices/index
 
 
-.. _Tutorials: https://crate.io/docs/crate/tutorials/en/latest/
+.. _Tutorials: https://cratedb.com/docs/crate/tutorials/en/latest/
 .. _hosted on GitHub: https://github.com/crate/crate

@@ -376,5 +376,5 @@ Note that this setting is experimental, and may change in the future.
 
 .. _hash table: https://en.wikipedia.org/wiki/Hash_table
 .. _here: http://www.dcs.ed.ac.uk/home/tz/phd/thesis.pdf
-.. _information_schema: https://crate.io/docs/reference/sql/information_schema.html
-.. _system tables: https://crate.io/docs/reference/sql/system.html
+.. _information_schema: https://cratedb.com/docs/reference/sql/information_schema.html
+.. _system tables: https://cratedb.com/docs/reference/sql/system.html

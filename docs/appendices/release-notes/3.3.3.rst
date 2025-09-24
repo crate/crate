@@ -33,10 +33,10 @@ Released on 2019/05/23.
 
     Before upgrading, you should `back up your data`_.
 
-.. _rolling upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
-.. _full restart upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
-.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+.. _rolling upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
+.. _full restart upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 .. rubric:: Table of contents
 
