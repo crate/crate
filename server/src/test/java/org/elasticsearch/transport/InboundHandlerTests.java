@@ -21,9 +21,11 @@ package org.elasticsearch.transport;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.InetSocketAddress;
+import java.nio.ByteBuffer;
 import java.util.Collections;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
@@ -32,6 +34,7 @@ import java.util.concurrent.atomic.AtomicReference;
 import org.apache.logging.log4j.Level;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
@@ -51,6 +54,7 @@ import org.elasticsearch.test.VersionUtils;
 import org.elasticsearch.threadpool.TestThreadPool;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.netty4.Netty4Utils;
+import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -92,7 +96,7 @@ public class InboundHandlerTests extends ESTestCase {
         };
         requestHandlers = new Transport.RequestHandlers();
         responseHandlers = new Transport.ResponseHandlers();
-        handler = handlerForVersion(version);
+        handler = handlerForVersion(version, null);
     }
 
     @After
@@ -279,7 +283,7 @@ public class InboundHandlerTests extends ESTestCase {
         // minimum compatible one.
         Version localVersion = Version.V_6_0_0;
         Version remoteVersion = Version.V_5_10_1;
-        InboundHandler handler = handlerForVersion(localVersion);
+        InboundHandler handler = handlerForVersion(localVersion, null);
         int headerSize = TcpHeader.headerSize(remoteVersion);
 
         final long requestId = randomNonNegativeLong();
@@ -322,7 +326,7 @@ public class InboundHandlerTests extends ESTestCase {
     public void test_handshake_checks_minimum_compatible_version_if_normal_version_is_not_compatible() throws Exception {
         Version localVersion = Version.V_6_0_0;
         Version remoteVersion = Version.V_5_10_1;
-        InboundHandler handler = handlerForVersion(remoteVersion);
+        InboundHandler handler = handlerForVersion(remoteVersion, null);
 
         int headerSize = TcpHeader.headerSize(localVersion.minimumCompatibilityVersion());
         final long requestId = randomNonNegativeLong();
@@ -359,7 +363,7 @@ public class InboundHandlerTests extends ESTestCase {
     public void test_handshake_error_if_version_and_minimum_compatible_version_is_not_compatible() throws Exception {
         Version localVersion = Version.V_6_0_0;
         Version remoteVersion = Version.V_4_8_4;
-        InboundHandler handler = handlerForVersion(localVersion);
+        InboundHandler handler = handlerForVersion(localVersion, null);
         int headerSize = TcpHeader.headerSize(remoteVersion);
 
         final long requestId = randomNonNegativeLong();
@@ -437,6 +441,317 @@ public class InboundHandlerTests extends ESTestCase {
         }
     }
 
+    @Test
+    public void testRequestNotFullyRead() throws Exception {
+        String action = "test-request";
+        int headerSize = TcpHeader.headerSize(version);
+        AtomicReference<Exception> exceptionCaptor = new AtomicReference<>();
+        final long requestId = responseHandlers.newRequestId();
+        responseHandlers.add(requestId, new Transport.ResponseContext<>(new TransportResponseHandler<TestResponse>() {
+            @Override
+            public void handleResponse(TestResponse response) {}
+
+            @Override
+            public void handleException(TransportException exp) {
+                exceptionCaptor.set(exp);
+            }
+
+            @Override
+            public String executor() {
+                return ThreadPool.Names.SAME;
+            }
+
+            @Override
+            public TestResponse read(StreamInput in) throws IOException {
+                return new TestResponse(in);
+            }
+        }, null, action));
+
+        RequestHandlerRegistry<TestRequest> registry = new RequestHandlerRegistry<>(
+            action,
+            TestRequest::new,
+            (request, channel) -> {},
+            ThreadPool.Names.SAME,
+            false,
+            true
+        );
+
+
+        requestHandlers.registerHandler(registry);
+        String requestValue = randomAlphaOfLength(10);
+
+        OutboundMessage.Request request = new OutboundMessage.Request(
+            new TestRequest(requestValue),
+            version,
+            action,
+            requestId,
+            false,
+            false
+        );
+
+        var listener = new TransportMessageListener() {
+            @Override
+            public void onResponseSent(long requestId, String action, Exception error) {
+                exceptionCaptor.set(error);
+            }
+        };
+        InboundHandler handler = handlerForVersion(version, listener);
+
+        // Create the request payload with 1 byte overflow
+        final BytesRef bytes = request.serialize(new BytesStreamOutput()).toBytesRef();
+        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length + 1);
+        buffer.put(bytes.bytes, 0, bytes.length);
+        buffer.put((byte) 1);
+
+        BytesReference fullRequestBytes = BytesReference.fromByteBuffer((ByteBuffer) buffer.flip());
+        BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize);
+        Header requestHeader = new Header(fullRequestBytes.length() - 6, requestId, TransportStatus.setRequest((byte) 0), version);
+        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent), () -> {});
+        requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, requestMessage);
+
+        assertThat(exceptionCaptor.get()).isExactlyInstanceOf(IllegalStateException.class);
+        assertThat(exceptionCaptor.get().getMessage()).startsWith("Message not fully read (request) for requestId");
+    }
+
+    @Test
+    public void testRequestFullyReadButMoreDataIsAvailable() throws Exception {
+        String action = "test-request";
+        int headerSize = TcpHeader.headerSize(version);
+        AtomicReference<Exception> exceptionCaptor = new AtomicReference<>();
+        final long requestId = responseHandlers.newRequestId();
+        responseHandlers.add(requestId, new Transport.ResponseContext<>(new TransportResponseHandler<TestResponse>() {
+            @Override
+            public void handleResponse(TestResponse response) {}
+
+            @Override
+            public void handleException(TransportException exp) {
+                exceptionCaptor.set(exp);
+            }
+
+            @Override
+            public String executor() {
+                return ThreadPool.Names.SAME;
+            }
+
+            @Override
+            public TestResponse read(StreamInput in) throws IOException {
+                return new TestResponse(in);
+            }
+        }, null, action));
+
+        RequestHandlerRegistry<TestRequest> registry = new RequestHandlerRegistry<>(
+            action,
+            TestRequest::new,
+            (request, channel) -> {},
+            ThreadPool.Names.SAME,
+            false,
+            true
+        );
+
+        requestHandlers.registerHandler(registry);
+        String requestValue = randomAlphaOfLength(10);
+        OutboundMessage.Request request = new OutboundMessage.Request(
+            new TestRequest(requestValue),
+            version,
+            action,
+            requestId,
+            false,
+            false
+        );
+
+        var listener = new TransportMessageListener() {
+            @Override
+            public void onResponseSent(long requestId, String action, Exception error) {
+                exceptionCaptor.set(error);
+            }
+        };
+        InboundHandler handler = handlerForVersion(version, listener);
+
+        final BytesReference fullRequestBytes = request.serialize(new BytesStreamOutput());
+        // Create the request payload by intentionally stripping 1 byte away
+        BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize - 1);
+        Header requestHeader = new Header(fullRequestBytes.length() - 6, requestId, TransportStatus.setRequest((byte) 0), version);
+        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent), () -> {});
+        requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, requestMessage);
+
+        assertThat(exceptionCaptor.get()).isExactlyInstanceOf(IllegalStateException.class);
+        assertThat(exceptionCaptor.get().getCause()).isExactlyInstanceOf(EOFException.class);
+        assertThat(exceptionCaptor.get().getMessage()).startsWith("Message fully read (request) but more data is expected for requestId");
+    }
+
+    @Test
+    public void testResponseNotFullyRead() throws Exception {
+        String action = "test-request";
+        int headerSize = TcpHeader.headerSize(version);
+        AtomicReference<TestRequest> requestCaptor = new AtomicReference<>();
+        AtomicReference<Exception> exceptionCaptor = new AtomicReference<>();
+        AtomicReference<TestResponse> responseCaptor = new AtomicReference<>();
+        AtomicReference<TransportChannel> channelCaptor = new AtomicReference<>();
+        final long requestId = responseHandlers.newRequestId();
+        responseHandlers.add(requestId, new Transport.ResponseContext<>(new TransportResponseHandler<TestResponse>() {
+            @Override
+            public void handleResponse(TestResponse response) {
+                responseCaptor.set(response);
+            }
+
+            @Override
+            public void handleException(TransportException exp) {
+                exceptionCaptor.set(exp);
+            }
+
+            @Override
+            public String executor() {
+                return ThreadPool.Names.SAME;
+            }
+
+            @Override
+            public TestResponse read(StreamInput in) throws IOException {
+                return new TestResponse(in);
+            }
+        }, null, action));
+        RequestHandlerRegistry<TestRequest> registry = new RequestHandlerRegistry<>(
+            action,
+            TestRequest::new,
+            (request, channel) -> {
+                channelCaptor.set(channel);
+                requestCaptor.set(request);
+            },
+            ThreadPool.Names.SAME,
+            false,
+            true
+        );
+        requestHandlers.registerHandler(registry);
+        String requestValue = randomAlphaOfLength(10);
+        OutboundMessage.Request request = new OutboundMessage.Request(
+            new TestRequest(requestValue),
+            version,
+            action,
+            requestId,
+            false,
+            false
+        );
+
+        BytesReference fullRequestBytes = request.serialize(new BytesStreamOutput());
+        BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize);
+        Header requestHeader = new Header(fullRequestBytes.length() - 6, requestId, TransportStatus.setRequest((byte) 0), version);
+        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent), () -> {});
+        requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, requestMessage);
+
+        TransportChannel transportChannel = channelCaptor.get();
+        assertThat(transportChannel.getVersion()).isEqualTo(Version.CURRENT);
+        assertThat(transportChannel.getChannelType()).isEqualTo("transport");
+        assertThat(requestValue).isEqualTo(requestCaptor.get().value);
+
+        String responseValue = randomAlphaOfLength(10);
+        byte responseStatus = TransportStatus.setResponse((byte) 0);
+        transportChannel.sendResponse(new TestResponse(responseValue));
+
+        // Create the response payload with 1 byte overflow
+        ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        final BytesRef bytes = Netty4Utils.toBytesReference(msg).toBytesRef();
+        final ByteBuffer buffer = ByteBuffer.allocate(bytes.length + 1);
+        buffer.put(bytes.bytes, 0, bytes.length);
+        buffer.put((byte) 1);
+
+        BytesReference fullResponseBytes = BytesReference.fromByteBuffer((ByteBuffer) buffer.flip());
+        BytesReference responseContent = fullResponseBytes.slice(headerSize, fullResponseBytes.length() - headerSize);
+        Header responseHeader = new Header(fullResponseBytes.length() - 6, requestId, responseStatus, version);
+        InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent), () -> {});
+        responseHeader.finishParsingHeader(responseMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, responseMessage);
+
+        assertThat(exceptionCaptor.get()).isExactlyInstanceOf(RemoteTransportException.class);
+        assertThat(exceptionCaptor.get().getCause()).isExactlyInstanceOf(TransportSerializationException.class);
+        assertThat(exceptionCaptor.get().getMessage()).contains("Failed to deserialize response from handler");
+    }
+
+    @Test
+    public void testResponseFullyReadButMoreDataIsAvailable() throws Exception {
+        String action = "test-request";
+        int headerSize = TcpHeader.headerSize(version);
+        AtomicReference<TestRequest> requestCaptor = new AtomicReference<>();
+        AtomicReference<Exception> exceptionCaptor = new AtomicReference<>();
+        AtomicReference<TestResponse> responseCaptor = new AtomicReference<>();
+        AtomicReference<TransportChannel> channelCaptor = new AtomicReference<>();
+
+        final long requestId = responseHandlers.newRequestId();
+        responseHandlers.add(requestId, new Transport.ResponseContext<>(new TransportResponseHandler<TestResponse>() {
+            @Override
+            public void handleResponse(TestResponse response) {
+                responseCaptor.set(response);
+            }
+
+            @Override
+            public void handleException(TransportException exp) {
+                exceptionCaptor.set(exp);
+            }
+
+            @Override
+            public String executor() {
+                return ThreadPool.Names.SAME;
+            }
+
+            @Override
+            public TestResponse read(StreamInput in) throws IOException {
+                return new TestResponse(in);
+            }
+        }, null, action));
+        RequestHandlerRegistry<TestRequest> registry = new RequestHandlerRegistry<>(
+            action,
+            TestRequest::new,
+            (request, channel) -> {
+                channelCaptor.set(channel);
+                requestCaptor.set(request);
+            },
+            ThreadPool.Names.SAME,
+            false,
+            true
+        );
+        requestHandlers.registerHandler(registry);
+        String requestValue = randomAlphaOfLength(10);
+        OutboundMessage.Request request = new OutboundMessage.Request(
+            new TestRequest(requestValue),
+            version,
+            action,
+            requestId,
+            false,
+            false
+        );
+
+        BytesReference fullRequestBytes = request.serialize(new BytesStreamOutput());
+        BytesReference requestContent = fullRequestBytes.slice(headerSize, fullRequestBytes.length() - headerSize);
+        Header requestHeader = new Header(fullRequestBytes.length() - 6, requestId, TransportStatus.setRequest((byte) 0), version);
+        InboundMessage requestMessage = new InboundMessage(requestHeader, ReleasableBytesReference.wrap(requestContent), () -> {});
+        requestHeader.finishParsingHeader(requestMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, requestMessage);
+
+        TransportChannel transportChannel = channelCaptor.get();
+        assertThat(transportChannel.getVersion()).isEqualTo(Version.CURRENT);
+        assertThat(transportChannel.getChannelType()).isEqualTo("transport");
+        assertThat(requestValue).isEqualTo(requestCaptor.get().value);
+
+        String responseValue = randomAlphaOfLength(10);
+        byte responseStatus = TransportStatus.setResponse((byte) 0);
+        transportChannel.sendResponse(new TestResponse(responseValue));
+
+        ByteBuf msg = (ByteBuf) embeddedChannel.outboundMessages().poll();
+        BytesReference fullResponseBytes = Netty4Utils.toBytesReference(msg);
+
+        // Create the response payload by intentionally stripping 1 byte away
+        BytesReference responseContent = fullResponseBytes.slice(headerSize, fullResponseBytes.length() - headerSize - 1);
+        Header responseHeader = new Header(fullResponseBytes.length() - 6, requestId, responseStatus, version);
+        InboundMessage responseMessage = new InboundMessage(responseHeader, ReleasableBytesReference.wrap(responseContent), () -> {});
+        responseHeader.finishParsingHeader(responseMessage.openOrGetStreamInput());
+        handler.inboundMessage(channel, responseMessage);
+
+        assertThat(exceptionCaptor.get()).isExactlyInstanceOf(RemoteTransportException.class);
+        assertThat(exceptionCaptor.get().getCause()).isExactlyInstanceOf(TransportSerializationException.class);
+        assertThat(exceptionCaptor.get().getMessage()).contains("Failed to deserialize response from handler");
+    }
+
     private static InboundMessage unreadableInboundHandshake(Version remoteVersion, Header requestHeader) {
         return new InboundMessage(requestHeader, ReleasableBytesReference.wrap(BytesArray.EMPTY), () -> { }) {
             @Override
@@ -453,7 +768,7 @@ public class InboundHandlerTests extends ESTestCase {
         };
     }
 
-    private InboundHandler handlerForVersion(Version localVersion) {
+    private InboundHandler handlerForVersion(Version localVersion, @Nullable TransportMessageListener listener) {
         NamedWriteableRegistry namedWriteableRegistry = new NamedWriteableRegistry(Collections.emptyList());
         TransportHandshaker handshaker = new TransportHandshaker(localVersion, threadPool, (n, c, r, v) -> {});
         TransportKeepAlive keepAlive = new TransportKeepAlive(threadPool, (c, b) -> channel.writeAndFlush(Unpooled.wrappedBuffer(b)));
@@ -464,6 +779,9 @@ public class InboundHandlerTests extends ESTestCase {
             threadPool,
             BigArrays.NON_RECYCLING_INSTANCE
         );
+        if (listener != null) {
+            outboundHandler.setMessageListener(listener);
+        }
         return new InboundHandler(
             threadPool,
             outboundHandler,
