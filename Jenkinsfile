@@ -2,7 +2,7 @@ pipeline {
   agent any
   tools {
     // used to run maven
-    jdk 'jdk11'
+    jdk 'jdk17'
   }
   options {
     timeout(time: 45, unit: 'MINUTES') 
@@ -17,7 +17,7 @@ pipeline {
           agent { label 'small' }
           steps {
             sh 'git clean -xdff'
-	    checkout scm
+            checkout scm
             sh './blackbox/bin/sphinx'
             sh 'find ./blackbox/*/src/ -type f -name "*.py" | xargs ./blackbox/.venv/bin/pycodestyle'
           }

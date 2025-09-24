@@ -122,7 +122,7 @@
           <dependency>
             <groupId>org.ow2.asm</groupId>
             <artifactId>asm</artifactId>
-            <version>9.8</version>
+            <version>9.9</version>
           </dependency>
         </dependencies>
       </plugin>
@@ -282,14 +282,14 @@
     <versions.jdk>24.0.2</versions.jdk>
     <versions.jdkbuild>24.0.2+12</versions.jdkbuild>
 
-    <versions.annotations>26.0.2</versions.annotations>
-    <versions.log4j>2.25.1</versions.log4j>
-    <versions.assertj>3.27.3</versions.assertj>
+    <versions.annotations>26.0.2-1</versions.annotations>
+    <versions.log4j>2.25.2</versions.log4j>
+    <versions.assertj>3.27.6</versions.assertj>
     <versions.junit5>5.13.4</versions.junit5>
     <versions.junit-platform-commons>1.13.4</versions.junit-platform-commons>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.3</versions.randomizedrunner>
-    <versions.jackson>2.19.2</versions.jackson>
+    <versions.jackson>2.20.0</versions.jackson>
     <versions.fastdoubleparser>2.0.1</versions.fastdoubleparser>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.2</versions.antlr>
@@ -304,15 +304,15 @@
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
     <versions.caffeine>3.2.2</versions.caffeine>
     <versions.jodatime>2.14.0</versions.jodatime>
-    <versions.aws>1.12.788</versions.aws>
+    <versions.aws>1.12.791</versions.aws>
     <versions.opendal>0.47.6</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.commonscodec>1.19.0</versions.commonscodec>
     <versions.bigmath>2.3.2</versions.bigmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>24.2.2</versions.graalvm>
+    <versions.graalvm>25.0.0</versions.graalvm>
     <versions.jwt>4.5.0</versions.jwt>
-    <versions.jwks-rsa>0.22.2</versions.jwks-rsa>
+    <versions.jwks-rsa>0.23.0</versions.jwks-rsa>
 
     <versions.google.gax>2.43.0</versions.google.gax>
     <versions.google.auth>1.23.0</versions.google.auth>
@@ -321,15 +321,15 @@
     <versions.google.cloud.core>2.30.0</versions.google.cloud.core>
     <versions.google.cloud.core.http>2.23.0</versions.google.cloud.core.http>
 
-    <versions.guava>33.4.8-jre</versions.guava>
-    <versions.google.gson>1.43.1</versions.google.gson>
-    <versions.google.errorprone>2.38.0</versions.google.errorprone>
-    <versions.google.j2objc>3.0.0</versions.google.j2objc>
-    <versions.checkerframework>3.49.5</versions.checkerframework>
-    <versions.grpc>1.73.0</versions.grpc>
+    <versions.guava>33.5.0-jre</versions.guava>
+    <versions.google.gson>2.0.0</versions.google.gson>
+    <versions.google.errorprone>2.42.0</versions.google.errorprone>
+    <versions.google.j2objc>3.1</versions.google.j2objc>
+    <versions.checkerframework>3.51.1</versions.checkerframework>
+    <versions.grpc>1.75.0</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
-    <versions.mockito>5.18.0</versions.mockito>
+    <versions.mockito>5.20.0</versions.mockito>
     <versions.jdbc>42.7.8</versions.jdbc>
 
     <versions.azure_storage>8.6.6</versions.azure_storage>
@@ -349,7 +349,7 @@
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
     <versions.plugin.surefire>3.5.4</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
-    <versions.plugin.puppycrawl>10.26.1</versions.plugin.puppycrawl>
+    <versions.plugin.puppycrawl>12.1.0</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.14</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.10</versions.plugin.forbiddenapis>
