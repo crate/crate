@@ -181,7 +181,7 @@ CrateDB gives underreplicated tables a *yellow* :ref:`health status
 
 
 .. _availability: https://en.wikipedia.org/wiki/Availability
-.. _CrateDB Admin UI: https://crate.io/docs/clients/admin-ui/en/latest/
+.. _CrateDB Admin UI: https://cratedb.com/docs/clients/admin-ui/en/latest/
 .. _data redundancy: https://en.wikipedia.org/wiki/Data_redundancy
 .. _parallelize: https://en.wikipedia.org/wiki/Distributed_computing
 .. _partition tolerance: https://en.wikipedia.org/wiki/Network_partitioning
