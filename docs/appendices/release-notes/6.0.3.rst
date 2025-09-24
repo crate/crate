@@ -1,20 +1,27 @@
-.. _version_6.0.2:
+.. _version_6.0.3:
 
-=============
-Version 6.0.2
-=============
+==========================
+Version 6.0.3 - Unreleased
+==========================
 
-Released on 2025-09-24.
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 6.0.3 isn't released yet. These are the release notes for
+    the upcoming release.
 
 ... NOTE::
 
      If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
-     before you upgrade to 6.0.2.
+     before you upgrade to 6.0.3.
 
      We recommend that you upgrade to the latest 5.10 release before moving to
-     6.0.2.
+     6.0.3.
 
-     A rolling upgrade from >= 5.10.1 to 6.0.2 is supported.
+     A rolling upgrade from >= 5.10.1 to 6.0.3 is supported.
      Before upgrading, you should `back up your data`_.
 
  .. WARNING::
@@ -40,10 +47,4 @@ series.
 Fixes
 =====
 
-- Fixed an issue that could lead to PostgreSQL wire protocol messages being sent
-  in the wrong order to the client. The issue was triggered when using batched
-  statements where one of the statements caused a parse or bind error.
-
-- Fixed a regression introduced in :ref:`version_6.0.0`. When upgrading
-  from a ``5.x`` cluster it changed metadata for blob tables in a way that
-  is not forward compatible with 6.1.
+None
