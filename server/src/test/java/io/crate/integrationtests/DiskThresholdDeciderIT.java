@@ -166,7 +166,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
         });
 
         // increase disk size of node 0 to allow enough room for one shard, and check that it's rebalanced back
-        fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES + 150L);
+        fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES + 100L);
         assertBusy(() -> {
             refreshDiskUsage();
             assertThat(getShardRoutings(dataNode0Id, indexName)).hasSize(1);
@@ -216,7 +216,7 @@ public class DiskThresholdDeciderIT extends IntegTestCase {
         execute("reset global \"cluster.routing.rebalance.enable\"");
 
         //// increase disk size of node 0 to allow enough room for one shard, and check that it's rebalanced back
-        fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES + 150L);
+        fileSystemProvider.getTestFileStore(dataNode0Path).setTotalSpace(minShardSize + WATERMARK_BYTES + 100L);
         assertBusy(() -> {
             refreshDiskUsage();
             assertThat(getShardRoutings(dataNode0Id, "tbl")).hasSize(1);

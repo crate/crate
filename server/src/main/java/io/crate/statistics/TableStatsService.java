@@ -104,8 +104,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         "stats.service.max_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     static final String STMT = "ANALYZE";
-    private static final String TABLES_STATS = "_stats_tables";
-    private static final String COLS_STATS = "_stats_cols";
+    private static final String STATS = "_stats";
     private static final String DATA_FIELD = "data";
     private static final String RELATION_NAME_FIELD = "relationName";
     private static final String COLUMN_NAME_FIELD = "columnName";
@@ -114,12 +113,9 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final Sessions sessions;
-    private final Directory tablesDirectory;
-    private final Directory colsDirectory;
-    private final IndexWriter tablesWriter;
-    private final IndexWriter colsWriter;
-    private final SearcherManager tablesSearcherManager;
-    private final SearcherManager colsSearcherManager;
+    private final Directory directory;
+    private final IndexWriter writer;
+    private final SearcherManager searcherManager;
     private final LoadingCache<RelationName, Stats> cache;
 
     private Session session;
@@ -153,18 +149,12 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             .build(this::loadFromDisk);
 
         try {
-            this.tablesDirectory = new NIOFSDirectory(dataPath.resolve(TABLES_STATS));
-            this.colsDirectory = new NIOFSDirectory(dataPath.resolve(COLS_STATS));
+            this.directory = new NIOFSDirectory(dataPath.resolve(STATS));
             IndexWriterConfig tablesIndexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
             tablesIndexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
             tablesIndexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-            IndexWriterConfig colsIndexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
-            colsIndexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
-            colsIndexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-            this.tablesWriter = new IndexWriter(tablesDirectory, tablesIndexWriterConfig);
-            this.tablesSearcherManager = new SearcherManager(tablesWriter, null);
-            this.colsWriter = new IndexWriter(colsDirectory, colsIndexWriterConfig);
-            this.colsSearcherManager = new SearcherManager(colsWriter, null);
+            this.writer = new IndexWriter(directory, tablesIndexWriterConfig);
+            this.searcherManager = new SearcherManager(writer, null);
 
             // ensure index files exist for reads
             this.update(Map.of());
@@ -186,13 +176,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     @Override
     protected void doClose() throws IOException {
         cache.invalidateAll();
-        IOUtils.closeWhileHandlingException(
-            tablesSearcherManager,
-            colsSearcherManager,
-            tablesWriter,
-            colsWriter,
-            tablesDirectory,
-            colsDirectory);
+        IOUtils.closeWhileHandlingException(searcherManager, writer, directory);
     }
 
     @Override
@@ -267,11 +251,10 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             PersistedTable persistedTable = loadTableStats(relationName);
             if (persistedTable != null) {
                 for (ColumnIdent columnIdent : persistedTable.cols()) {
-                    colsWriter.deleteDocuments(new TermQuery(colTerm(relationName, columnIdent)));
+                    writer.deleteDocuments(new TermQuery(colTerm(relationName, columnIdent)));
                 }
-                colsWriter.commit();
-                tablesWriter.deleteDocuments(relTerm(relationName));
-                tablesWriter.commit();
+                writer.deleteDocuments(relTerm(relationName));
+                writer.commit();
             }
             cache.invalidate(relationName);
         } catch (IOException e) {
@@ -281,10 +264,8 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
     public void clear() {
         try {
-            tablesWriter.deleteAll();
-            tablesWriter.commit();
-            colsWriter.deleteAll();
-            colsWriter.commit();
+            writer.deleteAll();
+            writer.commit();
             cache.invalidateAll();
         } catch (IOException e) {
             throw new UncheckedIOException("Can't delete TableStats from disk", e);
@@ -307,15 +288,13 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
                 RelationName relationName = entry.getKey();
                 DocsToPersist docs = makeDocument(relationName, entry.getValue());
-                tablesWriter.updateDocument(relTerm(relationName), docs.table());
+                writer.updateDocument(relTerm(relationName), docs.table());
                 for (Map.Entry<ColumnIdent, Document> docsEntry : docs.cols().entrySet()) {
-                    colsWriter.updateDocument(colTerm(relationName, docsEntry.getKey()), docsEntry.getValue());
+                    writer.updateDocument(colTerm(relationName, docsEntry.getKey()), docsEntry.getValue());
                 }
             }
-            tablesWriter.commit();
-            colsWriter.commit();
-            tablesSearcherManager.maybeRefresh();
-            colsSearcherManager.maybeRefresh();
+            writer.commit();
+            searcherManager.maybeRefresh();
             cache.invalidateAll(stats.keySet());
         } catch (IOException e) {
             throw new UncheckedIOException("Can't write TableStats to disk", e);
@@ -378,8 +357,8 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             PersistedTable persistedTable = null;
             IndexSearcher tablesSearcher = null;
             try {
-                tablesSearcherManager.maybeRefreshBlocking();
-                tablesSearcher = tablesSearcherManager.acquire();
+                searcherManager.maybeRefreshBlocking();
+                tablesSearcher = searcherManager.acquire();
                 tablesSearcher.setQueryCache(null);
                 Query query = new TermQuery(relTerm(relationName));
                 Weight weight = tablesSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
@@ -410,7 +389,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                     }
                 }
             } finally {
-                tablesSearcherManager.release(tablesSearcher);
+                searcherManager.release(tablesSearcher);
             }
             return persistedTable;
         } catch (IOException ex) {
@@ -425,8 +404,8 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             try {
                 IndexSearcher searcher = null;
                 try {
-                    colsSearcherManager.maybeRefreshBlocking();
-                    searcher = colsSearcherManager.acquire();
+                    searcherManager.maybeRefreshBlocking();
+                    searcher = searcherManager.acquire();
                     searcher.setQueryCache(null);
                     Query query = new TermQuery(colTerm(relationName, columnIdent));
                     Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
@@ -448,7 +427,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                         }
                     }
                 } finally {
-                    colsSearcherManager.release(searcher);
+                    searcherManager.release(searcher);
                 }
 
             } catch (IOException ex) {
