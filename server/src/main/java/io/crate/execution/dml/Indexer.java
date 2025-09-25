@@ -1048,11 +1048,6 @@ public class Indexer {
 
     public Object[] addGeneratedValues(IndexItem item, boolean forRawIndexer) {
         Object[] insertValues = item.insertValues();
-        // TODO: I think we can remove below return completely but it causes copy-from tests to fail, would not uncover that for now.
-        if (forRawIndexer && undeterministic.isEmpty()) {
-            return insertValues;
-        }
-
         assert onConflictIndexer() == null || new HashSet<>(onConflictIndexer().insertColumns().stream().map(Reference::column).toList())
             .containsAll(insertColumns().stream().map(Reference::column).toList()) : "onConflictIndexer().insertColumns() is a superset of this.insertColumns()";
         List<Reference> insertColumns = onConflictIndexer() == null ? insertColumns() : onConflictIndexer().insertColumns();

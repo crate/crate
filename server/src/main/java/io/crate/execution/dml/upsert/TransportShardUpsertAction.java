@@ -176,7 +176,8 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 txnCtx,
                 nodeCtx,
                 request.returnValues(),
-                List.of() // Non deterministic synthetics is not needed on primary
+                List.of(), // Non deterministic synthetics is not needed on primary
+                List.copyOf(indexer.insertColumns())
             );
         }
 
@@ -309,7 +310,8 @@ public class TransportShardUpsertAction extends TransportShardAction<
                 txnCtx,
                 nodeCtx,
                 null,
-                targetColumns.subList(1, targetColumns.size()) // expanded refs (non-deterministic synthetics)
+                targetColumns.subList(1, targetColumns.size()), // expanded refs (non-deterministic synthetics),
+                List.copyOf(targetColumns)
             );
         } else {
             rawIndexer = null;

@@ -58,6 +58,7 @@ public class RawIndexer {
 
     private Indexer currentRowIndexer;
     private IndexItem.StaticItem currentItem;
+    private List<Reference> insertColumns;
 
     public RawIndexer(List<String> partitionValues,
                       DocTableInfo table,
@@ -65,7 +66,8 @@ public class RawIndexer {
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
                       Symbol[] returnValues,
-                      @NotNull List<Reference> nonDeterministicSynthetics) {
+                      @NotNull List<Reference> nonDeterministicSynthetics,
+                      List<Reference> insertColumns) {
         this.partitionValues = partitionValues;
         this.table = table;
         this.txnCtx = txnCtx;
@@ -73,6 +75,7 @@ public class RawIndexer {
         this.returnValues = returnValues;
         this.nonDeterministicSynthetics = nonDeterministicSynthetics;
         this.shardVersionCreated = shardVersionCreated;
+        this.insertColumns = insertColumns;
     }
 
     /**
@@ -106,7 +109,12 @@ public class RawIndexer {
                 targetRefs,
                 null,
                 returnValues
-            );
+            ) {
+                @Override
+                public List<Reference> insertColumns() {
+                    return insertColumns;
+                }
+            };
         });
 
         int numExtra = item.insertValues().length - 1; // First value is _raw.
