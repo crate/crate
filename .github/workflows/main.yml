@@ -26,7 +26,7 @@ jobs:
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: "24"
+          java-version: "25"
           distribution: "temurin"
           cache: maven
 
@@ -55,7 +55,7 @@ jobs:
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: "24"
+          java-version: "25"
           distribution: "temurin"
           cache: maven
       - name: Run forbiddenapis:check
@@ -70,7 +70,7 @@ jobs:
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: 17
+          java-version: 25
           distribution: "temurin"
       - name: Run checkstyle
         run: mvn compile checkstyle:checkstyle
