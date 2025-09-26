@@ -29,12 +29,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
-import com.carrotsearch.randomizedtesting.annotations.Seed;
-
 import io.crate.data.Paging;
 import io.crate.testing.Asserts;
 
-@Seed("F0044410204B1DF5")
 public class QueryThenFetchIntegrationTest extends IntegTestCase {
 
     @Test
