@@ -1213,4 +1213,240 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 .hasMessage("Only a superuser can read from the local file system");
         }
     }
+
+    @Test
+    public void test_unassigned_default_columns() throws IOException {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+
+        var lines = List.of(
+            """
+                {"c":0, "i":1, "o":{"i":2, "o":{"i":3}}}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select c, i, o['i'], o['o']['i'], a, o['a'], o['o']['a'] from t");
+        assertThat(response).hasRows("0| 1| 2| 3| -1| -1| -1");
+        execute("select b>=0, o['b']>=0, o['o']['b']>=0 from t");
+        assertThat(response).hasRows("true| true| true");
+    }
+
+    @Test
+    public void test_insert_null_to_object_column_containing_default_sub_columns() throws IOException {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        var lines = List.of(
+            """
+                {"c":0, "i":0, "o":null}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b'], o['o']['b'], c, o['o'] from t");
+        assertThat(response).hasRows("-1| NULL| NULL| 0| NULL| NULL| true| NULL| NULL| 0| NULL");
+    }
+
+    @Test
+    public void test_insert_empty_object_to_object_column_containing_default_sub_columns() throws IOException {
+        execute("""
+            create table t (
+                a int default -1,
+                b int default round(random() * 10),
+                i int,
+                o object as (
+                    a int default -1,
+                    b int default round(random() * 10),
+                    i int,
+                    o object as (
+                        a int default -1,
+                        b int default round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        var lines = List.of(
+            """
+                {"c":0, "i":0, "o":{}}}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("-1| -1| -1| 0| NULL| NULL| true| true| true| 0");
+    }
+
+    @Test
+    public void test_unassigned_generated_columns() throws IOException {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        var lines = List.of(
+            """
+                {"c":0, "i":1, "o":{"i":2, "o":{"i":3}}}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("1| 1| 1| 1| 2| 3| true| true| true| 0");
+    }
+
+    @Test
+    public void test_insert_null_to_object_column_containing_generated_sub_columns() throws IOException {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        var lines = List.of(
+            """
+                {"c":0, "i":1, "o":null}}}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("1| NULL| NULL| 1| NULL| NULL| true| NULL| NULL| 0");
+    }
+
+    @Test
+    public void test_insert_empty_object_to_object_column_containing_generated_sub_columns() throws IOException {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        var lines = List.of(
+            """
+                {"c":0, "i":1, "o":{}}}}}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("1| 1| 1| 1| NULL| NULL| true| true| true| 0");
+    }
+
+    @Test
+    public void test_unassigned_generated_sub_columns_when_referenced_ref_is_assigned_to_null() throws IOException {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        var lines = List.of(
+            """
+                {"c":null}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("NULL| NULL| NULL| NULL| NULL| NULL| true| true| true| NULL");
+    }
 }
