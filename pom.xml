@@ -219,8 +219,8 @@
           <configuration>
             <failOnUnsupportedJava>true</failOnUnsupportedJava>
             <bundledSignatures>
-              <bundledSignature>jdk-unsafe</bundledSignature>
-              <bundledSignature>jdk-deprecated</bundledSignature>
+              <bundledSignature>jdk-unsafe-24</bundledSignature>
+              <bundledSignature>jdk-deprecated-24</bundledSignature>
               <bundledSignature>jdk-non-portable</bundledSignature>
               <bundledSignature>jdk-reflection</bundledSignature>
             </bundledSignatures>
