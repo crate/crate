@@ -6,27 +6,27 @@ Version 6.0.2
 
 Released on 2025-09-24.
 
-... NOTE::
+.. NOTE::
 
-     If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
-     before you upgrade to 6.0.2.
+    If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
+    before you upgrade to 6.0.2.
 
-     We recommend that you upgrade to the latest 5.10 release before moving to
-     6.0.2.
+    We recommend that you upgrade to the latest 5.10 release before moving to
+    6.0.2.
 
-     A rolling upgrade from >= 5.10.1 to 6.0.2 is supported.
-     Before upgrading, you should `back up your data`_.
+    A rolling upgrade from >= 5.10.1 to 6.0.2 is supported.
+    Before upgrading, you should `back up your data`_.
 
- .. WARNING::
+.. WARNING::
 
-     Tables that were created before CrateDB 5.x will not function with 6.x
-     and must be recreated before moving to 6.x.x.
+    Tables that were created before CrateDB 5.x will not function with 6.x
+    and must be recreated before moving to 6.x.x.
 
-     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
-     `inserting the data into a new table`_.
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
 
- .. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
- .. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 .. rubric:: Table of contents
 
