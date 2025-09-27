@@ -51,3 +51,7 @@ Fixes
 - Fixed an issue that could lead to PostgreSQL wire protocol messages being sent
   in the wrong order to the client. The issue was triggered when using batched
   statements where one of the statements caused a parse or bind error.
+
+- Fixed an issue that could lead to stuck jobs, memory leaks and even make a
+  cluster unstable when a query with a ``LIMIT`` clause was interrupted by a
+  ``CircuitBreakingException``.

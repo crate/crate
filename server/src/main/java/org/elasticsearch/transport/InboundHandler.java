@@ -19,6 +19,7 @@
 
 package org.elasticsearch.transport;
 
+import java.io.EOFException;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.ByteBuffer;
@@ -128,21 +129,13 @@ public class InboundHandler {
                         streamInput = namedWriteableStream(message.openOrGetStreamInput());
                         assertRemoteVersion(streamInput, header.getVersion());
                         if (header.isError()) {
-                            handlerResponseError(streamInput, handler);
+                            handlerResponseError(requestId, streamInput, handler);
                         } else {
-                            handleResponse(remoteAddress, streamInput, handler);
-                        }
-                        // Check the entire message has been read
-                        final int nextByte = streamInput.read();
-                        // calling read() is useful to make sure the message is fully read, even if there is an EOS marker
-                        if (nextByte != -1) {
-                            throw new IllegalStateException("Message not fully read (response) for requestId ["
-                                + requestId + "], handler [" + handler + "], error [" + header.isError()
-                                + "]; resetting");
+                            handleResponse(requestId, remoteAddress, streamInput, handler);
                         }
                     } else {
                         assert header.isError() == false;
-                        handleResponse(remoteAddress, EMPTY_STREAM_INPUT, handler);
+                        handleResponse(requestId, remoteAddress, EMPTY_STREAM_INPUT, handler);
                     }
                 }
             }
@@ -210,14 +203,8 @@ public class InboundHandler {
                     assertRemoteVersion(stream, header.getVersion());
                     final RequestHandlerRegistry<T> reg = requestHandlers.getHandler(action);
                     assert reg != null;
-                    final T request = reg.newRequest(stream);
-                    // in case we throw an exception, i.e. when the limit is hit, we don't want to verify
-                    final int nextByte = stream.read();
-                    // calling read() is useful to make sure the message is fully read, even if there some kind of EOS marker
-                    if (nextByte != -1) {
-                        throw new IllegalStateException("Message not fully read (request) for requestId [" + requestId + "], action ["
-                            + action + "], available [" + stream.available() + "]; resetting");
-                    }
+                    final T request = newRequest(requestId, action, stream, reg);
+                    checkStreamIsFullyConsumed(requestId, action, stream);
                     final String executor = reg.getExecutor();
                     if (ThreadPool.Names.SAME.equals(executor)) {
                         try {
@@ -236,6 +223,97 @@ public class InboundHandler {
         }
     }
 
+    /**
+     * Creates new request instance out of input stream. Throws IllegalStateException if the end of
+     * the stream was reached before the request is fully deserialized from the stream.
+     * @param <T> transport request type
+     * @param requestId request identifier
+     * @param action action name
+     * @param stream stream
+     * @param reg request handler registry
+     * @return new request instance
+     * @throws IOException IOException
+     * @throws IllegalStateException IllegalStateException
+     */
+    private <T extends TransportRequest> T newRequest(
+        final long requestId,
+        final String action,
+        final StreamInput stream,
+        final RequestHandlerRegistry<T> reg
+    ) throws IOException {
+        try {
+            return reg.newRequest(stream);
+        } catch (final EOFException e) {
+            // Another favor of (de)serialization issues is when stream contains less bytes than
+            // the request handler needs to deserialize the payload.
+            throw new IllegalStateException(
+                "Message fully read (request) but more data is expected for requestId ["
+                    + requestId
+                    + "], action ["
+                    + action
+                    + "]; resetting",
+                e
+            );
+        }
+    }
+
+    /**
+     * Checks if the stream is fully consumed and throws the exceptions if that is not the case.
+     * @param requestId request identifier
+     * @param action action name
+     * @param stream stream
+     * @throws IOException IOException
+     */
+    private void checkStreamIsFullyConsumed(final long requestId, final String action, final StreamInput stream) throws IOException {
+        // in case we throw an exception, i.e. when the limit is hit, we don't want to verify
+        final int nextByte = stream.read();
+
+        // calling read() is useful to make sure the message is fully read, even if there some kind of EOS marker
+        if (nextByte != -1) {
+            throw new IllegalStateException(
+                "Message not fully read (request) for requestId ["
+                    + requestId
+                    + "], action ["
+                    + action
+                    + "], available ["
+                    + stream.available()
+                    + "]; resetting"
+            );
+        }
+    }
+
+    /**
+     * Checks if the stream is fully consumed and throws the exceptions if that is not the case.
+     * @param requestId request identifier
+     * @param handler response handler
+     * @param stream stream
+     * @param error "true" if response represents error, "false" otherwise
+     * @throws IOException IOException
+     */
+    private void checkStreamIsFullyConsumed(
+        final long requestId,
+        final TransportResponseHandler<?> handler,
+        final StreamInput stream,
+        final boolean error
+    ) throws IOException {
+        if (stream != EMPTY_STREAM_INPUT) {
+            // Check the entire message has been read
+            final int nextByte = stream.read();
+            // calling read() is useful to make sure the message is fully read, even if there is an EOS marker
+            if (nextByte != -1) {
+                throw new IllegalStateException(
+                    "Message not fully read (response) for requestId ["
+                        + requestId
+                        + "], handler ["
+                        + handler
+                        + "], error ["
+                        + error
+                        + "]; resetting"
+                );
+            }
+        }
+    }
+
     private static void sendErrorResponse(String actionName, TransportChannel transportChannel, Exception e) {
         try {
             transportChannel.sendResponse(e);
@@ -245,11 +323,14 @@ public class InboundHandler {
         }
     }
 
-    private <T extends TransportResponse> void handleResponse(InetSocketAddress remoteAddress, final StreamInput stream,
+    private <T extends TransportResponse> void handleResponse(final long requestId,
+                                                              InetSocketAddress remoteAddress,
+                                                              final StreamInput stream,
                                                               final TransportResponseHandler<T> handler) {
         final T response;
         try {
             response = handler.read(stream);
+            checkStreamIsFullyConsumed(requestId, handler, stream, false);
         } catch (Exception e) {
             final Exception serializationException = new TransportSerializationException(
                 "Failed to deserialize response from handler [" + handler + "]", e);
@@ -273,10 +354,11 @@ public class InboundHandler {
         }
     }
 
-    private void handlerResponseError(StreamInput stream, final TransportResponseHandler<?> handler) {
+    private void handlerResponseError(final long requestId, StreamInput stream, final TransportResponseHandler<?> handler) {
         Exception error;
         try {
             error = stream.readException();
+            checkStreamIsFullyConsumed(requestId, handler, stream, true);
         } catch (Exception e) {
             error = new TransportSerializationException(
                     "Failed to deserialize exception response from stream for handler [" + handler + "]", e);
