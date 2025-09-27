@@ -26,6 +26,9 @@ import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -79,6 +82,7 @@ import com.github.benmanes.caffeine.cache.LoadingCache;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.session.BaseResultReceiver;
 import io.crate.session.Session;
@@ -103,6 +107,8 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     private static final String STATS = "_stats";
     private static final String DATA_FIELD = "data";
     private static final String RELATION_NAME_FIELD = "relationName";
+    private static final String COLUMN_NAME_FIELD = "columnName";
+    private static final String COLUMN_NAMES_FIELD = "columnNames";
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
@@ -144,10 +150,10 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
         try {
             this.directory = new NIOFSDirectory(dataPath.resolve(STATS));
-            IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
-            indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
-            indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-            this.writer = new IndexWriter(directory, indexWriterConfig);
+            IndexWriterConfig tablesIndexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
+            tablesIndexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+            tablesIndexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
+            this.writer = new IndexWriter(directory, tablesIndexWriterConfig);
             this.searcherManager = new SearcherManager(writer, null);
 
             // ensure index files exist for reads
@@ -242,8 +248,14 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
     public void remove(RelationName relationName) {
         try {
-            writer.deleteDocuments(relTerm(relationName));
-            writer.commit();
+            PersistedTable persistedTable = loadTableStats(relationName);
+            if (persistedTable != null) {
+                for (ColumnIdent columnIdent : persistedTable.cols()) {
+                    writer.deleteDocuments(new TermQuery(colTerm(relationName, columnIdent)));
+                }
+                writer.deleteDocuments(relTerm(relationName));
+                writer.commit();
+            }
             cache.invalidate(relationName);
         } catch (IOException e) {
             throw new UncheckedIOException("Can't delete TableStats from disk", e);
@@ -263,50 +275,27 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     @VisibleForTesting
     @Nullable
     Stats loadFromDisk(RelationName relationName) {
-        try {
-            searcherManager.maybeRefreshBlocking();
-            IndexSearcher searcher = searcherManager.acquire();
-            try {
-                searcher.setQueryCache(null);
-                Query query = new TermQuery(relTerm(relationName));
-                Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
-                IndexReader reader = searcher.getIndexReader();
-                for (LeafReaderContext leafReaderContext : reader.leaves()) {
-                    Scorer scorer = weight.scorer(leafReaderContext);
-                    if (scorer == null) {
-                        continue;
-                    }
-                    DocIdSetIterator docIdSetIterator = scorer.iterator();
-                    StoredFields storedFields = leafReaderContext.reader().storedFields();
-                    if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                        Document doc = storedFields.document(docIdSetIterator.docID());
-                        BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
-                        ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
-                        InputStreamStreamInput in = new InputStreamStreamInput(bis);
-                        Version version = Version.readVersion(in);
-                        in.setVersion(version);
-                        return Stats.readFrom(new InputStreamStreamInput(in));
-                    }
-                }
-            } finally {
-                searcherManager.release(searcher);
-            }
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
+        PersistedTable persistedTable = loadTableStats(relationName);
+        if (persistedTable == null) {
+            return null;
         }
-        return null;
+        Map<ColumnIdent, ColumnStats<?>> columnStatsMap = loadColumnStats(relationName, persistedTable.cols());
+        return new Stats(persistedTable.numDocs(), persistedTable.sizeInBytes(), columnStatsMap);
     }
 
     public void update(Map<RelationName, Stats> stats) {
         try {
             for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
                 RelationName relationName = entry.getKey();
-                Document doc = makeDocument(relationName, entry.getValue());
-                writer.updateDocument(relTerm(relationName), doc);
+                DocsToPersist docs = makeDocument(relationName, entry.getValue());
+                writer.updateDocument(relTerm(relationName), docs.table());
+                for (Map.Entry<ColumnIdent, Document> docsEntry : docs.cols().entrySet()) {
+                    writer.updateDocument(colTerm(relationName, docsEntry.getKey()), docsEntry.getValue());
+                }
             }
             writer.commit();
-            cache.invalidateAll(stats.keySet());
             searcherManager.maybeRefresh();
+            cache.invalidateAll(stats.keySet());
         } catch (IOException e) {
             throw new UncheckedIOException("Can't write TableStats to disk", e);
         }
@@ -316,14 +305,35 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         return new Term(RELATION_NAME_FIELD, relationName.fqn());
     }
 
-    private static Document makeDocument(RelationName relationName, Stats stats) throws IOException {
+    private static Term colTerm(RelationName relationName, ColumnIdent columnIdent) {
+        return new Term(COLUMN_NAME_FIELD, relationName.fqn() + "." + columnIdent.sqlFqn());
+    }
+
+    private static DocsToPersist makeDocument(RelationName relationName, Stats stats) throws IOException {
+        // table stats
         BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
         Version.writeVersion(Version.CURRENT, bytesStreamOutput);
-        stats.writeTo(bytesStreamOutput);
-        Document document = new Document();
-        document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
-        document.add(new StoredField(DATA_FIELD, bytesStreamOutput.bytes().toBytesRef()));
-        return document;
+        bytesStreamOutput.writeVLong(stats.numDocs());
+        bytesStreamOutput.writeVLong(stats.sizeInBytes());
+        Document tableDocument = new Document();
+        tableDocument.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
+        tableDocument.add(new StoredField(DATA_FIELD, bytesStreamOutput.bytes().toBytesRef()));
+
+        // column stats
+        Map<ColumnIdent, Document> colDocuments = HashMap.newHashMap(stats.statsByColumn().size());
+        for (var entry : stats.statsByColumn().entrySet()) {
+            String colName = entry.getKey().sqlFqn();
+            // Add the column name to table doc
+            tableDocument.add(new StringField(COLUMN_NAMES_FIELD, colName, Field.Store.YES));
+
+            Document colDocument = new Document();
+            bytesStreamOutput = new BytesStreamOutput();
+            entry.getValue().writeTo(bytesStreamOutput);
+            colDocument.add(new StringField(COLUMN_NAME_FIELD, relationName.fqn() + "." + colName, Field.Store.NO));
+            colDocument.add(new StoredField(DATA_FIELD, bytesStreamOutput.bytes().toBytesRef()));
+            colDocuments.put(entry.getKey(), colDocument);
+        }
+        return new DocsToPersist(tableDocument, colDocuments);
     }
 
     @Override
@@ -341,5 +351,94 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             }
         }
     }
+
+    private PersistedTable loadTableStats(RelationName relationName) {
+        try {
+            PersistedTable persistedTable = null;
+            IndexSearcher tablesSearcher = null;
+            try {
+                searcherManager.maybeRefreshBlocking();
+                tablesSearcher = searcherManager.acquire();
+                tablesSearcher.setQueryCache(null);
+                Query query = new TermQuery(relTerm(relationName));
+                Weight weight = tablesSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+                IndexReader reader = tablesSearcher.getIndexReader();
+                for (LeafReaderContext leafReaderContext : reader.leaves()) {
+                    Scorer scorer = weight.scorer(leafReaderContext);
+                    if (scorer == null) {
+                        continue;
+                    }
+                    DocIdSetIterator docIdSetIterator = scorer.iterator();
+                    StoredFields storedFields = leafReaderContext.reader().storedFields();
+                    if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                        Document doc = storedFields.document(docIdSetIterator.docID());
+                        BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
+                        ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
+                        InputStreamStreamInput in = new InputStreamStreamInput(bis);
+                        Version version = Version.readVersion(in);
+                        in.setVersion(version);
+                        long numDocs = in.readVLong();
+                        long sizeInBytes = in.readVLong();
+                        String[] colNames = doc.getValues(COLUMN_NAMES_FIELD);
+                        List<ColumnIdent> cols = new ArrayList<>(colNames.length);
+                        for (String colName : colNames) {
+                            cols.add(ColumnIdent.of(colName));
+                        }
+                        persistedTable = new PersistedTable(relationName, numDocs, sizeInBytes, cols);
+                        break;
+                    }
+                }
+            } finally {
+                searcherManager.release(tablesSearcher);
+            }
+            return persistedTable;
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+    }
+
+    @VisibleForTesting
+    Map<ColumnIdent, ColumnStats<?>> loadColumnStats(RelationName relationName, List<ColumnIdent> cols) {
+        Map<ColumnIdent, ColumnStats<?>> columnStatsMap = new HashMap<>();
+        for (ColumnIdent columnIdent : cols) {
+            try {
+                IndexSearcher searcher = null;
+                try {
+                    searcherManager.maybeRefreshBlocking();
+                    searcher = searcherManager.acquire();
+                    searcher.setQueryCache(null);
+                    Query query = new TermQuery(colTerm(relationName, columnIdent));
+                    Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+                    IndexReader reader = searcher.getIndexReader();
+                    for (LeafReaderContext leafReaderContext : reader.leaves()) {
+                        Scorer scorer = weight.scorer(leafReaderContext);
+                        if (scorer == null) {
+                            continue;
+                        }
+                        DocIdSetIterator docIdSetIterator = scorer.iterator();
+                        StoredFields storedFields = leafReaderContext.reader().storedFields();
+                        if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                            Document colsDoc = storedFields.document(docIdSetIterator.docID());
+                            BytesRef colsBinaryValue = colsDoc.getBinaryValue(DATA_FIELD);
+                            ByteArrayInputStream colsBis = new ByteArrayInputStream(colsBinaryValue.bytes);
+                            InputStreamStreamInput colsIn = new InputStreamStreamInput(colsBis);
+                            ColumnStats<?> columnStats = new ColumnStats<>(colsIn);
+                            columnStatsMap.put(columnIdent, columnStats);
+                        }
+                    }
+                } finally {
+                    searcherManager.release(searcher);
+                }
+
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
+        }
+        return columnStatsMap;
+    }
+
+    private record DocsToPersist(Document table, Map<ColumnIdent, Document> cols){}
+
+    private record PersistedTable(RelationName relationName, long numDocs, long sizeInBytes, List<ColumnIdent> cols){}
 }
 
