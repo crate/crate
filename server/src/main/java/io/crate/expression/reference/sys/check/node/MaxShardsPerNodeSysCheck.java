@@ -23,15 +23,12 @@ package io.crate.expression.reference.sys.check.node;
 
 import static org.elasticsearch.indices.ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE;
 
-import java.util.Arrays;
-
-import org.elasticsearch.cluster.ClusterState;
-import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-
-import io.crate.metadata.IndexName;
+import org.elasticsearch.index.Index;
 
 @Singleton
 public class MaxShardsPerNodeSysCheck extends AbstractSysNodeCheck {
@@ -52,22 +49,24 @@ public class MaxShardsPerNodeSysCheck extends AbstractSysNodeCheck {
 
     @Override
     public boolean isValid() {
-        var maxShardLimitPerNode = clusterService.getClusterSettings().get(SETTING_CLUSTER_MAX_SHARDS_PER_NODE).doubleValue();
-        var cs = clusterService.state();
-        var localNodeId = cs.nodes().getLocalNodeId();
-        var numberOfShardsOnLocalNode = 0d;
-        for (var shardRouting : shardsForOpenIndices(cs)) {
-            if (localNodeId.equals(shardRouting.currentNodeId())) {
-                numberOfShardsOnLocalNode++;
+        double maxShardLimitPerNode = clusterService.getClusterSettings().get(SETTING_CLUSTER_MAX_SHARDS_PER_NODE).doubleValue();
+        var state = clusterService.state();
+        String localNodeId = state.nodes().getLocalNodeId();
+        int numberOfShardsOnLocalNode = 0;
+        for (var indexRoutingTable : state.routingTable()) {
+            Index index = indexRoutingTable.getIndex();
+            IndexMetadata indexMetadata = state.metadata().index(index);
+            if (indexMetadata == null || indexMetadata.getState() == State.CLOSE) {
+                continue;
+            }
+            for (var indexShardRoutingTable : indexRoutingTable) {
+                for (var shardRouting : indexShardRoutingTable) {
+                    if (localNodeId.equals(shardRouting.currentNodeId())) {
+                        numberOfShardsOnLocalNode++;
+                    }
+                }
             }
         }
         return numberOfShardsOnLocalNode / maxShardLimitPerNode < PERCENTAGE_MAX_SHARDS_PER_NODE_THRESHOLD;
-    }
-
-    private static Iterable<ShardRouting> shardsForOpenIndices(ClusterState clusterState) {
-        var concreteIndices = Arrays.stream(clusterState.metadata().getConcreteAllOpenIndices())
-            .filter(index -> !IndexName.isDangling(index))
-            .toArray(String[]::new);
-        return clusterState.routingTable().allShards(concreteIndices);
     }
 }

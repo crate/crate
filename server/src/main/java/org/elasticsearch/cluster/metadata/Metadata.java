@@ -163,10 +163,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final int totalOpenIndexShards;
     private final int numberOfShards;
 
-    private final String[] allIndices;
-    private final String[] allOpenIndices;
-    private final String[] allClosedIndices;
-
     private final SortedMap<String, AliasOrIndex> aliasAndIndexLookup;
 
     Metadata(String clusterUUID,
@@ -180,9 +176,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
              ImmutableOpenMap<String, IndexTemplateMetadata> templates,
              ImmutableOpenMap<String, Custom> customs,
              ImmutableOpenMap<String, SchemaMetadata> schemas,
-             String[] allIndices,
-             String[] allOpenIndices,
-             String[] allClosedIndices,
              SortedMap<String, AliasOrIndex> aliasAndIndexLookup) {
         this.clusterUUID = clusterUUID;
         this.clusterUUIDCommitted = clusterUUIDCommitted;
@@ -210,9 +203,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.totalOpenIndexShards = totalOpenIndexShards;
         this.numberOfShards = numberOfShards;
 
-        this.allIndices = allIndices;
-        this.allOpenIndices = allOpenIndices;
-        this.allClosedIndices = allClosedIndices;
         this.aliasAndIndexLookup = aliasAndIndexLookup;
     }
 
@@ -266,21 +256,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     public SortedMap<String, AliasOrIndex> getAliasAndIndexLookup() {
         return aliasAndIndexLookup;
-    }
-
-    /**
-     * Returns all the concrete indices.
-     */
-    public String[] getConcreteAllIndices() {
-        return allIndices;
-    }
-
-    public String[] getConcreteAllOpenIndices() {
-        return allOpenIndices;
-    }
-
-    public String[] getConcreteAllClosedIndices() {
-        return allClosedIndices;
     }
 
     public boolean hasIndex(String indexUUID) {
@@ -962,19 +937,12 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             // 2) The aliasAndIndexLookup can be updated instead of rebuilding it all the time.
 
             final Set<String> allIndices = new HashSet<>(indices.size());
-            final List<String> allOpenIndices = new ArrayList<>();
-            final List<String> allClosedIndices = new ArrayList<>();
             final Set<String> duplicateAliasesIndices = new HashSet<>();
             for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
                 final IndexMetadata indexMetadata = cursor.value;
                 final String uuid = indexMetadata.getIndex().getUUID();
                 boolean added = allIndices.add(uuid);
                 assert added : "double index named [" + uuid + "]";
-                if (indexMetadata.getState() == IndexMetadata.State.OPEN) {
-                    allOpenIndices.add(uuid);
-                } else if (indexMetadata.getState() == IndexMetadata.State.CLOSE) {
-                    allClosedIndices.add(uuid);
-                }
                 indexMetadata.getAliases().keysIt().forEachRemaining(duplicateAliasesIndices::add);
             }
             duplicateAliasesIndices.retainAll(allIndices);
@@ -996,15 +964,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = Collections.unmodifiableSortedMap(buildAliasAndIndexLookup());
 
-
-            // build all concrete indices arrays:
-            // TODO: I think we can remove these arrays. it isn't worth the effort, for operations on all indices.
-            // When doing an operation across all indices, most of the time is spent on actually going to all shards and
-            // do the required operations, the bottleneck isn't resolving expressions into concrete indices.
-            String[] allIndicesArray = allIndices.toArray(new String[allIndices.size()]);
-            String[] allOpenIndicesArray = allOpenIndices.toArray(new String[allOpenIndices.size()]);
-            String[] allClosedIndicesArray = allClosedIndices.toArray(new String[allClosedIndices.size()]);
-
             return new Metadata(
                 clusterUUID,
                 clusterUUIDCommitted,
@@ -1017,9 +976,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 templates.build(),
                 customs.build(),
                 schemas.build(),
-                allIndicesArray,
-                allOpenIndicesArray,
-                allClosedIndicesArray,
                 aliasAndIndexLookup
             );
         }
