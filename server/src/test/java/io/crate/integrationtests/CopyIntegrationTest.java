@@ -1214,4 +1214,37 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
                 .hasMessage("Only a superuser can read from the local file system");
         }
     }
+
+    @Test
+    public void test_unassigned_generated_columns() throws IOException {
+        execute("""
+            create table t (
+                a int generated always as c+1,
+                b int generated always as round(random() * 10),
+                i int,
+                o object as (
+                    a int generated always as c+1,
+                    b int generated always as round(random() * 10),
+                    i int,
+                    o object as (
+                        a int generated always as c+1,
+                        b int generated always as round(random() * 10),
+                        i int
+                    )
+                ),
+                c int
+            )
+            """);
+        var lines = List.of(
+            """
+                {"c":0, "i":1, "o":{"i":2, "o":{"i":3}}}
+            """
+        );
+        File file = folder.newFile(UUID.randomUUID().toString());
+        Files.write(file.toPath(), lines, StandardCharsets.UTF_8);
+        execute("copy t from ? with (shared = true)", new Object[]{Paths.get(file.toURI()).toUri().toString()});
+        execute("refresh table t");
+        execute("select a, o['a'], o['o']['a'], i, o['i'], o['o']['i'], b>=0, o['b']>=0, o['o']['b']>=0, c from t");
+        assertThat(response).hasRows("1| 1| 1| 1| 2| 3| true| true| true| 0");
+    }
 }
