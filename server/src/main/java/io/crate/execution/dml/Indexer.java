@@ -1054,6 +1054,9 @@ public class Indexer {
 
     public Object[] addGeneratedValues(IndexItem item) {
         Object[] insertValues = item.insertValues();
+        if (onConflictIndexer() == null && undeterministic.isEmpty()) {
+            return insertValues;
+        }
         assert onConflictIndexer() == null || new HashSet<>(onConflictIndexer().insertColumns().stream().map(Reference::column).toList())
             .containsAll(insertColumns().stream().map(Reference::column).toList()) : "onConflictIndexer().insertColumns() is a superset of this.insertColumns()";
         List<Reference> insertColumns = onConflictIndexer() == null ? insertColumns() : onConflictIndexer().insertColumns();
