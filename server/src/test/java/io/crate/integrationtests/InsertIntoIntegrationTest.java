@@ -2383,6 +2383,26 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void test_insert_on_conflict_does_not_modify_unassigned_deterministic_default_columns() {
+        execute("""
+            create table t (
+                a int default -1,
+                i int,
+                c int primary key
+            )
+            """);
+        execute("insert into t(c,i) values (0, 1) on conflict (c) do update set i=11");
+        execute("refresh table t");
+        execute("select c, i, a from t");
+        assertThat(response).hasRows("0| 1| -1");
+
+        execute("insert into t(c,i) values (6, 7), (0, 1), (5, 6) on conflict (c) do update set i=11");
+        execute("refresh table t");
+        execute("select c, i, a from t order by c");
+        assertThat(response).hasRows("0| 11| -1", "5| 6| -1", "6| 7| -1");
+    }
+
+    @Test
     public void test_insert_on_conflict_can_assign_to_default_columns() {
         execute("""
             create table t (
