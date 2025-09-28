@@ -55,3 +55,7 @@ Fixes
 - Fixed an issue that could lead to stuck jobs, memory leaks and even make a
   cluster unstable when a query with a ``LIMIT`` clause was interrupted by a
   ``CircuitBreakingException``.
+
+- Fixed an issue that caused ``ArrayIndexOutOfBoundsExeption`` when executing
+  ``COPY FROM`` on a table containing non-deterministic generated or default
+  columns.
