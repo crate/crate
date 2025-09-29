@@ -1113,7 +1113,7 @@ public class InternalEngineTests extends EngineTestCase {
                 writer.forceMerge(1);
                 try (DirectoryReader reader = DirectoryReader.open(writer)) {
                     assertThat(reader.leaves().size()).isEqualTo(1);
-                    assertThat(VersionsAndSeqNoResolver.loadDocIdAndVersion(reader, new Term(SysColumns.Names.ID, "1"), false))
+                    assertThat(VersionsAndSeqNoResolver.loadDocIdAndVersion(reader, new BytesRef("1"), false))
                         .isNull();
                 }
             }
@@ -1856,7 +1856,7 @@ public class InternalEngineTests extends EngineTestCase {
         final int opsOnPrimary = assertOpsOnPrimary(primaryOps, finalReplicaVersion, deletedOnReplica, replicaEngine);
         final long currentSeqNo = getSequenceID(
             replicaEngine,
-            new Engine.Get(lastReplicaOp.uid().text(), lastReplicaOp.uid())).v1();
+            new Engine.Get(lastReplicaOp.id(), lastReplicaOp.uid())).v1();
         try (Searcher searcher = engine.acquireSearcher("test", Engine.SearcherScope.INTERNAL)) {
             var totalHits = searcher.count(new MatchAllDocsQuery());
             if (totalHits > 0) {
@@ -1910,7 +1910,7 @@ public class InternalEngineTests extends EngineTestCase {
         final AtomicInteger idGenerator = new AtomicInteger();
         final Queue<OpAndVersion> history = new ConcurrentLinkedQueue<>();
         ParsedDocument doc = testParsedDocument("1", testDocument(), bytesArray(""));
-        final Term uidTerm = newUid(doc);
+        final BytesRef uidTerm = newUid(doc);
         engine.index(indexForDoc(doc));
         final BiFunction<String, Engine.SearcherScope, Searcher> searcherFactory = engine::acquireSearcher;
         for (int i = 0; i < thread.length; i++) {
@@ -3902,7 +3902,7 @@ public class InternalEngineTests extends EngineTestCase {
             document.add(new Field(SysColumns.Source.NAME, BytesReference.toBytes(B_1), SysColumns.Source.FIELD_TYPE));
             return testParsedDocument("1", document, B_1);
         };
-        final Term uid = newUid("1");
+        final BytesRef uid = newUid("1");
         final BiFunction<String, Engine.SearcherScope, Searcher> searcherFactory = engine::acquireSearcher;
         for (int i = 0; i < numberOfOperations; i++) {
             if (randomBoolean()) {
@@ -4481,7 +4481,7 @@ public class InternalEngineTests extends EngineTestCase {
             );
 
             final Engine.Index index = new Engine.Index(
-                new Term("_id", parsedDocument.id()),
+                Uid.encodeId(parsedDocument.id()),
                 parsedDocument,
                 UNASSIGNED_SEQ_NO,
                 randomIntBetween(1, 8),
@@ -4499,7 +4499,7 @@ public class InternalEngineTests extends EngineTestCase {
 
             final Engine.Delete delete = new Engine.Delete(
                 id,
-                new Term("_id", parsedDocument.id()),
+                Uid.encodeId(parsedDocument.id()),
                 UNASSIGNED_SEQ_NO,
                 randomIntBetween(1, 8),
                 Versions.MATCH_ANY,

@@ -20,6 +20,7 @@
 package org.elasticsearch.index.translog;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 import static org.elasticsearch.common.util.BigArrays.NON_RECYCLING_INSTANCE;
@@ -79,7 +80,6 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.NumericDocValuesField;
 import org.apache.lucene.document.TextField;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.ByteArrayDataOutput;
 import org.apache.lucene.store.DataOutput;
@@ -317,7 +317,7 @@ public class TranslogTests extends ESTestCase {
             assertThat(snapshot.totalOperations()).isEqualTo(ops.size());
         }
 
-        addToTranslogAndList(translog, ops, new Translog.Delete("2", 1, primaryTerm.get(), newUid("2")));
+        addToTranslogAndList(translog, ops, new Translog.Delete("2", 1, primaryTerm.get()));
         try (Translog.Snapshot snapshot = translog.newSnapshot()) {
             assertThat(snapshot).equalsTo(ops);
             assertThat(snapshot.totalOperations()).isEqualTo(ops.size());
@@ -336,7 +336,7 @@ public class TranslogTests extends ESTestCase {
 
             Translog.Delete delete = (Translog.Delete) snapshot.next();
             assertThat(delete).isNotNull();
-            assertThat(delete.uid()).isEqualTo(newUid("2"));
+            assertThat(delete.id()).isEqualTo("2");
 
             Translog.NoOp noOp = (Translog.NoOp) snapshot.next();
             assertThat(noOp).isNotNull();
@@ -387,46 +387,46 @@ public class TranslogTests extends ESTestCase {
             assertThat(stats.getUncommittedSizeInBytes()).isEqualTo(101L);
         }
 
-        translog.add(new Translog.Delete("2", 1, primaryTerm.get(), newUid("2")));
+        translog.add(new Translog.Delete("2", 1, primaryTerm.get()));
         {
             final TranslogStats stats = stats();
             assertThat(stats.estimatedNumberOfOperations()).isEqualTo(2);
-            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(199L);
+            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(192L);
             assertThat(stats.getUncommittedOperations()).isEqualTo(2);
-            assertThat(stats.getUncommittedSizeInBytes()).isEqualTo(144L);
+            assertThat(stats.getUncommittedSizeInBytes()).isEqualTo(137L);
         }
 
-        translog.add(new Translog.Delete("3", 2, primaryTerm.get(), newUid("3")));
+        translog.add(new Translog.Delete("3", 2, primaryTerm.get()));
         {
             final TranslogStats stats = stats();
             assertThat(stats.estimatedNumberOfOperations()).isEqualTo(3);
-            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(242L);
+            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(228L);
             assertThat(stats.getUncommittedOperations()).isEqualTo(3);
-            assertThat(stats.getUncommittedSizeInBytes()).isEqualTo(187L);
+            assertThat(stats.getUncommittedSizeInBytes()).isEqualTo(173L);
         }
 
         translog.add(new Translog.NoOp(3, 1, randomAlphaOfLength(16)));
         {
             final TranslogStats stats = stats();
             assertThat(stats.estimatedNumberOfOperations()).isEqualTo(4);
-            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(284L);
+            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(270L);
             assertThat(stats.getUncommittedOperations()).isEqualTo(4);
-            assertThat(stats.getUncommittedSizeInBytes()).isEqualTo(229L);
+            assertThat(stats.getUncommittedSizeInBytes()).isEqualTo(215L);
         }
 
         translog.rollGeneration();
         {
             final TranslogStats stats = stats();
             assertThat(stats.estimatedNumberOfOperations()).isEqualTo(4);
-            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(339L);
+            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(325L);
             assertThat(stats.getUncommittedOperations()).isEqualTo(4);
-            assertThat(stats.getUncommittedSizeInBytes()).isEqualTo(284L);
+            assertThat(stats.getUncommittedSizeInBytes()).isEqualTo(270L);
         }
 
         {
             final TranslogStats stats = stats();
             assertThat(stats.estimatedNumberOfOperations()).isEqualTo(4);
-            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(339L);
+            assertThat(stats.getTranslogSizeInBytes()).isEqualTo(325L);
         }
         translog.getDeletionPolicy().setLocalCheckpointOfSafeCommit(randomLongBetween(3, Long.MAX_VALUE));
         translog.trimUnreferencedReaders();
@@ -710,7 +710,7 @@ public class TranslogTests extends ESTestCase {
                     case DELETE:
                         Translog.Delete delOp = (Translog.Delete) op;
                         Translog.Delete expDelOp = (Translog.Delete) expectedOp;
-                        assertThat(delOp.uid()).isEqualTo(expDelOp.uid());
+                        assertThat(delOp.id()).isEqualTo(expDelOp.id());
                         assertThat(delOp.version()).isEqualTo(expDelOp.version());
                         break;
                     case NO_OP:
@@ -810,14 +810,6 @@ public class TranslogTests extends ESTestCase {
     }
 
 
-    private Term newUid(ParsedDocument doc) {
-        return new Term("_id", Uid.encodeId(doc.id()));
-    }
-
-    private Term newUid(String id) {
-        return new Term("_id", Uid.encodeId(id));
-    }
-
     @Test
     public void testVerifyTranslogIsNotDeleted() throws IOException {
         assertFileIsPresent(translog, 1);
@@ -877,7 +869,7 @@ public class TranslogTests extends ESTestCase {
                                 op = new Translog.Index("" + id, id, primaryTerm.get(), new byte[]{(byte) id});
                                 break;
                             case DELETE:
-                                op = new Translog.Delete(Long.toString(id), id, primaryTerm.get(), newUid(Long.toString(id)));
+                                op = new Translog.Delete(Long.toString(id), id, primaryTerm.get());
                                 break;
                             case NO_OP:
                                 op = new Translog.NoOp(id, 1, Long.toString(id));
@@ -2049,7 +2041,6 @@ public class TranslogTests extends ESTestCase {
                         case DELETE:
                             op = new Translog.Delete(
                                 threadId + "_" + opCount,
-                                new Term("_uid", threadId + "_" + opCount),
                                 seqNoGenerator.getAndIncrement(),
                                 primaryTerm.get(),
                                 1 + randomInt(100000));
@@ -2970,7 +2961,7 @@ public class TranslogTests extends ESTestCase {
         document.add(seqID.primaryTerm);
         ParsedDocument doc = new ParsedDocument(versionField, seqID, "1", document, B_1);
 
-        Engine.Index eIndex = new Engine.Index(newUid(doc), doc, randomSeqNum, randomPrimaryTerm,
+        Engine.Index eIndex = new Engine.Index(Uid.encodeId(doc.id()), doc, randomSeqNum, randomPrimaryTerm,
             1, VersionType.INTERNAL, Origin.PRIMARY, 0, 0, false, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
         Engine.IndexResult eIndexResult = new Engine.IndexResult(1, randomPrimaryTerm, randomSeqNum, true);
         Translog.Index index = new Translog.Index(eIndex, eIndexResult);
@@ -2984,7 +2975,7 @@ public class TranslogTests extends ESTestCase {
         Translog.Index serializedIndex = (Translog.Index) Translog.Operation.readOperation(in);
         assertThat(serializedIndex).isEqualTo(index);
 
-        Engine.Delete eDelete = new Engine.Delete(doc.id(), newUid(doc), randomSeqNum, randomPrimaryTerm,
+        Engine.Delete eDelete = new Engine.Delete(doc.id(), Uid.encodeId(doc.id()), randomSeqNum, randomPrimaryTerm,
             2, VersionType.INTERNAL, Origin.PRIMARY, 0, SequenceNumbers.UNASSIGNED_SEQ_NO, 0);
         Engine.DeleteResult eDeleteResult = new Engine.DeleteResult(2, randomPrimaryTerm, randomSeqNum, true);
         Translog.Delete delete = new Translog.Delete(eDelete, eDeleteResult);

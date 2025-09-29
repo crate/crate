@@ -19,17 +19,16 @@
 
 package org.elasticsearch.common.lucene.uid;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.concurrent.ConcurrentMap;
+
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.Term;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.CloseableThreadLocal;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
-
-import java.io.IOException;
-import java.util.List;
-import java.util.Objects;
-import java.util.concurrent.ConcurrentMap;
 
 /** Utility class to resolve the Lucene doc ID, version, seqNo and primaryTerms for a given uid. */
 public final class VersionsAndSeqNoResolver {
@@ -45,7 +44,7 @@ public final class VersionsAndSeqNoResolver {
         }
     };
 
-    private static PerThreadIDVersionAndSeqNoLookup[] getLookupState(IndexReader reader, String uidField) throws IOException {
+    private static PerThreadIDVersionAndSeqNoLookup[] getLookupState(IndexReader reader) throws IOException {
         // We cache on the top level
         // This means cache entries have a shorter lifetime, maybe as low as 1s with the
         // default refresh interval and a steady indexing rate, but on the other hand it
@@ -70,18 +69,13 @@ public final class VersionsAndSeqNoResolver {
         if (lookupState == null) {
             lookupState = new PerThreadIDVersionAndSeqNoLookup[reader.leaves().size()];
             for (LeafReaderContext leaf : reader.leaves()) {
-                lookupState[leaf.ord] = new PerThreadIDVersionAndSeqNoLookup(leaf.reader(), uidField);
+                lookupState[leaf.ord] = new PerThreadIDVersionAndSeqNoLookup(leaf.reader());
             }
             ctl.set(lookupState);
         }
 
         if (lookupState.length != reader.leaves().size()) {
             throw new AssertionError("Mismatched numbers of leaves: " + lookupState.length + " != " + reader.leaves().size());
-        }
-
-        if (lookupState.length > 0 && Objects.equals(lookupState[0].uidField, uidField) == false) {
-            throw new AssertionError("Index does not consistently use the same uid field: ["
-                    + uidField + "] != [" + lookupState[0].uidField + "]");
         }
 
         return lookupState;
@@ -129,15 +123,15 @@ public final class VersionsAndSeqNoResolver {
      * <li>a doc ID and a version otherwise
      * </ul>
      */
-    public static DocIdAndVersion loadDocIdAndVersion(IndexReader reader, Term term, boolean loadSeqNo) throws IOException {
-        PerThreadIDVersionAndSeqNoLookup[] lookups = getLookupState(reader, term.field());
+    public static DocIdAndVersion loadDocIdAndVersion(IndexReader reader, BytesRef uid, boolean loadSeqNo) throws IOException {
+        PerThreadIDVersionAndSeqNoLookup[] lookups = getLookupState(reader);
         List<LeafReaderContext> leaves = reader.leaves();
         // iterate backwards to optimize for the frequently updated documents
         // which are likely to be in the last segments
         for (int i = leaves.size() - 1; i >= 0; i--) {
             final LeafReaderContext leaf = leaves.get(i);
             PerThreadIDVersionAndSeqNoLookup lookup = lookups[leaf.ord];
-            DocIdAndVersion result = lookup.lookupVersion(term.bytes(), loadSeqNo, leaf);
+            DocIdAndVersion result = lookup.lookupVersion(uid, loadSeqNo, leaf);
             if (result != null) {
                 return result;
             }
@@ -149,15 +143,15 @@ public final class VersionsAndSeqNoResolver {
      * Loads the internal docId and sequence number of the latest copy for a given uid from the provided reader.
      * The result is either null or the live and latest version of the given uid.
      */
-    public static DocIdAndSeqNo loadDocIdAndSeqNo(IndexReader reader, Term term) throws IOException {
-        final PerThreadIDVersionAndSeqNoLookup[] lookups = getLookupState(reader, term.field());
+    public static DocIdAndSeqNo loadDocIdAndSeqNo(IndexReader reader, BytesRef uid) throws IOException {
+        final PerThreadIDVersionAndSeqNoLookup[] lookups = getLookupState(reader);
         final List<LeafReaderContext> leaves = reader.leaves();
         // iterate backwards to optimize for the frequently updated documents
         // which are likely to be in the last segments
         for (int i = leaves.size() - 1; i >= 0; i--) {
             final LeafReaderContext leaf = leaves.get(i);
             final PerThreadIDVersionAndSeqNoLookup lookup = lookups[leaf.ord];
-            final DocIdAndSeqNo result = lookup.lookupSeqNo(term.bytes(), leaf);
+            final DocIdAndSeqNo result = lookup.lookupSeqNo(uid, leaf);
             if (result != null) {
                 return result;
             }

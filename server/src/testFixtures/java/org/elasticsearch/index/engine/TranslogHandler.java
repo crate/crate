@@ -29,6 +29,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.mapper.SourceToParse;
+import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.translog.Translog;
@@ -144,7 +145,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
                 final Translog.Delete delete = (Translog.Delete) operation;
                 yield new Engine.Delete(
                     delete.id(),
-                    delete.uid(),
+                    Uid.encodeId(delete.id()),
                     delete.seqNo(),
                     delete.primaryTerm(),
                     delete.version(),

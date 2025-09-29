@@ -35,7 +35,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import org.apache.lucene.index.Term;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.VersionType;
@@ -70,7 +70,6 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.operators.PKAndVersion;
 
 public final class PKLookupOperation {
@@ -102,10 +101,10 @@ public final class PKLookupOperation {
                                 List<String> partitionValues,
                                 List<Symbol> columns,
                                 CheckedFunction<Doc, T, Exception> processDoc) {
-        Term uidTerm = new Term(SysColumns.Names.ID, Uid.encodeId(id));
+        BytesRef uid = Uid.encodeId(id);
         Engine.Get get = new Engine.Get(
             id,
-            uidTerm,
+            uid,
             version,
             versionType,
             seqNo,
