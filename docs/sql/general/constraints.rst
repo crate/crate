@@ -75,7 +75,7 @@ automatically.  This name is visible in
     That means that it could be possible to add a primary key column to a table
     that isn't empty.
 
-    If that is the case queries that contain the primary key columns in the
+    If that is the case, queries that contain the primary key columns in the
     ``WHERE`` clause will not behave as expected.
 
 

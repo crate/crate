@@ -50,3 +50,7 @@ Fixes
 - Fixed an issue that could lead to stuck jobs, memory leaks and even make a
   cluster unstable when a query with a ``LIMIT`` clause was interrupted by a
   ``CircuitBreakingException``.
+
+- Fixed an issue allowing users to add a column with ``DEFAULT NOT NULL``
+  clauses to a non-empty table, causing existing records to have ``NULL`` and
+  break the contract.

@@ -157,7 +157,8 @@ Can be used to add an additional column to a table. While columns can be added
 at any time, adding a new :ref:`generated column
 <sql-create-table-generated-columns>` is only possible if the table is empty.
 In addition, adding a base column with :ref:`sql-create-table-default-clause`
-is not supported. It is possible to define a ``CHECK`` constraint with the
+combined with ``NOT NULL`` constraint is not supported.
+It is possible to define a ``CHECK`` constraint with the
 restriction that only the column being added may be used in the :ref:`boolean
 expression <sql-literal-value>`.
 
@@ -169,6 +170,15 @@ expression <sql-literal-value>`.
   This can be a sub-column on an existing `OBJECT`.
 
 It's possible to add multiple columns at once.
+
+.. WARNING::
+
+    The verification if the table is empty and the schema update isn't atomic.
+    That means that it could be possible to add a generated or ``DEFAULT NOT NULL``
+    column to a table that isn't empty.
+
+    If that is the case, all records that were created before column was added
+    will contain ``NULL`` values for the new column despite on NOT NULL constraint.
 
 .. _sql-alter-table-drop-column:
 
