@@ -3540,6 +3540,28 @@ public class TranslogTests extends ESTestCase {
         assertThat(index.getSource()).isEqualTo(index2.getSource());
     }
 
+    @Test
+    public void test_translog_delete_operation_bwc_serialization() throws Exception {
+        String id = "id1";
+        long seqNo = 2;
+        long primaryTerm = 1;
+        long version = 3;
+        Translog.Delete delete = new Translog.Delete(id, seqNo, primaryTerm, version);
+        try (var out = new BytesStreamOutput()) {
+            out.setVersion(Version.CURRENT.minimumIndexCompatibilityVersion());
+            delete.write(out);
+
+            try (var in = out.bytes().streamInput()) {
+                var ndelete = new Translog.Delete(in);
+                assertThat(ndelete).isEqualTo(delete);
+                assertThat(ndelete.id()).isEqualTo(id);
+                assertThat(ndelete.seqNo()).isEqualTo(seqNo);
+                assertThat(ndelete.primaryTerm()).isEqualTo(primaryTerm);
+                assertThat(ndelete.version()).isEqualTo(version);
+            }
+        }
+    }
+
     static boolean hasCircularReference(Throwable cause) {
         final Queue<Throwable> queue = new LinkedList<>();
         queue.add(cause);
