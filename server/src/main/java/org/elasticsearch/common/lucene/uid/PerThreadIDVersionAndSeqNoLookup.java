@@ -53,7 +53,6 @@ final class PerThreadIDVersionAndSeqNoLookup {
     // we keep it around for now, to reduce the amount of e.g. hash lookups by field and stuff
 
     /** terms enum for uid field */
-    final String uidField;
     private final TermsEnum termsEnum;
 
     /** Reused for iteration (when the term exists) */
@@ -65,9 +64,8 @@ final class PerThreadIDVersionAndSeqNoLookup {
     /**
      * Initialize lookup for the provided segment
      */
-    PerThreadIDVersionAndSeqNoLookup(LeafReader reader, String uidField) throws IOException {
-        this.uidField = uidField;
-        final Terms terms = reader.terms(uidField);
+    PerThreadIDVersionAndSeqNoLookup(LeafReader reader) throws IOException {
+        final Terms terms = reader.terms(SysColumns.Names.ID);
         if (terms == null) {
             // If a segment contains only no-ops, it does not have _uid but has both _soft_deletes and _tombstone fields.
             final NumericDocValues softDeletesDV = reader.getNumericDocValues(Lucene.SOFT_DELETES_FIELD);

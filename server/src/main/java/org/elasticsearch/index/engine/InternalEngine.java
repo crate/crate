@@ -616,13 +616,12 @@ public class InternalEngine extends Engine {
 
     @Override
     public GetResult get(Get get, BiFunction<String, SearcherScope, Engine.Searcher> searcherFactory) throws EngineException {
-        assert Objects.equals(get.uid().field(), SysColumns.Names.ID) : get.uid().field();
         try (ReleasableLock ignored = readLock.acquire()) {
             ensureOpen();
             VersionValue versionValue = null;
-            try (Releasable ignore = versionMap.acquireLock(get.uid().bytes())) {
+            try (Releasable ignore = versionMap.acquireLock(get.uid())) {
                 // we need to lock here to access the version map to do this truly in RT
-                versionValue = getVersionFromMap(get.uid().bytes());
+                versionValue = getVersionFromMap(get.uid());
             }
             if (versionValue == null) {
                 // no version, get the version from the index, we know that we refresh on flush
@@ -722,7 +721,7 @@ public class InternalEngine extends Engine {
     private OpVsLuceneDocStatus compareOpToLuceneDocBasedOnSeqNo(final Operation op) throws IOException {
         assert op.seqNo() != SequenceNumbers.UNASSIGNED_SEQ_NO : "resolving ops based on seq# but no seqNo is found";
         final OpVsLuceneDocStatus status;
-        VersionValue versionValue = getVersionFromMap(op.uid().bytes());
+        VersionValue versionValue = getVersionFromMap(op.uid());
         assert incrementVersionLookup();
         if (versionValue != null) {
             status = compareOpToVersionMapOnSeqNo(op.id(), op.seqNo(), op.primaryTerm(), versionValue);
@@ -750,7 +749,7 @@ public class InternalEngine extends Engine {
     /** resolves the current version of the document, returning null if not found */
     private VersionValue resolveDocVersion(final Operation op, boolean loadSeqNo) throws IOException {
         assert incrementVersionLookup(); // used for asserting in tests
-        VersionValue versionValue = getVersionFromMap(op.uid().bytes());
+        VersionValue versionValue = getVersionFromMap(op.uid());
         if (versionValue == null) {
             assert incrementIndexVersionLookup(); // used for asserting in tests
             final VersionsAndSeqNoResolver.DocIdAndVersion docIdAndVersion;
@@ -853,13 +852,12 @@ public class InternalEngine extends Engine {
 
     @Override
     public IndexResult index(Index index) throws IOException {
-        assert Objects.equals(index.uid().field(), SysColumns.Names.ID) : index.uid().field();
         final boolean doThrottle = index.origin().isRecovery() == false;
         try (ReleasableLock releasableLock = readLock.acquire()) {
             ensureOpen();
             assert assertIncomingSequenceNumber(index.origin(), index.seqNo());
             int reservedDocs = 0;
-            try (Releasable ignored = versionMap.acquireLock(index.uid().bytes());
+            try (Releasable ignored = versionMap.acquireLock(index.uid());
                 Releasable indexThrottle = doThrottle ? throttle.acquireThrottle() : () -> {}) {
                 lastWriteNanos = index.startTime();
                 /* A NOTE ABOUT APPEND ONLY OPTIMIZATIONS:
@@ -936,7 +934,8 @@ public class InternalEngine extends Engine {
                 }
                 if (plan.indexIntoLucene && indexResult.getResultType() == Result.Type.SUCCESS) {
                     final Translog.Location translogLocation = trackTranslogLocation.get() ? indexResult.getTranslogLocation() : null;
-                    versionMap.maybePutIndexUnderLock(index.uid().bytes(),
+                    versionMap.maybePutIndexUnderLock(
+                        index.uid(),
                         new IndexVersionValue(translogLocation, plan.versionForIndexing, index.seqNo(), index.primaryTerm()));
                 }
                 localCheckpointTracker.markSeqNoAsProcessed(indexResult.getSeqNo());
@@ -1238,14 +1237,14 @@ public class InternalEngine extends Engine {
     private boolean assertDocDoesNotExist(final Index index, final boolean allowDeleted) throws IOException {
         // NOTE this uses direct access to the version map since we are in the assertion code where we maintain a secondary
         // map in the version map such that we don't need to refresh if we are unsafe;
-        final VersionValue versionValue = versionMap.getVersionForAssert(index.uid().bytes());
+        final VersionValue versionValue = versionMap.getVersionForAssert(index.uid());
         if (versionValue != null) {
             if (versionValue.isDelete() == false || allowDeleted == false) {
                 throw new AssertionError("doc [" + index.id() + "] exists in version map (version " + versionValue + ")");
             }
         } else {
             try (Searcher searcher = acquireSearcher("assert doc doesn't exist", SearcherScope.INTERNAL)) {
-                final long docsWithId = searcher.count(new TermQuery(index.uid()));
+                final long docsWithId = searcher.count(new TermQuery(new Term(SysColumns.Names.ID, index.uid())));
                 if (docsWithId > 0) {
                     throw new AssertionError("doc [" + index.id() + "] exists [" + docsWithId + "] times in index");
                 }
@@ -1254,20 +1253,19 @@ public class InternalEngine extends Engine {
         return true;
     }
 
-    private void updateDoc(final Term uid, Document doc, final IndexWriter indexWriter) throws IOException {
-        indexWriter.softUpdateDocument(uid, doc, softDeletesField);
+    private void updateDoc(final BytesRef uid, Document doc, final IndexWriter indexWriter) throws IOException {
+        indexWriter.softUpdateDocument(new Term(SysColumns.Names.ID, uid), doc, softDeletesField);
         numDocUpdates.inc();
     }
 
     @Override
     public DeleteResult delete(Delete delete) throws IOException {
         versionMap.enforceSafeAccess();
-        assert Objects.equals(delete.uid().field(), SysColumns.Names.ID) : delete.uid().field();
         assert assertIncomingSequenceNumber(delete.origin(), delete.seqNo());
         final boolean doThrottle = delete.origin().isRecovery() == false;
         final DeleteResult deleteResult;
         int reservedDocs = 0;
-        try (ReleasableLock ignored = readLock.acquire(); Releasable ignored2 = versionMap.acquireLock(delete.uid().bytes())) {
+        try (ReleasableLock ignored = readLock.acquire(); Releasable ignored2 = versionMap.acquireLock(delete.uid())) {
             ensureOpen();
             try (Releasable _ = doThrottle ? throttle.acquireThrottle() : () -> {}) {
                 lastWriteNanos = delete.startTime();
@@ -1461,11 +1459,11 @@ public class InternalEngine extends Engine {
             if (plan.addStaleOpToLucene || plan.currentlyDeleted) {
                 indexWriter.addDocument(doc);
             } else {
-                indexWriter.softUpdateDocument(delete.uid(), doc, softDeletesField);
+                indexWriter.softUpdateDocument(new Term(SysColumns.Names.ID, delete.uid()), doc, softDeletesField);
             }
             if (plan.deleteFromLucene) {
                 numDocDeletes.inc();
-                versionMap.putDeleteUnderLock(delete.uid().bytes(),
+                versionMap.putDeleteUnderLock(delete.uid(),
                     new DeleteVersionValue(plan.versionOfDeletion, delete.seqNo(), delete.primaryTerm(),
                         engineConfig.getThreadPool().relativeTimeInMillis()));
             }
@@ -2409,7 +2407,7 @@ public class InternalEngine extends Engine {
             if (op.operationType() == Operation.TYPE.NO_OP) {
                 assert noOpKeyedLock.isHeldByCurrentThread(op.seqNo());
             } else {
-                assert versionMap.assertKeyedLockHeldByCurrentThread(op.uid().bytes());
+                assert versionMap.assertKeyedLockHeldByCurrentThread(op.uid());
             }
         }
         return localCheckpointTracker.hasProcessed(op.seqNo());
@@ -2658,11 +2656,11 @@ public class InternalEngine extends Engine {
         this.maxSeqNoOfUpdatesOrDeletes.updateAndGet(curr -> Math.max(curr, maxSeqNoOfUpdatesOnPrimary));
     }
 
-    private boolean assertMaxSeqNoOfUpdatesIsAdvanced(Term id, long seqNo, boolean allowDeleted, boolean relaxIfGapInSeqNo) {
+    private boolean assertMaxSeqNoOfUpdatesIsAdvanced(BytesRef id, long seqNo, boolean allowDeleted, boolean relaxIfGapInSeqNo) {
         final long maxSeqNoOfUpdates = getMaxSeqNoOfUpdatesOrDeletes();
         // We treat a delete on the tombstones on replicas as a regular document, then use updateDocument (not addDocument).
         if (allowDeleted) {
-            final VersionValue versionValue = versionMap.getVersionForAssert(id.bytes());
+            final VersionValue versionValue = versionMap.getVersionForAssert(id);
             if (versionValue != null && versionValue.isDelete()) {
                 return true;
             }

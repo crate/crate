@@ -64,7 +64,6 @@ import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexCommit;
 import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.IOContext;
 import org.apache.lucene.tests.index.RandomIndexWriter;
@@ -415,7 +414,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
         final ParsedDocument doc =
             new ParsedDocument(versionField, seqID, id, document, source);
         return new Engine.Index(
-            new Term("_id", Uid.encodeId(doc.id())), doc, UNASSIGNED_SEQ_NO, 0,
+            Uid.encodeId(doc.id()), doc, UNASSIGNED_SEQ_NO, 0,
             Versions.MATCH_ANY, VersionType.INTERNAL, PRIMARY, System.nanoTime(), -1, false, UNASSIGNED_SEQ_NO, 0);
 
     }
@@ -1018,8 +1017,7 @@ public class RecoverySourceHandlerTests extends ESTestCase {
             if (randomBoolean()) {
                 op = new Translog.Index("id", seqNo, randomNonNegativeLong(), randomNonNegativeLong(), source, -1);
             } else if (randomBoolean()) {
-                op = new Translog.Delete("id", new Term("_id", Uid.encodeId("id")),
-                    seqNo, randomNonNegativeLong(), randomNonNegativeLong());
+                op = new Translog.Delete("id", seqNo, randomNonNegativeLong(), randomNonNegativeLong());
             } else {
                 op = new Translog.NoOp(seqNo, randomNonNegativeLong(), "test");
             }

@@ -46,7 +46,6 @@ import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
@@ -64,6 +63,7 @@ import org.elasticsearch.common.util.concurrent.ReleasableLock;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.Engine;
+import org.elasticsearch.index.mapper.Uid;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.AbstractIndexShardComponent;
 import org.elasticsearch.index.shard.ShardId;
@@ -71,6 +71,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.Constants;
 import io.crate.common.io.IOUtils;
+import io.crate.metadata.doc.SysColumns;
 
 
 /**
@@ -1254,13 +1255,30 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
         public static final int FORMAT_NO_PARENT = FORMAT_6_0 + 1; // since ES 7.0
         public static final int FORMAT_NO_VERSION_TYPE = FORMAT_NO_PARENT + 1;
         public static final int FORMAT_NO_DOC_TYPE = FORMAT_NO_VERSION_TYPE + 1; // since 4.3
-        public static final int SERIALIZATION_FORMAT = FORMAT_NO_DOC_TYPE;
+        public static final int FORMAT_NO_UID = FORMAT_NO_DOC_TYPE + 1; // Since 6.1
+        public static final int SERIALIZATION_FORMAT = FORMAT_NO_UID;
 
         private final String id;
-        private final Term uid;
         private final long seqNo;
         private final long primaryTerm;
         private final long version;
+
+
+        public Delete(Engine.Delete delete, Engine.DeleteResult deleteResult) {
+            this(delete.id(), deleteResult.getSeqNo(), delete.primaryTerm(), deleteResult.getVersion());
+        }
+
+        /** utility for testing */
+        public Delete(String id, long seqNo, long primaryTerm) {
+            this(id, seqNo, primaryTerm, Versions.MATCH_ANY);
+        }
+
+        public Delete(String id, long seqNo, long primaryTerm, long version) {
+            this.id = Objects.requireNonNull(id);
+            this.seqNo = seqNo;
+            this.primaryTerm = primaryTerm;
+            this.version = version;
+        }
 
         private Delete(final StreamInput in) throws IOException {
             final int format = in.readVInt();// SERIALIZATION_FORMAT
@@ -1270,7 +1288,10 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
                 assert type.equals(Constants.DEFAULT_MAPPING_TYPE) : "In CrateDB type was always `default`";
             }
             id = in.readString();
-            uid = new Term(in.readString(), in.readBytesRef());
+            if (format < FORMAT_NO_UID) {
+                in.readString();
+                in.readBytesRef();
+            }
             this.version = in.readLong();
             if (format < FORMAT_NO_VERSION_TYPE) {
                 in.readByte(); // versionType
@@ -1279,21 +1300,33 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
             primaryTerm = in.readLong();
         }
 
-        public Delete(Engine.Delete delete, Engine.DeleteResult deleteResult) {
-            this(delete.id(), delete.uid(), deleteResult.getSeqNo(), delete.primaryTerm(), deleteResult.getVersion());
-        }
-
-        /** utility for testing */
-        public Delete(String id, long seqNo, long primaryTerm, Term uid) {
-            this(id, uid, seqNo, primaryTerm, Versions.MATCH_ANY);
-        }
-
-        public Delete(String id, Term uid, long seqNo, long primaryTerm, long version) {
-            this.id = Objects.requireNonNull(id);
-            this.uid = uid;
-            this.seqNo = seqNo;
-            this.primaryTerm = primaryTerm;
-            this.version = version;
+        private void write(final StreamOutput out) throws IOException {
+            final int format;
+            Version nodeVersion = out.getVersion();
+            if (nodeVersion.onOrAfter(Version.V_6_1_0)) {
+                format = SERIALIZATION_FORMAT;
+            } else if (nodeVersion.onOrAfter(Version.V_4_3_0)) {
+                format = FORMAT_NO_DOC_TYPE;
+            } else if (nodeVersion.onOrAfter(Version.V_4_0_0)) {
+                format = FORMAT_NO_VERSION_TYPE;
+            } else {
+                format = FORMAT_6_0;
+            }
+            out.writeVInt(format);
+            if (format < FORMAT_NO_DOC_TYPE) {
+                out.writeString(Constants.DEFAULT_MAPPING_TYPE);
+            }
+            out.writeString(id);
+            if (format < FORMAT_NO_UID) {
+                out.writeString(SysColumns.Names.ID);
+                out.writeBytesRef(Uid.encodeId(id));
+            }
+            out.writeLong(version);
+            if (format < FORMAT_NO_VERSION_TYPE) {
+                out.writeByte(VersionType.EXTERNAL.getValue());
+            }
+            out.writeLong(seqNo);
+            out.writeLong(primaryTerm);
         }
 
         @Override
@@ -1304,16 +1337,11 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
         @Override
         public long estimateSize() {
             return (id.length() * 2)
-                + ((uid.field().length() * 2) + (uid.text().length()) * 2)
                 + (3 * Long.BYTES); // seq_no, primary_term, and version;
         }
 
         public String id() {
             return id;
-        }
-
-        public Term uid() {
-            return this.uid;
         }
 
         @Override
@@ -1335,30 +1363,6 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
             throw new IllegalStateException("trying to read doc source from delete operation");
         }
 
-        private void write(final StreamOutput out) throws IOException {
-            final int format;
-            if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-                format = SERIALIZATION_FORMAT;
-            } else if (out.getVersion().onOrAfter(Version.V_4_0_0)) {
-                format = FORMAT_NO_VERSION_TYPE;
-            } else {
-                format = FORMAT_6_0;
-            }
-            out.writeVInt(format);
-            if (format < FORMAT_NO_DOC_TYPE) {
-                out.writeString(Constants.DEFAULT_MAPPING_TYPE);
-            }
-            out.writeString(id);
-            out.writeString(uid.field());
-            out.writeBytesRef(uid.bytes());
-            out.writeLong(version);
-            if (format < FORMAT_NO_VERSION_TYPE) {
-                out.writeByte(VersionType.EXTERNAL.getValue());
-            }
-            out.writeLong(seqNo);
-            out.writeLong(primaryTerm);
-        }
-
         @Override
         public boolean equals(Object o) {
             if (this == o) {
@@ -1373,12 +1377,12 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
             return version == delete.version &&
                 seqNo == delete.seqNo &&
                 primaryTerm == delete.primaryTerm &&
-                uid.equals(delete.uid);
+                id.equals(delete.id);
         }
 
         @Override
         public int hashCode() {
-            int result = uid.hashCode();
+            int result = id.hashCode();
             result = 31 * result + Long.hashCode(seqNo);
             result = 31 * result + Long.hashCode(primaryTerm);
             result = 31 * result + Long.hashCode(version);
@@ -1388,7 +1392,7 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
         @Override
         public String toString() {
             return "Delete{" +
-                "uid=" + uid +
+                "id=" + id +
                 ", seqNo=" + seqNo +
                 ", primaryTerm=" + primaryTerm +
                 ", version=" + version +

@@ -252,7 +252,6 @@ public class ReplayChangesAction extends ActionType<ReplicationResponse> {
                     var sourceOp = (Translog.Delete) op;
                     yield new Translog.Delete(
                         sourceOp.id(),
-                        sourceOp.uid(),
                         sourceOp.seqNo(),
                         operationPrimaryTerm,
                         sourceOp.version()

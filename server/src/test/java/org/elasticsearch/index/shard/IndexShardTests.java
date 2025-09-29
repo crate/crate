@@ -65,7 +65,6 @@ import java.util.stream.Stream;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.CorruptIndexException;
 import org.apache.lucene.index.IndexableField;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FilterDirectory;
@@ -3802,8 +3801,7 @@ public class IndexShardTests extends IndexShardTestCase {
         Engine.IndexResult indexResult = indexDoc(shard, "0", "{\"foo\" : \"bar\"}");
         assertThat(indexResult.isCreated()).isTrue();
 
-        org.elasticsearch.index.engine.Engine.GetResult getResult
-            = shard.get(new Engine.Get("0", new Term("_id", Uid.encodeId("0"))));
+        var getResult = shard.get(new Engine.Get("0", Uid.encodeId("0")));
         assertThat(getResult).isNotEqualTo(Engine.GetResult.NOT_EXISTS);
         getResult.close();
 

@@ -40,7 +40,7 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Collectors;
 
-import org.apache.lucene.index.Term;
+import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -129,7 +129,6 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.distribution.DistributionInfo;
@@ -419,7 +418,7 @@ public abstract class AggregationTestCase extends ESTestCase {
             }
             IndexItem.StaticItem item = new IndexItem.StaticItem(id, List.of(id), row, 1, 1);
             ParsedDocument parsedDoc = indexer.index(item);
-            Term uid = new Term(SysColumns.Names.ID, Uid.encodeId(item.id()));
+            BytesRef uid = Uid.encodeId(item.id());
             Engine.Index index = new Engine.Index(
                 uid,
                 parsedDoc,

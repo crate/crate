@@ -52,12 +52,12 @@ import org.apache.lucene.index.NumericDocValues;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.apache.lucene.index.SegmentInfos;
 import org.apache.lucene.index.SegmentReader;
-import org.apache.lucene.index.Term;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.QueryCache;
 import org.apache.lucene.search.QueryCachingPolicy;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.store.AlreadyClosedException;
+import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.bytes.BytesReference;
@@ -1033,7 +1033,7 @@ public abstract class Engine implements Closeable {
             INDEX, DELETE, NO_OP;
         }
 
-        private final Term uid;
+        private final BytesRef uid;
         private final long version;
         private final long seqNo;
         private final long primaryTerm;
@@ -1041,7 +1041,7 @@ public abstract class Engine implements Closeable {
         private final Origin origin;
         private final long startTime;
 
-        public Operation(Term uid, long seqNo, long primaryTerm, long version, VersionType versionType, Origin origin, long startTime) {
+        public Operation(BytesRef uid, long seqNo, long primaryTerm, long version, VersionType versionType, Origin origin, long startTime) {
             this.uid = uid;
             this.seqNo = seqNo;
             this.primaryTerm = primaryTerm;
@@ -1071,7 +1071,7 @@ public abstract class Engine implements Closeable {
             return this.origin;
         }
 
-        public Term uid() {
+        public BytesRef uid() {
             return this.uid;
         }
 
@@ -1113,7 +1113,7 @@ public abstract class Engine implements Closeable {
         private final long ifSeqNo;
         private final long ifPrimaryTerm;
 
-        public Index(Term uid,
+        public Index(BytesRef uid,
                      ParsedDocument doc,
                      long seqNo,
                      long primaryTerm,
@@ -1141,7 +1141,7 @@ public abstract class Engine implements Closeable {
 
 
         @VisibleForTesting
-        public Index(Term uid, long primaryTerm, ParsedDocument doc) {
+        public Index(BytesRef uid, long primaryTerm, ParsedDocument doc) {
             this(
                 uid,
                 doc,
@@ -1218,7 +1218,7 @@ public abstract class Engine implements Closeable {
         private final long ifPrimaryTerm;
 
         public Delete(String id,
-                      Term uid,
+                      BytesRef uid,
                       long seqNo,
                       long primaryTerm,
                       long version,
@@ -1240,7 +1240,7 @@ public abstract class Engine implements Closeable {
         }
 
         @VisibleForTesting
-        public Delete(String id, Term uid, long primaryTerm) {
+        public Delete(String id, BytesRef uid, long primaryTerm) {
             this(
                 id,
                 uid,
@@ -1267,7 +1267,7 @@ public abstract class Engine implements Closeable {
 
         @Override
         public int estimatedSizeInBytes() {
-            return (uid().field().length() + uid().text().length()) * 2 + 20;
+            return uid().length * 2 + 20;
         }
 
         public long getIfSeqNo() {
@@ -1293,7 +1293,7 @@ public abstract class Engine implements Closeable {
         }
 
         @Override
-        public Term uid() {
+        public BytesRef uid() {
             throw new UnsupportedOperationException();
         }
 
@@ -1325,13 +1325,13 @@ public abstract class Engine implements Closeable {
     }
 
     public record Get(String id,
-                      Term uid,
+                      BytesRef uid,
                       long version,
                       VersionType versionType,
                       long ifSeqNo,
                       long ifPrimaryTerm) {
 
-        public Get(String id, Term uid) {
+        public Get(String id, BytesRef uid) {
             this(
                 id,
                 uid,

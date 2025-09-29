@@ -19,6 +19,12 @@
 
 package org.elasticsearch.index.engine;
 
+import java.io.IOException;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
+
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.BytesRef;
@@ -26,12 +32,6 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.util.concurrent.ConcurrentCollections;
 import org.elasticsearch.common.util.concurrent.KeyedLock;
-
-import java.io.IOException;
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.concurrent.atomic.AtomicLong;
 
 /** Maps _uid value to its version information. */
 final class LiveVersionMap implements ReferenceManager.RefreshListener, Accountable {
@@ -323,21 +323,18 @@ final class LiveVersionMap implements ReferenceManager.RefreshListener, Accounta
 
     void putIndexUnderLock(BytesRef uid, IndexVersionValue version) {
         assert assertKeyedLockHeldByCurrentThread(uid);
-        assert uid.bytes.length == uid.length : "Oversized _uid! UID length: " + uid.length + ", bytes length: " + uid.bytes.length;
         maps.put(uid, version);
         removeTombstoneUnderLock(uid);
     }
 
     private boolean putAssertionMap(BytesRef uid, IndexVersionValue version) {
         assert assertKeyedLockHeldByCurrentThread(uid);
-        assert uid.bytes.length == uid.length : "Oversized _uid! UID length: " + uid.length + ", bytes length: " + uid.bytes.length;
         unsafeKeysMap.put(uid, version);
         return true;
     }
 
     void putDeleteUnderLock(BytesRef uid, DeleteVersionValue version) {
         assert assertKeyedLockHeldByCurrentThread(uid);
-        assert uid.bytes.length == uid.length : "Oversized _uid! UID length: " + uid.length + ", bytes length: " + uid.bytes.length;
         putTombstone(uid, version);
         maps.remove(uid, version);
     }
