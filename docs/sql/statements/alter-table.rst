@@ -155,9 +155,9 @@ parameter ``number_of_shards`` can be used. For more info on that, see
 
 Can be used to add an additional column to a table. While columns can be added
 at any time, adding a new :ref:`generated column
-<sql-create-table-generated-columns>` is only possible if the table is empty.
-In addition, adding a base column with :ref:`sql-create-table-default-clause`
-combined with ``NOT NULL`` constraint is not supported.
+<sql-create-table-generated-columns>` or a column with
+:ref:`sql-create-table-default-clause` combined with ``NOT NULL`` constraint is
+only possible if the table is empty.
 It is possible to define a ``CHECK`` constraint with the
 restriction that only the column being added may be used in the :ref:`boolean
 expression <sql-literal-value>`.
