@@ -59,7 +59,6 @@ import org.elasticsearch.cluster.EmptyClusterInfoService;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
-import org.elasticsearch.cluster.metadata.MappingMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.MetadataUpgradeService;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
@@ -692,15 +691,11 @@ public class SQLExecutor {
 
     private static IndexMetadata.Builder getIndexMetadata(String indexName,
                                                           Settings settings,
-                                                          @Nullable Map<String, Object> mapping,
                                                           Version smallestNodeVersion) throws IOException {
         Settings indexSettings = buildSettings(settings, smallestNodeVersion);
         IndexMetadata.Builder metaBuilder = IndexMetadata.builder(UUIDs.randomBase64UUID())
             .settings(indexSettings)
             .indexName(indexName);
-        if (mapping != null) {
-            metaBuilder.putMapping(new MappingMetadata(mapping));
-        }
         return metaBuilder;
     }
 
@@ -763,10 +758,6 @@ public class SQLExecutor {
         Version smallestVersion = prevState.nodes().getSmallestNonClientNodeVersion();
         Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(combinedSettings);
 
-        // skip mapping generation if using RelationMetadata
-        // This is a bit different than production code but is done to avoids issues with duplicate oid generation
-        // (which would happen once here, and once again further done via mdBuilder.setTable)
-        Map<String, Object> mapping = (partitioned ? Map.of() : null);
         List<String> indexUUIDs = new ArrayList<>();
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(prevState.blocks());
@@ -774,7 +765,6 @@ public class SQLExecutor {
             IndexMetadata.Builder imdBuilder = getIndexMetadata(
                 new PartitionName(analyzedCreateTable.relationName(), values).asIndexName(),
                 combinedSettings,
-                mapping, // Each partition has the same mapping.
                 smallestVersion
             );
             if (partitioned) {
@@ -971,7 +961,6 @@ public class SQLExecutor {
         IndexMetadata indexMetadata = getIndexMetadata(
             relationName.indexNameOrAlias(),
             settings,
-            Collections.emptyMap(),
             prevState.nodes().getSmallestNonClientNodeVersion()
         ).build();
 
