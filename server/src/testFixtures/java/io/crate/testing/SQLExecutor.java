@@ -479,6 +479,7 @@ public class SQLExecutor {
         this.dependencyMock = mock(DependencyCarrier.class, Answers.RETURNS_MOCKS);
         when(dependencyMock.clusterService()).thenReturn(clusterService);
         when(dependencyMock.schemas()).thenReturn(schemas);
+        when(dependencyMock.settings()).thenReturn(clusterService.getSettings());
         this.sqlOperations = new Sessions(
             nodeCtx,
             analyzer,
