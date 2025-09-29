@@ -63,6 +63,7 @@ import io.crate.analyze.WhereClause;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.TableReferenceResolver;
+import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.execution.ddl.tables.MappingUtil;
@@ -309,8 +310,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Nullable
     public Reference getReference(String storageIdent) {
-        try {
-            long oid = Long.parseLong(storageIdent);
+        long[] out = StringUtils.PARSE_LONG_BUFFER.get();
+        if (StringUtils.tryParseLong(storageIdent, out)) {
+            long oid = out[0];
             for (var ref : allColumns.values()) {
                 if (ref.oid() == oid) {
                     return ref;
@@ -322,9 +324,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 }
             }
             return null;
-        } catch (NumberFormatException ex) {
-            return getReference(ColumnIdent.fromPath(storageIdent));
         }
+        return getReference(ColumnIdent.fromPath(storageIdent));
     }
 
     public List<Reference> getChildReferences(Reference parent) {
