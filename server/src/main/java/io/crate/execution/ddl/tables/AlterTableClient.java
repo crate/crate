@@ -96,6 +96,8 @@ public class AlterTableClient {
             exceptionSubject = "primary key";
         } else if (newReferences.stream().anyMatch(ref -> ref instanceof GeneratedReference)) {
             exceptionSubject = "generated";
+        } else if (newReferences.stream().anyMatch(ref -> ref.defaultExpression() != null && ref.isNullable() == false)) {
+            exceptionSubject = "default not null";
         } else {
             for (Reference newRef : newReferences) {
                 if (newReferences.stream().anyMatch(r -> r.column().isChildOf(newRef.column()))

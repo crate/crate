@@ -556,6 +556,20 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
+    public void test_cannot_add_default_not_null_column_to_a_non_empty_table() throws Exception {
+        execute("create table t (id int) " +
+            "clustered into 1 shards " +
+            "with (number_of_replicas=0)");
+        execute("insert into t (id) values(1)");
+        execute("refresh table t");
+
+        Asserts.assertSQLError(() -> execute("alter table t add column d int default 100 not null"))
+            .hasPGError(INTERNAL_ERROR)
+            .hasHTTPError(BAD_REQUEST, 4004)
+            .hasMessageContaining("Cannot add a default not null column to a table that isn't empty");
+    }
+
+    @Test
     public void testAlterTableAddDotExpression() {
         execute("create table t (id int) " +
                 "clustered into 1 shards " +
