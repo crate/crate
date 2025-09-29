@@ -112,16 +112,21 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Override
     public void allFinished() {
         ChannelFuture sendCommandComplete = Messages.sendCommandComplete(directChannel, query, rowCount);
-        channel.writePendingMessages(delayedWrites);
-        channel.flush();
-        sendCommandComplete.addListener(_ -> super.allFinished());
+        directChannel.flush();
+        sendCommandComplete.addListener(_ -> {
+            channel.writePendingMessages(delayedWrites);
+            channel.flush();
+            super.allFinished();
+        });
     }
 
     @Override
     public void fail(@NotNull Throwable throwable) {
         ChannelFuture sendErrorResponse = Messages.sendErrorResponse(directChannel, accessControl, throwable);
-        channel.writePendingMessages(delayedWrites);
-        channel.flush();
-        sendErrorResponse.addListener(_ -> super.fail(throwable));
+        sendErrorResponse.addListener(_ -> {
+            channel.writePendingMessages(delayedWrites);
+            channel.flush();
+            super.fail(throwable);
+        });
     }
 }
