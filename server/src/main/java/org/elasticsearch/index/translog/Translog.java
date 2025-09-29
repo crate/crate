@@ -1280,51 +1280,37 @@ public class Translog extends AbstractIndexShardComponent implements Closeable {
             this.version = version;
         }
 
-        private Delete(final StreamInput in) throws IOException {
+        Delete(final StreamInput in) throws IOException {
             final int format = in.readVInt();// SERIALIZATION_FORMAT
-            assert format >= FORMAT_6_0 : "format was: " + format;
-            if (format < FORMAT_NO_DOC_TYPE) {
-                String type = in.readString();
-                assert type.equals(Constants.DEFAULT_MAPPING_TYPE) : "In CrateDB type was always `default`";
-            }
+            assert format >= FORMAT_NO_DOC_TYPE
+                : "Tables from < 5.0 are no longer supported in CrateDB 6+. format was: " + format;
             id = in.readString();
             if (format < FORMAT_NO_UID) {
                 in.readString();
                 in.readBytesRef();
             }
             this.version = in.readLong();
-            if (format < FORMAT_NO_VERSION_TYPE) {
-                in.readByte(); // versionType
-            }
             seqNo = in.readLong();
             primaryTerm = in.readLong();
         }
 
-        private void write(final StreamOutput out) throws IOException {
+        void write(final StreamOutput out) throws IOException {
             final int format;
             Version nodeVersion = out.getVersion();
             if (nodeVersion.onOrAfter(Version.V_6_1_0)) {
                 format = SERIALIZATION_FORMAT;
-            } else if (nodeVersion.onOrAfter(Version.V_4_3_0)) {
-                format = FORMAT_NO_DOC_TYPE;
-            } else if (nodeVersion.onOrAfter(Version.V_4_0_0)) {
-                format = FORMAT_NO_VERSION_TYPE;
             } else {
-                format = FORMAT_6_0;
+                assert nodeVersion.onOrAfter(Version.V_4_3_0)
+                    : "Tables from < 5.0 are no longer supported in CrateDB 6+";
+                format = FORMAT_NO_DOC_TYPE;
             }
             out.writeVInt(format);
-            if (format < FORMAT_NO_DOC_TYPE) {
-                out.writeString(Constants.DEFAULT_MAPPING_TYPE);
-            }
             out.writeString(id);
             if (format < FORMAT_NO_UID) {
                 out.writeString(SysColumns.Names.ID);
                 out.writeBytesRef(Uid.encodeId(id));
             }
             out.writeLong(version);
-            if (format < FORMAT_NO_VERSION_TYPE) {
-                out.writeByte(VersionType.EXTERNAL.getValue());
-            }
             out.writeLong(seqNo);
             out.writeLong(primaryTerm);
         }
