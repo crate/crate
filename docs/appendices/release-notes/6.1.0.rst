@@ -98,6 +98,8 @@ Administration and Operations
   running ``ANALYZE``, table statistics are now written to disk and remain
   available after a cluster restart.
 
+- Added ``last_job_id`` column to the :ref:`sys.sessions <sys-sessions>` table.
+
 Client interfaces
 -----------------
 
