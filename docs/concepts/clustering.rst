@@ -182,12 +182,6 @@ the latest voting configuration.
    To bring the cluster back online at this point you will require two nodes
    among 1, 2, and 3. Bringing back nodes 3, 4, and 5, will not be sufficient.
 
-.. NOTE::
-
-   Special `settings and considerations
-   <https://cratedb.com/docs/crate/reference/en/5.1/concepts/clustering.html#master-node-election>`_
-   applied prior to CrateDB version 4.0.0.
-
 .. _concept-discovery:
 
 Discovery

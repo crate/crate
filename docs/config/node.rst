@@ -839,7 +839,7 @@ sharing`_ settings in CrateDB allow for configuring these.
   Add the ``Access-Control-Allow-Credentials`` header to responses.
 
 .. _`same-origin policy`: https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy
-.. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Access_control_CORS
+.. _`cross-origin resource sharing`: https://developer.mozilla.org/en-US/docs/Web/HTTP/Guides/CORS
 
 Blobs
 =====

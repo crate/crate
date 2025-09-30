@@ -121,7 +121,7 @@ Clients that use the `PostgreSQL Wire Protocol`_ need to connect with a valid
 database user to get access to the server. See the official `Crate JDBC
 Driver`_ documentation for further information.
 
-.. _PostgreSQL Wire Protocol: https://cratedb.com/docs/crate/reference/en/latest/protocols/postgres.html
+.. _PostgreSQL Wire Protocol: https://cratedb.com/docs/crate/reference/en/latest/interfaces/postgres.html
 .. _Crate JDBC Driver: https://cratedb.com/docs/jdbc/en/latest/
 
 

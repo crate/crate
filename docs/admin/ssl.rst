@@ -196,7 +196,7 @@ information including the different SSL modes please visit the
 `PSQL documentation`_.
 
 .. _JDBC SSL documentation: https://jdbc.postgresql.org/documentation/ssl/#configuring-the-client
-.. _PSQL documentation: https://www.postgresql.org/docs/current/static/app-psql.html
+.. _PSQL documentation: https://www.postgresql.org/docs/current/app-psql.html
 
 
 Setting up a Keystore/Truststore with a certificate chain

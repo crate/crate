@@ -75,7 +75,7 @@ case, regardless of the nesting depth or size of the document.
 
 CrateDB does not provide transactions. Since every document in CrateDB has a
 version number assigned, which gets increased every time a change occurs,
-patterns like `Optimistic Concurrency Control`_ can help to work around that
+patterns like :ref:`sql_occ` can help to work around that
 limitation.
 
 
@@ -144,7 +144,7 @@ performed on shared ``IndexReaders`` which besides other functionality, provide
 caching and reverse lookup capabilities for shards. An ``IndexReader`` is
 always bound to the Lucene_ segment it was started from, which means it has to
 be refreshed in order to see new changes, this is done on a time based manner,
-but can also be done manually (see `refresh`_). Therefore a search only sees a
+but can also be done manually (see :ref:`sql-refresh`). Therefore a search only sees a
 change if the according ``IndexReader`` was refreshed after that change
 occurred.
 
@@ -253,8 +253,6 @@ flow for an ``ALTER TABLE`` statement which changes the schema of a table:
 #. Every node might take some local action depending on the type of cluster
    state change.
 
-.. _Elasticsearch: https://www.elasticsearch.org/
+.. _Elasticsearch: https://www.elastic.co
 .. _Lucene: https://lucene.apache.org/core/
 .. _WAL: https://en.wikipedia.org/wiki/Write-ahead_logging
-.. _Optimistic Concurrency Control: https://cratedb.com/docs/crate/reference/sql/occ.html
-.. _refresh: https://cratedb.com/docs/crate/reference/sql/refresh.html

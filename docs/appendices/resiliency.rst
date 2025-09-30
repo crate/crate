@@ -6,7 +6,7 @@ Resiliency Issues
 
 CrateDB uses Elasticsearch for data distribution and replication. Most of the
 resiliency issues `exist in the Elasticsearch layer
-<https://www.elastic.co/guide/en/elasticsearch/resiliency/current/>`_ and can
+<https://www.elastic.co/guide/en/elasticsearch/resiliency/current/index.html>`_ and can
 be tested by `Jepsen <https://github.com/jepsen-io/jepsen/tree/master/crate>`_.
 
 
@@ -182,8 +182,7 @@ partitioned).
 There are two different versions of the same row using the same version number.
 When the primary shard rejoins the cluster and its data is replicated, the
 update that was made on the replicated shard is lost but the new version number
-matches the lost update. This will break `Optimistic Concurrency Control
-<https://cratedb.com/docs/reference/sql/occ.html>`_.
+matches the lost update. This will break :ref:`sql_occ`.
 
 .. _resiliency_replicas_fall_out_of_sync:
 
