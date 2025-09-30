@@ -38,6 +38,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
+import java.util.ConcurrentModificationException;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -856,7 +857,13 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         channel.writeInbound(buffer);
 
         assertBusy(() -> {
-            assertThat(channel.outboundMessages()).isNotEmpty();
+            try {
+                assertThat(channel.outboundMessages()).hasSize(7);
+            } catch (ConcurrentModificationException ex) {
+                // ok - we're waiting for all messages via concurrent modifications after all
+                // just retry
+                throw new AssertionError(ex);
+            }
         });
 
         readParseComplete();
@@ -877,6 +884,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     private String readCommandComplete() {
         ByteBuf buf = channel.readOutbound();
+        assertThat(buf)
+            .as("Must have command complete message")
+            .isNotNull();
         try {
             assertThat((char) buf.readByte()).isEqualTo('C');
             int length = buf.readInt();
@@ -890,6 +900,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     private void readBindComplete() {
         ByteBuf buf = channel.readOutbound();
+        assertThat(buf)
+            .as("Must have bind complete message")
+            .isNotNull();
         try {
             assertThat((char) buf.readByte()).isEqualTo('2');
             assertThat(buf.readInt()).isEqualTo(4);
@@ -900,6 +913,9 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
 
     private void readParseComplete() {
         ByteBuf buf = channel.readOutbound();
+        assertThat(buf)
+            .as("Must have parse complete message")
+            .isNotNull();
         try {
             assertThat((char) buf.readByte()).isEqualTo('1');
             assertThat(buf.readInt()).isEqualTo(4);
