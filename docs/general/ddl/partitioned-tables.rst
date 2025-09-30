@@ -622,4 +622,4 @@ inserted/updated documents.
     DROP OK, 1 row affected (... sec)
 
 
-.. _sharding guide: https://crate.io/docs/crate/howtos/en/latest/performance/sharding.html
+.. _sharding guide: https://cratedb.com/docs/crate/howtos/en/latest/performance/sharding.html

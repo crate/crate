@@ -31,9 +31,9 @@ Released on 2019/06/25.
 
     Before upgrading, you should `back up your data`_.
 
-.. _full restart upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
-.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+.. _full restart upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 .. rubric:: Table of Contents
 
@@ -315,7 +315,7 @@ SQL Standard and PostgreSQL compatibility improvements
   <aggregation-functions>`.
 
 - Added support for `SQL Standard Timestamp Format
-  <https://crate.io/docs/sql-99/en/latest/chapters/08.html#timestamp-literal>`_
+  <https://cratedb.com/docs/sql-99/en/latest/chapters/08.html#timestamp-literal>`_
   to the :ref:`data-types-dates-times`.
 
 - Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>`
