@@ -53,6 +53,7 @@ public final class SysSessionsTableInfo {
     private static final String SSL = "ssl";
     private static final String SETTINGS = "settings";
     private static final String LAST_STMT = "last_statement";
+    private static final String LAST_JOB_ID = "last_job_id";
 
     private SysSessionsTableInfo() {}
 
@@ -68,6 +69,7 @@ public final class SysSessionsTableInfo {
             .add(TIME_CREATED, TIMESTAMPZ, Session::timeCreated)
             .addDynamicObject(SETTINGS, STRING, s -> s == null ? null : s.sessionSettings().toMap())
             .add(LAST_STMT, STRING, Session::lastStmt)
+            .add(LAST_JOB_ID, STRING, s -> s.getMostRecentJobID() != null ? s.getMostRecentJobID().toString() : null)
             .setPrimaryKeys(ColumnIdent.of(HANDLER_NODE), ColumnIdent.of(ID))
             .withRouting((state, routingProvider, sessionSettings) -> Routing.forTableOnAllNodes(IDENT, state.nodes()))
             .build();

@@ -2315,6 +2315,11 @@ Sessions
     * - ``last_statement``
       - The last SQL statement which was executed in the session
       - ``TEXT``
+    * - ``last_job_id``
+      - UUID of the last job which was executed in the session.
+        References the ``id`` column of the :ref:`sys-jobs` and :ref:`sys-logs`
+        tables.
+      - ``TEXT``
 
 
 .. _sys-allocations:
