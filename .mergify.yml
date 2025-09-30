@@ -5,6 +5,7 @@ merge_queue:
 
 queue_rules:
   - name: default
+    batch_size: 1
     queue_conditions:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
