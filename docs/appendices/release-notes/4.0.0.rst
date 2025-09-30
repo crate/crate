@@ -168,7 +168,7 @@ Removed Settings
   enabled and can no longer be disabled.
 
 - Removed the deprecated ``license.ident`` setting. Licenses must be set using
-  the :ref:`SET LICENSE <ref-set-license>` statement.
+  the `SET LICENSE` statement.
 
 - Removed the deprecated ``license.enterprise`` setting. To use CrateDB without
   any enterprise features one should use the community edition instead.

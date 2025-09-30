@@ -59,38 +59,6 @@ The result has at most 1 row::
   +-----------------+
   SELECT 1 row in set (... sec)
 
-.. _sys-cluster-license:
-
-Cluster license
----------------
-
-The ``sys.cluster.license`` :ref:`expression <gloss-expression>` returns
-information about the currently registered license.
-
-.. NOTE::
-
-      Licenses were removed in CrateDB 4.5. Accordingly, these values are
-      deprecated and return `NULL` in CrateDB 4.5 and higher.
-
-``license``
------------
-
-+----------------------------+-----------------------------------------+------------------------------+
-| Column Name                | Description                             | Return Type                  |
-+============================+=========================================+==============================+
-| ``license``                | The current CrateDB license information | ``OBJECT``                   |
-|                            |  or NULL on CrateDB CE.                 |                              |
-+----------------------------+-----------------------------------------+------------------------------+
-| ``license['expiry_date']`` | The :ref:`data-types-dates-times`       | ``TIMESTAMP WITH TIME ZONE`` |
-|                            | on which the license expires.           |                              |
-+----------------------------+-----------------------------------------+------------------------------+
-| ``license['issued_to']``   | The organisation for which the license  | ``TEXT``                     |
-|                            | is issued.                              |                              |
-+----------------------------+-----------------------------------------+------------------------------+
-| ``license['max_nodes']``   | The maximum number of nodes the license | ``INTEGER``                  |
-|                            | is valid for.                           |                              |
-+----------------------------+-----------------------------------------+------------------------------+
-
 .. _sys-cluster-settings:
 
 Cluster settings

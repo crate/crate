@@ -66,7 +66,6 @@ SQL Statements
     revoke
     select
     set
-    set-license
     set-session-authorization
     set-transaction
     show
