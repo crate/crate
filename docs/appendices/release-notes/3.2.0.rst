@@ -63,7 +63,7 @@ Deprecated Settings and Features
 
 In previous versions, the CrateDB license was set via the ``license.ident``
 configuration setting. This has now been deprecated, and going forward the
-CrateDB license should be set using the :ref:`ref-set-license` statement.
+CrateDB license should be set using the ``SET LICENSE`` statement.
 
 The ``INGEST`` framework has been deprecated, and will be removed in the
 future.
@@ -104,9 +104,9 @@ New Features
 
 - Added support for CrateDB license management enabling users to trial the
   enterprise-features, set a production enterprise license, or continue using
-  the community edition. Additionally, a new :ref:`SET LICENSE
-  <ref-set-license>` statement has been added for license registration, and the
-  ``license.ident`` setting has become ``@deprecated``.
+  the community edition. Additionally, a new ``SET LICENSE`` statement has been
+  added for license registration, and the ``license.ident`` setting has become
+  ``@deprecated``.
 
 
 SQL Improvements

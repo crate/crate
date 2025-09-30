@@ -39,7 +39,7 @@ Fixes
   use ``SSL``.
 
 - Fixed an issue that would lead to incorrect result when selecting the
-  :ref:`cluster license <sys-cluster-license>` object column: fields of the
+  ``cluster license`` object column from ``sys.cluster``: fields of the
   object would contain null values even though the license was set.
 
 - Fixed an issue that caused ``OFFSET`` as part of a ``UNION`` to be applied
