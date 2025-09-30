@@ -32,10 +32,10 @@ Released on 2018/12/19.
 
     Before upgrading, you should `back up your data`_.
 
-.. _rolling upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
-.. _full restart upgrade: https://crate.io/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
-.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+.. _rolling upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/rolling-upgrade.html
+.. _full restart upgrade: https://cratedb.com/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 .. rubric:: Table of contents
 
@@ -63,7 +63,7 @@ Deprecated Settings and Features
 
 In previous versions, the CrateDB license was set via the ``license.ident``
 configuration setting. This has now been deprecated, and going forward the
-CrateDB license should be set using the :ref:`ref-set-license` statement.
+CrateDB license should be set using the ``SET LICENSE`` statement.
 
 The ``INGEST`` framework has been deprecated, and will be removed in the
 future.
@@ -104,9 +104,9 @@ New Features
 
 - Added support for CrateDB license management enabling users to trial the
   enterprise-features, set a production enterprise license, or continue using
-  the community edition. Additionally, a new :ref:`SET LICENSE
-  <ref-set-license>` statement has been added for license registration, and the
-  ``license.ident`` setting has become ``@deprecated``.
+  the community edition. Additionally, a new ``SET LICENSE`` statement has been
+  added for license registration, and the ``license.ident`` setting has become
+  ``@deprecated``.
 
 
 SQL Improvements
@@ -255,4 +255,4 @@ For further information on CrateDB 3.2.0 see our `announcement blog post
 <blogpost_>`__.
 
 
-.. _blogpost: https://crate.io/a/cratedb-3-2-stable-available-now/
+.. _blogpost: https://cratedb.com/blog/cratedb-3-2-stable-available-now

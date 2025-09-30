@@ -255,4 +255,4 @@ enable certificate authentication like this:
     <auth_cert>` authentication methods for node-to-node communication.
 
 
-.. _multi-zone cluster: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html
+.. _multi-zone cluster: https://cratedb.com/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html

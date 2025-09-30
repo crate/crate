@@ -18,7 +18,7 @@ Released on 2020-04-24.
 
     Before upgrading, you should `back up your data`_.
 
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
 
 
 .. rubric:: Table of Contents
@@ -39,7 +39,7 @@ Fixes
   use ``SSL``.
 
 - Fixed an issue that would lead to incorrect result when selecting the
-  :ref:`cluster license <sys-cluster-license>` object column: fields of the
+  ``cluster license`` object column from ``sys.cluster``: fields of the
   object would contain null values even though the license was set.
 
 - Fixed an issue that caused ``OFFSET`` as part of a ``UNION`` to be applied

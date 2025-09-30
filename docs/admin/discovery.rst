@@ -17,4 +17,4 @@ cluster on Amazon EC2.
 
 .. _`Amazon EC2`: https://aws.amazon.com/ec2
 .. _`EC2 API`: https://docs.aws.amazon.com/AWSEC2/latest/APIReference/Welcome.html
-.. _best practice: https://crate.io/docs/crate/howtos/en/latest/deployment/cloud/aws/ec2-setup.html
+.. _best practice: https://cratedb.com/docs/crate/howtos/en/latest/deployment/cloud/aws/ec2-setup.html

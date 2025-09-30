@@ -3963,7 +3963,7 @@ return the default schema, which is ``doc``.
 Returns: ``text``
 
 The default schema can be set when using the `JDBC client
-<https://crate.io/docs/jdbc/en/latest/connect.html>`_ and :ref:`HTTP clients
+<https://cratedb.com/docs/jdbc/en/latest/connect.html>`_ and :ref:`HTTP clients
 <http-default-schema>` such as `CrateDB PDO`_.
 
 .. NOTE::
@@ -4906,7 +4906,7 @@ An example::
 
 .. _3-valued logic: https://en.wikipedia.org/wiki/Null_(SQL)#Comparisons_with_NULL_and_the_three-valued_logic_(3VL)
 .. _available time zones: https://www.joda.org/joda-time/timezones.html
-.. _CrateDB PDO: https://crate.io/docs/pdo/en/latest/connect.html
+.. _CrateDB PDO: https://cratedb.com/docs/pdo/en/latest/connect.html
 .. _Euclidean geometry: https://en.wikipedia.org/wiki/Euclidean_geometry
 .. _formatter: https://docs.oracle.com/javase/7/docs/api/java/util/Formatter.html
 .. _geodetic: https://en.wikipedia.org/wiki/Geodesy
