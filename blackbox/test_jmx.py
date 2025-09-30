@@ -26,8 +26,7 @@ from crate.client import connect
 from testutils.ports import bind_port
 from testutils.paths import crate_path
 from cr8.run_crate import CrateNode
-from subprocess import PIPE, Popen
-from urllib.request import urlretrieve
+from jnius import autoclass
 
 JMX_PORT = bind_port()
 JMX_OPTS = '''
@@ -54,58 +53,23 @@ enterprise_crate = CrateNode(
 )
 
 
+JMXServiceURL = autoclass("javax.management.remote.JMXServiceURL")
+JMXConnectorFactory = autoclass("javax.management.remote.JMXConnectorFactory")
+MBeanServerConnection = autoclass("javax.management.MBeanServerConnection")
+ObjectName = autoclass("javax.management.ObjectName")
+
+
 class JmxClient:
 
-    SJK_JAR_URL = "https://repo1.maven.org/maven2/org/gridkit/jvmtool/sjk/0.21/sjk-0.21.jar"
-
-    CACHE_DIR = os.environ.get(
-        'XDG_CACHE_HOME',
-        os.path.join(os.path.expanduser('~'), '.cache', 'crate-tests')
-    )
-
     def __init__(self, jmx_port):
-        self.jmx_port = jmx_port
-        self.jmx_path = self._get_jmx()
-
-    def _get_jmx(self):
-        jar_name = 'sjk.jar'
-        jmx_path = os.path.join(JmxClient.CACHE_DIR, 'jmx')
-        jar_path = os.path.join(jmx_path, jar_name)
-        if not os.path.exists(jar_path):
-            os.makedirs(jmx_path, exist_ok=True)
-            urlretrieve(JmxClient.SJK_JAR_URL, jar_path)
-        return jar_path
+        self.url = JMXServiceURL(f"service:jmx:rmi:///jndi/rmi://localhost:{jmx_port}/jmxrmi")
+        connector = JMXConnectorFactory.connect(self.url, None)
+        self.conn = connector.getMBeanServerConnection()
 
     def query_jmx(self, bean, attribute):
-        env = os.environ.copy()
-        env.setdefault('JAVA_HOME', '/usr/lib/jvm/java-11-openjdk')
-        with Popen(
-            [
-                'java',
-                '--add-exports', 'java.rmi/sun.rmi.server=ALL-UNNAMED',
-                '--add-exports', 'java.rmi/sun.rmi.transport=ALL-UNNAMED',
-                '--add-exports', 'java.rmi/sun.rmi.transport.tcp=ALL-UNNAMED',
-                '-jar', self.jmx_path,
-                'mx',
-                '-s', f'localhost:{self.jmx_port}',
-                '-mg',
-                '-b', bean,
-                '-f', attribute
-            ],
-            stdin=PIPE,
-            stdout=PIPE,
-            stderr=PIPE,
-            env=env,
-            universal_newlines=True
-        ) as p:
-            stdout, stderr = p.communicate()
-        restart_msg = 'Restarting java with unlocked package access\n'
-        if stderr.startswith(restart_msg):
-            stderr = stderr[len(restart_msg):]
-        # Bean name is printed in the first line. Remove it
-        stdout = stdout[len(bean) + 1:]
-        stdout = stdout.replace(attribute, '').strip()
-        return (stdout, stderr)
+        objectName = ObjectName(bean)
+        result = self.conn.getAttribute(objectName, attribute)
+        return result
 
 
 class JmxIntegrationTest(unittest.TestCase):
@@ -123,121 +87,96 @@ class JmxIntegrationTest(unittest.TestCase):
         with connect(enterprise_crate.http_url) as conn:
             c = conn.cursor()
             c.execute("select 1")
-            stdout, stderr = jmx_client.query_jmx(
+            result = jmx_client.query_jmx(
                 'io.crate.monitoring:type=QueryStats',
                 'SelectQueryTotalCount'
             )
-            self.assertEqual(stderr, '')
-            self.assertGreater(int(stdout), 0)
+            self.assertGreater(int(result), 0)
 
     def test_mbean_select_ready(self):
         jmx_client = JmxClient(JMX_PORT)
-        stdout, stderr = jmx_client.query_jmx(
+        result = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeStatus',
             'Ready'
         )
-        self.assertEqual(stderr, '')
-        self.assertEqual(stdout.rstrip(), 'true')
+        self.assertEqual(result, 1)
 
     def test_mbean_node_name(self):
         jmx_client = JmxClient(JMX_PORT)
-        stdout, stderr = jmx_client.query_jmx(
+        result = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo',
             'NodeName'
         )
-        self.assertEqual(stderr, '')
-        self.assertEqual(stdout.rstrip(), 'crate-enterprise')
+        self.assertEqual(result.rstrip(), 'crate-enterprise')
 
     def test_mbean_node_id(self):
         jmx_client = JmxClient(JMX_PORT)
-        stdout, stderr = jmx_client.query_jmx(
+        result = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo',
             'NodeId'
         )
-        self.assertEqual(stderr, '')
-        self.assertNotEqual(stdout.rstrip(), '', 'node id must not be empty')
+        self.assertNotEqual(result.rstrip(), '', 'node id must not be empty')
 
     def test_mbean_shards(self):
         jmx_client = JmxClient(JMX_PORT)
         with connect(enterprise_crate.http_url) as conn:
             c = conn.cursor()
             c.execute('''create table test(id integer) clustered into 1 shards with (number_of_replicas=0)''')
-            stdout, stderr = jmx_client.query_jmx(
+            result = jmx_client.query_jmx(
                 'io.crate.monitoring:type=NodeInfo',
                 'ShardStats'
             )
-            result = [line.strip() for line in stdout.split('\n') if line.strip()]
-            result.sort()
-            self.assertEqual(result[0], 'primaries:  1')
-            self.assertEqual(result[1], 'replicas:   0')
-            self.assertEqual(result[2], 'total:      1')
-            self.assertEqual(result[3], 'unassigned: 0')
-            self.assertEqual(stderr, '')
+            self.assertEqual(result.contentString(), "{primaries=1, replicas=0, total=1, unassigned=0}")
 
-            stdout, stderr = jmx_client.query_jmx(
+            result = jmx_client.query_jmx(
                 'io.crate.monitoring:type=NodeInfo',
                 'ShardInfo'
             )
-            self.assertNotEqual(stdout.rstrip(), '', 'ShardInfo must not be empty')
-            self.assertIn("partitionIdent", stdout)
-            self.assertIn("routingState", stdout)
-            self.assertIn("shardId", stdout)
-            self.assertIn("size", stdout)
-            self.assertIn("state", stdout)
-            self.assertIn("schema", stdout)
-            self.assertIn("table", stdout)
-            self.assertEqual(stderr, '')
+            self.assertEqual(1, len(result))
+            shardInfo = result[0]
+            self.assertTrue(shardInfo.containsKey("partitionIdent"))
+            self.assertTrue(shardInfo.containsKey("routingState"))
+            self.assertTrue(shardInfo.containsKey("shardId"))
+            self.assertTrue(shardInfo.containsKey("size"))
+            self.assertTrue(shardInfo.containsKey("state"))
+            self.assertTrue(shardInfo.containsKey("schema"))
+            self.assertTrue(shardInfo.containsKey("table"))
             c.execute('''drop table test''')
 
     def test_mbean_cluster_state_version(self):
         jmx_client = JmxClient(JMX_PORT)
-        stdout, stderr = jmx_client.query_jmx(
+        result = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo', 'ClusterStateVersion')
-        self.assertGreater(int(stdout), 0)
-        self.assertEqual(stderr, '')
+        self.assertGreater(int(result), 0)
 
     def test_number_of_open_connections(self):
         jmx_client = JmxClient(JMX_PORT)
         with connect(enterprise_crate.http_url) as _:
-            stdout, stderr = jmx_client.query_jmx(
+            result = jmx_client.query_jmx(
                 'io.crate.monitoring:type=Connections', 'HttpOpen')
-            self.assertGreater(int(stdout), 0)
-            self.assertEqual(stderr, '')
+            self.assertGreater(int(result), 0)
 
     def test_search_pool(self):
         jmx_client = JmxClient(JMX_PORT)
-        stdout, stderr = jmx_client.query_jmx(
+        result = jmx_client.query_jmx(
             'io.crate.monitoring:type=ThreadPools', 'Search')
-        lines = [line.strip() for line in stdout.split('\n')]
-        expected = [
-            'active:          0',
-            'completed:       1',
-            'largestPoolSize: 1',
-            'name:            search',
-            'poolSize:        1',
-            'queueSize:       0',
-            'rejected:        0',
-        ]
-        self.assertSequenceEqual(expected, lines)
-        self.assertEqual(stderr, '')
+        expected = "{active=0, completed=1, largestPoolSize=1, name=search, poolSize=1, queueSize=0, rejected=0}"
+        self.assertEqual(expected, result.contentString())
 
     def test_parent_breaker(self):
         jmx_client = JmxClient(JMX_PORT)
-        stdout, stderr = jmx_client.query_jmx(
+        result = jmx_client.query_jmx(
             'io.crate.monitoring:type=CircuitBreakers', 'Parent')
-        self.assert_valid_circuit_breaker_jmx_output('parent', stdout)
-        self.assertEqual(stderr, '')
+        self.assertGreater(result.get("limit"), 0)
+        self.assertGreater(result.get("used"), 0)
+        self.assertEqual("parent", result.get("name"))
+        self.assertEqual(0, result.get("trippedCount"))
+        self.assertEqual(1.0, result.get("overhead"))
 
-        stdout, stderr = jmx_client.query_jmx(
+        result = jmx_client.query_jmx(
             'io.crate.monitoring:type=CircuitBreakers', 'Query')
-        self.assert_valid_circuit_breaker_jmx_output('query', stdout)
-        self.assertEqual(stderr, '')
-
-    def assert_valid_circuit_breaker_jmx_output(self, cb_name, output):
-        limit = re.search(r'limit:\s+([0-9]+)', output)
-        self.assertGreater(int(limit.group(1)), 0)
-
-        self.assertRegex(output, rf'name:\s+{cb_name}')
-        self.assertRegex(output, r'overhead:\s+(\d+\.?\d+)')
-        self.assertRegex(output, r'trippedCount:\s+(\d+)')
-        self.assertRegex(output, r'used:\s+(\d+)')
+        self.assertGreater(result.get("limit"), 0)
+        self.assertEqual(result.get("used"), 0)
+        self.assertEqual("query", result.get("name"))
+        self.assertEqual(0, result.get("trippedCount"))
+        self.assertEqual(1.0, result.get("overhead"))
