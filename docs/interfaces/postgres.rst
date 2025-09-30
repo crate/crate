@@ -541,30 +541,30 @@ CrateDB and we love to hear feedback.
 .. _pg_event_trigger: https://www.postgresql.org/docs/current/catalog-pg-event-trigger.html
 .. _pg_depend: https://www.postgresql.org/docs/current/catalog-pg-depend.html
 .. _pgjdbc: https://github.com/pgjdbc/pgjdbc
-.. _pgsql_pg_attrdef: https://www.postgresql.org/docs/14/static/catalog-pg-attrdef.html
-.. _pgsql_pg_attribute: https://www.postgresql.org/docs/14/static/catalog-pg-attribute.html
-.. _pgsql_pg_class: https://www.postgresql.org/docs/14/static/catalog-pg-class.html
-.. _pgsql_pg_constraint: https://www.postgresql.org/docs/14/static/catalog-pg-constraint.html
+.. _pgsql_pg_attrdef: https://www.postgresql.org/docs/14/catalog-pg-attrdef.html
+.. _pgsql_pg_attribute: https://www.postgresql.org/docs/14/catalog-pg-attribute.html
+.. _pgsql_pg_class: https://www.postgresql.org/docs/14/catalog-pg-class.html
+.. _pgsql_pg_constraint: https://www.postgresql.org/docs/14/catalog-pg-constraint.html
 .. _pgsql_pg_cursors: https://www.postgresql.org/docs/15/view-pg-cursors.html
-.. _pgsql_pg_database: https://www.postgresql.org/docs/14/static/catalog-pg-database.html
-.. _pgsql_pg_index: https://www.postgresql.org/docs/14/static/catalog-pg-index.html
+.. _pgsql_pg_database: https://www.postgresql.org/docs/14/catalog-pg-database.html
+.. _pgsql_pg_index: https://www.postgresql.org/docs/14/catalog-pg-index.html
 .. _pgsql_pg_indexes: https://www.postgresql.org/docs/14/view-pg-indexes.html
 .. _pgsql_pg_locks: https://www.postgresql.org/docs/14/view-pg-locks.html
 .. _pgsql_pg_matviews: https://www.postgresql.org/docs/current/view-pg-matviews.html
-.. _pgsql_pg_namespace: https://www.postgresql.org/docs/14/static/catalog-pg-namespace.html
-.. _pgsql_pg_proc: https://www.postgresql.org/docs/14/static/catalog-pg-proc.html
+.. _pgsql_pg_namespace: https://www.postgresql.org/docs/14/catalog-pg-namespace.html
+.. _pgsql_pg_proc: https://www.postgresql.org/docs/14/catalog-pg-proc.html
 .. _pgsql_pg_publication: https://www.postgresql.org/docs/14/catalog-pg-publication.html
 .. _pgsql_pg_publication_tables: https://www.postgresql.org/docs/14/view-pg-publication-tables.html
 .. _pgsql_pg_subscription: https://www.postgresql.org/docs/14/catalog-pg-subscription.html
 .. _pgsql_pg_subscription_rel: https://www.postgresql.org/docs/14/catalog-pg-subscription-rel.html
 .. _pgsql_pg_settings: https://www.postgresql.org/docs/14/view-pg-settings.html
-.. _pgsql_pg_type: https://www.postgresql.org/docs/14/static/catalog-pg-type.html
+.. _pgsql_pg_type: https://www.postgresql.org/docs/14/catalog-pg-type.html
 .. _PostgreSQL Arrays: https://www.postgresql.org/docs/14/static/arrays.html
-.. _PostgreSQL extended query: https://www.postgresql.org/docs/14/static/protocol-flow.html#PROTOCOL-FLOW-EXT-QUERY
-.. _PostgreSQL Fulltext Search: https://www.postgresql.org/docs/14/static/functions-textsearch.html
+.. _PostgreSQL extended query: https://www.postgresql.org/docs/14/protocol-flow.html
+.. _PostgreSQL Fulltext Search: https://www.postgresql.org/docs/14/functions-textsearch.html
 .. _PostgreSQL JDBC connection failover: https://jdbc.postgresql.org/documentation/use/#connection-fail-over
 .. _PostgreSQL JDBC Query docs: https://jdbc.postgresql.org/documentation/query
-.. _PostgreSQL simple query: https://www.postgresql.org/docs/14/static/protocol-flow.html#id-1.10.5.7.4
-.. _PostgreSQL value expressions: https://www.postgresql.org/docs/14/static/sql-expressions.html
-.. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/14/static/protocol.html
+.. _PostgreSQL simple query: https://www.postgresql.org/docs/14/protocol-flow.html
+.. _PostgreSQL value expressions: https://www.postgresql.org/docs/14/sql-expressions.html
+.. _PostgreSQL wire protocol v3: https://www.postgresql.org/docs/14/protocol.html
 .. _PostgreSQL cancelling requests: https://www.postgresql.org/docs/14/protocol-flow.html#id-1.10.5.7.10

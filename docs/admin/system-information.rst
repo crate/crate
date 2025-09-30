@@ -1635,6 +1635,8 @@ partitioning.
 
   <span id="tables-need-to-be-upgraded"></span>
 
+.. _table_reindex_required:
+
 Tables need to be recreated
 ...........................
 

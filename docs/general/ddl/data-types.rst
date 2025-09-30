@@ -3864,15 +3864,15 @@ However, you cannot use it with any :ref:`scalar functions
 .. _fixed-point fractional number: https://en.wikipedia.org/wiki/Fixed-point_arithmetic
 .. _Fully Qualified Domain Name: https://en.wikipedia.org/wiki/Fully_qualified_domain_name
 .. _Geohash: https://en.wikipedia.org/wiki/Geohash
-.. _GeoJSON geometry objects: https://tools.ietf.org/html/rfc7946#section-3.1
+.. _GeoJSON geometry objects: https://datatracker.ietf.org/doc/html/rfc7946
 .. _GeoJSON: https://geojson.org/
 .. _IEEE 754: https://en.wikipedia.org/wiki/IEEE_754
 .. _IP address: https://en.wikipedia.org/wiki/IP_address
 .. _ISO 8601 duration format: https://en.wikipedia.org/wiki/ISO_8601#Durations
 .. _ISO 8601 time zone designators: https://en.wikipedia.org/wiki/ISO_8601#Time_zone_designators
 .. _Java 15\: Patterns for Formatting and Parsing: https://docs.oracle.com/en/java/javase/15/docs/api/java.base/java/time/format/DateTimeFormatter.html#patterns
-.. _pg_class: https://www.postgresql.org/docs/10/static/catalog-pg-class.html
-.. _pg_proc: https://www.postgresql.org/docs/10/static/catalog-pg-proc.html
+.. _pg_class: https://www.postgresql.org/docs/14/catalog-pg-class.html
+.. _pg_proc: https://www.postgresql.org/docs/14/catalog-pg-proc.html
 .. _PostgreSQL interval format: https://www.postgresql.org/docs/current/datatype-datetime.html#DATATYPE-INTERVAL-INPUT
 .. _Quadtree: https://en.wikipedia.org/wiki/Quadtree
 .. _single-precision floating-point: https://en.wikipedia.org/wiki/Single-precision_floating-point_format

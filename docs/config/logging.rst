@@ -179,8 +179,8 @@ garbage collection logging.
 
     Make sure you have enough available disk space for configuration.
 
-.. _configuration section: https://logging.apache.org/log4j/1.2/manual.html#Configuration
-.. _Log4j: https://logging.apache.org/log4j/1.2/
-.. _PropertyConfigurator: https://logging.apache.org/log4j/1.2/apidocs/org/apache/log4j/PropertyConfigurator.html
+.. _configuration section: https://logging.apache.org/log4j/1.x/manual.html#Configuration
+.. _Log4j: https://logging.apache.org/log4j/1.x/
+.. _PropertyConfigurator: https://logging.apache.org/log4j/1.x/apidocs/org/apache/log4j/PropertyConfigurator.html
 .. _rotated: https://en.wikipedia.org/wiki/Log_rotation
 .. _YAML: https://yaml.org/

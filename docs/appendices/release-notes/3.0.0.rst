@@ -315,5 +315,5 @@ Other Changes
 .. _Admin UI: https://cratedb.com/docs/crate/admin-ui/en/latest/
 .. _backup: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
 .. _full cluster restart: https://cratedb.com/docs/crate/howtos/en/latest/admin/full-restart-upgrade.html
-.. _HTTP Authorization header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Authorization
+.. _HTTP Authorization header: https://developer.mozilla.org/en-US/docs/Web/HTTP/Reference/Headers/Authorization
 .. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
