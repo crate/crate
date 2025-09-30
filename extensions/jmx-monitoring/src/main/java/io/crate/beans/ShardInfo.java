@@ -34,7 +34,13 @@ public class ShardInfo {
     final long size;
 
     @ConstructorProperties({"shardId", "schema", "table", "partitionIdent", "routingState", "state", "size"})
-    public ShardInfo(int shardId, String schema, String table, String partitionIdent, String routingState, String state, long size) {
+    public ShardInfo(int shardId,
+                     String schema,
+                     String table,
+                     String partitionIdent,
+                     String routingState,
+                     String state,
+                     long size) {
         this.shardId = shardId;
         this.routingState = routingState;
         this.state = state;

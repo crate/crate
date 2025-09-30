@@ -21,7 +21,6 @@ package org.elasticsearch.cluster.metadata;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -126,9 +125,8 @@ public class IndexNameExpressionResolver {
             return expressions;
         }
 
-        if (isEmptyOrTrivialWildcard(expressions)) {
-            return resolveEmptyOrTrivialWildcard(options, metadata);
-        }
+        assert !isEmptyOrTrivialWildcard(expressions)
+            : "Empty or trivial wildcards are no longer supported";
 
         Set<String> result = innerResolve(metadata, options, expressions);
 
@@ -273,17 +271,5 @@ public class IndexNameExpressionResolver {
 
     private static boolean isEmptyOrTrivialWildcard(List<String> expressions) {
         return expressions.isEmpty() || (expressions.size() == 1 && (Metadata.ALL.equals(expressions.get(0)) || Regex.isMatchAllPattern(expressions.get(0))));
-    }
-
-    private static List<String> resolveEmptyOrTrivialWildcard(IndicesOptions options, Metadata metadata) {
-        if (options.expandWildcardsOpen() && options.expandWildcardsClosed()) {
-            return Arrays.asList(metadata.getConcreteAllIndices());
-        } else if (options.expandWildcardsOpen()) {
-            return Arrays.asList(metadata.getConcreteAllOpenIndices());
-        } else if (options.expandWildcardsClosed()) {
-            return Arrays.asList(metadata.getConcreteAllClosedIndices());
-        } else {
-            return Collections.emptyList();
-        }
     }
 }
