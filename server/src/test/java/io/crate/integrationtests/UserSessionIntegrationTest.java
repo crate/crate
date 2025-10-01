@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -62,18 +61,19 @@ public class UserSessionIntegrationTest extends BaseRolesIntegrationTest {
 
             TimeValue timeout = TimeValue.timeValueSeconds(10);
             var response = sqlExecutor.exec(
-                "select auth_user, session_user, client_address, protocol, ssl, settings, last_statement from sys.sessions",
+                "select auth_user, session_user, client_address, protocol, ssl, settings, last_statement, last_job_id from sys.sessions",
                 null,
                 session,
                 timeout
             );
+            String mostRecentJobId = session.getMostRecentJobID().toString();
             assertThat(response).hasRows(
                 "crate| test| localhost| http| false| {application_name=NULL, datestyle=ISO, " +
                     "disabled_optimizer_rules=optimizer_equi_join_to_lookup_join, enable_hashjoin=false, " +
                     "error_on_unknown_object_key=true, insert_select_fail_fast=false, " +
                     "memory.operation_limit=0, search_path=pg_catalog,doc, " +
                     "statement_timeout=10s}| select auth_user, session_user, client_address, " +
-                    "protocol, ssl, settings, last_statement from sys.sessions");
+                    "protocol, ssl, settings, last_statement, last_job_id from sys.sessions| " + mostRecentJobId);
             response = execute("select handler_node, time_created from sys.sessions", session);
             assertThat(response).hasRowCount(1);
             assertThat((String) response.rows()[0][0]).startsWith("node_s");
