@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Fail.fail;
 import static org.assertj.core.data.Offset.offset;
@@ -2843,5 +2842,17 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("select * from t order by a");
         assertThat(response.cols()).containsExactly("a", "b", "c", "d", "e");
         assertThat(response).hasRows("1| 2| 3| NULL| 5", "2| NULL| NULL| 4| NULL");
+    }
+
+    @UseRandomizedSchema(random = false)
+    @Repeat(iterations = 100)
+    public void test_insert_into_recovering_table_table_doesnt_lead_to_underreplicated_shards() throws Exception {
+        execute("create table t (a int)");
+        // ensureGreen(); Uncommenting makes it pass
+        execute("insert into t select * from generate_series(1, 100000)");
+        assertBusy(() -> {
+            execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 't'");
+            assertThat(response).hasRows("0");
+        });
     }
 }

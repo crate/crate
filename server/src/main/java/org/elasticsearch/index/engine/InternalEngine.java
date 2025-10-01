@@ -2477,6 +2477,9 @@ public class InternalEngine extends Engine {
                                                 long fromSeqNo, long toSeqNo, boolean requiredFullRange) throws IOException {
         ensureOpen();
         refreshIfNeeded(source, toSeqNo);
+        // Suspect was that LuceneChangesSnapshot.totalHits doesn't see in-buffer changes and such has total<recovered
+        // but this didn't help.
+        // this.refresh("api");
         Searcher searcher = acquireSearcher(source, SearcherScope.INTERNAL);
         try {
             LuceneChangesSnapshot snapshot = new LuceneChangesSnapshot(
