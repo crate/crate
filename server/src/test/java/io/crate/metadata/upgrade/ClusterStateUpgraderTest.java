@@ -35,6 +35,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
 
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -47,7 +48,7 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_routing_table_index_name_compatibility() throws Exception {
-        SQLExecutor e = SQLExecutor.builder(clusterService).build()
+        SQLExecutor.of(clusterService)
             .addTable("create table doc.t (id int primary key)")
             .startShards("doc.t");
 
@@ -80,7 +81,7 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
         Settings settings = Settings.builder()
             .put(IndexMetadata.INDEX_READ_ONLY_SETTING.getKey(), true)
             .build();
-        SQLExecutor e = SQLExecutor.builder(clusterService).build()
+        SQLExecutor.of(clusterService)
             .addTable("create table doc.t (id int primary key)", settings)
             .startShards("doc.t");
 
@@ -117,7 +118,7 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
         Settings settings = Settings.builder()
             .put(IndexMetadata.INDEX_READ_ONLY_SETTING.getKey(), true)
             .build();
-        SQLExecutor e = SQLExecutor.builder(clusterService).build()
+        SQLExecutor.of(clusterService)
             .addTable("create table doc.t (id int primary key)", settings)
             .startShards("doc.t");
 
@@ -128,5 +129,16 @@ public class ClusterStateUpgraderTest extends CrateDummyClusterServiceUnitTest {
 
         ClusterState clusterState3 = ClusterStateUpgrader.upgrade(clusterState, Version.CURRENT, metadataUpgradeService);
         assertThat(clusterState3).isEqualTo(clusterState);
+    }
+
+    @Test
+    public void test_relation_metadata_is_preserved_for_mixed_clusters() throws Exception {
+        SQLExecutor.of(clusterService)
+            .addTable("create table doc.tbl (x int, p int) partitioned by (p)");
+
+        ClusterState clusterState = clusterService.state();
+        ClusterState clusterState2 = ClusterStateUpgrader.downgrade(clusterState, Version.V_6_0_2);
+        RelationName tableName = new RelationName("doc", "tbl");
+        assertThat(clusterState2.metadata().contains(tableName)).isTrue();
     }
 }
