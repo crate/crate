@@ -84,6 +84,11 @@ public class MetadataUpgradeService {
     public Metadata upgradeMetadata(Metadata metadata) {
         final Metadata.Builder newMetadata = Metadata.builder(metadata);
 
+        UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
+        if (udfMetadata != null) {
+            userDefinedFunctionService.updateImplementations(udfMetadata.functionsMetadata());
+        }
+
         // Templates only exist in Metadata from < 6.1.0
         // If streaming Metadata to nodes < 6.1.0 templates are re-created on demand
         for (var cursor : metadata.templates()) {
@@ -139,8 +144,7 @@ public class MetadataUpgradeService {
                 IndexName.isPartitioned(indexName)
                     ? newMetadata.getTemplate(PartitionName.templateName(indexName))
                     : null,
-                Version.CURRENT.minimumIndexCompatibilityVersion(),
-                metadata.custom(UserDefinedFunctionsMetadata.TYPE));
+                Version.CURRENT.minimumIndexCompatibilityVersion());
             // Remove any existing metadata, registered by it's name, for the index
             newMetadata.remove(indexName);
             newMetadata.put(newIndexMetadata, false);
@@ -255,13 +259,9 @@ public class MetadataUpgradeService {
      */
     public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
                                               @Nullable IndexTemplateMetadata indexTemplateMetadata,
-                                              Version minimumIndexCompatibilityVersion,
-                                              @Nullable UserDefinedFunctionsMetadata userDefinedFunctionsMetadata) {
+                                              Version minimumIndexCompatibilityVersion) {
         if (isUpgraded(indexMetadata)) {
             return indexMetadata;
-        }
-        if (userDefinedFunctionsMetadata != null) {
-            userDefinedFunctionService.updateImplementations(userDefinedFunctionsMetadata.functionsMetadata());
         }
         // Throws an exception if there are too-old segments:
         checkSupportedVersion(indexMetadata, minimumIndexCompatibilityVersion);

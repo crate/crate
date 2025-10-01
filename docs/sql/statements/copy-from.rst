@@ -716,12 +716,12 @@ inserted records.
 
 
 .. _Amazon Simple Storage Service: https://aws.amazon.com/s3/
-.. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/RESTAuthentication.html
-.. _AWS Java Documentation: https://docs.aws.amazon.com/AmazonS3/latest/dev/AuthUsingAcctOrUserCredJava.html
+.. _AWS documentation: https://docs.aws.amazon.com/AmazonS3/latest/API/RESTAuthentication.html
+.. _AWS Java Documentation: https://docs.aws.amazon.com/AmazonS3/latest/API/AuthUsingAcctOrUserCredentials.html
 .. _Azure Blob Storage: https://learn.microsoft.com/en-us/azure/storage/blobs/
 .. _Account Key: https://learn.microsoft.com/en-us/purview/sit-defn-azure-storage-account-key-generic#format
 .. _SAS: https://learn.microsoft.com/en-us/azure/storage/common/storage-sas-overview
-.. _Docker volume: https://docs.docker.com/storage/volumes/
+.. _Docker volume: https://docs.docker.com/engine/storage/volumes/
 .. _GeoJSON: https://geojson.org/
 .. _globbing: https://en.wikipedia.org/wiki/Glob_(programming)
 .. _percent-encoding: https://en.wikipedia.org/wiki/Percent-encoding
@@ -729,5 +729,5 @@ inserted records.
 .. _URL encoded: https://en.wikipedia.org/wiki/Percent-encoding
 .. _URL: https://docs.oracle.com/javase/8/docs/api/java/net/URL.html
 .. _well-formed URI: https://www.rfc-editor.org/rfc/rfc2396
-.. _Windows documentation: https://docs.microsoft.com/en-us/dotnet/standard/io/file-path-formats
+.. _Windows documentation: https://learn.microsoft.com/en-us/dotnet/standard/io/file-path-formats
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text

@@ -62,6 +62,7 @@ import io.crate.types.DataTypes;
 @SuppressWarnings("deprecation") // tests deprecated components for BWC
 public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest {
 
+    private SQLExecutor e;
     private MetadataUpgradeService metadataUpgradeService;
     private String minimalTemplateMappingSource =
         """
@@ -81,7 +82,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
 
     @Before
     public void setUpUpgradeService() throws Exception {
-        SQLExecutor e = SQLExecutor.of(clusterService);
+        e = SQLExecutor.of(clusterService);
         e.udfService().registerLanguage(UdfUnitTest.DUMMY_LANG);
         metadataUpgradeService = new MetadataUpgradeService(
             e.nodeCtx,
@@ -215,35 +216,36 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         assertThat(match).hasValue(expectedRef);
     }
 
-
     @Test
     public void test_upgradeIndexMetadata_ensure_UDFs_are_loaded_before_checkMappingsCompatibility_is_called() throws IOException {
-        SQLExecutor e = SQLExecutor.of(clusterService);
-        e.udfService().registerLanguage(UdfUnitTest.DUMMY_LANG);
-        var metadataUpgradeService = new MetadataUpgradeService(
-            e.nodeCtx,
-            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
-            e.udfService()
-        );
-        metadataUpgradeService.upgradeIndexMetadata(
-            IndexMetadata.builder("test")
-                .settings(settings(Version.V_5_7_0))
-                .numberOfShards(1)
-                .numberOfReplicas(1)
-                .build(),
-            IndexTemplateMetadata.builder("test")
-                .patterns(List.of("*"))
-                .putMapping("{\"default\": {}}")
-                .build(),
-            Version.V_5_7_0,
-            UserDefinedFunctionsMetadata.of(new UserDefinedFunctionMetadata(
-                "custom",
-                "foo",
-                List.of(),
-                DataTypes.INTEGER,
-                "dummy",
-                "def foo(): return 1"
-            )));
+        IndexMetadata indexMetadata = IndexMetadata.builder("test")
+            .settings(settings(Version.V_5_7_0))
+            .numberOfShards(1)
+            .numberOfReplicas(1)
+            .build();
+        Settings tmplSettings = Settings.builder()
+            .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 4)
+            .build();
+        IndexTemplateMetadata indexTemplateMetadata = IndexTemplateMetadata.builder("test")
+            .patterns(List.of("*"))
+            .settings(tmplSettings)
+            .putMapping(minimalTemplateMappingSource)
+            .build();
+
+        UserDefinedFunctionsMetadata udfs = UserDefinedFunctionsMetadata.of(new UserDefinedFunctionMetadata(
+            "custom",
+            "foo",
+            List.of(),
+            DataTypes.INTEGER,
+            "dummy",
+            "def foo(): return 1"
+        ));
+        Metadata metadata = Metadata.builder()
+            .put(indexMetadata, false)
+            .put(indexTemplateMetadata)
+            .putCustom(UserDefinedFunctionsMetadata.TYPE, udfs)
+            .build();
+        metadataUpgradeService.upgradeMetadata(metadata);
         FunctionImplementation functionImplementation = e.nodeCtx.functions().get(
             "custom",
             "foo",
@@ -252,6 +254,50 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         );
         assertThat(functionImplementation).isNotNull();
     }
+
+    @Test
+    public void test_can_migrate_templates_using_udfs() throws Exception {
+        var template = IndexTemplateMetadata.builder("test")
+            .patterns(List.of("*"))
+            .settings(Settings.builder().put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1))
+            .putMapping(
+                """
+                {
+                    "default": {
+                        "_meta": {
+                            "partitioned_by": [["p", "integer"]],
+                            "generated_columns": {
+                                "x": "custom.foo()"
+                            }
+                        },
+                        "properties": {
+                            "p": {
+                                "type": "integer"
+                            },
+                            "x": {
+                                "type": "integer"
+                            }
+                        }
+                    }
+                }
+                """
+            )
+            .build();
+        UserDefinedFunctionsMetadata udfs = UserDefinedFunctionsMetadata.of(new UserDefinedFunctionMetadata(
+            "custom",
+            "foo",
+            List.of(),
+            DataTypes.INTEGER,
+            "dummy",
+            "def foo(): return 1"
+        ));
+        Metadata metadata = Metadata.builder()
+            .putCustom(UserDefinedFunctionsMetadata.TYPE, udfs)
+            .put(template)
+            .build();
+        metadataUpgradeService.upgradeMetadata(metadata);
+    }
+
 
     @Test
     public void test_no_metadata_upgrade_build_relation_metadata() {

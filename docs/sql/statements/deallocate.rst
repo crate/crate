@@ -32,4 +32,4 @@ Parameters
 :ALL:
   Deallocate all prepared statements
 
-.. _libpq: https://www.postgresql.org/docs/10/static/libpq.html
+.. _libpq: https://www.postgresql.org/docs/10/libpq.html

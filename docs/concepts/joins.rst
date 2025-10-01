@@ -126,12 +126,12 @@ Primitive nested loop
 .....................
 
 For joins on some relations, the nested loop operation can be executed directly
-on the handler node. Specifically for queries involving a CROSS JOIN or joins
-on `system tables`_ /`information_schema`_ each shard sends the data to the
-handler node. Afterwards, this node runs the nested loop, applies limits, etc.
-and ultimately returns the results. Similarly, joins can be nested, so instead
-of collecting data from shards the rows can be the result of a previous join or
-:ref:`table function <table-functions>`.
+on the handler node. Specifically for queries involving a CROSS JOIN or joins on
+tables from :ref:`system-information` or :ref:`information_schema`. Each shard
+sends the data to the handler node. Afterwards, this node runs the nested loop,
+applies limits, etc. and ultimately returns the results. Similarly, joins can be
+nested, so instead of collecting data from shards the rows can be the result of
+a previous join or :ref:`table function <table-functions>`.
 
 
 .. _join-algos-nested-loop-dist:
@@ -376,5 +376,3 @@ Note that this setting is experimental, and may change in the future.
 
 .. _hash table: https://en.wikipedia.org/wiki/Hash_table
 .. _here: http://www.dcs.ed.ac.uk/home/tz/phd/thesis.pdf
-.. _information_schema: https://cratedb.com/docs/reference/sql/information_schema.html
-.. _system tables: https://cratedb.com/docs/reference/sql/system.html

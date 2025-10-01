@@ -348,7 +348,6 @@ Boolean Data Type
 -----------------
 
 Tables that have been created with CrateDB version ``0.54.x`` or smaller and
-that contain a column of type ``BOOLEAN`` must be re-created_ to be able to
+that contain a column of type ``BOOLEAN`` must be :ref:`re-created
+<table_reindex_required>` to be able to
 perform all supported operations on that column.
-
-.. _re-created: https://cratedb.com/docs/crate/reference/en/latest/sql/system.html#tables-need-to-be-recreated

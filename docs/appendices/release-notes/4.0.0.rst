@@ -315,7 +315,7 @@ SQL Standard and PostgreSQL compatibility improvements
   <aggregation-functions>`.
 
 - Added support for `SQL Standard Timestamp Format
-  <https://cratedb.com/docs/sql-99/en/latest/chapters/08.html#timestamp-literal>`_
+  <https://sql-99.readthedocs.io/en/latest/chapters/08.html>`_
   to the :ref:`data-types-dates-times`.
 
 - Added the :ref:`TIMESTAMP WITHOUT TIME ZONE <type-timestamp-without-tz>`

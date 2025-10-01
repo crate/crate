@@ -784,10 +784,10 @@ Parameters
 .. _attach the IAM to each EC2 instance: https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/iam-roles-for-amazon-ec2.html
 .. _AWS API endpoint: https://docs.aws.amazon.com/general/latest/gr/rande.html
 .. _AWS region: https://aws.amazon.com/about-aws/global-infrastructure/regional-product-services/
-.. _Azure Blob storage: https://docs.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction
+.. _Azure Blob storage: https://learn.microsoft.com/en-us/azure/storage/blobs/storage-blobs-introduction
 .. _Azure service region: https://azure.microsoft.com/en-us/explore/global-infrastructure/geographies/
 .. _Canned ACL: https://docs.aws.amazon.com/AmazonS3/latest/userguide/acl-overview.html#canned-acl
-.. _endpoint suffix: https://docs.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string#create-a-connection-string-with-an-endpoint-suffix
+.. _endpoint suffix: https://learn.microsoft.com/en-us/azure/storage/common/storage-configure-connection-string
 .. _IAM roles: https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles.html
 .. _plugins: https://github.com/crate/crate/blob/master/devs/docs/plugins.rst
 .. _regional endpoint: https://docs.aws.amazon.com/general/latest/gr/rande.html#regional-endpoints

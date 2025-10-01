@@ -281,4 +281,4 @@ consumption for the particular query.
    operation is terminated. The number of already written records is not
    reported.
 
-.. _search_path: https://www.postgresql.org/docs/10/static/ddl-schemas.html#DDL-SCHEMAS-PATH
+.. _search_path: https://www.postgresql.org/docs/10/ddl-schemas.html
