@@ -103,13 +103,16 @@ class ResultSetReceiver extends BaseResultReceiver {
     @Override
     public void batchFinished() {
         ChannelFuture sendPortalSuspended = Messages.sendPortalSuspended(directChannel);
-        channel.writePendingMessages(delayedWrites);
-        channel.flush();
+        directChannel.flush();
 
         // Trigger the completion future but by-pass `sendCompleteComplete`
         // This resultReceiver shouldn't be used anymore. The next `execute` message
         // from the client will create a new one.
-        sendPortalSuspended.addListener(f -> super.allFinished());
+        sendPortalSuspended.addListener(_ -> {
+            channel.writePendingMessages(delayedWrites);
+            channel.flush();
+            super.allFinished();
+        });
     }
 
     @Override
