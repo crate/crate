@@ -2861,8 +2861,10 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
 
         Thread kill = new Thread(() -> {
             execute("select id from sys.jobs where stmt = 'insert into t select * from generate_series(1, 100000)'");
-            String uuid = (String) response.rows()[0][0];
-            execute("kill ?", new Object[]{uuid});
+            if (response.rowCount() > 0) {
+                String uuid = (String) response.rows()[0][0];
+                execute("kill ?", new Object[]{uuid});
+            }
         });
 
 
