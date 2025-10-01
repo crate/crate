@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Fail.fail;
 import static org.assertj.core.data.Offset.offset;
@@ -2843,5 +2842,36 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("select * from t order by a");
         assertThat(response.cols()).containsExactly("a", "b", "c", "d", "e");
         assertThat(response).hasRows("1| 2| 3| NULL| 5", "2| NULL| NULL| 4| NULL");
+    }
+
+    @UseRandomizedSchema(random = false)
+    @Repeat(iterations = 100)
+    public void test_interrupt_remaining_items_with_unassigned_seq_should_not_be_replicated_but_current_must_be_replicated() throws Exception {
+        execute("create table t (a int)");
+        execute("insert into t select * from generate_series(1, 100000)");
+
+        Thread insert = new Thread(() -> {
+            try {
+                execute("insert into t select * from generate_series(1, 100000)");
+            } catch (Exception ex) {
+                // JobKilledException but can be also InterruptedException or CancellationException
+                // Ignore, let the test run further
+            }
+        });
+
+        Thread kill = new Thread(() -> {
+            execute("select id from sys.jobs where stmt = 'insert into t select * from generate_series(1, 100000)'");
+            String uuid = (String) response.rows()[0][0];
+            execute("kill ?", new Object[]{uuid});
+        });
+
+
+        insert.start();
+        kill.start();
+
+        assertBusy(() -> {
+            execute("SELECT underreplicated_shards FROM sys.health WHERE table_name = 't'");
+            assertThat(response).hasRows("0");
+        });
     }
 }
