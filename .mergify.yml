@@ -1,11 +1,12 @@
 ---
 merge_queue:
   max_parallel_checks: 1
-  reset_on_external_merge: never
 
 queue_rules:
   - name: default
     batch_size: 1
+    branch_protection_injection_mode: merge
+    autoqueue: true
     merge_conditions:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
@@ -20,7 +21,8 @@ queue_rules:
 
 pull_request_rules:
   - name: default
-    conditions: []
+    conditions:
+      - label=ready-to-merge
     actions:
       queue:
 
