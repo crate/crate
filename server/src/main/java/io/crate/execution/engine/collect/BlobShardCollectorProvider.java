@@ -72,7 +72,7 @@ public class BlobShardCollectorProvider extends ShardCollectorProvider {
             settings,
             elasticsearchClient,
             blobShard.indexShard(),
-            new ShardRowContext(blobShard, clusterService),
+            ShardRowContext.builder(blobShard, clusterService),
             fileOutputFactoryMap
         );
         inputFactory = new InputFactory(nodeCtx);

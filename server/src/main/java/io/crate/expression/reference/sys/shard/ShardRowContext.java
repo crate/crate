@@ -33,12 +33,17 @@ import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.seqno.RetentionLease;
-import org.elasticsearch.index.shard.IllegalIndexShardStateException;
+import org.elasticsearch.index.seqno.RetentionLeaseStats;
+import org.elasticsearch.index.seqno.SeqNoStats;
+import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
+import org.elasticsearch.index.translog.TranslogStats;
+import org.elasticsearch.indices.recovery.RecoveryState;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobShard;
@@ -47,24 +52,52 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 
-public class ShardRowContext {
+public record ShardRowContext(Long size,
+                              RelationName relationName,
+                              List<String> partitionValues,
+                              @Nullable String partitionIdent,
+                              String partitionUUID,
+                              int id,
+                              String path,
+                              @Nullable String blobPath,
+                              boolean primary,
+                              String state,
+                              String routingState,
+                              String nodeId,
+                              String nodeName,
+                              String relocatingNodeId,
+                              boolean isOrphanedPartition,
+                              @Nullable Long numDocs,
+                              boolean isClosed,
+                              @Nullable String minLuceneVersion,
+                              long maxSeqNo,
+                              long localSeqNoCheckpoint,
+                              long globalSeqNoCheckpoint,
+                              @Nullable Long lastWriteTimestamp,
+                              @Nullable Long translogSizeInBytes,
+                              @Nullable Long translogUncommittedSizeInBytes,
+                              @Nullable Integer translogEstimatedNumberOfOperations,
+                              @Nullable Integer translogUncommittedOperations,
+                              @Nullable String recoveryStage,
+                              @Nullable String recoveryType,
+                              @Nullable Long recoveryTotalTime,
+                              @Nullable Long recoverySizeUsed,
+                              @Nullable Long recoverySizeReused,
+                              @Nullable Long recoverySizeRecoveredBytes,
+                              @Nullable Float recoverySizeRecoveredBytesPercent,
+                              @Nullable Integer recoveryFilesUsed,
+                              @Nullable Integer recoveryFilesReused,
+                              @Nullable Integer recoveryFilesRecovered,
+                              @Nullable Float recoveryFilesPercent,
+                              @Nullable Long retentionLeasesPrimaryTerm,
+                              @Nullable Long retentionLeasesVersion,
+                              Collection<RetentionLease> retentionLeases,
+                              long flushCount,
+                              long flushTotalTimeNs,
+                              long flushPeriodicCount) {
 
-    private final RelationName relationName;
-    private final IndexShard indexShard;
-    @Nullable
-    private final BlobShard blobShard;
-    private final ClusterService clusterService;
-    private final Supplier<Long> sizeSupplier;
-    private final String partitionIdent;
-    private final List<String> partitionValues;
-    private final int id;
-    private final String path;
-    @Nullable
-    private final String blobPath;
-    private final boolean orphanedPartition;
-
-    public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
-        this(indexShard, null, clusterService, Suppliers.memoizeWithExpiration(() -> {
+    public static ShardRowContext.Builder builder(IndexShard indexShard, ClusterService clusterService) {
+        return new Builder(indexShard, null, clusterService, Suppliers.memoizeWithExpiration(() -> {
             try {
                 StoreStats storeStats = indexShard.storeStats();
                 return storeStats.sizeInBytes();
@@ -74,315 +107,155 @@ public class ShardRowContext {
         }, 10, TimeUnit.SECONDS));
     }
 
-    public ShardRowContext(BlobShard blobShard, ClusterService clusterService) {
-        this(blobShard.indexShard(), blobShard, clusterService, blobShard::getTotalSize);
+    public static ShardRowContext.Builder builder(BlobShard blobShard, ClusterService clusterService) {
+        return new Builder(blobShard.indexShard(), blobShard, clusterService, blobShard::getTotalSize);
     }
 
-    private ShardRowContext(IndexShard indexShard,
-                            @Nullable BlobShard blobShard,
-                            ClusterService clusterService,
-                            Supplier<Long> sizeSupplier) {
-        this.indexShard = indexShard;
-        this.blobShard = blobShard;
-        this.clusterService = clusterService;
-        this.sizeSupplier = sizeSupplier;
-        ShardId shardId = indexShard.shardId();
-        this.id = shardId.id();
-        Metadata metadata = clusterService.state().metadata();
-        IndexMetadata index = metadata.index(shardId.getIndexUUID());
-        if (index == null) {
-            throw new IllegalArgumentException(
-                String.format(Locale.ENGLISH, "IndexMetadata for shard %s does not exist in the cluster state", shardId));
-        }
+
+    public static class Builder {
+
+        private final Supplier<Long> sizeSupplier;
+
+        private final RelationName relationName;
+        private final IndexShard indexShard;
+        private final String nodeId;
+        private final String nodeName;
         @Nullable
-        RelationMetadata relation = metadata.getRelation(shardId.getIndexUUID());
-        if (relation == null) {
-            orphanedPartition = true;
-            relationName = IndexName.decode(shardId.getIndexName()).toRelationName();
-        } else {
-            orphanedPartition = false;
-            relationName = relation.name();
+        private final BlobShard blobShard;
+        private final String partitionIdent;
+        private final List<String> partitionValues;
+        private final int id;
+        private final String path;
+        @Nullable
+        private final String blobPath;
+        private final boolean orphanedPartition;
+
+        private Builder(IndexShard indexShard,
+                        @Nullable BlobShard blobShard,
+                        ClusterService clusterService,
+                        Supplier<Long> sizeSupplier) {
+            this.indexShard = indexShard;
+            this.nodeId = clusterService.localNode().getId();
+            this.nodeName = clusterService.localNode().getName();
+            this.blobShard = blobShard;
+            this.sizeSupplier = sizeSupplier;
+            ShardId shardId = indexShard.shardId();
+            this.id = shardId.id();
+            Metadata metadata = clusterService.state().metadata();
+            IndexMetadata index = metadata.index(shardId.getIndexUUID());
+            if (index == null) {
+                throw new IllegalArgumentException(
+                    String.format(Locale.ENGLISH, "IndexMetadata for shard %s does not exist in the cluster state", shardId));
+            }
+            @Nullable
+            RelationMetadata relation = metadata.getRelation(shardId.getIndexUUID());
+            if (relation == null) {
+                orphanedPartition = true;
+                relationName = IndexName.decode(shardId.getIndexName()).toRelationName();
+            } else {
+                orphanedPartition = false;
+                relationName = relation.name();
+            }
+            partitionValues = index.partitionValues();
+            partitionIdent = partitionValues.isEmpty() ? "" : PartitionName.encodeIdent(index.partitionValues());
+            path = indexShard.shardPath().getDataPath().toString();
+            blobPath = blobShard == null ? null : blobShard.blobContainer().getBaseDirectory().toString();
         }
-        partitionValues = index.partitionValues();
-        partitionIdent = partitionValues.isEmpty() ? "" : PartitionName.encodeIdent(index.partitionValues());
-        path = indexShard.shardPath().getDataPath().toString();
-        blobPath = blobShard == null ? null : blobShard.blobContainer().getBaseDirectory().toString();
-    }
 
-    public RelationName relationName() {
-        return relationName;
-    }
+        public Index index() {
+            return indexShard.shardId().getIndex();
+        }
 
-    public List<String> partitionValues() {
-        return partitionValues;
-    }
+        public RelationName relationName() {
+            return relationName;
+        }
 
-    public IndexShard indexShard() {
-        return indexShard;
-    }
+        public List<String> partitionValues() {
+            return partitionValues;
+        }
 
-    public ClusterService clusterService() {
-        return clusterService;
-    }
+        public ShardRowContext build() {
+            Long numDocs = null;
+            SeqNoStats seqNoStats = null;
+            TranslogStats translogStats = null;
+            RetentionLeaseStats retentionLeaseStats = null;
 
-    public Long size() {
-        return sizeSupplier.get();
-    }
-
-    @Nullable
-    public String partitionIdent() {
-        return partitionIdent;
-    }
-
-    public String partitionUUID() {
-        return indexShard.shardId().getIndex().getUUID();
-    }
-
-    public int id() {
-        return id;
-    }
-
-    public String path() {
-        return path;
-    }
-
-    @Nullable
-    public String blobPath() {
-        return blobPath;
-    }
-
-    @Nullable
-    public Long numDocs() {
-        if (blobShard == null) {
             try {
-                return indexShard.docStats().getCount();
-            } catch (IllegalIndexShardStateException e) {
+                DocsStats docsStats = indexShard.docStats();
+                numDocs = docsStats.getCount();
+                seqNoStats = indexShard.seqNoStats();
+                translogStats = indexShard.translogStats();
+                retentionLeaseStats = indexShard.getRetentionLeaseStats();
+            } catch (AlreadyClosedException | IndexShardClosedException _) {
+            }
+
+            RecoveryState recoveryState = indexShard.recoveryState();
+
+            return new ShardRowContext(
+                sizeSupplier.get(),
+                relationName,
+                partitionValues,
+                partitionIdent,
+                indexShard.shardId().getIndex().getUUID(),
+                id,
+                path,
+                blobPath,
+                indexShard.routingEntry().primary(),
+                indexShard.state().name(),
+                indexShard.routingEntry().state().name(),
+                nodeId,
+                nodeName,
+                indexShard.routingEntry().relocatingNodeId(),
+                orphanedPartition,
+                blobShard != null ? Long.valueOf(blobShard.getBlobsCount()) : numDocs,
+                indexShard.isClosed(),
+                minLuceneVersion(numDocs),
+                seqNoStats != null ? seqNoStats.getMaxSeqNo() : 0L,
+                seqNoStats != null ? seqNoStats.getLocalCheckpoint() : 0L,
+                seqNoStats != null ? seqNoStats.getGlobalCheckpoint() : 0L,
+                indexShard.lastWriteTimestamp(),
+                translogStats != null ? translogStats.getTranslogSizeInBytes() : 0L,
+                translogStats != null ? translogStats.getUncommittedSizeInBytes() : 0L,
+                translogStats != null ? translogStats.estimatedNumberOfOperations() : 0,
+                translogStats != null ? translogStats.getUncommittedOperations() : 0,
+                recoveryState != null ? recoveryState.getStage().name() : null,
+                recoveryState != null ? recoveryState.getRecoverySource().getType().name() : null,
+                recoveryState != null ? recoveryState.getTimer().time() : null,
+                recoveryState != null ? recoveryState.getIndex().totalBytes() : null,
+                recoveryState != null ? recoveryState.getIndex().reusedBytes() : null,
+                recoveryState != null ? recoveryState.getIndex().recoveredBytes() : null,
+                recoveryState != null ? recoveryState.getIndex().recoveredBytesPercent() : null,
+                recoveryState != null ? recoveryState.getIndex().totalFileCount() : null,
+                recoveryState != null ? recoveryState.getIndex().reusedFileCount() : null,
+                recoveryState != null ? recoveryState.getIndex().recoveredFileCount() : null,
+                recoveryState != null ? recoveryState.getIndex().recoveredFilesPercent() : null,
+                retentionLeaseStats != null ? retentionLeaseStats.leases().primaryTerm() : null,
+                retentionLeaseStats != null ? retentionLeaseStats.leases().version() : null,
+                retentionLeaseStats != null ? retentionLeaseStats.leases().leases() : List.of(),
+                indexShard.getFlushMetric().count(),
+                indexShard.getFlushMetric().sum(),
+                indexShard.periodicFlushCount()
+            );
+        }
+
+        @Nullable
+        private String minLuceneVersion(@Nullable Long numDocs) {
+            if (numDocs == null) {
                 return null;
             }
-        } else {
-            return blobShard.getBlobsCount();
+            if (numDocs == 0) {
+                // If there are no documents we've no segments and `indexShard.minimumCompatibleVersion`
+                // will return the version the index was created with.
+                // That would cause `TableNeedsUpgradeSysCheck` to trigger a warning
+                //
+                // If a new segment is created in an empty shard it will use the newer lucene version
+                return Version.CURRENT.luceneVersion.toString();
+            }
+            try {
+                return indexShard.minimumCompatibleVersion().toString();
+            } catch (AlreadyClosedException e) {
+                return null;
+            }
         }
-    }
-
-    public boolean isOrphanedPartition() {
-        return orphanedPartition;
-    }
-
-    public boolean isClosed() {
-        return indexShard.isClosed();
-    }
-
-    @Nullable
-    public String minLuceneVersion() {
-        long numDocs;
-        try {
-            numDocs = indexShard.docStats().getCount();
-        } catch (IllegalIndexShardStateException e) {
-            return null;
-        }
-        if (numDocs == 0) {
-            // If there are no documents we've no segments and `indexShard.minimumCompatibleVersion`
-            // will return the version the index was created with.
-            // That would cause `TableNeedsUpgradeSysCheck` to trigger a warning
-            //
-            // If a new segment is created in an empty shard it will use the newer lucene version
-            return Version.CURRENT.luceneVersion.toString();
-        }
-        try {
-            return indexShard.minimumCompatibleVersion().toString();
-        } catch (AlreadyClosedException e) {
-            return null;
-        }
-    }
-
-    public long maxSeqNo() {
-        try {
-            var stats = indexShard.seqNoStats();
-            return stats.getMaxSeqNo();
-        } catch (AlreadyClosedException e) {
-            return 0L;
-        }
-    }
-
-    public long localSeqNoCheckpoint() {
-        try {
-            var stats = indexShard.seqNoStats();
-            return stats.getLocalCheckpoint();
-        } catch (AlreadyClosedException e) {
-            return 0L;
-        }
-    }
-
-    public long globalSeqNoCheckpoint() {
-        try {
-            var stats = indexShard.seqNoStats();
-            return stats.getGlobalCheckpoint();
-        } catch (AlreadyClosedException e) {
-            return 0L;
-        }
-    }
-
-    @Nullable
-    public Long translogSizeInBytes() {
-        try {
-            var stats = indexShard.translogStats();
-            return stats == null ? null : stats.getTranslogSizeInBytes();
-        } catch (AlreadyClosedException e) {
-            return 0L;
-        }
-    }
-
-    @Nullable
-    public Long translogUncommittedSizeInBytes() {
-        try {
-            var stats = indexShard.translogStats();
-            return stats == null ? null : stats.getUncommittedSizeInBytes();
-        } catch (AlreadyClosedException e) {
-            return 0L;
-        }
-    }
-
-    @Nullable
-    public Integer translogEstimatedNumberOfOperations() {
-        try {
-            var stats = indexShard.translogStats();
-            return stats == null ? null : stats.estimatedNumberOfOperations();
-        } catch (AlreadyClosedException e) {
-            return 0;
-        }
-    }
-
-    @Nullable
-    public Integer translogUncommittedOperations() {
-        try {
-            var stats = indexShard.translogStats();
-            return stats == null ? null : stats.getUncommittedOperations();
-        } catch (AlreadyClosedException e) {
-            return 0;
-        }
-    }
-
-    @Nullable
-    public String recoveryStage() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getStage().name();
-    }
-
-    @Nullable
-    public String recoveryType() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getRecoverySource().getType().name();
-    }
-
-    @Nullable
-    public Long recoveryTotalTime() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getTimer().time();
-    }
-
-    @Nullable
-    public Long recoverySizeUsed() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getIndex().totalBytes();
-    }
-
-    @Nullable
-    public Long recoverySizeReused() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getIndex().reusedBytes();
-    }
-
-    @Nullable
-    public Long recoverySizeRecoveredBytes() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getIndex().recoveredBytes();
-    }
-
-    @Nullable
-    public Float recoverySizeRecoveredBytesPercent() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getIndex().recoveredBytesPercent();
-    }
-
-    @Nullable
-    public Integer recoveryFilesUsed() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getIndex().totalFileCount();
-    }
-
-    @Nullable
-    public Integer recoveryFilesReused() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getIndex().reusedFileCount();
-    }
-
-    @Nullable
-    public Integer recoveryFilesRecovered() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getIndex().recoveredFileCount();
-    }
-
-    @Nullable
-    public Float recoveryFilesPercent() {
-        var recoveryState = indexShard.recoveryState();
-        return recoveryState == null
-            ? null
-            : recoveryState.getIndex().recoveredFilesPercent();
-    }
-
-    public Long retentionLeasesPrimaryTerm() {
-        try {
-            return indexShard.getRetentionLeaseStats().leases().primaryTerm();
-        } catch (AlreadyClosedException | IndexShardClosedException e) {
-            return null;
-        }
-    }
-
-    public Long retentionLeasesVersion() {
-        try {
-            return indexShard.getRetentionLeaseStats().leases().version();
-        } catch (AlreadyClosedException | IndexShardClosedException e) {
-            return null;
-        }
-    }
-
-    public Collection<RetentionLease> retentionLeases() {
-        try {
-            return indexShard.getRetentionLeaseStats().leases().leases();
-        } catch (AlreadyClosedException | IndexShardClosedException e) {
-            return List.of();
-        }
-    }
-
-    public long flushCount() {
-        return indexShard.getFlushMetric().count();
-    }
-
-    public long flushTotalTimeNs() {
-        return indexShard.getFlushMetric().sum();
-    }
-
-    public long flushPeriodicCount() {
-        return indexShard.periodicFlushCount();
     }
 }

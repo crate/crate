@@ -44,6 +44,7 @@ import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardRoutingHelper;
 import org.elasticsearch.cluster.routing.UnassignedInfo;
 import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.common.metrics.MeanMetric;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
@@ -111,6 +112,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void prepare(String indexUUID, String indexName) throws Exception {
         NodeContext nodeCtx = createNodeContext();
         indexShard = mockIndexShard(indexName, indexUUID);
+        when(indexShard.getFlushMetric()).thenReturn(new MeanMetric());
         schemas = new Schemas(
             Map.of("sys", new SysSchemaInfo(this.clusterService, List::of)),
             clusterService,
@@ -120,7 +122,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
             ),
             List::of
         );
-        resolver = new ShardReferenceResolver(schemas, new ShardRowContext(indexShard, clusterService));
+        resolver = new ShardReferenceResolver(schemas, ShardRowContext.builder(indexShard, clusterService));
         sysShards = schemas.getTableInfo(SysShardsTableInfo.IDENT);
     }
 
@@ -133,6 +135,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         when(indexService.index()).thenReturn(index);
         when(indexShard.shardId()).thenReturn(shardId);
         when(indexShard.state()).thenReturn(IndexShardState.STARTED);
+        when(indexShard.getFlushMetric()).thenReturn(new MeanMetric());
 
         StoreStats storeStats = new StoreStats(123456L, 0L);
         when(indexShard.storeStats()).thenReturn(storeStats);
@@ -201,9 +204,6 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Input<?> shardExpression = resolver.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);
         assertThat(shardExpression.value()).isEqualTo(654321L);
-
-        // second call should throw Exception
-        assertThat(shardExpression.value()).isNull();
     }
 
     @Test
@@ -400,7 +400,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     public void testShardSizeExpressionWhenIndexShardHasBeenClosed() throws Exception {
         IndexShard mock = mockIndexShard(indexShard.shardId().getIndexName(), indexShard.shardId().getIndexUUID());
         doThrow(new AlreadyClosedException("dummy")).when(mock).storeStats();
-        ShardReferenceResolver res = new ShardReferenceResolver(schemas, new ShardRowContext(mock, clusterService));
+        ShardReferenceResolver res = new ShardReferenceResolver(schemas, ShardRowContext.builder(mock, clusterService));
         Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
         Input<?> shardExpression = res.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);
@@ -413,7 +413,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         var shardId = mock.shardId();
         doThrow(new IndexShardClosedException(shardId)).when(mock).getRetentionLeaseStats();
 
-        ShardReferenceResolver res = new ShardReferenceResolver(schemas, new ShardRowContext(mock, clusterService));
+        ShardReferenceResolver res = new ShardReferenceResolver(schemas, ShardRowContext.builder(mock, clusterService));
         Reference refInfo = refInfo("sys.shards.retention_leases", DataTypes.LONG, RowGranularity.SHARD, "version");
         Input<?> shardExpression = res.getImplementation(refInfo);
         assertThat(shardExpression).isInstanceOf(NestableInput.class);

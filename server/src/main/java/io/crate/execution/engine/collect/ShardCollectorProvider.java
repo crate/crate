@@ -56,9 +56,10 @@ import io.crate.metadata.shard.ShardReferenceResolver;
 public abstract class ShardCollectorProvider {
 
     private final ProjectorFactory projectorFactory;
-    private final ShardRowContext shardRowContext;
+    private final ShardRowContext.Builder shardRowContextBuilder;
     protected final IndexShard indexShard;
     final EvaluatingNormalizer shardNormalizer;
+    private final ShardReferenceResolver shardReferenceResolver;
     private final BatchIteratorFactory batchIteratorFactory;
 
     ShardCollectorProvider(ClusterService clusterService,
@@ -69,14 +70,15 @@ public abstract class ShardCollectorProvider {
                            Settings settings,
                            Client elasticsearchClient,
                            IndexShard indexShard,
-                           ShardRowContext shardRowContext,
+                           ShardRowContext.Builder shardRowContextBuilder,
                            Map<String, FileOutputFactory> fileOutputFactoryMap) {
         this.indexShard = indexShard;
-        this.shardRowContext = shardRowContext;
+        this.shardRowContextBuilder = shardRowContextBuilder;
+        this.shardReferenceResolver = new ShardReferenceResolver(nodeCtx.schemas(), shardRowContextBuilder);
         shardNormalizer = new EvaluatingNormalizer(
             nodeCtx,
             RowGranularity.SHARD,
-            new ShardReferenceResolver(nodeCtx.schemas(), shardRowContext),
+            shardReferenceResolver,
             null
         );
         projectorFactory = new ProjectionToProjectorVisitor(
@@ -106,6 +108,9 @@ public abstract class ShardCollectorProvider {
                 : "getDocCollector shouldn't be called if there is an orderBy on the collectPhase";
             assert collectPhase.maxRowGranularity() == RowGranularity.DOC :
                 "granularity must be DOC";
+
+            // Ensure we have the latest shard values loaded
+            shardReferenceResolver.rebuildShardContext();
 
             boolean isOpenIndex = !indexShard.isClosed();
             if (isOpenIndex) {
@@ -144,7 +149,7 @@ public abstract class ShardCollectorProvider {
     }
 
     public ShardRowContext shardRowContext() {
-        return shardRowContext;
+        return shardRowContextBuilder.build();
     }
 
     public CompletableFuture<BatchIteratorFactory> awaitShardSearchActive() {

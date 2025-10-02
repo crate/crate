@@ -84,21 +84,28 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
         return new MapBackedRefResolver(Collections.unmodifiableMap(pValues));
     }
 
-    private final ShardRowContext shardRowContext;
     private final ReferenceResolver<NestableInput<?>> partitionColumnResolver;
+    private final ShardRowContext.Builder shardRowContextBuilder;
+    private volatile ShardRowContext shardRowContext;
 
-    public ShardReferenceResolver(Schemas schemas, ShardRowContext shardRowContext) {
-        this.shardRowContext = shardRowContext;
-        if (shardRowContext.partitionValues().isEmpty()) {
+    public ShardReferenceResolver(Schemas schemas, ShardRowContext.Builder shardRowContextBuilder) {
+        this.shardRowContextBuilder = shardRowContextBuilder;
+        if (shardRowContextBuilder.partitionValues().isEmpty()) {
             partitionColumnResolver = EMPTY_RESOLVER;
         } else {
             partitionColumnResolver = createPartitionColumnResolver(
-                shardRowContext.indexShard().shardId().getIndex(),
-                shardRowContext.relationName(),
-                shardRowContext.partitionValues(),
+                shardRowContextBuilder.index(),
+                shardRowContextBuilder.relationName(),
+                shardRowContextBuilder.partitionValues(),
                 schemas
             );
         }
+        // ensure shardRowContext is initialized at least once
+        rebuildShardContext();
+    }
+
+    public void rebuildShardContext() {
+        this.shardRowContext = shardRowContextBuilder.build();
     }
 
     @Override

@@ -136,12 +136,12 @@ public class SysShardsTableInfo {
             .add("partition_ident", STRING, ShardRowContext::partitionIdent)
             .add("partition_uuid", STRING, ShardRowContext::partitionUUID)
             .add("num_docs", LONG, ShardRowContext::numDocs)
-            .add("primary", BOOLEAN, r -> r.indexShard().routingEntry().primary())
-            .add("relocating_node", STRING, r -> r.indexShard().routingEntry().relocatingNodeId())
+            .add("primary", BOOLEAN, ShardRowContext::primary)
+            .add("relocating_node", STRING, ShardRowContext::relocatingNodeId)
             .add("size", LONG, ShardRowContext::size)
-            .add("state", STRING, r -> r.indexShard().state().toString())
+            .add("state", STRING, ShardRowContext::state)
             .add("closed", BOOLEAN, ShardRowContext::isClosed)
-            .add("routing_state", STRING,r -> r.indexShard().routingEntry().state().toString())
+            .add("routing_state", STRING, ShardRowContext::routingState)
             .add("orphan_partition", BOOLEAN, ShardRowContext::isOrphanedPartition)
 
             .startObject("recovery")
@@ -169,8 +169,8 @@ public class SysShardsTableInfo {
             .add("blob_path", STRING, ShardRowContext::blobPath)
             .add("min_lucene_version", STRING, ShardRowContext::minLuceneVersion)
             .startObject("node")
-                .add("id", STRING, x -> x.clusterService().localNode().getId())
-                .add("name", STRING, x -> x.clusterService().localNode().getName())
+                .add("id", STRING, ShardRowContext::nodeId)
+                .add("name", STRING, ShardRowContext::nodeName)
             .endObject()
             .startObject(Columns.SEQ_NO_STATS.name())
                 .add(SeqNoStats.MAX_SEQ_NO, LONG, ShardRowContext::maxSeqNo)
@@ -198,7 +198,7 @@ public class SysShardsTableInfo {
                 .add("periodic_count", LONG, ShardRowContext::flushPeriodicCount)
                 .add("total_time_ns", LONG, ShardRowContext::flushTotalTimeNs)
             .endObject()
-            .add(Columns.LAST_WRITE_BEFORE.name(), DataTypes.TIMESTAMPZ, r -> r.indexShard().lastWriteTimestamp())
+            .add(Columns.LAST_WRITE_BEFORE.name(), DataTypes.TIMESTAMPZ, ShardRowContext::lastWriteTimestamp)
             .setPrimaryKeys(
                 Columns.SCHEMA_NAME,
                 Columns.TABLE_NAME,

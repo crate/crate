@@ -97,7 +97,7 @@ public class LuceneShardCollectorProvider extends ShardCollectorProvider {
             settings,
             elasticsearchClient,
             indexShard,
-            new ShardRowContext(indexShard, clusterService),
+            ShardRowContext.builder(indexShard, clusterService),
             fileOutputFactoryMap
         );
         this.luceneQueryBuilder = luceneQueryBuilder;
