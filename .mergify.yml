@@ -5,9 +5,9 @@ merge_queue:
 queue_rules:
   - name: default
     batch_size: 1
-    branch_protection_injection_mode: merge
-    autoqueue: true
-    merge_conditions:
+    branch_protection_injection_mode: none
+    merge_method: rebase
+    queue_conditions:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
       - status-success~=^check-author-signed-cla
@@ -17,7 +17,6 @@ queue_rules:
       - status-success~=^checkstyle
       - status-success~=^forbiddenApis
       - status-success~=^Vale
-    merge_method: rebase
 
 pull_request_rules:
   - name: default
