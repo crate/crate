@@ -37,6 +37,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -202,7 +203,13 @@ public class Indexer {
             }
             int index = targetColumns.indexOf(ref);
             if (index > -1) {
-                return NestableCollectExpression.forFunction(item -> item.insertValues()[index]);
+                return NestableCollectExpression.forFunction(
+                    item -> {
+                        var val = item.insertValues()[index];
+                        // TODO: check all return stmts below this point to see if the values need overwriting.
+                        return overwriteGeneratedChildren(item, val, ref);
+                    }
+                );
             }
             if (ref.granularity() == RowGranularity.PARTITION) {
                 int pIndex = table.partitionedByColumns().indexOf(ref);
@@ -266,6 +273,19 @@ public class Indexer {
             });
             Input<?> accept = generatedExpression.accept(symbolEval, Row.EMPTY);
             return accept.value();
+        }
+
+        private Object overwriteGeneratedChildren(IndexItem item, Object parent, Reference parentRef) {
+            if (parentRef.valueType().id() != ObjectType.ID) {
+                return parent;
+            }
+            for (var child : table.getLeafReferences(parentRef)) {
+                // TODO; is generated check, what about defaults?
+                var childCollectExpression = getImplementation(child);
+                childCollectExpression.setNextRow(item);
+                Maps.mergeInto((Map<String, Object>) parent, child.column().leafName(), List.of(), childCollectExpression.value());
+            }
+            return parent;
         }
     }
 
