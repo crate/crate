@@ -62,3 +62,7 @@ Fixes
 
 - Fixed an issue where null-valued sub-columns of objects were omitted when
   queried.
+
+- Upgraded Lucene to ``9.12.3`` that fixed an issue with ``MMapDirectory``
+  leaking maps that could cause exceeding of the ``vm.max_map_count`` limit
+  and lead to a node crash.
