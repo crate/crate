@@ -139,6 +139,27 @@ public final class Maps {
         return newList;
     }
 
+    public static boolean pathExists(Map<?, ?> map, List<String> path) {
+        Map<?, ?> current = map;
+        for (int i = 0; i < path.size(); i++) {
+            String key = path.get(i);
+            // must use Map.containsKey instead of Map.get because a column can be mapped to a null value
+            if (!current.containsKey(key)) {
+                return false;
+            }
+            if (i + 1 == path.size()) {
+                return true;
+            }
+            var val = current.get(key);
+            if (val instanceof Map<?, ?> nested) {
+                current = nested;
+            } else {
+                return false;
+            }
+        }
+        return true;
+    }
+
     @Nullable
     @SuppressWarnings("unchecked")
     public static <T> T removeByPath(Map<String, T> map, List<String> path) {
@@ -270,5 +291,32 @@ public final class Maps {
             return map.put(key, value);
         }
         return null;
+    }
+
+    /**
+     * Returns a modifiable deep copy of the given map.
+     */
+    public static <K, V> Map<K, V> deepCopy(Map<K, V> map) {
+        Map<K, V> copy = new HashMap<>();
+        for (Map.Entry<K, V> e : map.entrySet()) {
+            K key = e.getKey();
+            V value = e.getValue();
+            if (value instanceof Map<?, ?> nested) {
+                copy.put(key, (V) deepCopy(nested));
+            } else if (value instanceof List<?> list) {
+                List<Object> newList = new ArrayList<>();
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> m) {
+                        newList.add(deepCopy(m));
+                    } else {
+                        newList.add(item);
+                    }
+                }
+                copy.put(key, (V) newList);
+            } else {
+                copy.put(key, value);
+            }
+        }
+        return copy;
     }
 }
