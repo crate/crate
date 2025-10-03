@@ -75,3 +75,5 @@ Fixes
   ``OutOfMemoryError`` when a large result set was returned by the ``HTTP``
   endpoint.
 
+- Fixed an issue where generated and default sub-columns were missing from
+  results returned by the ``RETURNING`` clause.
