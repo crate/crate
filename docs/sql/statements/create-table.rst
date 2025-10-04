@@ -602,25 +602,12 @@ Allows to have a read only table that additionally can be deleted.
 
 .. _sql-create-table-soft-deletes:
 
-.. _sql-create-table-soft-deletes-enabled:
-
-``soft_deletes.enabled``
-------------------------
-
-Indicates whether soft deletes are enabled or disabled.
-
 Soft deletes allow CrateDB to preserve recent deletions within the Lucene
-index. This information is used for :ref:`shard recovery
-<gloss-shard-recovery>`.
+index. This information is used for :ref:`shard recovery<gloss-shard-recovery>`.
 
 Before the introduction of soft deletes, CrateDB had to retain the information
 in the :ref:`Translog <concept-durability>`. Using soft deletes uses less
 storage than the Translog equivalent and is faster.
-
-Soft deletes are mandatory in CrateDB 5.0, therefore this setting can no
-longer be modified. It will always be set to ``true``.
-
-The setting will be removed in CrateDB 6.0.
 
 .. _sql-create-table-soft-deletes-retention-lease-period:
 
