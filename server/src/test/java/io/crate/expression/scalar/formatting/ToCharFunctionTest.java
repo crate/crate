@@ -66,7 +66,7 @@ import io.crate.expression.symbol.Literal;
 public class ToCharFunctionTest extends ScalarTestCase {
 
     // Patterns that must NOT behave in the same way for upper/lower case,
-    private static Set<DateTimeFormatter.Token> FIXED_CASE_PATTERNS =
+    private static final Set<DateTimeFormatter.Token> FIXED_CASE_PATTERNS =
         Set.of(
             MONTH_UPPER,
             MONTH_CAPITALIZED,
