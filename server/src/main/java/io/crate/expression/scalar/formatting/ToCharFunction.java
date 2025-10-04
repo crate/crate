@@ -25,6 +25,7 @@ import java.time.Instant;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.TimeZone;
+import java.util.stream.Stream;
 
 import org.elasticsearch.common.TriFunction;
 import org.jetbrains.annotations.Nullable;
@@ -49,7 +50,7 @@ public class ToCharFunction extends Scalar<String, Object> {
     public static final String NAME = "to_char";
 
     public static void register(Functions.Builder module) {
-        List.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ).stream()
+        Stream.of(DataTypes.TIMESTAMP, DataTypes.TIMESTAMPZ)
             .forEach(type -> {
                 module.add(
                     Signature.builder(NAME, FunctionType.SCALAR)
@@ -83,7 +84,7 @@ public class ToCharFunction extends Scalar<String, Object> {
         );
     }
 
-    private final DataType expressionType;
+    private final DataType<?> expressionType;
     private final TriFunction<Object, String, DateTimeFormatter, String> evaluatorFunc;
     @Nullable
     private final DateTimeFormatter formatter;
@@ -129,7 +130,7 @@ public class ToCharFunction extends Scalar<String, Object> {
             .plusHours(period.getHours())
             .plusMinutes(period.getMinutes())
             .plusSeconds(period.getSeconds())
-            .plusNanos(period.getMillis() * 1000000);
+            .plusNanos(period.getMillis() * 1000000L);
         return formatter.format(dateTime);
     }
 
