@@ -58,14 +58,9 @@ using the :ref:`DROP PUBLICATION <sql-drop-publication>` command.
 
 .. CAUTION::
 
-    The publishing cluster must have
-    :ref:`sql-create-table-soft-deletes-enabled`
-    set to ``true`` so that a subscribing cluster can catch up with all changes
-    made during replication pauses caused by network issues or explicitly done by
-    a user.
-
-    Also, :ref:`sql-create-table-soft-deletes-retention-lease-period`
-    should be greater than or equal to
+    The publishing cluster should have:
+    :ref:`sql-create-table-soft-deletes-retention-lease-period` greater than or
+    equal to
     :ref:`replication.logical.reads_poll_duration <replication.logical.reads_poll_duration>`.
 
 
