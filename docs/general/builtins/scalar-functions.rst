@@ -1656,116 +1656,108 @@ The syntax for the ``format_string`` differs based the type of the
 :ref:`expression <gloss-expression>`. For ``timestamp`` expressions, the
 ``format_string`` is a template string containing any of the following symbols:
 
-+-----------------------+-----------------------------------------------------+
-| Pattern               | Description                                         |
-+=======================+=====================================================+
-| ``HH`` / ``HH12``     | Hour of day (01-12)                                 |
-+-----------------------+-----------------------------------------------------+
-| ``HH24``              | Hour of day (00-23)                                 |
-+-----------------------+-----------------------------------------------------+
-| ``MI``                | Minute (00-59)                                      |
-+-----------------------+-----------------------------------------------------+
-| ``SS``                | Second (00-59)                                      |
-+-----------------------+-----------------------------------------------------+
-| ``MS``                | Millisecond (000-999)                               |
-+-----------------------+-----------------------------------------------------+
-| ``US``                | Microsecond (000000-999999)                         |
-+-----------------------+-----------------------------------------------------+
-| ``FF1``               | Tenth of second (0-9)                               |
-+-----------------------+-----------------------------------------------------+
-| ``FF2``               | Hundredth of second (00-99)                         |
-+-----------------------+-----------------------------------------------------+
-| ``FF3``               | Millisecond (000-999)                               |
-+-----------------------+-----------------------------------------------------+
-| ``FF4``               | Tenth of millisecond (0000-9999)                    |
-+-----------------------+-----------------------------------------------------+
-| ``FF5``               | Hundredth of millisecond (00000-99999)              |
-+-----------------------+-----------------------------------------------------+
-| ``FF6``               | Microsecond (000000-999999)                         |
-+-----------------------+-----------------------------------------------------+
-| ``SSSS`` / ``SSSSS``  | Seconds past midnight (0-86399)                     |
-+-----------------------+-----------------------------------------------------+
-| ``AM`` / ``am`` /     | Meridiem indicator                                  |
-| ``PM`` / ``pm``       |                                                     |
-+-----------------------+-----------------------------------------------------+
-| ``A.M.`` / ``a.m.`` / | Meridiem indicator (with periods)                   |
-| ``P.M.`` / ``p.m.``   |                                                     |
-+-----------------------+-----------------------------------------------------+
-| ``Y,YYY``             | 4 digit year with comma                             |
-+-----------------------+-----------------------------------------------------+
-| ``YYYY``              | 4 digit year                                        |
-+-----------------------+-----------------------------------------------------+
-| ``yyyy``              | 4 digit year                                        |
-+-----------------------+-----------------------------------------------------+
-| ``YYY``               | Last 3 digits of year                               |
-+-----------------------+-----------------------------------------------------+
-| ``YY``                | Last 2 digits of year                               |
-+-----------------------+-----------------------------------------------------+
-| ``Y``                 | Last digit of year                                  |
-+-----------------------+-----------------------------------------------------+
-| ``IYYY``              | 4 digit ISO-8601 week-numbering year                |
-+-----------------------+-----------------------------------------------------+
-| ``IYY``               | Last 3 digits of ISO-8601 week-numbering year       |
-+-----------------------+-----------------------------------------------------+
-| ``IY``                | Last 2 digits of ISO-8601 week-numbering year       |
-+-----------------------+-----------------------------------------------------+
-| ``I``                 | Last digit of ISO-8601 week-numbering year          |
-+-----------------------+-----------------------------------------------------+
-| ``BC`` / ``bc`` /     | Era indicator                                       |
-| ``AD`` / ``ad``       |                                                     |
-+-----------------------+-----------------------------------------------------+
-| ``B.C.`` / ``b.c.`` / | Era indicator with periods                          |
-| ``A.D.`` / ``a.d.``   |                                                     |
-+-----------------------+-----------------------------------------------------+
-| ``MONTH`` / ``Month`` | Full month name (uppercase, capitalized, lowercase) |
-| / ``month``           | padded to 9 characters                              |
-+-----------------------+-----------------------------------------------------+
-| ``MON`` / ``Mon`` /   | Short month name (uppercase, capitalized,           |
-| ``mon``               | lowercase) padded to 9 characters                   |
-+-----------------------+-----------------------------------------------------+
-| ``MM``                | Month number (01-12)                                |
-+-----------------------+-----------------------------------------------------+
-| ``DAY`` / ``Day`` /   | Full day name (uppercase, capitalized, lowercase)   |
-| ``day``               | padded to 9 characters                              |
-+-----------------------+-----------------------------------------------------+
-| ``DY`` / ``Dy`` /     | Short, 3 character day name                         |
-| ``dy``                | (uppercase, capitalized, lowercase)                 |
-+-----------------------+-----------------------------------------------------+
-| ``DDD``               | Day of year (001-366)                               |
-+-----------------------+-----------------------------------------------------+
-| ``IDDD``              | Day of ISO-8601 week-numbering year, where the      |
-|                       | first Monday of the first ISO week is day 1         |
-|                       | (001-371)                                           |
-+-----------------------+-----------------------------------------------------+
-| ``DD``                | Day of month (01-31)                                |
-+-----------------------+-----------------------------------------------------+
-| ``D``                 | Day of the week, from Sunday (1) to Saturday (7)    |
-+-----------------------+-----------------------------------------------------+
-| ``ID``                | ISO-8601 day of the week, from Monday (1) to Sunday |
-|                       | (7)                                                 |
-+-----------------------+-----------------------------------------------------+
-| ``W``                 | Week of month (1-5)                                 |
-+-----------------------+-----------------------------------------------------+
-| ``WW``                | Week number of year (1-53)                          |
-+-----------------------+-----------------------------------------------------+
-| ``IW``                | Week number of ISO-8601 week-numbering year (01-53) |
-+-----------------------+-----------------------------------------------------+
-| ``CC``                | Century                                             |
-+-----------------------+-----------------------------------------------------+
-| ``J``                 | Julian Day                                          |
-+-----------------------+-----------------------------------------------------+
-| ``Q``                 | Quarter                                             |
-+-----------------------+-----------------------------------------------------+
-| ``RM`` / ``rm``       | Month in Roman numerals (uppercase, lowercase)      |
-+-----------------------+-----------------------------------------------------+
-| ``TZ`` / ``tz``       | Time-zone abbreviation (uppercase, lowercase)       |
-+-----------------------+-----------------------------------------------------+
-| ``TZH``               | Time-zone hours                                     |
-+-----------------------+-----------------------------------------------------+
-| ``TZM``               | Time-zone minutes                                   |
-+-----------------------+-----------------------------------------------------+
-| ``OF``                | Time-zone offset from UTC                           |
-+-----------------------+-----------------------------------------------------+
+.. list-table::
+    :header-rows: 1
+
+    * - Pattern
+      - Description
+    * - ``HH`` / ``HH12`` / ``hh`` / ``HH12``
+      - Hour of day (01-12)
+    * - ``HH24`` / ``hh24``
+      - Hour of day (00-23)
+    * - ``MI`` / ``mi``
+      - Minute (00-59)
+    * - ``SS`` / ``ss``
+      - Second (00-59)
+    * - ``MS`` / ``ms``
+      - Millisecond (000-999)
+    * - ``US`` / ``us``
+      - Microsecond (000000-999999)
+    * - ``FF1`` / ``ff1``
+      - Tenth of second (0-9)
+    * - ``FF2`` / ``ff2``
+      - Hundredth of second (00-99)
+    * - ``FF3`` / ``ff3``
+      - Millisecond (000-999)
+    * - ``FF4`` / ``ff4``
+      - Tenth of millisecond (0000-9999)
+    * - ``FF5`` / ``ff5``
+      - Hundredth of millisecond (00000-99999)
+    * - ``FF6`` / ``ff6``
+      - Microsecond (000000-999999)
+    * - ``SSSS`` / ``SSSSS`` / ``ssss`` / ``sssss``
+      - Seconds past midnight (0-86399)
+    * - ``AM`` / ``am`` / ``PM`` / ``pm``
+      - Meridiem indicator
+    * - ``A.M.`` / ``a.m.`` / ``P.M.`` / ``p.m.``
+      - Meridiem indicator (with periods)
+    * - ``Y,YYY`` / ``y,yyy``
+      - 4 digit year with comma
+    * - ``YYYY`` / ``yyyy``
+      - 4 digit year
+    * - ``YYY`` / ``yyy``
+      - Last 3 digits of year
+    * - ``YY`` / ``yy``
+      - Last 2 digits of year
+    * - ``Y`` / ``y``
+      - Last digit of year
+    * - ``IYYY`` / ``iyyy``
+      - 4 digit ISO-8601 week-numbering year
+    * - ``IYY`` / ``iyy``
+      - Last 3 digits of ISO-8601 week-numbering year
+    * - ``IY`` / ``iy``
+      - Last 2 digits of ISO-8601 week-numbering year
+    * - ``I`` / ``i``
+      - Last digit of ISO-8601 week-numbering year
+    * - ``BC`` / ``bc`` / ``AD``/ ``ad``
+      - Era indicator
+    * - ``B.C.`` / ``b.c.`` / ``A.D.``/ ``a.d.``
+      - Era indicator with periods
+    * - ``MONTH`` / ``Month`` / ``month``
+      - Full month name (uppercase, capitalized, lowercase) padded to 9
+        characters
+    * - ``MON`` / ``Mon`` / ``mon``
+      - Short month name (uppercase, capitalized, lowercase) padded to 9
+        characters
+    * - ``MM`` / ``mm``
+      - Month number (01-12)
+    * - ``DAY`` / ``Day`` / ``day``
+      - Full day name (uppercase, capitalized, lowercase) padded to 9 characters
+    * - ``DY`` / ``Dy`` / ``dy``
+      - Short, 3 character day name (uppercase, capitalized, lowercase)
+    * - ``DDD`` / ``ddd``
+      - Day of year (001-366)
+    * - ``IDDD`` / ``iddd``
+      - Day of ISO-8601 week-numbering year, where the first Monday of the first
+        ISO week is day 1 (001-371)
+    * - ``DD`` / ``dd``
+      - Day of month (01-31)
+    * - ``D`` / ``d``
+      - Day of the week, from Sunday (1) to Saturday (7)
+    * - ``ID`` / ``id``
+      - ISO-8601 day of the week, from Monday (1) to Sunday (7)
+    * - ``WW`` / ``WW``
+      - Week number of year (1-53)
+    * - ``W`` / ``w``
+      - Week of month (1-5)
+    * - ``IW`` / ``iw``
+      - Week number of ISO-8601 week-numbering year (01-53)
+    * - ``CC`` / ``cc``
+      - Century
+    * - ``J`` / ``j``
+      - Julian Day
+    * - ``Q`` / ``q``
+      - Quarter
+    * - ``RM`` / ``rm``
+      - Month in Roman numerals (uppercase, lowercase)
+    * - ``TZ`` / ``tz``
+      - Time-zone abbreviation (uppercase, lowercase)
+    * - ``TZH`` / ``tzh``
+      - Time-zone hours
+    * - ``TZM`` / ``tzm``
+      - Time-zone minutes
+    * - ``OF`` / ``of``
+      - Time-zone offset from UTC
 
 Example::
 
