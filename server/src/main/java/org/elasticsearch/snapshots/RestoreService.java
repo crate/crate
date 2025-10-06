@@ -449,8 +449,7 @@ public class RestoreService implements ClusterStateApplier {
                     IndexName.isPartitioned(indexName) ?
                         currentMetadata.templates().get(PartitionName.templateName(indexName)) :
                         null,
-                    minIndexCompatibilityVersion,
-                    null
+                    minIndexCompatibilityVersion
                 );
                 // Check that the index is closed or doesn't exist
                 String renamedIndexName = indexEntry.getKey();

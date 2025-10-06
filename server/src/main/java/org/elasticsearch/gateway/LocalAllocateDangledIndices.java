@@ -154,8 +154,7 @@ public class LocalAllocateDangledIndices {
                                 IndexName.isPartitioned(indexName) ?
                                     currentState.metadata().templates().get(PartitionName.templateName(indexName)) :
                                     null,
-                                minIndexCompatibilityVersion,
-                                null);
+                                minIndexCompatibilityVersion);
                             upgradedIndexMetadata = IndexMetadata.builder(upgradedIndexMetadata).settings(
                                 Settings.builder().put(upgradedIndexMetadata.getSettings()).put(
                                     IndexMetadata.SETTING_HISTORY_UUID, UUIDs.randomBase64UUID())).build();
