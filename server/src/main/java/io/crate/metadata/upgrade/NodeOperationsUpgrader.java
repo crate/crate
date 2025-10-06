@@ -188,7 +188,7 @@ public class NodeOperationsUpgrader {
 
         @Override
         public ExecutionPhase visitRoutedCollectPhase(RoutedCollectPhase phase, Metadata metadata) {
-            return new RoutedCollectPhase(
+            var result = new RoutedCollectPhase(
                 phase.jobId(),
                 phase.phaseId(),
                 phase.name(),
@@ -200,6 +200,9 @@ public class NodeOperationsUpgrader {
                 phase.where(),
                 phase.distributionInfo()
             );
+            result.orderBy(phase.orderBy());
+            result.pageSizeHint(phase.nodePageSizeHint());
+            return result;
         }
 
         @Override
@@ -248,7 +251,7 @@ public class NodeOperationsUpgrader {
 
         @Override
         public ExecutionPhase visitRoutedCollectPhase(RoutedCollectPhase phase, Metadata metadata) {
-            return new RoutedCollectPhase(
+            RoutedCollectPhase result = new RoutedCollectPhase(
                 phase.jobId(),
                 phase.phaseId(),
                 phase.name(),
@@ -260,6 +263,9 @@ public class NodeOperationsUpgrader {
                 phase.where(),
                 phase.distributionInfo()
             );
+            result.orderBy(phase.orderBy());
+            result.pageSizeHint(phase.nodePageSizeHint());
+            return result;
         }
 
         @Override

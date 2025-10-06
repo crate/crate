@@ -49,7 +49,7 @@ import org.junit.runner.RunWith;
 import com.carrotsearch.randomizedtesting.RandomizedRunner;
 import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
-import io.crate.common.collections.Tuple;
+import io.crate.beans.NodeInfo.ShardStateStoreSize;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -254,8 +254,8 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
 
     }
 
-    Tuple<IndexShardState, Long> shardStateAndSizeProvider(ShardId shardId) {
-        return new Tuple<>(IndexShardState.STARTED, 100L);
+    ShardStateStoreSize shardStateAndSizeProvider(ShardId shardId) {
+        return new ShardStateStoreSize(IndexShardState.STARTED, 100L);
     }
 
     DiscoveryNode discoveryNode(String id) {
