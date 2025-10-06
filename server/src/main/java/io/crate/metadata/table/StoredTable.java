@@ -23,18 +23,12 @@ package io.crate.metadata.table;
 
 
 import org.elasticsearch.Version;
-
 import org.jetbrains.annotations.Nullable;
 
 public interface StoredTable {
 
-    @Nullable
-    default Version versionCreated() {
-        return null;
-    }
+    Version versionCreated();
 
     @Nullable
-    default Version versionUpgraded() {
-        return null;
-    }
+    Version versionUpgraded();
 }
