@@ -63,9 +63,8 @@ Performance improvements
 - Improved the performance of aggregations in various use cases. In some
   scenarios we saw performance improvements by up to 70%.
 
-- Changed the default for :ref:`soft deletes
-  <sql-create-table-soft-deletes-enabled>`. Soft deletes are now enabled by
-  default for new tables. This should improve the speed of recovery operations
+- Changed the default for ``soft_deletes.enabled``. Soft deletes are now enabled
+  by default for new tables. This should improve the speed of recovery operations
   when replica shard copies were unavailable for a short period.
 
 

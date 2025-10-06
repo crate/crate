@@ -1,15 +1,12 @@
 ---
 merge_queue:
   max_parallel_checks: 1
-  reset_on_external_merge: never
 
 queue_rules:
   - name: default
     batch_size: 1
+    merge_method: rebase
     queue_conditions:
-      - label=ready-to-merge
-      - '#approved-reviews-by>=1'
-    merge_conditions:
       - label=ready-to-merge
       - '#approved-reviews-by>=1'
       - status-success~=^check-author-signed-cla
@@ -19,11 +16,11 @@ queue_rules:
       - status-success~=^checkstyle
       - status-success~=^forbiddenApis
       - status-success~=^Vale
-    merge_method: rebase
 
 pull_request_rules:
   - name: default
-    conditions: []
+    conditions:
+      - label=ready-to-merge
     actions:
       queue:
 
