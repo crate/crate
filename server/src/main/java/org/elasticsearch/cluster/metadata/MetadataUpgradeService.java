@@ -96,6 +96,11 @@ public class MetadataUpgradeService {
         boolean changed = false;
         final Metadata.Builder upgradedMetadata = Metadata.builder(metadata);
 
+        UserDefinedFunctionsMetadata udfs = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
+        if (udfs != null) {
+            userDefinedFunctionService.updateImplementations(udfs.functionsMetadata());
+        }
+
         // carries upgraded IndexTemplateMetadata to MetadataIndexUpgradeService.upgradeIndexMetadata
         final Map<String, IndexTemplateMetadata> upgradedIndexTemplateMetadata = new HashMap<>();
 
@@ -119,8 +124,8 @@ public class MetadataUpgradeService {
                 IndexName.isPartitioned(indexName) ?
                     upgradedIndexTemplateMetadata.get(PartitionName.templateName(indexName)) :
                     null,
-                Version.CURRENT.minimumIndexCompatibilityVersion(),
-                metadata.custom(UserDefinedFunctionsMetadata.TYPE));
+                Version.CURRENT.minimumIndexCompatibilityVersion()
+            );
             changed |= indexMetadata != newMetadata;
             upgradedMetadata.put(newMetadata, false);
         }
@@ -161,14 +166,10 @@ public class MetadataUpgradeService {
      */
     public IndexMetadata upgradeIndexMetadata(IndexMetadata indexMetadata,
                                               @Nullable IndexTemplateMetadata indexTemplateMetadata,
-                                              Version minimumIndexCompatibilityVersion,
-                                              @Nullable UserDefinedFunctionsMetadata userDefinedFunctionsMetadata) {
+                                              Version minimumIndexCompatibilityVersion) {
         // Throws an exception if there are too-old segments:
         if (isUpgraded(indexMetadata)) {
             return indexMetadata;
-        }
-        if (userDefinedFunctionsMetadata != null) {
-            userDefinedFunctionService.updateImplementations(userDefinedFunctionsMetadata.functionsMetadata());
         }
         checkSupportedVersion(indexMetadata, minimumIndexCompatibilityVersion);
         IndexMetadata newMetadata = indexMetadata;
@@ -225,7 +226,7 @@ public class MetadataUpgradeService {
         }
 
         for (IndexMetadata indexMetadata : metadata) {
-            indexMetadata = upgradeIndexMetadata(indexMetadata, null, Version.V_5_0_0, null);
+            indexMetadata = upgradeIndexMetadata(indexMetadata, null, Version.V_5_0_0);
             DocTableInfo docTable = tableFactory.create(indexMetadata);
             String indexName = indexMetadata.getIndex().getName();
             IndexParts indexParts = IndexName.decode(indexName);
