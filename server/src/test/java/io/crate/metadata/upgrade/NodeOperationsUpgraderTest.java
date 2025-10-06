@@ -21,7 +21,7 @@
 
 package io.crate.metadata.upgrade;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.test.IntegTestCase.resolveIndex;
 
 import java.util.Collection;
@@ -32,10 +32,12 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.index.Index;
 import org.junit.Test;
 
+import io.crate.analyze.OrderBy;
 import io.crate.execution.dsl.phases.CountPhase;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
@@ -60,6 +62,10 @@ public class NodeOperationsUpgraderTest extends CrateDummyClusterServiceUnitTest
 
         Collect collect = e.plan("select id from doc.t");
         RoutedCollectPhase collectPhase = (RoutedCollectPhase) collect.collectPhase();
+        var orderBy = new OrderBy(List.of(new InputColumn(0)));
+        collectPhase.orderBy(orderBy);
+        collectPhase.nodePageSizeHint(20);
+
         assertThat(collectPhase.routing().locations().get("n1").get(indexUUID)).isNotNull();
         assertThat(collectPhase.routing().locations().get("n1").get(indexName)).isNull();
 
@@ -78,6 +84,9 @@ public class NodeOperationsUpgraderTest extends CrateDummyClusterServiceUnitTest
             clusterState.metadata()
         );
         RoutedCollectPhase collectPhase_5_10 = (RoutedCollectPhase) nodeOperations_5_10.iterator().next().executionPhase();
+
+        assertThat(collectPhase_5_10.orderBy()).isEqualTo(orderBy);
+        assertThat(collectPhase_5_10.nodePageSizeHint()).isEqualTo(20);
         assertThat(collectPhase_5_10.routing().locations().get("n1").get(indexUUID)).isNull();
         assertThat(collectPhase_5_10.routing().locations().get("n1").get(indexName)).isNotNull();
 
