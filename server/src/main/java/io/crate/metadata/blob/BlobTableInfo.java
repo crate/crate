@@ -73,7 +73,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
                          String numberOfReplicas,
                          Settings tableParameters,
                          String blobsPath,
-                         @Nullable Version versionCreated,
+                         Version versionCreated,
                          @Nullable Version versionUpgraded,
                          boolean closed) {
         this.ident = ident;
@@ -188,7 +188,6 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
             .toArray(String[]::new);
     }
 
-    @Nullable
     @Override
     public Version versionCreated() {
         return versionCreated;

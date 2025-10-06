@@ -401,7 +401,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .setTable(
                 tblName,
                 List.of(),
-                Settings.EMPTY,
+                settings(Version.V_6_1_0).build(),
                 SysColumns.ID.COLUMN,
                 ColumnPolicy.STRICT,
                 null,
