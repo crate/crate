@@ -43,6 +43,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 import java.util.zip.CRC32;
 import java.util.zip.Checksum;
 
@@ -104,6 +105,7 @@ import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 
+import io.crate.common.Suppliers;
 import io.crate.common.collections.Iterables;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.io.IOUtils;
@@ -143,6 +145,8 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
     private final ShardLock shardLock;
     private final OnClose onClose;
 
+    private final Supplier<Long> directorySizeSupplier;
+
     private final AbstractRefCounted refCounter = new AbstractRefCounted("store") {
         @Override
         protected void closeInternal() {
@@ -164,6 +168,14 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
         this.directory = new StoreDirectory(sizeCachingDir, Loggers.getLogger("index.store.deletes", shardId));
         this.shardLock = shardLock;
         this.onClose = onClose;
+
+        directorySizeSupplier = Suppliers.memoizeWithExpiration(() -> {
+            try {
+                return this.directory.estimateSize();
+            } catch (IOException e) {
+                return 0L;
+            }
+        }, 10, TimeUnit.SECONDS);
 
         assert onClose != null;
         assert shardLock != null;
@@ -352,6 +364,17 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
     public StoreStats stats(long reservedBytes) throws IOException {
         ensureOpen();
         return new StoreStats(directory.estimateSize(), reservedBytes);
+    }
+
+    /**
+     * Returns the store stats with a cached size. The size is cached for a short period of time (defaults to 10s).
+     * Use this method when exposing the store size to the user, and it's expected to be called frequently.
+     *
+     * @param reservedBytes a prediction of how much larger the store is expected to grow, or {@link StoreStats#UNKNOWN_RESERVED_BYTES}.
+     */
+    public StoreStats statsCached(long reservedBytes) {
+        ensureOpen();
+        return new StoreStats(directorySizeSupplier.get(), reservedBytes);
     }
 
     /**

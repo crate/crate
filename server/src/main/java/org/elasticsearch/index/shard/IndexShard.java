@@ -1030,6 +1030,17 @@ public class IndexShard extends AbstractIndexShardComponent {
     }
 
     /**
+     * Returns store stats whereas the size is computed from a cached value to avoid costly file system calls.
+     * Use this method when exposing the size to the user frequently.
+     * For a precise actual value use {@link #storeStats()}.
+     */
+    public StoreStats storeStatsCached() {
+        final RecoveryState recoveryState = this.recoveryState;
+        final long bytesStillToRecover = recoveryState == null ? -1L : recoveryState.getIndex().bytesStillToRecover();
+        return store.statsCached(bytesStillToRecover == -1 ? StoreStats.UNKNOWN_RESERVED_BYTES : bytesStillToRecover);
+    }
+
+    /**
      * Executes a flush against the engine
      * @param waitIfOngoing if {@code true} will block until all concurrent flushes are complete
      * @return the commit ID

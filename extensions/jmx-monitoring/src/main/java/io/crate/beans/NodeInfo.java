@@ -169,7 +169,7 @@ public class NodeInfo implements NodeInfoMXBean {
             if (shard == null) {
                 return null;
             }
-            return new ShardStateStoreSize(shard.state(), shard.storeStats().sizeInBytes());
+            return new ShardStateStoreSize(shard.state(), shard.storeStatsCached().sizeInBytes());
         }
     }
 }

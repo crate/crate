@@ -24,8 +24,6 @@ package io.crate.expression.reference.sys.shard;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Supplier;
 
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.Version;
@@ -38,11 +36,9 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.index.store.StoreStats;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobShard;
-import io.crate.common.Suppliers;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -54,7 +50,6 @@ public class ShardRowContext {
     @Nullable
     private final BlobShard blobShard;
     private final ClusterService clusterService;
-    private final Supplier<Long> sizeSupplier;
     private final String partitionIdent;
     private final List<String> partitionValues;
     private final int id;
@@ -64,28 +59,19 @@ public class ShardRowContext {
     private final boolean orphanedPartition;
 
     public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
-        this(indexShard, null, clusterService, Suppliers.memoizeWithExpiration(() -> {
-            try {
-                StoreStats storeStats = indexShard.storeStats();
-                return storeStats.sizeInBytes();
-            } catch (AlreadyClosedException e) {
-                return 0L;
-            }
-        }, 10, TimeUnit.SECONDS));
+        this(indexShard, null, clusterService);
     }
 
     public ShardRowContext(BlobShard blobShard, ClusterService clusterService) {
-        this(blobShard.indexShard(), blobShard, clusterService, blobShard::getTotalSize);
+        this(blobShard.indexShard(), blobShard, clusterService);
     }
 
     private ShardRowContext(IndexShard indexShard,
                             @Nullable BlobShard blobShard,
-                            ClusterService clusterService,
-                            Supplier<Long> sizeSupplier) {
+                            ClusterService clusterService) {
         this.indexShard = indexShard;
         this.blobShard = blobShard;
         this.clusterService = clusterService;
-        this.sizeSupplier = sizeSupplier;
         ShardId shardId = indexShard.shardId();
         this.id = shardId.id();
         Metadata metadata = clusterService.state().metadata();
@@ -126,7 +112,10 @@ public class ShardRowContext {
     }
 
     public Long size() {
-        return sizeSupplier.get();
+        if (blobShard != null) {
+            return blobShard.getTotalSize();
+        }
+        return indexShard.storeStatsCached().sizeInBytes();
     }
 
     @Nullable

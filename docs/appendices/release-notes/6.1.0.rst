@@ -57,6 +57,10 @@ Breaking Changes
   the relative paths are resolved, thus conforming to the behavior already
   described in the :ref:`documentation <conf-node-settings_paths>`.
 
+- Cache each shard size information exposed via the
+  :ref:`JMX NodeInfo MXBean<node_info_mxbean>` for 10 seconds to avoid expensive
+  disk usage calls on every request.
+
 Deprecations
 ============
 
