@@ -79,6 +79,9 @@ public final class Suppliers {
     }
 
     public static <T> Supplier<T> memoizeWithExpiration(Supplier<T> delegate, long duration, TimeUnit unit) {
+        if (duration == 0) {
+            return delegate;
+        }
         return new ExpiringMemoizingSupplier<T>(delegate, duration, unit);
     }
 
