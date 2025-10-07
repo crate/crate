@@ -31,8 +31,6 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 import java.util.stream.StreamSupport;
 
 import org.apache.logging.log4j.LogManager;
@@ -85,8 +83,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         PgCatalogSchemaInfo.NAME
     );
 
-
-    private static final Pattern SCHEMA_PATTERN = Pattern.compile("^([^.]+)\\.(.+)");
 
     /**
      * CrateDB's default schema name if the user hasn't specified anything.
@@ -301,7 +297,11 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
      */
     @SuppressWarnings("unchecked")
     public <T extends TableInfo> T getTableInfo(RelationName ident) {
-        SchemaInfo schemaInfo = getSchemaInfo(ident);
+        String schemaName = ident.schema();
+        SchemaInfo schemaInfo = schemas.get(schemaName);
+        if (schemaInfo == null) {
+            throw new SchemaUnknownException(schemaName);
+        }
         TableInfo info = schemaInfo.getTableInfo(ident.name());
         if (info == null) {
             Metadata metadata = clusterService.state().metadata();
@@ -334,15 +334,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     @Nullable
     public SchemaInfo getSchemaInfo(String schemaName) {
         return schemas.get(schemaName);
-    }
-
-    private SchemaInfo getSchemaInfo(RelationName ident) {
-        String schemaName = ident.schema();
-        SchemaInfo schemaInfo = schemas.get(schemaName);
-        if (schemaInfo == null) {
-            throw new SchemaUnknownException(schemaName);
-        }
-        return schemaInfo;
     }
 
     public SchemaInfo getSystemSchema(String name) {
@@ -414,13 +405,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
             schemas.add(cursor.value);
         }
         return schemas;
-    }
-
-    private static void addIfSchema(Set<String> schemas, String indexOrTemplate) {
-        Matcher matcher = SCHEMA_PATTERN.matcher(indexOrTemplate);
-        if (matcher.matches()) {
-            schemas.add(matcher.group(1));
-        }
     }
 
     /**
