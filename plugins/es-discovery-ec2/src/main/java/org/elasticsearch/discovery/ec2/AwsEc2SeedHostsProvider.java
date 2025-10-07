@@ -19,6 +19,28 @@
 
 package org.elasticsearch.discovery.ec2;
 
+import static java.util.Collections.disjoint;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PRIVATE_DNS;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PRIVATE_IP;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PUBLIC_DNS;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PUBLIC_IP;
+import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.TAG_PREFIX;
+
+import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.function.Supplier;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.transport.TransportAddress;
+import org.elasticsearch.discovery.SeedHostsProvider;
+import org.elasticsearch.transport.TransportService;
+
 import com.amazonaws.AmazonClientException;
 import com.amazonaws.services.ec2.model.DescribeInstancesRequest;
 import com.amazonaws.services.ec2.model.DescribeInstancesResult;
@@ -28,29 +50,8 @@ import com.amazonaws.services.ec2.model.Instance;
 import com.amazonaws.services.ec2.model.Reservation;
 import com.amazonaws.services.ec2.model.Tag;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.apache.logging.log4j.util.Supplier;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.transport.TransportAddress;
+import io.crate.common.Suppliers;
 import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.SingleObjectCache;
-import org.elasticsearch.discovery.SeedHostsProvider;
-import org.elasticsearch.transport.TransportService;
-
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import static java.util.Collections.disjoint;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PRIVATE_DNS;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PRIVATE_IP;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PUBLIC_DNS;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.PUBLIC_IP;
-import static org.elasticsearch.discovery.ec2.AwsEc2Service.HostType.TAG_PREFIX;
 
 class AwsEc2SeedHostsProvider implements SeedHostsProvider {
 
@@ -96,7 +97,7 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
 
     @Override
     public List<TransportAddress> getSeedAddresses(HostsResolver hostsResolver) {
-        return dynamicHosts.getOrRefresh();
+        return dynamicHosts.get();
     }
 
     private List<TransportAddress> fetchDynamicNodes() {
@@ -218,24 +219,23 @@ class AwsEc2SeedHostsProvider implements SeedHostsProvider {
         return describeInstancesRequest;
     }
 
-    private final class TransportAddressesCache extends SingleObjectCache<List<TransportAddress>> {
+    private final class TransportAddressesCache implements Supplier<List<TransportAddress>> {
 
+        private final Supplier<List<TransportAddress>> fetchNodes;
         private boolean empty = true;
 
         TransportAddressesCache(TimeValue refreshInterval) {
-            super(refreshInterval, new ArrayList<>());
+            this.fetchNodes = Suppliers.memoizeWithExpiration(refreshInterval, () -> fetchDynamicNodes());
         }
 
         @Override
-        protected boolean needsRefresh() {
-            return (empty || super.needsRefresh());
-        }
-
-        @Override
-        protected List<TransportAddress> refresh() {
-            final List<TransportAddress> nodes = fetchDynamicNodes();
-            empty = nodes.isEmpty();
-            return nodes;
+        public List<TransportAddress> get() {
+            if (empty) {
+                final List<TransportAddress> nodes = fetchDynamicNodes();
+                empty = nodes.isEmpty();
+                return nodes;
+            }
+            return fetchNodes.get();
         }
     }
 }

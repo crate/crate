@@ -22,12 +22,14 @@
 package io.crate.monitor;
 
 import java.util.Map;
+import java.util.function.Supplier;
 
 import org.elasticsearch.common.inject.Inject;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.monitor.os.OsProbe;
 import org.elasticsearch.monitor.os.OsStats;
+
+import io.crate.common.Suppliers;
+import io.crate.common.unit.TimeValue;
 
 
 /**
@@ -45,14 +47,14 @@ public class ExtendedNodeInfo {
     private static final ExtendedNetworkInfo NETWORK_INFO = new ExtendedNetworkInfo(ExtendedNetworkInfo.iface());
     private static final double[] NA_LOAD = new double[]{ -1, -1, -1 };
 
-    private final ExtendedOsStatsCache osStatsCache;
+    private final Supplier<ExtendedOsStats> osStatsCache;
     private final Map<String, String> kernelData;
 
     private static final TimeValue PROBE_CACHE_TIME = TimeValue.timeValueMillis(500L);
 
     @Inject
     public ExtendedNodeInfo() {
-        this.osStatsCache = new ExtendedOsStatsCache(PROBE_CACHE_TIME, osStatsProbe());
+        this.osStatsCache = Suppliers.memoizeWithExpiration(PROBE_CACHE_TIME, () -> osStatsProbe());
         var sysInfo = SysInfo.gather();
         this.kernelData = Map.ofEntries(
             Map.entry("Arch", sysInfo.arch()),
@@ -73,7 +75,7 @@ public class ExtendedNodeInfo {
     }
 
     public ExtendedOsStats osStats() {
-        return osStatsCache.getOrRefresh();
+        return osStatsCache.get();
     }
 
     private ExtendedOsStats osStatsProbe() {
@@ -90,20 +92,5 @@ public class ExtendedNodeInfo {
 
     public Map<String, String> kernelData() {
         return kernelData;
-    }
-
-    /**
-     * Cache for osStats()
-     */
-    private class ExtendedOsStatsCache extends SingleObjectCache<ExtendedOsStats> {
-
-        ExtendedOsStatsCache(TimeValue interval, ExtendedOsStats initValue) {
-            super(interval, initValue);
-        }
-
-        @Override
-        protected ExtendedOsStats refresh() {
-            return osStatsProbe();
-        }
     }
 }

@@ -19,17 +19,18 @@
 
 package org.elasticsearch.monitor.fs;
 
+import java.io.IOException;
+import java.util.function.Supplier;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.env.NodeEnvironment;
 
-import java.io.IOException;
-import java.util.function.Supplier;
+import io.crate.common.Suppliers;
+import io.crate.common.unit.TimeValue;
 
 public class FsService {
 
@@ -58,7 +59,7 @@ public class FsService {
         } else {
             final TimeValue refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
             LOGGER.debug("using refresh_interval [{}]", refreshInterval);
-            fsInfoSupplier = new FsInfoCache(refreshInterval, initialValue, probe)::getOrRefresh;
+            fsInfoSupplier = Suppliers.memoizeWithExpiration(refreshInterval, () -> stats(probe, initialValue));
         }
     }
 
@@ -74,23 +75,4 @@ public class FsService {
             return null;
         }
     }
-
-    private static class FsInfoCache extends SingleObjectCache<FsInfo> {
-
-        private final FsInfo initialValue;
-        private final FsProbe probe;
-
-        FsInfoCache(TimeValue interval, FsInfo initialValue, FsProbe probe) {
-            super(interval, initialValue);
-            this.initialValue = initialValue;
-            this.probe = probe;
-        }
-
-        @Override
-        protected FsInfo refresh() {
-            return stats(probe, initialValue);
-        }
-
-    }
-
 }

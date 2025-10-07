@@ -19,13 +19,15 @@
 
 package org.elasticsearch.monitor.process;
 
+import java.util.function.Supplier;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.util.SingleObjectCache;
 
+import io.crate.common.Suppliers;
 import io.crate.common.unit.TimeValue;
 
 public final class ProcessService {
@@ -33,7 +35,7 @@ public final class ProcessService {
     private static final Logger LOGGER = LogManager.getLogger(ProcessService.class);
 
     private final ProcessProbe probe;
-    private final SingleObjectCache<ProcessStats> processStatsCache;
+    private final Supplier<ProcessStats> processStatsCache;
 
     public static final Setting<TimeValue> REFRESH_INTERVAL_SETTING =
         Setting.timeSetting("monitor.process.refresh_interval", TimeValue.timeValueSeconds(1), TimeValue.timeValueSeconds(1),
@@ -42,22 +44,11 @@ public final class ProcessService {
     public ProcessService(Settings settings) {
         this.probe = ProcessProbe.getInstance();
         final TimeValue refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
-        processStatsCache = new ProcessStatsCache(refreshInterval, probe.processStats());
+        processStatsCache = Suppliers.memoizeWithExpiration(refreshInterval, probe::processStats);
         LOGGER.debug("using refresh_interval [{}]", refreshInterval);
     }
 
     public ProcessStats stats() {
-        return processStatsCache.getOrRefresh();
-    }
-
-    private class ProcessStatsCache extends SingleObjectCache<ProcessStats> {
-        ProcessStatsCache(TimeValue interval, ProcessStats initValue) {
-            super(interval, initValue);
-        }
-
-        @Override
-        protected ProcessStats refresh() {
-            return probe.processStats();
-        }
+        return processStatsCache.get();
     }
 }
