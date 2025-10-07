@@ -35,11 +35,28 @@
         {
             "type": "java",
             "request": "attach",
-            "name": "Attach to CrateDB",
+            "name": "attach:5005",
             "projectName": "crate-app",
             "hostName": "127.0.0.1",
             "port": 5005,
             "cwd": "${workspaceFolder}/app"
+        },
+        {
+            "type": "java",
+            "request": "attach",
+            "name": "attach:prompt",
+            "projectName": "crate-app",
+            "hostName": "127.0.0.1",
+            "port": "${input:port}",
+            "cwd": "${workspaceFolder}/app"
         }
+    ],
+    "inputs": [
+      {
+        "id": "port",
+        "type": "promptString",
+        "description": "Port to connect to",
+        "default": "5005"
+      }
     ]
 }

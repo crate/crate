@@ -159,6 +159,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final ImmutableOpenMap<String, Custom> customs;
     private final ImmutableOpenMap<String, SchemaMetadata> schemas;
 
+    private final transient ImmutableOpenMap<String, RelationMetadata> indexUUIDsRelations;
     private final transient int totalNumberOfShards; // Transient ? not serializable anyway?
     private final int totalOpenIndexShards;
     private final int numberOfShards;
@@ -193,17 +194,29 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         int totalOpenIndexShards = 0;
         int numberOfShards = 0;
         for (ObjectCursor<IndexMetadata> cursor : indices.values()) {
-            totalNumberOfShards += cursor.value.getTotalNumberOfShards();
-            numberOfShards += cursor.value.getNumberOfShards();
-            if (IndexMetadata.State.OPEN.equals(cursor.value.getState())) {
-                totalOpenIndexShards += cursor.value.getTotalNumberOfShards();
+            var indexMetadata = cursor.value;
+            totalNumberOfShards += indexMetadata.getTotalNumberOfShards();
+            numberOfShards += indexMetadata.getNumberOfShards();
+            if (IndexMetadata.State.OPEN.equals(indexMetadata.getState())) {
+                totalOpenIndexShards += indexMetadata.getTotalNumberOfShards();
             }
         }
         this.totalNumberOfShards = totalNumberOfShards;
         this.totalOpenIndexShards = totalOpenIndexShards;
         this.numberOfShards = numberOfShards;
-
         this.aliasAndIndexLookup = aliasAndIndexLookup;
+        var indexUUIDsRelationsBuilder = ImmutableOpenMap.<String, RelationMetadata>builder(indices.size());
+        for (var cursor : schemas) {
+            SchemaMetadata schema = cursor.value;
+            for (var relCursor : schema.relations()) {
+                var relationMetadata = relCursor.value;
+                for (String indexUUID : relationMetadata.indexUUIDs()) {
+                    RelationMetadata old = indexUUIDsRelationsBuilder.put(indexUUID, relationMetadata);
+                    assert old == null : "A index must not be referenced from multiple relations";
+                }
+            }
+        }
+        indexUUIDsRelations = indexUUIDsRelationsBuilder.build();
     }
 
     public long version() {
@@ -1288,12 +1301,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     @Nullable
     public RelationMetadata getRelation(String indexUUID) {
-        List<RelationMetadata> relations = relations(r -> r.indexUUIDs().contains(indexUUID), Function.identity());
-        assert relations.size() < 2 : "indexUUID must be unique";
-        if (!relations.isEmpty()) {
-            return relations.getFirst();
-        }
-        return null;
+        return indexUUIDsRelations.get(indexUUID);
     }
 
     /**
