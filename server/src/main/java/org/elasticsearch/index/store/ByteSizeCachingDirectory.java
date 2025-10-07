@@ -19,33 +19,23 @@
 
 package org.elasticsearch.index.store;
 
-import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.FilterDirectory;
-import org.apache.lucene.store.IOContext;
-import org.apache.lucene.store.IndexOutput;
-import org.elasticsearch.common.lucene.store.FilterIndexOutput;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.SingleObjectCache;
-
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.NoSuchFileException;
+import java.util.function.Supplier;
+
+import org.apache.lucene.store.Directory;
+import org.apache.lucene.store.FilterDirectory;
+import org.apache.lucene.store.IOContext;
+import org.apache.lucene.store.IndexOutput;
+import org.elasticsearch.common.lucene.store.FilterIndexOutput;
+
+import io.crate.common.Suppliers;
+import io.crate.common.unit.TimeValue;
 
 final class ByteSizeCachingDirectory extends FilterDirectory {
-
-    private static class SizeAndModCount {
-        final long size;
-        final long modCount;
-        final boolean pendingWrite;
-
-        SizeAndModCount(long length, long modCount, boolean pendingWrite) {
-            this.size = length;
-            this.modCount = modCount;
-            this.pendingWrite = pendingWrite;
-        }
-    }
 
     private static long estimateSizeInBytes(Directory directory) throws IOException {
         long estimatedSize = 0;
@@ -61,28 +51,12 @@ final class ByteSizeCachingDirectory extends FilterDirectory {
         return estimatedSize;
     }
 
-    private final SingleObjectCache<SizeAndModCount> size;
-    // Both these variables need to be accessed under `this` lock.
-    private long modCount = 0;
-    private long numOpenOutputs = 0;
+    private final Supplier<Long> size;
 
     ByteSizeCachingDirectory(Directory in, TimeValue refreshInterval) {
         super(in);
-        size = new SingleObjectCache<SizeAndModCount>(refreshInterval, new SizeAndModCount(0L, -1L, true)) {
-            @Override
-            protected SizeAndModCount refresh() {
-                // It is ok for the size of the directory to be more recent than
-                // the mod count, we would just recompute the size of the
-                // directory on the next call as well. However the opposite
-                // would be bad as we would potentially have a stale cache
-                // entry for a long time. So we fetch the values of modCount and
-                // numOpenOutputs BEFORE computing the size of the directory.
-                final long modCount;
-                final boolean pendingWrite;
-                synchronized (ByteSizeCachingDirectory.this) {
-                    modCount = ByteSizeCachingDirectory.this.modCount;
-                    pendingWrite = ByteSizeCachingDirectory.this.numOpenOutputs != 0;
-                }
+        size = Suppliers.memoizeWithExpiration(
+            () -> {
                 final long size;
                 try {
                     // Compute this OUTSIDE of the lock
@@ -90,34 +64,17 @@ final class ByteSizeCachingDirectory extends FilterDirectory {
                 } catch (IOException e) {
                     throw new UncheckedIOException(e);
                 }
-                return new SizeAndModCount(size, modCount, pendingWrite);
-            }
-
-            @Override
-            protected boolean needsRefresh() {
-                if (super.needsRefresh() == false) {
-                    // The size was computed recently, don't recompute
-                    return false;
-                }
-                SizeAndModCount cached = getNoRefresh();
-                if (cached.pendingWrite) {
-                    // The cached entry was generated while there were pending
-                    // writes, so the size might be stale: recompute.
-                    return true;
-                }
-                synchronized (ByteSizeCachingDirectory.this) {
-                    // If there are pending writes or if new files have been
-                    // written/deleted since last time: recompute
-                    return numOpenOutputs != 0 || cached.modCount != modCount;
-                }
-            }
-        };
+                return size;
+            },
+            refreshInterval.duration(),
+            refreshInterval.timeUnit()
+        );
     }
 
     /** Return the cumulative size of all files in this directory. */
-    long estimateSizeInBytes() throws IOException {
+    Long estimateSizeInBytes() throws IOException {
         try {
-            return size.getOrRefresh().size;
+            return size.get();
         } catch (UncheckedIOException e) {
             // we wrapped in the cache and unwrap here
             throw e.getCause();
@@ -135,9 +92,6 @@ final class ByteSizeCachingDirectory extends FilterDirectory {
     }
 
     private IndexOutput wrapIndexOutput(IndexOutput out) {
-        synchronized (this) {
-            numOpenOutputs++;
-        }
         return new FilterIndexOutput(out.toString(), out) {
             @Override
             public void writeBytes(byte[] b, int length) throws IOException {
@@ -157,27 +111,13 @@ final class ByteSizeCachingDirectory extends FilterDirectory {
             public void close() throws IOException {
                 // Close might cause some data to be flushed from in-memory buffers, so
                 // increment the modification counter too.
-                try {
-                    super.close();
-                } finally {
-                    synchronized (ByteSizeCachingDirectory.this) {
-                        numOpenOutputs--;
-                        modCount++;
-                    }
-                }
+                super.close();
             }
         };
     }
 
     @Override
     public void deleteFile(String name) throws IOException {
-        try {
-            super.deleteFile(name);
-        } finally {
-            synchronized (this) {
-                modCount++;
-            }
-        }
+        super.deleteFile(name);
     }
-
 }
