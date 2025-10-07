@@ -22,7 +22,6 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
@@ -162,13 +161,11 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         }
     }
 
-    protected BytesReference arrayToBytes(List<T> values, IndexDocumentBuilder docBuilder) {
+    protected BytesReference arrayToBytes(List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
         try (BytesStreamOutput output = new BytesStreamOutput()) {
             output.setVersion(docBuilder.getTableVersionCreated());
             bytesConverter.writeValueTo(output, values);
             return output.bytes();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
         }
     }
 

@@ -21,6 +21,9 @@
 
 package io.crate.execution.dml;
 
+import java.io.IOException;
+import java.io.UncheckedIOException;
+
 import org.elasticsearch.common.bytes.BytesReference;
 
 /**
@@ -35,53 +38,57 @@ class SidecarTranslogWriter implements TranslogWriter {
     SidecarTranslogWriter(TranslogWriter inner, String oid) {
         this.inner = inner;
         this.sidecar = new XContentTranslogWriter();
-        this.sidecar.writeFieldName(oid);
+        try {
+            this.sidecar.writeFieldName(oid);
+        } catch (IOException e) {
+            throw new UncheckedIOException(e);
+        }
     }
 
     @Override
-    public void startArray() {
+    public void startArray() throws IOException {
         inner.startArray();
         sidecar.startArray();
     }
 
     @Override
-    public void endArray() {
+    public void endArray() throws IOException {
         inner.endArray();
         sidecar.endArray();
     }
 
     @Override
-    public void startObject() {
+    public void startObject() throws IOException {
         inner.startObject();
         sidecar.startObject();
     }
 
     @Override
-    public void endObject() {
+    public void endObject() throws IOException {
         inner.endObject();
         sidecar.endObject();
     }
 
     @Override
-    public void writeFieldName(String fieldName) {
+    public void writeFieldName(String fieldName) throws IOException {
         inner.writeFieldName(fieldName);
         sidecar.writeFieldName(fieldName);
     }
 
     @Override
-    public void writeNull() {
+    public void writeNull() throws IOException {
         inner.writeNull();
         sidecar.writeNull();
     }
 
     @Override
-    public void writeValue(Object value) {
+    public void writeValue(Object value) throws IOException {
         inner.writeValue(value);
         sidecar.writeValue(value);
     }
 
     @Override
-    public BytesReference bytes() {
+    public BytesReference bytes() throws IOException {
         return sidecar.bytes();
     }
 }
