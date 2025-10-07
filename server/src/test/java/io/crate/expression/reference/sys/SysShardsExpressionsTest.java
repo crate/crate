@@ -135,7 +135,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         when(indexShard.state()).thenReturn(IndexShardState.STARTED);
 
         StoreStats storeStats = new StoreStats(123456L, 0L);
-        when(indexShard.storeStats()).thenReturn(storeStats);
+        when(indexShard.storeStatsCached()).thenReturn(storeStats);
 
         Path dataPath = Paths.get("/dummy/" + indexUUID + "/" + shardId.id());
         when(indexShard.shardPath()).thenReturn(new ShardPath(false, dataPath, dataPath, shardId));
@@ -399,7 +399,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testShardSizeExpressionWhenIndexShardHasBeenClosed() throws Exception {
         IndexShard mock = mockIndexShard(indexShard.shardId().getIndexName(), indexShard.shardId().getIndexUUID());
-        doThrow(new AlreadyClosedException("dummy")).when(mock).storeStats();
+        doThrow(new AlreadyClosedException("dummy")).when(mock).storeStatsCached();
         ShardReferenceResolver res = new ShardReferenceResolver(schemas, new ShardRowContext(mock, clusterService));
         Reference refInfo = refInfo("sys.shards.size", DataTypes.LONG, RowGranularity.SHARD);
         Input<?> shardExpression = res.getImplementation(refInfo);

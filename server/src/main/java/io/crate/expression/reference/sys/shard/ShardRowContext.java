@@ -115,7 +115,11 @@ public class ShardRowContext {
         if (blobShard != null) {
             return blobShard.getTotalSize();
         }
-        return indexShard.storeStatsCached().sizeInBytes();
+        try {
+            return indexShard.storeStatsCached().sizeInBytes();
+        } catch (AlreadyClosedException e) {
+            return 0L;
+        }
     }
 
     @Nullable

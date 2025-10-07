@@ -1033,6 +1033,8 @@ public class IndexShard extends AbstractIndexShardComponent {
      * Returns store stats whereas the size is computed from a cached value to avoid costly file system calls.
      * Use this method when exposing the size to the user frequently.
      * For a precise actual value use {@link #storeStats()}.
+     *
+     * @throws AlreadyClosedException if the shard is closed
      */
     public StoreStats storeStatsCached() {
         final RecoveryState recoveryState = this.recoveryState;

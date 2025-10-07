@@ -370,6 +370,7 @@ public class Store extends AbstractIndexShardComponent implements Closeable, Ref
      * Returns the store stats with a cached size. The size is cached for a short period of time (defaults to 10s).
      * Use this method when exposing the store size to the user, and it's expected to be called frequently.
      *
+     * @throws AlreadyClosedException if the shard is closed
      * @param reservedBytes a prediction of how much larger the store is expected to grow, or {@link StoreStats#UNKNOWN_RESERVED_BYTES}.
      */
     public StoreStats statsCached(long reservedBytes) {
