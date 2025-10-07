@@ -22,9 +22,7 @@
 package io.crate.execution.dml;
 
 import java.io.IOException;
-import java.io.UncheckedIOException;
 
-import org.apache.lucene.util.IORunnable;
 import org.elasticsearch.common.bytes.BytesReference;
 
 /**
@@ -33,25 +31,25 @@ import org.elasticsearch.common.bytes.BytesReference;
 public interface TranslogWriter {
 
     /** Start writing an array of values */
-    void startArray();
+    void startArray() throws IOException;
 
     /** Finish writing an array of values */
-    void endArray();
+    void endArray() throws IOException;
 
     /** Start writing a key-value object */
-    void startObject();
+    void startObject() throws IOException;
 
     /** Finish writing a key-value object */
-    void endObject();
+    void endObject() throws IOException;
 
     /** Write a field name */
-    void writeFieldName(String fieldName);
+    void writeFieldName(String fieldName) throws IOException;
 
     /** Write a null field value */
-    void writeNull();
+    void writeNull() throws IOException;
 
     /** Write a non-null field value */
-    void writeValue(Object value);
+    void writeValue(Object value) throws IOException;
 
     /**
      * Return a byte array representation of the transaction log entry
@@ -59,7 +57,7 @@ public interface TranslogWriter {
      * Once this method has been called, no other methods should be called
      * on the TranslogWriter
      */
-    BytesReference bytes();
+    BytesReference bytes() throws IOException;
 
     /**
      * Create a TranslogWriter that will ignore any write methods, and return
@@ -107,16 +105,5 @@ public interface TranslogWriter {
                 return source;
             }
         };
-    }
-
-    /**
-     * Wrap code that throws an IOException to rethrow an UncheckedIOException
-     */
-    static void uncheck(IORunnable runnable) {
-        try {
-            runnable.run();
-        } catch (IOException e) {
-            throw new UncheckedIOException(e);
-        }
     }
 }

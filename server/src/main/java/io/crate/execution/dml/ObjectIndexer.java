@@ -124,18 +124,24 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             }
         }
         Map<String, Object> columnsToStore = new HashMap<>();
-        value.forEach((k, v) -> {
-            if (children.containsKey(k) == false) {
-                translogWriter.writeFieldName(this.unknownColumnPrefix + k);
-                translogWriter.writeValue(v);
-                columnsToStore.put(k, v);
+        for (var entry : value.entrySet()) {
+            String k = entry.getKey();
+            Object v = entry.getValue();
+            try {
+                if (children.containsKey(k) == false) {
+                    translogWriter.writeFieldName(this.unknownColumnPrefix + k);
+                    translogWriter.writeValue(v);
+                    columnsToStore.put(k, v);
+                }
+                if (v == null) {
+                    translogWriter.writeFieldName(k);
+                    translogWriter.writeValue(null);
+                    columnsToStore.put(k, null);
+                }
+            } catch (IOException e) {
+                throw new UncheckedIOException(e);
             }
-            if (v == null) {
-                translogWriter.writeFieldName(k);
-                translogWriter.writeValue(null);
-                columnsToStore.put(k, null);
-            }
-        });
+        }
         if (docBuilder.maybeAddStoredField()) {
             if (columnsToStore.isEmpty() == false) {
                 // We have unknown or null values that can't be reconstructed from doc values

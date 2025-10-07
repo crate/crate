@@ -52,7 +52,7 @@ public class ArrayOfObjectIndexer<T> extends ArrayIndexer<T> {
     }
 
     @Override
-    protected BytesReference arrayToBytes(List<T> values, IndexDocumentBuilder docBuilder) {
+    protected BytesReference arrayToBytes(List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
         return docBuilder.translogWriter().bytes();
     }
 }

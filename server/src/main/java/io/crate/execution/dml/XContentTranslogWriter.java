@@ -48,43 +48,43 @@ public class XContentTranslogWriter implements TranslogWriter {
     }
 
     @Override
-    public void startArray() {
-        TranslogWriter.uncheck(builder::startArray);
+    public void startArray() throws IOException {
+        builder.startArray();
     }
 
     @Override
-    public void endArray() {
-        TranslogWriter.uncheck(builder::endArray);
+    public void endArray() throws IOException {
+        builder.endArray();
     }
 
     @Override
-    public void startObject() {
-        TranslogWriter.uncheck(builder::startObject);
+    public void startObject() throws IOException {
+        builder.startObject();
     }
 
     @Override
-    public void endObject() {
-        TranslogWriter.uncheck(builder::endObject);
+    public void endObject() throws IOException {
+        builder.endObject();
     }
 
     @Override
-    public void writeNull() {
-        TranslogWriter.uncheck(builder::nullValue);
+    public void writeNull() throws IOException {
+        builder.nullValue();
     }
 
     @Override
-    public void writeFieldName(String fieldName) {
-        TranslogWriter.uncheck(() -> builder.field(fieldName));
+    public void writeFieldName(String fieldName) throws IOException {
+        builder.field(fieldName);
     }
 
     @Override
-    public void writeValue(Object value) {
-        TranslogWriter.uncheck(() -> builder.value(value));
+    public void writeValue(Object value) throws IOException {
+        builder.value(value);
     }
 
     @Override
-    public BytesReference bytes() {
-        TranslogWriter.uncheck(builder::endObject);
+    public BytesReference bytes() throws IOException {
+        builder.endObject();
         builder.close();
         return output.bytes();
     }

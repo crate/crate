@@ -21,6 +21,7 @@
 
 package io.crate.execution.dml;
 
+import java.io.IOException;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
@@ -170,7 +171,7 @@ public class IndexDocumentBuilder {
     /**
      * Constructs a new ParsedDocument with the given id from the indexed values
      */
-    public ParsedDocument build(String id) {
+    public ParsedDocument build(String id) throws IOException {
 
         NumericDocValuesField version = new NumericDocValuesField(SysColumns.Names.VERSION, -1L);
         addField(version);
