@@ -1108,7 +1108,7 @@ public class ExpressionAnalyzer {
                 return Literal.EMPTY_OBJECT;
             }
             List<Symbol> arguments = new ArrayList<>(values.size() * 2);
-            var returnTypeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
+            var returnTypeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC, values.size());
             for (Map.Entry<String, Expression> entry : values.entrySet()) {
                 var val = entry.getValue().accept(this, context);
                 arguments.add(Literal.of(entry.getKey()));
