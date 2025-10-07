@@ -997,6 +997,9 @@ public class IndexShardTests extends IndexShardTestCase {
                     assertThat(searcher.getIndexReader().numDocs() <= docStats.getCount()).isTrue();
                 }
                 assertThat(docStats.getCount()).isEqualTo(numDocs);
+
+                // Ensure that the lightweight numDocs() call is consistent with the DocsStats
+                assertThat(indexShard.numDocs()).isEqualTo(docStats.getCount());
             }
 
             // merge them away

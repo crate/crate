@@ -998,6 +998,11 @@ public class IndexShard extends AbstractIndexShardComponent {
         return getEngine().docStats();
     }
 
+    public long numDocs() {
+        readAllowed();
+        return getEngine().numDocs();
+    }
+
     /**
      * @return {@link CommitStats}
      * @throws AlreadyClosedException if shard is closed
