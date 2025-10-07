@@ -379,13 +379,13 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public P endObject() {
-            ObjectType.Builder typeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
             ArrayList<Column<T, ?>> directChildren = new ArrayList<>();
             for (var col : columns) {
                 if (col.column.path().size() == baseColumn.path().size() + 1) {
                     directChildren.add(col);
                 }
             }
+            ObjectType.Builder typeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC, directChildren.size());
             for (var column : directChildren) {
                 typeBuilder.setInnerType(column.column.leafName(), column.type);
             }
@@ -412,13 +412,13 @@ public final class SystemTable<T> implements TableInfo {
         }
 
         public P endObjectArray() {
-            ObjectType.Builder typeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC);
             ArrayList<Column<ItemType, ?>> directChildren = new ArrayList<>();
             for (var col : columns) {
                 if (col.column.path().size() == baseColumn.path().size() + 1) {
                     directChildren.add(col);
                 }
             }
+            ObjectType.Builder typeBuilder = ObjectType.of(ColumnPolicy.DYNAMIC, directChildren.size());
             for (var column : directChildren) {
                 typeBuilder.setInnerType(column.column.leafName(), column.type);
             }

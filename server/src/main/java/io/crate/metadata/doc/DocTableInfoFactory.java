@@ -675,7 +675,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 }
             }
             children.sort(Comparator.comparingInt(InnerObjectType::position));
-            ObjectType.Builder builder = ObjectType.of(ColumnPolicy.fromMappingValue(columnProperties.get("dynamic")));
+            ColumnPolicy columnPolicy = ColumnPolicy.fromMappingValue(columnProperties.get("dynamic"));
+            ObjectType.Builder builder = ObjectType.of(columnPolicy, children.size());
             for (var child : children) {
                 builder.setInnerType(child.name, child.type);
             }

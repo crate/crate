@@ -301,7 +301,7 @@ public final class DataTypes {
         return switch (value) {
             case null -> UNDEFINED;
             case Map<?, ?> map -> {
-                ObjectType.Builder builder = ObjectType.of(ColumnPolicy.DYNAMIC);
+                ObjectType.Builder builder = ObjectType.of(ColumnPolicy.DYNAMIC, map.size());
                 for (var entry : map.entrySet()) {
                     Object key = entry.getKey();
                     Object val = entry.getValue();
