@@ -22,14 +22,14 @@
 package io.crate.expression.reference.doc.lucene;
 
 import java.io.IOException;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.TreeMap;
 
 import org.apache.lucene.index.FieldInfo;
 import org.apache.lucene.index.StoredFieldVisitor;
 import org.elasticsearch.Version;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.common.collections.Maps;
 import io.crate.execution.dml.ArrayIndexer;
@@ -45,6 +45,13 @@ import io.crate.types.StorageSupport;
  */
 public class ColumnFieldVisitor extends StoredFieldVisitor {
 
+    private static final Comparator<Record> CMP_RECORD = new Comparator<Record>() {
+
+        @Override
+        public int compare(Record o1, Record o2) {
+            return o1.column.compareTo(o2.column);
+        }
+    };
     private final Map<String, Field> fields = new HashMap<>();
     private final SourceParser storedSourceParser;
     private final Version shardVersion;
@@ -57,7 +64,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         this.shardVersion = shardVersionCreated;
     }
 
-    private record Field(StorageSupport<?> storageSupport, ColumnIdent column) implements Comparable<Field> {
+    private record Field(StorageSupport<?> storageSupport, ColumnIdent column) {
 
         public Object decode(SourceParser sourceParser, Version tableVersion, byte[] v) {
             return storageSupport.decode(column, sourceParser, tableVersion, v);
@@ -70,17 +77,15 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
         public Object decode(int v) {
             return storageSupport.decode(v);
         }
+    }
 
-        @Override
-        public int compareTo(@NotNull ColumnFieldVisitor.Field o) {
-            return this.column.compareTo(o.column);
-        }
+    private record Record(ColumnIdent column, Object value) {
     }
 
     // Maps.mergeInto() needs its inputs to be sorted, to ensure that a parent object o doesn't overwrite
-    // an already written child o['child'], so we read stored fields into a sorted map and then
-    // iterate them in column order when converting them into a docMap.
-    private Map<Field, Object> doc = new TreeMap<>();
+    // an already written child o['child'], so we read stored fields into a list and then
+    // sort it in column order when converting them into a docMap.
+    private ArrayList<Record> records = new ArrayList<>();
 
     /**
      * Ensure that the given column is loaded from stored fields
@@ -108,7 +113,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
      * Prepare to load a new row by clearing the doc state
      */
     public void reset() {
-        this.doc = new TreeMap<>();
+        this.records = new ArrayList<>(records.size());
     }
 
     @Override
@@ -120,45 +125,49 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     public void binaryField(FieldInfo fieldInfo, byte[] value) throws IOException {
         var field = fields.get(fieldInfo.name);
         var v = field.decode(storedSourceParser, shardVersion, value);
-        this.doc.put(field, v);
+        records.add(new Record(field.column, v));
     }
 
     @Override
     public void stringField(FieldInfo fieldInfo, String value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, value);
+        records.add(new Record(field.column, value));
     }
 
     @Override
     public void intField(FieldInfo fieldInfo, int value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, field.decode(value));
+        records.add(new Record(field.column, field.decode(value)));
     }
 
     @Override
     public void longField(FieldInfo fieldInfo, long value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, field.decode(value));
+        records.add(new Record(field.column, field.decode(value)));
     }
 
     @Override
     public void floatField(FieldInfo fieldInfo, float value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, value);
+        records.add(new Record(field.column, value));
     }
 
     @Override
     public void doubleField(FieldInfo fieldInfo, double value) throws IOException {
         var field = fields.get(fieldInfo.name);
-        this.doc.put(field, value);
+        records.add(new Record(field.column, value));
     }
 
     /**
      * @return the columns from the current row as a java Map
      */
     public Map<String, Object> getDocMap() {
-        Map<String, Object> docMap = new HashMap<>();
-        this.doc.forEach((field, v) -> Maps.mergeInto(docMap, field.column().name(), field.column().path(), v));
+        HashMap<String, Object> docMap = HashMap.newHashMap(records.size());
+        records.sort(CMP_RECORD);
+        for (int i = 0; i < records.size(); i++) {
+            Record record = records.get(i);
+            Maps.mergeInto(docMap, record.column.name(), record.column.path(), record.value);
+        }
         return docMap;
     }
 }
