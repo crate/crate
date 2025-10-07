@@ -126,6 +126,9 @@ public sealed interface RelationMetadata extends Writeable permits
         public Table {
             assert (partitionedBy.isEmpty() && indexUUIDs.size() == 1) || !partitionedBy.isEmpty()
                 : "Non-Partitioned table " + name + " must have exactly one indexUUID: " + indexUUIDs;
+
+            assert settings.hasValue(IndexMetadata.SETTING_VERSION_CREATED)
+                : "Must have version created setting";
         }
 
 

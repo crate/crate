@@ -175,7 +175,9 @@ public class MetadataTrackerTest extends ESTestCase {
                 .setTable(
                     relationName,
                     buildReferences(relationName, Map.of("p1", 1)),
-                    Settings.EMPTY,
+                    Settings.builder()
+                        .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
+                        .build(),
                     null,
                     ColumnPolicy.STRICT,
                     null,

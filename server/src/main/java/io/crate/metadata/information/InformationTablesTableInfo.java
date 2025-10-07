@@ -72,7 +72,7 @@ public class InformationTablesTableInfo {
     public static SystemTable<RelationInfo> INSTANCE = SystemTable.<RelationInfo>builder(IDENT)
         .add("table_schema", STRING, r -> r.ident().schema())
         .add("table_name", STRING, r -> r.ident().name())
-        .add("table_catalog", STRING, r -> Constants.DB_NAME)
+        .add("table_catalog", STRING, _ -> Constants.DB_NAME)
         .add("table_type", STRING, r -> r.relationType().pretty())
         .add("number_of_shards", INTEGER, row -> {
             if (row instanceof ShardedTable) {
@@ -135,9 +135,8 @@ public class InformationTablesTableInfo {
                 Version.Property.CREATED.toString(),
                 STRING,
                 x -> {
-                    if (x instanceof StoredTable) {
-                        Version version = ((StoredTable) x).versionCreated();
-                        return version == null ? null : version.externalNumber();
+                    if (x instanceof StoredTable storedTable) {
+                        return storedTable.versionCreated().externalNumber();
                     }
                     return null;
                 }
@@ -146,8 +145,8 @@ public class InformationTablesTableInfo {
                 Version.Property.UPGRADED.toString(),
                 STRING,
                 x -> {
-                    if (x instanceof StoredTable) {
-                        Version version = ((StoredTable) x).versionUpgraded();
+                    if (x instanceof StoredTable storedTable) {
+                        Version version = storedTable.versionUpgraded();
                         return version == null ? null : version.externalNumber();
                     }
                     return null;
@@ -160,7 +159,7 @@ public class InformationTablesTableInfo {
             }
             return null;
         })
-        .add("reference_generation", STRING, r -> REFERENCE_GENERATION)
+        .add("reference_generation", STRING, _ -> REFERENCE_GENERATION)
         .add("self_referencing_column_name", STRING,row -> {
             if (row instanceof ShardedTable) {
                 return SELF_REFERENCING_COLUMN_NAME;

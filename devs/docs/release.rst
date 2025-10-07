@@ -34,8 +34,11 @@ For each release, we:
 
 - Create a "prepare release" commit. This commit updates the version-info,
   finalizes the release notes and is tagged.
-- Create a "version bump" commit immediately afterwards. This re-enables the
-  ``SNAPSHOT`` flag and increases the version number.
+- Create a "version bump" commit immediately afterwards. This updates the
+  version in all ``pom.xml`` files using ``./mvnw versions:set
+  -DnewVersion=<newVersion>`` and also changes the ``CURRENT`` version
+  assignment within ``org.elasticsearch.Version`` to a new version constant with
+  the ``SNAPSHOT`` flag set.
 
 For example::
 
