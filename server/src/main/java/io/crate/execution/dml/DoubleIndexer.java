@@ -68,7 +68,7 @@ public class DoubleIndexer implements ValueIndexer<Number> {
                     SysColumns.FieldNames.FIELD_TYPE));
             }
         }
-        docBuilder.translogWriter().writeValue(value);
+        docBuilder.translogWriter().writeValue(doubleValue);
     }
 
     @Override

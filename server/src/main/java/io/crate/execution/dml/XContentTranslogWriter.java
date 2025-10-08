@@ -83,6 +83,31 @@ public class XContentTranslogWriter implements TranslogWriter {
     }
 
     @Override
+    public void writeValue(String value) throws IOException {
+        builder.value(value);
+    }
+
+    @Override
+    public void writeValue(int value) throws IOException {
+        builder.value(value);
+    }
+
+    @Override
+    public void writeValue(long value) throws IOException {
+        builder.value(value);
+    }
+
+    @Override
+    public void writeValue(float value) throws IOException {
+        builder.value(value);
+    }
+
+    @Override
+    public void writeValue(double value) throws IOException {
+        builder.value(value);
+    }
+
+    @Override
     public BytesReference bytes() throws IOException {
         builder.endObject();
         builder.close();

@@ -88,6 +88,36 @@ class SidecarTranslogWriter implements TranslogWriter {
     }
 
     @Override
+    public void writeValue(String value) throws IOException {
+        inner.writeValue(value);
+        sidecar.writeValue(value);
+    }
+
+    @Override
+    public void writeValue(int value) throws IOException {
+        inner.writeValue(value);
+        sidecar.writeValue(value);
+    }
+
+    @Override
+    public void writeValue(long value) throws IOException {
+        inner.writeValue(value);
+        sidecar.writeValue(value);
+    }
+
+    @Override
+    public void writeValue(float value) throws IOException {
+        inner.writeValue(value);
+        sidecar.writeValue(value);
+    }
+
+    @Override
+    public void writeValue(double value) throws IOException {
+        inner.writeValue(value);
+        sidecar.writeValue(value);
+    }
+
+    @Override
     public BytesReference bytes() throws IOException {
         return sidecar.bytes();
     }
