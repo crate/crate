@@ -153,7 +153,7 @@ public class ShardRowContext {
     public Long numDocs() {
         if (blobShard == null) {
             try {
-                return indexShard.docStats().getCount();
+                return indexShard.numDocs();
             } catch (IllegalIndexShardStateException e) {
                 return null;
             }
@@ -174,7 +174,7 @@ public class ShardRowContext {
     public String minLuceneVersion() {
         long numDocs;
         try {
-            numDocs = indexShard.docStats().getCount();
+            numDocs = indexShard.numDocs();
         } catch (IllegalIndexShardStateException e) {
             return null;
         }
