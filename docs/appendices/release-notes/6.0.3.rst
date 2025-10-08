@@ -47,6 +47,9 @@ series.
 Fixes
 =====
 
+- Fixed a race condition that could lead PostgreSQL clients to receive fewer
+  results than available if using protocol level fetch more than once.
+
 - Fixed a race condition that could lead to PostgreSQL wire protocol messages to
   get mixed up and cause errors like ``IllegalStateException: Received resultset
   tuples, but no field structure for them`` in clients.
