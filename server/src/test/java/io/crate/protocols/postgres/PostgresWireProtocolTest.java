@@ -27,6 +27,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyChar;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -53,10 +54,12 @@ import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
+import org.elasticsearch.test.junit.annotations.TestLogging;
 import org.jetbrains.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Answers;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.mockito.invocation.InvocationOnMock;
@@ -66,12 +69,19 @@ import io.crate.auth.AccessControl;
 import io.crate.auth.AlwaysOKAuthentication;
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Credentials;
+import io.crate.data.BatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.data.testing.TestingBatchIterators;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.dml.upsert.ShardUpsertAction;
+import io.crate.execution.engine.JobLauncher;
+import io.crate.execution.engine.PhasesTaskFactory;
 import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
+import io.crate.protocols.postgres.ClientMessages.DescribeType;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
 import io.crate.role.Role;
@@ -853,15 +863,7 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         sendSync(buffer);
         channel.writeInbound(buffer);
 
-        assertBusy(() -> {
-            try {
-                assertThat(channel.outboundMessages()).hasSize(7);
-            } catch (ConcurrentModificationException ex) {
-                // ok - we're waiting for all messages via concurrent modifications after all
-                // just retry
-                throw new AssertionError(ex);
-            }
-        });
+        waitForMessages(channel, 7);
 
         readParseComplete();
         readBindComplete();
@@ -874,9 +876,112 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         readReadyForQueryMessage(channel);
     }
 
+    @Test
+    @TestLogging("io.crate.session.Sessions:TRACE,io.crate.protocols.postgres.PostgresWireProtocol:TRACE,io.crate.protocols.postgres.Messages:TRACE")
+    public void test_protocol_level_fetch_with_close_before_sync() throws Exception {
+        PhasesTaskFactory phasesTaskFactory = mock(PhasesTaskFactory.class, Answers.RETURNS_MOCKS);
+        JobLauncher jobLauncher = mock(JobLauncher.class, Answers.RETURNS_MOCKS);
+        when(executor.dependencyMock.phasesTaskFactory()).thenReturn(phasesTaskFactory);
+        when(phasesTaskFactory.create(any(), any(), Mockito.anyBoolean())).thenReturn(jobLauncher);
+        BatchIterator<Row> iterator = TestingBatchIterators.range(1, 35);
+        doAnswer(new Answer<Void>() {
+
+            @Override
+            public Void answer(InvocationOnMock arg0) throws Throwable {
+                RowConsumer consumer = arg0.getArgument(0);
+                var t = new Thread(() -> {
+                    consumer.accept(iterator, null);
+                });
+                t.start();
+                return null;
+            }
+        }).when(jobLauncher).execute(any(), any());
+
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sessions,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+        sendStartupMessage(channel);
+        readAuthenticationOK(channel);
+        skipParameterMessages(channel);
+        readKeyData(channel);
+        readReadyForQueryMessage(channel);
+        assertThat(channel.outboundMessages()).isEmpty();
+
+        ByteBuf buffer = Unpooled.buffer();
+        ClientMessages.sendParseMessage(buffer, "", "SELECT * FROM generate_series(1, 35)", new int[0]);
+        ClientMessages.sendBindMessage(buffer, "C_1", "", List.of());
+        ClientMessages.sendDescribeMessage(buffer, DescribeType.PORTAL, "C_1");
+        ClientMessages.sendFlush(buffer);
+
+        ClientMessages.sendExecute(buffer, "C_1", 5);
+        ClientMessages.sendFlush(buffer);
+
+        channel.writeInbound(buffer);
+
+        waitForMessages(channel, 9);
+        readParseComplete();
+        readBindComplete();
+        readRowDescription();
+
+        readRows(5);
+        readPortalSuspended();
+
+        buffer = Unpooled.buffer();
+        ClientMessages.sendExecute(buffer, "C_1", 10);
+        ClientMessages.sendFlush(buffer);
+
+        ClientMessages.sendExecute(buffer, "C_1", 10);
+        ClientMessages.sendFlush(buffer);
+
+        sendClose(buffer, 'P', "C_1");
+        sendSync(buffer);
+
+        channel.writeInbound(buffer);
+
+        waitForMessages(channel, 24);
+        readRows(10);
+        readPortalSuspended();
+
+        readRows(10);
+        readPortalSuspended();
+        readCloseComplete();
+        readReadyForQueryMessage(channel);
+    }
+
+    private static void waitForMessages(EmbeddedChannel channel, int size) throws Exception {
+        assertBusy(() -> {
+            try {
+                assertThat(channel.outboundMessages()).hasSize(size);
+            } catch (ConcurrentModificationException ex) {
+                // ok - we're waiting for all messages via concurrent modifications
+                throw new AssertionError(ex);
+            }
+        });
+    }
+
     static void sendSync(ByteBuf buffer) {
         buffer.writeByte('S');
         buffer.writeInt(4);
+    }
+
+    static void sendClose(ByteBuf buffer, char portalOrStatement, String name) {
+        byte[] nameBytes = name.getBytes(StandardCharsets.UTF_8);
+        buffer.writeByte('C');
+        int length =
+            4 + // length itself
+            1 + // portal or statement byte
+            nameBytes.length +
+            1; // null byte to terminate cstring
+        buffer.writeInt(length);
+        buffer.writeByte(portalOrStatement);
+        Messages.writeCString(buffer, nameBytes);
     }
 
     private String readCommandComplete() {
@@ -890,6 +995,76 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
             assertThat(length).isGreaterThan(4);
             String tag = readCString(buf);
             return tag;
+        } finally {
+            buf.release();
+        }
+    }
+
+    private void readPortalSuspended() {
+        ByteBuf buf = channel.readOutbound();
+        assertThat(buf)
+            .as("Must have PortalSuspended message")
+            .isNotNull();
+        try {
+            assertThat((char) buf.readByte()).isEqualTo('s');
+            int length = buf.readInt();
+            assertThat(length).isEqualTo(4);
+        } finally {
+            buf.release();
+        }
+    }
+
+    private void readCloseComplete() {
+        ByteBuf buf = channel.readOutbound();
+        assertThat(buf)
+            .as("Must have CloseComplete message")
+            .isNotNull();
+        try {
+            assertThat((char) buf.readByte()).isEqualTo('3');
+            int length = buf.readInt();
+            assertThat(length).isEqualTo(4);
+        } finally {
+            buf.release();
+        }
+    }
+
+    private void readRows(int num) {
+        for (int i = 0; i < num; i++) {
+            ByteBuf buf = channel.readOutbound();
+            assertThat(buf)
+                .as("Must have DataRow message: " + (i + 1))
+                .isNotNull();
+            try {
+                assertThat((char) buf.readByte()).isEqualTo('D');
+                int length = buf.readInt();
+                ByteBuf bytes = buf.readBytes(length - 4);
+                bytes.release();
+            } finally {
+                buf.release();
+            }
+        }
+    }
+
+    @SuppressWarnings("unused")
+    private void readRowDescription() {
+        ByteBuf buf = channel.readOutbound();
+        assertThat(buf)
+            .as("Must have RowDescription message")
+            .isNotNull();
+        try {
+            assertThat((char) buf.readByte()).isEqualTo('T');
+            int length = buf.readInt();
+            assertThat(length).isGreaterThanOrEqualTo(6);
+            int numCols = buf.readShort();
+            for (int i = 0; i < numCols; i++) {
+                String name = readCString(buf);
+                int table_oid = buf.readInt();
+                short attr_num = buf.readShort();
+                int oid = buf.readInt();
+                short typlen = buf.readShort();
+                int typemod = buf.readInt();
+                short formatcode = buf.readShort();
+            }
         } finally {
             buf.release();
         }
