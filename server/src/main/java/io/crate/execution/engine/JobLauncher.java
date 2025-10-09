@@ -120,7 +120,7 @@ public class JobLauncher {
 
     private boolean hasDirectResponse;
 
-    JobLauncher(UUID jobId,
+    public JobLauncher(UUID jobId,
                 ClusterService clusterService,
                 JobSetup jobSetup,
                 TasksService tasksService,
