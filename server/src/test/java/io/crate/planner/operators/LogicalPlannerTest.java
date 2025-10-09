@@ -23,6 +23,13 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
+import static org.mockito.ArgumentMatchers.anyLong;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.HashMap;
@@ -30,21 +37,33 @@ import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 
+import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.unit.ByteSizeUnit;
+import org.elasticsearch.indices.IndicesService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row1;
+import io.crate.data.RowConsumer;
 import io.crate.execution.dsl.projection.FetchProjection;
 import io.crate.execution.dsl.projection.LimitDistinctProjection;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.execution.dsl.projection.ProjectionType;
+import io.crate.execution.engine.JobLauncher;
+import io.crate.execution.engine.PhasesTaskFactory;
+import io.crate.execution.jobs.JobSetup;
+import io.crate.execution.jobs.TasksService;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.TransactionContext;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.DependencyCarrier;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
@@ -780,5 +799,44 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
             ),
             x -> assertThat(x).isInputColumn(1)
         );
+    }
+
+    @Test
+    public void test_ram_accounting_released_on_multi_phase_execution_failure() throws Exception {
+        var plan = sqlExecutor.logicalPlan(
+            "select name from users where id in (select a from t1 where x > 10)");
+
+        DependencyCarrier dependencies = sqlExecutor.dependencyMock;
+        CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
+        when(dependencies.circuitBreaker(HierarchyCircuitBreakerService.QUERY)).thenReturn(circuitBreaker);
+
+        // Setup CircuitBreakingException for a sub-plan.
+        PhasesTaskFactory phasesTaskFactory = mock(PhasesTaskFactory.class);
+        when(dependencies.phasesTaskFactory()).thenReturn(phasesTaskFactory);
+        JobLauncher jobLauncher = new JobLauncher(
+            UUID.randomUUID(),
+            clusterService,
+            Mockito.mock(JobSetup.class),
+            Mockito.mock(TasksService.class),
+            Mockito.mock(IndicesService.class),
+            null,
+            null,
+            List.of(),
+            false,
+            null
+        ) {
+            @Override
+            public void execute(RowConsumer consumer, TransactionContext txnCtx) {
+                consumer.accept(null, new CircuitBreakingException("dummy"));
+            }
+        };
+        when(phasesTaskFactory.create(any(), any(), anyBoolean())).thenReturn(jobLauncher);
+        var consumer = sqlExecutor.execute(plan);
+        assertThat(consumer.completionFuture().isDone()).isTrue();
+
+        // addWithoutBreaking is used in ConcurrentRamAccounting to release bytes;
+        // Before 5.10.13, circuit breaker memory was not released
+        // if multiphased execution failed on sub-query and addWithoutBreaking() was never called.
+        verify(circuitBreaker, times(1)).addWithoutBreaking(anyLong());
     }
 }
