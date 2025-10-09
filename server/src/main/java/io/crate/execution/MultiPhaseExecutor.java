@@ -79,10 +79,8 @@ public final class MultiPhaseExecutor {
         }
         return CompletableFuture
             .allOf(dependencyFutures.toArray(new CompletableFuture[0]))
-            .thenApply(ignored -> {
-                ramAccounting.release();
-                return new SubQueryResults(valueBySubQuery);
-            });
+            .thenApply(_ -> new SubQueryResults(valueBySubQuery))
+            .whenComplete((_, _) -> ramAccounting.release());
     }
 
     public static CollectingRowConsumer<?, ?> getConsumer(SelectSymbol selectSymbol, RamAccounting ramAccounting) {
