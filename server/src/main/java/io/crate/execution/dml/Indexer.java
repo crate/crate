@@ -37,6 +37,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.BiFunction;
 import java.util.function.Consumer;
 import java.util.function.Function;
 import java.util.stream.Collectors;
@@ -200,14 +201,27 @@ public class Indexer {
                     }
                 });
             }
-            int index = targetColumns.indexOf(ref);
-            if (index > -1) {
-                return NestableCollectExpression.forFunction(
-                    item -> {
-                        var val = item.insertValues()[index];
-                        return overwriteGeneratedChildren(item, val, ref);
+
+            BiFunction<IndexItem, Integer, Object> getValue = (item, idx) -> {
+                Object val = item.insertValues()[idx];
+                if (val instanceof Map<?, ?> m) {
+                    List<String> path = column.path();
+                    val = Maps.getByPath(m, path);
+                }
+                if (val == null) {
+                    Symbol defaultExpression = ref.defaultExpression();
+                    if (defaultExpression != null) {
+                        val = defaultExpression.accept(symbolEval, Row.EMPTY).value();
+                    } else if (ref instanceof GeneratedReference generated) {
+                        return fromGenerated(generated, item);
                     }
-                );
+                }
+                return val;
+            };
+
+            final int index = targetColumns.indexOf(ref);
+            if (index > -1) {
+                return NestableCollectExpression.forFunction(item -> getValue.apply(item, index));
             }
             if (ref.granularity() == RowGranularity.PARTITION) {
                 int pIndex = table.partitionedByColumns().indexOf(ref);
@@ -244,23 +258,7 @@ public class Indexer {
             if (rootIndex == -1) {
                 return NestableCollectExpression.constant(null);
             }
-            Function<IndexItem, Object> getValue = item -> {
-                Object val = item.insertValues()[rootIndex];
-                if (val instanceof Map<?, ?> m) {
-                    List<String> path = column.path();
-                    val = Maps.getByPath((Map<String, Object>) m, path);
-                }
-                if (val == null) {
-                    Symbol defaultExpression = ref.defaultExpression();
-                    if (defaultExpression != null) {
-                        val = defaultExpression.accept(symbolEval, Row.EMPTY).value();
-                    } else if (ref instanceof GeneratedReference generated) {
-                        return fromGenerated(generated, item);
-                    }
-                }
-                return val;
-            };
-            return NestableCollectExpression.forFunction(getValue);
+            return NestableCollectExpression.forFunction(item -> getValue.apply(item, rootIndex));
         }
 
         private Object fromGenerated(GeneratedReference generated, IndexItem item) {
@@ -271,27 +269,6 @@ public class Indexer {
             });
             Input<?> accept = generatedExpression.accept(symbolEval, Row.EMPTY);
             return accept.value();
-        }
-
-        private Object overwriteGeneratedChildren(IndexItem item, Object parent, Reference parentRef) {
-            if (parentRef.valueType().id() != ObjectType.ID) {
-                return parent;
-            }
-            for (var child : table.getLeafReferences(parentRef)) {
-                if ((child.isGenerated() || child.defaultExpression() != null)) {
-                    var childCollectExpression = getImplementation(child);
-                    childCollectExpression.setNextRow(item);
-                    var childPath = child.column().path();
-                    Maps.mergeInto(
-                        (Map<String, Object>) parent,
-                        childPath.getFirst(),
-                        childPath.subList(1, childPath.size()),
-                        childCollectExpression.value(),
-                        Map::put,
-                        false);
-                }
-            }
-            return parent;
         }
     }
 
