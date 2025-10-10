@@ -225,6 +225,7 @@ public interface BatchIterator<T> extends Killable {
         Function<A, R> finisher = collector.finisher();
         A state = collector.supplier().get();
         CompletableFuture<R> result = new CompletableFuture<>();
+        // Both onNext() and onFinish() can throw, but it's caught in the move() and future is completed.
         move(Integer.MAX_VALUE, row -> accumulator.accept(state, row), err -> {
             if (close) {
                 close();

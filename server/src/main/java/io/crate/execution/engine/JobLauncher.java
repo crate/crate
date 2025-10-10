@@ -118,7 +118,7 @@ public class JobLauncher {
     private final IndicesService indicesService;
     private final boolean enableProfiling;
 
-    JobLauncher(UUID jobId,
+    public JobLauncher(UUID jobId,
                 ClusterService clusterService,
                 JobSetup jobSetup,
                 TasksService tasksService,

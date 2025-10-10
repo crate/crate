@@ -69,3 +69,8 @@ Fixes
 - Upgraded Lucene to ``9.12.3`` that fixed an issue with ``MMapDirectory``
   leaking maps that could cause exceeding of the ``vm.max_map_count`` limit
   and lead to a node crash.
+
+- Fixed an issue that caused ``query`` CircuitBreaker's state to not be reset
+  if a sub-query failed (for example, due to a ``CircuitBreakingException``).
+  If repeated, could bring CircuitBreaker to the point when each consequent
+  query is tripped and make a cluster unresponsive.

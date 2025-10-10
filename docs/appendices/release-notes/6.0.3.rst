@@ -64,3 +64,8 @@ Fixes
 
 - Fixed an issue where null-valued sub-columns of objects were omitted when
   queried.
+
+- Fixed an issue that caused ``query`` CircuitBreaker's state to not be reset
+  if a sub-query failed (for example, due to a ``CircuitBreakingException``).
+  If repeated, could bring CircuitBreaker to the point when each consequent
+  query is tripped and make a cluster unresponsive.

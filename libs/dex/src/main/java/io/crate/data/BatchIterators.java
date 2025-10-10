@@ -44,6 +44,7 @@ public class BatchIterators {
                                                          CompletableFuture<R> resultFuture) {
         BiConsumer<A, T> accumulator = collector.accumulator();
         Function<A, R> finisher = collector.finisher();
+        // Both onNext() and onFinish() can throw, but it's caught in the it.move() and future is completed.
         it.move(Integer.MAX_VALUE, row -> accumulator.accept(state, row), err -> {
             it.close();
             if (err == null) {
