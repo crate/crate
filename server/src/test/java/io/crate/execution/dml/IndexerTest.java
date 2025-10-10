@@ -1613,13 +1613,14 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 """);
         DocTableInfo table = executor.resolveTableInfo("t");
 
+        var targetColumns = List.of(table.getReference(ColumnIdent.of("a")), table.getReference(ColumnIdent.of("o")));
         Indexer indexer = new Indexer(
             List.of(),
             table,
             Version.CURRENT,
             new CoordinatorTxnCtx(executor.getSessionSettings()),
             executor.nodeCtx,
-            new ArrayList<>(List.of(table.getReference(ColumnIdent.of("a")), table.getReference(ColumnIdent.of("o")))),
+            new ArrayList<>(targetColumns),
             null,
             List.of(
                 table.getReference(ColumnIdent.of("a")),
@@ -1631,7 +1632,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             ).toArray(Symbol[]::new)
         );
 
-        // insert into t values (1, {a2=10}) returning *
+        // insert into t(a,o) values (1, {a2=10}) returning *
         var returning = indexer.returnValues(item(1, MapBuilder.newMapBuilder().put("a2", 10).map()));
 
         assertThat(returning[0]).isEqualTo(1);
@@ -1641,7 +1642,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(returning[1]).hasFieldOrProperty("d2");
         assertThat(returning[1]).hasFieldOrProperty("e2");
 
-        // columns(b,c,d,e) not included in targetColumns
+        // columns(b,c,d,e) that are not included in Indexer.targetColumns but still need to be returned
         assertThat(returning[2]).isEqualTo(13);
         assertThat(returning[3]).isEqualTo(2);
         assertThat(returning[4]).isNotNull();
