@@ -273,23 +273,33 @@ public class Indexer {
             return accept.value();
         }
 
+        /**
+         * Checks if the given value is an object Overwrites the given item with generated/default children which are obtained from {@link Indexer#synthetics}.
+         * The main usage of this method is `RETURNING` clause returning objects with generated/default sub-columns
+         * where the result set is expected to contain all children.
+         * <p>
+         * More background info - the current design for INSERT/UPDATE does not merge the insert values with
+         * generated/default sub-columns.
+         * They are held separately in {@link IndexItem#insertValues} and {@link Indexer#synthetics} to save the cost
+         * of streaming to replicas.
+         */
         private Object overwriteGeneratedChildren(IndexItem item, Object parent, Reference parentRef) {
-            if (parentRef.valueType().id() != ObjectType.ID) {
-                return parent;
-            }
-            Map<String, Object> m = (Map<String, Object>) parent;
-            for (var child : table.getLeafReferences(parentRef)) {
-                if ((child.isGenerated() || child.defaultExpression() != null)) {
-                    var childCollectExpression = getImplementation(child);
-                    childCollectExpression.setNextRow(item);
-                    var childPath = child.column().path();
-                    Maps.mergeInto(
-                        m,
-                        childPath.getFirst(),
-                        childPath.subList(1, childPath.size()),
-                        childCollectExpression.value(),
-                        Map::put,
-                        false);
+            if (parent instanceof Map<?, ?>) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> m = (Map<String, Object>) parent;
+                for (var child : table.getLeafReferences(parentRef)) {
+                    if ((child.isGenerated() || child.defaultExpression() != null)) {
+                        var childCollectExpression = getImplementation(child);
+                        childCollectExpression.setNextRow(item);
+                        var childPath = child.column().path();
+                        Maps.mergeInto(
+                            m,
+                            childPath.getFirst(),
+                            childPath.subList(1, childPath.size()),
+                            childCollectExpression.value(),
+                            Map::put,
+                            false);
+                    }
                 }
             }
             return parent;

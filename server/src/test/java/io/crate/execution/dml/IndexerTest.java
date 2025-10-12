@@ -1687,6 +1687,37 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(returning[1]).isEqualTo(Map.of("a", 2, "oo", Map.of("a", 3, "b", 6)));
     }
 
+    @Test
+    public void test_inserting_null_with_returning_clause_containing_synthetic_sub_columns() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table t (
+                    o object as (
+                        a int,
+                        b int as o['a']+1
+                    )
+                )
+                """);
+        DocTableInfo table = executor.resolveTableInfo("t");
+
+        Indexer indexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            new ArrayList<>(List.of(table.getReference(ColumnIdent.of("o")))),
+            null,
+            List.of(
+                table.getReference(ColumnIdent.of("o"))
+            ).toArray(Symbol[]::new)
+        );
+
+        // insert into t values (null) returning *
+        var returning = indexer.returnValues(item(new Object[]{null}));
+        assertThat(returning[0]).isNull();
+    }
+
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
         assertTranslogParses(doc, info, Version.CURRENT);
     }
