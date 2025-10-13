@@ -51,6 +51,16 @@ public interface TranslogWriter {
     /** Write a non-null field value */
     void writeValue(Object value) throws IOException;
 
+    void writeValue(String value) throws IOException;
+
+    void writeValue(int value) throws IOException;
+
+    void writeValue(long value) throws IOException;
+
+    void writeValue(float value) throws IOException;
+
+    void writeValue(double value) throws IOException;
+
     /**
      * Return a byte array representation of the transaction log entry
      * <p/>
@@ -97,7 +107,26 @@ public interface TranslogWriter {
 
             @Override
             public void writeValue(Object value) {
+            }
 
+            @Override
+            public void writeValue(String value) {
+            }
+
+            @Override
+            public void writeValue(int value) {
+            }
+
+            @Override
+            public void writeValue(long value) {
+            }
+
+            @Override
+            public void writeValue(float value) {
+            }
+
+            @Override
+            public void writeValue(double value) {
             }
 
             @Override

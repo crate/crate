@@ -47,19 +47,20 @@ public class FloatIndexer implements ValueIndexer<Float> {
 
     @Override
     public void indexValue(@NotNull Float value, IndexDocumentBuilder docBuilder) throws IOException {
+        float floatValue = value.floatValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
-            docBuilder.addField(new FloatField(name, value, Field.Store.NO));
+            docBuilder.addField(new FloatField(name, floatValue, Field.Store.NO));
         } else {
             if (ref.indexType() != IndexType.NONE) {
-                docBuilder.addField(new FloatPoint(name, value));
+                docBuilder.addField(new FloatPoint(name, floatValue));
             }
             if (ref.hasDocValues()) {
                 docBuilder.addField(
-                        new SortedNumericDocValuesField(name, NumericUtils.floatToSortableInt(value))
+                        new SortedNumericDocValuesField(name, NumericUtils.floatToSortableInt(floatValue))
                 );
             } else {
                 if (docBuilder.maybeAddStoredField()) {
-                    docBuilder.addField(new StoredField(name, value));
+                    docBuilder.addField(new StoredField(name, floatValue));
                 }
                 docBuilder.addField(new Field(
                         SysColumns.FieldNames.NAME,
@@ -67,7 +68,7 @@ public class FloatIndexer implements ValueIndexer<Float> {
                         SysColumns.FieldNames.FIELD_TYPE));
             }
         }
-        docBuilder.translogWriter().writeValue(value);
+        docBuilder.translogWriter().writeValue(floatValue);
     }
 
     @Override
