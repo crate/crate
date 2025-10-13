@@ -39,6 +39,7 @@ class TDigestState extends MergingDigest {
     private double[] fractions;
 
     private int lastByteSize = 0;
+    private int idx = 0;
 
     TDigestState(double compression, double[] fractions) {
         super(compression);
@@ -63,10 +64,13 @@ class TDigestState extends MergingDigest {
 
     int addGetSizeDelta(double value) {
         add(value);
-        int newByteSize = byteSize();
-        int delta = newByteSize - lastByteSize;
-        lastByteSize = newByteSize;
-        return delta;
+        if (idx ++ % 10 == 0) {
+            int newByteSize = byteSize();
+            int delta = newByteSize - lastByteSize;
+            lastByteSize = newByteSize;
+            return delta;
+        }
+        return 0;
     }
 
 
