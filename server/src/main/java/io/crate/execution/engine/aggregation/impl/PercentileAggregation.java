@@ -144,11 +144,9 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
         }
         Double value = DataTypes.DOUBLE.sanitizeValue(args[0].value());
         if (value != null) {
-            int sizeBefore = state.byteSize();
-            state.add(value);
-            int sizeDelta = state.byteSize() - sizeBefore;
-            if (sizeDelta > 0) {
-                ramAccounting.addBytes(sizeDelta);
+            int delta = state.addGetSizeDelta(value);
+            if (delta > 0) {
+                ramAccounting.addBytes(delta);
             }
         }
         return state;
