@@ -887,13 +887,12 @@ public class Indexer {
                     continue;
                 }
             }
-            if (synthetics.containsKey(ref.column())) {
-                ColumnIdent column = ref.column();
-                if (!column.isRoot()) {
-                    continue;
-                }
-                Synthetic synthetic = synthetics.get(column);
-
+            ColumnIdent column = ref.column();
+            if (!column.isRoot()) {
+                continue;
+            }
+            Synthetic synthetic = synthetics.get(column);
+            if (synthetic != null) {
                 Object value = synthetic.value();
                 if (value == null) {
                     continue;
