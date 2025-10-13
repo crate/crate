@@ -48,6 +48,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a race condition that could lead PostgreSQL clients to receive fewer
+  results than available if using protocol level fetch more than once.
+
 - Fixed an issue that could lead to PostgreSQL wire protocol messages being sent
   in the wrong order to the client. The issue was triggered when using batched
   statements where one of the statements caused a parse or bind error.
@@ -66,3 +69,8 @@ Fixes
 - Upgraded Lucene to ``9.12.3`` that fixed an issue with ``MMapDirectory``
   leaking maps that could cause exceeding of the ``vm.max_map_count`` limit
   and lead to a node crash.
+
+- Fixed an issue that caused ``query`` CircuitBreaker's state to not be reset
+  if a sub-query failed (for example, due to a ``CircuitBreakingException``).
+  If repeated, could bring CircuitBreaker to the point when each consequent
+  query is tripped and make a cluster unresponsive.

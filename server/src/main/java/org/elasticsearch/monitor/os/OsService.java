@@ -19,14 +19,17 @@
 
 package org.elasticsearch.monitor.os;
 
+import java.util.function.Supplier;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.common.util.SingleObjectCache;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
+
+import io.crate.common.Suppliers;
+import io.crate.common.unit.TimeValue;
 
 public class OsService {
 
@@ -34,7 +37,7 @@ public class OsService {
 
     private final OsProbe probe;
     private final OsInfo info;
-    private final SingleObjectCache<OsStats> osStatsCache;
+    private final Supplier<OsStats> osStatsCache;
 
     public static final Setting<TimeValue> REFRESH_INTERVAL_SETTING =
         Setting.timeSetting("monitor.os.refresh_interval", TimeValue.timeValueSeconds(1), TimeValue.timeValueSeconds(1),
@@ -44,7 +47,7 @@ public class OsService {
         this.probe = OsProbe.getInstance();
         TimeValue refreshInterval = REFRESH_INTERVAL_SETTING.get(settings);
         this.info = probe.osInfo(refreshInterval.millis(), EsExecutors.numberOfProcessors(settings));
-        this.osStatsCache = new OsStatsCache(refreshInterval, probe.osStats());
+        this.osStatsCache = Suppliers.memoizeWithExpiration(refreshInterval, probe::osStats);
         LOGGER.debug("using refresh_interval [{}]", refreshInterval);
     }
 
@@ -52,18 +55,7 @@ public class OsService {
         return this.info;
     }
 
-    public synchronized OsStats stats() {
-        return osStatsCache.getOrRefresh();
-    }
-
-    private class OsStatsCache extends SingleObjectCache<OsStats> {
-        OsStatsCache(TimeValue interval, OsStats initValue) {
-            super(interval, initValue);
-        }
-
-        @Override
-        protected OsStats refresh() {
-            return probe.osStats();
-        }
+    public OsStats stats() {
+        return osStatsCache.get();
     }
 }

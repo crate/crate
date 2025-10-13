@@ -29,6 +29,8 @@ import java.util.function.Supplier;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.unit.TimeValue;
+
 /*
  * Extracted from https://github.com/google/guava/blob/master/guava/src/com/google/common/base/Suppliers.java
  */
@@ -78,7 +80,17 @@ public final class Suppliers {
         private static final long serialVersionUID = 0;
     }
 
+    public static <T> Supplier<T> memoizeWithExpiration(TimeValue timeValue, Supplier<T> delegate) {
+        if (timeValue.duration() == 0) {
+            return delegate;
+        }
+        return new ExpiringMemoizingSupplier<T>(delegate, timeValue.duration(), timeValue.timeUnit());
+    }
+
     public static <T> Supplier<T> memoizeWithExpiration(Supplier<T> delegate, long duration, TimeUnit unit) {
+        if (duration == 0) {
+            return delegate;
+        }
         return new ExpiringMemoizingSupplier<T>(delegate, duration, unit);
     }
 

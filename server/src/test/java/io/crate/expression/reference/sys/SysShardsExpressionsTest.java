@@ -47,7 +47,6 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexService;
-import org.elasticsearch.index.shard.DocsStats;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
@@ -140,8 +139,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         Path dataPath = Paths.get("/dummy/" + indexUUID + "/" + shardId.id());
         when(indexShard.shardPath()).thenReturn(new ShardPath(false, dataPath, dataPath, shardId));
 
-        DocsStats docsStats = new DocsStats(654321L, 0L, 200L);
-        when(indexShard.docStats()).thenReturn(docsStats).thenThrow(IllegalIndexShardStateException.class);
+        when(indexShard.numDocs()).thenReturn(654321L).thenThrow(IllegalIndexShardStateException.class);
 
         ShardRouting shardRouting = ShardRouting.newUnassigned(
             shardId, true, RecoverySource.PeerRecoverySource.INSTANCE, new UnassignedInfo(UnassignedInfo.Reason.INDEX_CREATED, "foo"));

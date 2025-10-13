@@ -187,6 +187,17 @@ public abstract class Engine implements Closeable {
     }
 
     /**
+     * Returns the number of documents (excluding deletions) in the index.
+     * Compared to building the full {@link DocsStats} this method avoids expensive file system calls to calculate the
+     * size of the index.
+     */
+    public long numDocs() {
+        try (Searcher searcher = acquireSearcher("numDocs", SearcherScope.INTERNAL)) {
+            return searcher.getIndexReader().numDocs();
+        }
+    }
+
+    /**
      * Performs the pre-closing checks on the {@link Engine}.
      *
      * @throws IllegalStateException if the sanity checks failed

@@ -96,11 +96,12 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
     public static class Builder {
 
-        private final LinkedHashMap<String, DataType<?>> innerTypesBuilder = new LinkedHashMap<>();
+        private final LinkedHashMap<String, DataType<?>> innerTypesBuilder;
         private final ColumnPolicy columnPolicy;
 
-        private Builder(ColumnPolicy columnPolicy) {
+        private Builder(ColumnPolicy columnPolicy, LinkedHashMap<String, DataType<?>> innerTypes) {
             this.columnPolicy = columnPolicy;
+            this.innerTypesBuilder = innerTypes;
         }
 
         public Builder setInnerType(String key, DataType<?> innerType) {
@@ -122,7 +123,11 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     }
 
     public static Builder of(ColumnPolicy columnPolicy) {
-        return new Builder(columnPolicy);
+        return new Builder(columnPolicy, new LinkedHashMap<>());
+    }
+
+    public static Builder of(ColumnPolicy columnPolicy, int numMappings) {
+        return new Builder(columnPolicy, LinkedHashMap.newLinkedHashMap(numMappings));
     }
 
     private final Map<String, DataType<?>> innerTypes;
@@ -569,7 +574,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         if (this.columnPolicy == columnPolicy) {
             return this;
         }
-        var objType = ObjectType.of(columnPolicy);
+        var objType = ObjectType.of(columnPolicy, innerTypes.size());
         for (var entry : innerTypes.entrySet()) {
             objType.setInnerType(entry.getKey(), entry.getValue().withColumnPolicy(columnPolicy));
         }

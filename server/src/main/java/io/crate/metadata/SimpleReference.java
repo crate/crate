@@ -341,41 +341,18 @@ public class SimpleReference implements Reference {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-        SimpleReference reference = (SimpleReference) o;
-        if (nullable != reference.nullable) {
-            return false;
-        }
-        if (hasDocValues != reference.hasDocValues) {
-            return false;
-        }
-        if (!type.equals(reference.type)) {
-            return false;
-        }
-        if (!Objects.equals(position, reference.position)) {
-            return false;
-        }
-        if (!ident.equals(reference.ident)) {
-            return false;
-        }
-        if (granularity != reference.granularity) {
-            return false;
-        }
-        if (indexType != reference.indexType) {
-            return false;
-        }
-        if (oid != reference.oid) {
-            return false;
-        }
-        if (isDropped != reference.isDropped()) {
-            return false;
-        }
-        return Objects.equals(defaultExpression, reference.defaultExpression);
+        return this == o || (
+            o instanceof SimpleReference ref
+            && oid == ref.oid
+            && position == ref.position
+            && ident.equals(ref.ident)
+            && type.equals(ref.type)
+            && indexType == ref.indexType
+            && nullable == ref.nullable
+            && hasDocValues == ref.hasDocValues
+            && granularity == ref.granularity
+            && isDropped == ref.isDropped
+            && Objects.equals(defaultExpression, ref.defaultExpression));
     }
 
     @Override

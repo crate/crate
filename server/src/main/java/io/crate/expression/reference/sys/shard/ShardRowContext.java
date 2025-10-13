@@ -24,7 +24,6 @@ package io.crate.expression.reference.sys.shard;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
-import java.util.concurrent.TimeUnit;
 import java.util.function.Supplier;
 
 import org.apache.lucene.store.AlreadyClosedException;
@@ -42,7 +41,6 @@ import org.elasticsearch.index.store.StoreStats;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.blob.v2.BlobShard;
-import io.crate.common.Suppliers;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
@@ -64,14 +62,14 @@ public class ShardRowContext {
     private final boolean orphanedPartition;
 
     public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
-        this(indexShard, null, clusterService, Suppliers.memoizeWithExpiration(() -> {
+        this(indexShard, null, clusterService, () -> {
             try {
                 StoreStats storeStats = indexShard.storeStats();
                 return storeStats.sizeInBytes();
             } catch (AlreadyClosedException e) {
                 return 0L;
             }
-        }, 10, TimeUnit.SECONDS));
+        });
     }
 
     public ShardRowContext(BlobShard blobShard, ClusterService clusterService) {
@@ -155,7 +153,7 @@ public class ShardRowContext {
     public Long numDocs() {
         if (blobShard == null) {
             try {
-                return indexShard.docStats().getCount();
+                return indexShard.numDocs();
             } catch (IllegalIndexShardStateException e) {
                 return null;
             }
@@ -176,7 +174,7 @@ public class ShardRowContext {
     public String minLuceneVersion() {
         long numDocs;
         try {
-            numDocs = indexShard.docStats().getCount();
+            numDocs = indexShard.numDocs();
         } catch (IllegalIndexShardStateException e) {
             return null;
         }
