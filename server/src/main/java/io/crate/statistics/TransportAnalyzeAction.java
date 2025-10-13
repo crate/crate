@@ -32,6 +32,8 @@ import java.util.concurrent.Executor;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.cluster.node.DiscoveryNode;
@@ -58,6 +60,7 @@ import io.crate.types.DataTypes;
 @Singleton
 public final class TransportAnalyzeAction {
 
+    private static final Logger LOGGER = LogManager.getLogger(TransportAnalyzeAction.class);
     private static final String FETCH_SAMPLES = "internal:crate:sql/analyze/fetch_samples";
     private static final String RECEIVE_TABLE_STATS = "internal:crate:sql/analyze/receive_stats";
 
@@ -124,6 +127,7 @@ public final class TransportAnalyzeAction {
 
     @SuppressWarnings("unchecked")
     public CompletableFuture<AcknowledgedResponse> fetchSamplesThenGenerateAndPublishStats() {
+        LOGGER.info("ANALYZE: Start collecting samples to update table statistics");
         ArrayList<CompletableFuture<Map.Entry<RelationName, Stats>>> futures = new ArrayList<>();
         for (SchemaInfo schema : schemas) {
             if (!(schema instanceof DocSchemaInfo)) {
@@ -147,6 +151,7 @@ public final class TransportAnalyzeAction {
     }
 
     private CompletableFuture<AcknowledgedResponse> publishTableStats(Map<RelationName, Stats> newTableStats) {
+        LOGGER.info("ANALYZE: Finished collecting samples");
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
         var listener = new FutureActionListener<AcknowledgedResponse>();
         var multiListener = new MultiActionListener<>(
