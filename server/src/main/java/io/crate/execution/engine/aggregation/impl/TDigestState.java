@@ -38,6 +38,8 @@ class TDigestState extends MergingDigest {
 
     private double[] fractions;
 
+    private int lastByteSize = 0;
+
     TDigestState(double compression, double[] fractions) {
         super(compression);
         this.fractions = fractions;
@@ -58,6 +60,15 @@ class TDigestState extends MergingDigest {
     void fractions(double[] fractions) {
         this.fractions = fractions;
     }
+
+    int addGetSizeDelta(double value) {
+        add(value);
+        int newByteSize = byteSize();
+        int delta = newByteSize - lastByteSize;
+        lastByteSize = newByteSize;
+        return delta;
+    }
+
 
     public static void write(TDigestState state, StreamOutput out) throws IOException {
         out.writeDouble(state.compression());
