@@ -21,6 +21,8 @@
 
 package io.crate.common.collections;
 
+import static java.util.stream.Collectors.toMap;
+
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -270,5 +272,13 @@ public final class Maps {
             return map.put(key, value);
         }
         return null;
+    }
+
+    public static <K, V> Map<K, V> deepCopy(Map<K, V> map) {
+        return (Map<K, V>) map.entrySet().stream()
+            .collect(toMap(
+                e -> e.getKey(),
+                e -> e.getValue() instanceof Map<?, ?> m ? new HashMap<>(m) : e.getValue()
+            ));
     }
 }

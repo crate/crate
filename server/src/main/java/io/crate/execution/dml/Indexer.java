@@ -274,7 +274,8 @@ public class Indexer {
         }
 
         /**
-         * Checks if the given value is an object Overwrites the given item with generated/default children which are obtained from {@link Indexer#synthetics}.
+         * Overwrites the given item with generated/default children (not only the immediate children but all dependants)
+         * which are obtained from {@link Indexer#synthetics}.
          * The main usage of this method is `RETURNING` clause returning objects with generated/default sub-columns
          * where the result set is expected to contain all children.
          * <p>
@@ -285,24 +286,30 @@ public class Indexer {
          */
         private Object overwriteGeneratedChildren(IndexItem item, Object parent, Reference parentRef) {
             if (parent instanceof Map<?, ?>) {
-                @SuppressWarnings("unchecked")
-                Map<String, Object> m = (Map<String, Object>) parent;
-                for (var child : table.getLeafReferences(parentRef)) {
-                    if ((child.isGenerated() || child.defaultExpression() != null)) {
-                        var childCollectExpression = getImplementation(child);
-                        childCollectExpression.setNextRow(item);
-                        var childPath = child.column().path();
-                        Maps.mergeInto(
-                            m,
-                            childPath.getFirst(),
-                            childPath.subList(1, childPath.size()),
-                            childCollectExpression.value(),
-                            Map::put,
-                            false);
-                    }
+                // all descendant synthetics
+                var synthetics = table.getLeafReferences(parentRef)
+                    .stream().filter(child -> child.isGenerated() || child.defaultExpression() != null).toList();
+                if (synthetics.isEmpty()) {
+                    return parent;
                 }
+                @SuppressWarnings("unchecked")
+                Map<String, Object> m = Maps.deepCopy((Map<String, Object>) parent);
+                for (Reference syntheticChild : synthetics) {
+                    var childCollectExpression = getImplementation(syntheticChild);
+                    childCollectExpression.setNextRow(item);
+                    var childPath = syntheticChild.column().path();
+                    Maps.mergeInto(
+                        m,
+                        childPath.getFirst(),
+                        childPath.subList(1, childPath.size()),
+                        childCollectExpression.value(),
+                        Map::put,
+                        false);
+                }
+                return m;
+            } else {
+                return parent;
             }
-            return parent;
         }
     }
 
