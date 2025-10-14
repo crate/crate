@@ -46,4 +46,13 @@ series.
 Fixes
 =====
 
-None
+- Improved ``WHERE`` clause analysis for queries on tables with both ``PARTITION
+  BY`` and ``CLUSTERED BY`` clause to narrow the partitions and shards that are
+  hit if the query filters on the ``PARTITIONED BY`` and ``CLUSTERED BY``
+  columns. An example::
+
+    CREATE TABLE tbl (x int, c int, p int) clustered by (c) partitioned by (p);
+    SELECT * FROM tbl WHERE c = 1 and p = 1;
+
+  In this case the query will only search in the partition ``p=1`` and hit a
+  single shard depending on the routing for ``c=1``
