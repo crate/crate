@@ -123,6 +123,14 @@ public class Collect implements LogicalPlan {
         this.tableInfo = relation.tableInfo();
     }
 
+    /// @return a new Collect operator with changed outputs
+    public Collect withOutputs(List<Symbol> newOutputs) {
+        Collect collect = new Collect(relation, newOutputs, immutableWhere);
+        collect.mutableBoundWhere = mutableBoundWhere;
+        collect.detailedQuery = detailedQuery;
+        return collect;
+    }
+
     @Override
     public ExecutionPlan build(DependencyCarrier executor,
                                PlannerContext plannerContext,
@@ -348,7 +356,7 @@ public class Collect implements LogicalPlan {
         if (newOutputs.size() == outputs.size() && newOutputs.containsAll(outputs)) {
             return this;
         }
-        return new Collect(relation, List.copyOf(newOutputs), immutableWhere);
+        return withOutputs(List.copyOf(newOutputs));
     }
 
     @Nullable
@@ -385,14 +393,7 @@ public class Collect implements LogicalPlan {
             return null;
         }
         newOutputs.add(0, fetchMarker);
-        return new FetchRewrite(
-            replacedOutputs,
-            new Collect(
-                relation,
-                newOutputs,
-                immutableWhere
-            )
-        );
+        return new FetchRewrite(replacedOutputs, withOutputs(newOutputs));
     }
 
     @Override
