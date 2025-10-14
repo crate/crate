@@ -32,6 +32,8 @@ import static org.mockito.Mockito.when;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.Map.Entry;
 import java.util.UUID;
 
 import org.elasticsearch.action.UnavailableShardsException;
@@ -40,13 +42,20 @@ import org.elasticsearch.index.shard.ShardId;
 import org.junit.Before;
 import org.junit.Test;
 
+import com.carrotsearch.hppc.IntIndexedContainer;
+
 import io.crate.data.Row1;
 import io.crate.exceptions.ConversionException;
+import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.CoordinatorTxnCtx;
+import io.crate.metadata.PartitionName;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
+import io.crate.planner.node.dql.Collect;
+import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
@@ -151,5 +160,35 @@ public class PlannerTest extends CrateDummyClusterServiceUnitTest {
             .hasPGError(INTERNAL_ERROR)
             .hasHTTPError(INTERNAL_SERVER_ERROR, 5002)
             .hasMessageContaining("[tbl] shard 11 is not available");
+    }
+
+    @Test
+    public void test_table_with_clustered_by_and_partition_filter_routing() throws Exception {
+        String schema = e.getSessionSettings().currentSchema();
+        RelationName relName = new RelationName(schema, "t1");
+        e.addTable(
+            """
+            CREATE TABLE t1 (
+               a int,
+               impression_id text,
+               "time" TIMESTAMP WITH TIME ZONE,
+               "daypart" TIMESTAMP WITH TIME ZONE GENERATED ALWAYS AS date_trunc('day', "time")
+           ) CLUSTERED BY ("impression_id") INTO 10 SHARDS PARTITIONED BY ("daypart")
+            """,
+            new PartitionName(relName, List.of("1760392800000")).asIndexName(),
+            new PartitionName(relName, List.of("1760306400000")).asIndexName(),
+            new PartitionName(relName, List.of("1760220000000")).asIndexName()
+        );
+        QueryThenFetch qtf = e.plan(
+            "SELECT * FROM t1 WHERE impression_id='10-uuid' AND daypart=1760306400000 ORDER BY a DESC LIMIT 3");
+        RoutedCollectPhase collectPhase = (RoutedCollectPhase) ((Collect) qtf.subPlan()).collectPhase();
+        Map<String, IntIndexedContainer> indicesAndShards = collectPhase.routing().locations().entrySet().iterator().next().getValue();
+        assertThat(indicesAndShards)
+            .as("Routing includes only one partition because of daypart filter")
+            .hasSize(1);
+        Entry<String, IntIndexedContainer> firstEntry = indicesAndShards.entrySet().iterator().next();
+        assertThat(firstEntry.getValue())
+            .as("Routing includes only one shard because of impression_id filter (clustered by)")
+            .hasSize(1);
     }
 }
