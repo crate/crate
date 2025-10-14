@@ -239,10 +239,27 @@ public class Collect implements LogicalPlan {
                                            SubQueryResults subQueryResults) {
         boolean onPartitionedTable = false;
         WhereClause boundWhere;
+        // bind all parameters and possible subQuery values and re-analyze the query
+        // (could result in a NO_MATCH, routing could've changed, etc).
         if (tableInfo instanceof DocTableInfo docTable) {
             onPartitionedTable = docTable.isPartitioned();
             if (detailedQuery == null) {
                 boundWhere = immutableWhere.map(binder);
+                Symbol query = GeneratedColumnExpander.maybeExpand(
+                    boundWhere.queryOrFallback(),
+                    docTable.generatedColumns(),
+                    Lists.concat(docTable.partitionedByColumns(), Lists.map(docTable.primaryKey(), docTable::getReference)),
+                    plannerContext.nodeContext()
+                );
+                if (!query.equals(boundWhere.queryOrFallback())) {
+                    boundWhere = new WhereClause(query, boundWhere.partitions(), boundWhere.clusteredBy());
+                }
+                boundWhere = WhereClauseAnalyzer.resolvePartitions(
+                    boundWhere,
+                    relation,
+                    plannerContext.transactionContext(),
+                    plannerContext.nodeContext(),
+                    plannerContext.clusterState().metadata());
             } else {
                 boundWhere = detailedQuery.toBoundWhereClause(
                     docTable,
@@ -253,29 +270,14 @@ public class Collect implements LogicalPlan {
                     plannerContext.clusterState().metadata()
                 );
             }
-            Symbol query = GeneratedColumnExpander.maybeExpand(
-                boundWhere.queryOrFallback(),
-                docTable.generatedColumns(),
-                Lists.concat(docTable.partitionedByColumns(), Lists.map(docTable.primaryKey(), docTable::getReference)),
-                plannerContext.nodeContext()
-            );
-            if (!query.equals(boundWhere.queryOrFallback())) {
-                boundWhere = new WhereClause(query, boundWhere.partitions(), boundWhere.clusteredBy());
-            }
         } else {
             boundWhere = immutableWhere.map(binder);
         }
 
-        // bind all parameters and possible subQuery values and re-analyze the query
-        // (could result in a NO_MATCH, routing could've changed, etc).
-        // the <p>where</p> instance variable must be overwritten as the plan creation of outer operators relies on it
+        // the `mutableBoundWhere` variable must be overwritten as the plan
+        // creation of outer operators relies on it
         // (e.g. GroupHashAggregate will build different plans based on the collect routing)
-        mutableBoundWhere = WhereClauseAnalyzer.resolvePartitions(
-            boundWhere,
-            relation,
-            plannerContext.transactionContext(),
-            plannerContext.nodeContext(),
-            plannerContext.clusterState().metadata());
+        mutableBoundWhere = boundWhere;
         if (mutableBoundWhere.hasVersions()) {
             throw VersioningValidationException.versionInvalidUsage();
         } else if (mutableBoundWhere.hasSeqNoAndPrimaryTerm()) {
