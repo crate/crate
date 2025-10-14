@@ -22,61 +22,37 @@
 package io.crate.statistics;
 
 import java.io.IOException;
-import java.util.HashMap;
-import java.util.Map;
 
-import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.jetbrains.annotations.Nullable;
 
-import io.crate.common.collections.Maps;
-import io.crate.expression.symbol.AliasSymbol;
-import io.crate.expression.symbol.ScopedSymbol;
-import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
-import io.crate.types.FixedWidthType;
+public record Stats(long numDocs, long sizeInBytes) implements Writeable {
 
-public record Stats(long numDocs,
-                    long sizeInBytes,
-                    Map<ColumnIdent, ColumnStats<?>> statsByColumn) implements Writeable {
-
-    public static final Stats EMPTY = new Stats(-1, -1, Map.of());
+    public static final Stats EMPTY = new Stats(-1, -1);
 
     public static Stats readFrom(StreamInput in) throws IOException {
         long numDocs = in.readLong();
         long sizeInBytes = in.readLong();
-        int numColumnStats = in.readVInt();
-        Map<ColumnIdent, ColumnStats<?>> statsByColumn = HashMap.newHashMap(numColumnStats);
-        for (int i = 0; i < numColumnStats; i++) {
-            statsByColumn.put(ColumnIdent.of(in), new ColumnStats<>(in));
-        }
-        return new Stats(numDocs, sizeInBytes, statsByColumn);
+        return new Stats(numDocs, sizeInBytes);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeLong(numDocs);
         out.writeLong(sizeInBytes);
-        out.writeVInt(statsByColumn.size());
-        for (var entry : statsByColumn.entrySet()) {
-            entry.getKey().writeTo(out);
-            entry.getValue().writeTo(out);
-        }
     }
 
     public boolean isEmpty() {
-        return numDocs == -1 && sizeInBytes == -1 && statsByColumn.isEmpty();
+        return numDocs == -1 && sizeInBytes == -1;
     }
 
     public Stats withNumDocs(long numDocs) {
         long sizePerRow = averageSizePerRowInBytes();
         if (sizePerRow < 1) {
-            return new Stats(numDocs, -1, statsByColumn);
+            return new Stats(numDocs, -1);
         } else {
-            return new Stats(numDocs, sizePerRow * numDocs, statsByColumn);
+            return new Stats(numDocs, sizePerRow * numDocs);
         }
     }
 
@@ -87,8 +63,7 @@ public record Stats(long numDocs,
                 : numDocs + other.numDocs,
             sizeInBytes == -1 || other.sizeInBytes == -1
                 ? -1
-                : sizeInBytes + other.sizeInBytes,
-            Maps.concat(statsByColumn, other.statsByColumn)
+                : sizeInBytes + other.sizeInBytes
         );
     }
 
@@ -108,39 +83,5 @@ public record Stats(long numDocs,
         } else {
             return sizeInBytes / numDocs;
         }
-    }
-
-    public Map<ColumnIdent, ColumnStats<?>> statsByColumn() {
-        return statsByColumn;
-    }
-
-    @Nullable
-    public ColumnStats<?> getColumnStats(ColumnIdent column) {
-        return statsByColumn.get(column);
-    }
-
-    public long estimateSizeForColumns(Iterable<? extends Symbol> toCollect) {
-        long sum = 0L;
-        for (Symbol symbol : toCollect) {
-            ColumnStats<?> columnStats = null;
-            while (symbol instanceof AliasSymbol alias) {
-                symbol = alias.symbol();
-            }
-            if (symbol instanceof Reference ref) {
-                columnStats = statsByColumn.get(ref.column());
-            } else if (symbol instanceof ScopedSymbol scopedSymbol) {
-                columnStats = statsByColumn.get(scopedSymbol.column());
-            }
-            if (columnStats == null) {
-                if (symbol.valueType() instanceof FixedWidthType fixedWidthType) {
-                    sum += fixedWidthType.fixedSize();
-                } else {
-                    sum += RamUsageEstimator.UNKNOWN_DEFAULT_RAM_BYTES_USED;
-                }
-            } else {
-                sum += (long) columnStats.averageSizeInBytes();
-            }
-        }
-        return sum;
     }
 }

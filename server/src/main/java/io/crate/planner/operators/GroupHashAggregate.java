@@ -77,10 +77,10 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         for (Symbol groupKey : groupKeys) {
             ColumnStats<?> columnStats = null;
             if (groupKey instanceof Reference ref) {
-                columnStats = stats.statsByColumn().get(ref.column());
+                columnStats = stats.getColumnStats(ref.column());
                 numKeysWithStats++;
             } else if (groupKey instanceof ScopedSymbol scopedSymbol) {
-                columnStats = stats.statsByColumn().get(scopedSymbol.column());
+                columnStats = stats.getColumnStats(scopedSymbol.column());
                 numKeysWithStats++;
             }
 

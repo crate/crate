@@ -208,7 +208,7 @@ public class SelectivityFunctions {
         if (column == null) {
             return MAGIC_SEL;
         }
-        var columnStats = stats.statsByColumn().get(column);
+        var columnStats = stats.getColumnStats(column);
         if (columnStats == null) {
             return MAGIC_SEL;
         }
@@ -223,7 +223,7 @@ public class SelectivityFunctions {
         if (lhsColumn == null) {
             return DEFAULT_EQ_SEL;
         }
-        var lhsStats = stats.statsByColumn().get(lhsColumn);
+        var lhsStats = stats.getColumnStats(lhsColumn);
         if (lhsStats == null) {
             return DEFAULT_EQ_SEL;
         }
@@ -240,7 +240,7 @@ public class SelectivityFunctions {
             if (rhsColumn == null) {
                 return 1.0 / lhsStats.approxDistinct();
             }
-            var rhsStats = stats.statsByColumn().get(rhsColumn);
+            var rhsStats = stats.getColumnStats(rhsColumn);
             if (rhsStats == null) {
                 return 1.0 / lhsStats.approxDistinct();
             }
