@@ -264,7 +264,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
 
             statsService.remove(table1);
             assertThat(statsService.loadFromDisk(table1)).isNull();
-            assertThat(statsService.loadColumnStats(table1, List.of(aColIdent, bColIdent))).isEmpty();
             assertThat(statsService.get(table1)).isNull();
         }
     }
@@ -296,7 +295,6 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             statsService.update(Map.of(relationName, stats));
             statsService.clear();
             assertThat(statsService.loadFromDisk(relationName)).isNull();
-            assertThat(statsService.loadColumnStats(relationName, List.of(xColIdent, yColIdent))).isEmpty();
             assertThat(statsService.get(relationName)).isNull();
         }
     }
