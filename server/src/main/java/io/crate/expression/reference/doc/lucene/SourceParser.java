@@ -27,6 +27,8 @@ import static org.elasticsearch.common.xcontent.XContentParser.Token.VALUE_NULL;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.UncheckedIOException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
@@ -253,13 +255,27 @@ public final class SourceParser {
             case START_ARRAY -> parseArray(parser, type, requiredColumns);
             case START_OBJECT -> parseObject(parser, requiredColumns, includeUnknown);
             case VALUE_STRING -> isUndefined(type) ? parser.text() : parseByType(parser, type);
-            case VALUE_NUMBER -> isUndefined(type) ? parser.numberValue() : parseByType(parser, type);
+            case VALUE_NUMBER -> isUndefined(type) ? numberValue(parser.numberValue()) : parseByType(parser, type);
             case VALUE_BOOLEAN -> isUndefined(type) ? parser.booleanValue() : parseByType(parser, type);
             case VALUE_EMBEDDED_OBJECT -> isUndefined(type) ? parser.binaryValue() : parseByType(parser, type);
             default -> throw new UnsupportedOperationException("Unsupported token encountered, expected a value, got "
                 + parser.currentToken());
         };
     }
+
+    /**
+     * For the undefined case, Number's concrete types is guessed by the parser.
+     * ParserBase.getNumberValue always returns BigInteger for integral big numbers.
+     * We must use BigDecimal for NUMERIC even for integral values, otherwise streaming will be broken.
+     * @param number is a Number returned by the parser.
+     */
+    private static Number numberValue(Number number) {
+        if (number instanceof BigInteger bigInt) {
+            return new BigDecimal(bigInt);
+        }
+        return number;
+    }
+
 
     private static boolean isUndefined(@Nullable DataType<?> type) {
         return type == null || type.id() == DataTypes.UNDEFINED.id();

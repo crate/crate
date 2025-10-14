@@ -23,6 +23,7 @@ package io.crate.expression.reference.doc.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.math.BigDecimal;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -513,5 +514,22 @@ public class SourceParserTest extends ESTestCase {
             """));
 
         assertThat(result.get("x")).isNull();
+    }
+
+    @Test
+    public void test_ignored_object_with_big_integral_number_is_parsed_as_bigdecimal() throws Exception {
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
+        ObjectType objectType = ObjectType.of(ColumnPolicy.IGNORED).build();
+        sourceParser.register(ColumnIdent.of("_doc", List.of("o")), objectType);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {
+                    "o": {
+                        "x": 30000000000000000000000000000000
+                    }
+                }
+            """
+        ));
+        assertThat(Maps.getByPath(result, "o.x")).isInstanceOf(BigDecimal.class);
     }
 }
