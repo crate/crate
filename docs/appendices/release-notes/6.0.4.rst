@@ -56,3 +56,6 @@ Fixes
 
   In this case the query will only search in the partition ``p=1`` and hit a
   single shard depending on the routing for ``c=1``
+
+- Fixed a replication issue happening when an integral value, not fitting to
+  ``INT`` or ``LONG`` types, was stored in an OBJECT with policy ``IGNORED``.
