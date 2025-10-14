@@ -21,8 +21,6 @@
 
 package io.crate.common.collections;
 
-import static java.util.stream.Collectors.toMap;
-
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -139,6 +137,26 @@ public final class Maps {
             }
         }
         return newList;
+    }
+
+    public static boolean pathExists(Map<?, ?> map, List<String> path) {
+        Map<?, ?> current = map;
+        for (int i = 0; i < path.size(); i++) {
+            String key = path.get(i);
+            if (!current.containsKey(key)) {
+                return false;
+            }
+            if (i + 1 == path.size()) {
+                return true;
+            }
+            var val = current.get(key);
+            if (val instanceof Map<?, ?> nested) {
+                current = nested;
+            } else {
+                return false;
+            }
+        }
+        return true;
     }
 
     @Nullable
@@ -274,11 +292,29 @@ public final class Maps {
         return null;
     }
 
+    /**
+     * Returns a modifiable deep copy of the given map.
+     */
     public static <K, V> Map<K, V> deepCopy(Map<K, V> map) {
-        return (Map<K, V>) map.entrySet().stream()
-            .collect(toMap(
-                e -> e.getKey(),
-                e -> e.getValue() instanceof Map<?, ?> m ? new HashMap<>(m) : e.getValue()
-            ));
+        Map<K, V> copy = new HashMap<>();
+        for (Map.Entry<K, V> e : map.entrySet()) {
+            V value = e.getValue();
+            if (value instanceof Map<?, ?> nested) {
+                copy.put(e.getKey(), (V) deepCopy(nested));
+            } else if (value instanceof List<?> list) {
+                List<Object> newList = new ArrayList<>();
+                for (Object item : list) {
+                    if (item instanceof Map<?, ?> m) {
+                        newList.add(deepCopy(m));
+                    } else {
+                        newList.add(item);
+                    }
+                }
+                copy.put(e.getKey(), (V) newList);
+            } else {
+                copy.put(e.getKey(), e.getValue());
+            }
+        }
+        return copy;
     }
 }

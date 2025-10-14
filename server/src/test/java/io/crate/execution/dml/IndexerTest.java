@@ -1694,7 +1694,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 create table t (
                     o object as (
                         a int,
-                        b int as o['a']+1
+                        b int as o['a']+1,
+                        c int default 10
                     )
                 )
                 """);
@@ -1716,6 +1717,11 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         // insert into t values (null) returning *
         var returning = indexer.returnValues(item(new Object[]{null}));
         assertThat(returning[0]).isNull();
+
+        // insert into t values ({a=null, c=null}) returning *
+        returning = indexer.returnValues(item(MapBuilder.newMapBuilder().put("a", null).put("c", null).map()));
+        // {a=null, b=null, c=null} - 'b' is correctly generated and 'c' is not defaulted to 10
+        assertThat(returning[0]).isEqualTo(MapBuilder.newMapBuilder().put("a", null).put("b", null).put("c", null).map());
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {

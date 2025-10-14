@@ -202,12 +202,7 @@ public class Indexer {
             }
             int index = targetColumns.indexOf(ref);
             if (index > -1) {
-                return NestableCollectExpression.forFunction(
-                    item -> {
-                        var val = item.insertValues()[index];
-                        return overwriteGeneratedChildren(item, val, ref);
-                    }
-                );
+                return NestableCollectExpression.forFunction(item -> item.insertValues()[index]);
             }
             if (ref.granularity() == RowGranularity.PARTITION) {
                 int pIndex = table.partitionedByColumns().indexOf(ref);
@@ -271,45 +266,6 @@ public class Indexer {
             });
             Input<?> accept = generatedExpression.accept(symbolEval, Row.EMPTY);
             return accept.value();
-        }
-
-        /**
-         * Overwrites the given item with generated/default children (not only the immediate children but all dependants)
-         * which are obtained from {@link Indexer#synthetics}.
-         * The main usage of this method is `RETURNING` clause returning objects with generated/default sub-columns
-         * where the result set is expected to contain all children.
-         * <p>
-         * More background info - the current design for INSERT/UPDATE does not merge the insert values with
-         * generated/default sub-columns.
-         * They are held separately in {@link IndexItem#insertValues} and {@link Indexer#synthetics} to save the cost
-         * of streaming to replicas.
-         */
-        private Object overwriteGeneratedChildren(IndexItem item, Object parent, Reference parentRef) {
-            if (parent instanceof Map<?, ?>) {
-                // all descendant synthetics
-                var synthetics = table.getLeafReferences(parentRef)
-                    .stream().filter(child -> child.isGenerated() || child.defaultExpression() != null).toList();
-                if (synthetics.isEmpty()) {
-                    return parent;
-                }
-                @SuppressWarnings("unchecked")
-                Map<String, Object> m = Maps.deepCopy((Map<String, Object>) parent);
-                for (Reference syntheticChild : synthetics) {
-                    var childCollectExpression = getImplementation(syntheticChild);
-                    childCollectExpression.setNextRow(item);
-                    var childPath = syntheticChild.column().path();
-                    Maps.mergeInto(
-                        m,
-                        childPath.getFirst(),
-                        childPath.subList(1, childPath.size()),
-                        childCollectExpression.value(),
-                        Map::put,
-                        false);
-                }
-                return m;
-            } else {
-                return parent;
-            }
         }
     }
 
@@ -645,7 +601,9 @@ public class Indexer {
                     // across indexing and return values
                     Synthetic synthetic = synthetics.get(ref.column());
                     if (synthetic == null) {
-                        return ctxForRefs.add(ref);
+                        Input<?> input = ctxForRefs.add(ref);
+                        // If 'ref' is an object column with synthetic children, the synthetic values need to be merged
+                        return () -> mergeSyntheticChildren(ref, input);
                     } else {
                         return synthetic;
                     }
@@ -679,6 +637,53 @@ public class Indexer {
             }
         }
         return indexColumns;
+    }
+
+    /**
+     * Creates a copy of the given value and merges in its synthetic children for object columns; otherwise returns the
+     * original value unchanged.
+     * <p>
+     * Mainly used for `RETURNING` clause returning objects with synthetic sub-columns where the result set is expected
+     * to contain all children.
+     * <p>
+     * Background: the reason for creating a copy and merging - the current design for INSERT/UPDATE does not merge the
+     * insert values with synthetic sub-columns.
+     * They are held separately in {@link IndexItem#insertValues} and {@link Indexer#synthetics} to save the cost
+     * of streaming to replicas.
+     */
+    private Object mergeSyntheticChildren(Reference parentRef, Input<?> input) {
+        Object value = input.value();
+        if (value instanceof Map<?, ?>) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> m = Maps.deepCopy((Map<String, Object>) value);
+            ColumnIdent parentColumn = parentRef.column();
+            for (Synthetic childSynthetic : synthetics.values()) {
+                ColumnIdent childSyntheticColumn = childSynthetic.ref.column();
+                if (!childSyntheticColumn.isChildOf(parentColumn) ||
+                    // Sometimes Indexer#synthetics contains a non-synthetic object column
+                    // if it is a parent of a synthetic
+                    (!childSynthetic.ref.isGenerated() && childSynthetic.ref.defaultExpression() == null)) {
+                    continue;
+                }
+                var childSyntheticPath = childSyntheticColumn.path();
+
+                // preserve any existing synthetic children's values - even nulls
+                if (Maps.pathExists(m, childSyntheticPath)) {
+                    continue;
+                }
+
+                Maps.mergeInto(
+                    m,
+                    childSyntheticPath.getFirst(),
+                    childSyntheticPath.subList(1, childSyntheticPath.size()),
+                    childSynthetic.value(),
+                    Map::put,
+                    false);
+            }
+            return m;
+        } else {
+            return value;
+        }
     }
 
     /**

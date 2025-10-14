@@ -47,5 +47,4 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-- Fixed an issue where generated sub-columns were missing from results returned
-  by the ``RETURNING`` clause.
+None

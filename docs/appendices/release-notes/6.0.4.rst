@@ -57,5 +57,5 @@ Fixes
   In this case the query will only search in the partition ``p=1`` and hit a
   single shard depending on the routing for ``c=1``
 
-- Fixed an issue where generated sub-columns were missing from results returned
-  by the ``RETURNING`` clause.
+- Fixed an issue where generated and default sub-columns were missing from
+  results returned by the ``RETURNING`` clause.
