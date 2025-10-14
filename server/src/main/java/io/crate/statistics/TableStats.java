@@ -23,22 +23,28 @@ package io.crate.statistics;
 
 import static io.crate.common.collections.Iterables.sequentialStream;
 
-import io.crate.metadata.RelationName;
-import io.crate.metadata.table.TableInfo;
-
 import java.util.function.Function;
 import java.util.stream.Stream;
+
+import io.crate.metadata.RelationName;
+import io.crate.metadata.table.TableInfo;
 
 /**
  * Holds table statistics that are updated periodically by {@link TableStatsService}.
  */
 public class TableStats {
 
-    private volatile Function<RelationName, Stats> tableStats = x -> null;
+    private volatile Function<RelationName, Stats> tableStats = _ -> null;
+    private volatile Function<RelationName, ColStats> colStats = _ -> null;
 
     public void updateTableStats(Function<RelationName, Stats> tableStats) {
         this.tableStats = tableStats;
     }
+
+    public void updateColStats(Function<RelationName, ColStats> colStats) {
+        this.colStats = colStats;
+    }
+
 
     /**
      * Returns the number of docs a table has.
@@ -52,17 +58,6 @@ public class TableStats {
         return getStats(relationName).numDocs();
     }
 
-    /**
-     * Returns an estimation (avg) size of each row of the table in bytes.
-     * <p>
-     * <p>
-     * The returned number isn't an accurate real-time value but a cached value that is periodically updated
-     * </p>
-     * Returns -1 if the table isn't in the cache
-     */
-    public long estimatedSizePerRow(RelationName relationName) {
-        return getStats(relationName).averageSizePerRowInBytes();
-    }
 
     /**
      * Returns an estimation (avg) size of each row of the table in bytes or if no stats are available
@@ -73,7 +68,7 @@ public class TableStats {
         if (stats == null) {
             // if stats are not available we fall back to estimate the size based on
             // column types. Therefore we need to get the column information.
-            return Stats.EMPTY.estimateSizeForColumns(tableInfo);
+            return ColStats.EMPTY.estimateSizeForColumns(tableInfo);
         } else {
             return stats.averageSizePerRowInBytes();
         }
@@ -82,8 +77,8 @@ public class TableStats {
     public Iterable<ColumnStatsEntry> statsEntries(Iterable<RelationName> relationNames) {
         return () -> sequentialStream(relationNames)
             .flatMap(relationName -> {
-                Stats stats = getStats(relationName);
-                if (stats == Stats.EMPTY) {
+                ColStats stats = getColStats(relationName);
+                if (stats == ColStats.EMPTY) {
                     return Stream.empty();
                 } else {
                     return stats.statsByColumn().entrySet().stream()
@@ -96,5 +91,10 @@ public class TableStats {
     public Stats getStats(RelationName relationName) {
         Stats stats = tableStats.apply(relationName);
         return stats == null ? Stats.EMPTY : stats;
+    }
+
+    public ColStats getColStats(RelationName relationName) {
+        ColStats stats = colStats.apply(relationName);
+        return stats == null ? ColStats.EMPTY : stats;
     }
 }

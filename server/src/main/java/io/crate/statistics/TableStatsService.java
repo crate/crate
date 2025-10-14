@@ -93,7 +93,7 @@ import io.crate.session.Sessions;
  * based on {@link #refreshInterval}.
  */
 @Singleton
-public class TableStatsService extends AbstractLifecycleComponent implements Runnable, ClusterStateListener {
+public class TableStatsService extends AbstractLifecycleComponent implements StatsLookup, Runnable, ClusterStateListener {
 
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
@@ -435,6 +435,16 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             }
         }
         return columnStatsMap;
+    }
+
+    public Stats getStats(RelationName relationName) {
+        Stats stats = cache.get(relationName);
+        return stats == null ? Stats.EMPTY : stats;
+    }
+
+    @Override
+    public long numDocs(RelationName relationName) {
+        return getStats(relationName).numDocs();
     }
 
     private record DocsToPersist(Document table, Map<ColumnIdent, Document> cols){}
