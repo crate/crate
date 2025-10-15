@@ -48,7 +48,7 @@ import io.crate.types.DataType;
 public interface Reference extends Symbol {
 
     public static final Comparator<Reference> CMP_BY_POSITION_THEN_NAME = Comparator
-        .comparing(Reference::position)
+        .comparingInt(Reference::position)
         .thenComparing(r -> r.column().fqn());
 
     public static int indexOf(Iterable<? extends Reference> refs, ColumnIdent column) {
