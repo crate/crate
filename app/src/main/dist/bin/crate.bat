@@ -116,6 +116,8 @@ if "%CRATE_CLASSPATH%" == "" (
 set CRATE_PARAMS=-Cpath.home="%CRATE_HOME%"
 
 set params='%*'
+REM PowerShell splits setting keys/values on `.`, so this joins again the splitted keys/values
+set params=%params: .=.%
 
 for /F "usebackq tokens=* delims= " %%A in (!params!) do (
     set param=%%A
