@@ -66,6 +66,13 @@ public final class EquiJoinDetector {
     }
 
     /**
+     * Returns true if the join condition is a simple equi join condition of the form, 'col1 = col2'.
+     */
+    public static boolean isTopLevelEquiJoin(Symbol joinCondition) {
+        return joinCondition instanceof Function f && f.signature().equals(EqOperator.SIGNATURE) && isEquiJoin(joinCondition);
+    }
+
+    /**
      * insideEqualOperand is used to mark starting point of the computation of the either sides of equality.
      *
      */
