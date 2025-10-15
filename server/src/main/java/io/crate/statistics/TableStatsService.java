@@ -22,10 +22,11 @@
 package io.crate.statistics;
 
 
-import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.file.Path;
+import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.apache.logging.log4j.LogManager;
@@ -33,6 +34,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
+import org.apache.lucene.document.IntField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexReader;
@@ -43,12 +45,14 @@ import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.SearcherManager;
 import org.apache.lucene.search.TermQuery;
+import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.NIOFSDirectory;
@@ -62,7 +66,8 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.InputStreamStreamInput;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
@@ -76,13 +81,17 @@ import org.jetbrains.annotations.VisibleForTesting;
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
+import io.crate.Streamer;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.session.BaseResultReceiver;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 
 /**
  * Handles persistence for {@link TableStats} and periodically refreshes {@link TableStats}
@@ -101,8 +110,42 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
     static final String STMT = "ANALYZE";
     private static final String STATS = "_stats";
-    private static final String DATA_FIELD = "data";
-    private static final String RELATION_NAME_FIELD = "relationName";
+
+    private static final String FIELD_TYPE = "type";
+
+    private enum FieldType {
+        TABLE,
+        COLUMN;
+
+        private static final List<FieldType> VALUES = List.of(FieldType.values());
+
+        static FieldType of(int ordinal) {
+            return VALUES.get(ordinal);
+        }
+    }
+
+    private static class MetaDocFields {
+        static final String VERSION = "version";
+    }
+
+    private static class TableDocFields {
+
+        static final String NAME = "relation";
+        static final String NUM_DOCS = "numDocs";
+        static final String SIZE_IN_BYTES = "size";
+    }
+
+    private static class ColumnDocFields {
+
+        private static final String REL_NAME = "relation";
+        private static final String COLUMN = "column";
+        private static final String VALUE_TYPE = "valueType";
+        private static final String NULL_FRACTION = "nullFraction";
+        private static final String AVG_SIZE_IN_BYTES = "avgSize";
+        private static final String APPROX_DISTINCT = "approxDistinct";
+        private static final String MOST_COMMON_VALUES = "mcv";
+        private static final String HISTOGRAM = "histogram";
+    }
 
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
@@ -119,7 +162,6 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
     @VisibleForTesting
     volatile Scheduler.ScheduledCancellable scheduledRefresh;
-
 
 
     public TableStatsService(Settings settings,
@@ -144,10 +186,10 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
         try {
             this.directory = new NIOFSDirectory(dataPath.resolve(STATS));
-            IndexWriterConfig indexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
-            indexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
-            indexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-            this.writer = new IndexWriter(directory, indexWriterConfig);
+            IndexWriterConfig writerConfig = new IndexWriterConfig(new KeywordAnalyzer());
+            writerConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+            writerConfig.setMergeScheduler(new SerialMergeScheduler());
+            this.writer = new IndexWriter(directory, writerConfig);
             this.searcherManager = new SearcherManager(writer, null);
 
             // ensure index files exist for reads
@@ -242,7 +284,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
     public void remove(RelationName relationName) {
         try {
-            writer.deleteDocuments(relTerm(relationName));
+            writer.deleteDocuments(new Term(TableDocFields.NAME, relationName.fqn()));
             writer.commit();
             cache.invalidate(relationName);
         } catch (IOException e) {
@@ -263,67 +305,168 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     @VisibleForTesting
     @Nullable
     Stats loadFromDisk(RelationName relationName) {
+        HashMap<ColumnIdent, ColumnStats<?>> columnStatsMap = new HashMap<>();
+        long numDocs = 0;
+        long sizeInBytes = 0;
+        IndexSearcher tablesSearcher = null;
+        boolean match = false;
         try {
             searcherManager.maybeRefreshBlocking();
-            IndexSearcher searcher = searcherManager.acquire();
-            try {
-                searcher.setQueryCache(null);
-                Query query = new TermQuery(relTerm(relationName));
-                Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
-                IndexReader reader = searcher.getIndexReader();
-                for (LeafReaderContext leafReaderContext : reader.leaves()) {
-                    Scorer scorer = weight.scorer(leafReaderContext);
-                    if (scorer == null) {
-                        continue;
-                    }
-                    DocIdSetIterator docIdSetIterator = scorer.iterator();
-                    StoredFields storedFields = leafReaderContext.reader().storedFields();
-                    if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                        Document doc = storedFields.document(docIdSetIterator.docID());
-                        BytesRef binaryValue = doc.getBinaryValue(DATA_FIELD);
-                        ByteArrayInputStream bis = new ByteArrayInputStream(binaryValue.bytes);
-                        InputStreamStreamInput in = new InputStreamStreamInput(bis);
-                        Version version = Version.readVersion(in);
-                        in.setVersion(version);
-                        return Stats.readFrom(new InputStreamStreamInput(in));
+            tablesSearcher = searcherManager.acquire();
+            tablesSearcher.setQueryCache(null);
+            Query query = new TermQuery(new Term(TableDocFields.NAME, relationName.fqn()));
+            Weight weight = tablesSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+            IndexReader reader = tablesSearcher.getIndexReader();
+            TopDocs versionTopDoc = tablesSearcher.search(new FieldExistsQuery(MetaDocFields.VERSION), 1);
+            if (versionTopDoc.totalHits.value() != 1L) {
+                return null;
+            }
+            int versionDocId = versionTopDoc.scoreDocs[0].doc;
+            Document versionDoc = reader.storedFields().document(versionDocId);
+            int internalVersion = versionDoc.getField(MetaDocFields.VERSION).storedValue().getIntValue();
+            Version version = Version.fromId(internalVersion);
+            for (LeafReaderContext leafReaderContext : reader.leaves()) {
+                Scorer scorer = weight.scorer(leafReaderContext);
+                if (scorer == null) {
+                    continue;
+                }
+                DocIdSetIterator docIdSetIterator = scorer.iterator();
+                StoredFields storedFields = leafReaderContext.reader().storedFields();
+                while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                    match = true;
+                    Document doc = storedFields.document(docIdSetIterator.docID());
+                    FieldType fieldType = FieldType.of(doc.getField(FIELD_TYPE).storedValue().getIntValue());
+                    switch (fieldType) {
+                        case COLUMN -> {
+                            String columnName = doc.getField(ColumnDocFields.COLUMN).stringValue();
+                            ColumnIdent column = ColumnIdent.of(columnName);
+                            DataType<?> valueType = decode(
+                                version,
+                                DataTypes::fromStream,
+                                doc.getBinaryValue(ColumnDocFields.VALUE_TYPE)
+                            );
+                            ColumnStats<?> columnStats = readColumnStats(version, doc, valueType);
+                            columnStatsMap.put(column, columnStats);
+                        }
+                        case TABLE -> {
+                            numDocs = doc.getField(TableDocFields.NUM_DOCS).storedValue().getLongValue();
+                            sizeInBytes = doc.getField(TableDocFields.SIZE_IN_BYTES).storedValue().getLongValue();
+                        }
+                        default -> {
+                            throw new AssertionError("Unexpected fieldType: " + fieldType);
+                        }
                     }
                 }
-            } finally {
-                searcherManager.release(searcher);
             }
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
+        } finally {
+            try {
+                searcherManager.release(tablesSearcher);
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
         }
-        return null;
+        if (!match) {
+            return null;
+        }
+        return new Stats(numDocs, sizeInBytes, columnStatsMap);
     }
 
-    public void update(Map<RelationName, Stats> stats) {
+    private static <T> ColumnStats<T> readColumnStats(Version version, Document doc, DataType<T> type) throws IOException {
+        double nullFraction = doc.getField(ColumnDocFields.NULL_FRACTION).storedValue().getDoubleValue();
+        double avgSizeInBytes = doc.getField(ColumnDocFields.AVG_SIZE_IN_BYTES).storedValue().getDoubleValue();
+        double approxDistinct = doc.getField(ColumnDocFields.APPROX_DISTINCT).storedValue().getDoubleValue();
+        Streamer<T> streamer = type.streamer();
+        MostCommonValues<T> mostCommonValues = decode(
+            version,
+            in -> new MostCommonValues<T>(streamer, in),
+            doc.getBinaryValue(ColumnDocFields.MOST_COMMON_VALUES)
+        );
+        List<T> histogram = decode(
+            version,
+            in -> in.readList(streamer::readValueFrom),
+            doc.getBinaryValue(ColumnDocFields.HISTOGRAM)
+        );
+        return new ColumnStats<>(
+            nullFraction,
+            avgSizeInBytes,
+            approxDistinct,
+            type,
+            mostCommonValues,
+            histogram
+        );
+    }
+
+    public void update(Map<RelationName, Stats> relationsStats) {
         try {
-            for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
+            writer.deleteAll();
+            Document metaDoc = new Document();
+            metaDoc.add(new IntField(MetaDocFields.VERSION, Version.CURRENT.internalId, Field.Store.YES));
+            writer.addDocument(metaDoc);
+            for (var entry : relationsStats.entrySet()) {
                 RelationName relationName = entry.getKey();
-                Document doc = makeDocument(relationName, entry.getValue());
-                writer.updateDocument(relTerm(relationName), doc);
+                Stats stats = entry.getValue();
+
+                Document tableDoc = new Document();
+                String fqTableName = relationName.fqn();
+                tableDoc.add(new StringField(TableDocFields.NAME, fqTableName, Field.Store.NO));
+                tableDoc.add(new StoredField(FIELD_TYPE, FieldType.TABLE.ordinal()));
+                tableDoc.add(new StoredField(TableDocFields.NUM_DOCS, stats.numDocs()));
+                tableDoc.add(new StoredField(TableDocFields.SIZE_IN_BYTES, stats.sizeInBytes()));
+                writer.addDocument(tableDoc);
+
+                for (var columnEntry : stats.statsByColumn().entrySet()) {
+                    ColumnIdent column = columnEntry.getKey();
+                    ColumnStats<?> columnStats = columnEntry.getValue();
+                    writer.addDocument(createColDoc(fqTableName, column, columnStats));
+                }
             }
             writer.commit();
-            cache.invalidateAll(stats.keySet());
             searcherManager.maybeRefresh();
+            cache.invalidateAll(relationsStats.keySet());
         } catch (IOException e) {
             throw new UncheckedIOException("Can't write TableStats to disk", e);
         }
     }
 
-    private static Term relTerm(RelationName relationName) {
-        return new Term(RELATION_NAME_FIELD, relationName.fqn());
+    private static <T> Document createColDoc(String fqTableName, ColumnIdent column, ColumnStats<T> columnStats) throws IOException {
+        String sqlFqn = column.sqlFqn();
+        Document colDoc = new Document();
+        colDoc.add(new StringField(ColumnDocFields.REL_NAME, fqTableName, Field.Store.YES));
+        colDoc.add(new StoredField(FIELD_TYPE, FieldType.COLUMN.ordinal()));
+        colDoc.add(new StringField(ColumnDocFields.COLUMN, sqlFqn, Field.Store.YES));
+        colDoc.add(new StoredField(ColumnDocFields.NULL_FRACTION, columnStats.nullFraction()));
+        colDoc.add(new StoredField(ColumnDocFields.AVG_SIZE_IN_BYTES, columnStats.averageSizeInBytes()));
+        colDoc.add(new StoredField(ColumnDocFields.APPROX_DISTINCT, columnStats.approxDistinct()));
+
+        Streamer<T> streamer = columnStats.type().streamer();
+        try (var out = new BytesStreamOutput()) {
+            DataTypes.toStream(columnStats.type(), out);
+            colDoc.add(new StoredField(ColumnDocFields.VALUE_TYPE, out.bytes().toBytesRef()));
+        }
+        try (var out = new BytesStreamOutput()) {
+            columnStats.mostCommonValues().writeTo(streamer, out);
+            BytesRef bytesRef = out.bytes().toBytesRef();
+            colDoc.add(new StoredField(ColumnDocFields.MOST_COMMON_VALUES, bytesRef));
+        }
+        try (var out = new BytesStreamOutput()) {
+            List<T> histogram = columnStats.histogram();
+            out.writeVInt(histogram.size());
+            for (T value : histogram) {
+                streamer.writeValueTo(out, value);
+            }
+            BytesRef bytesRef = out.bytes().toBytesRef();
+            colDoc.add(new StoredField(ColumnDocFields.HISTOGRAM, bytesRef));
+        }
+        return colDoc;
     }
 
-    private static Document makeDocument(RelationName relationName, Stats stats) throws IOException {
-        BytesStreamOutput bytesStreamOutput = new BytesStreamOutput();
-        Version.writeVersion(Version.CURRENT, bytesStreamOutput);
-        stats.writeTo(bytesStreamOutput);
-        Document document = new Document();
-        document.add(new StringField(RELATION_NAME_FIELD, relationName.fqn(), Field.Store.NO));
-        document.add(new StoredField(DATA_FIELD, bytesStreamOutput.bytes().toBytesRef()));
-        return document;
+    private static <T> T decode(Version version, Writeable.Reader<T> reader, BytesRef bytesRef) throws IOException {
+        try (var in = StreamInput.wrap(bytesRef.bytes, bytesRef.offset, bytesRef.length)) {
+            in.setVersion(version);
+            return reader.read(in);
+        }
     }
 
     @Override

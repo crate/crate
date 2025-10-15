@@ -221,14 +221,16 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_remove_stats() throws IOException {
+    public void test_remove_stats() {
         ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(
             DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9)
         );
 
+        var aColIdent = ColumnIdent.of("a");
+        var bColIdent = ColumnIdent.of("b");
         Stats stats1 = new Stats(9L, 9L * DataTypes.INTEGER.fixedSize(), Map.of(
-            ColumnIdent.of("a"), columnStats,
-            ColumnIdent.of("b"), columnStats)
+            aColIdent, columnStats,
+            bColIdent, columnStats)
         );
 
         Stats stats2 = new Stats(9L, 9L * DataTypes.INTEGER.fixedSize(), Map.of(
@@ -261,19 +263,21 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             assertThat(statsService.get(table2)).isEqualTo(stats2);
 
             statsService.remove(table1);
+            assertThat(statsService.loadFromDisk(table1)).isNull();
             assertThat(statsService.get(table1)).isNull();
         }
     }
 
     @Test
-    public void test_clear() throws IOException {
+    public void test_clear() {
         ColumnStats<Integer> columnStats = StatsUtils.statsFromValues(
             DataTypes.INTEGER, List.of(1, 2, 3, 4, 5, 6, 7, 8, 9)
         );
-
+        var xColIdent = ColumnIdent.of("x");
+        var yColIdent = ColumnIdent.of("y");
         Stats stats = new Stats(9L, 9L * DataTypes.INTEGER.fixedSize(), Map.of(
-            ColumnIdent.of("x"), columnStats,
-            ColumnIdent.of("y"), columnStats)
+            xColIdent, columnStats,
+            yColIdent, columnStats)
         );
         RelationName relationName = RelationName.fromIndexName("doc.test");
 
@@ -289,9 +293,9 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
                 createTempDir())) {
 
             statsService.update(Map.of(relationName, stats));
-            statsService.clear();;
-            Stats loaded = statsService.get(relationName);
-            assertThat(loaded).isNull();
+            statsService.clear();
+            assertThat(statsService.loadFromDisk(relationName)).isNull();
+            assertThat(statsService.get(relationName)).isNull();
         }
     }
 }

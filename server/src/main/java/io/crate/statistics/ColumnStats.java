@@ -88,6 +88,10 @@ public final class ColumnStats<T> implements Writeable {
         }
     }
 
+    public DataType<T> type() {
+        return type;
+    }
+
     public double averageSizeInBytes() {
         return averageSizeInBytes;
     }
