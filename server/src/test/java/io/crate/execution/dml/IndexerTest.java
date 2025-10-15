@@ -1592,6 +1592,138 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertTranslogParses(parsedDocument, table);
     }
 
+    @Test
+    public void test_returning_clause_containing_synthetic_columns() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table t (
+                    a int,
+                    o object as (
+                        a2 int,
+                        b2 int as a+o['a2']+o['c2'],
+                        c2 int default 2,
+                        d2 timestamp default now(),
+                        e2 timestamp as now()
+                    ),
+                    b int as a+o['a2']+o['c2'],
+                    c int default 2,
+                    d timestamp default now(),
+                    e timestamp as now()
+                )
+                """);
+        DocTableInfo table = executor.resolveTableInfo("t");
+
+        var targetColumns = List.of(table.getReference(ColumnIdent.of("a")), table.getReference(ColumnIdent.of("o")));
+        Indexer indexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            new ArrayList<>(targetColumns),
+            null,
+            List.of(
+                table.getReference(ColumnIdent.of("a")),
+                table.getReference(ColumnIdent.of("o")),
+                table.getReference(ColumnIdent.of("b")),
+                table.getReference(ColumnIdent.of("c")),
+                table.getReference(ColumnIdent.of("d")),
+                table.getReference(ColumnIdent.of("e"))
+            ).toArray(Symbol[]::new)
+        );
+
+        // insert into t(a,o) values (1, {a2=10}) returning *
+        var returning = indexer.returnValues(item(1, MapBuilder.newMapBuilder().put("a2", 10).map()));
+
+        assertThat(returning[0]).isEqualTo(1);
+        assertThat(returning[1]).hasFieldOrPropertyWithValue("a2", 10);
+        assertThat(returning[1]).hasFieldOrPropertyWithValue("b2", 13);
+        assertThat(returning[1]).hasFieldOrPropertyWithValue("c2", 2);
+        assertThat(returning[1]).hasFieldOrProperty("d2");
+        assertThat(returning[1]).hasFieldOrProperty("e2");
+
+        // columns(b,c,d,e) that are not included in Indexer.targetColumns but still need to be returned
+        assertThat(returning[2]).isEqualTo(13);
+        assertThat(returning[3]).isEqualTo(2);
+        assertThat(returning[4]).isNotNull();
+        assertThat(returning[5]).isNotNull();
+    }
+
+    @Test
+    public void test_returning_clause_containing_nested_synthetic_columns() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table t (
+                    a int,
+                    o object as (
+                        a int,
+                        oo object as (
+                            a int,
+                            b int as a + o['a'] + o['oo']['a']
+                        )
+                    )
+                )
+                """);
+        DocTableInfo table = executor.resolveTableInfo("t");
+
+        Indexer indexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            new ArrayList<>(List.of(table.getReference(ColumnIdent.of("a")), table.getReference(ColumnIdent.of("o")))),
+            null,
+            List.of(
+                table.getReference(ColumnIdent.of("a")),
+                table.getReference(ColumnIdent.of("o"))
+            ).toArray(Symbol[]::new)
+        );
+
+        // insert into t values (1, {a=2, oo={a=3}}) returning *
+        var returning = indexer.returnValues(item(1, MapBuilder.newMapBuilder().put("a", 2).put("oo", MapBuilder.newMapBuilder().put("a", 3).map()).map()));
+
+        assertThat(returning[0]).isEqualTo(1);
+        assertThat(returning[1]).isEqualTo(Map.of("a", 2, "oo", Map.of("a", 3, "b", 6)));
+    }
+
+    @Test
+    public void test_inserting_null_with_returning_clause_containing_synthetic_sub_columns() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table t (
+                    o object as (
+                        a int,
+                        b int as o['a']+1,
+                        c int default 10
+                    )
+                )
+                """);
+        DocTableInfo table = executor.resolveTableInfo("t");
+
+        Indexer indexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            new ArrayList<>(List.of(table.getReference(ColumnIdent.of("o")))),
+            null,
+            List.of(
+                table.getReference(ColumnIdent.of("o"))
+            ).toArray(Symbol[]::new)
+        );
+
+        // insert into t values (null) returning *
+        var returning = indexer.returnValues(item(new Object[]{null}));
+        assertThat(returning[0]).isNull();
+
+        // insert into t values ({a=null, c=null}) returning *
+        returning = indexer.returnValues(item(MapBuilder.newMapBuilder().put("a", null).put("c", null).map()));
+        // {a=null, b=null, c=null} - 'b' is correctly generated and 'c' is not defaulted to 10
+        assertThat(returning[0]).isEqualTo(MapBuilder.newMapBuilder().put("a", null).put("b", null).put("c", null).map());
+    }
+
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
         assertTranslogParses(doc, info, Version.CURRENT);
     }
