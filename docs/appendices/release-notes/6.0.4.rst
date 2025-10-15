@@ -59,3 +59,8 @@ Fixes
 
 - Fixed a replication issue happening when an integral value, not fitting to
   ``INT`` or ``LONG`` types, was stored in an OBJECT with policy ``IGNORED``.
+
+- Fixed an issue with ``crate.bat`` Windows startup script throwing error and
+  preventing bootstrap of CrateDB, if ``PowerShell`` was used instead of plain
+  ``CMD`` and parameters were passed with ``-C<key>=value`` command line
+  arguments.
