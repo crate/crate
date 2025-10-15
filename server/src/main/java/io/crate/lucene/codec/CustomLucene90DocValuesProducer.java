@@ -1817,7 +1817,21 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
 
     @Override
     public void checkIntegrity() throws IOException {
-        CodecUtil.checksumEntireFile(data);
+        IndexInput clone = data.clone();
+        clone.seek(0);
+        var in = new UnbufferedChecksumIndexInput(clone);
+        assert in.getFilePointer() == 0;
+        int footerLength = CodecUtil.footerLength();
+        if (in.length() < footerLength) {
+            throw new CorruptIndexException(
+                "misplaced codec footer (file truncated?): length="
+                    + in.length()
+                    + " but footerLength=="
+                    + footerLength,
+                data);
+        }
+        in.seek(in.length() - footerLength);
+        CodecUtil.checkFooter(in);
     }
 
     /**
