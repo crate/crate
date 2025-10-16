@@ -411,7 +411,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                 Document tableDoc = new Document();
                 String fqTableName = relationName.fqn();
                 tableDoc.add(new StringField(TableDocFields.NAME, fqTableName, Field.Store.NO));
-                tableDoc.add(new StoredField(FIELD_TYPE, FieldType.TABLE.ordinal()));
+                tableDoc.add(new IntField(FIELD_TYPE, FieldType.TABLE.ordinal(), Field.Store.YES));
                 tableDoc.add(new StoredField(TableDocFields.NUM_DOCS, stats.numDocs()));
                 tableDoc.add(new StoredField(TableDocFields.SIZE_IN_BYTES, stats.sizeInBytes()));
                 writer.addDocument(tableDoc);
@@ -434,7 +434,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         String sqlFqn = column.sqlFqn();
         Document colDoc = new Document();
         colDoc.add(new StringField(ColumnDocFields.REL_NAME, fqTableName, Field.Store.YES));
-        colDoc.add(new StoredField(FIELD_TYPE, FieldType.COLUMN.ordinal()));
+        colDoc.add(new IntField(FIELD_TYPE, FieldType.COLUMN.ordinal(), Field.Store.YES));
         colDoc.add(new StringField(ColumnDocFields.COLUMN, sqlFqn, Field.Store.YES));
         colDoc.add(new StoredField(ColumnDocFields.NULL_FRACTION, columnStats.nullFraction()));
         colDoc.add(new StoredField(ColumnDocFields.AVG_SIZE_IN_BYTES, columnStats.averageSizeInBytes()));
