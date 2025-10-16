@@ -214,7 +214,7 @@ public abstract class AbstractScopedSettings {
      */
     public synchronized <T> void addSettingsUpdateConsumer(Setting<T> setting, Consumer<T> consumer, Consumer<T> validator) {
         if (setting != get(setting.getKey())) {
-            throw new IllegalArgumentException("Setting is not registered for key [" + setting.getKey() + "]");
+            return;
         }
         addSettingsUpdater(setting.newUpdater(consumer, logger, validator));
     }
