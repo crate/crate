@@ -1227,6 +1227,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             assert hi < 0 || getTermFromIndex(hi).compareTo(text) <= 0;
             assert hi == ((entry.termsDictSize - 1) >> entry.termsDictIndexShift)
                 || getTermFromIndex(hi + 1).compareTo(text) > 0;
+            assert hi < 0 ^ entry.termsDictSize > 0; // return -1 iff empty term dict
 
             return hi;
         }
@@ -1243,7 +1244,9 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         private long seekBlock(BytesRef text) throws IOException {
             long index = seekTermsIndex(text);
             if (index == -1L) {
-                return -1L;
+                // empty terms dict
+                this.ord = 0;
+                return -2L;
             }
 
             long ordLo = index << entry.termsDictIndexShift;
@@ -1267,22 +1270,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             assert blockHi == ((entry.termsDictSize - 1) >>> entry.termsDictBlockShift)
                 || getFirstTermFromBlock(blockHi + 1).compareTo(text) > 0;
 
-            return blockHi;
-        }
-
-        @Override
-        public SeekStatus seekCeil(BytesRef text) throws IOException {
-            final long block = seekBlock(text);
-            if (block == -1) {
-                // before the first term, or empty terms dict
-                if (entry.termsDictSize == 0) {
-                    ord = 0;
-                    return SeekStatus.END;
-                } else {
-                    seekExact(0L);
-                    return SeekStatus.NOT_FOUND;
-                }
-            }
+            // read the block only if term dict is not empty
+            assert entry.termsDictSize > 0;
+            // reset ord and bytes to the ceiling block even if
+            // text is before the first term (blockHi == -1)
+            final long block = Math.max(blockHi, 0);
             final long blockAddress = blockAddresses.get(block);
             this.ord = block << entry.termsDictBlockShift;
             bytes.seek(blockAddress);
@@ -1291,6 +1283,20 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             } else {
                 term.length = bytes.readVInt();
                 bytes.readBytes(term.bytes, 0, term.length);
+            }
+            return blockHi;
+        }
+
+        @Override
+        public SeekStatus seekCeil(BytesRef text) throws IOException {
+            final long block = seekBlock(text);
+            if (block == -2) {
+                // empty terms dict
+                assert entry.termsDictSize == 0;
+                return SeekStatus.END;
+            } else if (block == -1) {
+                // before the first term
+                return SeekStatus.NOT_FOUND;
             }
 
             while (true) {
