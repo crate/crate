@@ -352,9 +352,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                             numDocs = doc.getField(TableDocFields.NUM_DOCS).storedValue().getLongValue();
                             sizeInBytes = doc.getField(TableDocFields.SIZE_IN_BYTES).storedValue().getLongValue();
                         }
-                        default -> {
-                            throw new AssertionError("Unexpected fieldType: " + fieldType);
-                        }
+                        default -> throw new AssertionError("Unexpected fieldType: " + fieldType);
                     }
                 }
             }
@@ -380,7 +378,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         Streamer<T> streamer = type.streamer();
         MostCommonValues<T> mostCommonValues = decode(
             version,
-            in -> new MostCommonValues<T>(streamer, in),
+            in -> new MostCommonValues<>(streamer, in),
             doc.getBinaryValue(ColumnDocFields.MOST_COMMON_VALUES)
         );
         List<T> histogram = decode(
