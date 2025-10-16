@@ -60,8 +60,6 @@ import io.crate.types.DataTypes;
 public class TableStatsServiceBenchmark {
 
     private TableStatsService tableStatsService;
-    private TableStatsServiceWithoutType tableStatsServiceWithoutType;
-    private TableStatsServiceSeparateIndices tableStatsServiceSeparateIndices;
     private Map<RelationName, Stats> stats;
 
     @Setup
@@ -77,20 +75,6 @@ public class TableStatsServiceBenchmark {
             clusterService,
             mock(Sessions.class),
             Files.createTempDirectory("bench_table_stats")
-        );
-        tableStatsServiceWithoutType = new TableStatsServiceWithoutType(
-            Settings.builder().put(STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), TimeValue.timeValueHours(24)).build(),
-            new ThreadPool(Settings.EMPTY),
-            clusterService,
-            mock(Sessions.class),
-            Files.createTempDirectory("bench_table_stats_withoutType")
-        );
-        tableStatsServiceSeparateIndices = new TableStatsServiceSeparateIndices(
-            Settings.builder().put(STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), TimeValue.timeValueHours(24)).build(),
-            new ThreadPool(Settings.EMPTY),
-            clusterService,
-            mock(Sessions.class),
-            Files.createTempDirectory("bench_table_stats_withoutType")
         );
         stats = HashMap.newHashMap(500);
         for (int i = 0; i < 500; i++) {
@@ -124,8 +108,6 @@ public class TableStatsServiceBenchmark {
             stats.put(relationName, new Stats(numDocs, sizeInBytes, colStats));
         }
         tableStatsService.update(stats);
-        tableStatsServiceWithoutType.update(stats);
-        tableStatsServiceSeparateIndices.update(stats);
     }
 
     @Benchmark
@@ -135,28 +117,6 @@ public class TableStatsServiceBenchmark {
             for (int j = 0; j < 1000; j+=9) {
                 var colIdent = ColumnIdent.of("col_" + i);
                 blackhole.consume(tableStatsService.loadColStatsFromDisk(relationName, colIdent));
-            }
-        }
-    }
-
-    @Benchmark
-    public void measureLoadColStatsFromDisk_withoutType(Blackhole blackhole) {
-        for (int i = 0; i < 500; i+=5) {
-            var relationName = new RelationName("schema_" + i, "table" + i);
-            for (int j = 0; j < 1000; j+=9) {
-                var colIdent = ColumnIdent.of("col_" + i);
-                blackhole.consume(tableStatsServiceWithoutType.loadColumnStats(relationName, colIdent));
-            }
-        }
-    }
-
-    @Benchmark
-    public void measureLoadColStatsFromDisk_separateIndices(Blackhole blackhole) {
-        for (int i = 0; i < 500; i+=5) {
-            var relationName = new RelationName("schema_" + i, "table" + i);
-            for (int j = 0; j < 1000; j+=9) {
-                var colIdent = ColumnIdent.of("col_" + i);
-                blackhole.consume(tableStatsServiceSeparateIndices.loadColumnStats(relationName, colIdent));
             }
         }
     }

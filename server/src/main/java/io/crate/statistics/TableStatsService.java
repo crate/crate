@@ -35,9 +35,9 @@ import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
-import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
+import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
@@ -341,7 +341,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                     FieldType fieldType = FieldType.of(doc.getField(FIELD_TYPE).storedValue().getIntValue());
                     switch (fieldType) {
                         case COLUMN -> {
-                            String columnName = doc.getField(ColumnDocFields.COLUMN).stringValue();
+                            String columnName = doc.getField(ColumnDocFields.COLUMN).binaryValue().utf8ToString();
                             ColumnIdent column = ColumnIdent.of(columnName);
                             DataType<?> valueType = decode(
                                 version,
@@ -388,7 +388,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             Query query = new BooleanQuery.Builder()
                 .add(new TermQuery(new Term(ColumnDocFields.REL_NAME, relationName.fqn())), BooleanClause.Occur.MUST)
                 .add(new TermQuery(new Term(ColumnDocFields.COLUMN, columnIdent.sqlFqn())), BooleanClause.Occur.MUST)
-                .add(IntPoint.newExactQuery(FIELD_TYPE, FieldType.COLUMN.ordinal()), BooleanClause.Occur.MUST)
+//                .add(IntPoint.newExactQuery(FIELD_TYPE, FieldType.COLUMN.ordinal()), BooleanClause.Occur.MUST)
                 .build();
             Weight weight = tablesSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
             IndexReader reader = tablesSearcher.getIndexReader();
@@ -466,7 +466,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                 Document tableDoc = new Document();
                 String fqTableName = relationName.fqn();
                 tableDoc.add(new StringField(TableDocFields.NAME, fqTableName, Field.Store.NO));
-                tableDoc.add(new IntField(FIELD_TYPE, FieldType.TABLE.ordinal(), Field.Store.YES));
+                tableDoc.add(new StoredField(FIELD_TYPE, FieldType.TABLE.ordinal()));
                 tableDoc.add(new StoredField(TableDocFields.NUM_DOCS, stats.numDocs()));
                 tableDoc.add(new StoredField(TableDocFields.SIZE_IN_BYTES, stats.sizeInBytes()));
                 writer.addDocument(tableDoc);
@@ -488,9 +488,15 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     private static <T> Document createColDoc(String fqTableName, ColumnIdent column, ColumnStats<T> columnStats) throws IOException {
         String sqlFqn = column.sqlFqn();
         Document colDoc = new Document();
+        var fieldType = new org.apache.lucene.document.FieldType();
+        fieldType.setOmitNorms(false);
+        fieldType.setIndexOptions(IndexOptions.DOCS);
+        fieldType.setStored(true);
+        fieldType.setTokenized(false);
+        fieldType.freeze();
         colDoc.add(new StringField(ColumnDocFields.REL_NAME, fqTableName, Field.Store.YES));
-        colDoc.add(new IntField(FIELD_TYPE, FieldType.COLUMN.ordinal(), Field.Store.YES));
-        colDoc.add(new StringField(ColumnDocFields.COLUMN, sqlFqn, Field.Store.YES));
+        colDoc.add(new StoredField(FIELD_TYPE, FieldType.COLUMN.ordinal()));
+        colDoc.add(new Field(ColumnDocFields.COLUMN, new BytesRef(sqlFqn), fieldType));
         colDoc.add(new StoredField(ColumnDocFields.NULL_FRACTION, columnStats.nullFraction()));
         colDoc.add(new StoredField(ColumnDocFields.AVG_SIZE_IN_BYTES, columnStats.averageSizeInBytes()));
         colDoc.add(new StoredField(ColumnDocFields.APPROX_DISTINCT, columnStats.approxDistinct()));
