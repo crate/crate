@@ -46,6 +46,7 @@ import org.openjdk.jmh.annotations.OutputTimeUnit;
 import org.openjdk.jmh.annotations.Scope;
 import org.openjdk.jmh.annotations.Setup;
 import org.openjdk.jmh.annotations.State;
+import org.openjdk.jmh.infra.Blackhole;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.ColumnIdent;
@@ -60,7 +61,7 @@ public class TableStatsServiceBenchmark {
 
     private TableStatsService tableStatsService;
     private TableStatsServiceWithoutType tableStatsServiceWithoutType;
-    private TableStatsServiceAllInOne tableStatsServiceAllInOne;
+    private TableStatsServiceSeparateIndices tableStatsServiceSeparateIndices;
     private Map<RelationName, Stats> stats;
 
     @Setup
@@ -84,12 +85,12 @@ public class TableStatsServiceBenchmark {
             mock(Sessions.class),
             Files.createTempDirectory("bench_table_stats_withoutType")
         );
-        tableStatsServiceAllInOne = new TableStatsServiceAllInOne(
+        tableStatsServiceSeparateIndices = new TableStatsServiceSeparateIndices(
             Settings.builder().put(STATS_SERVICE_REFRESH_INTERVAL_SETTING.getKey(), TimeValue.timeValueHours(24)).build(),
             new ThreadPool(Settings.EMPTY),
             clusterService,
             mock(Sessions.class),
-            Files.createTempDirectory("bench_table_stats_allInOne")
+            Files.createTempDirectory("bench_table_stats_withoutType")
         );
         stats = HashMap.newHashMap(500);
         for (int i = 0; i < 500; i++) {
@@ -122,21 +123,41 @@ public class TableStatsServiceBenchmark {
             }
             stats.put(relationName, new Stats(numDocs, sizeInBytes, colStats));
         }
-
-    }
-
-    @Benchmark
-    public void measureSaveTableStatsToDisk() {
         tableStatsService.update(stats);
-    }
-
-    @Benchmark
-    public void measureSaveTableStatsWithoutTypeToDisk() {
         tableStatsServiceWithoutType.update(stats);
+        tableStatsServiceSeparateIndices.update(stats);
     }
 
     @Benchmark
-    public void measureSaveTableStatsAllInOneToDisk() {
-        tableStatsServiceAllInOne.update(stats);
+    public void measureLoadColStatsFromDisk(Blackhole blackhole) {
+        for (int i = 0; i < 500; i+=5) {
+            var relationName = new RelationName("schema_" + i, "table" + i);
+            for (int j = 0; j < 1000; j+=9) {
+                var colIdent = ColumnIdent.of("col_" + i);
+                blackhole.consume(tableStatsService.loadColStatsFromDisk(relationName, colIdent));
+            }
+        }
+    }
+
+    @Benchmark
+    public void measureLoadColStatsFromDisk_withoutType(Blackhole blackhole) {
+        for (int i = 0; i < 500; i+=5) {
+            var relationName = new RelationName("schema_" + i, "table" + i);
+            for (int j = 0; j < 1000; j+=9) {
+                var colIdent = ColumnIdent.of("col_" + i);
+                blackhole.consume(tableStatsServiceWithoutType.loadColumnStats(relationName, colIdent));
+            }
+        }
+    }
+
+    @Benchmark
+    public void measureLoadColStatsFromDisk_separateIndices(Blackhole blackhole) {
+        for (int i = 0; i < 500; i+=5) {
+            var relationName = new RelationName("schema_" + i, "table" + i);
+            for (int j = 0; j < 1000; j+=9) {
+                var colIdent = ColumnIdent.of("col_" + i);
+                blackhole.consume(tableStatsServiceSeparateIndices.loadColumnStats(relationName, colIdent));
+            }
+        }
     }
 }

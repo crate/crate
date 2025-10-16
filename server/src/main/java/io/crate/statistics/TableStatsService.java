@@ -35,6 +35,7 @@ import org.apache.lucene.analysis.core.KeywordAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.apache.lucene.document.IntField;
+import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.document.StringField;
 import org.apache.lucene.index.IndexReader;
@@ -44,6 +45,8 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SerialMergeScheduler;
 import org.apache.lucene.index.StoredFields;
 import org.apache.lucene.index.Term;
+import org.apache.lucene.search.BooleanClause;
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.search.FieldExistsQuery;
 import org.apache.lucene.search.IndexSearcher;
@@ -373,6 +376,58 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         return new Stats(numDocs, sizeInBytes, columnStatsMap);
     }
 
+    @VisibleForTesting
+    @Nullable
+    ColumnStats<?> loadColStatsFromDisk(RelationName relationName, ColumnIdent columnIdent) {
+        ColumnStats<?> columnStats = null;
+        IndexSearcher tablesSearcher = null;
+        try {
+            searcherManager.maybeRefreshBlocking();
+            tablesSearcher = searcherManager.acquire();
+            tablesSearcher.setQueryCache(null);
+            Query query = new BooleanQuery.Builder()
+                .add(new TermQuery(new Term(ColumnDocFields.REL_NAME, relationName.fqn())), BooleanClause.Occur.MUST)
+                .add(new TermQuery(new Term(ColumnDocFields.COLUMN, columnIdent.sqlFqn())), BooleanClause.Occur.MUST)
+                .add(IntPoint.newExactQuery(FIELD_TYPE, FieldType.COLUMN.ordinal()), BooleanClause.Occur.MUST)
+                .build();
+            Weight weight = tablesSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+            IndexReader reader = tablesSearcher.getIndexReader();
+            for (LeafReaderContext leafReaderContext : reader.leaves()) {
+                Scorer scorer = weight.scorer(leafReaderContext);
+                if (scorer == null) {
+                    continue;
+                }
+                DocIdSetIterator docIdSetIterator = scorer.iterator();
+                StoredFields storedFields = leafReaderContext.reader().storedFields();
+                if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                    Document doc = storedFields.document(docIdSetIterator.docID());
+                    FieldType fieldType = FieldType.of(doc.getField(FIELD_TYPE).storedValue().getIntValue());
+                    if (fieldType != FieldType.COLUMN) {
+                        throw new IllegalStateException("WRONG DATA!");
+                    }
+                    DataType<?> valueType = decode(
+                        Version.CURRENT,
+                        DataTypes::fromStream,
+                        doc.getBinaryValue(ColumnDocFields.VALUE_TYPE)
+                    );
+                    columnStats = readColumnStats(Version.CURRENT, doc, valueType);
+                }
+            }
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        } finally {
+            try {
+                searcherManager.release(tablesSearcher);
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
+        }
+        if (columnStats == null) {
+            throw new IllegalStateException("NO DATA FOUND!");
+        }
+        return columnStats;
+    }
+
     private static <T> ColumnStats<T> readColumnStats(Version version, Document doc, DataType<T> type) throws IOException {
         double nullFraction = doc.getField(ColumnDocFields.NULL_FRACTION).storedValue().getDoubleValue();
         double avgSizeInBytes = doc.getField(ColumnDocFields.AVG_SIZE_IN_BYTES).storedValue().getDoubleValue();
@@ -411,7 +466,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                 Document tableDoc = new Document();
                 String fqTableName = relationName.fqn();
                 tableDoc.add(new StringField(TableDocFields.NAME, fqTableName, Field.Store.NO));
-                tableDoc.add(new StoredField(FIELD_TYPE, FieldType.TABLE.ordinal()));
+                tableDoc.add(new IntField(FIELD_TYPE, FieldType.TABLE.ordinal(), Field.Store.YES));
                 tableDoc.add(new StoredField(TableDocFields.NUM_DOCS, stats.numDocs()));
                 tableDoc.add(new StoredField(TableDocFields.SIZE_IN_BYTES, stats.sizeInBytes()));
                 writer.addDocument(tableDoc);
@@ -434,7 +489,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         String sqlFqn = column.sqlFqn();
         Document colDoc = new Document();
         colDoc.add(new StringField(ColumnDocFields.REL_NAME, fqTableName, Field.Store.YES));
-        colDoc.add(new StoredField(FIELD_TYPE, FieldType.COLUMN.ordinal()));
+        colDoc.add(new IntField(FIELD_TYPE, FieldType.COLUMN.ordinal(), Field.Store.YES));
         colDoc.add(new StringField(ColumnDocFields.COLUMN, sqlFqn, Field.Store.YES));
         colDoc.add(new StoredField(ColumnDocFields.NULL_FRACTION, columnStats.nullFraction()));
         colDoc.add(new StoredField(ColumnDocFields.AVG_SIZE_IN_BYTES, columnStats.averageSizeInBytes()));

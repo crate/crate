@@ -93,7 +93,7 @@ import io.crate.session.Sessions;
  * based on {@link #refreshInterval}.
  */
 @Singleton
-public class TableStatsServiceWithoutType extends AbstractLifecycleComponent implements Runnable, ClusterStateListener {
+public class TableStatsServiceSeparateIndices extends AbstractLifecycleComponent implements Runnable, ClusterStateListener {
 
     private static final Logger LOGGER = LogManager.getLogger(TableStatsService.class);
 
@@ -104,7 +104,8 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
         "stats.service.max_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     static final String STMT = "ANALYZE";
-    private static final String STATS = "_stats";
+    private static final String TABLES_STATS = "_stats_tables";
+    private static final String COLS_STATS = "_stats_cols";
     private static final String DATA_FIELD = "data";
     private static final String RELATION_NAME_FIELD = "relationName";
     private static final String COLUMN_NAME_FIELD = "columnName";
@@ -113,9 +114,12 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final Sessions sessions;
-    private final Directory directory;
-    private final IndexWriter writer;
-    private final SearcherManager searcherManager;
+    private final Directory tablesDirectory;
+    private final Directory colsDirectory;
+    private final IndexWriter tablesWriter;
+    private final IndexWriter colsWriter;
+    private final SearcherManager tablesSearcherManager;
+    private final SearcherManager colsSearcherManager;
     private final LoadingCache<RelationName, Stats> cache;
 
     private Session session;
@@ -128,7 +132,7 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
 
 
 
-    public TableStatsServiceWithoutType(Settings settings,
+    public TableStatsServiceSeparateIndices(Settings settings,
                              ThreadPool threadPool,
                              ClusterService clusterService,
                              Sessions sessions,
@@ -149,12 +153,18 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
             .build(this::loadFromDisk);
 
         try {
-            this.directory = new NIOFSDirectory(dataPath.resolve(STATS));
+            this.tablesDirectory = new NIOFSDirectory(dataPath.resolve(TABLES_STATS));
+            this.colsDirectory = new NIOFSDirectory(dataPath.resolve(COLS_STATS));
             IndexWriterConfig tablesIndexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
             tablesIndexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
             tablesIndexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
-            this.writer = new IndexWriter(directory, tablesIndexWriterConfig);
-            this.searcherManager = new SearcherManager(writer, null);
+            IndexWriterConfig colsIndexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
+            colsIndexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+            colsIndexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
+            this.tablesWriter = new IndexWriter(tablesDirectory, tablesIndexWriterConfig);
+            this.tablesSearcherManager = new SearcherManager(tablesWriter, null);
+            this.colsWriter = new IndexWriter(colsDirectory, colsIndexWriterConfig);
+            this.colsSearcherManager = new SearcherManager(colsWriter, null);
 
             // ensure index files exist for reads
             this.update(Map.of());
@@ -176,7 +186,13 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
     @Override
     protected void doClose() throws IOException {
         cache.invalidateAll();
-        IOUtils.closeWhileHandlingException(searcherManager, writer, directory);
+        IOUtils.closeWhileHandlingException(
+            tablesSearcherManager,
+            colsSearcherManager,
+            tablesWriter,
+            colsWriter,
+            tablesDirectory,
+            colsDirectory);
     }
 
     @Override
@@ -251,10 +267,11 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
             PersistedTable persistedTable = loadTableStats(relationName);
             if (persistedTable != null) {
                 for (ColumnIdent columnIdent : persistedTable.cols()) {
-                    writer.deleteDocuments(new TermQuery(colTerm(relationName, columnIdent)));
+                    colsWriter.deleteDocuments(new TermQuery(colTerm(relationName, columnIdent)));
                 }
-                writer.deleteDocuments(relTerm(relationName));
-                writer.commit();
+                colsWriter.commit();
+                tablesWriter.deleteDocuments(relTerm(relationName));
+                tablesWriter.commit();
             }
             cache.invalidate(relationName);
         } catch (IOException e) {
@@ -264,8 +281,10 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
 
     public void clear() {
         try {
-            writer.deleteAll();
-            writer.commit();
+            tablesWriter.deleteAll();
+            tablesWriter.commit();
+            colsWriter.deleteAll();
+            colsWriter.commit();
             cache.invalidateAll();
         } catch (IOException e) {
             throw new UncheckedIOException("Can't delete TableStats from disk", e);
@@ -288,13 +307,15 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
             for (Map.Entry<RelationName, Stats> entry : stats.entrySet()) {
                 RelationName relationName = entry.getKey();
                 DocsToPersist docs = makeDocument(relationName, entry.getValue());
-                writer.updateDocument(relTerm(relationName), docs.table());
+                tablesWriter.updateDocument(relTerm(relationName), docs.table());
                 for (Map.Entry<ColumnIdent, Document> docsEntry : docs.cols().entrySet()) {
-                    writer.updateDocument(colTerm(relationName, docsEntry.getKey()), docsEntry.getValue());
+                    colsWriter.updateDocument(colTerm(relationName, docsEntry.getKey()), docsEntry.getValue());
                 }
             }
-            writer.commit();
-            searcherManager.maybeRefresh();
+            tablesWriter.commit();
+            colsWriter.commit();
+            tablesSearcherManager.maybeRefresh();
+            colsSearcherManager.maybeRefresh();
             cache.invalidateAll(stats.keySet());
         } catch (IOException e) {
             throw new UncheckedIOException("Can't write TableStats to disk", e);
@@ -357,8 +378,8 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
             PersistedTable persistedTable = null;
             IndexSearcher tablesSearcher = null;
             try {
-                searcherManager.maybeRefreshBlocking();
-                tablesSearcher = searcherManager.acquire();
+                tablesSearcherManager.maybeRefreshBlocking();
+                tablesSearcher = tablesSearcherManager.acquire();
                 tablesSearcher.setQueryCache(null);
                 Query query = new TermQuery(relTerm(relationName));
                 Weight weight = tablesSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
@@ -389,49 +410,12 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
                     }
                 }
             } finally {
-                searcherManager.release(tablesSearcher);
+                tablesSearcherManager.release(tablesSearcher);
             }
             return persistedTable;
         } catch (IOException ex) {
             throw new UncheckedIOException(ex);
         }
-    }
-
-    @VisibleForTesting
-    ColumnStats<?> loadColumnStats(RelationName relationName, ColumnIdent columnIdent) {
-        ColumnStats<?> columnStats = null;
-        try {
-            IndexSearcher searcher = null;
-            try {
-                searcherManager.maybeRefreshBlocking();
-                searcher = searcherManager.acquire();
-                searcher.setQueryCache(null);
-                Query query = new TermQuery(colTerm(relationName, columnIdent));
-                Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
-                IndexReader reader = searcher.getIndexReader();
-                for (LeafReaderContext leafReaderContext : reader.leaves()) {
-                    Scorer scorer = weight.scorer(leafReaderContext);
-                    if (scorer == null) {
-                        continue;
-                    }
-                    DocIdSetIterator docIdSetIterator = scorer.iterator();
-                    StoredFields storedFields = leafReaderContext.reader().storedFields();
-                    if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
-                        Document colsDoc = storedFields.document(docIdSetIterator.docID());
-                        BytesRef colsBinaryValue = colsDoc.getBinaryValue(DATA_FIELD);
-                        ByteArrayInputStream colsBis = new ByteArrayInputStream(colsBinaryValue.bytes);
-                        InputStreamStreamInput colsIn = new InputStreamStreamInput(colsBis);
-                        columnStats = new ColumnStats<>(colsIn);
-                    }
-                }
-            } finally {
-                searcherManager.release(searcher);
-            }
-
-        } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
-        }
-        return columnStats;
     }
 
     @VisibleForTesting
@@ -441,8 +425,8 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
             try {
                 IndexSearcher searcher = null;
                 try {
-                    searcherManager.maybeRefreshBlocking();
-                    searcher = searcherManager.acquire();
+                    colsSearcherManager.maybeRefreshBlocking();
+                    searcher = colsSearcherManager.acquire();
                     searcher.setQueryCache(null);
                     Query query = new TermQuery(colTerm(relationName, columnIdent));
                     Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
@@ -464,7 +448,7 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
                         }
                     }
                 } finally {
-                    searcherManager.release(searcher);
+                    colsSearcherManager.release(searcher);
                 }
 
             } catch (IOException ex) {
@@ -474,8 +458,44 @@ public class TableStatsServiceWithoutType extends AbstractLifecycleComponent imp
         return columnStatsMap;
     }
 
+    @VisibleForTesting
+    ColumnStats<?> loadColumnStats(RelationName relationName, ColumnIdent columnIdent) {
+        ColumnStats<?> columnStats = null;
+        try {
+            IndexSearcher searcher = null;
+            try {
+                colsSearcherManager.maybeRefreshBlocking();
+                searcher = colsSearcherManager.acquire();
+                searcher.setQueryCache(null);
+                Query query = new TermQuery(colTerm(relationName, columnIdent));
+                Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+                IndexReader reader = searcher.getIndexReader();
+                for (LeafReaderContext leafReaderContext : reader.leaves()) {
+                    Scorer scorer = weight.scorer(leafReaderContext);
+                    if (scorer == null) {
+                        continue;
+                    }
+                    DocIdSetIterator docIdSetIterator = scorer.iterator();
+                    StoredFields storedFields = leafReaderContext.reader().storedFields();
+                    if (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                        Document colsDoc = storedFields.document(docIdSetIterator.docID());
+                        BytesRef colsBinaryValue = colsDoc.getBinaryValue(DATA_FIELD);
+                        ByteArrayInputStream colsBis = new ByteArrayInputStream(colsBinaryValue.bytes);
+                        InputStreamStreamInput colsIn = new InputStreamStreamInput(colsBis);
+                        columnStats = new ColumnStats<>(colsIn);
+                    }
+                }
+            } finally {
+                colsSearcherManager.release(searcher);
+            }
+
+        } catch (IOException ex) {
+            throw new UncheckedIOException(ex);
+        }
+        return columnStats;
+    }
+
     private record DocsToPersist(Document table, Map<ColumnIdent, Document> cols){}
 
     private record PersistedTable(RelationName relationName, long numDocs, long sizeInBytes, List<ColumnIdent> cols){}
 }
-

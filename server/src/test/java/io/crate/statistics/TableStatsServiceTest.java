@@ -217,6 +217,33 @@ public class TableStatsServiceTest extends CrateDummyClusterServiceUnitTest {
             statsService.update(tableStats);
             assertThat(statsService.get(table1)).isEqualTo(stats1);
             assertThat(statsService.get(table2)).isEqualTo(stats2);
+            assertThat(statsService.loadColStatsFromDisk(table2, ColumnIdent.of("c"))).isEqualTo(stats2.getColumnStats(ColumnIdent.of("c")));
+        }
+
+        try (var statsService = new TableStatsServiceWithoutType(
+                Settings.EMPTY,
+                THREAD_POOL,
+                clusterService,
+                sqlOperations,
+                createTempDir())) {
+
+            statsService.update(tableStats);
+            assertThat(statsService.get(table1)).isEqualTo(stats1);
+            assertThat(statsService.get(table2)).isEqualTo(stats2);
+            assertThat(statsService.loadColumnStats(table2, ColumnIdent.of("c"))).isEqualTo(stats2.getColumnStats(ColumnIdent.of("c")));
+        }
+
+        try (var statsService = new TableStatsServiceSeparateIndices(
+            Settings.EMPTY,
+            THREAD_POOL,
+            clusterService,
+            sqlOperations,
+            createTempDir())) {
+
+            statsService.update(tableStats);
+            assertThat(statsService.get(table1)).isEqualTo(stats1);
+            assertThat(statsService.get(table2)).isEqualTo(stats2);
+            assertThat(statsService.loadColumnStats(table2, ColumnIdent.of("c"))).isEqualTo(stats2.getColumnStats(ColumnIdent.of("c")));
         }
     }
 
