@@ -55,7 +55,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.NIOFSDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -176,8 +176,8 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             .build(this::loadFromDisk);
 
         try {
-            this.tablesDirectory = new NIOFSDirectory(dataPath.resolve(TABLES_STATS));
-            this.colsDirectory = new NIOFSDirectory(dataPath.resolve(COLS_STATS));
+            this.tablesDirectory = MMapDirectory.open(dataPath.resolve(TABLES_STATS));
+            this.colsDirectory = MMapDirectory.open(dataPath.resolve(COLS_STATS));
             IndexWriterConfig tablesIndexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
             tablesIndexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
             tablesIndexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
