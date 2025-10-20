@@ -57,6 +57,7 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;
+import io.crate.collections.accountable.AccountableList;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
@@ -343,14 +344,29 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
         @Override
         public void write(byte[] b, int off, int len) {
-            ramAccounting.addBytes(len);
+            ensureCapacity(count + len);
             super.write(b, off, len);
         }
 
         @Override
         public void write(int b) {
-            ramAccounting.addBytes(1);
+            ensureCapacity(count + 1);
             super.write(b);
+        }
+
+        /**
+         * Inlined growth estimation logic from "ByteArrayOutputStream.ensureCapacity()"
+         * to ensure that we account before potentially large resize to avoid OOM-s.
+         */
+        private void ensureCapacity(int minCapacity) {
+            int oldCapacity = this.buf.length;
+            int minGrowth = minCapacity - oldCapacity;
+            // If prev resizes were enough to handle current write, RamAccounting was already updated,
+            // so we only add bytes on resize.
+            if (minGrowth > 0) {
+                int newCapacity = AccountableList.newLength(oldCapacity, minGrowth, oldCapacity);
+                ramAccounting.addBytes(newCapacity - oldCapacity);
+            }
         }
 
         @Override
