@@ -830,4 +830,40 @@ public class SubSelectIntegrationTest extends IntegTestCase {
         execute(stmt);
         assertThat(response.rowCount()).isEqualTo(15L);
     }
+
+    @Test
+    public void test_exist_subquery_can_return_more_than_one_column() throws Exception {
+        // RPostgres query: https://github.com/crate/crate/issues/18528
+        execute(
+            """
+            SELECT EXISTS
+                (SELECT table_schema,
+                        table_name
+                FROM information_schema.tables
+                WHERE TRUE
+                    AND table_schema = 'pg_catalog'
+                    AND table_name = 'pg_stats');
+            """
+        );
+        assertThat(response).hasRows("true");
+
+        String stmt = """
+            SELECT
+                table_name
+            FROM
+                information_schema.tables t
+            WHERE
+                EXISTS
+                (
+                 SELECT c.table_schema, c.table_name
+                 FROM information_schema.columns c
+                 WHERE
+                    c.table_schema = t.table_schema AND
+                    c.table_name = t.table_name
+                )
+                LIMIT 5
+            """;
+        execute(stmt);
+        assertThat(response).hasRowCount(5);
+    }
 }

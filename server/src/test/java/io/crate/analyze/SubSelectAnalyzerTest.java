@@ -30,6 +30,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -309,9 +310,11 @@ public class SubSelectAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_exists_subquery_cannot_select_more_than_1_column() {
-        assertThatThrownBy(() -> analyze("select * from sys.summits where EXISTS (select 1, 2)"))
-            .hasMessage("Subqueries with more than 1 column are not supported");
+    public void test_exists_subquery_can_select_more_than_1_column() {
+        QueriedSelectRelation rel = analyze(
+            "select mountain from sys.summits where EXISTS (select 1, 2)");
+        assertThat(rel.where()).isSQL("EXISTS (SELECT 1, 2 FROM (empty_row))");
+
     }
 
     @Test
