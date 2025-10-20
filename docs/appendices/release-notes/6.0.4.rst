@@ -64,3 +64,14 @@ Fixes
   preventing bootstrap of CrateDB, if ``PowerShell`` was used instead of plain
   ``CMD`` and parameters were passed with ``-C<key>=value`` command line
   arguments.
+
+- Fixed a ``SQLParseException`` thrown when ``optimizer_equi_join_to_lookup_join``
+  was incorrectly applied to a complex equi-join query. The optimizer rule
+  currently supports only simple equi-join queries like ::
+
+    SELECT * FROM t INNER JOIN t2 ON t.a = t2.a;
+
+- Fixed an issue that caused RAM under-accounting, potentially leading to an
+  ``OutOfMemoryError`` when a large result set was returned by the ``HTTP``
+  endpoint.
+

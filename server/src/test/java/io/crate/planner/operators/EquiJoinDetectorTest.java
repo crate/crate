@@ -165,4 +165,23 @@ public class EquiJoinDetectorTest extends CrateDummyClusterServiceUnitTest {
         Symbol joinCondition = sqlExpressions.asSymbol("(t1.a > 1) = (t2.b < 5 OR t2.b > 10)");
         assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isTrue();
     }
+
+    @Test
+    public void test_detect_pure_equi_join() {
+        Symbol joinCondition = sqlExpressions.asSymbol("t1.a = t2.b AND t1.x = t2.y");
+        assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isTrue();
+        assertThat(EquiJoinDetector.isTopLevelEquiJoin(joinCondition)).isFalse();
+
+        joinCondition = sqlExpressions.asSymbol("t1.x = t2.y");
+        assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isTrue();
+        assertThat(EquiJoinDetector.isTopLevelEquiJoin(joinCondition)).isTrue();
+
+        joinCondition = sqlExpressions.asSymbol("abs(t1.x) + 10 = abs(t2.y) - 10");
+        assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isTrue();
+        assertThat(EquiJoinDetector.isTopLevelEquiJoin(joinCondition)).isTrue();
+
+        joinCondition = sqlExpressions.asSymbol("t1.x = t2.y AND t1.x = 10 AND t2.y = 20");
+        assertThat(EquiJoinDetector.isEquiJoin(joinCondition)).isTrue();
+        assertThat(EquiJoinDetector.isTopLevelEquiJoin(joinCondition)).isFalse();
+    }
 }

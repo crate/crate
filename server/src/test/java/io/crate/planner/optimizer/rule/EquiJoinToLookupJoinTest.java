@@ -21,6 +21,7 @@
 
 package io.crate.planner.optimizer.rule;
 
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -50,8 +51,6 @@ import static io.crate.testing.Asserts.assertThat;
 public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private Reference x;
-    private Reference y;
     private Collect lhs;
     private Collect rhs;
     private DocTableInfo lhsDocTableInfo;
@@ -67,8 +66,8 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
         lhsDocTableInfo = e.resolveTableInfo("lhs");
         rhsDocTableInfo = e.resolveTableInfo("rhs");
 
-        x = (Reference) e.asSymbol("x");
-        y = (Reference) e.asSymbol("y");
+        Reference x = (Reference) e.asSymbol("x");
+        Reference y = (Reference) e.asSymbol("y");
 
         lhs = new Collect(new DocTableRelation(lhsDocTableInfo), List.of(x), WhereClause.MATCH_ALL);
         rhs = new Collect(new DocTableRelation(rhsDocTableInfo), List.of(y), WhereClause.MATCH_ALL);
@@ -280,4 +279,16 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
         assertThat(result).isNull();
     }
 
+    @Test
+    public void test_complex_equi_join_conditions_are_not_supported() throws IOException {
+        var e = SQLExecutor.builder(clusterService)
+            .build()
+            .addTable("create table doc.lhs (x int, x2 int)")
+            .addTable("create table doc.rhs (y int, y2 int)");
+        var joinCondition = e.asSymbol("lhs.x = rhs.y AND lhs.x2 = rhs.y2");
+        var join = new JoinPlan(lhs, rhs, JoinType.INNER, joinCondition);
+        var rule = new EquiJoinToLookupJoin();
+        Match<JoinPlan> match = rule.pattern().accept(join, Captures.empty());
+        Assertions.assertThat(match.isPresent()).isFalse();
+    }
 }

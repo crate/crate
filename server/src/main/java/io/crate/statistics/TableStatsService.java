@@ -55,7 +55,7 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TopDocs;
 import org.apache.lucene.search.Weight;
 import org.apache.lucene.store.Directory;
-import org.apache.lucene.store.NIOFSDirectory;
+import org.apache.lucene.store.MMapDirectory;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -109,20 +109,8 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         "stats.service.max_bytes_per_sec", new ByteSizeValue(40, ByteSizeUnit.MB), Property.NodeScope, Property.Dynamic, Property.Exposed);
 
     static final String STMT = "ANALYZE";
-    private static final String STATS = "_stats";
-
-    private static final String FIELD_TYPE = "type";
-
-    private enum FieldType {
-        TABLE,
-        COLUMN;
-
-        private static final List<FieldType> VALUES = List.of(FieldType.values());
-
-        static FieldType of(int ordinal) {
-            return VALUES.get(ordinal);
-        }
-    }
+    private static final String TABLES_STATS = "_stats_tables";
+    private static final String COLS_STATS = "_stats_cols";
 
     private static class MetaDocFields {
         static final String VERSION = "version";
@@ -150,9 +138,12 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     private final ClusterService clusterService;
     private final ThreadPool threadPool;
     private final Sessions sessions;
-    private final Directory directory;
-    private final IndexWriter writer;
-    private final SearcherManager searcherManager;
+    private final Directory tablesDirectory;
+    private final Directory colsDirectory;
+    private final IndexWriter tablesWriter;
+    private final IndexWriter colsWriter;
+    private final SearcherManager tablesSearcherManager;
+    private final SearcherManager colsSearcherManager;
     private final LoadingCache<RelationName, Stats> cache;
 
     private Session session;
@@ -185,12 +176,18 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             .build(this::loadFromDisk);
 
         try {
-            this.directory = new NIOFSDirectory(dataPath.resolve(STATS));
-            IndexWriterConfig writerConfig = new IndexWriterConfig(new KeywordAnalyzer());
-            writerConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
-            writerConfig.setMergeScheduler(new SerialMergeScheduler());
-            this.writer = new IndexWriter(directory, writerConfig);
-            this.searcherManager = new SearcherManager(writer, null);
+            this.tablesDirectory = MMapDirectory.open(dataPath.resolve(TABLES_STATS));
+            this.colsDirectory = MMapDirectory.open(dataPath.resolve(COLS_STATS));
+            IndexWriterConfig tablesIndexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
+            tablesIndexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+            tablesIndexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
+            IndexWriterConfig colsIndexWriterConfig = new IndexWriterConfig(new KeywordAnalyzer());
+            colsIndexWriterConfig.setOpenMode(IndexWriterConfig.OpenMode.CREATE_OR_APPEND);
+            colsIndexWriterConfig.setMergeScheduler(new SerialMergeScheduler());
+            this.tablesWriter = new IndexWriter(tablesDirectory, tablesIndexWriterConfig);
+            this.tablesSearcherManager = new SearcherManager(tablesWriter, null);
+            this.colsWriter = new IndexWriter(colsDirectory, colsIndexWriterConfig);
+            this.colsSearcherManager = new SearcherManager(colsWriter, null);
 
             // ensure index files exist for reads
             this.update(Map.of());
@@ -212,7 +209,13 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     @Override
     protected void doClose() throws IOException {
         cache.invalidateAll();
-        IOUtils.closeWhileHandlingException(searcherManager, writer, directory);
+        IOUtils.closeWhileHandlingException(
+            tablesSearcherManager,
+            colsSearcherManager,
+            tablesWriter,
+            colsWriter,
+            tablesDirectory,
+            colsDirectory);
     }
 
     @Override
@@ -284,8 +287,11 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
     public void remove(RelationName relationName) {
         try {
-            writer.deleteDocuments(new Term(TableDocFields.NAME, relationName.fqn()));
-            writer.commit();
+            String relNameFqn = relationName.fqn();
+            tablesWriter.deleteDocuments(new Term(TableDocFields.NAME, relNameFqn));
+            colsWriter.deleteDocuments(new Term(ColumnDocFields.REL_NAME, relNameFqn));
+            tablesWriter.commit();
+            colsWriter.commit();
             cache.invalidate(relationName);
         } catch (IOException e) {
             throw new UncheckedIOException("Can't delete TableStats from disk", e);
@@ -294,8 +300,10 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
     public void clear() {
         try {
-            writer.deleteAll();
-            writer.commit();
+            tablesWriter.deleteAll();
+            colsWriter.deleteAll();
+            tablesWriter.commit();
+            colsWriter.commit();
             cache.invalidateAll();
         } catch (IOException e) {
             throw new UncheckedIOException("Can't delete TableStats from disk", e);
@@ -305,19 +313,20 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
     @VisibleForTesting
     @Nullable
     Stats loadFromDisk(RelationName relationName) {
+        String relNameFqn = relationName.fqn();
         HashMap<ColumnIdent, ColumnStats<?>> columnStatsMap = new HashMap<>();
         long numDocs = 0;
         long sizeInBytes = 0;
-        IndexSearcher tablesSearcher = null;
+        IndexSearcher searcher = null;
         boolean match = false;
         try {
-            searcherManager.maybeRefreshBlocking();
-            tablesSearcher = searcherManager.acquire();
-            tablesSearcher.setQueryCache(null);
-            Query query = new TermQuery(new Term(TableDocFields.NAME, relationName.fqn()));
-            Weight weight = tablesSearcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
-            IndexReader reader = tablesSearcher.getIndexReader();
-            TopDocs versionTopDoc = tablesSearcher.search(new FieldExistsQuery(MetaDocFields.VERSION), 1);
+            tablesSearcherManager.maybeRefreshBlocking();
+            searcher = tablesSearcherManager.acquire();
+            searcher.setQueryCache(null);
+            Query query = new TermQuery(new Term(TableDocFields.NAME, relNameFqn));
+            Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+            IndexReader reader = searcher.getIndexReader();
+            TopDocs versionTopDoc = searcher.search(new FieldExistsQuery(MetaDocFields.VERSION), 1);
             if (versionTopDoc.totalHits.value() != 1L) {
                 return null;
             }
@@ -335,42 +344,65 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                 while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
                     match = true;
                     Document doc = storedFields.document(docIdSetIterator.docID());
-                    FieldType fieldType = FieldType.of(doc.getField(FIELD_TYPE).storedValue().getIntValue());
-                    switch (fieldType) {
-                        case COLUMN -> {
-                            String columnName = doc.getField(ColumnDocFields.COLUMN).stringValue();
-                            ColumnIdent column = ColumnIdent.of(columnName);
-                            DataType<?> valueType = decode(
-                                version,
-                                DataTypes::fromStream,
-                                doc.getBinaryValue(ColumnDocFields.VALUE_TYPE)
-                            );
-                            ColumnStats<?> columnStats = readColumnStats(version, doc, valueType);
-                            columnStatsMap.put(column, columnStats);
-                        }
-                        case TABLE -> {
-                            numDocs = doc.getField(TableDocFields.NUM_DOCS).storedValue().getLongValue();
-                            sizeInBytes = doc.getField(TableDocFields.SIZE_IN_BYTES).storedValue().getLongValue();
-                        }
-                        default -> {
-                            throw new AssertionError("Unexpected fieldType: " + fieldType);
-                        }
-                    }
+                    numDocs = doc.getField(TableDocFields.NUM_DOCS).storedValue().getLongValue();
+                    sizeInBytes = doc.getField(TableDocFields.SIZE_IN_BYTES).storedValue().getLongValue();
                 }
+                loadColStatsFromDisk(relNameFqn, columnStatsMap, version);
             }
         } catch (IOException ex) {
-            throw new UncheckedIOException(ex);
+            throw new UncheckedIOException("Can't load TableStats from disk", ex);
         } finally {
             try {
-                searcherManager.release(tablesSearcher);
+                tablesSearcherManager.release(searcher);
             } catch (IOException ex) {
-                throw new UncheckedIOException(ex);
+                throw new UncheckedIOException("Can't load TableStats from disk", ex);
             }
         }
         if (!match) {
             return null;
         }
         return new Stats(numDocs, sizeInBytes, columnStatsMap);
+    }
+
+    private void loadColStatsFromDisk(String relNameFqn,
+                                      Map<ColumnIdent, ColumnStats<?>> columnStatsMap,
+                                      Version version) {
+        IndexSearcher searcher = null;
+        try {
+            colsSearcherManager.maybeRefreshBlocking();
+            searcher = colsSearcherManager.acquire();
+            searcher.setQueryCache(null);
+            Query query = new TermQuery(new Term(ColumnDocFields.REL_NAME, relNameFqn));
+            Weight weight = searcher.createWeight(query, ScoreMode.COMPLETE_NO_SCORES, 0.0f);
+            IndexReader reader = searcher.getIndexReader();
+            for (LeafReaderContext leafReaderContext : reader.leaves()) {
+                Scorer scorer = weight.scorer(leafReaderContext);
+                if (scorer == null) {
+                    continue;
+                }
+                DocIdSetIterator docIdSetIterator = scorer.iterator();
+                StoredFields storedFields = leafReaderContext.reader().storedFields();
+                while (docIdSetIterator.nextDoc() != DocIdSetIterator.NO_MORE_DOCS) {
+                    Document doc = storedFields.document(docIdSetIterator.docID());
+                    String columnName = doc.getField(ColumnDocFields.COLUMN).stringValue();
+                    ColumnIdent column = ColumnIdent.of(columnName);
+                    DataType<?> valueType = decode(
+                        version,
+                        DataTypes::fromStream,
+                        doc.getBinaryValue(ColumnDocFields.VALUE_TYPE)
+                    );
+                    columnStatsMap.put(column, readColumnStats(version, doc, valueType));
+                }
+            }
+        } catch (IOException ex) {
+            throw new UncheckedIOException("Can't load TableStats from disk", ex);
+        } finally {
+            try {
+                colsSearcherManager.release(searcher);
+            } catch (IOException ex) {
+                throw new UncheckedIOException("Can't load TableStats from disk", ex);
+            }
+        }
     }
 
     private static <T> ColumnStats<T> readColumnStats(Version version, Document doc, DataType<T> type) throws IOException {
@@ -380,7 +412,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         Streamer<T> streamer = type.streamer();
         MostCommonValues<T> mostCommonValues = decode(
             version,
-            in -> new MostCommonValues<T>(streamer, in),
+            in -> new MostCommonValues<>(streamer, in),
             doc.getBinaryValue(ColumnDocFields.MOST_COMMON_VALUES)
         );
         List<T> histogram = decode(
@@ -400,10 +432,11 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
 
     public void update(Map<RelationName, Stats> relationsStats) {
         try {
-            writer.deleteAll();
+            tablesWriter.deleteAll();
+            colsWriter.deleteAll();
             Document metaDoc = new Document();
             metaDoc.add(new IntField(MetaDocFields.VERSION, Version.CURRENT.internalId, Field.Store.YES));
-            writer.addDocument(metaDoc);
+            tablesWriter.addDocument(metaDoc);
             for (var entry : relationsStats.entrySet()) {
                 RelationName relationName = entry.getKey();
                 Stats stats = entry.getValue();
@@ -411,19 +444,20 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
                 Document tableDoc = new Document();
                 String fqTableName = relationName.fqn();
                 tableDoc.add(new StringField(TableDocFields.NAME, fqTableName, Field.Store.NO));
-                tableDoc.add(new StoredField(FIELD_TYPE, FieldType.TABLE.ordinal()));
                 tableDoc.add(new StoredField(TableDocFields.NUM_DOCS, stats.numDocs()));
                 tableDoc.add(new StoredField(TableDocFields.SIZE_IN_BYTES, stats.sizeInBytes()));
-                writer.addDocument(tableDoc);
+                tablesWriter.addDocument(tableDoc);
 
                 for (var columnEntry : stats.statsByColumn().entrySet()) {
                     ColumnIdent column = columnEntry.getKey();
                     ColumnStats<?> columnStats = columnEntry.getValue();
-                    writer.addDocument(createColDoc(fqTableName, column, columnStats));
+                    colsWriter.addDocument(createColDoc(fqTableName, column, columnStats));
                 }
             }
-            writer.commit();
-            searcherManager.maybeRefresh();
+            tablesWriter.commit();
+            colsWriter.commit();
+            tablesSearcherManager.maybeRefresh();
+            colsSearcherManager.maybeRefresh();
             cache.invalidateAll(relationsStats.keySet());
         } catch (IOException e) {
             throw new UncheckedIOException("Can't write TableStats to disk", e);
@@ -434,7 +468,6 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         String sqlFqn = column.sqlFqn();
         Document colDoc = new Document();
         colDoc.add(new StringField(ColumnDocFields.REL_NAME, fqTableName, Field.Store.YES));
-        colDoc.add(new StoredField(FIELD_TYPE, FieldType.COLUMN.ordinal()));
         colDoc.add(new StringField(ColumnDocFields.COLUMN, sqlFqn, Field.Store.YES));
         colDoc.add(new StoredField(ColumnDocFields.NULL_FRACTION, columnStats.nullFraction()));
         colDoc.add(new StoredField(ColumnDocFields.AVG_SIZE_IN_BYTES, columnStats.averageSizeInBytes()));
