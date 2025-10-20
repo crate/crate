@@ -71,3 +71,7 @@ Fixes
 
     SELECT * FROM t INNER JOIN t2 ON t.a = t2.a;
 
+- Fixed an issue that caused RAM under-accounting, potentially leading to an
+  ``OutOfMemoryError`` when a large result set was returned by the ``HTTP``
+  endpoint.
+

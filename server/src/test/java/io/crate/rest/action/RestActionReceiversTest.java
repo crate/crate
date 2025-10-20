@@ -194,17 +194,17 @@ public class RestActionReceiversTest extends ESTestCase {
         resultReceiver.setNextRow(rows.get(0));
         jsonXContentBuilder.flush(); // flush the internal buffer to OutputStream to trigger ram-accounting
         long bytesFirstRow = ramAccounting.totalBytes();
+        assertThat(bytesFirstRow).isEqualTo(32L);
 
         resultReceiver.setNextRow(rows.get(1));
         jsonXContentBuilder.flush();
         long bytesSecondRow = ramAccounting.totalBytes() - bytesFirstRow;
+        assertThat(bytesSecondRow).isEqualTo(64L);
 
         resultReceiver.setNextRow(rows.get(2));
         jsonXContentBuilder.flush();
         long bytesThirdRow = ramAccounting.totalBytes() - bytesSecondRow - bytesFirstRow;
 
-        assertThat(bytesThirdRow - bytesSecondRow).isEqualTo(
-            String.valueOf(Long.MAX_VALUE).length() - String.valueOf(2L).length()
-        );
+        assertThat(bytesThirdRow).isEqualTo(0); // Array is resized and already accounted for.
     }
 }
