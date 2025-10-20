@@ -19,6 +19,9 @@
 
 package org.elasticsearch.common;
 
+import java.io.ByteArrayOutputStream;
+import java.io.OutputStream;
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -26,9 +29,11 @@ import java.util.Set;
 import java.util.StringTokenizer;
 import java.util.TreeSet;
 
-import org.elasticsearch.common.bytes.BytesReference;
+import org.elasticsearch.common.io.stream.BytesStream;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.jetbrains.annotations.Nullable;
+
+import io.netty.buffer.ByteBufOutputStream;
 
 
 public class Strings {
@@ -463,7 +468,15 @@ public class Strings {
      * @param xContentBuilder builder containing an object to converted to a string
      */
     public static String toString(XContentBuilder xContentBuilder) {
-        return BytesReference.bytes(xContentBuilder).utf8ToString();
+        xContentBuilder.close();
+        OutputStream stream = xContentBuilder.getOutputStream();
+        return switch (stream) {
+            case ByteArrayOutputStream bos -> bos.toString(StandardCharsets.UTF_8);
+            case ByteBufOutputStream bos -> bos.buffer().toString(StandardCharsets.UTF_8);
+            case BytesStream bos -> bos.bytes().utf8ToString();
+            default -> throw new UnsupportedOperationException(
+                "Cannot convert OutputStream content to String: " + stream);
+        };
     }
 
     public static String padStart(String s, int minimumLength, char c) {

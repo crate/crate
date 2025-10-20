@@ -48,16 +48,18 @@ public interface BytesReference extends Comparable<BytesReference> {
     static BytesReference bytes(XContentBuilder xContentBuilder) {
         xContentBuilder.close();
         OutputStream stream = xContentBuilder.getOutputStream();
-        if (stream instanceof ByteArrayOutputStream bos) {
-            return new BytesArray(bos.toByteArray());
-        } else if (stream instanceof ByteBufOutputStream bos) {
-            ByteBuf buffer = bos.buffer();
-            byte[] array = buffer.copy(0, buffer.writerIndex()).array();
-            buffer.release();
-            return new BytesArray(array);
-        } else {
-            return ((BytesStream) stream).bytes();
-        }
+        return switch (stream) {
+            case ByteArrayOutputStream bos -> new BytesArray(bos.toByteArray());
+            case ByteBufOutputStream bos -> {
+                ByteBuf buffer = bos.buffer();
+                byte[] array = buffer.copy(0, buffer.writerIndex()).array();
+                buffer.release();
+                yield new BytesArray(array);
+            }
+            case BytesStream bos -> bos.bytes();
+            default -> throw new UnsupportedOperationException(
+                "Cannot convert OutputStream to BytesReference: " + stream);
+        };
     }
 
     /**
