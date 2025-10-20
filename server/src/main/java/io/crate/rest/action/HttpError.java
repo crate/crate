@@ -50,6 +50,8 @@ import io.crate.exceptions.RepositoryAlreadyExistsException;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.exceptions.SQLParseException;
 import io.crate.exceptions.UnsupportedFunctionException;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class HttpError {
@@ -84,20 +86,22 @@ public class HttpError {
         return message;
     }
 
-    public XContentBuilder toXContent(boolean includeErrorTrace) throws IOException {
-        // @formatter:off
-        XContentBuilder builder = JsonXContent.builder()
-            .startObject()
-            .startObject("error")
-            .field("message", userFriendlyMessage(t))
-            .field("code", errorCode)
-            .endObject();
-        // @formatter:on
+    public ByteBuf toXContent(boolean includeErrorTrace, ByteBuf resultBuffer) throws IOException {
+        try (var builder = new XContentBuilder(JsonXContent.JSON_XCONTENT, new ByteBufOutputStream(resultBuffer))) {
+            builder.startObject();
+            builder.startObject("error");
+            builder.field("message", userFriendlyMessage(t));
+            builder.field("code", errorCode);
+            builder.endObject();
 
-        if (includeErrorTrace) {
-            builder.field("error_trace", Exceptions.stackTrace(t));
+            if (includeErrorTrace) {
+                builder.field("error_trace", Exceptions.stackTrace(t));
+            }
+
+            builder.endObject();
+            builder.flush();
+            return resultBuffer;
         }
-        return builder.endObject();
     }
 
     @Override

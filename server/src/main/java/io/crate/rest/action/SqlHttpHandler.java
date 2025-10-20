@@ -30,6 +30,7 @@ import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
@@ -39,7 +40,6 @@ import java.util.function.Predicate;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
@@ -169,18 +169,17 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, XContentType.JSON.mediaType());
         } else {
-            result.release();
             var sessionSettings = session.sessionSettings();
             AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
             var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
             HttpError httpError = HttpError.fromThrowable(throwable);
             String mediaType;
             boolean includeErrorTrace = paramContainFlag(parameters, "error_trace");
-            try (XContentBuilder contentBuilder = httpError.toXContent(includeErrorTrace)) {
-                content = Netty4Utils.toByteBuf(BytesReference.bytes(contentBuilder));
-                mediaType = contentBuilder.contentType().mediaType();
+            try {
+                content = httpError.toXContent(includeErrorTrace, result);
+                mediaType = XContentType.JSON.mediaType();
             } catch (IOException e) {
-                throw new RuntimeException(e);
+                throw new UncheckedIOException(e);
             }
             resp = new DefaultFullHttpResponse(
                 httpVersion,
