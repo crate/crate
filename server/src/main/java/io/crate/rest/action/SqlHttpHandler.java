@@ -29,7 +29,6 @@ import static io.crate.session.Session.UNNAMED;
 import static java.util.Collections.emptyList;
 import static java.util.Collections.singletonList;
 
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.util.List;
 import java.util.Map;
@@ -43,6 +42,7 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -55,11 +55,11 @@ import io.crate.auth.AuthSettings;
 import io.crate.auth.Credentials;
 import io.crate.auth.HttpAuthUpstreamHandler;
 import io.crate.auth.Protocol;
-import io.crate.collections.accountable.AccountableList;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
+import io.crate.netty.AccountedByteBuf;
 import io.crate.protocols.http.Headers;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
@@ -71,6 +71,7 @@ import io.crate.session.Sessions;
 import io.crate.session.parser.SQLRequestParseContext;
 import io.crate.session.parser.SQLRequestParser;
 import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
 import io.netty.channel.ChannelFutureListener;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelPromise;
@@ -119,11 +120,13 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 request);
             Map<String, List<String>> parameters = new QueryStringDecoder(request.uri()).parameters();
             ByteBuf content = request.content();
-            handleSQLRequest(session, content, paramContainFlag(parameters, "types"))
-                .whenComplete((result, t) -> {
+            ByteBuf resultBuffer = ctx.alloc().buffer();
+            handleSQLRequest(session, resultBuffer, content, paramContainFlag(parameters, "types"))
+                .whenComplete((_, t) -> {
                     try {
-                        sendResponse(session, ctx, request, parameters, result, t);
+                        sendResponse(session, ctx, request, parameters, resultBuffer, t);
                     } catch (Throwable ex) {
+                        resultBuffer.release();
                         LOGGER.error("Error sending response", ex);
                         throw ex;
                     } finally {
@@ -156,16 +159,17 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                               ChannelHandlerContext ctx,
                               FullHttpRequest request,
                               Map<String, List<String>> parameters,
-                              XContentBuilder result,
+                              ByteBuf result,
                               @Nullable Throwable t) {
         final HttpVersion httpVersion = request.protocolVersion();
         final DefaultFullHttpResponse resp;
         final ByteBuf content;
         if (t == null) {
-            content = Netty4Utils.toByteBuf(BytesReference.bytes(result));
+            content = result;
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
-            resp.headers().add(HttpHeaderNames.CONTENT_TYPE, result.contentType().mediaType());
+            resp.headers().add(HttpHeaderNames.CONTENT_TYPE, XContentType.JSON.mediaType());
         } else {
+            result.release();
             var sessionSettings = session.sessionSettings();
             AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
             var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
@@ -196,7 +200,10 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         ctx.writeAndFlush(resp, promise);
     }
 
-    private CompletableFuture<XContentBuilder> handleSQLRequest(Session session, ByteBuf content, boolean includeTypes) {
+    private CompletableFuture<XContentBuilder> handleSQLRequest(Session session,
+                                                                ByteBuf resultBuffer,
+                                                                ByteBuf content,
+                                                                boolean includeTypes) {
         SQLRequestParseContext parseContext;
         try {
             parseContext = SQLRequestParser.parseSource(Netty4Utils.toBytesReference(content));
@@ -210,10 +217,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
                 "request body contains args and bulk_args. It's forbidden to provide both"));
         }
         try {
+            String stmt = parseContext.stmt();
             if (args != null || bulkArgs == null) {
-                return executeSimpleRequest(session, parseContext.stmt(), args, includeTypes);
+                return executeSimpleRequest(session, resultBuffer, stmt, args, includeTypes);
             } else {
-                return executeBulkRequest(session, parseContext.stmt(), bulkArgs);
+                return executeBulkRequest(session, resultBuffer, stmt, bulkArgs);
             }
         } catch (Throwable t) {
             return CompletableFuture.failedFuture(t);
@@ -236,6 +244,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
     }
 
     private CompletableFuture<XContentBuilder> executeSimpleRequest(Session session,
+                                                                    ByteBuf resultBuffer,
                                                                     String stmt,
                                                                     List<Object> args,
                                                                     boolean includeTypes) throws IOException {
@@ -246,27 +255,28 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         List<Symbol> resultFields = description.getFields();
         ResultReceiver<XContentBuilder> resultReceiver;
         if (resultFields == null) {
-            resultReceiver = new RestRowCountReceiver(JsonXContent.builder(), startTimeInNs, includeTypes);
+            resultReceiver = new RestRowCountReceiver(resultBuffer, startTimeInNs, includeTypes);
         } else {
             CircuitBreaker breaker = circuitBreakerProvider.apply(HierarchyCircuitBreakerService.QUERY);
             RamAccounting ramAccounting = new BlockBasedRamAccounting(
                 b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
                 MAX_BLOCK_SIZE_IN_BYTES);
             resultReceiver = new RestResultSetReceiver(
-                new XContentBuilder(JsonXContent.JSON_XCONTENT, new RamAccountingOutputStream(ramAccounting)),
+                AccountedByteBuf.of(resultBuffer, ramAccounting),
                 resultFields,
                 description.getFieldNames(),
                 startTimeInNs,
                 includeTypes
             );
-            resultReceiver.completionFuture().whenComplete((result, error) -> ramAccounting.close());
+            resultReceiver.completionFuture().whenComplete((_, _) -> ramAccounting.close());
         }
         session.execute(UNNAMED, 0, resultReceiver);
         return session.sync(false)
-            .thenCompose(ignored -> resultReceiver.completionFuture());
+            .thenCompose(_ -> resultReceiver.completionFuture());
     }
 
     private CompletableFuture<XContentBuilder> executeBulkRequest(Session session,
+                                                                  ByteBuf result,
                                                                   String stmt,
                                                                   List<List<Object>> bulkArgs) {
         final long startTimeInNs = System.nanoTime();
@@ -289,7 +299,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         return session.sync(true)
             .thenApply(_ -> {
                 try {
-                    return ResultToXContentBuilder.builder(JsonXContent.builder())
+                    XContentBuilder builder = new XContentBuilder(
+                        JsonXContent.JSON_XCONTENT,
+                        new ByteBufOutputStream(result)
+                    );
+                    return ResultToXContentBuilder.builder(builder)
                         .cols(emptyList())
                         .duration(startTimeInNs)
                         .bulkRows(results, accessControl)
@@ -326,48 +340,5 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
 
     private static boolean bothProvided(@Nullable List<Object> args, @Nullable List<List<Object>> bulkArgs) {
         return args != null && !args.isEmpty() && bulkArgs != null && !bulkArgs.isEmpty();
-    }
-
-    static final class RamAccountingOutputStream extends ByteArrayOutputStream {
-
-        private final RamAccounting ramAccounting;
-
-        public RamAccountingOutputStream(RamAccounting ramAccounting) {
-            super();
-            this.ramAccounting = ramAccounting;
-        }
-
-        @Override
-        public void write(byte[] b, int off, int len) {
-            ensureCapacity(count + len);
-            super.write(b, off, len);
-        }
-
-        @Override
-        public void write(int b) {
-            ensureCapacity(count + 1);
-            super.write(b);
-        }
-
-        /**
-         * Inlined growth estimation logic from "ByteArrayOutputStream.ensureCapacity()"
-         * to ensure that we account before potentially large resize to avoid OOM-s.
-         */
-        private void ensureCapacity(int minCapacity) {
-            int oldCapacity = this.buf.length;
-            int minGrowth = minCapacity - oldCapacity;
-            // If prev resizes were enough to handle current write, RamAccounting was already updated,
-            // so we only add bytes on resize.
-            if (minGrowth > 0) {
-                int newCapacity = AccountableList.newLength(oldCapacity, minGrowth, oldCapacity);
-                ramAccounting.addBytes(newCapacity - oldCapacity);
-            }
-        }
-
-        @Override
-        public void close() throws IOException {
-            ramAccounting.release();
-            super.close();
-        }
     }
 }

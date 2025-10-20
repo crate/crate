@@ -49,8 +49,9 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.session.ResultReceiver;
+import io.crate.netty.AccountedByteBuf;
 import io.crate.types.DataTypes;
+import io.netty.buffer.Unpooled;
 
 public class RestActionReceiversTest extends ESTestCase {
 
@@ -79,7 +80,7 @@ public class RestActionReceiversTest extends ESTestCase {
 
     @Test
     public void testRestRowCountReceiver() throws Exception {
-        RestRowCountReceiver receiver = new RestRowCountReceiver(JsonXContent.builder(), 0L, true);
+        RestRowCountReceiver receiver = new RestRowCountReceiver(Unpooled.buffer(), 0L, true);
         receiver.setNextRow(row);
         XContentBuilder actualBuilder = receiver.finishBuilder();
 
@@ -91,13 +92,13 @@ public class RestActionReceiversTest extends ESTestCase {
         builder.finishRows();
         builder.rowCount(1L);
 
-        assertXContentBuilder(actualBuilder, builder.build());
+        assertXContentBuilder(builder.build(), actualBuilder);
     }
 
     @Test
     public void testRestResultSetReceiver() throws Exception {
         RestResultSetReceiver receiver = new RestResultSetReceiver(
-            JsonXContent.builder(),
+            Unpooled.buffer(),
             fields,
             fieldNames,
             0L,
@@ -156,10 +157,8 @@ public class RestActionReceiversTest extends ESTestCase {
         RamAccounting ramAccounting = new BlockBasedRamAccounting(
             b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
             MAX_BLOCK_SIZE_IN_BYTES);
-        XContentBuilder jsonXContentBuilder = new XContentBuilder(
-            JsonXContent.JSON_XCONTENT, new SqlHttpHandler.RamAccountingOutputStream(ramAccounting));
-        ResultReceiver<XContentBuilder> resultReceiver = new RestResultSetReceiver(
-            jsonXContentBuilder,
+        var resultReceiver = new RestResultSetReceiver(
+            AccountedByteBuf.of(Unpooled.buffer(0), ramAccounting),
             fields,
             fieldNames,
             System.currentTimeMillis(),
@@ -170,7 +169,8 @@ public class RestActionReceiversTest extends ESTestCase {
         // it's handled by the consumer/response emitter which also closes iterator/clears sys.jobs entry
         assertThatThrownBy(() -> {
             resultReceiver.setNextRow(rows.get(0));
-            jsonXContentBuilder.flush(); // flush the internal buffer to OutputStream to trigger ram-accounting
+            resultReceiver.builder.flush();
+
         })
             .isExactlyInstanceOf(CircuitBreakingException.class);
         assertThat(resultReceiver.completionFuture().isDone()).isFalse();
@@ -181,10 +181,8 @@ public class RestActionReceiversTest extends ESTestCase {
         RamAccounting ramAccounting = new BlockBasedRamAccounting(
             b -> new TestCircuitBreaker().addEstimateBytesAndMaybeBreak(b, "http-result"),
             MAX_BLOCK_SIZE_IN_BYTES);
-        SqlHttpHandler.RamAccountingOutputStream ramAccountingOutputStream = new SqlHttpHandler.RamAccountingOutputStream(ramAccounting);
-        XContentBuilder jsonXContentBuilder = new XContentBuilder(JsonXContent.JSON_XCONTENT, ramAccountingOutputStream);
-        ResultReceiver<XContentBuilder> resultReceiver = new RestResultSetReceiver(
-            jsonXContentBuilder,
+        var resultReceiver = new RestResultSetReceiver(
+            AccountedByteBuf.of(Unpooled.buffer(0), ramAccounting),
             fields,
             fieldNames,
             System.currentTimeMillis(),
@@ -192,17 +190,17 @@ public class RestActionReceiversTest extends ESTestCase {
         );
 
         resultReceiver.setNextRow(rows.get(0));
-        jsonXContentBuilder.flush(); // flush the internal buffer to OutputStream to trigger ram-accounting
+        resultReceiver.builder.flush(); // flush the internal buffer to OutputStream to trigger ram-accounting
         long bytesFirstRow = ramAccounting.totalBytes();
-        assertThat(bytesFirstRow).isEqualTo(32L);
+        assertThat(bytesFirstRow).isEqualTo(64L);
 
         resultReceiver.setNextRow(rows.get(1));
-        jsonXContentBuilder.flush();
+        resultReceiver.builder.flush();
         long bytesSecondRow = ramAccounting.totalBytes() - bytesFirstRow;
         assertThat(bytesSecondRow).isEqualTo(64L);
 
         resultReceiver.setNextRow(rows.get(2));
-        jsonXContentBuilder.flush();
+        resultReceiver.builder.flush();
         long bytesThirdRow = ramAccounting.totalBytes() - bytesSecondRow - bytesFirstRow;
 
         assertThat(bytesThirdRow).isEqualTo(0); // Array is resized and already accounted for.

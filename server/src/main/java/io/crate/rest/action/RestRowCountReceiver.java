@@ -26,10 +26,13 @@ import java.util.Collections;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.session.ResultReceiver;
 import io.crate.data.Row;
+import io.crate.session.ResultReceiver;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
 
 class RestRowCountReceiver implements ResultReceiver<XContentBuilder> {
 
@@ -40,12 +43,17 @@ class RestRowCountReceiver implements ResultReceiver<XContentBuilder> {
 
     private long rowCount;
 
-    RestRowCountReceiver(XContentBuilder builder,
+    RestRowCountReceiver(ByteBuf resultBuffer,
                          long startTimeNs,
                          boolean includeTypes) throws IOException {
         this.startTimeNs = startTimeNs;
         this.includeTypes = includeTypes;
-        this.builder = ResultToXContentBuilder.builder(builder);
+        this.builder = ResultToXContentBuilder.builder(
+            new XContentBuilder(
+                JsonXContent.JSON_XCONTENT,
+                new ByteBufOutputStream(resultBuffer)
+            )
+        );
     }
 
     @Override

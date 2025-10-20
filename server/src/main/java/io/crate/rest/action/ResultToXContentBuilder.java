@@ -27,6 +27,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
@@ -157,6 +158,12 @@ class ResultToXContentBuilder {
 
     XContentBuilder build() throws IOException {
         builder.endObject();
+        builder.flush();
         return builder;
+    }
+
+    @VisibleForTesting
+    public void flush() throws IOException {
+        builder.flush();
     }
 }
