@@ -181,7 +181,7 @@ public class AccountableList<T> extends AbstractList<T> {
     /**
      * Copy of ArraysSupport.newLength
      */
-    private static int newLength(int oldLength, int minGrowth, int prefGrowth) {
+    public static int newLength(int oldLength, int minGrowth, int prefGrowth) {
         int prefLength = oldLength + Math.max(minGrowth, prefGrowth); // might overflow
         if (0 < prefLength && prefLength <= SOFT_MAX_ARRAY_LENGTH) {
             return prefLength;
