@@ -32,6 +32,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.util.ByteArray;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
+
 
 /**
  * A reference to bytes.
@@ -45,8 +48,13 @@ public interface BytesReference extends Comparable<BytesReference> {
     static BytesReference bytes(XContentBuilder xContentBuilder) {
         xContentBuilder.close();
         OutputStream stream = xContentBuilder.getOutputStream();
-        if (stream instanceof ByteArrayOutputStream) {
-            return new BytesArray(((ByteArrayOutputStream) stream).toByteArray());
+        if (stream instanceof ByteArrayOutputStream bos) {
+            return new BytesArray(bos.toByteArray());
+        } else if (stream instanceof ByteBufOutputStream bos) {
+            ByteBuf buffer = bos.buffer();
+            byte[] array = buffer.copy(0, buffer.writerIndex()).array();
+            buffer.release();
+            return new BytesArray(array);
         } else {
             return ((BytesStream) stream).bytes();
         }

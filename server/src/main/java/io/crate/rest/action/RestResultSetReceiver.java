@@ -27,29 +27,33 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.session.ResultReceiver;
 import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
+import io.crate.session.ResultReceiver;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.ByteBufOutputStream;
 
 class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
 
+    final ResultToXContentBuilder builder;
     private final List<Symbol> outputFields;
-    private final ResultToXContentBuilder builder;
     private final long startTimeNs;
     private final CompletableFuture<XContentBuilder> result = new CompletableFuture<>();
 
     private long rowCount;
 
-    RestResultSetReceiver(XContentBuilder builder,
+    RestResultSetReceiver(ByteBuf resultBuffer,
                           List<Symbol> outputFields,
                           List<String> outputFieldNames,
                           long startTimeNs,
                           boolean includeTypesOnResponse) throws IOException {
         this.outputFields = outputFields;
         this.startTimeNs = startTimeNs;
-        this.builder = ResultToXContentBuilder.builder(builder);
+        this.builder = ResultToXContentBuilder.builder(
+            new XContentBuilder(JsonXContent.JSON_XCONTENT, new ByteBufOutputStream(resultBuffer)));
         this.builder.cols(outputFieldNames);
         if (includeTypesOnResponse) {
             this.builder.colTypes(outputFields);
