@@ -71,3 +71,7 @@ Fixes
 
 - Fixed an issue causing a ``GROUP BY ... LIMIT 0`` statement to not release
   it's accounted memory on the ``QUERY`` circuit breaker.
+
+- Fixed an issue that caused RAM under-accounting, potentially leading to an
+  ``OutOfMemoryError`` when a large result set was returned by the ``HTTP``
+  endpoint.
