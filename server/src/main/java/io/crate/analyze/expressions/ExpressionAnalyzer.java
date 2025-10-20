@@ -670,9 +670,6 @@ public class ExpressionAnalyzer {
             }
             var relation = subQueryAnalyzer.analyze(node.getSubquery());
             List<Symbol> fields = relation.outputs();
-            if (fields.size() > 1) {
-                throw new UnsupportedOperationException("Subqueries with more than 1 column are not supported");
-            }
             DataType<?> innerType = fields.getFirst().valueType();
             SelectSymbol selectSymbol = new SelectSymbol(
                 relation,

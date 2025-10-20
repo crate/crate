@@ -64,7 +64,8 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- Added support for selecting more than one column within a subquery used in a
+  ``EXISTS`` clause.
 
 Data Types
 ----------
