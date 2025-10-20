@@ -146,6 +146,9 @@ fi
 # Disables explicit GC
 JAVA_OPTS="$JAVA_OPTS -XX:+DisableExplicitGC"
 
+# https://openjdk.org/jeps/519
+JAVA_OPTS="$JAVA_OPTS -XX:+UseCompactObjectHeaders"
+
 # Prevent denial of service attacks via SSL renegotiation
 JAVA_OPTS="$JAVA_OPTS -Djdk.tls.rejectClientInitiatedRenegotiation=true"
 
