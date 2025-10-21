@@ -26,6 +26,9 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install docutils
+        run: sudo apt-get install -y docutils
+
       - name: Run vale
         uses: errata-ai/vale-action@v2.1.1
         with:
