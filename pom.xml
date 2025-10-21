@@ -280,7 +280,7 @@
     <skipRunTests>false</skipRunTests>
 
     <versions.jdk>25</versions.jdk>
-    <versions.jdkbuild>25.0.0+36</versions.jdkbuild>
+    <versions.jdkbuild>25+36</versions.jdkbuild>
 
     <versions.annotations>26.0.2-1</versions.annotations>
     <versions.log4j>2.25.2</versions.log4j>
