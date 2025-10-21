@@ -1,27 +1,21 @@
 .. _version_6.1.0:
 
-==========================
-Version 6.1.0 - Unreleased
-==========================
+=============
+Version 6.1.0
+=============
 
+Released on 2025-10-20.
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 6.1.0 isn't released yet. These are the release notes for
-    the upcoming release.
 
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
     before you upgrade to 6.1.0.
 
-    We recommend that you upgrade to the latest 5.10 release before moving to
+    We recommend that you upgrade to the latest 6.0 release before moving to
     6.1.0.
 
-    A rolling upgrade from >= 5.10.1 to 6.1.0 is supported.
+    A rolling upgrade from >= 6.0.2 to 6.1.0 is supported.
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::
@@ -41,6 +35,16 @@ Version 6.1.0 - Unreleased
    :local:
 
 .. _version_6.1.0_breaking_changes:
+
+
+General
+=======
+
+The 6.1.0 release was mostly focused on internal changes preparing for future
+feature additions. Because of that, the list of changes is smaller than usual
+but there have been many small optimizations which should overall help reduce
+memory pressure and improve performance.
+
 
 Breaking Changes
 ================
@@ -70,30 +74,17 @@ None
 Changes
 =======
 
-SQL Statements
---------------
-
-None
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
 - Added the :ref:`pg_catalog.pg_auth_members table <postgres-pg_catalog>`
 
-Data Types
-----------
-
-None
-
-Scalar and Aggregation Functions
---------------------------------
-
-None
-
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Improved the performance of the :ref:`percentile aggregation
+  <aggregation-percentile>`.
 
 Administration and Operations
 -----------------------------
@@ -103,8 +94,3 @@ Administration and Operations
   available after a cluster restart.
 
 - Added ``last_job_id`` column to the :ref:`sys.sessions <sys-sessions>` table.
-
-Client interfaces
------------------
-
-None
