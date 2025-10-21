@@ -41,6 +41,7 @@ import io.crate.types.FloatVectorType;
 import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 import io.crate.types.StringType;
+import io.crate.types.UUIDType;
 
 public class PGTypes {
 
@@ -70,6 +71,7 @@ public class PGTypes {
         .put(DataTypes.REGPROC, RegprocType.INSTANCE)
         .put(DataTypes.REGCLASS, RegclassType.INSTANCE)
         .put(BitStringType.INSTANCE_ONE, BitType.INSTANCE)
+        .put(UUIDType.INSTANCE, PgUUIDType.INSTANCE)
         .put(new ArrayType<>(DataTypes.BYTE), PGArray.CHAR_ARRAY)
         .put(new ArrayType<>(DataTypes.SHORT), PGArray.INT2_ARRAY)
         .put(new ArrayType<>(DataTypes.INTEGER), PGArray.INT4_ARRAY)
@@ -94,6 +96,7 @@ public class PGTypes {
         .put(new ArrayType<>(DataTypes.REGPROC), PGArray.REGPROC_ARRAY)
         .put(new ArrayType<>(DataTypes.REGCLASS), PGArray.REGCLASS_ARRAY)
         .put(new ArrayType<>(BitStringType.INSTANCE_ONE), PGArray.BIT_ARRAY)
+        .put(new ArrayType<>(UUIDType.INSTANCE), PGArray.UUID_ARRAY)
         .put(DataTypes.OIDVECTOR, PgOidVectorType.INSTANCE)
         .immutableMap();
 

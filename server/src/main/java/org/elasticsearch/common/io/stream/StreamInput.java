@@ -55,6 +55,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
 import java.util.function.Supplier;
@@ -253,6 +254,12 @@ public abstract class StreamInput extends InputStream {
      */
     public long readLong() throws IOException {
         return (((long) readInt()) << 32) | (readInt() & 0xFFFFFFFFL);
+    }
+
+    public UUID readUUID() throws IOException {
+        long mostSigBits = readLong();
+        long leastSigBits = readLong();
+        return new UUID(mostSigBits, leastSigBits);
     }
 
     /**

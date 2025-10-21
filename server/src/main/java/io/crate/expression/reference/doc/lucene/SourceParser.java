@@ -67,6 +67,7 @@ import io.crate.types.NumericType;
 import io.crate.types.ObjectType;
 import io.crate.types.ShortType;
 import io.crate.types.TimestampType;
+import io.crate.types.UUIDType;
 import io.crate.types.UndefinedType;
 
 public final class SourceParser {
@@ -301,6 +302,7 @@ public final class SourceParser {
                 ((BitStringType) elementType).length()
             );
             case NumericType.ID -> elementType.sanitizeValue(parser.text());
+            case UUIDType.ID -> elementType.sanitizeValue(parser.text());
             default -> parser.text();
         };
     }

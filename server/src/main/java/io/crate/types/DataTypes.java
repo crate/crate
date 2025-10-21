@@ -34,6 +34,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.RandomAccess;
 import java.util.Set;
+import java.util.UUID;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -149,36 +150,37 @@ public final class DataTypes {
      */
     private static final Map<Integer, Writeable.Reader<DataType<?>>> TYPE_REGISTRY = new HashMap<>(
         Map.ofEntries(
-            entry(UndefinedType.ID, in -> UNDEFINED),
-            entry(NotSupportedType.ID, in -> NOT_SUPPORTED),
-            entry(ByteType.ID, in -> BYTE),
-            entry(BooleanType.ID, in -> BOOLEAN),
+            entry(UndefinedType.ID, _ -> UNDEFINED),
+            entry(NotSupportedType.ID, _ -> NOT_SUPPORTED),
+            entry(ByteType.ID, _ -> BYTE),
+            entry(BooleanType.ID, _ -> BOOLEAN),
             entry(CharacterType.ID, CharacterType::new),
             entry(StringType.ID, StringType::new),
-            entry(IpType.ID, in -> IP),
-            entry(DoubleType.ID, in -> DOUBLE),
-            entry(FloatType.ID, in -> FLOAT),
-            entry(ShortType.ID, in -> SHORT),
-            entry(IntegerType.ID, in -> INTEGER),
-            entry(LongType.ID, in -> LONG),
+            entry(IpType.ID, _ -> IP),
+            entry(DoubleType.ID, _ -> DOUBLE),
+            entry(FloatType.ID, _ -> FLOAT),
+            entry(ShortType.ID, _ -> SHORT),
+            entry(IntegerType.ID, _ -> INTEGER),
+            entry(LongType.ID, _ -> LONG),
             entry(NumericType.ID, NumericType::new),
-            entry(TimeTZType.ID, in -> TIMETZ),
-            entry(TimestampType.ID_WITH_TZ, in -> TIMESTAMPZ),
-            entry(TimestampType.ID_WITHOUT_TZ, in -> TIMESTAMP),
+            entry(TimeTZType.ID, _ -> TIMETZ),
+            entry(TimestampType.ID_WITH_TZ, _ -> TIMESTAMPZ),
+            entry(TimestampType.ID_WITHOUT_TZ, _ -> TIMESTAMP),
             entry(ObjectType.ID, ObjectType::new),
-            entry(UncheckedObjectType.ID, in -> UncheckedObjectType.INSTANCE),
-            entry(GeoPointType.ID, in -> GEO_POINT),
-            entry(GeoShapeType.ID, in -> GEO_SHAPE),
+            entry(UncheckedObjectType.ID, _ -> UncheckedObjectType.INSTANCE),
+            entry(GeoPointType.ID, _ -> GEO_POINT),
+            entry(GeoShapeType.ID, _ -> GEO_SHAPE),
             entry(ArrayType.ID, ArrayType::new),
-            entry(IntervalType.ID, in -> INTERVAL),
+            entry(IntervalType.ID, _ -> INTERVAL),
             entry(RowType.ID, RowType::new),
-            entry(RegprocType.ID, in -> REGPROC),
-            entry(RegclassType.ID, in -> REGCLASS),
-            entry(OidVectorType.ID, in -> OIDVECTOR),
-            entry(DateType.ID, in -> DATE),
+            entry(RegprocType.ID, _ -> REGPROC),
+            entry(RegclassType.ID, _ -> REGCLASS),
+            entry(OidVectorType.ID, _ -> OIDVECTOR),
+            entry(DateType.ID, _ -> DATE),
             entry(BitStringType.ID, BitStringType::new),
-            entry(JsonType.ID, in -> JsonType.INSTANCE),
-            entry(FloatVectorType.ID, FloatVectorType::new)
+            entry(JsonType.ID, _ -> JsonType.INSTANCE),
+            entry(FloatVectorType.ID, FloatVectorType::new),
+            entry(UUIDType.ID, _ -> UUIDType.INSTANCE)
         )
     );
 
@@ -219,7 +221,8 @@ public final class DataTypes {
                 TimeTZType.ID,
                 BitStringType.ID,
                 JsonType.ID,
-                CharacterType.ID
+                CharacterType.ID,
+                UUIDType.ID
             ),
             NUMBER_CONVERSIONS.stream()
         ).collect(toSet())),
@@ -294,7 +297,8 @@ public final class DataTypes {
         entry(JtsPoint.class, GEO_POINT),
         entry(Character.class, STRING),
         entry(BitString.class, BitStringType.INSTANCE_ONE),
-        entry(TimeTZ.class, TimeTZType.INSTANCE)
+        entry(TimeTZ.class, TimeTZType.INSTANCE),
+        entry(UUID.class, UUIDType.INSTANCE)
     );
 
     public static DataType<?> guessType(Object value) {
@@ -424,7 +428,9 @@ public final class DataTypes {
         entry(BitStringType.INSTANCE_ONE.getName(), BitStringType.INSTANCE_ONE),
         entry(JsonType.INSTANCE.getName(), JsonType.INSTANCE),
         entry("decimal", NUMERIC),
-        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE)
+        entry(FloatVectorType.INSTANCE_ONE.getName(), FloatVectorType.INSTANCE_ONE),
+        entry(UUIDType.NAME, UUIDType.INSTANCE)
+
     );
 
     public static DataType<?> ofName(String typeName) {
@@ -504,7 +510,8 @@ public final class DataTypes {
         entry(BitStringType.ID, "bit"),
         entry(NumericType.ID, "numeric"),
         entry(FloatVectorType.ID, FloatVectorType.INSTANCE_ONE.getName()),
-        entry(UndefinedType.ID, UndefinedType.INSTANCE.getName())
+        entry(UndefinedType.ID, UndefinedType.INSTANCE.getName()),
+        entry(UUIDType.ID, UUIDType.NAME)
     );
 
     @Nullable
