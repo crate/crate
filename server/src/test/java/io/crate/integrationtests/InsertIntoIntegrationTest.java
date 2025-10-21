@@ -31,6 +31,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Fail.fail;
 import static org.assertj.core.data.Offset.offset;
@@ -1828,17 +1829,12 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
     public void test_dynamic_insert_with_invalid_column_names() {
         execute("create table foo (id integer primary key) clustered into 1 shards " +
                 "with (number_of_replicas=0, column_policy='dynamic')");
-        assertThatThrownBy(() -> execute("insert into foo(id, _invalid) values (1, 1)"))
+        assertThatThrownBy(() -> execute("insert into foo(id, _seq_no) values (1, 1)"))
             .isExactlyInstanceOf(InvalidColumnNameException.class)
-            .hasMessage("\"_invalid\" conflicts with system column pattern");
+            .hasMessage("\"_seq_no\" Cannot write to system column");
         assertThatThrownBy(() -> execute("insert into foo(id, o) values (2, {\".invalid\"=2})"))
             .isExactlyInstanceOf(InvalidColumnNameException.class)
             .hasMessage("\".invalid\" contains a dot");
-        execute("insert into foo(id, _invalid) (select 1, 1);");
-        assertThat(response.rowCount()).isEqualTo(0L);
-        execute("refresh table foo");
-        execute("select * from foo");
-        assertThat(response.rowCount()).isEqualTo(0L);
     }
 
     @Test

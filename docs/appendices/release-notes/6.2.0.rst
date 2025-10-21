@@ -64,6 +64,10 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Columns names prefixed with an underscore are now accepted, although their use
+  is still discouraged to avoid conflicts in case future CrateDB versions
+  introduce additional system columns.
+
 - Added support for selecting more than one column within a subquery used in a
   ``EXISTS`` clause.
 

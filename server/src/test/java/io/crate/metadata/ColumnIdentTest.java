@@ -123,9 +123,7 @@ public class ColumnIdentTest {
         assertNameValidationThrows(".name", "\".name\" contains a dot");
         assertNameValidationThrows("column.name", "\"column.name\" contains a dot");
         assertNameValidationThrows(".", "\".\" contains a dot");
-        assertNameValidationThrows("_a", "\"_a\" conflicts with system column pattern");
-        assertNameValidationThrows("_name", "\"_name\" conflicts with system column pattern");
-        assertNameValidationThrows("_field_name", "\"_field_name\" conflicts with system column pattern");
+        assertNameValidationThrows("_seq_no", "\"_seq_no\" conflicts with system column");
         assertNameValidationThrows("ident['index']", "\"ident['index']\" conflicts with subscript pattern, square brackets are not allowed");
         assertNameValidationThrows("ident['index]", "\"ident['index]\" conflicts with subscript pattern, square brackets are not allowed");
         assertNameValidationThrows("ident[0]", "\"ident[0]\" conflicts with subscript pattern, square brackets are not allowed");

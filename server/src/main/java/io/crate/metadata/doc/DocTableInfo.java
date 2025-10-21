@@ -66,6 +66,7 @@ import io.crate.analyze.expressions.TableReferenceResolver;
 import io.crate.common.StringUtils;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
+import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
 import io.crate.expression.symbol.DynamicReference;
@@ -706,6 +707,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                                    boolean errorOnUnknownObjectKey) throws ColumnUnknownException {
         ColumnIdent columnIdent = ColumnIdent.fromPath(targetColumnName);
         Reference reference = getReference(columnIdent);
+        if (forWrite && columnIdent.isSystemColumn()) {
+            throw new InvalidColumnNameException(targetColumnName, "Cannot write to system column");
+        }
         if (reference == null) {
             reference = getDynamic(columnIdent, forWrite, errorOnUnknownObjectKey);
             if (reference == null) {
