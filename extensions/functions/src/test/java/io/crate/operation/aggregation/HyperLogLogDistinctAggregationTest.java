@@ -183,37 +183,37 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
     @Test
     public void testMurmur3HashCalculationsForAllTypes() {
         // double types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.DOUBLE, true).hash(1.3d))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.DOUBLE).hash(1.3d))
             .isEqualTo(3706823019612663850L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.FLOAT, true).hash(1.3f))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.FLOAT).hash(1.3f))
             .isEqualTo(1386670595997310747L);
 
         // long types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.LONG, true).hash(1L))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.LONG).hash(1L))
             .isEqualTo(-2508561340476696217L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.INTEGER, true).hash(1))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.INTEGER).hash(1))
             .isEqualTo(-2508561340476696217L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.SHORT, true).hash(Short.valueOf("1")))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.SHORT).hash(Short.valueOf("1")))
             .isEqualTo(-2508561340476696217L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BYTE, true).hash(Byte.valueOf("1")))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.BYTE).hash(Byte.valueOf("1")))
             .isEqualTo(-2508561340476696217L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.TIMESTAMPZ, true).hash(1512569562000L))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.TIMESTAMPZ).hash(1512569562000L))
             .isEqualTo(-3066297687939346384L);
 
         // bytes types
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.STRING, true).hash("foo"))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.STRING).hash("foo"))
             .isEqualTo(1208210750032620489L);
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.BOOLEAN, true).hash(true))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.BOOLEAN).hash(true))
             .isEqualTo(4312328700069294139L);
 
         // ip type
-        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType(DataTypes.IP, true).hash("127.0.0.1"))
+        assertThat(HyperLogLogDistinctAggregation.Murmur3Hash.getForType((DataType<?>) DataTypes.IP).hash("127.0.0.1"))
             .isEqualTo(6044143379282500354L);
     }
 
     @Test
     public void testStreaming() throws Exception {
-        HyperLogLogDistinctAggregation.HllState hllState1 = new HyperLogLogDistinctAggregation.HllState(DataTypes.IP, true);
+        HyperLogLogDistinctAggregation.HllState hllState1 = new HyperLogLogDistinctAggregation.HllState();
         hllState1.init(memoryManager, HyperLogLogPlusPlus.DEFAULT_PRECISION);
         BytesStreamOutput out = new BytesStreamOutput();
         Streamer<HyperLogLogDistinctAggregation.HllState> streamer =
@@ -222,8 +222,8 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
         StreamInput in = out.bytes().streamInput();
         HyperLogLogDistinctAggregation.HllState hllState2 = streamer.readValueFrom(in);
         // test that murmur3hash and HLL++ is correctly initialized with streamed dataType and version
-        hllState1.add("127.0.0.1");
-        hllState2.add("127.0.0.1");
+        hllState1.addHash("127.0.0.1".hashCode());
+        hllState2.addHash("127.0.0.1".hashCode());
         assertThat(hllState2.value()).isEqualTo(hllState1.value());
     }
 }
