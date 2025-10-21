@@ -253,6 +253,21 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_ignored_object_values_are_validated_and_added_to_source() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object (ignored))");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "o");
+        String invalidObject = """
+            {"o": "a": 1 : "b" : 2}
+        """;
+        ParsedDocument doc = indexer.index(item(invalidObject));
+
+       // assertTranslogParses(doc, table);
+    }
+
+    @Test
     public void test_create_dynamic_array() throws Exception {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable("create table tbl (o object as (x int))");

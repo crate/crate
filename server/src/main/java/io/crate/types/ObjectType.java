@@ -257,6 +257,7 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             );
             return parser.map();
         } catch (IOException e) {
+            // Already validated here - how it's possible to persist invalid record???
             var conversionException = new ConversionException(value, UNTYPED);
             conversionException.addSuppressed(e);
             throw conversionException;

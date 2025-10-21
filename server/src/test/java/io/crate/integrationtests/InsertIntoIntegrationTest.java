@@ -31,7 +31,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Fail.fail;
 import static org.assertj.core.data.Offset.offset;
@@ -2138,6 +2137,22 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         execute("refresh table t");
         execute("select * from t");
         assertThat(response).hasRows("{items=[42.42, foo]}");
+    }
+
+    @Test
+    public void test_cannot_write_invalid_ignored_object() throws Exception {
+        execute("CREATE TABLE t (obj OBJECT(IGNORED)) with (number_of_replicas = 1)");
+        // Ths one fails (validated)
+        // execute(""" INSERT INTO t (obj) values('{ "unit": "Nm³/h")}')""");
+
+        Map<String, Object> value = new HashMap<>();
+        value.put("unit", "Nm³/h");
+        Object[] args = new Object[]{value};
+        execute("insert into t(obj) values(?)", args);
+        execute("refresh table t");
+        execute("select * from t");
+        assertThat(response).hasRows("{unit=Nm³/h}");
+
     }
 
     @Test
