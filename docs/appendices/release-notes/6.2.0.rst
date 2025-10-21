@@ -84,6 +84,11 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Reduced the memory footprint of the internal state used in the
+  :ref:`hyperloglog_distinct <aggregation-hyperloglog-distinct>` aggregation.
+  This should help if using the aggregation together with a GROUP BY with many
+  unique keys.
+
 - Changed the ``SWAP TABLE`` sub-command of :ref:`ALTER CLUSTER
   <ref-alter-cluster>` to no longer re-allocate the shards of the swapped table.
   This avoids breaking pending snapshots with a SWAP TABLE operation.

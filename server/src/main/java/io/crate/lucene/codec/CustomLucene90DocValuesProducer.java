@@ -52,7 +52,6 @@ import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.DataInput;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.RandomAccessInput;
-import org.apache.lucene.store.ReadAdvice;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.LongValues;
@@ -118,10 +117,7 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         }
 
         String dataName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, dataExtension);
-        // Doc-values have a forward-only access pattern, so pass ReadAdvice.NORMAL to perform
-        // readahead.
-        this.data =
-            state.directory.openInput(dataName, state.context.withReadAdvice(ReadAdvice.NORMAL));
+        this.data = state.directory.openInput(dataName, state.context);
         boolean success = false;
         try {
             final int version2 = CodecUtil.checkIndexHeader(

@@ -38,7 +38,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.codecs.Codec;
 import org.apache.lucene.codecs.DocValuesFormat;
 import org.apache.lucene.codecs.PostingsFormat;
-import org.apache.lucene.codecs.lucene101.Lucene101Codec;
+import org.apache.lucene.codecs.lucene103.Lucene103Codec;
 import org.apache.lucene.codecs.perfield.PerFieldDocValuesFormat;
 import org.apache.lucene.document.BinaryDocValuesField;
 import org.apache.lucene.document.Document;
@@ -82,7 +82,7 @@ import org.elasticsearch.index.codec.CrateCodec;
 
 public class TestCustomLucene90DocValuesFormat extends BaseDocValuesFormatTestCase {
 
-    private final Codec codec = new CrateCodec(Lucene101Codec.Mode.BEST_SPEED);
+    private final Codec codec = new CrateCodec(Lucene103Codec.Mode.BEST_SPEED);
 
     @Override
     protected Codec getCodec() {
