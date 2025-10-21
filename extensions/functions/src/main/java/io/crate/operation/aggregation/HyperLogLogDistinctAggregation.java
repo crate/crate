@@ -80,7 +80,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     static final String NAME = "hyperloglog_distinct";
 
     static {
-        DataTypes.register(HllStateType.ID, in -> HllStateType.INSTANCE);
+        DataTypes.register(HllStateType.ID, _ -> HllStateType.INSTANCE);
     }
 
     public static void register(Functions.Builder builder) {
@@ -109,6 +109,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     private final Signature signature;
     private final BoundSignature boundSignature;
+    private final Murmur3Hash murmur;
     private final DataType<?> dataType;
 
     private HyperLogLogDistinctAggregation(Signature signature,
@@ -117,6 +118,13 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         this.signature = signature;
         this.boundSignature = boundSignature;
         this.dataType = dataType;
+        this.murmur = Murmur3Hash.getForType(dataType);
+    }
+
+    private static HllState newState(DataType<?> dataType, Version minNodeVersion) {
+        return minNodeVersion.onOrAfter(Version.V_6_2_0)
+            ? new HllState()
+            : new LegacyHllState(dataType);
     }
 
     @Nullable
@@ -124,7 +132,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     public HllState newState(RamAccounting ramAccounting,
                              Version minNodeInCluster,
                              MemoryManager memoryManager) {
-        return new HllState(dataType, minNodeInCluster.onOrAfter(Version.V_4_1_0));
+        return newState(dataType, minNodeInCluster);
     }
 
     @Override
@@ -141,7 +149,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         }
         Object value = args[0].value();
         if (value != null) {
-            state.add(value);
+            state.addHash(murmur.hash(value));
         }
         return state;
     }
@@ -200,7 +208,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
                     (_, memoryManager, minNodeVersion) -> {
-                        var state = new HllState(valueType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+                        var state = newState(valueType, minNodeVersion);
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (_, values, state) -> {
@@ -212,7 +220,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
                     (_, memoryManager, minNodeVersion) -> {
-                        var state = new HllState(valueType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+                        var state = newState(valueType, minNodeVersion);
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (_, values, state) -> {
@@ -230,7 +238,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 return new SortedNumericDocValueAggregator<>(
                     reference.storageIdent(),
                     (_, memoryManager, minNodeVersion) -> {
-                        var state = new HllState(valueType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+                        var state = newState(valueType, minNodeVersion);
                         return initIfNeeded(state, memoryManager, precision);
                     },
                     (_, values, state) -> {
@@ -250,10 +258,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                     public void apply(RamAccounting ramAccounting, int doc, HllState state) throws IOException {
                         if (super.values.advanceExact(doc) && super.values.docValueCount() == 1) {
                             BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
-                            var hash = state.isAllOn4_1() ?
-                                MurmurHash3.hash64(ref.bytes, ref.offset, ref.length)
-                                : MurmurHash3.hash128(ref.bytes, ref.offset, ref.length, 0, super.hash128).h1;
-
+                            var hash = MurmurHash3.hash64(ref.bytes, ref.offset, ref.length);
                             state.addHash(hash);
                         }
                     }
@@ -266,9 +271,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                             BytesRef ref = super.values.lookupOrd(super.values.nextOrd());
                             byte[] bytes = NetworkUtils.formatIPBytes(ref).getBytes(StandardCharsets.UTF_8);
 
-                            var hash = state.isAllOn4_1() ?
-                                MurmurHash3.hash64(bytes, 0, bytes.length)
-                                : MurmurHash3.hash128(bytes, 0, bytes.length, 0, super.hash128).h1;
+                            var hash = MurmurHash3.hash64(bytes, 0, bytes.length);
                             state.addHash(hash);
                         }
                     }
@@ -283,7 +286,6 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
         private final String columnName;
         private final DataType<?> dataType;
         private final Integer precision;
-        private final MurmurHash3.Hash128 hash128 = new MurmurHash3.Hash128();
         private SortedSetDocValues values;
 
         public HllAggregator(String columnName, DataType<?> dataType, Integer precision) {
@@ -294,7 +296,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
         @Override
         public HllState initialState(RamAccounting ramAccounting, MemoryManager memoryManager, Version minNodeVersion) {
-            var state = new HllState(dataType, minNodeVersion.onOrAfter(Version.V_4_1_0));
+            var state = newState(dataType, minNodeVersion);
             return initIfNeeded(state, memoryManager, precision);
         }
 
@@ -326,30 +328,26 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     public static class HllState implements Comparable<HllState>, Writeable {
 
-        private final DataType<?> dataType;
-        private final Murmur3Hash murmur3Hash;
-        private final boolean allOn4_1;
-
         // Although HyperLogLogPlus implements Releasable we do not close instances.
         // We're using BigArrays.NON_RECYCLING_INSTANCE and instances created using it are not accounted / recycled
-        private HyperLogLogPlusPlus hyperLogLogPlusPlus;
+        protected HyperLogLogPlusPlus hyperLogLogPlusPlus;
 
-        HllState(DataType<?> dataType, boolean allOn4_1) {
-            this.dataType = dataType;
-            this.allOn4_1 = allOn4_1;
-            murmur3Hash = Murmur3Hash.getForType(dataType, allOn4_1);
+        HllState() {
         }
 
         HllState(StreamInput in) throws IOException {
-            if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
-                this.allOn4_1 = in.readBoolean();
-            } else {
-                this.allOn4_1 = false;
-            }
-            dataType = DataTypes.fromStream(in);
-            murmur3Hash = Murmur3Hash.getForType(dataType, allOn4_1);
             if (in.readBoolean()) {
                 hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in);
+            }
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            if (isInitialized()) {
+                out.writeBoolean(true);
+                hyperLogLogPlusPlus.writeTo(out);
+            } else {
+                out.writeBoolean(false);
             }
         }
 
@@ -362,16 +360,8 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             }
         }
 
-        boolean isAllOn4_1() {
-            return allOn4_1;
-        }
-
         boolean isInitialized() {
             return hyperLogLogPlusPlus != null;
-        }
-
-        void add(Object value) {
-            hyperLogLogPlusPlus.collect(murmur3Hash.hash(value));
         }
 
         void addHash(long hash) {
@@ -388,31 +378,40 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
         @Override
         public int compareTo(HllState o) {
-            return java.lang.Long.compare(hyperLogLogPlusPlus.cardinality(), o.hyperLogLogPlusPlus.cardinality());
+            return Long.compare(hyperLogLogPlusPlus.cardinality(), o.hyperLogLogPlusPlus.cardinality());
         }
 
         @Override
         public boolean equals(Object o) {
-            if (this == o) {
-                return true;
-            }
-            if (o == null || getClass() != o.getClass()) {
-                return false;
-            }
-            HllState that = (HllState) o;
-            return this.compareTo(that) == 0;
+            return o instanceof HllState that
+                && hyperLogLogPlusPlus.cardinality() == that.hyperLogLogPlusPlus.cardinality();
         }
 
         @Override
         public String toString() {
             return String.valueOf(value());
         }
+    }
+
+    public static class LegacyHllState extends HllState {
+
+        private final DataType<?> dataType;
+
+        LegacyHllState(DataType<?> dataType) {
+            this.dataType = dataType;
+        }
+
+        LegacyHllState(StreamInput in) throws IOException {
+            in.readBoolean(); // allOn41 - must be true because can only communicate with 5.x+ nodes
+            dataType = DataTypes.fromStream(in);
+            if (in.readBoolean()) {
+                hyperLogLogPlusPlus = HyperLogLogPlusPlus.readFrom(in);
+            }
+        }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-                out.writeBoolean(allOn4_1);
-            }
+            out.writeBoolean(true);
             DataTypes.toStream(dataType, out);
             if (isInitialized()) {
                 out.writeBoolean(true);
@@ -466,7 +465,9 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
         @Override
         public HyperLogLogDistinctAggregation.HllState readValueFrom(StreamInput in) throws IOException {
-            return new HllState(in);
+            return in.getVersion().onOrAfter(Version.V_6_2_0)
+                ? new HllState(in)
+                : new LegacyHllState(in);
         }
 
         @Override
@@ -490,7 +491,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @VisibleForTesting
     abstract static class Murmur3Hash {
 
-        static Murmur3Hash getForType(DataType<?> dataType, boolean allOn4_1) {
+        static Murmur3Hash getForType(DataType<?> dataType) {
             switch (dataType.id()) {
                 case DoubleType.ID:
                 case FloatType.ID:
@@ -506,11 +507,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
                 case BooleanType.ID:
                 case IpType.ID:
                 case CharacterType.ID:
-                    if (allOn4_1) {
-                        return Bytes64.INSTANCE;
-                    } else {
-                        return new Bytes();
-                    }
+                    return Bytes64.INSTANCE;
                 default:
                     throw new IllegalArgumentException("data type \"" + dataType + "\" is not supported");
             }
