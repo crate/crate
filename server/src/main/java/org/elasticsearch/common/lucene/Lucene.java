@@ -65,7 +65,7 @@ import io.crate.common.collections.Iterables;
 import io.crate.exceptions.SQLExceptions;
 
 public class Lucene {
-    public static final String LATEST_CODEC = "Lucene101";
+    public static final String LATEST_CODEC = "Lucene103";
 
     public static final String SOFT_DELETES_FIELD = "__soft_deletes";
 
