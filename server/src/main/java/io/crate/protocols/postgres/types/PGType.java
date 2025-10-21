@@ -23,10 +23,9 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
-import org.jetbrains.annotations.NotNull;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.NotNull;
 
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
@@ -85,7 +84,7 @@ public abstract class PGType<T> {
     private static final Logger LOGGER = LogManager.getLogger(PGType.class);
 
     private final int oid;
-    private final int typeLen;
+    protected final int typeLen;
     private final int typeMod;
     private final String typName;
 

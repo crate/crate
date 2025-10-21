@@ -30,6 +30,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Random;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
@@ -72,6 +73,7 @@ import io.crate.types.RegclassType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import io.crate.types.UUIDType;
 import io.crate.types.UndefinedType;
 
 public final class DataTypeTesting {
@@ -257,6 +259,13 @@ public final class DataTypeTesting {
                         }
                     }
                     return (T) values;
+                };
+
+            case UUIDType.ID:
+                return () -> {
+                    long mostSigBits = random.nextLong();
+                    long leastSigBits = random.nextLong();
+                    return (T) new UUID(mostSigBits, leastSigBits);
                 };
             default:
                 throw new AssertionError("No data generator for type " + type.getName());

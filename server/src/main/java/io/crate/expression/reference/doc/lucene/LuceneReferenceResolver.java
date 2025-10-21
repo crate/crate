@@ -52,6 +52,7 @@ import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import io.crate.types.UUIDType;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
@@ -154,6 +155,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             case ArrayType.ID -> DocCollectorExpression.create(DocReferences.toDocLookup(ref), isParentRefIgnored);
             case FloatVectorType.ID -> new FloatVectorColumnReference(fqn);
             case NumericType.ID -> NumericStorage.getCollectorExpression(fqn, (NumericType) valueType);
+            case UUIDType.ID -> UUIDType.getCollectorExpression(fqn);
             default -> throw new UnhandledServerException("Unsupported type: " + valueType.getName());
         };
     }

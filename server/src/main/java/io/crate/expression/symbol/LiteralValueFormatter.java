@@ -21,13 +21,15 @@
 
 package io.crate.expression.symbol;
 
-import io.crate.sql.Literals;
-import org.joda.time.Period;
-import org.locationtech.spatial4j.shape.Point;
-
 import java.lang.reflect.Array;
 import java.util.Collection;
 import java.util.Map;
+import java.util.UUID;
+
+import org.joda.time.Period;
+import org.locationtech.spatial4j.shape.Point;
+
+import io.crate.sql.Literals;
 
 public class LiteralValueFormatter {
 
@@ -60,6 +62,10 @@ public class LiteralValueFormatter {
                    || (Long) value >= Integer.MIN_VALUE)) {
             builder.append(value.toString());
             builder.append("::bigint");
+        } else if (value instanceof UUID uuid) {
+            builder.append("'");
+            builder.append(uuid.toString());
+            builder.append("'");
         } else {
             builder.append(value);
         }

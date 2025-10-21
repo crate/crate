@@ -74,7 +74,8 @@ SQL Standard and PostgreSQL Compatibility
 Data Types
 ----------
 
-None
+- Added support for the :ref:`UUID type <type-uuid>`.
+
 
 Scalar and Aggregation Functions
 --------------------------------

@@ -31,6 +31,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.UUID;
 import java.util.function.Supplier;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
@@ -53,6 +54,7 @@ import io.crate.types.ObjectType;
 import io.crate.types.RowType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
+import io.crate.types.UUIDType;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;
 
@@ -95,6 +97,7 @@ public class PGTypesTest extends ESTestCase {
         assertThat(PGTypes.fromOID(RealType.OID)).isExactlyInstanceOf(FloatType.class);
         assertThat(PGTypes.fromOID(DoubleType.OID)).isExactlyInstanceOf(io.crate.types.DoubleType.class);
         assertThat(PGTypes.fromOID(NumericType.OID)).isExactlyInstanceOf(io.crate.types.NumericType.class);
+        assertThat(PGTypes.fromOID(PgUUIDType.OID)).isExactlyInstanceOf(UUIDType.class);
     }
 
     @Test
@@ -126,6 +129,7 @@ public class PGTypesTest extends ESTestCase {
         assertThat(PGTypes.fromOID(PGArray.DATE_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
         assertThat(PGTypes.fromOID(PGArray.VARCHAR_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
         assertThat(PGTypes.fromOID(PGArray.JSON_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
+        assertThat(PGTypes.fromOID(PGArray.UUID_ARRAY.oid())).isExactlyInstanceOf(ArrayType.class);
     }
 
     private static class Entry<T> {
@@ -206,6 +210,14 @@ public class PGTypesTest extends ESTestCase {
         var entry = new Entry<>(new FloatVectorType(4), new float[]{1.1f, 2.2f, 3.3f, 4.4f});
         assertThat(writeAndReadAsText(entry, PGTypes.get(entry.type))).isEqualTo(entry.value);
     }
+
+    @Test
+    public void test_uuid_streaming_roundtrip() throws Exception {
+        var entry = new Entry<>(UUIDType.INSTANCE, UUID.randomUUID());
+        assertThat(writeAndReadAsText(entry, PGTypes.get(entry.type))).isEqualTo(entry.value);
+        assertThat(writeAndReadBinary(entry, PGTypes.get(entry.type))).isEqualTo(entry.value);
+    }
+
 
     @Test
     @SuppressWarnings({"unchecked", "rawtypes"})
