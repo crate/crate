@@ -46,4 +46,5 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue where generated and default sub-columns were missing from
+  results returned by the ``RETURNING`` clause.
