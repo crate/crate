@@ -94,6 +94,3 @@ Administration and Operations
   available after a cluster restart.
 
 - Added ``last_job_id`` column to the :ref:`sys.sessions <sys-sessions>` table.
-
-- Fixed an issue where generated and default sub-columns were missing from
-  results returned by the ``RETURNING`` clause.
