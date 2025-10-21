@@ -160,9 +160,10 @@ Column names are restricted in terms of patterns:
 - Columns are not allowed to contain a dot (``.``), since this conflicts
   with internal path definitions.
 
-- Columns that conflict with the naming scheme of
-  :ref:`virtual system columns <sql_administration_system_columns>` are
-  restricted.
+- Columns cannot use the exact name of a :ref:`virtual system column
+  <sql_administration_system_columns>`.
+  It is still discouraged to use column names prefixed with an underscore to
+  avoid conflicts in case future CrateDB versions add new system columns.
 
 - Character sequences that conform to the
   :ref:`subscript notation <sql_dql_object_arrays>` (e.g. ``col['id']``) are

@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.File;
@@ -41,7 +42,6 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -274,28 +274,22 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         File newFile = folder.newFile();
 
         try (OutputStreamWriter writer = new OutputStreamWriter(new FileOutputStream(newFile), StandardCharsets.UTF_8)) {
-            writer.write("{\"id\":1, \"_invalid\":1}\n");
+            writer.write("{\"id\":1, \"_seq_no\":1}\n");
             writer.write("{\"id\":2, \"invalid['index']\":2}\n");
-            writer.write("{\"id\":3, \"invalid['_invalid']\":3}\n");
+            writer.write("{\"id\":3, \"invalid['_seq_no']\":3}\n");
             writer.write("{\"id\":4, \"valid\": {\"_valid\": 4}}\n");
         }
 
         execute("copy foo from ?", new Object[]{Paths.get(newFile.toURI()).toUri().toString()});
-        assertThat(response).hasRowCount(1L);
+        assertThat(response).hasRowCount(2L);
         execute("refresh table foo");
 
         execute("select * from foo order by id");
 
-        // Check columns.
-        assertThat(response.cols()).hasSize(2);
-        assertThat(response.cols()[1]).isEqualTo("valid");
-
-        // Check data of column.
-        assertThat(response.rows()[0][0]).isEqualTo(4);
-        HashMap<?, ?> data = (HashMap<?, ?>)response.rows()[0][1];
-        // The inner value will result in an Long type as we rely on ES mappers here and the dynamic ES parsing
-        // will define integers as longs (no concrete type was specified so use long to be safe)
-        assertThat(data.get("_valid")).isEqualTo(4L);
+        assertThat(response).hasColumns("id", "valid");
+        assertThat(response).hasRows(
+            "1| NULL", "4| {_valid=4}"
+        );
     }
 
     @Test

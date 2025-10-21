@@ -780,7 +780,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithUnderscoreColumnPrefix() {
         assertThatThrownBy(() -> analyze("create table test (_id integer, name string)"))
             .isExactlyInstanceOf(InvalidColumnNameException.class)
-            .hasMessage("\"_id\" conflicts with system column pattern");
+            .hasMessage("\"_id\" conflicts with system column");
     }
 
     @Test
@@ -1039,13 +1039,6 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
         assertThatThrownBy(() -> analyze("create table \"with.\".my_table (id long primary key)"))
             .isExactlyInstanceOf(InvalidSchemaNameException.class)
             .hasMessage("schema name \"with.\" is invalid.");
-    }
-
-    @Test
-    public void testCreateTableWithInvalidColumnName() {
-        assertThatThrownBy(() -> analyze("create table my_table (\"_test\" string)"))
-            .isExactlyInstanceOf(InvalidColumnNameException.class)
-            .hasMessage("\"_test\" conflicts with system column pattern");
     }
 
     @Test

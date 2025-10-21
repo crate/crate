@@ -43,6 +43,7 @@ import io.crate.common.StringUtils;
 import io.crate.common.collections.LexicographicalOrdering;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.InvalidColumnNameException;
+import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Literal;
@@ -361,8 +362,8 @@ public abstract sealed class ColumnIdent
      */
     private static void validateColumnName(String columnName) {
         validateObjectKey(columnName);
-        if (isSystemColumn(columnName)) {
-            throw new InvalidColumnNameException(columnName, "conflicts with system column pattern");
+        if (SysColumns.isSysColumn(columnName)) {
+            throw new InvalidColumnNameException(columnName, "conflicts with system column");
         }
     }
 
@@ -391,31 +392,6 @@ public abstract sealed class ColumnIdent
                 default:
             }
         }
-    }
-
-    /**
-     * Returns true if the name is reserved for system columns.
-     *
-     * See {@link ColumnIdent#isSystemColumn()} for system column naming scheme.
-     */
-    private static boolean isSystemColumn(String name) {
-        int length = name.length();
-        if (length == 0) {
-            return false;
-        }
-        if (name.charAt(0) != '_') {
-            return false;
-        }
-        for (int i = 1; i < length; i++) {
-            char ch = name.charAt(i);
-            if (ch == '_' && (name.charAt(i - 1) == '_' || i + 1 == length)) {
-                return false;
-            }
-            if (ch != '_' && (ch < 'a' || ch > 'z')) {
-                return false;
-            }
-        }
-        return true;
     }
 
     /**
@@ -478,7 +454,7 @@ public abstract sealed class ColumnIdent
      * </pre>
      **/
     public boolean isSystemColumn() {
-        return isSystemColumn(name());
+        return SysColumns.isSysColumn(name());
     }
 
     /**
