@@ -240,6 +240,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             Object convertedInnerValue;
             try {
                 convertedInnerValue = innerType.apply(targetType, sourceValue);
+            } catch (ConversionException e) {
+                throw e;
             } catch (ClassCastException | IllegalArgumentException e) {
                 throw ConversionException.forObjectChild(key, sourceValue, targetType);
             }
@@ -579,5 +581,26 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             objType.setInnerType(entry.getKey(), entry.getValue().withColumnPolicy(columnPolicy));
         }
         return objType.build();
+    }
+
+    @Override
+    public String toString() {
+        StringBuilder innerTypeStr = new StringBuilder();
+        for (DataType<?> innerType : innerTypes.values()) {
+            if (!innerTypeStr.isEmpty()) {
+                innerTypeStr.append(", ");
+            }
+            String inner = innerType.toString();
+            if (innerTypeStr.length() + inner.length() < 100) {
+                innerTypeStr.append(inner);
+            } else {
+                innerTypeStr.append("...");
+            }
+        }
+        StringBuilder objectTypeStr = new StringBuilder(NAME);
+        if (!innerTypeStr.isEmpty()) {
+            objectTypeStr.append('(').append(innerTypeStr).append(')');
+        }
+        return objectTypeStr.toString();
     }
 }

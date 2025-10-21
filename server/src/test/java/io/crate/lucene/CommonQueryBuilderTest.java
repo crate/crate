@@ -422,8 +422,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThatThrownBy(() -> convert("_doc > {\"name\"='foo'}"))
             .isExactlyInstanceOf(UnsupportedFunctionException.class)
             .hasMessageStartingWith(
-                "Invalid arguments in: (doc.users._doc > {name = 'foo'}) with (object, object).");
-
+                "Invalid arguments in: (doc.users._doc > {name = 'foo'}) with (object, object(text)).");
     }
 
     @Test

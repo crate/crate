@@ -1473,7 +1473,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void testCreateTableWithObjectAsPrimaryKey() {
         assertThatThrownBy(() -> analyze("create table t (obj object as (x int) primary key)"))
             .isExactlyInstanceOf(UnsupportedOperationException.class)
-            .hasMessage("Cannot use columns of type \"object\" as primary key");
+            .hasMessage("Cannot use columns of type \"object(integer)\" as primary key");
     }
 
     @Test
