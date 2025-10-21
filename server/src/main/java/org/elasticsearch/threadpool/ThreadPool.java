@@ -145,7 +145,7 @@ public class ThreadPool implements Scheduler {
             new ScalingExecutorBuilder(Names.WARMER, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)),
             new ScalingExecutorBuilder(Names.SNAPSHOT, 1, halfProcMaxAt5, TimeValue.timeValueMinutes(5)),
             new ScalingExecutorBuilder(Names.FETCH_SHARD_STARTED, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)),
-            new FixedExecutorBuilder(settings, Names.FORCE_MERGE, 1, -1),
+            new FixedExecutorBuilder(settings, Names.FORCE_MERGE, oneEightOfProcessors(availableProcessors), -1),
             new ScalingExecutorBuilder(Names.FETCH_SHARD_STORE, 1, 2 * availableProcessors, TimeValue.timeValueMinutes(5)),
             new FixedExecutorBuilder(settings, Names.LOGICAL_REPLICATION, searchThreadPoolSize(availableProcessors), 100)
         );
@@ -227,6 +227,15 @@ public class ThreadPool implements Scheduler {
             );
         }
         return new ThreadPoolStats.Stats(name, -1, -1, -1, -1, -1, -1);
+    }
+
+    @Nullable
+    public ThreadPool.Info info(String name) {
+        ExecutorHolder holder = executors.get(name);
+        if (holder == null) {
+            return null;
+        }
+        return holder.info();
     }
 
     /**
@@ -371,6 +380,10 @@ public class ThreadPool implements Scheduler {
 
     static int halfNumberOfProcessorsMaxTen(int numberOfProcessors) {
         return boundedBy((numberOfProcessors + 1) / 2, 1, 10);
+    }
+
+    static int oneEightOfProcessors(int numberOfProcessors) {
+        return boundedBy(numberOfProcessors / 8, 1, Integer.MAX_VALUE);
     }
 
     public static int searchThreadPoolSize(int availableProcessors) {

@@ -57,6 +57,10 @@ Breaking Changes
   the relative paths are resolved, thus conforming to the behavior already
   described in the :ref:`documentation <conf-node-settings_paths>`.
 
+- Increased the ``FORCE_MERGE`` default thread pool size from ``1`` to ``1/8``
+  of the available processors, improving the performance of the :ref:`optimize`
+  operation on machines with more than ``15`` cores.
+
 Deprecations
 ============
 
