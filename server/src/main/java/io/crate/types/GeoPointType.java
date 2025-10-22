@@ -248,4 +248,9 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
     public StorageSupport<Point> storageSupport() {
         return STORAGE;
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.COMPARATOR;
+    }
 }

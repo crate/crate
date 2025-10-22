@@ -293,4 +293,9 @@ public final class BitStringType extends DataType<BitString> implements Streamer
     public void addMappingOptions(Map<String, Object> mapping) {
         mapping.put("length", length);
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.COMPARATOR;
+    }
 }

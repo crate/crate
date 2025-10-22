@@ -135,4 +135,9 @@ public final class RegclassType extends DataType<Regclass> implements Streamer<R
         }
         return RamUsageEstimator.sizeOf(value.name()) + RamUsageEstimator.sizeOf(value.oid());
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.COMPARATOR;
+    }
 }

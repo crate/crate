@@ -537,4 +537,9 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
         return new ArrayType<>(innerType.withColumnPolicy(columnPolicy));
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.NONE;
+    }
 }

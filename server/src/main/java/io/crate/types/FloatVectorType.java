@@ -225,4 +225,9 @@ public class FloatVectorType extends DataType<float[]> implements Streamer<float
     public StorageSupport<? super float[]> storageSupport() {
         return STORAGE_SUPPORT;
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.COMPARATOR;
+    }
 }
