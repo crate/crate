@@ -53,7 +53,6 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.SysColumns;
-import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
 import io.crate.types.ByteType;
 import io.crate.types.CharacterType;
@@ -61,7 +60,6 @@ import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.DoubleType;
 import io.crate.types.FloatType;
-import io.crate.types.FloatVectorType;
 import io.crate.types.GeoPointType;
 import io.crate.types.IntegerType;
 import io.crate.types.LongType;
@@ -70,7 +68,6 @@ import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
-import io.crate.types.UUIDType;
 
 public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, SortField> {
 
@@ -153,7 +150,8 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
             return customSortField(ref.toString(), ref, context);
         }
 
-        if (ref.valueType() instanceof NumericType numericType) {
+        DataType<?> valueType = ref.valueType();
+        if (valueType instanceof NumericType numericType) {
             Integer precision = numericType.numericPrecision();
             if (precision == null || precision > NumericStorage.COMPACT_PRECISION) {
                 return customSortField(ref.toString(), ref, context);
@@ -170,10 +168,7 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
             return sortField;
         }
 
-        if (ref.valueType().equals(DataTypes.IP)
-                || ref.valueType().id() == BitStringType.ID
-                || ref.valueType().id() == FloatVectorType.ID
-                || ref.valueType().id() == UUIDType.ID) {
+        if (valueType.sortSupport() == DataType.Sort.COMPARATOR) {
             return customSortField(ref.toString(), ref, context);
         } else {
             NullValueOrder nullValueOrder = NullValueOrder.fromFlag(context.nullFirst);
@@ -182,9 +177,9 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
     }
 
     @VisibleForTesting
-    static SortField mappedSortField(Reference symbol,
-                                     boolean reverse,
-                                     NullValueOrder nullValueOrder) {
+    public static SortField mappedSortField(Reference symbol,
+                                            boolean reverse,
+                                            NullValueOrder nullValueOrder) {
         String fieldName = symbol.storageIdent();
         DataType<?> valueType = symbol.valueType();
         switch (valueType.id()) {

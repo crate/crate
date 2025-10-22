@@ -24,6 +24,8 @@ package io.crate.types;
 import static io.crate.execution.dml.IndexerTest.getIndexer;
 import static io.crate.execution.dml.IndexerTest.item;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.fail;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -38,6 +40,7 @@ import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.Scorer;
+import org.apache.lucene.search.SortField;
 import org.apache.lucene.search.Weight;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -49,17 +52,24 @@ import io.crate.Streamer;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dml.IndexerTest;
 import io.crate.execution.engine.fetch.ReaderContext;
+import io.crate.execution.engine.sort.LuceneSort;
+import io.crate.execution.engine.sort.NullValueOrder;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.RowGranularity;
+import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataType.Sort;
 
 
 public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTest {
@@ -233,5 +243,43 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
         StreamInput in = out.bytes().streamInput();
         assertThat(streamer.readValueFrom(in)).usingComparator(type).isEqualTo(value);
         assertThat(streamer.readValueFrom(in)).isNull();
+    }
+
+    @Test
+    public void test_sort_support() throws Exception {
+        // Basic sanity check that the sortSupport indication is correct
+        // See also TransportSQLActionTest.test_types_with_storage_can_be_inserted_and_queried
+        // for an integration level test for storable types.
+        DataType<T> type = getDataDef().type();
+        Sort sortSupport = type.sortSupport();
+        switch (sortSupport) {
+            case COMPARATOR -> {
+                Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
+                T value = dataGenerator.get();
+                assertThat(type.compare(value, value)).isEqualTo(0);
+            }
+            case SORT_FIELD -> {
+                var ref = new SimpleReference(
+                    new ReferenceIdent(new RelationName("doc", "tbl"), ColumnIdent.of("x")),
+                    RowGranularity.DOC,
+                    type,
+                    1,
+                    null
+                );
+                SortField mappedSortField = LuceneSort.mappedSortField(ref, false, NullValueOrder.FIRST);
+                assertThat(mappedSortField).isNotNull();
+
+                // Must additionally support Comparator for cases like order by on unnest
+                Supplier<T> dataGenerator = DataTypeTesting.getDataGenerator(type);
+                T value = dataGenerator.get();
+                assertThat(type.compare(value, value)).isEqualTo(0);
+            }
+            case NONE -> {
+                // All good
+            }
+            default -> {
+                fail("Unexpected Sort value");
+            }
+        }
     }
 }

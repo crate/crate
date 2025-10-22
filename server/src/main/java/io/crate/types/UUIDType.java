@@ -306,4 +306,9 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
             }
         };
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.COMPARATOR;
+    }
 }

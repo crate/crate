@@ -345,6 +345,14 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     }
 
     @Override
+    public Sort sortSupport() {
+        // Using COMPARATOR here is the safe choice despite being slightly misleading.
+        // Numeric has special treatment in LuceneSort
+        // For precision <= COMPACT_PRECISION (long storage) it uses a SortedNumericSortField
+        return Sort.COMPARATOR;
+    }
+
+    @Override
     public void addMappingOptions(Map<String, Object> mapping) {
         if (precision == null || scale == null) {
             // Scale would be lost with the current encoding schemes used in NumericStorage

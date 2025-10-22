@@ -228,4 +228,9 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         }
         return RamUsageEstimator.alignObjectSize(sizeOf(map));
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.NONE;
+    }
 }
