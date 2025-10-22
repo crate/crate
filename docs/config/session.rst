@@ -281,4 +281,12 @@ consumption for the particular query.
    operation is terminated. The number of already written records is not
    reported.
 
+.. _conf-session-client-encoding:
+
+**client_encoding**
+  | *Default:* ``UTF8``
+  | *Modifiable:* ``yes``
+
+  Sets the client encoding. Only supported value is ``UTF8``.
+
 .. _search_path: https://www.postgresql.org/docs/10/ddl-schemas.html

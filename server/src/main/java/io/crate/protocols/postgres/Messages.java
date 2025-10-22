@@ -179,8 +179,7 @@ public final class Messages {
     static void sendAuthenticationError(Channel channel, String message) {
         LOGGER.warn(message);
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
-        byte[] errorCode = PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION.code().getBytes(StandardCharsets.UTF_8);
-
+        byte[] errorCode = PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION.codeBytes();
         sendErrorResponse(channel, message, msg, PGError.Severity.FATAL.bytes(), null, null,
                           METHOD_NAME_CLIENT_AUTH, errorCode);
     }
@@ -206,7 +205,7 @@ public final class Messages {
         writeCString(buffer, error.message().getBytes(StandardCharsets.UTF_8));
 
         buffer.writeByte('C');
-        writeCString(buffer, error.status().code().getBytes(StandardCharsets.UTF_8));
+        writeCString(buffer, error.status().codeBytes());
 
         StackTraceElement[] stackTrace = error.throwable().getStackTrace();
         if (stackTrace.length > 0) {
