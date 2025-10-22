@@ -139,6 +139,11 @@ from existing columns in the table::
 
     :ref:`Partitioned tables: Generated columns <partitioned-generated>`
 
+.. NOTE::
+
+   Generated columns within object arrays or that are referencing object
+   array's sub-columns are not supported.
+
 .. Hidden: drop tables::
 
     cr> DROP TABLE computed;

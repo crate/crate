@@ -21,10 +21,13 @@
 
 package io.crate.analyze;
 
+import static io.crate.metadata.table.TableInfo.IS_OBJECT_ARRAY;
+
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
@@ -40,6 +43,7 @@ import io.crate.data.Row;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FulltextAnalyzerResolver;
+import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
@@ -115,6 +119,30 @@ public record AnalyzedCreateTable(
             ColumnIdent columnIdent = entry.getKey();
             RefBuilder column = entry.getValue();
             Reference reference = column.build(columns, relationName, paramBinder, toValue);
+            if (reference instanceof GeneratedReference generatedReference) {
+                // generated references cannot be a child of an object array or reference a child of an object array
+                Iterable<ColumnIdent> parents = columnIdent.parents();
+                for (ColumnIdent parent : parents) {
+                    RefBuilder parentRef = columns.get(parent);
+                    if (parentRef != null && IS_OBJECT_ARRAY.test(parentRef.type())) {
+                        throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Generated reference \"%s\" cannot be a child of an object array", columnIdent));
+                    }
+                }
+                for (Reference referencedRef : generatedReference.referencedReferences()) {
+                    parents = referencedRef.column().parents();
+                    for (ColumnIdent parent : parents) {
+                        RefBuilder parentRef = columns.get(parent);
+                        if (IS_OBJECT_ARRAY.test(parentRef.type())) {
+                            throw new UnsupportedOperationException(
+                                String.format(
+                                    Locale.ENGLISH,
+                                    "Generated reference \"%s\" cannot reference a child of an object array \"%s\"",
+                                    generatedReference.column(),
+                                    referencedRef.column()));
+                        }
+                    }
+                }
+            }
             references.put(columnIdent, reference);
             if (column.isPrimaryKey()) {
                 primaryKeys.add(reference);
