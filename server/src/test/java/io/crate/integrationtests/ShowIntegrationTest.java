@@ -399,6 +399,7 @@ public class ShowIntegrationTest extends IntegTestCase {
         execute("show all");
         assertThat(response).hasRows(
             "application_name| PostgreSQL JDBC Driver| Optional application name. Can be set by a client to identify the application which created the connection",
+            "client_encoding| UTF8| Sets the client-side encoding. The only supported encoding is UTF8",
             "datestyle| ISO| Display format for date and time values.",
             "enable_hashjoin| true| Considers using the Hash Join instead of the Nested Loop Join implementation.",
             "error_on_unknown_object_key| true| Raises or suppresses ObjectKeyUnknownException when querying nonexistent keys to dynamic objects.",
