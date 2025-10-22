@@ -1965,4 +1965,26 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Column \"x\" specified more than once");
     }
+
+    @Test
+    public void test_reject_generated_subcolumns_of_object_array() {
+        assertThatThrownBy(() -> analyze("create table t (o object as (a int as 1)[])"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Generated reference \"o['a']\" cannot be a child of an object array");
+
+        assertThatThrownBy(() -> analyze("create table t (a int, o object as (a int, b int as a)[])"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Generated reference \"o['b']\" cannot be a child of an object array");
+    }
+
+    @Test
+    public void test_reject_generated_reference_cannot_reference_subcolumns_of_object_array() {
+        assertThatThrownBy(() -> analyze("create table t3 (o object as (a int)[], a int[] as o['a'])"))
+            .isExactlyInstanceOf(ConversionException.class)
+            .hasMessage("Cannot cast expressions from type `integer` to type `integer_array`");
+
+        assertThatThrownBy(() -> analyze("create table t3 (o object as (a int)[], a int as o['a'])"))
+            .isExactlyInstanceOf(UnsupportedOperationException.class)
+            .hasMessage("Generated reference \"a\" cannot reference a child of an object array \"o['a']\"");
+    }
 }
