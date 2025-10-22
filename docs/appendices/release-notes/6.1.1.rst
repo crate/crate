@@ -48,3 +48,7 @@ Fixes
 
 - Fixed an issue where generated and default sub-columns were missing from
   results returned by the ``RETURNING`` clause.
+
+- Fixed an issue that led to deleting persisted
+  :ref:`pg_catalog.pg_stats <pg_stats>` during full cluster restart, thus making
+  it necessary to run again :ref:`analyze`.
