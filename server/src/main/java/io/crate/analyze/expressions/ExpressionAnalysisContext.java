@@ -36,9 +36,9 @@ import io.crate.sql.tree.Window;
  */
 public class ExpressionAnalysisContext {
 
-    private final ArrayChildVisitor arrayChildVisitor = new ArrayChildVisitor();
-    private final Map<SubqueryExpression, Object> arrayExpressionsChildren = new IdentityHashMap<>();
+    private static final ArrayChildVisitor ARRAY_CHILD_VISITOR = new ArrayChildVisitor();
 
+    private Map<SubqueryExpression, Object> arrayExpressionsChildren;
     private boolean hasAggregates;
     private boolean allowEagerNormalize = true;
     private boolean parentIsOrderSensitive = true;
@@ -93,7 +93,10 @@ public class ExpressionAnalysisContext {
      * @param arrayExpressionChild the expression to register
      */
     void registerArrayChild(Expression arrayExpressionChild) {
-        arrayExpressionChild.accept(arrayChildVisitor, null);
+        if (arrayExpressionsChildren == null) {
+            arrayExpressionsChildren = new IdentityHashMap<>();
+        }
+        arrayExpressionChild.accept(ARRAY_CHILD_VISITOR, arrayExpressionsChildren);
     }
 
     /**
@@ -101,13 +104,14 @@ public class ExpressionAnalysisContext {
      * @return True if the given expression has previously been registered.
      */
     boolean isArrayChild(SubqueryExpression expression) {
-        return arrayExpressionsChildren.containsKey(expression);
+        return arrayExpressionsChildren != null
+            && arrayExpressionsChildren.containsKey(expression);
     }
 
-    private class ArrayChildVisitor extends DefaultTraversalVisitor<Void, Void> {
+    private static class ArrayChildVisitor extends DefaultTraversalVisitor<Void, Map<SubqueryExpression, Object>> {
 
         @Override
-        protected Void visitSubqueryExpression(SubqueryExpression node, Void context) {
+        protected Void visitSubqueryExpression(SubqueryExpression node, Map<SubqueryExpression, Object> arrayExpressionsChildren) {
             arrayExpressionsChildren.put(node, null);
             return null;
         }
