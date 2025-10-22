@@ -21,6 +21,8 @@
 
 package io.crate.protocols.postgres;
 
+import java.nio.charset.StandardCharsets;
+
 public enum PGErrorStatus {
 
     SUCCESSFUL_COMPLETION("00000","successful_completion"),
@@ -287,13 +289,16 @@ public enum PGErrorStatus {
     DATA_CORRUPTED("XX001","data_corrupted"),
     INDEX_CORRUPTED("XX002","index_corrupted");
 
+
     PGErrorStatus(String code, String description) {
         this.code = code;
         this.description = description;
+        this.codeBytes = code.getBytes(StandardCharsets.UTF_8);
     }
 
     private final String code;
     private final String description;
+    private final byte[] codeBytes;
 
     public String code() {
         return code;
@@ -303,4 +308,9 @@ public enum PGErrorStatus {
         return description;
     }
 
+    /// UTF8 byte representation of [#code()]
+    /// Do NOT mutate or you'll burn in hell.
+    public byte[] codeBytes() {
+        return codeBytes;
+    }
 }
