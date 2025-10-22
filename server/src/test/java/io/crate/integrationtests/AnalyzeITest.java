@@ -25,6 +25,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.data.Percentage.withPercentage;
 
 import java.util.List;
+import java.util.stream.IntStream;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -35,31 +36,40 @@ public class AnalyzeITest extends IntegTestCase {
 
     @Test
     @SuppressWarnings("unchecked")
-    public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class_and_pg_stats() {
+    public void test_analyze_statement_refreshes_table_stats_and_stats_are_visible_in_pg_class_and_pg_stats_also_after_restart()
+        throws Exception {
+
         execute("create table doc.tbl (x int)");
         execute("insert into doc.tbl (x) values (1), (2), (3), (null), (3), (3)");
         execute("refresh table doc.tbl");
         execute("analyze");
-        execute("select reltuples from pg_class where relname = 'tbl'");
-        assertThat(response.rows()[0][0]).isEqualTo(6.0f);
 
-        execute(
-            "select " +
-            "   null_frac," +
-            "   avg_width," +
-            "   n_distinct," +
-            "   most_common_vals," +
-            "   most_common_freqs," +
-            "   histogram_bounds " +
-            "from pg_stats where tablename = 'tbl'");
-        Object[] row = response.rows()[0];
-        assertThat(((Float) row[0]).doubleValue()).isCloseTo(0.166, withPercentage(1));
-        assertThat(row[1]).isEqualTo(DataTypes.INTEGER.fixedSize());
-        assertThat(row[2]).isEqualTo(3.0f);
-        assertThat(((List<String>) row[3])).containsExactly("3", "2", "1");
-        assertThat(((List<Float>) row[4])).hasSize(3);
-        assertThat(((List<Float>) row[4]).get(0)).isEqualTo(0.5f);
-        assertThat(((List<String>) row[5])).isEmpty();
+        for (int i : IntStream.of(1, 2).toArray()) {
+            if (i == 2) {
+                cluster().fullRestart();
+                ensureGreen();
+            }
+            execute("select reltuples from pg_class where relname = 'tbl'");
+            assertThat(response.rows()[0][0]).isEqualTo(6.0f);
+
+            execute(
+                "select " +
+                    "   null_frac," +
+                    "   avg_width," +
+                    "   n_distinct," +
+                    "   most_common_vals," +
+                    "   most_common_freqs," +
+                    "   histogram_bounds " +
+                    "from pg_stats where tablename = 'tbl'");
+            Object[] row = response.rows()[0];
+            assertThat(((Float) row[0]).doubleValue()).isCloseTo(0.166, withPercentage(1));
+            assertThat(row[1]).isEqualTo(DataTypes.INTEGER.fixedSize());
+            assertThat(row[2]).isEqualTo(3.0f);
+            assertThat(((List<String>) row[3])).containsExactly("3", "2", "1");
+            assertThat(((List<Float>) row[4])).hasSize(3);
+            assertThat(((List<Float>) row[4]).get(0)).isEqualTo(0.5f);
+            assertThat(((List<String>) row[5])).isEmpty();
+        }
     }
 
     @Test
