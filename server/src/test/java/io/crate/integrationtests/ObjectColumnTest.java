@@ -373,12 +373,12 @@ public class ObjectColumnTest extends IntegTestCase {
                     key text as 'synth'
                 ),
                 os array(object as (
-                    x text as 'synth',
+                    x text default 'synth',
                     y text
                 )),
                 complex object as (
                     os array(object as (
-                        key text as 'synth'
+                        key text default 'synth'
                     )),
                     x text as 'synth'
                 )
