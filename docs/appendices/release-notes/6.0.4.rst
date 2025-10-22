@@ -77,3 +77,6 @@ Fixes
 
 - Fixed an issue where generated and default sub-columns were missing from
   results returned by the ``RETURNING`` clause.
+
+- Disallowed generated sub-columns within object arrays or referencing their
+  sub-columns, which is unsupported and leading to errors or wrong behavior.
