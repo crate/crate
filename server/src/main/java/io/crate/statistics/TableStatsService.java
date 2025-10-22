@@ -188,9 +188,6 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
             this.tablesSearcherManager = new SearcherManager(tablesWriter, null);
             this.colsWriter = new IndexWriter(colsDirectory, colsIndexWriterConfig);
             this.colsSearcherManager = new SearcherManager(colsWriter, null);
-
-            // ensure index files exist for reads
-            this.update(Map.of());
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
@@ -298,6 +295,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         }
     }
 
+    @VisibleForTesting
     public void clear() {
         try {
             tablesWriter.deleteAll();
