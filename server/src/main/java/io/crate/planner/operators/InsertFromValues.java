@@ -94,6 +94,7 @@ import io.crate.execution.engine.indexing.GroupRowsByShard;
 import io.crate.execution.engine.indexing.ItemFactory;
 import io.crate.execution.engine.indexing.ShardLocation;
 import io.crate.execution.engine.indexing.ShardedRequests;
+import io.crate.execution.engine.indexing.ShardedRequests.ItemAndRoutingAndSourceInfo;
 import io.crate.execution.engine.indexing.UpsertResultContext;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.expression.InputFactory;
@@ -188,11 +189,6 @@ public class InsertFromValues implements LogicalPlan {
             partitionedByInputs.add(context.add(partitionedBySymbol));
         }
 
-        ArrayList<Input<?>> primaryKeyInputs = new ArrayList<>(writerProjection.ids().size());
-        for (Symbol symbol : writerProjection.ids()) {
-            primaryKeyInputs.add(context.add(symbol));
-        }
-
         if (writerProjection.clusteredBy() != null) {
             context.add(writerProjection.clusteredBy());
         }
@@ -282,7 +278,7 @@ public class InsertFromValues implements LogicalPlan {
             dependencies.client(),
             shardedRequests.itemsByMissingPartition().keySet(),
             dependencies.clusterService()
-        ).thenCompose(acknowledgedResponse -> {
+        ).thenCompose(_ -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
                 shardedRequests,
                 dependencies.clusterService()).values();
@@ -344,10 +340,6 @@ public class InsertFromValues implements LogicalPlan {
             partitionedByInputs.add(context.add(partitionedBySymbol));
         }
 
-        ArrayList<Input<?>> primaryKeyInputs = new ArrayList<>(writerProjection.ids().size());
-        for (Symbol symbol : writerProjection.ids()) {
-            primaryKeyInputs.add(context.add(symbol));
-        }
         if (writerProjection.clusteredBy() != null) {
             context.add(writerProjection.clusteredBy());
         }
@@ -433,7 +425,7 @@ public class InsertFromValues implements LogicalPlan {
             dependencies.client(),
             shardedRequests.itemsByMissingPartition().keySet(),
             dependencies.clusterService()
-        ).thenCompose(acknowledgedResponse -> {
+        ).thenCompose(_ -> {
             var shardUpsertRequests = resolveAndGroupShardRequests(
                 shardedRequests,
                 dependencies.clusterService()).values();
@@ -507,7 +499,7 @@ public class InsertFromValues implements LogicalPlan {
         }
         var validator = validatorsCache.computeIfAbsent(
             partitionName,
-            index -> Indexer.createConstraintCheck(
+            _ -> Indexer.createConstraintCheck(
                 tableInfo,
                 partitionName.values(),
                 txnCtx,
@@ -601,11 +593,10 @@ public class InsertFromValues implements LogicalPlan {
         var itemsByMissingPartition = shardedRequests.itemsByMissingPartition().entrySet().iterator();
         ClusterState state = clusterService.state();
         OperationRouting operationRouting = clusterService.operationRouting();
-        Metadata metadata = state.metadata();
         while (itemsByMissingPartition.hasNext()) {
             var entry = itemsByMissingPartition.next();
-            var partition = entry.getKey();
-            var requestItems = entry.getValue();
+            PartitionName partition = entry.getKey();
+            List<ItemAndRoutingAndSourceInfo<TItem>> requestItems = entry.getValue();
 
             var requestItemsIterator = requestItems.iterator();
             while (requestItemsIterator.hasNext()) {
@@ -649,7 +640,7 @@ public class InsertFromValues implements LogicalPlan {
         AtomicInteger numRequests = new AtomicInteger(shardUpsertRequests.size());
         AtomicReference<Throwable> lastFailure = new AtomicReference<>(null);
 
-        Consumer<ShardUpsertRequest> countdown = ignored -> {
+        Consumer<ShardUpsertRequest> countdown = _ -> {
             if (numRequests.decrementAndGet() == 0) {
                 Throwable throwable = lastFailure.get();
                 if (throwable == null) {

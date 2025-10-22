@@ -104,34 +104,12 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
         return itemsByShard;
     }
 
-    public static class ItemAndRoutingAndSourceInfo<TItem> {
-        final TItem item;
-        final String routing;
-        final RowSourceInfo rowSourceInfo;
-
-        ItemAndRoutingAndSourceInfo(TItem item, String routing, RowSourceInfo rowSourceInfo) {
-            this.item = item;
-            this.routing = routing;
-            this.rowSourceInfo = rowSourceInfo;
-        }
-
-        public String routing() {
-            return routing;
-        }
-
-        public TItem item() {
-            return item;
-        }
+    public record ItemAndRoutingAndSourceInfo<TItem>(TItem item,
+                                                     String routing,
+                                                     RowSourceInfo rowSourceInfo) {
     }
 
-    static class ReadFailureAndLineNumber {
-        final String readFailure;
-        final long lineNumber;
-
-        ReadFailureAndLineNumber(String readFailure, long lineNumber) {
-            this.readFailure = readFailure;
-            this.lineNumber = lineNumber;
-        }
+    record ReadFailureAndLineNumber(String readFailure, long lineNumber) {
     }
 
     @Override
