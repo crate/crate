@@ -135,6 +135,11 @@ CrateDB supports the following data types. Scroll down for more details.
         uses a list. PostgreSQL serializes it via the ``record`` type (``oid``
         2249).
 
+    * - ``UUID``
+      - A unique identifier
+      - No dedicated literal support. Use string casts:
+        ``'65ace7f6-ac84-4920-a0ff-3c40bfd89478'::uuid``
+
 
 .. _data-types-ranges-widths:
 
@@ -245,6 +250,10 @@ are likely to be larger due to additional metadata.
       - ``n``
       - Vector Minimum length: 1. Maximum length: 2048.
       - A vector of floating point numbers.
+    * - ``UUID``
+      - 16 bytes
+      - Any valid UUID.
+      - A universally unique identifier as a 128-bit number
 
 
 .. rubric:: Footnotes
@@ -278,20 +287,21 @@ The following precedence order is used for data types (highest to lowest):
 10. :ref:`Real <type-real>`
 11. :ref:`IP <data-types-ip-addresses>`
 12. :ref:`Bigint <type-bigint>`
-13. :ref:`Timestamp without time zone <type-timestamp-without-tz>`
-14. :ref:`Timestamp with time zone <type-timestamp-with-tz>`
-15. :ref:`Date <type-date>`
-16. :ref:`Interval <type-interval>`
-17. :ref:`Regclass <type-regclass>`
-18. :ref:`Regproc <type-regproc>`
-19. :ref:`Integer <type-integer>`
-20. :ref:`Time with time zone <type-time>`
-21. :ref:`Smallint <type-smallint>`
-22. :ref:`Boolean <type-boolean>`
-23. :ref:`"Char" <type-char>`
-24. :ref:`Text <type-text>`
-25. :ref:`Character <data-type-character>`
-26. :ref:`NULL <type-null>` (lowest)
+13. :ref:`UUID <type-uuid>`
+14. :ref:`Timestamp without time zone <type-timestamp-without-tz>`
+15. :ref:`Timestamp with time zone <type-timestamp-with-tz>`
+16. :ref:`Date <type-date>`
+17. :ref:`Interval <type-interval>`
+18. :ref:`Regclass <type-regclass>`
+19. :ref:`Regproc <type-regproc>`
+20. :ref:`Integer <type-integer>`
+21. :ref:`Time with time zone <type-time>`
+22. :ref:`Smallint <type-smallint>`
+23. :ref:`Boolean <type-boolean>`
+24. :ref:`"Char" <type-char>`
+25. :ref:`Text <type-text>`
+26. :ref:`Character <data-type-character>`
+27. :ref:`NULL <type-null>` (lowest)
 
 
 .. _data-types-primitive:
@@ -1115,6 +1125,50 @@ represented by an unscaled value of the unlimited precision::
 
 The ``NUMERIC`` type is internally backed by the Java ``BigDecimal`` class. For
 more detailed information about its behaviour, see `BigDecimal documentation`_.
+
+
+.. _type-uuid:
+
+``UUID``
+''''''''
+
+A `universally unique identifier`_ stored as a 128-bit number.
+
+
+Example:
+
+::
+
+  cr> CREATE TABLE tbl (
+  ...   id uuid
+  ... );
+  CREATE OK, 1 row affected (... sec)
+
+::
+
+    cr> INSERT INTO tbl (id) VALUES ('55d07626-4927-47c5-ba43-a015c23632ef');
+    INSERT OK, 1 row affected (... sec)
+
+.. HIDE:
+
+    cr> REFRESH TABLE tbl;
+    REFRESH OK, 1 row affected (... sec)
+
+::
+
+    cr> SELECT id FROM tbl
+    +--------------------------------------+
+    | id                                   |
+    +--------------------------------------+
+    | 55d07626-4927-47c5-ba43-a015c23632ef |
+    +--------------------------------------+
+    SELECT 1 row in set (... sec)
+
+.. HIDE:
+
+    cr> DELETE FROM tbl;
+    DELETE OK, 1 row affected  (... sec)
+
 
 
 .. _type-real:
@@ -3887,3 +3941,4 @@ However, you cannot use it with any :ref:`scalar functions
 .. _WKT: https://en.wikipedia.org/wiki/Well-known_text
 .. _Year.parse Javadoc: https://docs.oracle.com/javase/8/docs/api/java/time/Year.html#parse-java.lang.CharSequence-
 .. _JSON Data Types: https://en.wikipedia.org/wiki/JSON#Data_types
+.. _universally unique identifier: https://en.wikipedia.org/wiki/Uuid

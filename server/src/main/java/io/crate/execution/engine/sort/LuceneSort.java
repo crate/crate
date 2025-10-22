@@ -70,6 +70,7 @@ import io.crate.types.NumericType;
 import io.crate.types.ShortType;
 import io.crate.types.StringType;
 import io.crate.types.TimestampType;
+import io.crate.types.UUIDType;
 
 public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, SortField> {
 
@@ -171,7 +172,8 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
 
         if (ref.valueType().equals(DataTypes.IP)
                 || ref.valueType().id() == BitStringType.ID
-                || ref.valueType().id() == FloatVectorType.ID) {
+                || ref.valueType().id() == FloatVectorType.ID
+                || ref.valueType().id() == UUIDType.ID) {
             return customSortField(ref.toString(), ref, context);
         } else {
             NullValueOrder nullValueOrder = NullValueOrder.fromFlag(context.nullFirst);

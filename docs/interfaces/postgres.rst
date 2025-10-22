@@ -250,8 +250,10 @@ table available in CrateDB::
     | 2276 | any          |        0 |       0 |      4 | p       | P           |
     | 2277 | anyarray     |        0 |    2276 |     -1 | p       | P           |
     | 2287 | _record      |        0 |    2249 |     -1 | p       | A           |
+    | 2950 | uuid         |     2951 |       0 |     16 | b       | U           |
+    | 2951 | _uuid        |        0 |    2950 |     -1 | b       | A           |
     +------+--------------+----------+---------+--------+---------+-------------+
-    SELECT 50 rows in set (... sec)
+    SELECT 52 rows in set (... sec)
 
 .. NOTE::
 

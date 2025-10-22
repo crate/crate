@@ -26,6 +26,7 @@ import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.BiConsumer;
 
 import org.apache.lucene.document.FieldType;
@@ -131,6 +132,20 @@ public class SysColumns {
         PRIMARY_TERM, DataTypes.LONG
     );
 
+    private static final Set<String> NAMES = Set.of(
+        Names.ID,
+        Names.VERSION,
+        Names.SCORE,
+        Names.UID,
+        Names.DOC,
+        Names.RAW,
+        Names.SEQ_NO,
+        Names.PRIMARY_TERM,
+        Names.TOMBSTONE,
+        Names.FETCHID,
+        Names.DOCID
+    );
+
     private static final Map<ColumnIdent, String> LUCENE_COLUMN_NAMES = Map.of(
         RAW, "_source",
         ID.COLUMN, UID.name()
@@ -184,5 +199,9 @@ public class SysColumns {
             name = ident.name();
         }
         return name;
+    }
+
+    public static boolean isSysColumn(String name) {
+        return NAMES.contains(name);
     }
 }

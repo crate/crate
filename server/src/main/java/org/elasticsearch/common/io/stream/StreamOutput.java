@@ -46,6 +46,7 @@ import java.util.Iterator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.function.IntFunction;
 
@@ -260,6 +261,11 @@ public abstract class StreamOutput extends OutputStream {
         buffer[6] = (byte) (i >> 8);
         buffer[7] = (byte) i;
         writeBytes(buffer, 0, 8);
+    }
+
+    public void writeUUID(UUID v) throws IOException {
+        writeLong(v.getMostSignificantBits());
+        writeLong(v.getLeastSignificantBits());
     }
 
     /**

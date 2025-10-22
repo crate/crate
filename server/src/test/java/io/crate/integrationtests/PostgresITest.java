@@ -247,18 +247,6 @@ public class PostgresITest extends IntegTestCase {
     }
 
     @Test
-    public void testUseOfUnsupportedType() throws Exception {
-        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
-            PreparedStatement stmt = conn.prepareStatement("select ? from sys.cluster");
-            stmt.setObject(1, UUID.randomUUID());
-            Asserts.assertSQLError(() -> stmt.executeQuery())
-                .isExactlyInstanceOf(PSQLException.class)
-                .hasPGError(INTERNAL_ERROR)
-                .hasMessageContaining("Can't map PGType with oid=2950 to Crate type");
-        }
-    }
-
-    @Test
     public void testEmptyStatement() throws Exception {
         try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
             assertThat(conn.createStatement().execute("")).isFalse();
@@ -1266,6 +1254,23 @@ public class PostgresITest extends IntegTestCase {
             assertThat(resultSet.next()).isTrue();
             assertThat(resultSet.getArray(1)).isNull();
             assertThat(resultSet.next()).isFalse();
+        }
+    }
+
+    @Test
+    public void test_uuid_jdbc() throws Exception {
+        try (Connection conn = DriverManager.getConnection(url(RW), properties)) {
+            conn.createStatement().execute("create table tbl (id uuid)");
+            PreparedStatement stmt = conn.prepareStatement("insert into tbl (id) values (?)");
+
+            UUID id1 = UUID.randomUUID();
+            stmt.setObject(1, id1);
+            stmt.execute();
+
+            conn.createStatement().execute("refresh table tbl");
+            var resultSet = conn.createStatement().executeQuery("select id from tbl order by id");
+            assertThat(resultSet.next()).isTrue();
+            assertThat(resultSet.getObject(1)).isEqualTo(id1);
         }
     }
 

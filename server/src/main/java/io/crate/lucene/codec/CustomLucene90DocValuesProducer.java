@@ -50,10 +50,11 @@ import org.apache.lucene.search.DocIdSetIterator;
 import org.apache.lucene.store.ByteArrayDataInput;
 import org.apache.lucene.store.ChecksumIndexInput;
 import org.apache.lucene.store.DataInput;
+import org.apache.lucene.store.FileTypeHint;
 import org.apache.lucene.store.IndexInput;
 import org.apache.lucene.store.RandomAccessInput;
-import org.apache.lucene.store.ReadAdvice;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.IOUtils;
 import org.apache.lucene.util.LongValues;
 import org.apache.lucene.util.compress.LZ4;
@@ -118,10 +119,8 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         }
 
         String dataName = IndexFileNames.segmentFileName(state.segmentInfo.name, state.segmentSuffix, dataExtension);
-        // Doc-values have a forward-only access pattern, so pass ReadAdvice.NORMAL to perform
-        // readahead.
-        this.data =
-            state.directory.openInput(dataName, state.context.withReadAdvice(ReadAdvice.NORMAL));
+        // Doc-values have a forward-only access pattern
+        this.data = state.directory.openInput(dataName, state.context.withHints(FileTypeHint.DATA));
         boolean success = false;
         try {
             final int version2 = CodecUtil.checkIndexHeader(
@@ -480,6 +479,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         public long cost() {
             return maxDoc;
         }
+
+        @Override
+        public int docIDRunEnd() throws IOException {
+            return maxDoc;
+        }
     }
 
     private abstract static class SparseNumericDocValues extends NumericDocValues {
@@ -511,8 +515,18 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         }
 
         @Override
+        public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+            disi.intoBitSet(upTo, bitSet, offset);
+        }
+
+        @Override
         public long cost() {
             return disi.cost();
+        }
+
+        @Override
+        public int docIDRunEnd() throws IOException {
+            return disi.docIDRunEnd();
         }
     }
 
@@ -747,6 +761,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             doc = target;
             return true;
         }
+
+        @Override
+        public int docIDRunEnd() throws IOException {
+            return maxDoc;
+        }
     }
 
     private abstract static class SparseBinaryDocValues extends BinaryDocValues {
@@ -780,6 +799,16 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
         @Override
         public boolean advanceExact(int target) throws IOException {
             return disi.advanceExact(target);
+        }
+
+        @Override
+        public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+            disi.intoBitSet(upTo, bitSet, offset);
+        }
+
+        @Override
+        public int docIDRunEnd() throws IOException {
+            return disi.docIDRunEnd();
         }
     }
 
@@ -941,6 +970,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     public long cost() {
                         return maxDoc;
                     }
+
+                    @Override
+                    public int docIDRunEnd() throws IOException {
+                        return maxDoc;
+                    }
                 };
             } else if (ordsEntry.docsWithFieldOffset >= 0) { // sparse but non-empty
                 final IndexedDISI disi = new IndexedDISI(
@@ -979,8 +1013,18 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     }
 
                     @Override
+                    public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                        disi.intoBitSet(upTo, bitSet, offset);
+                    }
+
+                    @Override
                     public long cost() {
                         return disi.cost();
+                    }
+
+                    @Override
+                    public int docIDRunEnd() throws IOException {
+                        return disi.docIDRunEnd();
                     }
                 };
             }
@@ -1017,6 +1061,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             @Override
             public long cost() {
                 return ords.cost();
+            }
+
+            @Override
+            public int docIDRunEnd() throws IOException {
+                return ords.docIDRunEnd();
             }
         };
     }
@@ -1437,6 +1486,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                 public int docValueCount() {
                     return count;
                 }
+
+                @Override
+                public int docIDRunEnd() throws IOException {
+                    return maxDoc;
+                }
             };
         } else {
             // sparse
@@ -1493,6 +1547,12 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     return count;
                 }
 
+                @Override
+                public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                    set = false;
+                    disi.intoBitSet(upTo, bitSet, offset);
+                }
+
                 private void set() {
                     if (set == false) {
                         final int index = disi.index();
@@ -1501,6 +1561,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                         count = (int) (end - start);
                         set = true;
                     }
+                }
+
+                @Override
+                public int docIDRunEnd() throws IOException {
+                    return disi.docIDRunEnd();
                 }
             };
         }
@@ -1587,6 +1652,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     public long cost() {
                         return maxDoc;
                     }
+
+                    @Override
+                    public int docIDRunEnd() throws IOException {
+                        return maxDoc;
+                    }
                 };
             } else if (ordsEntry.docsWithFieldOffset >= 0) { // sparse but non-empty
                 final IndexedDISI disi = new IndexedDISI(
@@ -1639,6 +1709,12 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                     }
 
                     @Override
+                    public void intoBitSet(int upTo, FixedBitSet bitSet, int offset) throws IOException {
+                        set = false;
+                        disi.intoBitSet(upTo, bitSet, offset);
+                    }
+
+                    @Override
                     public long cost() {
                         return disi.cost();
                     }
@@ -1651,6 +1727,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
                             count = (int) (end - curr);
                             set = true;
                         }
+                    }
+
+                    @Override
+                    public int docIDRunEnd() throws IOException {
+                        return disi.docIDRunEnd();
                     }
                 };
             }
@@ -1692,6 +1773,11 @@ final class CustomLucene90DocValuesProducer extends DocValuesProducer {
             @Override
             public long cost() {
                 return ords.cost();
+            }
+
+            @Override
+            public int docIDRunEnd() throws IOException {
+                return ords.docIDRunEnd();
             }
         };
     }

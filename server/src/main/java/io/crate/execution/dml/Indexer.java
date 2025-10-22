@@ -243,7 +243,7 @@ public class Indexer {
                 Object val = item.insertValues()[rootIndex];
                 if (val instanceof Map<?, ?> m) {
                     List<String> path = column.path();
-                    val = Maps.getByPath((Map<String, Object>) m, path);
+                    val = Maps.getByPath(m, path);
                 }
                 if (val == null) {
                     Symbol defaultExpression = ref.defaultExpression();
@@ -601,7 +601,9 @@ public class Indexer {
                     // across indexing and return values
                     Synthetic synthetic = synthetics.get(ref.column());
                     if (synthetic == null) {
-                        return ctxForRefs.add(ref);
+                        Input<?> input = ctxForRefs.add(ref);
+                        // If 'ref' is an object column with synthetic children, the synthetic values need to be merged
+                        return () -> mergeSyntheticChildren(ref, input);
                     } else {
                         return synthetic;
                     }
@@ -635,6 +637,53 @@ public class Indexer {
             }
         }
         return indexColumns;
+    }
+
+    /**
+     * Creates a copy of the given value and merges in its synthetic children for object columns; otherwise returns the
+     * original value unchanged.
+     * <p>
+     * Mainly used for `RETURNING` clause returning objects with synthetic sub-columns where the result set is expected
+     * to contain all children.
+     * <p>
+     * Background: the reason for creating a copy and merging - the current design for INSERT/UPDATE does not merge the
+     * insert values with synthetic sub-columns.
+     * They are held separately in {@link IndexItem#insertValues} and {@link Indexer#synthetics} to save the cost
+     * of streaming to replicas.
+     */
+    private Object mergeSyntheticChildren(Reference parentRef, Input<?> input) {
+        Object value = input.value();
+        if (value instanceof Map<?, ?>) {
+            @SuppressWarnings("unchecked")
+            Map<String, Object> m = Maps.deepCopy((Map<String, Object>) value);
+            ColumnIdent parentColumn = parentRef.column();
+            for (Synthetic childSynthetic : synthetics.values()) {
+                ColumnIdent childSyntheticColumn = childSynthetic.ref.column();
+                if (!childSyntheticColumn.isChildOf(parentColumn) ||
+                    // Sometimes Indexer#synthetics contains a non-synthetic object column
+                    // if it is a parent of a synthetic
+                    (!childSynthetic.ref.isGenerated() && childSynthetic.ref.defaultExpression() == null)) {
+                    continue;
+                }
+                var childSyntheticPath = childSyntheticColumn.path();
+
+                // preserve any existing synthetic children's values - even nulls
+                if (Maps.pathExists(m, childSyntheticPath)) {
+                    continue;
+                }
+
+                Maps.mergeInto(
+                    m,
+                    childSyntheticPath.getFirst(),
+                    childSyntheticPath.subList(1, childSyntheticPath.size()),
+                    childSynthetic.value(),
+                    Map::put,
+                    false);
+            }
+            return m;
+        } else {
+            return value;
+        }
     }
 
     /**

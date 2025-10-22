@@ -280,7 +280,7 @@
     <skipRunTests>false</skipRunTests>
 
     <versions.jdk>25</versions.jdk>
-    <versions.jdkbuild>25.0.0+36</versions.jdkbuild>
+    <versions.jdkbuild>25+36</versions.jdkbuild>
 
     <versions.annotations>26.0.2-1</versions.annotations>
     <versions.log4j>2.25.2</versions.log4j>
@@ -295,8 +295,8 @@
     <versions.antlr>4.13.2</versions.antlr>
     <versions.quickcheck>1.0</versions.quickcheck>
     <versions.hppc>0.8.2</versions.hppc>
-    <versions.netty>4.2.6.Final</versions.netty>
-    <versions.lucene>10.2.2</versions.lucene>
+    <versions.netty>4.2.7.Final</versions.netty>
+    <versions.lucene>10.3.1</versions.lucene>
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.20.0</versions.jts>
     <versions.tdigest>3.3</versions.tdigest>
@@ -304,8 +304,8 @@
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
     <versions.caffeine>3.2.2</versions.caffeine>
     <versions.jodatime>2.14.0</versions.jodatime>
-    <versions.aws>1.12.791</versions.aws>
-    <versions.opendal>0.47.6</versions.opendal>
+    <versions.aws>1.12.792</versions.aws>
+    <versions.opendal>0.48.1</versions.opendal>
     <versions.commonsmath>3.6.1</versions.commonsmath>
     <versions.commonscodec>1.19.0</versions.commonscodec>
     <versions.bigmath>2.3.2</versions.bigmath>
@@ -322,11 +322,11 @@
     <versions.google.cloud.core.http>2.23.0</versions.google.cloud.core.http>
 
     <versions.guava>33.5.0-jre</versions.guava>
-    <versions.google.gson>2.0.0</versions.google.gson>
+    <versions.google.gson>2.0.2</versions.google.gson>
     <versions.google.errorprone>2.42.0</versions.google.errorprone>
     <versions.google.j2objc>3.1</versions.google.j2objc>
     <versions.checkerframework>3.51.1</versions.checkerframework>
-    <versions.grpc>1.75.0</versions.grpc>
+    <versions.grpc>1.76.0</versions.grpc>
 
     <versions.hamcrest>2.2</versions.hamcrest>
     <versions.mockito>5.20.0</versions.mockito>

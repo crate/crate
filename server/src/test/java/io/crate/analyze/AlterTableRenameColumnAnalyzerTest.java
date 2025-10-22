@@ -157,9 +157,9 @@ public class AlterTableRenameColumnAnalyzerTest extends CrateDummyClusterService
             .addTable("create table t (a text)");
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t RENAME COLUMN _doc to x"))
             .isExactlyInstanceOf(InvalidColumnNameException.class)
-            .hasMessage("\"_doc\" conflicts with system column pattern");
+            .hasMessage("\"_doc\" conflicts with system column");
         assertThatThrownBy(() -> e.analyze("ALTER TABLE t RENAME a to _doc"))
             .isExactlyInstanceOf(InvalidColumnNameException.class)
-            .hasMessage("\"_doc\" conflicts with system column pattern");
+            .hasMessage("\"_doc\" conflicts with system column");
     }
 }

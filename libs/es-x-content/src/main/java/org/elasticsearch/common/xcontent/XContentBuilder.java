@@ -39,6 +39,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
 import java.util.ServiceLoader;
+import java.util.UUID;
 import java.util.function.UnaryOperator;
 
 import org.jetbrains.annotations.Nullable;
@@ -91,6 +92,7 @@ public final class XContentBuilder implements Closeable, Flushable {
         writers.put(GregorianCalendar.class, XContentBuilder::timeValue);
         writers.put(BigInteger.class, (b, v) -> b.value((BigInteger) v));
         writers.put(BigDecimal.class, (b, v) -> b.value((BigDecimal) v));
+        writers.put(UUID.class, (b, v) -> b.value(v.toString()));
 
         Map<Class<?>, HumanReadableTransformer> humanReadableTransformer = new HashMap<>();
         Map<Class<?>, UnaryOperator<Object>> dateTransformers = new HashMap<>();

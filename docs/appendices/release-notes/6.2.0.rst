@@ -64,13 +64,18 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Columns names prefixed with an underscore are now accepted, although their use
+  is still discouraged to avoid conflicts in case future CrateDB versions
+  introduce additional system columns.
+
 - Added support for selecting more than one column within a subquery used in a
   ``EXISTS`` clause.
 
 Data Types
 ----------
 
-None
+- Added support for the :ref:`UUID type <type-uuid>`.
+
 
 Scalar and Aggregation Functions
 --------------------------------
@@ -80,7 +85,14 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
-None
+- Reduced the memory footprint of the internal state used in the
+  :ref:`hyperloglog_distinct <aggregation-hyperloglog-distinct>` aggregation.
+  This should help if using the aggregation together with a GROUP BY with many
+  unique keys.
+
+- Changed the ``SWAP TABLE`` sub-command of :ref:`ALTER CLUSTER
+  <ref-alter-cluster>` to no longer re-allocate the shards of the swapped table.
+  This avoids breaking pending snapshots with a SWAP TABLE operation.
 
 Administration and Operations
 -----------------------------
