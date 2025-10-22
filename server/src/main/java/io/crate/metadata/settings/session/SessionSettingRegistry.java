@@ -29,6 +29,8 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.joda.time.Period;
@@ -48,6 +50,8 @@ import io.crate.types.DataTypes;
 
 @Singleton
 public class SessionSettingRegistry {
+
+    private static final Logger LOGGER = LogManager.getLogger(SessionSettingRegistry.class);
 
     public static final String SEARCH_PATH_KEY = "search_path";
     public static final String HASH_JOIN_KEY = "enable_hashjoin";
@@ -130,6 +134,20 @@ public class SessionSettingRegistry {
         () -> "false",
         "Allows partial failure of 'INSERT FROM SELECT' statements",
         DataTypes.BOOLEAN
+    );
+
+    static final SessionSetting<String> CLIENT_ENCODING = new SessionSetting<>(
+        "client_encoding",
+        inputs -> (String) inputs[0],
+        (_, value) -> {
+            if (!"utf8".equalsIgnoreCase(value)) {
+                LOGGER.info("SET SESSION client_encoding={} is ignored", value);
+            }
+        },
+        _ -> "UTF8",
+        () -> "UTF8",
+        "Sets the client-side encoding. The only supported encoding is UTF8",
+        DataTypes.STRING
     );
 
     private final Map<String, SessionSetting<?>> settings;
@@ -245,7 +263,8 @@ public class SessionSettingRegistry {
             .put(DATE_STYLE.name(), DATE_STYLE)
             .put(STATEMENT_TIMEOUT.name(), STATEMENT_TIMEOUT)
             .put(MEMORY_LIMIT.name(), MEMORY_LIMIT)
-            .put(ALLOW_FAIL_ON_PARTIAL_WRITES.name(), ALLOW_FAIL_ON_PARTIAL_WRITES);
+            .put(ALLOW_FAIL_ON_PARTIAL_WRITES.name(), ALLOW_FAIL_ON_PARTIAL_WRITES)
+            .put(CLIENT_ENCODING.name(), CLIENT_ENCODING);
 
         for (var providers : sessionSettingProviders) {
             for (var setting : providers.sessionSettings()) {
