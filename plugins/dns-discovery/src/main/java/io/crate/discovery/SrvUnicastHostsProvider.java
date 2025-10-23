@@ -45,7 +45,8 @@ import org.elasticsearch.transport.TransportService;
 import io.crate.common.unit.TimeValue;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoopGroup;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
 import io.netty.handler.codec.dns.DefaultDnsQuestion;
 import io.netty.handler.codec.dns.DefaultDnsRawRecord;
@@ -81,7 +82,11 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
         this.query = DISCOVERY_SRV_QUERY.get(settings);
         this.resolveTimeout = DISCOVERY_SRV_RESOLVE_TIMEOUT.get(settings);
 
-        eventLoopGroup = new NioEventLoopGroup(1, daemonThreadFactory(settings, "netty-dns-resolver"));
+        eventLoopGroup = new MultiThreadIoEventLoopGroup(
+            1,
+            daemonThreadFactory(settings, "netty-dns-resolver"),
+            NioIoHandler.newFactory()
+        );
         resolver = buildResolver(settings);
     }
 
@@ -117,7 +122,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
 
     private DnsNameResolver buildResolver(Settings settings) {
         DnsNameResolverBuilder resolverBuilder = new DnsNameResolverBuilder(eventLoopGroup.next());
-        resolverBuilder.channelType(NioDatagramChannel.class);
+        resolverBuilder.datagramChannelType(NioDatagramChannel.class);
 
         InetSocketAddress resolverAddress = parseResolverAddress(settings);
         if (resolverAddress != null) {
@@ -140,7 +145,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
             List<DnsRecord> records = lookupRecords();
             try {
                 LOGGER.trace("Building dynamic unicast discovery nodes...");
-                if (records == null || records.size() == 0) {
+                if (records == null || records.isEmpty()) {
                     LOGGER.debug("No nodes found");
                 } else {
                     List<TransportAddress> transportAddresses = parseRecords(records);
@@ -148,6 +153,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
                     return transportAddresses;
                 }
             } finally {
+                assert records != null;
                 for (var record : records) {
                     if (record instanceof ReferenceCounted) {
                         ((ReferenceCounted) record).release();
@@ -168,8 +174,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
     List<TransportAddress> parseRecords(List<DnsRecord> records) {
         List<TransportAddress> addresses = new ArrayList<>(records.size());
         for (DnsRecord record : records) {
-            if (record instanceof DefaultDnsRawRecord) {
-                DefaultDnsRawRecord rawRecord = (DefaultDnsRawRecord) record;
+            if (record instanceof DefaultDnsRawRecord rawRecord) {
                 ByteBuf content = rawRecord.content();
                 // first is "priority", we don't use it
                 content.readUnsignedShort();
