@@ -52,3 +52,6 @@ Fixes
 - Fixed an issue that led to deleting persisted
   :ref:`pg_catalog.pg_stats <pg_stats>` during full cluster restart, thus making
   it necessary to run again :ref:`analyze`.
+
+- Disallowed generated sub-columns within object arrays or referencing their
+  sub-columns, which is unsupported and leading to errors or wrong behavior.
