@@ -22,7 +22,6 @@
 package io.crate.http;
 
 import java.io.ByteArrayOutputStream;
-import java.io.UnsupportedEncodingException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -38,6 +37,7 @@ import com.fasterxml.jackson.core.JsonEncoding;
 import com.fasterxml.jackson.core.JsonFactory;
 import com.fasterxml.jackson.core.JsonGenerator;
 import com.fasterxml.jackson.core.JsonParser;
+import com.fasterxml.jackson.core.json.JsonWriteFeature;
 
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.buffer.ByteBuf;
@@ -49,8 +49,9 @@ import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInitializer;
 import io.netty.channel.ChannelPipeline;
+import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.SimpleChannelInboundHandler;
-import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioServerSocketChannel;
 import io.netty.handler.codec.http.DefaultFullHttpResponse;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
@@ -76,14 +77,14 @@ public class HttpTestServer {
     private static final JsonFactory JSON_FACTORY;
 
     private Channel channel;
-    private NioEventLoopGroup group;
+    private MultiThreadIoEventLoopGroup group;
 
     public List<String> responses = new ArrayList<>();
 
     static {
         JSON_FACTORY = new JsonFactory();
         JSON_FACTORY.configure(JsonParser.Feature.ALLOW_UNQUOTED_FIELD_NAMES, true);
-        JSON_FACTORY.configure(JsonGenerator.Feature.QUOTE_FIELD_NAMES, true);
+        JSON_FACTORY.configure(JsonWriteFeature.QUOTE_FIELD_NAMES.mappedFeature(), true);
         JSON_FACTORY.configure(JsonParser.Feature.ALLOW_COMMENTS, true);
     }
 
@@ -122,10 +123,10 @@ public class HttpTestServer {
     public void run() throws InterruptedException {
         // Configure the server.
         ServerBootstrap bootstrap = new ServerBootstrap();
-        group = new NioEventLoopGroup();
+        group = new MultiThreadIoEventLoopGroup(NioIoHandler.newFactory());
         bootstrap.group(group);
         bootstrap.channel(NioServerSocketChannel.class);
-        bootstrap.childHandler(new ChannelInitializer<Channel>() {
+        bootstrap.childHandler(new ChannelInitializer<>() {
 
             @Override
             protected void initChannel(Channel ch) {
@@ -165,7 +166,7 @@ public class HttpTestServer {
         private final Logger logger = LogManager.getLogger(HttpTestServerHandler.class.getName());
 
         @Override
-        protected void channelRead0(ChannelHandlerContext ctx, Object msg) throws Exception {
+        protected void channelRead0(ChannelHandlerContext ctx, Object msg) {
             if (!(msg instanceof HttpRequest)) {
                 ctx.fireChannelRead(msg);
                 return;
@@ -177,7 +178,7 @@ public class HttpTestServer {
             }
         }
 
-        private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest msg) throws UnsupportedEncodingException {
+        private void handleHttpRequest(ChannelHandlerContext ctx, HttpRequest msg) {
             String uri = msg.uri();
             logger.debug("Got Request for " + uri);
             HttpResponseStatus status = fail ? HttpResponseStatus.BAD_REQUEST : HttpResponseStatus.OK;
@@ -207,7 +208,7 @@ public class HttpTestServer {
         }
 
         @Override
-        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) throws Exception {
+        public void exceptionCaught(ChannelHandlerContext ctx, Throwable cause) {
             logger.warn("Unexpected exception from downstream.", cause);
             ctx.close();
         }
