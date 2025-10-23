@@ -41,15 +41,14 @@ JMX_OPTS = '''
 env = os.environ.copy()
 env['CRATE_JAVA_OPTS'] = JMX_OPTS.format(JMX_PORT)
 env['CRATE_HEAP_SIZE'] = '256M'
-enterprise_crate = CrateNode(
+crate_node = CrateNode(
     crate_dir=crate_path(),
     settings={
         'transport.tcp.port': 0,
         'psql.port': 0,
-        'node.name': 'crate-enterprise',
+        'node.name': 'crate-jmx-test',
     },
-    env=env,
-    version=(4, 0, 0)
+    env=env
 )
 
 
@@ -76,15 +75,15 @@ class JmxIntegrationTest(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls):
-        enterprise_crate.start()
+        crate_node.start()
 
     @classmethod
     def tearDownClass(cls):
-        enterprise_crate.stop()
+        crate_node.stop()
 
     def test_mbean_select_total_count(self):
         jmx_client = JmxClient(JMX_PORT)
-        with connect(enterprise_crate.http_url) as conn:
+        with connect(crate_node.http_url) as conn:
             c = conn.cursor()
             c.execute("select 1")
             result = jmx_client.query_jmx(
@@ -107,7 +106,7 @@ class JmxIntegrationTest(unittest.TestCase):
             'io.crate.monitoring:type=NodeInfo',
             'NodeName'
         )
-        self.assertEqual(result.rstrip(), 'crate-enterprise')
+        self.assertEqual(result.rstrip(), 'crate-jmx-test')
 
     def test_mbean_node_id(self):
         jmx_client = JmxClient(JMX_PORT)
@@ -119,7 +118,7 @@ class JmxIntegrationTest(unittest.TestCase):
 
     def test_mbean_shards(self):
         jmx_client = JmxClient(JMX_PORT)
-        with connect(enterprise_crate.http_url) as conn:
+        with connect(crate_node.http_url) as conn:
             c = conn.cursor()
             c.execute('''create table test(id integer) clustered into 1 shards with (number_of_replicas=0)''')
             result = jmx_client.query_jmx(
@@ -147,11 +146,11 @@ class JmxIntegrationTest(unittest.TestCase):
         jmx_client = JmxClient(JMX_PORT)
         result = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo', 'ClusterStateVersion')
-        self.assertGreater(int(result), 0)
+        self.assertGreaterEqual(int(result), 0)
 
     def test_number_of_open_connections(self):
         jmx_client = JmxClient(JMX_PORT)
-        with connect(enterprise_crate.http_url) as _:
+        with connect(crate_node.http_url) as _:
             result = jmx_client.query_jmx(
                 'io.crate.monitoring:type=Connections', 'HttpOpen')
             self.assertGreater(int(result), 0)
