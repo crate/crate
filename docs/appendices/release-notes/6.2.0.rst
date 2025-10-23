@@ -64,6 +64,10 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
+- Added a ``client_encoding`` session setting. The only supported value is
+  ``UTF8``. Other values are not supported and will continue to result in INFO
+  log message that the SET SESSION statement is ignored.
+
 - Columns names prefixed with an underscore are now accepted, although their use
   is still discouraged to avoid conflicts in case future CrateDB versions
   introduce additional system columns.

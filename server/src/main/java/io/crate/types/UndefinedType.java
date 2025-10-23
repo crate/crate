@@ -110,6 +110,11 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
     }
 
     @Override
+    public Sort sortSupport() {
+        return Sort.NONE;
+    }
+
+    @Override
     public @Nullable StorageSupport<? super Object> storageSupport() {
         return new StorageSupport<>(false, false, EqQuery.nonMatchingEqQuery()) {
             @Override

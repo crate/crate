@@ -92,6 +92,22 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         CUSTOM,
     }
 
+    /// Indicates if/how ORDER BY is supported/implemented
+    public enum Sort {
+        /// No ORDER BY support
+        NONE,
+
+        /// Supported using [DataType#compare(Object, Object)]
+        COMPARATOR,
+
+        /// Supported using Lucene sort-fields
+        /// This requires specific implementation in [io.crate.execution.engine.sort.LuceneSort];
+        ///
+        /// Must also support [DataType#compare(Object, Object)] to handle cases like
+        /// ORDER BY on unnest([...])
+        SORT_FIELD,
+    }
+
     public abstract int id();
 
     /**
@@ -282,6 +298,10 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
     @Nullable
     public StorageSupport<? super T> storageSupport() {
         return null;
+    }
+
+    public Sort sortSupport() {
+        return Sort.SORT_FIELD;
     }
 
     /**

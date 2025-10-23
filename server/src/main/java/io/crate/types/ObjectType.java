@@ -580,4 +580,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         }
         return objType.build();
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.NONE;
+    }
 }
