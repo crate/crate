@@ -69,7 +69,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
     public static final Setting<String> DISCOVERY_SRV_RESOLVER = Setting.simpleString(
         "discovery.srv.resolver", Setting.Property.NodeScope);
     private static final Setting<TimeValue> DISCOVERY_SRV_RESOLVE_TIMEOUT =
-        Setting.positiveTimeSetting("discovery.srv.resolve_timeout", TimeValue.timeValueSeconds(5), Setting.Property.NodeScope);
+        Setting.positiveTimeSetting("discovery.srv.resolve_timeout", TimeValue.timeValueSeconds(10), Setting.Property.NodeScope);
 
     private final TransportService transportService;
     private final String query;
