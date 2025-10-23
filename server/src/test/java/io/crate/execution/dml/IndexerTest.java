@@ -30,7 +30,6 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -249,6 +248,17 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .as("source, seqNo, id...")
             .hasSize(9);
 
+        assertTranslogParses(doc, table);
+    }
+
+    @Test
+    public void test_ignored_object_can_have_an_empty_key() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object (ignored))");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        var indexer = getIndexer(e, "tbl", "o");
+        ParsedDocument doc = indexer.index(item(Map.of("", 1)));
         assertTranslogParses(doc, table);
     }
 
