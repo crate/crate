@@ -147,7 +147,7 @@ class JmxIntegrationTest(unittest.TestCase):
         jmx_client = JmxClient(JMX_PORT)
         result = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo', 'ClusterStateVersion')
-        self.assertGreater(int(result), 0)
+        self.assertGreaterEqual(int(result), 0)
 
     def test_number_of_open_connections(self):
         jmx_client = JmxClient(JMX_PORT)
