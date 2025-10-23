@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -61,7 +62,6 @@ import org.locationtech.spatial4j.shape.Point;
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
-import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.sql.SqlFormatter;
@@ -1932,7 +1932,7 @@ public class TransportSQLActionTest extends IntegTestCase {
             assertThat(resp2.rows()[0][0]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][0]);
             assertThat(resp2.rows()[0][1]).usingComparator((DataType<Object>) type).isEqualTo(resp1.rows()[0][1]);
 
-            if (SemanticSortValidator.SUPPORTED_TYPES.contains(type.id())) {
+            if (type.sortSupport() != DataType.Sort.NONE) {
                 // should use doc-values/query-without-fetch execution path due to order + limit
                 var resp3 = execute("select _doc['x'], x, _raw FROM tbl order by x limit 1");
                 assertThat(resp3.rows()[0])

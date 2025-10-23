@@ -182,4 +182,9 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
     public ColumnStatsSupport<Period> columnStatsSupport() {
         return ColumnStatsSupport.singleValued(Period.class, IntervalType.this);
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.COMPARATOR;
+    }
 }

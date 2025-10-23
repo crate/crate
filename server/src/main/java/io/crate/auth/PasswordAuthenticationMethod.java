@@ -33,6 +33,20 @@ public class PasswordAuthenticationMethod implements AuthenticationMethod {
     public static final String NAME = "password";
     private final Roles roles;
 
+    static class PasswordAuthError extends RuntimeException {
+
+        PasswordAuthError(String message) {
+            super(message);
+        }
+
+
+        @Override
+        public synchronized Throwable fillInStackTrace() {
+            // no need for stack trace, thrown only here
+            return this;
+        }
+    }
+
     PasswordAuthenticationMethod(Roles roles) {
         this.roles = roles;
     }
@@ -50,7 +64,7 @@ public class PasswordAuthenticationMethod implements AuthenticationMethod {
                 return user;
             }
         }
-        throw new RuntimeException("password authentication failed for user \"" + username + "\"");
+        throw new PasswordAuthError("password authentication failed for user \"" + username + "\"");
     }
 
     @Override

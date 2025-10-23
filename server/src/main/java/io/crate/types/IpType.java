@@ -220,4 +220,9 @@ public class IpType extends DataType<String> implements Streamer<String> {
     public long valueBytes(String value) {
         return RamUsageEstimator.sizeOf(value);
     }
+
+    @Override
+    public Sort sortSupport() {
+        return Sort.COMPARATOR;
+    }
 }
