@@ -370,7 +370,7 @@ public class ObjectColumnTest extends IntegTestCase {
             create table tbl (
                 id int,
                 o object as (
-                    key text default 'synth'
+                    key text as 'synth'
                 ),
                 os array(object as (
                     x text default 'synth',

@@ -54,4 +54,4 @@ Fixes
   it necessary to run again :ref:`analyze`.
 
 - Disallowed generated sub-columns within object arrays or referencing their
-  sub-columns, which were unsupported and are now explicitly rejected.
+  sub-columns, which is unsupported and leading to errors or wrong behavior.
