@@ -736,7 +736,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             Reference ref = leafByOid.get(oidOrName);
             if (ref == null) {
                 if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
-                    assert oidOrName.length() >= UNKNOWN_COLUMN_PREFIX.length() + 1 : "Column name must consist of at least one character";
+                    // Returns an empty string for an empty key (which is valid JSON)
                     return oidOrName.substring(UNKNOWN_COLUMN_PREFIX.length());
                 }
                 return oidOrName;
