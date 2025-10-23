@@ -202,6 +202,14 @@ restore.
     ... WITH (wait_for_completion=true);
     RESTORE OK, 1 row affected (... sec)
 
+.. TIP::
+
+    After restoring a snapshot which affects tables/partitions and their data,
+    the table statistics of the restored tables/partitions aren't available yet,
+    which can potentially lead to slow queries. Therefore, it is advisable to
+    run :ref:`analyze` after a restore operation.
+
+
 Restore data granularity
 ........................
 
