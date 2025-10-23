@@ -63,9 +63,16 @@ To cancel a restore operation simply drop the tables that are being restored.
 
 .. CAUTION::
 
-   If you try to restore a table that already exists, CrateDB will return an
-   error. However, if you try to restore metadata or cluster settings that
-   already exist, they will be overwritten.
+    If you try to restore a table that already exists, CrateDB will return an
+    error. However, if you try to restore metadata or cluster settings that
+    already exist, they will be overwritten.
+
+.. TIP::
+
+    After restoring a snapshot which affects tables/partitions and their data,
+    the table statistics of the restored tables/partitions aren't available yet,
+    which can potentially lead to slow queries. Therefore, it is advisable to
+    run :ref:`analyze` after a restore operation.
 
 .. _sql-restore-snapshot-parameters:
 
