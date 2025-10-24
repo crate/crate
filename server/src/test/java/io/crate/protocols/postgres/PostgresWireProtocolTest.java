@@ -874,6 +874,51 @@ public class PostgresWireProtocolTest extends CrateDummyClusterServiceUnitTest {
         readReadyForQueryMessage(channel);
     }
 
+    @Test
+    public void test_send_negotiate_protocol_version() {
+        PostgresWireProtocol ctx =
+            new PostgresWireProtocol(
+                sessions,
+                new SessionSettingRegistry(Set.of()),
+                _ -> AccessControl.DISABLED,
+                _ -> {},
+                new AlwaysOKAuthentication(() -> List.of(Role.CRATE_USER)),
+                () -> null
+            );
+        channel = new EmbeddedChannel(ctx.decoder, ctx.handler);
+
+        ByteBuf buffer = Unpooled.buffer();
+
+        // send version 3.2, server only supports 3.0
+        int protocolVersion = 3 << 16 | 2;
+        ClientMessages.sendStartupMessage(buffer, protocolVersion,"doc", Map.of("user", "crate", "invalid_option", "foo"));
+        channel.writeInbound(buffer);
+        channel.releaseInbound();
+
+        // NegotiateProtocolVersion: 'v' | int32 len | int32 supported version | int32 unrecognized options length | [string option, ...]
+        ByteBuf response = channel.readOutbound();
+        try {
+            assertThat(response.readByte()).isEqualTo((byte) 'v');
+            assertThat(response.readInt()).isEqualTo(32);
+            assertThat(response.readInt()).isEqualTo(PgDecoder.PROTOCOL_VERSION);
+            assertThat(response.readInt()).isEqualTo(1);
+            assertThat(PostgresWireProtocol.readCString(response)).isEqualTo("_pq_.invalid_option");
+        } finally {
+            response.release();
+        }
+
+        // AuthenticationOK: 'R' | int32 len | int32 ok indication
+        response = channel.readOutbound();
+        try {
+            assertThat(response.readByte()).isEqualTo((byte) 'R');
+            assertThat(response.readInt()).isEqualTo(8);
+            assertThat(response.readInt()).isEqualTo(0);
+        } finally {
+            response.release();
+        }
+    }
+
+
     static void sendSync(ByteBuf buffer) {
         buffer.writeByte('S');
         buffer.writeInt(4);

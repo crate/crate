@@ -39,8 +39,10 @@ public class PgDecoder extends ByteToMessageDecoder {
 
     static final int CANCEL_REQUEST_CODE = 80877102;
     static final int SSL_REQUEST_CODE = 80877103;
-    // Version 3.0  ((3 << 16) | 0)
-    static final int PROTOCOL_VERSION_REQUEST_CODE = 196608;
+
+    static final int PROTOCOL_VERSION_MAJOR = 3;
+    public static final int PROTOCOL_VERSION_MINOR = 0;
+    public static final int PROTOCOL_VERSION = (PROTOCOL_VERSION_MAJOR << 16) | (PROTOCOL_VERSION_MINOR & 0xFFF);
 
     static final int MIN_STARTUP_LENGTH = 8;
     static final int MIN_MSG_LENGTH = 5;
@@ -64,6 +66,12 @@ public class PgDecoder extends ByteToMessageDecoder {
          *  [payload (parameters)] | [KeyData(int32, int32) in case of cancel]
          */
         STARTUP,
+
+        /**
+         * In this state the handler must consume the startup payload and then send out a NegotiateProtocolVersion
+         * the client's minor version is greater than what the server supports.
+         */
+        STARTUP_VERSION_NEGOTIATE,
 
         /**
          * In this state the handler must consume the startup payload and then call {@link #startupDone()
@@ -142,38 +150,53 @@ public class PgDecoder extends ByteToMessageDecoder {
 
                 LOGGER.trace("Received startup message code={}, length={}", requestCode, payloadLength);
 
-                switch (requestCode) {
-                    case SSL_REQUEST_CODE:
-                        SslContext sslContext = getSslContext.get();
-                        Channel channel = ctx.channel();
-                        ByteBuf out = ctx.alloc().buffer(1);
-                        if (sslContext == null) {
-                            channel.writeAndFlush(out.writeByte('N'));
-                        } else {
-                            channel.writeAndFlush(out.writeByte('S'));
-                            ctx.pipeline().addFirst(sslContext.newHandler(ctx.alloc()));
-                        }
-                        if (in.readableBytes() < MIN_STARTUP_LENGTH) {
-                            // more data needed before we can decode the next message
-                            return null;
-                        }
-                        return decode(ctx, in);
-                    case PROTOCOL_VERSION_REQUEST_CODE,
-                         CANCEL_REQUEST_CODE:
-                        if (in.readableBytes() < payloadLength) {
-                            LOGGER.trace("Readable bytes: {} < payloadLength: {}. Reset buffer", in.readableBytes(), payloadLength);
-                            in.resetReaderIndex();
-                            return null;
-                        }
-                        state = requestCode == CANCEL_REQUEST_CODE ? State.CANCEL : State.STARTUP_PARAMETERS;
-                        return in.readBytes(payloadLength);
-                    default:
-                        // bad message, skip any remaining data
-                        in.skipBytes(in.readableBytes());
-                        int major = requestCode >> 16;
-                        int minor = requestCode & 0xFFFF;
-                        throw new IllegalStateException("Unsupported frontend protocol " + major + "." + minor + ": server supports 3.0 to 3.0");
+                if (requestCode == SSL_REQUEST_CODE) {
+                    SslContext sslContext = getSslContext.get();
+                    Channel channel = ctx.channel();
+                    ByteBuf out = ctx.alloc().buffer(1);
+                    if (sslContext == null) {
+                        channel.writeAndFlush(out.writeByte('N'));
+                    } else {
+                        channel.writeAndFlush(out.writeByte('S'));
+                        ctx.pipeline().addFirst(sslContext.newHandler(ctx.alloc()));
+                    }
+                    if (in.readableBytes() < MIN_STARTUP_LENGTH) {
+                        // more data needed before we can decode the next message
+                        return null;
+                    }
+                    return decode(ctx, in);
                 }
+
+                if (requestCode == CANCEL_REQUEST_CODE) {
+                    if (in.readableBytes() < payloadLength) {
+                        LOGGER.trace("Readable bytes: {} < payloadLength: {}. Reset buffer", in.readableBytes(), payloadLength);
+                        in.resetReaderIndex();
+                        return null;
+                    }
+                    state = State.CANCEL;
+                    return in.readBytes(payloadLength);
+                }
+
+                if (requestCode >> 16 == PROTOCOL_VERSION_MAJOR) {
+                    int leastSignificant = requestCode & ((1 << 16) - 1);
+                    if (leastSignificant == PROTOCOL_VERSION_MINOR) {
+                        state = State.STARTUP_PARAMETERS;
+                    } else {
+                        state = State.STARTUP_VERSION_NEGOTIATE;
+                    }
+                    if (in.readableBytes() < payloadLength) {
+                        LOGGER.trace("Readable bytes: {} < payloadLength: {}. Reset buffer", in.readableBytes(), payloadLength);
+                        in.resetReaderIndex();
+                        return null;
+                    }
+                    return in.readBytes(payloadLength);
+                }
+
+                // bad message, skip any remaining data
+                in.skipBytes(in.readableBytes());
+                int major = requestCode >> 16;
+                int minor = requestCode & 0xFFFF;
+                throw new IllegalStateException("Unsupported frontend protocol " + major + "." + minor + ": server supports 3.0 to 3.0");
             }
 
             /**
