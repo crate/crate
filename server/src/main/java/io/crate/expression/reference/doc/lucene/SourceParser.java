@@ -140,6 +140,8 @@ public final class SourceParser {
             }
             return parseObject(parser, requiredColumns, includeUnknownCols);
         } catch (IOException e) {
+            // Not logging exception, it's bubbled up and shown as MapperParsingException.
+            LOGGER.warn("Failed to parse doc's source: {}", bytes.utf8ToString());
             throw new UncheckedIOException(e);
         }
     }
