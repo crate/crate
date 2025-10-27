@@ -46,7 +46,7 @@ public final class PgAttributeTable {
     public static SystemTable<ColumnContext> INSTANCE = SystemTable.<ColumnContext>builder(IDENT)
         .add("attrelid", REGCLASS, c -> Regclass.relationOid(c.relation()))
         .add("attname", STRING, c -> attName(c))
-        .add("atttypid", INTEGER, c -> PGTypes.get(c.ref().valueType()).oid())
+        .add("atttypid", INTEGER, c -> c.ref().isDropped() ? 0 : PGTypes.get(c.ref().valueType()).oid())
         .add("attstattarget", INTEGER, c -> 0)
         .add("attlen", SHORT, c -> PGTypes.get(c.ref().valueType()).typeLen())
         .add("attnum", INTEGER, c -> c.ref().position())
