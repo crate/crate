@@ -22,7 +22,6 @@
 package org.elasticsearch.snapshots;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThatThrownBy;
 import static org.assertj.core.api.InstanceOfAssertFactories.THROWABLE;
 import static org.elasticsearch.snapshots.SnapshotsService.MAX_CONCURRENT_SNAPSHOT_OPERATIONS_SETTING;
@@ -373,6 +372,35 @@ public class ConcurrentSnapshotsIT extends AbstractSnapshotIntegTestCase {
         execute("drop table tbl1");
         execute("drop table tbl2");
         execute("restore snapshot r1.s1 ALL with (wait_for_completion = true)");
+    }
+
+    @Test
+    public void test_rename_table_after_snapshot_blocked_on_data_node() throws Exception {
+        cluster().startMasterOnlyNode();
+        String dataNode = cluster().startDataOnlyNode();
+        String repoName = "r1";
+        createRepo(repoName, "mock");
+        createTableWithRecord("tbl1");
+        CompletableFuture<SnapshotInfo> snapshot = startFullSnapshotBlockedOnDataNode("s1", repoName, dataNode);
+
+        execute("alter table tbl1 rename to tbl2");
+        unblockNode(repoName, dataNode);
+        assertThat(snapshot).succeedsWithin(5, TimeUnit.SECONDS);
+        SnapshotInfo snapshotInfo = snapshot.join();
+        assertThat(snapshotInfo.state()).isEqualTo(SnapshotState.SUCCESS);
+        execute("drop table tbl2");
+        execute("restore snapshot r1.s1 ALL with (wait_for_completion = true)");
+
+        // can still create new snapshots after
+        execute("create snapshot r1.s2 all with (wait_for_completion = true)");
+        execute("drop table tbl2");
+        if (randomBoolean()) {
+            execute("drop snapshot r1.s1");
+        }
+        execute("restore snapshot r1.s2 ALL with (wait_for_completion = true)");
+
+        execute("refresh table tbl2");
+        assertThat(execute("select count(*) from tbl2")).hasRows("1");
     }
 
     @Test
