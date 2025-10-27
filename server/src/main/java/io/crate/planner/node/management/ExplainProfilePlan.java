@@ -360,11 +360,26 @@ public class ExplainProfilePlan implements Plan {
         //  }
         //
 
-        Map<String, Object> phasesTimings = extractPhasesTimingsFrom(timingsByNodeId, operationTree);
-        Map<String, Map<String, Object>> resultNodeTimings = getNodeTimingsWithoutPhases(phasesTimings.keySet(), timingsByNodeId);
+        Map<String, Object> phasesTimings = new TreeMap<>();
+        for (NodeOperation operation : operationTree.nodeOperations()) {
+            ExecutionPhase phase = operation.executionPhase();
+            addPhaseTimings(phase, timingsByNodeId, phasesTimings);
+        }
+        ExecutionPhase leafExecutionPhase = operationTree.leaf();
+        addPhaseTimings(leafExecutionPhase, timingsByNodeId, phasesTimings);
+
+        Map<String, Map<String, Object>> nodeTimingsWithoutPhases = HashMap.newHashMap(timingsByNodeId.size());
+        for (Map.Entry<String, Map<String, Object>> nodeToTimingsEntry : timingsByNodeId.entrySet()) {
+            nodeTimingsWithoutPhases.put(nodeToTimingsEntry.getKey(), new HashMap<>(nodeToTimingsEntry.getValue()));
+        }
+        for (Map<String, Object> timings : nodeTimingsWithoutPhases.values()) {
+            for (String phaseToRemove : phasesTimings.keySet()) {
+                timings.remove(phaseToRemove);
+            }
+        }
         MapBuilder<String, Object> executionTimingsMap = MapBuilder.newMapBuilder();
         executionTimingsMap.put("Phases", phasesTimings);
-        resultNodeTimings.forEach(executionTimingsMap::put);
+        nodeTimingsWithoutPhases.forEach(executionTimingsMap::put);
         executionTimingsMap.put("Total", apeTimings.get(Phase.Execute.name()));
 
         if (subQueryExplainResults.isEmpty() == false) {
@@ -372,7 +387,6 @@ public class ExplainProfilePlan implements Plan {
             for (var subQueryExplainResult : subQueryExplainResults) {
                 subQueryExplainResultsList.add(subQueryExplainResult.get(Phase.Execute.name()));
             }
-
             executionTimingsMap.put("Sub-Queries", subQueryExplainResultsList);
         }
 
@@ -381,33 +395,10 @@ public class ExplainProfilePlan implements Plan {
     }
 
 
-    private static Map<String, Object> extractPhasesTimingsFrom(Map<String, Map<String, Object>> timingsByNodeId,
-                                                                NodeOperationTree operationTree) {
-        Map<String, Object> allPhases = new TreeMap<>();
-        for (NodeOperation operation : operationTree.nodeOperations()) {
-            ExecutionPhase phase = operation.executionPhase();
-            getPhaseTimingsAndAddThemToPhasesMap(phase, timingsByNodeId, allPhases);
-        }
-
-        ExecutionPhase leafExecutionPhase = operationTree.leaf();
-        getPhaseTimingsAndAddThemToPhasesMap(leafExecutionPhase, timingsByNodeId, allPhases);
-
-        return allPhases;
-    }
-
-    private static void getPhaseTimingsAndAddThemToPhasesMap(ExecutionPhase leafExecutionPhase,
-                                                             Map<String, Map<String, Object>> timingsByNodeId,
-                                                             Map<String, Object> allPhases) {
+    private static void addPhaseTimings(ExecutionPhase leafExecutionPhase,
+                                        Map<String, Map<String, Object>> timingsByNodeId,
+                                        Map<String, Object> allPhases) {
         String phaseName = ProfilingContext.generateProfilingKey(leafExecutionPhase.phaseId(), leafExecutionPhase.name());
-        Map<String, Object> phaseTimingsAcrossNodes = getPhaseTimingsAcrossNodes(phaseName, timingsByNodeId);
-
-        if (!phaseTimingsAcrossNodes.isEmpty()) {
-            allPhases.put(phaseName, Map.of("nodes", phaseTimingsAcrossNodes));
-        }
-    }
-
-    private static Map<String, Object> getPhaseTimingsAcrossNodes(String phaseName,
-                                                                  Map<String, Map<String, Object>> timingsByNodeId) {
         Map<String, Object> timingsForPhaseAcrossNodes = new HashMap<>();
         for (Map.Entry<String, Map<String, Object>> nodeToTimingsEntry : timingsByNodeId.entrySet()) {
             Map<String, Object> timingsForNode = nodeToTimingsEntry.getValue();
@@ -419,23 +410,10 @@ public class ExplainProfilePlan implements Plan {
                 }
             }
         }
+        Map<String, Object> phaseTimingsAcrossNodes = Collections.unmodifiableMap(timingsForPhaseAcrossNodes);
 
-        return Collections.unmodifiableMap(timingsForPhaseAcrossNodes);
-    }
-
-    private static Map<String, Map<String, Object>> getNodeTimingsWithoutPhases(Set<String> phasesNames,
-                                                                                Map<String, Map<String, Object>> timingsByNodeId) {
-        Map<String, Map<String, Object>> nodeTimingsWithoutPhases = HashMap.newHashMap(timingsByNodeId.size());
-        for (Map.Entry<String, Map<String, Object>> nodeToTimingsEntry : timingsByNodeId.entrySet()) {
-            nodeTimingsWithoutPhases.put(nodeToTimingsEntry.getKey(), new HashMap<>(nodeToTimingsEntry.getValue()));
+        if (!phaseTimingsAcrossNodes.isEmpty()) {
+            allPhases.put(phaseName, Map.of("nodes", phaseTimingsAcrossNodes));
         }
-
-        for (Map<String, Object> timings : nodeTimingsWithoutPhases.values()) {
-            for (String phaseToRemove : phasesNames) {
-                timings.remove(phaseToRemove);
-            }
-        }
-
-        return Collections.unmodifiableMap(nodeTimingsWithoutPhases);
     }
 }
