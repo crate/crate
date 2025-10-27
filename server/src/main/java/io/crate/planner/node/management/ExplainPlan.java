@@ -143,6 +143,12 @@ public class ExplainPlan implements Plan {
         if (context != null) {
             assert subPlan instanceof LogicalPlan : "subPlan must be a LogicalPlan";
             LogicalPlan plan = (LogicalPlan) subPlan;
+            var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(
+                "multi-phase",
+                dependencies.circuitBreaker(HierarchyCircuitBreakerService.QUERY),
+                plannerContext.transactionContext().sessionSettings().memoryLimitInBytes()
+            );
+            consumer.completionFuture().whenComplete((_, _) -> ramAccounting.close());
             executePlan(
                 plan,
                 dependencies,
@@ -152,7 +158,7 @@ public class ExplainPlan implements Plan {
                 subQueryResults,
                 new IdentityHashMap<>(),
                 new ArrayList<>(plan.dependencies().size()),
-                null,
+                ramAccounting,
                 null
             );
         } else {
@@ -245,19 +251,9 @@ public class ExplainPlan implements Plan {
                                              SubQueryResults subQueryResults,
                                              Map<SelectSymbol, Object> valuesBySubQuery,
                                              List<Map<String, Object>> explainResults,
-                                             @Nullable RamAccounting ramAccounting,
+                                             RamAccounting ramAccounting,
                                              @Nullable SelectSymbol selectSymbol) {
         boolean isTopLevel = selectSymbol == null;
-
-        assert ramAccounting != null || isTopLevel : "ramAccounting must NOT be null for subPlans";
-
-        if (ramAccounting == null) {
-            ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(
-                "multi-phase",
-                executor.circuitBreaker(HierarchyCircuitBreakerService.QUERY),
-                plannerContext.transactionContext().sessionSettings().memoryLimitInBytes()
-            );
-        }
 
         if (isTopLevel == false) {
             plannerContext = PlannerContext.forSubPlan(plannerContext);
