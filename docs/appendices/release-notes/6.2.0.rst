@@ -94,6 +94,19 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Added an optimization rule to push down query predicates in cases where the
+  child relation is using scalar sub-queries.
+
+  For example, given the following setup::
+
+    CREATE TABLE t1 (x int, y int);
+    CREATE TABLE t2 (a int, b int);
+    CREATE VIEW v1 AS SELECT * FROM t1 where x in (select a from t2)
+
+  A query on the view is now pushed down to ``t1`` to utilize its indices::
+
+    SELECT * from v1 where y = 10
+
 - Reduced the memory footprint of the internal state used in the
   :ref:`hyperloglog_distinct <aggregation-hyperloglog-distinct>` aggregation.
   This should help if using the aggregation together with a GROUP BY with many

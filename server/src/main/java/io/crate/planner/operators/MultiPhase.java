@@ -59,6 +59,10 @@ public class MultiPhase extends ForwardingLogicalPlan {
         this.subQueries = subQueries;
     }
 
+    public Map<LogicalPlan, SelectSymbol> subQueries() {
+        return subQueries;
+    }
+
     @Override
     public ExecutionPlan build(DependencyCarrier executor,
                                PlannerContext plannerContext,

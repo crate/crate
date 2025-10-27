@@ -22,6 +22,7 @@
 package io.crate.planner;
 
 import static io.crate.testing.Asserts.assertSQL;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.exactlyInstanceOf;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLimitAndOffset;
@@ -44,9 +45,11 @@ import io.crate.execution.dsl.projection.GroupProjection;
 import io.crate.execution.dsl.projection.LimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.OrderedLimitAndOffsetProjection;
 import io.crate.execution.dsl.projection.Projection;
+import io.crate.metadata.RelationName;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.testing.T3;
@@ -118,7 +121,6 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    @SuppressWarnings("unchecked")
     public void testJoinOnSubSelectsWithLimitAndOffset() throws Exception {
         Join join = e.plan("select * from " +
                          " (select i, a from t1 order by a limit 10 offset 2) t1 " +
@@ -231,6 +233,49 @@ public class SubQueryPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(rightPlan.collectPhase().projections()).satisfiesExactly(
             exactlyInstanceOf(GroupProjection.class),
             exactlyInstanceOf(GroupProjection.class)
+        );
+    }
+
+
+    @Test
+    public void test_filter_on_top_of_multi_phase_is_pushed_down_if_possible() throws Exception {
+        e.addView(
+            new RelationName("doc", "v1"),
+            "select * from doc.t1 where a in (select b from doc.t2)"
+        );
+        LogicalPlan plan1 = e.logicalPlan("select * from v1 where a = 'foo'");
+        assertThat(plan1).as("Is pushed down if not using sub-query output").hasOperators(
+            "Rename[a, x, i] AS doc.v1",
+            "  └ MultiPhase",
+            "    └ Collect[doc.t1 | [a, x, i] | ((a = 'foo') AND (a = ANY((SELECT b FROM (doc.t2)))))]",
+            "    └ OrderBy[b ASC]",
+            "      └ Collect[doc.t2 | [b] | true]"
+        );
+
+        e.addView(
+            new RelationName("doc", "v2"),
+            "select *, (select mountain from sys.summits limit 1) as mountain from doc.t1"
+        );
+        LogicalPlan plan2 = e.logicalPlan("select * from v2 where mountain = 'Brandstein'");
+        assertThat(plan2).as("Is not pushed down if using subquery output").hasOperators(
+            "Rename[a, x, i, mountain] AS doc.v2",
+            "  └ Filter[((SELECT mountain FROM (sys.summits)) AS mountain = 'Brandstein')]",
+            "    └ MultiPhase",
+            "      └ Collect[doc.t1 | [a, x, i, (SELECT mountain FROM (sys.summits)) AS mountain] | true]",
+            "      └ Limit[2::bigint;0::bigint]",
+            "        └ Limit[1::bigint;0]",
+            "          └ Collect[sys.summits | [mountain] | true]"
+        );
+
+        LogicalPlan plan3 = e.logicalPlan("select * from v2 where mountain = 'Brandstein' and a = 'foo'");
+        assertThat(plan3).as("Partial push down if query does both with AND").hasOperators(
+            "Rename[a, x, i, mountain] AS doc.v2",
+            "  └ Filter[((SELECT mountain FROM (sys.summits)) AS mountain = 'Brandstein')]",
+            "    └ MultiPhase",
+            "      └ Collect[doc.t1 | [a, x, i, (SELECT mountain FROM (sys.summits)) AS mountain] | (a = 'foo')]",
+            "      └ Limit[2::bigint;0::bigint]",
+            "        └ Limit[1::bigint;0]",
+            "          └ Collect[sys.summits | [mountain] | true]"
         );
     }
 }

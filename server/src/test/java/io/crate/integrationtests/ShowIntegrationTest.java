@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 
@@ -421,6 +422,7 @@ public class ShowIntegrationTest extends IntegTestCase {
             "optimizer_move_filter_beneath_eval| true| Indicates if the optimizer rule MoveFilterBeneathEval is activated.",
             "optimizer_move_filter_beneath_group_by| true| Indicates if the optimizer rule MoveFilterBeneathGroupBy is activated.",
             "optimizer_move_filter_beneath_join| true| Indicates if the optimizer rule MoveFilterBeneathJoin is activated.",
+            "optimizer_move_filter_beneath_multi_phase| true| Indicates if the optimizer rule MoveFilterBeneathMultiPhase is activated.",
             "optimizer_move_filter_beneath_order| true| Indicates if the optimizer rule MoveFilterBeneathOrder is activated.",
             "optimizer_move_filter_beneath_project_set| true| Indicates if the optimizer rule MoveFilterBeneathProjectSet is activated.",
             "optimizer_move_filter_beneath_rename| true| Indicates if the optimizer rule MoveFilterBeneathRename is activated.",
