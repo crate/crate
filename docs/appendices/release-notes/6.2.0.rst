@@ -132,9 +132,12 @@ Performance and Resilience Improvements
   This should help if using the aggregation together with a GROUP BY with many
   unique keys.
 
-- Changed the ``SWAP TABLE`` sub-command of :ref:`ALTER CLUSTER
-  <ref-alter-cluster>` to no longer re-allocate the shards of the swapped table.
-  This avoids breaking pending snapshots with a SWAP TABLE operation.
+- Changed the :ref:`swapping <alter_cluster_swap_table>` and
+  :ref:`renaming <sql-alter-table-rename-to>` of tables to no longer re-allocate
+  the shards of the swapped/renamed table, so that in-progress snapshots can
+  finish successfully. Previously, the in-progress snapshots would fail and
+  remain in ``PARTIAL`` state, with an ``ABORTED`` failure message showing in
+  the :ref:`sys.snapshots <sys-snapshots>` system table.
 
 Administration and Operations
 -----------------------------
