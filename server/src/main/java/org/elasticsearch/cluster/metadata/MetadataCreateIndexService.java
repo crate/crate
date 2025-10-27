@@ -595,7 +595,7 @@ public class MetadataCreateIndexService {
 
         Metadata.Builder metadataBuilder = Metadata.builder(metadata);
         final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
-            MappingUtil.AllocPosition.forNewTable(),
+            MappingUtil.AllocCounter.forNewTable(),
             table.pkConstraintName(),
             DocReferences.applyOid(table.columns(), metadataBuilder.columnOidSupplier()),
             table.primaryKeys(),

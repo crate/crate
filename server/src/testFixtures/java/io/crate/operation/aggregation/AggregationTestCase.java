@@ -93,7 +93,7 @@ import io.crate.data.Row;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
+import io.crate.execution.ddl.tables.MappingUtil.AllocCounter;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.Indexer;
 import io.crate.execution.dsl.phases.CollectPhase;
@@ -443,7 +443,7 @@ public abstract class AggregationTestCase extends ESTestCase {
 
     private static XContentBuilder buildMapping(List<Reference> targetColumns) throws IOException {
         Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
-            AllocPosition.forNewTable(),
+            AllocCounter.forNewTable(),
             Reference.buildTree(targetColumns)
         );
         return JsonXContent.builder()

@@ -368,7 +368,7 @@ public class TestingHelpers {
         }
 
         return createMapping(
-            MappingUtil.AllocPosition.forNewTable(),
+            MappingUtil.AllocCounter.forNewTable(),
             boundCreateTable.pkConstraintName(),
             references,
             Lists.map(boundCreateTable.primaryKeys(), Reference::column),

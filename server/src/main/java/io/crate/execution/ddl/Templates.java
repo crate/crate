@@ -54,7 +54,7 @@ public final class Templates {
             .putMapping(new CompressedXContent(Map.of(
                 Constants.DEFAULT_MAPPING_TYPE,
                 MappingUtil.createMapping(
-                    MappingUtil.AllocPosition.forNewTable(),
+                    MappingUtil.AllocCounter.forNewTable(),
                     table.pkConstraintName(),
                     table.columns(),
                     table.primaryKeys(),

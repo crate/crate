@@ -74,6 +74,8 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -241,7 +243,8 @@ public class TransportCreatePartitions extends TransportMasterNodeAction<CreateP
             // "Probe" creation of the first index passed validation. Now add all indices to the cluster state metadata and update routing.
 
             final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
-                MappingUtil.AllocPosition.forTable(docTableInfo),
+                //
+                MappingUtil.AllocCounter.forTable(docTableInfo, RelationInfo::maxPosition, Reference::position),
                 table.pkConstraintName(),
                 table.columns(),
                 table.primaryKeys(),

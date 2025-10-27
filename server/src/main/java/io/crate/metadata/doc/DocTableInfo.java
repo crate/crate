@@ -68,7 +68,7 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.execution.ddl.tables.MappingUtil;
-import io.crate.execution.ddl.tables.MappingUtil.AllocPosition;
+import io.crate.execution.ddl.tables.MappingUtil.AllocCounter;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.expression.symbol.Symbol;
@@ -86,6 +86,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceTree;
+import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -1075,9 +1076,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         for (var check : checkConstraints) {
             checkConstraintMap.put(check.name(), check.expressionStr());
         }
-        AllocPosition allocPosition = AllocPosition.forTable(this);
+        AllocCounter allocCounter = AllocCounter.forTable(this, RelationInfo::maxPosition, Reference::position);
         Map<String, Object> mapping = Map.of("default", MappingUtil.createMapping(
-            allocPosition,
+            allocCounter,
             pkConstraintName,
             allColumns,
             primaryKeys,

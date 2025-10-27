@@ -44,6 +44,7 @@ import io.crate.Constants;
 import io.crate.common.collections.MapBuilder;
 import io.crate.execution.ddl.tables.MappingUtil;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 
 /**
@@ -377,7 +378,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
                 .putMapping(new CompressedXContent(Map.of(
                     Constants.DEFAULT_MAPPING_TYPE,
                     MappingUtil.createMapping(
-                        MappingUtil.AllocPosition.forTable(table),
+                        MappingUtil.AllocCounter.forTable(table, Reference::position),
                         table.pkConstraintName(),
                         table.columns(),
                         table.primaryKeys(),
