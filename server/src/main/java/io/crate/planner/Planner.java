@@ -140,10 +140,12 @@ import io.crate.planner.node.ddl.RestoreSnapshotPlan;
 import io.crate.planner.node.ddl.UpdateSettingsPlan;
 import io.crate.planner.node.management.AlterTableReroutePlan;
 import io.crate.planner.node.management.ExplainPlan;
+import io.crate.planner.node.management.ExplainProfilePlan;
 import io.crate.planner.node.management.KillPlan;
 import io.crate.planner.node.management.RerouteRetryFailedPlan;
 import io.crate.planner.node.management.ShowCreateTablePlan;
 import io.crate.planner.node.management.VerboseOptimizerTracer;
+import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.optimizer.costs.PlanStats;
 import io.crate.planner.statement.CopyFromPlan;
@@ -547,33 +549,30 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     }
 
     @Override
-    public Plan visitExplainStatement(ExplainAnalyzedStatement explainAnalyzedStatement, PlannerContext context) {
-        PlannerContext plannerContext = context;
-        VerboseOptimizerTracer tracer = null;
-        if (explainAnalyzedStatement.verbose()) {
-            tracer = new VerboseOptimizerTracer(explainAnalyzedStatement.showCosts());
-            plannerContext = context.withOptimizerTracer(tracer);
-        }
-        ProfilingContext ctx = explainAnalyzedStatement.context();
+    public Plan visitExplainStatement(ExplainAnalyzedStatement explain, PlannerContext context) {
+        ProfilingContext ctx = explain.context();
+        AnalyzedStatement statement = explain.statement();
         if (ctx == null) {
+            VerboseOptimizerTracer tracer = null;
+            if (explain.verbose()) {
+                tracer = new VerboseOptimizerTracer(explain.showCosts());
+                context = context.withOptimizerTracer(tracer);
+            }
             return new ExplainPlan(
-                explainAnalyzedStatement.statement().accept(this, plannerContext),
-                explainAnalyzedStatement.showCosts(),
-                null,
-                explainAnalyzedStatement.verbose(),
+                statement.accept(this, context),
+                explain.showCosts(),
+                explain.verbose(),
                 tracer != null ? tracer.getSteps() : Collections.emptyList()
             );
         } else {
             Timer timer = ctx.createAndStartTimer(ExplainPlan.Phase.Plan.name());
-            Plan subPlan = explainAnalyzedStatement.statement().accept(this, plannerContext);
+            Plan subPlan = statement.accept(this, context);
             ctx.stopTimerAndStoreDuration(timer);
-            return new ExplainPlan(
-                subPlan,
-                explainAnalyzedStatement.showCosts(),
-                ctx,
-                explainAnalyzedStatement.verbose(),
-                tracer != null ? tracer.getSteps() : Collections.emptyList()
-            );
+            if (subPlan instanceof LogicalPlan logicalPlan) {
+                return new ExplainProfilePlan(logicalPlan, ctx);
+            } else {
+                throw new UnsupportedOperationException("Cannot use EXPLAIN ANALYZE with: " + subPlan);
+            }
         }
     }
 

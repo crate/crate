@@ -21,12 +21,12 @@
 
 package io.crate.execution.engine.profile;
 
+import java.io.IOException;
+import java.util.Map;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.io.IOException;
-import java.util.Map;
 
 public class NodeCollectProfileResponse extends TransportResponse {
 
@@ -36,7 +36,7 @@ public class NodeCollectProfileResponse extends TransportResponse {
         this.durationByContextIdent = durationByContextIdent;
     }
 
-    Map<String, Object> durationByContextIdent() {
+    public Map<String, Object> durationByContextIdent() {
         return durationByContextIdent;
     }
 
