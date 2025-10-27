@@ -33,15 +33,15 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
+import org.elasticsearch.client.Client;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.common.collections.MapBuilder;
+import io.crate.common.concurrent.CompletableFutures;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
@@ -54,8 +54,6 @@ import io.crate.execution.dsl.phases.NodeOperationTree;
 import io.crate.execution.engine.profile.CollectProfileNodeAction;
 import io.crate.execution.engine.profile.CollectProfileRequest;
 import io.crate.execution.engine.profile.NodeCollectProfileResponse;
-import io.crate.execution.engine.profile.TransportCollectProfileOperation;
-import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
 import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.SelectSymbol;
@@ -297,24 +295,28 @@ public class ExplainProfilePlan implements Plan {
     }
 
     private CompletableFuture<Map<String, Map<String, Object>>> collectTimingResults(UUID jobId,
-                                                                                     DependencyCarrier executor,
+                                                                                     DependencyCarrier dependencies,
                                                                                      Collection<NodeOperation> nodeOperations) {
-        Set<String> nodeIds = new HashSet<>(NodeOperationGrouper.groupByServer(nodeOperations).keySet());
-        nodeIds.add(executor.localNodeId());
+        Set<String> uniqueNodeIds = new HashSet<>(NodeOperationGrouper.groupByServer(nodeOperations).keySet());
+        uniqueNodeIds.add(dependencies.localNodeId());
+        List<String> nodeIds = List.copyOf(uniqueNodeIds);
+        Client client = dependencies.client();
 
-        CompletableFuture<Map<String, Map<String, Object>>> resultFuture = new CompletableFuture<>();
-        TransportCollectProfileOperation collectOperation = getCollectOperation(executor, jobId);
-
-        ConcurrentHashMap<String, Map<String, Object>> timingsByNodeId = new ConcurrentHashMap<>(nodeIds.size());
-
-        AtomicInteger remainingCollectOps = new AtomicInteger(nodeIds.size());
-
+        ArrayList<CompletableFuture<NodeCollectProfileResponse>> futures = new ArrayList<>(uniqueNodeIds.size());
         for (String nodeId : nodeIds) {
-            collectOperation.collect(nodeId)
-                .whenComplete(mergeResultsAndCompleteFuture(resultFuture, timingsByNodeId, remainingCollectOps, nodeId));
+            NodeRequest<CollectProfileRequest> request = CollectProfileRequest.of(nodeId, jobId);
+            futures.add(client.execute(CollectProfileNodeAction.INSTANCE, request));
         }
 
-        return resultFuture;
+        return CompletableFutures.allAsList(futures).thenApply(responses -> {
+            HashMap<String, Map<String, Object>> result = HashMap.newHashMap(responses.size());
+            for (int i = 0; i < responses.size(); i++) {
+                NodeCollectProfileResponse resp = responses.get(i);
+                String nodeId = nodeIds.get(i);
+                result.put(nodeId, resp.durationByContextIdent());
+            }
+            return result;
+        });
     }
 
     private Map<String, Object> buildResponse(Map<String, Object> apeTimings,
@@ -394,14 +396,6 @@ public class ExplainProfilePlan implements Plan {
     }
 
 
-    private TransportCollectProfileOperation getCollectOperation(DependencyCarrier executor, UUID jobId) {
-        ActionExecutor<NodeRequest<CollectProfileRequest>, NodeCollectProfileResponse> nodeAction =
-            req -> executor.client().execute(CollectProfileNodeAction.INSTANCE, req);
-        return new TransportCollectProfileOperation(nodeAction, jobId);
-    }
-
-
-
     private static Map<String, Object> extractPhasesTimingsFrom(Map<String, Map<String, Object>> timingsByNodeId,
                                                                 NodeOperationTree operationTree) {
         Map<String, Object> allPhases = new TreeMap<>();
@@ -459,23 +453,4 @@ public class ExplainProfilePlan implements Plan {
 
         return Collections.unmodifiableMap(nodeTimingsWithoutPhases);
     }
-
-
-
-    private static BiConsumer<Map<String, Object>, Throwable> mergeResultsAndCompleteFuture(CompletableFuture<Map<String, Map<String, Object>>> resultFuture,
-                                                                                            ConcurrentHashMap<String, Map<String, Object>> timingsByNodeId,
-                                                                                            AtomicInteger remainingOperations,
-                                                                                            String nodeId) {
-        return (map, throwable) -> {
-            if (throwable == null) {
-                timingsByNodeId.put(nodeId, map);
-                if (remainingOperations.decrementAndGet() == 0) {
-                    resultFuture.complete(timingsByNodeId);
-                }
-            } else {
-                resultFuture.completeExceptionally(throwable);
-            }
-        };
-    }
-
 }
