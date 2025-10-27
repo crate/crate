@@ -18,10 +18,10 @@
 # with Crate these terms will supersede the license and you may use the
 # software solely pursuant to the terms of the relevant commercial agreement.
 
-
 from unittest import TestCase
 from testutils.paths import crate_path
 from testutils.ports import bind_port
+from testutils.assertions import assert_busy
 from cr8.run_crate import CrateNode
 from crate.client import connect
 from dnslib.server import DNSServer
@@ -82,11 +82,13 @@ _test._srv.crate.internal.    600   IN   SRV   1 10 {port} 127.0.0.1.'''.format(
 
         def test_nodes_discover_each_other(self):
             with connect(self.nodes[0].http_url) as conn:
-                c = conn.cursor()
-                c.execute('''select count(*) from sys.nodes''')
-                result = c.fetchone()
-            self.assertEqual(result[0], self.num_nodes, 'Nodes must be able to join')
+                assert_busy(lambda: self._assert_nodes_joined(conn), 20)
 
+        def _assert_nodes_joined(self, conn):
+            c = conn.cursor()
+            c.execute('''select count(*) from sys.nodes''')
+            result = c.fetchone()
+            self.assertEqual(result[0], self.num_nodes, 'Nodes must be able to join')
 
 class UdpDnsSrvDiscoveryTestDns(DnsBaseTestCase.BaseTest):
 
