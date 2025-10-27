@@ -46,6 +46,12 @@ series.
 Fixes
 =====
 
+- Fixed an issue that caused ``EXPLAIN ANALYZE`` on queries using a sub-query
+  returning multiple-rows (like with ``WHERE x IN (SELECT ...)``) to not release
+  the memory accounted within the query circuit breaker. This could later on
+  result in queries getting rejected with a circuit breaker exception, despite
+  having memory available.
+
 - Improved ``WHERE`` clause analysis for queries on tables with both ``PARTITION
   BY`` and ``CLUSTERED BY`` clause to narrow the partitions and shards that are
   hit if the query filters on the ``PARTITIONED BY`` and ``CLUSTERED BY``

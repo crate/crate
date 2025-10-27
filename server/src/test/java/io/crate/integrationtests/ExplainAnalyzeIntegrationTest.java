@@ -195,4 +195,16 @@ public class ExplainAnalyzeIntegrationTest extends IntegTestCase {
             }
         }
     }
+
+    @Test
+    public void test_explain_analyze_with_all_values_sub_query_does_not_leak_memory() throws Exception {
+        // Used to fail with something like:
+        //
+        //      [Query breaker not reset to 0 on node: node_s0]
+        //      expected: 0L
+        //      but was: 2097152L
+        //
+        // Because RamAccounting instance wasn't closed
+        execute("explain analyze select * from sys.summits where height in (select x from unnest([1, 2, 3, 4]) t (x))");
+    }
 }

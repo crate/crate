@@ -91,6 +91,12 @@ public class ExplainProfilePlan implements Plan {
                               RowConsumer consumer,
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
+        var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(
+            "multi-phase",
+            dependencies.circuitBreaker(HierarchyCircuitBreakerService.QUERY),
+            plannerContext.transactionContext().sessionSettings().memoryLimitInBytes()
+        );
+        consumer.completionFuture().whenComplete((_, _) -> ramAccounting.close());
         executePlan(
             plan,
             dependencies,
@@ -100,7 +106,7 @@ public class ExplainProfilePlan implements Plan {
             subQueryResults,
             new IdentityHashMap<>(),
             new ArrayList<>(plan.dependencies().size()),
-            null,
+            ramAccounting,
             null
         );
     }
@@ -113,24 +119,9 @@ public class ExplainProfilePlan implements Plan {
                                              SubQueryResults subQueryResults,
                                              Map<SelectSymbol, Object> valuesBySubQuery,
                                              List<Map<String, Object>> explainResults,
-                                             @Nullable RamAccounting ramAccounting,
+                                             RamAccounting ramAccounting,
                                              @Nullable SelectSymbol selectSymbol) {
         boolean isTopLevel = selectSymbol == null;
-
-        assert ramAccounting != null || isTopLevel : "ramAccounting must NOT be null for subPlans";
-
-        if (ramAccounting == null) {
-            ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(
-                "multi-phase",
-                executor.circuitBreaker(HierarchyCircuitBreakerService.QUERY),
-                plannerContext.transactionContext().sessionSettings().memoryLimitInBytes()
-            );
-        }
-
-        if (isTopLevel == false) {
-            plannerContext = PlannerContext.forSubPlan(plannerContext);
-        }
-
         IdentityHashMap<SelectSymbol, Object> subPlanValueBySubQuery = new IdentityHashMap<>();
         ArrayList<Map<String, Object>> subPlansExplainResults = new ArrayList<>(plan.dependencies().size());
         List<CompletableFuture<?>> subPlansFutures = new ArrayList<>(plan.dependencies().size());
