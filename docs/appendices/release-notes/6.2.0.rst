@@ -77,6 +77,26 @@ SQL Standard and PostgreSQL Compatibility
   is still discouraged to avoid conflicts in case future CrateDB versions
   introduce additional system columns.
 
+  As a side effect of this change, using the existing system columns in write
+  operations now causes an error instead of silently discarding the values.
+
+  For example, in earlier versions the behavior was as follows::
+
+      cr> create table tbl (x int);
+      cr> insert into tbl (x, _id, _version, _seq_no) values (1, 100, 200, 300);
+      cr> refresh table tbl;
+      cr> select *, _id, _version, _seq_no from tbl;
+      +---+----------------------+----------+---------+
+      | x | _id                  | _version | _seq_no |
+      +---+----------------------+----------+---------+
+      | 1 | Szu9JZoBFWbuMAwIJry8 |        1 |       0 |
+      +---+----------------------+----------+---------+
+
+  In 6.2.0 the ``INSERT INTO`` statement results in an error::
+
+      cr> insert into tbl (x, _id, _version, _seq_no) values (1, 100, 200, 300);
+      InvalidColumnNameException["_id" Cannot write to system column]
+
 - Added support for selecting more than one column within a subquery used in a
   ``EXISTS`` clause.
 
