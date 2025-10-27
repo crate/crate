@@ -40,6 +40,7 @@ import io.crate.data.RowConsumer;
 import io.crate.data.testing.TestingRowConsumer;
 import io.crate.metadata.RelationName;
 import io.crate.planner.node.management.ExplainPlan;
+import io.crate.planner.node.management.ExplainProfilePlan;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.statistics.Stats;
@@ -74,7 +75,6 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             ExplainPlan plan = e.plan("EXPLAIN " + statement);
             assertThat(plan).isNotNull();
             assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isFalse();
             assertThat(plan.showCosts()).isTrue();
         }
     }
@@ -85,7 +85,6 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             ExplainPlan plan = e.plan("EXPLAIN (COSTS true)" + statement);
             assertThat(plan).isNotNull();
             assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isFalse();
             assertThat(plan.showCosts()).isTrue();
         }
     }
@@ -93,11 +92,8 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExplainCostsActivated1() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            ExplainPlan plan = e.plan("EXPLAIN (Analyze true, costs false)" + statement);
+            ExplainProfilePlan plan = e.plan("EXPLAIN (Analyze true, costs false)" + statement);
             assertThat(plan).isNotNull();
-            assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isTrue();
-            assertThat(plan.showCosts()).isFalse();
         }
     }
 
@@ -107,7 +103,6 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             ExplainPlan plan = e.plan("EXPLAIN (COSTS false)" + statement);
             assertThat(plan).isNotNull();
             assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isFalse();
             assertThat(plan.showCosts()).isFalse();
         }
     }
@@ -115,20 +110,16 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testExplainAnalyze() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            ExplainPlan plan = e.plan("EXPLAIN ANALYZE " + statement);
+            ExplainProfilePlan plan = e.plan("EXPLAIN ANALYZE " + statement);
             assertThat(plan).isNotNull();
-            assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isTrue();
         }
     }
 
     @Test
     public void testExplainAnalyzeAsOptionActivated() {
         for (String statement : EXPLAIN_TEST_STATEMENTS) {
-            ExplainPlan plan = e.plan("EXPLAIN (ANALYZE true) " + statement);
+            ExplainProfilePlan plan = e.plan("EXPLAIN (ANALYZE true) " + statement);
             assertThat(plan).isNotNull();
-            assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isTrue();
         }
     }
 
@@ -138,7 +129,6 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             ExplainPlan plan = e.plan("EXPLAIN (ANALYZE false) " + statement);
             assertThat(plan).isNotNull();
             assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isFalse();
         }
     }
 
@@ -148,7 +138,6 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             ExplainPlan plan = e.plan("EXPLAIN VERBOSE " + statement);
             assertThat(plan).isNotNull();
             assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isFalse();
             assertThat(plan.showCosts()).isTrue();
             assertThat(plan.verbose()).isTrue();
         }
@@ -160,7 +149,6 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             ExplainPlan plan = e.plan("EXPLAIN (VERBOSE true) " + statement);
             assertThat(plan).isNotNull();
             assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isFalse();
             assertThat(plan.showCosts()).isTrue();
             assertThat(plan.verbose()).isTrue();
         }
@@ -172,7 +160,6 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
             ExplainPlan plan = e.plan("EXPLAIN (VERBOSE false)" + statement);
             assertThat(plan).isNotNull();
             assertThat(plan.subPlan()).isNotNull();
-            assertThat(plan.doAnalyze()).isFalse();
             assertThat(plan.showCosts()).isTrue();
             assertThat(plan.verbose()).isFalse();
         }
