@@ -132,7 +132,9 @@ public final class PKLookupTask extends AbstractTask {
             toCollect
         );
         consumer.accept(rowBatchIterator, null);
-        close();
+        consumer.completionFuture().whenComplete((_, _) -> {
+            close();
+        });
         return null;
     }
 
