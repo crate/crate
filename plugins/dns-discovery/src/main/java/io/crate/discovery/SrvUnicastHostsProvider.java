@@ -48,6 +48,7 @@ import io.netty.channel.EventLoopGroup;
 import io.netty.channel.MultiThreadIoEventLoopGroup;
 import io.netty.channel.nio.NioIoHandler;
 import io.netty.channel.socket.nio.NioDatagramChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
 import io.netty.handler.codec.dns.DefaultDnsQuestion;
 import io.netty.handler.codec.dns.DefaultDnsRawRecord;
 import io.netty.handler.codec.dns.DefaultDnsRecordDecoder;
@@ -68,7 +69,7 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
     public static final Setting<String> DISCOVERY_SRV_RESOLVER = Setting.simpleString(
         "discovery.srv.resolver", Setting.Property.NodeScope);
     private static final Setting<TimeValue> DISCOVERY_SRV_RESOLVE_TIMEOUT =
-        Setting.positiveTimeSetting("discovery.srv.resolve_timeout", TimeValue.timeValueSeconds(5), Setting.Property.NodeScope);
+        Setting.positiveTimeSetting("discovery.srv.resolve_timeout", TimeValue.timeValueSeconds(10), Setting.Property.NodeScope);
 
     private final TransportService transportService;
     private final String query;
@@ -123,6 +124,8 @@ public class SrvUnicastHostsProvider implements AutoCloseable, SeedHostsProvider
     private DnsNameResolver buildResolver(Settings settings) {
         DnsNameResolverBuilder resolverBuilder = new DnsNameResolverBuilder(eventLoopGroup.next());
         resolverBuilder.datagramChannelType(NioDatagramChannel.class);
+        resolverBuilder.socketChannelType(NioSocketChannel.class, true);
+        resolverBuilder.queryTimeoutMillis(Math.min(Math.abs(resolveTimeout.millis() / 2), 100));
 
         InetSocketAddress resolverAddress = parseResolverAddress(settings);
         if (resolverAddress != null) {
