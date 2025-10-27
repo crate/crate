@@ -22,7 +22,6 @@ package org.elasticsearch.action;
 import java.util.Objects;
 
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -34,18 +33,16 @@ public abstract class ShardOperationFailedException implements Writeable {
     protected String index;
     protected int shardId = -1;
     protected String reason;
-    protected RestStatus status;
     protected Throwable cause;
 
     protected ShardOperationFailedException() {
 
     }
 
-    protected ShardOperationFailedException(@Nullable String index, int shardId, String reason, RestStatus status, Throwable cause) {
+    protected ShardOperationFailedException(@Nullable String index, int shardId, String reason, Throwable cause) {
         this.index = index;
         this.shardId = shardId;
         this.reason = Objects.requireNonNull(reason, "reason cannot be null");
-        this.status = Objects.requireNonNull(status, "status cannot be null");
         this.cause = Objects.requireNonNull(cause, "cause cannot be null");
     }
 
@@ -69,13 +66,6 @@ public abstract class ShardOperationFailedException implements Writeable {
      */
     public final String reason() {
         return reason;
-    }
-
-    /**
-     * The status of the failure.
-     */
-    public final RestStatus status() {
-        return status;
     }
 
     /**

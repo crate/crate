@@ -33,9 +33,10 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import io.crate.rest.action.HttpErrorStatus;
 
 public class ClusterBlockTests extends ESTestCase {
 
@@ -53,7 +54,21 @@ public class ClusterBlockTests extends ESTestCase {
             in.setVersion(version);
             ClusterBlock result = new ClusterBlock(in);
 
-            assertClusterBlockEquals(clusterBlock, result);
+            assertThat(result).isEqualTo(clusterBlock);
+            assertThat(result.id()).isEqualTo(clusterBlock.id());
+            assertThat(result.uuid()).isEqualTo(clusterBlock.uuid());
+            assertThat(result.description()).isEqualTo(clusterBlock.description());
+            assertThat(result.retryable()).isEqualTo(clusterBlock.retryable());
+            assertThat(result.disableStatePersistence()).isEqualTo(clusterBlock.disableStatePersistence());
+            assertThat(result.levels().toArray()).isEqualTo(clusterBlock.levels().toArray());
+
+            if (version.before(Version.V_6_2_0)) {
+                // http status is serialized as rest status string before 6.2.0, this may lose concrete status code information
+                // so we only compare the real HTTP status code here as the concrete CrateDB specific error code may not be preserved
+                assertThat(result.status().httpResponseStatus().code()).isEqualTo(clusterBlock.status().httpResponseStatus().code());
+            } else {
+                assertThat(result.status()).isEqualTo(clusterBlock.status());
+            }
         }
     }
 
@@ -73,16 +88,16 @@ public class ClusterBlockTests extends ESTestCase {
     public void testRemoveIndexBlockWithId() {
         final ClusterBlocks.Builder builder = ClusterBlocks.builder();
         builder.addIndexBlock("index-1",
-                              new ClusterBlock(1, "uuid", "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL)));
+                              new ClusterBlock(1, "uuid", "", true, true, true, HttpErrorStatus.OK, copyOf(ClusterBlockLevel.ALL)));
         builder.addIndexBlock("index-1",
-                              new ClusterBlock(2, "uuid", "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL)));
+                              new ClusterBlock(2, "uuid", "", true, true, true, HttpErrorStatus.OK, copyOf(ClusterBlockLevel.ALL)));
         builder.addIndexBlock("index-1",
-                              new ClusterBlock(3, "uuid", "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL)));
+                              new ClusterBlock(3, "uuid", "", true, true, true, HttpErrorStatus.OK, copyOf(ClusterBlockLevel.ALL)));
         builder.addIndexBlock("index-1",
-                              new ClusterBlock(3, "other uuid", "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL)));
+                              new ClusterBlock(3, "other uuid", "", true, true, true, HttpErrorStatus.OK, copyOf(ClusterBlockLevel.ALL)));
 
         builder.addIndexBlock("index-2",
-                              new ClusterBlock(3, "uuid3", "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL)));
+                              new ClusterBlock(3, "uuid3", "", true, true, true, HttpErrorStatus.OK, copyOf(ClusterBlockLevel.ALL)));
 
         ClusterBlocks clusterBlocks = builder.build();
         assertThat(clusterBlocks.indices().get("index-1")).hasSize(4);
@@ -115,7 +130,7 @@ public class ClusterBlockTests extends ESTestCase {
 
         final ClusterBlocks.Builder builder = ClusterBlocks.builder();
         for (int i = 0; i < noClusterBlocks; i++) {
-            clusterBlocks.add(new ClusterBlock(blockId, "uuid" + i, "", true, true, true, RestStatus.OK, copyOf(ClusterBlockLevel.ALL)));
+            clusterBlocks.add(new ClusterBlock(blockId, "uuid" + i, "", true, true, true, HttpErrorStatus.OK, copyOf(ClusterBlockLevel.ALL)));
             builder.addIndexBlock("index", clusterBlocks.get(i));
         }
 
@@ -128,17 +143,6 @@ public class ClusterBlockTests extends ESTestCase {
         final String uuid = randomBoolean() ? UUIDs.randomBase64UUID() : null;
         final List<ClusterBlockLevel> levels = Arrays.asList(ClusterBlockLevel.values());
         return new ClusterBlock(randomInt(), uuid, "cluster block #" + randomInt(), randomBoolean(), randomBoolean(), randomBoolean(),
-                                randomFrom(RestStatus.values()), copyOf(randomSubsetOf(randomIntBetween(1, levels.size()), levels)));
-    }
-
-    private void assertClusterBlockEquals(final ClusterBlock expected, final ClusterBlock actual) {
-        assertThat(actual).isEqualTo(expected);
-        assertThat(actual.id()).isEqualTo(expected.id());
-        assertThat(actual.uuid()).isEqualTo(expected.uuid());
-        assertThat(actual.status()).isEqualTo(expected.status());
-        assertThat(actual.description()).isEqualTo(expected.description());
-        assertThat(actual.retryable()).isEqualTo(expected.retryable());
-        assertThat(actual.disableStatePersistence()).isEqualTo(expected.disableStatePersistence());
-        assertThat(actual.levels().toArray()).isEqualTo(expected.levels().toArray());
+                                randomFrom(HttpErrorStatus.values()), copyOf(randomSubsetOf(randomIntBetween(1, levels.size()), levels)));
     }
 }

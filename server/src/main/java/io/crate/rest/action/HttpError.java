@@ -133,7 +133,7 @@ public class HttpError {
         } else if (throwable instanceof SQLParseException) {
             httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_OR_UNSUPPORTED_SYNTAX;
         } else if (throwable instanceof UnsupportedFunctionException) {
-            httpErrorStatus = HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPROTED_YET;
+            httpErrorStatus = HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPORTED_YET;
         } else if (throwable instanceof AnalyzerUnknownException) {
             httpErrorStatus = HttpErrorStatus.STATEMENT_INVALID_ANALYZER_DEFINITION;
         } else if (throwable instanceof ColumnUnknownException) {

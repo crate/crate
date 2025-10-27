@@ -348,6 +348,10 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             indexProperties.forValues(consumer);
             storageProperties.forValues(consumer);
         }
+
+        public DataType<?> type() {
+            return type;
+        }
     }
 
     @Override

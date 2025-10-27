@@ -28,9 +28,9 @@ import static io.crate.protocols.postgres.PGErrorStatus.UNIQUE_VIOLATION;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
+import static io.netty.handler.codec.http.HttpResponseStatus.FORBIDDEN;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.rtsp.RtspResponseStatuses.BAD_REQUEST;
-import static io.netty.handler.codec.rtsp.RtspResponseStatuses.INTERNAL_SERVER_ERROR;
 
 import java.io.File;
 import java.io.FileOutputStream;
@@ -2057,8 +2057,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         // trying to perform an update on a partition with a write block
         Asserts.assertSQLError(() -> execute("update my_table set content=\'content42\' where par=1"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-            .hasMessageContaining("blocked by: [FORBIDDEN/8/index write (api)];");
+            .hasHTTPError(FORBIDDEN, 4035)
+            .hasMessageContaining("blocked by: [RELATION_READ_AND_DDL_ONLY/8/index write (api)];");
     }
 
     @Test
@@ -2078,8 +2078,8 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
                                    "(1, 'content2'), " +
                                    "(3, 'content6')"))
             .hasPGError(INTERNAL_ERROR)
-            .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
-            .hasMessageContaining("blocked by: [FORBIDDEN/8/index write (api)];");
+            .hasHTTPError(FORBIDDEN, 4035)
+            .hasMessageContaining("blocked by: [RELATION_READ_AND_DDL_ONLY/8/index write (api)];");
 
         execute("refresh table my_table");
         execute("select * from my_table");

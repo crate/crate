@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.Objects;
 
 import org.elasticsearch.ElasticsearchParseException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -32,7 +33,6 @@ import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.snapshots.IndexShardSnapshotFailedException;
-import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
 
 /**
@@ -52,19 +52,7 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
      * @param reason  failure reason
      */
     public SnapshotShardFailure(@Nullable String nodeId, ShardId shardId, String reason) {
-        this(nodeId, shardId, reason, RestStatus.INTERNAL_SERVER_ERROR);
-    }
-
-    /**
-     * Constructs new snapshot shard failure object
-     *
-     * @param nodeId  node where failure occurred
-     * @param shardId shard id
-     * @param reason  failure reason
-     * @param status  rest status
-     */
-    private SnapshotShardFailure(@Nullable String nodeId, ShardId shardId, String reason, RestStatus status) {
-        super(shardId.getIndexName(), shardId.id(), reason, status, new IndexShardSnapshotFailedException(shardId, reason));
+        super(shardId.getIndexName(), shardId.id(), reason, new IndexShardSnapshotFailedException(shardId, reason));
         this.nodeId = nodeId;
         this.shardId = shardId;
     }
@@ -85,7 +73,9 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
         super.shardId = shardId.id();
         index = shardId.getIndexName();
         reason = in.readString();
-        status = RestStatus.readFrom(in);
+        if (in.getVersion().before(Version.V_6_2_0)) {
+            in.readString(); // ignore old RestStatus
+        }
     }
 
     @Override
@@ -93,7 +83,9 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
         out.writeOptionalString(nodeId);
         shardId.writeTo(out);
         out.writeString(reason);
-        RestStatus.writeTo(out, status);
+        if (out.getVersion().before(Version.V_6_2_0)) {
+            out.writeString("INTERNAL_SERVER_ERROR");
+        }
     }
 
     @Override
@@ -102,7 +94,6 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
             "shardId=" + shardId +
             ", reason='" + reason + '\'' +
             ", nodeId='" + nodeId + '\'' +
-            ", status=" + status +
             '}';
     }
 
@@ -126,7 +117,6 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
         final String nodeId = (String) args[2];
         String reason = (String) args[3];
         Integer intShardId = (Integer) args[4];
-        final String status = (String) args[5];
 
         if (index == null) {
             throw new ElasticsearchParseException("index name was not set");
@@ -146,15 +136,7 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
             nonNullReason = "";
         }
 
-
-        RestStatus restStatus;
-        if (status != null) {
-            restStatus = RestStatus.valueOf(status);
-        } else {
-            restStatus = RestStatus.INTERNAL_SERVER_ERROR;
-        }
-
-        return new SnapshotShardFailure(nodeId, shardId, nonNullReason, restStatus);
+        return new SnapshotShardFailure(nodeId, shardId, nonNullReason);
     }
 
     /**
@@ -176,13 +158,12 @@ public class SnapshotShardFailure extends ShardOperationFailedException {
         return shardId.id() == that.shardId.id() &&
             shardId.getIndexName().equals(shardId.getIndexName()) &&
             Objects.equals(reason, that.reason) &&
-            Objects.equals(nodeId, that.nodeId) &&
-            status.getStatus() == that.status.getStatus();
+            Objects.equals(nodeId, that.nodeId);
     }
 
     @Override
     public int hashCode() {
         // customized to account for discrepancies in shardId/Index toXContent/fromXContent related to uuid
-        return Objects.hash(shardId.id(), shardId.getIndexName(), reason, nodeId, status.getStatus());
+        return Objects.hash(shardId.id(), shardId.getIndexName(), reason, nodeId);
     }
 }

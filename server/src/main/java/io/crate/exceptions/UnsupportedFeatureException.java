@@ -44,6 +44,6 @@ public class UnsupportedFeatureException extends ElasticsearchException implemen
 
     @Override
     public HttpErrorStatus httpErrorStatus() {
-        return HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPROTED_YET;
+        return HttpErrorStatus.POSSIBLE_FEATURE_NOT_SUPPORTED_YET;
     }
 }

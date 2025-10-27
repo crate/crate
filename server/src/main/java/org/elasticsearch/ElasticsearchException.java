@@ -40,7 +40,6 @@ import org.elasticsearch.common.logging.LoggerMessageFormat;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.PrimaryShardClosedException;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestStatus;
 import org.elasticsearch.transport.TcpTransport;
 
 import io.crate.common.CheckedFunction;
@@ -188,18 +187,6 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
 
     protected Map<String, List<String>> getHeaders() {
         return headers;
-    }
-
-    /**
-     * Returns the rest status code associated with this exception.
-     */
-    public RestStatus status() {
-        Throwable cause = unwrapCause();
-        if (cause == this) {
-            return RestStatus.INTERNAL_SERVER_ERROR;
-        } else {
-            return SQLExceptions.status(cause);
-        }
     }
 
     /**
@@ -357,8 +344,7 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
                 org.elasticsearch.common.util.CancellableThreads.ExecutionCancelledException::new, 2, UNKNOWN_VERSION_ADDED),
         MASTER_NOT_DISCOVERED_EXCEPTION(org.elasticsearch.discovery.MasterNotDiscoveredException.class,
                 org.elasticsearch.discovery.MasterNotDiscoveredException::new, 3, UNKNOWN_VERSION_ADDED),
-        ELASTICSEARCH_SECURITY_EXCEPTION(org.elasticsearch.ElasticsearchSecurityException.class,
-                org.elasticsearch.ElasticsearchSecurityException::new, 4, UNKNOWN_VERSION_ADDED),
+        // 4 was ElasticsearchSecurityException
         INDEX_SHARD_RESTORE_EXCEPTION(org.elasticsearch.index.snapshots.IndexShardRestoreException.class,
                 org.elasticsearch.index.snapshots.IndexShardRestoreException::new, 5, UNKNOWN_VERSION_ADDED),
         INDEX_CLOSED_EXCEPTION(org.elasticsearch.indices.IndexClosedException.class,
@@ -417,8 +403,7 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
         // 36 was SearchException
         MAPPER_EXCEPTION(org.elasticsearch.index.mapper.MapperException.class,
                 org.elasticsearch.index.mapper.MapperException::new, 37, UNKNOWN_VERSION_ADDED),
-        INVALID_TYPE_NAME_EXCEPTION(org.elasticsearch.indices.InvalidTypeNameException.class,
-                org.elasticsearch.indices.InvalidTypeNameException::new, 38, UNKNOWN_VERSION_ADDED),
+        // 38 was InvalidTypeNameException
         SNAPSHOT_RESTORE_EXCEPTION(org.elasticsearch.snapshots.SnapshotRestoreException.class,
                 org.elasticsearch.snapshots.SnapshotRestoreException::new, 39, UNKNOWN_VERSION_ADDED),
         PARSING_EXCEPTION(org.elasticsearch.common.ParsingException.class, org.elasticsearch.common.ParsingException::new, 40,
@@ -577,13 +562,11 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
                 org.elasticsearch.common.breaker.CircuitBreakingException::new, 133, UNKNOWN_VERSION_ADDED),
         NODE_NOT_CONNECTED_EXCEPTION(org.elasticsearch.transport.NodeNotConnectedException.class,
                 org.elasticsearch.transport.NodeNotConnectedException::new, 134, UNKNOWN_VERSION_ADDED),
-        STRICT_DYNAMIC_MAPPING_EXCEPTION(org.elasticsearch.index.mapper.StrictDynamicMappingException.class,
-                org.elasticsearch.index.mapper.StrictDynamicMappingException::new, 135, UNKNOWN_VERSION_ADDED),
+        // 135 was StrictDynamicMappingException
         RETRY_ON_REPLICA_EXCEPTION(org.elasticsearch.action.support.replication.TransportReplicationAction.RetryOnReplicaException.class,
                 org.elasticsearch.action.support.replication.TransportReplicationAction.RetryOnReplicaException::new, 136,
             UNKNOWN_VERSION_ADDED),
-        TYPE_MISSING_EXCEPTION(org.elasticsearch.indices.TypeMissingException.class,
-                org.elasticsearch.indices.TypeMissingException::new, 137, UNKNOWN_VERSION_ADDED),
+        // 137 was TypeMissingException
         FAILED_TO_COMMIT_CLUSTER_STATE_EXCEPTION(org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException.class,
                 org.elasticsearch.cluster.coordination.FailedToCommitClusterStateException::new, 140, UNKNOWN_VERSION_ADDED),
         // 141 was QueryShardException
@@ -592,8 +575,7 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
         // 143 was ScriptException
         NOT_MASTER_EXCEPTION(org.elasticsearch.cluster.NotMasterException.class, org.elasticsearch.cluster.NotMasterException::new, 144,
             UNKNOWN_VERSION_ADDED),
-        STATUS_EXCEPTION(org.elasticsearch.ElasticsearchStatusException.class, org.elasticsearch.ElasticsearchStatusException::new, 145,
-            UNKNOWN_VERSION_ADDED),
+        // 145 was ElasticsearchStatusException
         TASK_CANCELLED_EXCEPTION(org.elasticsearch.tasks.TaskCancelledException.class,
             org.elasticsearch.tasks.TaskCancelledException::new, 146, UNKNOWN_VERSION_ADDED),
         SHARD_LOCK_OBTAIN_FAILED_EXCEPTION(org.elasticsearch.env.ShardLockObtainFailedException.class,
@@ -754,7 +736,12 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
             PrimaryShardClosedException::new,
             182,
             Version.V_6_0_0
-        );
+        ),
+        SNAPSHOT_IN_PROGRESS_EXCEPTION(
+            org.elasticsearch.snapshots.SnapshotInProgressException.class,
+            org.elasticsearch.snapshots.SnapshotInProgressException::new,
+            183,
+            UNKNOWN_VERSION_ADDED);
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

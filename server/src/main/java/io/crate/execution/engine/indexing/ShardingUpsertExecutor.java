@@ -66,6 +66,7 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.RowShardResolver;
+import io.crate.execution.engine.indexing.ShardedRequests.ReadFailureAndLineNumber;
 import io.crate.execution.jobs.NodeLimits;
 import io.crate.metadata.PartitionName;
 
@@ -168,7 +169,7 @@ public class ShardingUpsertExecutor
         return elasticsearchClient.execute(
             TransportCreatePartitions.ACTION,
             CreatePartitionsRequest.of(requests.itemsByMissingPartition.keySet()))
-            .thenCompose(resp -> {
+            .thenCompose(_ -> {
                 grouper.reResolveShardLocations(requests);
                 createPartitionsRequestOngoing = false;
                 return execRequests(requests, upsertResults);
@@ -184,10 +185,15 @@ public class ShardingUpsertExecutor
 
     private static void collectFailingItems(ShardedRequests<ShardUpsertRequest, ShardUpsertRequest.Item> requests,
                                             final UpsertResults upsertResults) {
-        for (Map.Entry<String, List<ShardedRequests.ReadFailureAndLineNumber>> entry : requests.itemsWithFailureBySourceUri.entrySet()) {
+        for (var entry : requests.itemsWithFailureBySourceUri.entrySet()) {
             String sourceUri = entry.getKey();
-            for (ShardedRequests.ReadFailureAndLineNumber readFailureAndLineNumber : entry.getValue()) {
-                upsertResults.addResult(sourceUri, readFailureAndLineNumber.readFailure, readFailureAndLineNumber.lineNumber);
+            List<ReadFailureAndLineNumber> value = entry.getValue();
+            for (ShardedRequests.ReadFailureAndLineNumber readFailureAndLineNumber : value) {
+                upsertResults.addResult(
+                    sourceUri,
+                    readFailureAndLineNumber.readFailure(),
+                    readFailureAndLineNumber.lineNumber()
+                );
             }
         }
     }
@@ -228,7 +234,7 @@ public class ShardingUpsertExecutor
             );
             retryableAction.run();
         }
-        return resultFuture.whenComplete((r, err) -> requests.close());
+        return resultFuture.whenComplete((_, _) -> requests.close());
     }
 
 
@@ -301,7 +307,7 @@ public class ShardingUpsertExecutor
             );
         return executor.consumeIteratorAndExecute()
             .thenApply(upsertResults -> resultCollector.finisher().apply(upsertResults))
-            .whenComplete((res, err) -> {
+            .whenComplete((_, _) -> {
                 nodeLimit.onSample(startTime);
             });
     }

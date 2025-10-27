@@ -88,7 +88,6 @@ public abstract class TransportBroadcastReplicationAction<Request extends Broadc
                         shardId,
                         null,
                         e,
-                        SQLExceptions.status(e),
                         true
                     );
                     failures = new ReplicationResponse.ShardInfo.Failure[totalNumCopies];

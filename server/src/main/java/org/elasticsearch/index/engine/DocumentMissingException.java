@@ -24,7 +24,6 @@ import java.io.IOException;
 import org.elasticsearch.Assertions;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
-import org.elasticsearch.rest.RestStatus;
 
 import io.crate.rest.action.HttpErrorStatus;
 
@@ -36,11 +35,6 @@ public class DocumentMissingException extends EngineException {
 
     public DocumentMissingException(StreamInput in) throws IOException {
         super(in);
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.NOT_FOUND;
     }
 
     @Override

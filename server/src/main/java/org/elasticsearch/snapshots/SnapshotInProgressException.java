@@ -19,11 +19,12 @@
 
 package org.elasticsearch.snapshots;
 
+import java.io.IOException;
+
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
 
-import java.io.IOException;
+import io.crate.rest.action.HttpErrorStatus;
 
 /**
  * Thrown on the attempt to execute an action that requires
@@ -40,7 +41,7 @@ public class SnapshotInProgressException extends ElasticsearchException {
     }
 
     @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
+    public HttpErrorStatus httpErrorStatus() {
+        return HttpErrorStatus.SNAPSHOT_IN_PROGRESS;
     }
 }

@@ -21,6 +21,7 @@
 
 package io.crate.protocols.postgres;
 
+import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.Collection;
 import java.util.List;
@@ -177,7 +178,13 @@ public final class Messages {
     }
 
     static void sendAuthenticationError(Channel channel, String message) {
-        LOGGER.warn(message);
+        if (LOGGER.isWarnEnabled()) {
+            if (channel.remoteAddress() instanceof InetSocketAddress addr) {
+                LOGGER.warn("AuthenticationError: {} from {}", message, addr.getAddress().getHostAddress());
+            } else {
+                LOGGER.warn("AuthenticationError: {}", message);
+            }
+        }
         byte[] msg = message.getBytes(StandardCharsets.UTF_8);
         byte[] errorCode = PGErrorStatus.INVALID_AUTHORIZATION_SPECIFICATION.codeBytes();
         sendErrorResponse(channel, message, msg, PGError.Severity.FATAL.bytes(), null, null,

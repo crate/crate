@@ -26,7 +26,6 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.rest.RestStatus;
 
 /**
  * Exception thrown when the circuit breaker trips
@@ -77,10 +76,5 @@ public class CircuitBreakingException extends ElasticsearchException {
 
     public long getByteLimit() {
         return this.byteLimit;
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.SERVICE_UNAVAILABLE;
     }
 }

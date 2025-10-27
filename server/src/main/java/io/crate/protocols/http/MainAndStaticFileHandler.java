@@ -46,10 +46,9 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.elasticsearch.rest.RestStatus;
 import org.jetbrains.annotations.Nullable;
-
 import io.netty.buffer.ByteBuf;
+import io.crate.rest.action.HttpErrorStatus;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.ByteBufUtil;
@@ -196,7 +195,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
                                                                    ClusterStateResponse response,
                                                                    ByteBufAllocator alloc,
                                                                    @Nullable String nodeName) {
-        var httpStatus = response.getState().blocks().hasGlobalBlockWithStatus(RestStatus.SERVICE_UNAVAILABLE)
+        var httpStatus = response.getState().blocks().hasGlobalBlockWithStatus(HttpErrorStatus.SERVICE_UNAVAILABLE)
             ? HttpResponseStatus.SERVICE_UNAVAILABLE
             : HttpResponseStatus.OK;
         try {

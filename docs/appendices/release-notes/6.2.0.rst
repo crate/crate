@@ -45,7 +45,12 @@ Version 6.2.0 - Unreleased
 Breaking Changes
 ================
 
-None
+- Changed the detailed :ref:`http error code <http-error-codes>` for the
+  ``Duplicate Object`` error from ``4100`` to ``40910`` as it is a conflict.
+
+- Changed the detailed :ref:`http error code <http-error-codes>` for the
+  ``Query killed`` error from ``5030`` to ``5005`` as it is an internal server
+  error.
 
 Deprecations
 ============
@@ -114,9 +119,12 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
-None
+- Enabled TCP fallback for SRV DNS queries used when
+  :ref:`Node Discovery via DNS <conf_dns_discovery>` is enabled.
 
 Client interfaces
 -----------------
 
-None
+- Added more detailed errors and their corresponding
+  :ref:`http error codes <http-error-codes>` for some of which were previously
+  mapped to generic error.

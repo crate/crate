@@ -22,7 +22,6 @@ package org.elasticsearch.index.mapper;
 import java.io.IOException;
 
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.rest.RestStatus;
 
 import io.crate.rest.action.HttpErrorStatus;
 
@@ -42,11 +41,6 @@ public class MapperParsingException extends MapperException {
 
     public MapperParsingException(String message, Throwable cause, Object... args) {
         super(message, cause, args);
-    }
-
-    @Override
-    public RestStatus status() {
-        return RestStatus.BAD_REQUEST;
     }
 
     @Override

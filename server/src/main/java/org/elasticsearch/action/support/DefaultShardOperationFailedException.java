@@ -22,13 +22,12 @@ package org.elasticsearch.action.support;
 import java.io.IOException;
 
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ShardOperationFailedException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.rest.RestStatus;
 
 import io.crate.common.exceptions.Exceptions;
-import io.crate.exceptions.SQLExceptions;
 
 public class DefaultShardOperationFailedException extends ShardOperationFailedException {
 
@@ -37,20 +36,21 @@ public class DefaultShardOperationFailedException extends ShardOperationFailedEx
             e.getIndex() == null ? null : e.getIndex().getName(),
             e.getShardId() == null ? -1 : e.getShardId().id(),
             Exceptions.stackTrace(e),
-            e.status(),
             e
         );
     }
 
     public DefaultShardOperationFailedException(String index, int shardId, Throwable cause) {
-        super(index, shardId, Exceptions.stackTrace(cause), SQLExceptions.status(cause), cause);
+        super(index, shardId, Exceptions.stackTrace(cause), cause);
     }
 
     public DefaultShardOperationFailedException(StreamInput in) throws IOException {
         index = in.readOptionalString();
         shardId = in.readVInt();
         cause = in.readException();
-        status = RestStatus.readFrom(in);
+        if (in.getVersion().before(Version.V_6_2_0)) {
+            in.readString(); // ignore the old RestStatus
+        }
     }
 
     @Override
@@ -58,7 +58,9 @@ public class DefaultShardOperationFailedException extends ShardOperationFailedEx
         out.writeOptionalString(index);
         out.writeVInt(shardId);
         out.writeException(cause);
-        RestStatus.writeTo(out, status);
+        if (out.getVersion().before(Version.V_6_2_0)) {
+            out.writeString("INTERNAL_SERVER_ERROR");
+        }
     }
 
     @Override

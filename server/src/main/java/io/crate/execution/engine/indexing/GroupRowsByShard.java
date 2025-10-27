@@ -244,13 +244,13 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                 ShardLocation shardLocation = getShardLocation(
                     state,
                     indexMetadata,
-                    itemAndRoutingAndSourceInfo.item.id(),
-                    itemAndRoutingAndSourceInfo.routing
+                    itemAndRoutingAndSourceInfo.item().id(),
+                    itemAndRoutingAndSourceInfo.routing()
                 );
                 if (shardLocation == null) {
                     throw new IllegalStateException("shardLocation not resolvable after createIndices");
                 }
-                requests.add(itemAndRoutingAndSourceInfo.item, shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo);
+                requests.add(itemAndRoutingAndSourceInfo.item(), shardLocation, itemAndRoutingAndSourceInfo.rowSourceInfo());
                 it.remove();
             }
             if (items.isEmpty()) {

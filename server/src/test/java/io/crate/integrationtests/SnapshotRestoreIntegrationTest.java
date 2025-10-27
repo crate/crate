@@ -23,6 +23,7 @@ package io.crate.integrationtests;
 
 import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
+import static io.crate.rest.action.HttpErrorStatus.GENERIC_NOT_FOUND;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.INTERNAL_SERVER_ERROR;
@@ -581,7 +582,7 @@ public class SnapshotRestoreIntegrationTest extends IntegTestCase {
         Asserts.assertSQLError(() -> execute(
                         "RESTORE SNAPSHOT " + snapshotName() + " TABLE employees with (wait_for_completion=true)"))
                 .hasPGError(INTERNAL_ERROR)
-                .hasHTTPError(INTERNAL_SERVER_ERROR, 5000)
+                .hasHTTPError(GENERIC_NOT_FOUND.httpResponseStatus(), GENERIC_NOT_FOUND.errorCode())
                 .hasMessageContaining(String.format("Relation [%s.employees] not found in snapshot",
                                                     sqlExecutor.getCurrentSchema()));
     }

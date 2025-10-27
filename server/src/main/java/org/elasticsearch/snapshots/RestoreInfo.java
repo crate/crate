@@ -27,7 +27,6 @@ import java.util.Objects;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.elasticsearch.rest.RestStatus;
 
 /**
  * Information about successfully completed restore operation.
@@ -98,15 +97,6 @@ public class RestoreInfo implements Writeable {
      */
     public int successfulShards() {
         return successfulShards;
-    }
-
-    /**
-     * REST status of the operation
-     *
-     * @return REST status
-     */
-    public RestStatus status() {
-        return RestStatus.OK;
     }
 
     @Override
