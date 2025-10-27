@@ -33,7 +33,7 @@ import java.util.Set;
 import java.util.TreeMap;
 import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
-import java.util.function.BiConsumer;
+import java.util.stream.Collectors;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -42,9 +42,13 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.common.collections.MapBuilder;
 import io.crate.common.concurrent.CompletableFutures;
+import io.crate.data.BatchIterator;
+import io.crate.data.CollectingRowConsumer;
+import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
 import io.crate.data.Row1;
 import io.crate.data.RowConsumer;
+import io.crate.data.SentinelRow;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.MultiPhaseExecutor;
 import io.crate.execution.dsl.phases.ExecutionPhase;
@@ -55,7 +59,6 @@ import io.crate.execution.engine.profile.CollectProfileNodeAction;
 import io.crate.execution.engine.profile.CollectProfileRequest;
 import io.crate.execution.engine.profile.NodeCollectProfileResponse;
 import io.crate.execution.support.NodeRequest;
-import io.crate.execution.support.OneRowActionListener;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Plan;
@@ -67,8 +70,6 @@ import io.crate.planner.operators.LogicalPlanner;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.profile.ProfilingContext;
 import io.crate.profile.Timer;
-import io.crate.session.BaseResultReceiver;
-import io.crate.session.RowConsumerToResultReceiver;
 
 public class ExplainProfilePlan implements Plan {
 
@@ -148,14 +149,12 @@ public class ExplainProfilePlan implements Plan {
         var subPlansFuture = CompletableFuture
             .allOf(subPlansFutures.toArray(new CompletableFuture[0]));
 
-        final var plannerContextFinal = plannerContext;
-
         if (isTopLevel) {
             return subPlansFuture.thenCompose(_ ->
                 executeTopLevelPlan(
                     plan,
                     executor,
-                    plannerContextFinal,
+                    plannerContext,
                     consumer,
                     params,
                     SubQueryResults.merge(subQueryResults, new SubQueryResults(subPlanValueBySubQuery)),
@@ -168,7 +167,7 @@ public class ExplainProfilePlan implements Plan {
                     plan,
                     selectSymbol,
                     executor,
-                    plannerContextFinal,
+                    plannerContext,
                     ramAccountingFinal,
                     params,
                     SubQueryResults.merge(subQueryResults, new SubQueryResults(subPlanValueBySubQuery)),
@@ -196,23 +195,42 @@ public class ExplainProfilePlan implements Plan {
 
         Timer timer = context.createTimer(Phase.Execute.name());
         timer.start();
-        BaseResultReceiver resultReceiver = new BaseResultReceiver();
-        RowConsumer noopRowConsumer = new RowConsumerToResultReceiver(resultReceiver, 0, _ -> {});
-        NodeOperationTree operationTree = null;
+
+        NodeOperationTree operationTree;
         try {
             operationTree = LogicalPlanner.getNodeOperationTree(plan, executor, plannerContext, params, subQueryResults);
         } catch (Throwable e) {
             consumer.accept(null, e);
+            return consumer.completionFuture();
         }
 
-        resultReceiver.completionFuture()
-            .whenComplete(createResultConsumer(executor, consumer, plannerContext.jobId(), timer, operationTree, subQueryExplainResults));
+        // Dummy collecting consumer.
+        // The result is discarded. Instead fetch the profile timings from all nodes and output that
+        CollectingRowConsumer<Object, Long> discardingConsumer = new CollectingRowConsumer<>(Collectors.counting());
+        discardingConsumer.completionFuture()
+            .whenComplete((_, _) -> context.stopTimerAndStoreDuration(timer))
+            .thenCompose(_ -> fetchTimingResults(plannerContext.jobId(), executor, operationTree.nodeOperations()))
+            .whenComplete((timingResults, t) -> {
+                if (t == null) {
+                    Map<String, Object> response = buildResponse(
+                        context.getDurationInMSByTimer(),
+                        timingResults,
+                        operationTree,
+                        subQueryExplainResults,
+                        false
+                    );
+                    BatchIterator<Row> it = InMemoryBatchIterator.of(new Row1(response), SentinelRow.SENTINEL);
+                    consumer.accept(it, null);
+                } else {
+                    consumer.accept(null, t);
+                }
+            });
 
         LogicalPlanner.executeNodeOpTree(
             executor,
             plannerContext.transactionContext(),
             plannerContext.jobId(),
-            noopRowConsumer,
+            discardingConsumer,
             true,
             operationTree
         );
@@ -235,7 +253,6 @@ public class ExplainProfilePlan implements Plan {
 
         NodeOperationTree operationTree = LogicalPlanner.getNodeOperationTree(
             plan, executor, plannerContext, params, subQueryResults);
-
         LogicalPlanner.executeNodeOpTree(
             executor,
             plannerContext.transactionContext(),
@@ -248,8 +265,8 @@ public class ExplainProfilePlan implements Plan {
         return rowConsumer.completionFuture()
             .thenCompose(val -> {
                 subPlanContext.stopTimerAndStoreDuration(subPlanTimer);
-                return collectTimingResults(plannerContext.jobId(), executor, operationTree.nodeOperations())
-                    .thenCompose((timingResults) -> {
+                return fetchTimingResults(plannerContext.jobId(), executor, operationTree.nodeOperations())
+                    .thenApply((timingResults) -> {
                         var explainOutput = buildResponse(
                             subPlanContext.getDurationInMSByTimer(),
                             timingResults,
@@ -257,37 +274,14 @@ public class ExplainProfilePlan implements Plan {
                             explainResults,
                             true
                         );
-                        return CompletableFuture.completedFuture(
-                            new SubQueryResultAndExplain(val, explainOutput)
-                        );
+                        return new SubQueryResultAndExplain(val, explainOutput);
                     });
             });
     }
 
-    private BiConsumer<Void, Throwable> createResultConsumer(DependencyCarrier executor,
-                                                             RowConsumer consumer,
-                                                             UUID jobId,
-                                                             Timer timer,
-                                                             NodeOperationTree operationTree,
-                                                             List<Map<String, Object>> subQueryExplainResults) {
-        assert context != null : "profilingContext must be available if createResultconsumer is used";
-        return (_, t) -> {
-            context.stopTimerAndStoreDuration(timer);
-            if (t == null) {
-                OneRowActionListener<Map<String, Map<String, Object>>> actionListener =
-                    new OneRowActionListener<>(consumer,
-                        resp -> new Row1(buildResponse(context.getDurationInMSByTimer(), resp, operationTree, subQueryExplainResults, false)));
-                collectTimingResults(jobId, executor, operationTree.nodeOperations())
-                    .whenComplete(actionListener);
-            } else {
-                consumer.accept(null, t);
-            }
-        };
-    }
-
-    private CompletableFuture<Map<String, Map<String, Object>>> collectTimingResults(UUID jobId,
-                                                                                     DependencyCarrier dependencies,
-                                                                                     Collection<NodeOperation> nodeOperations) {
+    private CompletableFuture<Map<String, Map<String, Object>>> fetchTimingResults(UUID jobId,
+                                                                                   DependencyCarrier dependencies,
+                                                                                   Collection<NodeOperation> nodeOperations) {
         Set<String> uniqueNodeIds = new HashSet<>(NodeOperationGrouper.groupByServer(nodeOperations).keySet());
         uniqueNodeIds.add(dependencies.localNodeId());
         List<String> nodeIds = List.copyOf(uniqueNodeIds);
