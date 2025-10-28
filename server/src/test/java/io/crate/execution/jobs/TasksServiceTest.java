@@ -33,6 +33,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.elasticsearch.action.NoSuchNodeException;
+import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService;
@@ -44,6 +45,8 @@ import org.mockito.Mockito;
 
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.RootTask.Builder;
+import io.crate.profile.ProfilingContext;
 import io.crate.role.Role;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
@@ -288,5 +291,23 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         UUID jobId = UUID.randomUUID();
         tasksService.killJobs(List.of(jobId), Role.CRATE_USER.name(), "Sparks no joy");
         assertThat(tasksService.recentlyFailed(jobId)).isTrue();
+    }
+
+
+    @Test
+    public void test_root_task_is_closed_on_kill_with_profiling_enabled() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        Builder builder = tasksService.newBuilder(jobId);
+        ProfilingContext profilingContext = new ProfilingContext(Map.of(), ClusterState.EMPTY_STATE);
+        builder.profilingContext(profilingContext);
+
+        builder.addTask(new DummyTask());
+        RootTask rootTask = builder.build();
+
+        rootTask.kill("Client node disconnected");
+
+        assertThat(rootTask.completionFuture()).failsWithin(5, TimeUnit.SECONDS);
+        assertThat(tasksService.getTaskOrNull(jobId)).isNull();
+        assertThat(tasksService.numActive()).isEqualTo(0);
     }
 }
