@@ -150,6 +150,10 @@ Administration and Operations
 - Enabled TCP fallback for SRV DNS queries used when
   :ref:`Node Discovery via DNS <conf_dns_discovery>` is enabled.
 
+- Added a ``primary`` flag to :ref:`ShardInfo <node_info_mxbean_shardinfo>` to
+  expose whether the shard is primary or replica.
+
+
 Client interfaces
 -----------------
 

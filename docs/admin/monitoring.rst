@@ -183,6 +183,8 @@ NodeInfo can be accessed using the JMX MXBean object name
 |                         | the node.                                         |
 +-------------------------+---------------------------------------------------+
 
+.. _node_info_mxbean_shardstats:
+
 ``ShardStats`` returns a `CompositeData`_ object containing statistics about
 the number of shards located on the node with the following attributes:
 
@@ -200,6 +202,8 @@ the number of shards located on the node with the following attributes:
 |                   | will show the total number of unassigned shards in the  |
 |                   | cluster, otherwise 0.                                   |
 +-------------------+---------------------------------------------------------+
+
+.. _node_info_mxbean_shardinfo:
 
 ``ShardInfo`` returns an Array of `CompositeData`_ objects containing detailed
 information about the shards located on the node with the following attributes:
@@ -237,6 +241,9 @@ information about the shards located on the node with the following attributes:
 +--------------------+--------------------------------------------------------+
 | ``Size``           | The estimated cumulated size in bytes of all files of  |
 |                    | this shard.                                            |
++--------------------+--------------------------------------------------------+
+| ``Primary``        | Boolean flag, which shows whether the shard is a       |
+|                    | primary or a replica.                                  |
 +--------------------+--------------------------------------------------------+
 
 .. _jmx_monitoring-connections:

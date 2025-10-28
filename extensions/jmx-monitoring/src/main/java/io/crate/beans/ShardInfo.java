@@ -32,15 +32,17 @@ public class ShardInfo {
     final String table;
     final String partitionIdent;
     final long size;
+    final boolean primary;
 
-    @ConstructorProperties({"shardId", "schema", "table", "partitionIdent", "routingState", "state", "size"})
+    @ConstructorProperties({"shardId", "schema", "table", "partitionIdent", "routingState", "state", "size", "primary"})
     public ShardInfo(int shardId,
                      String schema,
                      String table,
                      String partitionIdent,
                      String routingState,
                      String state,
-                     long size) {
+                     long size,
+                     boolean primary) {
         this.shardId = shardId;
         this.routingState = routingState;
         this.state = state;
@@ -48,6 +50,7 @@ public class ShardInfo {
         this.table = table;
         this.partitionIdent = partitionIdent;
         this.size = size;
+        this.primary = primary;
     }
 
     @SuppressWarnings("unused")
@@ -82,5 +85,10 @@ public class ShardInfo {
     @SuppressWarnings("unused")
     public long getSize() {
         return size;
+    }
+
+    @SuppressWarnings("unused")
+    public boolean isPrimary() {
+        return primary;
     }
 }
