@@ -95,7 +95,7 @@ public class SketchStreamer<T> extends ArrayOfItemsSerDe<T> {
     }
 
     @Override
-    public Class<?> getClassOfT() {
+    public Class<T> getClassOfT() {
         throw new UnsupportedOperationException();
     }
 

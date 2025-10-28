@@ -175,6 +175,22 @@
                   </ignoreVersion>
                 </ignoreVersions>
               </rule>
+              <!-- ignore datasketches >= 6.1.* and <= 8.* since they are not compatible with JDK > 21 -->
+              <!-- https://github.com/apache/datasketches-java/issues/686 -->
+              <rule>
+                <groupId>org.apache.datasketches</groupId>
+                <artifactId>datasketches-java</artifactId>
+                <ignoreVersions>
+                    <ignoreVersion>
+                        <version>[7|8]\..*</version>
+                        <type>regex</type>
+                    </ignoreVersion>
+                    <ignoreVersion>
+                        <version>6\.[1|2]\..*</version>
+                        <type>regex</type>
+                    </ignoreVersion>
+                </ignoreVersions>
+              </rule>
             </rules>
           </ruleSet>
         </configuration>
@@ -305,7 +321,7 @@
     <versions.spatial4j>0.8</versions.spatial4j>
     <versions.jts>1.20.0</versions.jts>
     <versions.tdigest>3.3</versions.tdigest>
-    <versions.datasketches>5.0.2</versions.datasketches>
+    <versions.datasketches>6.0.0</versions.datasketches>
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
     <versions.caffeine>3.2.2</versions.caffeine>
     <versions.jodatime>2.14.0</versions.jodatime>
