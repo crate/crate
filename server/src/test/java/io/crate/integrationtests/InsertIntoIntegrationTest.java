@@ -2843,4 +2843,16 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response.cols()).containsExactly("a", "b", "c", "d", "e");
         assertThat(response).hasRows("1| 2| 3| NULL| 5", "2| NULL| NULL| 4| NULL");
     }
+
+    @Test
+    public void test_insert_from_values_with_execution_error_gets_removed_from_sys_jobs() {
+        execute("CREATE TABLE doc.ti1 (\"a\" OBJECT(DYNAMIC))");
+        try {
+            execute("INSERT INTO doc.ti1 VALUES (?)", new Object[] {"{\"a\" 1}"});
+        } catch (Exception e) {
+            // ignore
+        }
+        execute("SELECT count(*) FROM sys.jobs WHERE stmt like 'INSERT%'");
+        assertThat(response).hasRows("0");
+    }
 }
