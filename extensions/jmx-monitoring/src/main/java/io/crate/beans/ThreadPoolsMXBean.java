@@ -21,6 +21,7 @@
 
 package io.crate.beans;
 
+@SuppressWarnings("unused")
 public interface ThreadPoolsMXBean {
 
     ThreadPools.ThreadPoolInfo getGeneric();

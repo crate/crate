@@ -133,6 +133,7 @@ class JmxIntegrationTest(unittest.TestCase):
             )
             self.assertEqual(1, len(result))
             shardInfo = result[0]
+            self.assertTrue(shardInfo.containsKey("primary"))
             self.assertTrue(shardInfo.containsKey("partitionIdent"))
             self.assertTrue(shardInfo.containsKey("routingState"))
             self.assertTrue(shardInfo.containsKey("shardId"))

@@ -581,4 +581,35 @@ public final class Messages {
             channelFuture.addListener(_ -> LOGGER.trace("sentKeyData"));
         }
     }
+
+    /**
+     * NegotiateProtocolVersion
+     * | 'v' | int32 len | int32 minor version | int32 number unrecognized options | [string option name, ...]
+     * <p>
+     * Unsupported option names must be prefixed with `_pq_.` as expected by the PG frontend,
+     * see <a href="https://github.com/postgres/postgres/blob/master/src/interfaces/libpq/fe-protocol3.c#L1496"></a>
+     */
+    static void sendNegotiateProtocolVersion(Channel channel,
+                                             List<String> unsupportedOptions) {
+        int length = 12;
+        ByteBuf buffer = channel.alloc().buffer(13);
+        buffer.writeByte('v');
+        buffer.writeInt(length);
+        buffer.writeInt(PgDecoder.PROTOCOL_VERSION);
+        buffer.writeInt(unsupportedOptions.size());
+        for (String name : unsupportedOptions) {
+            String name_prefixed = "_pq_." + name;
+            byte[] nameBytes = name_prefixed.getBytes(StandardCharsets.UTF_8);
+            length += nameBytes.length + 1;
+            writeCString(buffer, nameBytes);
+        }
+        buffer.setInt(1, length);
+        ChannelFuture channelFuture = channel.writeAndFlush(buffer);
+        if (LOGGER.isTraceEnabled()) {
+            channelFuture.addListener(_ -> LOGGER.trace("sendNegotiateProtocolVersion, supportedVersion={}, unsupportedOptions={}",
+                PgDecoder.PROTOCOL_VERSION,
+                unsupportedOptions
+            ));
+        }
+    }
 }

@@ -54,10 +54,13 @@ class ClientMessages {
     }
 
     static ByteBuf sendStartupMessage(ByteBuf buffer, String dbName, Map<String, String> properties) {
+        return sendStartupMessage(buffer, PgDecoder.PROTOCOL_VERSION, dbName, properties);
+    }
+
+    static ByteBuf sendStartupMessage(ByteBuf buffer, int protocolVersion, String dbName, Map<String, String> properties) {
         // length itself and protocol version number
         // updated later to include the body
         int length = 8;
-        int protocolVersion = 3 << 16;
         final int lengthIndex = buffer.writerIndex();
         buffer.writeInt(length);
         buffer.writeInt(protocolVersion);

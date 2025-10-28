@@ -123,9 +123,9 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(nodeInfo.getShardInfo())
             .satisfiesExactlyInAnyOrder(
-                isShardInfo(1, "test", "", "STARTED", "STARTED", 100),
-                isShardInfo(2, "test", "", "STARTED", "STARTED", 100),
-                isShardInfo(3, "test", "", "STARTED", "STARTED", 100));
+                isShardInfo(1, "test", "", "STARTED", "STARTED", 100, true),
+                isShardInfo(2, "test", "", "STARTED", "STARTED", 100, false),
+                isShardInfo(3, "test", "", "STARTED", "STARTED", 100, false));
     }
 
     @Test
@@ -193,9 +193,9 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(nodeInfo.getShardInfo())
             .satisfiesExactlyInAnyOrder(
-               isShardInfo(1, relationName.name(), "", "STARTED", "STARTED", 100),
-               isShardInfo(2, relationName.name(), "", "STARTED", "STARTED", 100),
-               isShardInfo(3, relationName.name(), "", "STARTED", "STARTED", 100));
+               isShardInfo(1, relationName.name(), "", "STARTED", "STARTED", 100, true),
+               isShardInfo(2, relationName.name(), "", "STARTED", "STARTED", 100, false),
+               isShardInfo(3, relationName.name(), "", "STARTED", "STARTED", 100, false));
     }
 
     @Test
@@ -248,9 +248,9 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(nodeInfo.getShardInfo())
             .satisfiesExactlyInAnyOrder(
-               isShardInfo(1, relationName.name(), partitionName.ident(), "STARTED", "STARTED", 100),
-               isShardInfo(2, relationName.name(), partitionName.ident(), "STARTED", "STARTED", 100),
-               isShardInfo(3, relationName.name(), partitionName.ident(), "STARTED", "STARTED", 100));
+               isShardInfo(1, relationName.name(), partitionName.ident(), "STARTED", "STARTED", 100, true),
+               isShardInfo(2, relationName.name(), partitionName.ident(), "STARTED", "STARTED", 100, false),
+               isShardInfo(3, relationName.name(), partitionName.ident(), "STARTED", "STARTED", 100, false));
 
     }
 
@@ -267,13 +267,20 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
                                  Version.CURRENT);
     }
 
-    ThrowingConsumer<ShardInfo> isShardInfo(int shardId, String table, String partitionIdent, String routingState, String state, long size) {
+    ThrowingConsumer<ShardInfo> isShardInfo(int shardId,
+                                            String table,
+                                            String partitionIdent,
+                                            String routingState,
+                                            String state,
+                                            long size,
+                                            boolean primary) {
         return s -> assertThat(s)
             .satisfies(si -> assertThat(si.shardId).isEqualTo(shardId))
             .satisfies(si -> assertThat(si.table).isEqualTo(table))
             .satisfies(si -> assertThat(si.routingState).isEqualTo(routingState))
             .satisfies(si -> assertThat(si.state).isEqualTo(state))
             .satisfies(si -> assertThat(si.partitionIdent).isEqualTo(partitionIdent))
-            .satisfies(si -> assertThat(si.size).isEqualTo(size));
+            .satisfies(si -> assertThat(si.size).isEqualTo(size))
+            .satisfies(si -> assertThat(si.primary).isEqualTo(primary));
     }
 }

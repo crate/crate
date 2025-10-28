@@ -198,6 +198,15 @@ public class PostgresWireProtocol {
     public static final int SERVER_VERSION_NUM = 140000;
     public static final String PG_SERVER_VERSION = "14.0";
 
+    public static final List<String> SUPPORTED_STARTUP_PROPERTIES = List.of(
+        "user",
+        "database",
+        "options",
+        "application_name",
+        "client_encoding",
+        "CrateDBTransport"
+    );
+
     final PgDecoder decoder;
     final MessageHandler handler;
     private final Sessions sessions;
@@ -310,6 +319,16 @@ public class PostgresWireProtocol {
 
         private void dispatchState(ByteBuf buffer, DelayableWriteChannel channel) {
             switch (decoder.state()) {
+                case STARTUP_VERSION_NEGOTIATE:
+                    properties = readStartupMessage(buffer);
+                    List<String> unsupportedProperties = properties.stringPropertyNames().stream()
+                        .filter(name -> !SUPPORTED_STARTUP_PROPERTIES.contains(name))
+                        .toList();
+                    Messages.sendNegotiateProtocolVersion(channel, unsupportedProperties);
+                    initAuthentication(channel);
+                    decoder.startupDone();
+                    return;
+
                 case STARTUP_PARAMETERS:
                     handleStartupBody(buffer, channel);
                     decoder.startupDone();

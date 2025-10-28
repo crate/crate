@@ -100,6 +100,11 @@ SQL Standard and PostgreSQL Compatibility
 - Added support for selecting more than one column within a subquery used in a
   ``EXISTS`` clause.
 
+- Implemented protocol version negotiation support in the PostgresSQL wire
+  protocol, adding support for clients initially requesting higher minor
+  versions than the server supports. The client is expected to downgrade it's
+  used minor version in such cases.
+
 Data Types
 ----------
 
@@ -144,6 +149,10 @@ Administration and Operations
 
 - Enabled TCP fallback for SRV DNS queries used when
   :ref:`Node Discovery via DNS <conf_dns_discovery>` is enabled.
+
+- Added a ``primary`` flag to :ref:`ShardInfo <node_info_mxbean_shardinfo>` to
+  expose whether the shard is primary or replica.
+
 
 Client interfaces
 -----------------

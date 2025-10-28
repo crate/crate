@@ -61,3 +61,7 @@ Fixes
 
 - Disallowed generated sub-columns within object arrays or referencing their
   sub-columns, which is unsupported and leading to errors or wrong behavior.
+
+- Fixed an issue with ``atttypid`` column of the ``pg_attribute`` table not
+  being reset to ``0`` for dropped columns, which contradicts with the
+  PostgreSQL behavior.

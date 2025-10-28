@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -458,7 +457,7 @@ public class PgCatalogITest extends IntegTestCase {
         // Verify that dropping top-level column is reflected in pg_attribute
         // and re-added column with the same name appears as a new entry.
         execute("""
-            select attnum, attisdropped, attname
+            select attnum, attisdropped, attname, atttypid
             from pg_attribute
             where attrelid = 't'::regclass
             order by attnum"""
@@ -466,11 +465,11 @@ public class PgCatalogITest extends IntegTestCase {
 
         // Column 'a' has OID 6 because first 5 are taken by the table, created in createRelations().
         assertThat(response).hasRows(
-            "1| true| _dropped_6",
-            "2| false| o",
-            "3| false| o['oo']",
-            "4| false| o['oo']['a']",
-            "5| false| a"
+            "1| true| _dropped_6| 0",
+            "2| false| o| 114",
+            "3| false| o['oo']| 114",
+            "4| false| o['oo']['a']| 23",
+            "5| false| a| 1043"
         );
 
         // Drop sub-column which in turn, has children column.
