@@ -93,7 +93,8 @@ public final class CreateTableAsPlan implements Plan {
         createTableClient.create(boundCreateTable, plannerContext.clusterState().nodes().getMinNodeVersion())
             .whenComplete((rowCount, err) -> {
                 if (err == null) {
-                    postponedInsertPlan.get().execute(
+                    Plan.execute(
+                        postponedInsertPlan.get(),
                         dependencies,
                         plannerContext,
                         consumer,

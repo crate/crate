@@ -199,7 +199,7 @@ public interface LogicalPlan extends Plan {
     /**
      * SubQueries that this plan depends on to be able to execute it.
      *
-     * valuesBySubQuery in {@link #execute(DependencyCarrier, PlannerContext, RowConsumer, Row, SubQueryResults)}
+     * valuesBySubQuery in {@link #executeOrFail(DependencyCarrier, PlannerContext, RowConsumer, Row, SubQueryResults)}
      * must receive 1 entry per selectSymbol contained in the dependencies here.
      *
      * Note that currently {@link MultiPhase} is injected into the operator-tree to declare the dependencies.

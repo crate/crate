@@ -641,7 +641,8 @@ public class SQLExecutor {
 
     public TestingRowConsumer execute(Plan plan, Object ... params) throws Exception {
         var consumer = new TestingRowConsumer();
-        plan.execute(
+        Plan.execute(
+            plan,
             dependencyMock,
             getPlannerContext(),
             consumer,
