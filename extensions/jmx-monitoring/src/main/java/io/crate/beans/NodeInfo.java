@@ -146,7 +146,8 @@ public class NodeInfo implements NodeInfoMXBean {
                         partitionName.ident() == null ? "" : partitionName.ident(),
                         routingState.name(),
                         stateAndStoreSize.state().name(),
-                        stateAndStoreSize.storeSizeBytes())
+                        stateAndStoreSize.storeSizeBytes(),
+                        shardRouting.primary())
                     );
                 }
             }
