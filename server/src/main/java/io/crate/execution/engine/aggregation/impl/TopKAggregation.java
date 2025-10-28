@@ -529,7 +529,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
             throw new IllegalArgumentException(
                 "Limit parameter for topk must be between 0 and 10_000. Got: " + limit);
         }
-        if (!Util.isIntPowerOf2(capacity)) {
+        if (!Util.isPowerOf2(capacity)) {
             throw new IllegalArgumentException(
                 "Capacity parameter must be a positive integer-power of 2. Got: " + capacity);
         }
