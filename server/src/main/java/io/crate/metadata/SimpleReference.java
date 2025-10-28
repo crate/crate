@@ -116,13 +116,9 @@ public class SimpleReference implements Reference {
 
     public SimpleReference(StreamInput in) throws IOException {
         ident = new ReferenceIdent(in);
-        if (in.getVersion().before(Version.V_4_6_0)) {
-            Integer pos = in.readOptionalVInt();
-            position = pos == null ? 0 : pos;
-        } else {
-            position = in.readVInt();
-        }
-        if (in.getVersion().onOrAfter(Version.V_5_5_0)) {
+        position = in.readVInt();
+        Version version = in.getVersion();
+        if (version.onOrAfter(Version.V_5_5_0)) {
             oid = in.readLong();
             isDropped = in.readBoolean();
         } else {
@@ -132,7 +128,7 @@ public class SimpleReference implements Reference {
         type = DataTypes.fromStream(in);
         granularity = RowGranularity.fromStream(in);
 
-        if (in.getVersion().before(Version.V_5_10_0)) {
+        if (version.before(Version.V_5_10_0)) {
             ColumnPolicy columnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
             int dimensions = ArrayType.dimensions(type);
             if (ArrayType.unnest(type) instanceof ObjectType objectType) {
@@ -157,19 +153,16 @@ public class SimpleReference implements Reference {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         ident.writeTo(out);
-        if (out.getVersion().before(Version.V_4_6_0)) {
-            out.writeOptionalVInt(position);
-        } else {
-            out.writeVInt(position);
-        }
-        if (out.getVersion().onOrAfter(Version.V_5_5_0)) {
+        out.writeVInt(position);
+        Version version = out.getVersion();
+        if (version.onOrAfter(Version.V_5_5_0)) {
             out.writeLong(oid);
             out.writeBoolean(isDropped);
         }
         DataTypes.toStream(type, out);
         RowGranularity.toStream(granularity, out);
 
-        if (out.getVersion().before(Version.V_5_10_0)) {
+        if (version.before(Version.V_5_10_0)) {
             out.writeVInt(valueType().columnPolicy().ordinal());
         }
         out.writeVInt(indexType.ordinal());
