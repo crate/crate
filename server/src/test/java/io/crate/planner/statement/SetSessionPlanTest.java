@@ -39,6 +39,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.Assignment;
@@ -61,7 +62,8 @@ public class SetSessionPlanTest extends CrateDummyClusterServiceUnitTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         PlannerContext plannerContext = mock(PlannerContext.class);
         when(plannerContext.transactionContext()).thenReturn(CoordinatorTxnCtx.systemTransactionContext());
-        setSessionPlan.execute(
+        Plan.execute(
+            setSessionPlan,
             mock(DependencyCarrier.class),
             plannerContext,
             consumer,

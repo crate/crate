@@ -294,7 +294,7 @@ public class Session implements AutoCloseable {
             );
         }
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, jobsLogsUpdateListener);
-        plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
+        Plan.execute(plan, executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
     private void retryQuery(UUID jobId,
@@ -319,7 +319,7 @@ public class Session implements AutoCloseable {
         if (timeoutToken != null) {
             timeoutToken.check();
         }
-        plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
+        Plan.execute(plan, executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
 
     private Portal getSafePortal(String portalName) {
@@ -883,7 +883,7 @@ public class Session implements AutoCloseable {
         RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(
             resultReceiver, maxRows, new JobsLogsUpdateListener(jobId, jobsLogs));
         portal.setActiveConsumer(consumer);
-        plan.execute(executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
+        Plan.execute(plan, executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
         CompletableFuture<?> result = resultReceiver.completionFuture();
         addStatementTimeout(result, timeoutToken);
         return result;

@@ -21,15 +21,16 @@
 
 package io.crate.planner;
 
+import java.util.Map;
+
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.execution.MultiPhaseExecutor;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
-
-import java.util.Map;
 
 /**
  * Plan which depends on other plans to be executed first.
@@ -78,7 +79,7 @@ public class MultiPhasePlan implements Plan {
         MultiPhaseExecutor.execute(dependencies, dependencyCarrier, plannerContext, params)
             .whenComplete((subQueryValues, failure) -> {
                 if (failure == null) {
-                    rootPlan.execute(dependencyCarrier, plannerContext, consumer, params, subQueryValues);
+                    Plan.execute(rootPlan, dependencyCarrier, plannerContext, consumer, params, subQueryValues);
                 } else {
                     consumer.accept(null, failure);
                 }

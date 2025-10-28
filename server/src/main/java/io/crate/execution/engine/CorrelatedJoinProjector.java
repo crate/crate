@@ -37,6 +37,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
@@ -88,7 +89,8 @@ public final class CorrelatedJoinProjector implements Projector {
             try {
                 subQueryResults.bindOuterColumnInputRow(inputRow);
                 CollectingRowConsumer<?, ?> rowConsumer = new CollectingRowConsumer<>(collector);
-                subQueryPlan.execute(
+                Plan.execute(
+                    subQueryPlan,
                     executor,
                     PlannerContext.forSubPlan(plannerContext),
                     rowConsumer,

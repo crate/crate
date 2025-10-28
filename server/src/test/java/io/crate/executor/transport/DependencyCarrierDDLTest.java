@@ -121,7 +121,8 @@ public class DependencyCarrierDDLTest extends IntegTestCase {
 
     private Bucket executePlan(Plan plan, PlannerContext plannerContext, Row params) throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer();
-        plan.execute(
+        Plan.execute(
+            plan,
             executor,
             plannerContext,
             consumer,

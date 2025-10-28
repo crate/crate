@@ -51,7 +51,7 @@ public interface Plan {
      * Execute the given plan.
      * Implementations are allowed to raise errors instead of triggering the consumer.
      *
-     * Users of the Plan should prefer {@link #execute(DependencyCarrier, PlannerContext, RowConsumer, Row, SubQueryResults)}
+     * Users of the Plan should prefer {@link #execute(Plan, DependencyCarrier, PlannerContext, RowConsumer, Row, SubQueryResults)}
      * to ensure the consumer is always invoked.
      */
     void executeOrFail(DependencyCarrier dependencies,
@@ -65,13 +65,14 @@ public interface Plan {
      *
      * Implementations must override {@link #executeOrFail(DependencyCarrier, PlannerContext, RowConsumer, Row, SubQueryResults)} instead.
      */
-    default void execute(DependencyCarrier dependencies,
-                         PlannerContext plannerContext,
-                         RowConsumer consumer,
-                         Row params,
-                         SubQueryResults subQueryResults) {
+    static void execute(Plan plan,
+                        DependencyCarrier dependencies,
+                        PlannerContext plannerContext,
+                        RowConsumer consumer,
+                        Row params,
+                        SubQueryResults subQueryResults) {
         try {
-            executeOrFail(dependencies, plannerContext, consumer, params, subQueryResults);
+            plan.executeOrFail(dependencies, plannerContext, consumer, params, subQueryResults);
         } catch (Throwable t) {
             consumer.accept(null, t);
         }

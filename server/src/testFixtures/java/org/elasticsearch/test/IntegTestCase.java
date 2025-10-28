@@ -1613,7 +1613,8 @@ public abstract class IntegTestCase extends ESTestCase {
     public TestingRowConsumer execute(PlanForNode planForNode) {
         DependencyCarrier dependencyCarrier = cluster().getInstance(DependencyCarrier.class, planForNode.nodeName);
         TestingRowConsumer downstream = new TestingRowConsumer();
-        planForNode.plan.execute(
+        Plan.execute(
+            planForNode.plan,
             dependencyCarrier,
             planForNode.plannerContext,
             downstream,

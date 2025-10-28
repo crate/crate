@@ -349,7 +349,7 @@ public class ExplainPlannerTest extends CrateDummyClusterServiceUnitTest {
     private static List<Object[]> execute(ExplainPlan plan, PlannerContext plannerContext) throws Exception {
         AtomicReference<BatchIterator<Row>> itRef = new AtomicReference<>();
 
-        plan.execute(null, plannerContext, new RowConsumer() {
+        Plan.execute(plan, null, plannerContext, new RowConsumer() {
             @Override
             public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
                 itRef.set(iterator);
