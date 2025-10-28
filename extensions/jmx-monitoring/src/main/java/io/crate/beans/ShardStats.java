@@ -56,5 +56,4 @@ public class ShardStats {
     public int getUnassigned() {
         return unassigned;
     }
-
 }

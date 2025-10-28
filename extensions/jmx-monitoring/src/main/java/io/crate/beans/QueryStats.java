@@ -93,7 +93,7 @@ public class QueryStats implements QueryStatsMBean {
         for (MetricsView classifiedMetrics : metrics) {
             long sumOfDurations = classifiedMetrics.sumOfDurations();
             long failedCount = classifiedMetrics.failedCount();
-            metricsByStmtType.compute(classificationType(classifiedMetrics.classification()), (key, oldMetric) -> {
+            metricsByStmtType.compute(classificationType(classifiedMetrics.classification()), (_, oldMetric) -> {
                 if (oldMetric == null) {
                     return new Metric(sumOfDurations, classifiedMetrics.totalCount(), failedCount);
                 }
