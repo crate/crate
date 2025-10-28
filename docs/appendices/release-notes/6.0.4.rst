@@ -90,3 +90,7 @@ Fixes
 - Fixed an issue with ``atttypid`` column of the ``pg_attribute`` table not
   being reset to ``0`` for dropped columns, which contradicts with the
   PostgreSQL behavior.
+
+- Fixed an issue resulting in stuck :ref:`sys-jobs` entries when an
+  :ref:`sql-insert` statement using :ref:`ref-values` results in an execution
+  error, e.g. due to implicit cast or parsing issues.
