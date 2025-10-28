@@ -132,11 +132,11 @@ public class InsertFromValues implements LogicalPlan {
     }
 
     @Override
-    public void execute(DependencyCarrier dependencies,
-                        PlannerContext plannerContext,
-                        RowConsumer consumer,
-                        Row params,
-                        SubQueryResults subQueryResults) {
+    public void executeOrFail(DependencyCarrier dependencies,
+                              PlannerContext plannerContext,
+                              RowConsumer consumer,
+                              Row params,
+                              SubQueryResults subQueryResults) {
         DocTableInfo tableInfo = dependencies
             .schemas()
             .getTableInfo(writerProjection.tableIdent());
