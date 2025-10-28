@@ -43,5 +43,4 @@ public interface NodeInfoMXBean {
     ShardStats getShardStats();
 
     List<ShardInfo> getShardInfo();
-
 }

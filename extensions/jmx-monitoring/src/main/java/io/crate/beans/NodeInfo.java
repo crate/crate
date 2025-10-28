@@ -83,7 +83,7 @@ public class NodeInfo implements NodeInfoMXBean {
         for (var indexRoutingTable : clusterState.routingTable()) {
             Index index = indexRoutingTable.getIndex();
             IndexMetadata indexMetadata = metadata.index(index);
-            if (indexRoutingTable == null || indexMetadata.getState() == State.CLOSE) {
+            if (indexMetadata == null || indexMetadata.getState() == State.CLOSE) {
                 continue;
             }
             for (var cursor : indexRoutingTable.shards()) {
@@ -117,7 +117,7 @@ public class NodeInfo implements NodeInfoMXBean {
         for (var indexRoutingTable : clusterState.routingTable()) {
             Index index = indexRoutingTable.getIndex();
             IndexMetadata indexMetadata = metadata.index(index);
-            if (indexRoutingTable == null || indexMetadata.getState() == State.CLOSE) {
+            if (indexMetadata == null || indexMetadata.getState() == State.CLOSE) {
                 continue;
             }
             for (var cursor : indexRoutingTable.shards()) {
@@ -154,8 +154,7 @@ public class NodeInfo implements NodeInfoMXBean {
         return result;
     }
 
-    public record ShardStateStoreSize(IndexShardState state, long storeSizeBytes) {
-    }
+    public record ShardStateStoreSize(IndexShardState state, long storeSizeBytes) {}
 
     public static class ShardStateAndSizeProvider implements Function<ShardId, ShardStateStoreSize> {
         private final IndicesService indicesService;
