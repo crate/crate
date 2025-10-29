@@ -293,6 +293,25 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.tableVersion = tableVersion;
     }
 
+    public static class OidSupplier implements LongSupplier {
+
+        private long next;
+
+        /**
+         * @param start is current known oid.
+         * This instance will start oids from start + 1.
+         */
+        public OidSupplier(long start) {
+            this.next = start;
+        }
+
+        @Override
+        public long getAsLong() {
+            next++;
+            return next;
+        }
+    }
+
     /**
      * Version of the template metadata if partitioned, otherwise of the index metadata
      **/
@@ -391,6 +410,26 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 .max()
                 .orElse(0)
         );
+    }
+
+    @Override
+    public long maxOid() {
+        long maxNonDropped = Math.max(
+            allColumns.values().stream()
+                .filter(ref -> !ref.column().isSystemColumn())
+                .mapToLong(Reference::oid)
+                .max()
+                .orElse(COLUMN_OID_UNASSIGNED),
+            indexColumns.values().stream()
+                .mapToLong(IndexReference::oid)
+                .max()
+                .orElse(COLUMN_OID_UNASSIGNED)
+        );
+        long maxDropped = droppedColumns.stream()
+            .mapToLong(Reference::oid)
+            .max()
+            .orElse(COLUMN_OID_UNASSIGNED);
+        return Math.max(maxNonDropped, maxDropped);
     }
 
     public List<Reference> defaultExpressionColumns() {
@@ -1106,7 +1145,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
         metadataBuilder.setTable(
             versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION) ?
-                metadataBuilder.columnOidSupplier() :
+                new OidSupplier(maxOid()) :
                 () -> Metadata.COLUMN_OID_UNASSIGNED,
             ident,
             allColumns,
@@ -1124,8 +1163,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return metadataBuilder;
     }
 
-    private boolean addNewReferences(LongSupplier acquireOid,
-                                     AtomicInteger positions,
+    private boolean addNewReferences(AtomicInteger positions,
                                      HashMap<ColumnIdent, Reference> newReferences,
                                      HashMap<ColumnIdent, List<Reference>> tree,
                                      @Nullable ColumnIdent node) {
@@ -1146,7 +1184,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                     ));
                 }
                 addedColumn = true;
-                newReferences.put(newColumn, newRef.withOidAndPosition(acquireOid, positions::incrementAndGet));
+                // Oid is assigned in setTable
+                newReferences.put(newColumn, newRef.withOidAndPosition(() -> COLUMN_OID_UNASSIGNED, positions::incrementAndGet));
             } else if (
                 DataTypes.isArrayOfNulls(exists.valueType())
                     && newRef.valueType().id() == ArrayType.ID
@@ -1168,7 +1207,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                     exists.valueType().getName(),
                     newRef.valueType().getName()));
             }
-            boolean addedChildren = addNewReferences(acquireOid, positions, newReferences, tree, newColumn);
+            boolean addedChildren = addNewReferences(positions, newReferences, tree, newColumn);
             addedColumn = addedColumn || addedChildren;
         }
         return addedColumn;
@@ -1193,7 +1232,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo addColumns(NodeContext nodeCtx,
                                    FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                   LongSupplier acquireOid,
                                    List<Reference> newColumns,
                                    IntArrayList pKeyIndices,
                                    Map<String, String> newCheckConstraints) {
@@ -1205,7 +1243,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         AtomicInteger positions = new AtomicInteger(maxPosition);
         List<Reference> newColumnsWithParents = addMissingParents(newColumns);
         HashMap<ColumnIdent, List<Reference>> tree = Reference.buildTree(newColumnsWithParents);
-        boolean addedColumn = addNewReferences(acquireOid, positions, newReferences, tree, null);
+        boolean addedColumn = addNewReferences(positions, newReferences, tree, null);
         if (!addedColumn) {
             return this;
         }
