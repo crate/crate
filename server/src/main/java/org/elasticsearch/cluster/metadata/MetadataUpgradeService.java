@@ -206,7 +206,7 @@ public class MetadataUpgradeService {
             newMetadata.setTable(
                 docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
                     ? NO_OID_COLUMN_OID_SUPPLIER
-                    : newMetadata.columnOidSupplier(),
+                    : new DocTableInfo.OidSupplier(docTable.maxOid()),
                 relationName,
                 docTable.allReferences(),
                 settings,
@@ -234,7 +234,7 @@ public class MetadataUpgradeService {
             RelationMetadata relation = newMetadata.getRelation(relationName);
             LongSupplier columnOidSupplier = docTable.versionCreated().before(DocTableInfo.COLUMN_OID_VERSION)
                 ? NO_OID_COLUMN_OID_SUPPLIER
-                : newMetadata.columnOidSupplier();
+                : new DocTableInfo.OidSupplier(docTable.maxOid());
             if (relation == null) {
                 if (BlobIndex.isBlobIndex(indexName)) {
                     newMetadata.setBlobTable(

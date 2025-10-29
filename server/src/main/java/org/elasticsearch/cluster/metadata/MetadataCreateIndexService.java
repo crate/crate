@@ -98,6 +98,7 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
 
 /**
@@ -595,7 +596,7 @@ public class MetadataCreateIndexService {
         final MappingMetadata mapping = new MappingMetadata(Map.of("default", MappingUtil.createMapping(
             MappingUtil.AllocPosition.forNewTable(),
             table.pkConstraintName(),
-            DocReferences.applyOid(table.columns(), metadataBuilder.columnOidSupplier()),
+            DocReferences.applyOid(table.columns(), new DocTableInfo.OidSupplier(0)),
             table.primaryKeys(),
             table.checkConstraints(),
             table.partitionedBy(),

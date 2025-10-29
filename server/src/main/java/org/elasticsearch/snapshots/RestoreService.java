@@ -653,7 +653,7 @@ public class RestoreService implements ClusterStateApplier {
                 LongSupplier columnOidSupplier = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings())
                     .before(DocTableInfo.COLUMN_OID_VERSION)
                     ? NO_OID_COLUMN_OID_SUPPLIER
-                    : mdBuilder.columnOidSupplier();
+                    : new DocTableInfo.OidSupplier(0);
                 mdBuilder.setTable(
                     columnOidSupplier,
                     newName,
@@ -677,7 +677,7 @@ public class RestoreService implements ClusterStateApplier {
                     LongSupplier columnOidSupplier = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings())
                         .before(DocTableInfo.COLUMN_OID_VERSION)
                         ? NO_OID_COLUMN_OID_SUPPLIER
-                        : mdBuilder.columnOidSupplier();
+                        : new DocTableInfo.OidSupplier(0);
                     mdBuilder.setTable(
                         columnOidSupplier,
                         newName,
