@@ -31,7 +31,15 @@ import org.jetbrains.annotations.Nullable;
  */
 public abstract class AbstractDiffable<T extends Diffable<T>> implements Diffable<T> {
 
-    static final Diff<?> EMPTY = new CompleteDiff<>();
+    public static final Diff<?> EMPTY = new CompleteDiff<>();
+
+    public static <T extends Diffable<T>> Diff<T> of(T before, T after) {
+        if (after.equals(before)) {
+            return Diffs.empty();
+        } else {
+            return new CompleteDiff<>(after);
+        }
+    }
 
     @SuppressWarnings("unchecked")
     @Override
@@ -51,7 +59,7 @@ public abstract class AbstractDiffable<T extends Diffable<T>> implements Diffabl
         return (Diff<T>) EMPTY;
     }
 
-    private static class CompleteDiff<T extends Diffable<T>> implements Diff<T> {
+    public static class CompleteDiff<T extends Diffable<T>> implements Diff<T> {
 
         @Nullable
         private final T part;
@@ -59,7 +67,7 @@ public abstract class AbstractDiffable<T extends Diffable<T>> implements Diffabl
         /**
          * Creates simple diff with changes
          */
-        CompleteDiff(T part) {
+        public CompleteDiff(T part) {
             this.part = part;
         }
 

@@ -27,10 +27,12 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
+import org.elasticsearch.cluster.Diffs.ValueSerializer;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
@@ -39,9 +41,11 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.sql.tree.ColumnPolicy;
 
-public sealed interface RelationMetadata extends Writeable permits
+public sealed interface RelationMetadata extends Diffable<RelationMetadata> permits
     RelationMetadata.BlobTable,
     RelationMetadata.Table {
+
+    static RelValueSerializer<String> VALUE_SERIALIZER = new RelValueSerializer<>();
 
     short ord();
 
@@ -54,6 +58,86 @@ public sealed interface RelationMetadata extends Writeable permits
             case Table.ORD -> RelationMetadata.Table.of(in);
             default -> throw new IllegalArgumentException("Invalid RelationMetadata ord: " + ord);
         };
+    }
+
+    @Override
+    default Diff<RelationMetadata> diff(RelationMetadata prev) {
+        if (this.equals(prev)) {
+            return RelationMetadataDiff.EMPTY;
+        } else {
+            return new RelationMetadataDiff(this);
+        }
+    }
+
+    static Diff<RelationMetadata> readDiffFrom(StreamInput in) throws IOException {
+        if (in.readBoolean()) {
+            RelationMetadata relMetadata = of(in);
+            return new RelationMetadataDiff(relMetadata);
+        }
+        return RelationMetadataDiff.EMPTY;
+    }
+
+    static class RelValueSerializer<K> implements ValueSerializer<K, RelationMetadata> {
+
+        @Override
+        public void write(RelationMetadata value, StreamOutput out) throws IOException {
+            toStream(out, value);
+        }
+
+        @Override
+        public RelationMetadata read(StreamInput in, K key) throws IOException {
+            throw new UnsupportedOperationException("Unimplemented method 'read'");
+        }
+
+        @Override
+        public boolean supportsDiffableValues() {
+            return true;
+        }
+
+        @Override
+        public Diff<RelationMetadata> diff(RelationMetadata value, RelationMetadata beforePart) {
+            return value.diff(beforePart);
+        }
+
+        @Override
+        public void writeDiff(Diff<RelationMetadata> value, StreamOutput out) throws IOException {
+            value.writeTo(out);;
+        }
+
+        @Override
+        public Diff<RelationMetadata> readDiff(StreamInput in, K key) throws IOException {
+            throw new UnsupportedOperationException("Unimplemented method 'readDiff'");
+        }
+    }
+
+    /// Similar to the CompleteDiff in [org.elasticsearch.cluster.AbstractDiffable] but streams the part
+    /// using [RelationMetadata#toStream(StreamOutput, RelationMetadata)] instead of part.writeTo
+    /// To match the read variant and stream the ord
+    static class RelationMetadataDiff implements Diff<RelationMetadata> {
+
+        static final RelationMetadataDiff EMPTY = new RelationMetadataDiff(null);
+
+        @Nullable
+        private final RelationMetadata part;
+
+        RelationMetadataDiff(@Nullable RelationMetadata part) {
+            this.part = part;
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            if (part == null) {
+                out.writeBoolean(false);
+            } else {
+                out.writeBoolean(true);
+                RelationMetadata.toStream(out, part);
+            }
+        }
+
+        @Override
+        public RelationMetadata apply(RelationMetadata part) {
+            return this.part == null ? part : this.part;
+        }
     }
 
     List<String> indexUUIDs();

@@ -323,7 +323,7 @@
     <versions.tdigest>3.3</versions.tdigest>
     <versions.datasketches>6.0.0</versions.datasketches>
     <versions.hdrhistogram>2.2.2</versions.hdrhistogram>
-    <versions.caffeine>3.2.2</versions.caffeine>
+    <versions.caffeine>3.2.3</versions.caffeine>
     <versions.jodatime>2.14.0</versions.jodatime>
     <versions.aws>1.12.792</versions.aws>
     <versions.opendal>0.48.1</versions.opendal>
@@ -331,7 +331,7 @@
     <versions.commonscodec>1.19.0</versions.commonscodec>
     <versions.bigmath>2.3.2</versions.bigmath>
     <versions.jaxb_api>2.3.1</versions.jaxb_api>
-    <versions.graalvm>25.0.0</versions.graalvm>
+    <versions.graalvm>25.0.1</versions.graalvm>
     <versions.jwt>4.5.0</versions.jwt>
     <versions.jwks-rsa>0.23.0</versions.jwks-rsa>
 
@@ -344,7 +344,7 @@
 
     <versions.guava>33.5.0-jre</versions.guava>
     <versions.google.gson>2.0.2</versions.google.gson>
-    <versions.google.errorprone>2.42.0</versions.google.errorprone>
+    <versions.google.errorprone>2.43.0</versions.google.errorprone>
     <versions.google.j2objc>3.1</versions.google.j2objc>
     <versions.checkerframework>3.51.1</versions.checkerframework>
     <versions.grpc>1.76.0</versions.grpc>
@@ -370,7 +370,7 @@
     <versions.plugin.jar>3.3.0</versions.plugin.jar>
     <versions.plugin.surefire>3.5.4</versions.plugin.surefire>
     <versions.plugin.checkstyle>3.6.0</versions.plugin.checkstyle>
-    <versions.plugin.puppycrawl>12.1.0</versions.plugin.puppycrawl>
+    <versions.plugin.puppycrawl>12.1.1</versions.plugin.puppycrawl>
     <versions.plugin.toolchains>4.5.0</versions.plugin.toolchains>
     <versions.plugin.jacoco>0.8.14</versions.plugin.jacoco>
     <versions.plugin.forbiddenapis>3.10</versions.plugin.forbiddenapis>
