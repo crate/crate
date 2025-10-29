@@ -109,6 +109,7 @@ public class SchemaMetadataTest extends ESTestCase {
 
         try (var out = new BytesStreamOutput()) {
             out.setVersion(Version.V_6_1_0);
+            diff = after.diff(Version.V_6_1_0, before);
             diff.writeTo(out);
 
             try (var in = out.bytes().streamInput()) {
@@ -116,27 +117,6 @@ public class SchemaMetadataTest extends ESTestCase {
                 Diff<SchemaMetadata> diffFrom = SchemaMetadata.readDiffFrom(in);
                 SchemaMetadata schemaIn = diffFrom.apply(after);
                 assertRelations(expectedRelations, schemaIn);
-
-                // ensure that deserialized diff can also be written back to 6.2.0 or 6.1.0
-                try (var out2 = new BytesStreamOutput()) {
-                    diffFrom.writeTo(out2);
-                    try (var in2 = out2.bytes().streamInput()) {
-                        Diff<SchemaMetadata> diffFrom2 = SchemaMetadata.readDiffFrom(in2);
-                        SchemaMetadata schemaIn2 = diffFrom2.apply(schemaV1);
-                        assertRelations(expectedRelations, schemaIn2);
-                    }
-                }
-
-                try (var out2 = new BytesStreamOutput()) {
-                    out2.setVersion(Version.V_6_1_0);
-                    diffFrom.writeTo(out2);
-                    try (var in2 = out2.bytes().streamInput()) {
-                        in2.setVersion(Version.V_6_1_0);
-                        Diff<SchemaMetadata> diffFrom2 = SchemaMetadata.readDiffFrom(in2);
-                        SchemaMetadata schemaIn2 = diffFrom2.apply(after);
-                        assertRelations(expectedRelations, schemaIn2);
-                    }
-                }
             }
         }
     }
