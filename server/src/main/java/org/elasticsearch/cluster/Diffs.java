@@ -84,25 +84,43 @@ public final class Diffs {
     /**
      * Calculates diff between two ImmutableOpenMaps of Diffable objects
      */
-    public static <K, T extends Diffable<T>> MapDiff<K, T, ImmutableOpenMap<K, T>> diff(ImmutableOpenMap<K, T> before, ImmutableOpenMap<K, T> after, KeySerializer<K> keySerializer) {
+    public static <K, T extends Diffable<T>> MapDiff<K, T, ImmutableOpenMap<K, T>> diff(
+            Version version,
+            ImmutableOpenMap<K, T> before,
+            ImmutableOpenMap<K, T> after,
+            KeySerializer<K> keySerializer) {
         assert after != null && before != null;
-        return new ImmutableMapDiff<>(before, after, keySerializer, DiffableValueSerializer.getWriteOnlyInstance());
+        return new ImmutableMapDiff<>(
+            version,
+            before,
+            after,
+            keySerializer,
+            DiffableValueSerializer.getWriteOnlyInstance()
+        );
     }
 
     /**
      * Calculates diff between two ImmutableOpenMaps of non-diffable objects
      */
-    public static <K, T> MapDiff<K, T, ImmutableOpenMap<K, T>> diff(ImmutableOpenMap<K, T> before, ImmutableOpenMap<K, T> after, KeySerializer<K> keySerializer, ValueSerializer<K, T> valueSerializer) {
+    public static <K, T> MapDiff<K, T, ImmutableOpenMap<K, T>> diff(Version version,
+                                                                    ImmutableOpenMap<K, T> before,
+                                                                    ImmutableOpenMap<K, T> after,
+                                                                    KeySerializer<K> keySerializer,
+                                                                    ValueSerializer<K, T> valueSerializer) {
         assert after != null && before != null;
-        return new ImmutableMapDiff<>(before, after, keySerializer, valueSerializer);
+        return new ImmutableMapDiff<>(version, before, after, keySerializer, valueSerializer);
     }
 
     /**
      * Calculates diff between two ImmutableOpenIntMaps of non-diffable objects
      */
-    public static <T> MapDiff<Integer, T, ImmutableOpenIntMap<T>> diff(ImmutableOpenIntMap<T> before, ImmutableOpenIntMap<T> after, KeySerializer<Integer> keySerializer, ValueSerializer<Integer, T> valueSerializer) {
+    public static <T> MapDiff<Integer, T, ImmutableOpenIntMap<T>> diff(Version version,
+                                                                       ImmutableOpenIntMap<T> before,
+                                                                       ImmutableOpenIntMap<T> after,
+                                                                       KeySerializer<Integer> keySerializer,
+                                                                       ValueSerializer<Integer, T> valueSerializer) {
         assert after != null && before != null;
-        return new ImmutableIntMapDiff<>(before, after, keySerializer, valueSerializer);
+        return new ImmutableIntMapDiff<>(version, before, after, keySerializer, valueSerializer);
     }
 
     /**
@@ -140,8 +158,11 @@ public final class Diffs {
             super(in, keySerializer, valueSerializer);
         }
 
-        public ImmutableMapDiff(ImmutableOpenMap<K, T> before, ImmutableOpenMap<K, T> after,
-                                    KeySerializer<K> keySerializer, ValueSerializer<K, T> valueSerializer) {
+        public ImmutableMapDiff(Version version,
+                                ImmutableOpenMap<K, T> before,
+                                ImmutableOpenMap<K, T> after,
+                                KeySerializer<K> keySerializer,
+                                ValueSerializer<K, T> valueSerializer) {
             super(keySerializer, valueSerializer);
             assert after != null && before != null;
 
@@ -157,7 +178,7 @@ public final class Diffs {
                     upserts.put(partIter.key, partIter.value);
                 } else if (partIter.value.equals(beforePart) == false) {
                     if (valueSerializer.supportsDiffableValues()) {
-                        diffs.put(partIter.key, valueSerializer.diff(partIter.value, beforePart));
+                        diffs.put(partIter.key, valueSerializer.diff(version, partIter.value, beforePart));
                     } else {
                         upserts.put(partIter.key, partIter.value);
                     }
@@ -196,8 +217,11 @@ public final class Diffs {
             super(in, keySerializer, valueSerializer);
         }
 
-        ImmutableIntMapDiff(ImmutableOpenIntMap<T> before, ImmutableOpenIntMap<T> after,
-                                       KeySerializer<Integer> keySerializer, ValueSerializer<Integer, T> valueSerializer) {
+        ImmutableIntMapDiff(Version version,
+                            ImmutableOpenIntMap<T> before,
+                            ImmutableOpenIntMap<T> after,
+                            KeySerializer<Integer> keySerializer,
+                            ValueSerializer<Integer, T> valueSerializer) {
             super(keySerializer, valueSerializer);
             assert after != null && before != null;
 
@@ -213,7 +237,7 @@ public final class Diffs {
                     upserts.put(partIter.key, partIter.value);
                 } else if (partIter.value.equals(beforePart) == false) {
                     if (valueSerializer.supportsDiffableValues()) {
-                        diffs.put(partIter.key, valueSerializer.diff(partIter.value, beforePart));
+                        diffs.put(partIter.key, valueSerializer.diff(version, partIter.value, beforePart));
                     } else {
                         upserts.put(partIter.key, partIter.value);
                     }
@@ -450,7 +474,7 @@ public final class Diffs {
         /**
          * Computes diff if this serializer supports diffable values
          */
-        Diff<V> diff(V value, V beforePart);
+        Diff<V> diff(Version version, V value, V beforePart);
 
         /**
          * Writes value as diff to stream if this serializer supports diffable values
@@ -495,8 +519,8 @@ public final class Diffs {
         }
 
         @Override
-        public Diff<V> diff(V value, V beforePart) {
-            return value.diff(beforePart);
+        public Diff<V> diff(Version version, V value, V beforePart) {
+            return value.diff(version, beforePart);
         }
 
         @Override
@@ -523,7 +547,7 @@ public final class Diffs {
         }
 
         @Override
-        public Diff<V> diff(V value, V beforePart) {
+        public Diff<V> diff(Version version, V value, V beforePart) {
             throw new UnsupportedOperationException();
         }
 

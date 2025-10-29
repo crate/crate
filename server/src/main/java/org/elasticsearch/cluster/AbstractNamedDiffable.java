@@ -19,13 +19,13 @@
 
 package org.elasticsearch.cluster;
 
+import java.io.IOException;
+
 import org.elasticsearch.Version;
-import org.jetbrains.annotations.Nullable;
 import org.elasticsearch.common.io.stream.NamedWriteable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-
-import java.io.IOException;
+import org.jetbrains.annotations.Nullable;
 
 /**
  * Abstract diffable object with simple diffs implementation that sends the entire object if object has changed or
@@ -34,7 +34,7 @@ import java.io.IOException;
 public abstract class AbstractNamedDiffable<T extends NamedDiffable<T>> implements Diffable<T>, NamedWriteable {
 
     @Override
-    public Diff<T> diff(T previousState) {
+    public Diff<T> diff(Version version, T previousState) {
         if (this.get().equals(previousState)) {
             return new CompleteNamedDiff<>(previousState.getWriteableName(), previousState.getMinimalSupportedVersion());
         } else {

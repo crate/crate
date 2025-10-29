@@ -97,7 +97,7 @@ public class SchemaMetadataTest extends ESTestCase {
             expectedRelations = 2;
         }
 
-        Diff<SchemaMetadata> diff = after.diff(before);
+        Diff<SchemaMetadata> diff = after.diff(Version.CURRENT, before);
         try (var out = new BytesStreamOutput()) {
             diff.writeTo(out);
             try (var in = out.bytes().streamInput()) {

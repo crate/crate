@@ -100,7 +100,7 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         final ClusterState unserializableClusterState = new ClusterState(clusterState.version(),
             clusterState.stateUUID(), clusterState) {
             @Override
-            public Diff<ClusterState> diff(ClusterState previousState) {
+            public Diff<ClusterState> diff(Version version, ClusterState previousState) {
                 return new Diff<ClusterState>() {
                     @Override
                     public ClusterState apply(ClusterState part) {

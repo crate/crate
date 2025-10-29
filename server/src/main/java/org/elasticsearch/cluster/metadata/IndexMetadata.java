@@ -540,8 +540,8 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
 
 
     @Override
-    public Diff<IndexMetadata> diff(IndexMetadata previousState) {
-        return new IndexMetadataDiff(previousState, this);
+    public Diff<IndexMetadata> diff(Version version, IndexMetadata previousState) {
+        return new IndexMetadataDiff(version, previousState, this);
     }
 
     public static Diff<IndexMetadata> readDiffFrom(StreamInput in) throws IOException {
@@ -567,7 +567,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
         private final Diff<ImmutableOpenMap<String, AliasMetadata>> aliases;
         private final Diff<ImmutableOpenIntMap<Set<String>>> inSyncAllocationIds;
 
-        IndexMetadataDiff(IndexMetadata before, IndexMetadata after) {
+        IndexMetadataDiff(Version v, IndexMetadata before, IndexMetadata after) {
             index = after.index.getName();
             version = after.version;
             mappingVersion = after.mappingVersion;
@@ -585,10 +585,15 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             if (after.mapping != null) {
                 afterMappings.put(Constants.DEFAULT_MAPPING_TYPE, after.mapping);
             }
-            mappings = Diffs.diff(beforeMappings.build(), afterMappings.build(), Diffs.stringKeySerializer());
-            aliases = Diffs.diff(before.aliases, after.aliases, Diffs.stringKeySerializer());
-            inSyncAllocationIds = Diffs.diff(before.inSyncAllocationIds, after.inSyncAllocationIds,
-                Diffs.intKeySerializer(), Diffs.StringSetValueSerializer.getInstance());
+            mappings = Diffs.diff(v, beforeMappings.build(), afterMappings.build(), Diffs.stringKeySerializer());
+            aliases = Diffs.diff(v, before.aliases, after.aliases, Diffs.stringKeySerializer());
+            inSyncAllocationIds = Diffs.diff(
+                v,
+                before.inSyncAllocationIds,
+                after.inSyncAllocationIds,
+                Diffs.intKeySerializer(),
+                Diffs.StringSetValueSerializer.getInstance()
+            );
         }
 
         private static final Diffs.DiffableValueReader<String, AliasMetadata> ALIAS_METADATA_DIFF_VALUE_READER =
@@ -642,6 +647,7 @@ public class IndexMetadata implements Diffable<IndexMetadata> {
             aliases.writeTo(out);
             if (out.getVersion().before(Version.V_5_8_0)) {
                 Diff<ImmutableOpenMap<String, DiffableStringMap>> customData = Diffs.diff(
+                    out.getVersion(),
                     ImmutableOpenMap.<String, DiffableStringMap>of(),
                     ImmutableOpenMap.<String, DiffableStringMap>of(),
                     Diffs.stringKeySerializer()

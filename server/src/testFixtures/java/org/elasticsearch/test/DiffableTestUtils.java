@@ -26,6 +26,7 @@ import java.io.IOException;
 import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
@@ -83,7 +84,7 @@ public final class DiffableTestUtils {
         T localInstance = assertSerialization(remoteInstance, namedWriteableRegistry, reader);
         for (int runs = 0; runs < NUMBER_OF_DIFF_TEST_RUNS; runs++) {
             T remoteChanges = modifier.apply(remoteInstance);
-            Diff<T> remoteDiffs = remoteChanges.diff(remoteInstance);
+            Diff<T> remoteDiffs = remoteChanges.diff(Version.CURRENT, remoteInstance);
             Diff<T> localDiffs = copyInstance(remoteDiffs, namedWriteableRegistry, diffReader);
             localInstance = assertDiffApplication(remoteChanges, localInstance, localDiffs);
             remoteInstance = remoteChanges;

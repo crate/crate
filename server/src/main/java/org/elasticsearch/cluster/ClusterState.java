@@ -25,6 +25,7 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Set;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata;
 import org.elasticsearch.cluster.coordination.CoordinationMetadata.VotingConfigExclusion;
@@ -472,8 +473,8 @@ public class ClusterState implements Diffable<ClusterState> {
     }
 
     @Override
-    public Diff<ClusterState> diff(ClusterState previousState) {
-        return new ClusterStateDiff(previousState, this);
+    public Diff<ClusterState> diff(Version version, ClusterState previousState) {
+        return new ClusterStateDiff(version, previousState, this);
     }
 
     public static Diff<ClusterState> readDiffFrom(StreamInput in, DiscoveryNode localNode) throws IOException {
@@ -541,16 +542,17 @@ public class ClusterState implements Diffable<ClusterState> {
 
         private final Diff<ImmutableOpenMap<String, Custom>> customs;
 
-        ClusterStateDiff(ClusterState before, ClusterState after) {
+        ClusterStateDiff(Version version, ClusterState before, ClusterState after) {
             fromUuid = before.stateUUID;
             toUuid = after.stateUUID;
             toVersion = after.version;
             clusterName = after.clusterName;
-            routingTable = after.routingTable.diff(before.routingTable);
-            nodes = after.nodes.diff(before.nodes);
-            metadata = after.metadata.diff(before.metadata);
-            blocks = after.blocks.diff(before.blocks);
-            customs = Diffs.diff(before.customs, after.customs, Diffs.stringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
+            routingTable = after.routingTable.diff(version, before.routingTable);
+            nodes = after.nodes.diff(version, before.nodes);
+            metadata = after.metadata.diff(version, before.metadata);
+            blocks = after.blocks.diff(version, before.blocks);
+            customs = Diffs.diff(
+                version, before.customs, after.customs, Diffs.stringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
         }
 
         ClusterStateDiff(StreamInput in, DiscoveryNode localNode) throws IOException {

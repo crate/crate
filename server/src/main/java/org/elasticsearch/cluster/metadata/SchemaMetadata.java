@@ -56,8 +56,8 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
     }
 
     @Override
-    public Diff<SchemaMetadata> diff(SchemaMetadata previousState) {
-        return new SchemaMetadataDiff(previousState, this);
+    public Diff<SchemaMetadata> diff(Version version, SchemaMetadata previousState) {
+        return new SchemaMetadataDiff(version, previousState, this);
     }
 
     @Override
@@ -93,8 +93,9 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
         private final Diff<ImmutableOpenMap<String, RelationMetadata>> relations;
         private final Diff<SchemaMetadata> legacyDiff;
 
-        SchemaMetadataDiff(SchemaMetadata before, SchemaMetadata after) {
+        SchemaMetadataDiff(Version version, SchemaMetadata before, SchemaMetadata after) {
             this.relations = Diffs.diff(
+                version,
                 before.relations,
                 after.relations,
                 Diffs.stringKeySerializer(),
@@ -112,6 +113,7 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
                     SchemaMetadata schemaMetadata = SchemaMetadata.of(in);
                     legacyDiff = new CompleteDiff<SchemaMetadata>(schemaMetadata);
                     relations = Diffs.diff(
+                        in.getVersion(),
                         ImmutableOpenMap.of(),
                         schemaMetadata.relations(),
                         Diffs.stringKeySerializer(),

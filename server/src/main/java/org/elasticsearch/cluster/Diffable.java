@@ -19,6 +19,7 @@
 
 package org.elasticsearch.cluster;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.Writeable;
 
 /**
@@ -30,7 +31,7 @@ public interface Diffable<T extends Diffable<T>> extends Writeable {
      * Returns serializable object representing differences between this and previousState
      */
     @SuppressWarnings("unchecked")
-    default Diff<T> diff(T previousState) {
+    default Diff<T> diff(Version version, T previousState) {
         return this.equals(previousState)
             ? Diffs.empty()
             : new CompleteDiff<>((T) this);
