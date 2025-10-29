@@ -463,9 +463,8 @@ public class PgCatalogITest extends IntegTestCase {
             order by attnum"""
         );
 
-        // Column 'a' has OID 6 because first 5 are taken by the table, created in createRelations().
         assertThat(response).hasRows(
-            "1| true| _dropped_6| 0",
+            "1| true| _dropped_1| 0",
             "2| false| o| 114",
             "3| false| o['oo']| 114",
             "4| false| o['oo']['a']| 23",
@@ -484,10 +483,10 @@ public class PgCatalogITest extends IntegTestCase {
             order by attnum"""
         );
         assertThat(response).hasRows(
-            "1| true| _dropped_6",
+            "1| true| _dropped_1",
             "2| false| o",
-            "3| true| _dropped_8",
-            "4| true| _dropped_9",
+            "3| true| _dropped_3",
+            "4| true| _dropped_4",
             "5| false| a",
             "6| false| o['oo']",
             "7| false| o['oo']['a']"

@@ -679,26 +679,6 @@ public class PersistedClusterStateServiceTests extends ESTestCase {
     }
 
     @Test
-    public void test_persists_updated_column_oid() throws IOException {
-        try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
-            final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
-            final long columnOid = 123L;
-
-            try (Writer writer = persistedClusterStateService.createWriter()) {
-                // Need to write full state first before doing incremental writes.
-                writer.writeFullStateAndCommit(1L, ClusterState.EMPTY_STATE);
-
-                ClusterState clusterState = loadPersistedClusterState(persistedClusterStateService);
-                writer.writeIncrementalStateAndCommit(clusterState.term(), clusterState, ClusterState.builder(clusterState)
-                    .metadata(Metadata.builder(clusterState.metadata()).columnOID(columnOid)).build());
-
-                clusterState = loadPersistedClusterState(persistedClusterStateService);
-                assertThat(clusterState.metadata().columnOID()).isEqualTo(columnOid);
-            }
-        }
-    }
-
-    @Test
     public void testPersistsAndReloadsIndexMetadataForMultipleIndices() throws IOException {
         try (NodeEnvironment nodeEnvironment = newNodeEnvironment(createDataPaths())) {
             final PersistedClusterStateService persistedClusterStateService = newPersistedClusterStateService(nodeEnvironment);
