@@ -40,13 +40,32 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
 public final class Diffs {
+
+    private static final CompleteDiff<?> EMPTY = new CompleteDiff<>(null);
+
     private Diffs() {
     }
 
     @SuppressWarnings("unchecked")
     public static <T> Diff<T> empty() {
-        return (Diff<T>) AbstractDiffable.EMPTY;
+        return (Diff<T>) EMPTY;
     }
+
+    public static <T extends Diffable<T>> Diff<T> completeDiff(T before, T after) {
+        if (after.equals(before)) {
+            return Diffs.empty();
+        } else {
+            return new CompleteDiff<>(after);
+        }
+    }
+
+    public static <T extends Diffable<T>> Diff<T> readDiffFrom(Reader<T> reader, StreamInput in) throws IOException {
+        if (in.readBoolean()) {
+            return new CompleteDiff<>(reader.read(in));
+        }
+        return empty();
+    }
+
 
     /**
      * Returns a map key serializer for String keys

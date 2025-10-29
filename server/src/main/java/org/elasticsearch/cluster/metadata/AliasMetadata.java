@@ -23,14 +23,15 @@ import java.io.IOException;
 import java.util.Objects;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
+import org.elasticsearch.cluster.Diffs;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.XContentParser;
 
-public class AliasMetadata extends AbstractDiffable<AliasMetadata> {
+public class AliasMetadata implements Diffable<AliasMetadata> {
 
     private final String alias;
 
@@ -90,7 +91,7 @@ public class AliasMetadata extends AbstractDiffable<AliasMetadata> {
     }
 
     public static Diff<AliasMetadata> readDiffFrom(StreamInput in) throws IOException {
-        return readDiffFrom(AliasMetadata::new, in);
+        return Diffs.readDiffFrom(AliasMetadata::new, in);
     }
 
     public static class Builder {

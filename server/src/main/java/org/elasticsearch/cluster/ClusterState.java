@@ -559,9 +559,9 @@ public class ClusterState implements Diffable<ClusterState> {
             toUuid = in.readString();
             toVersion = in.readLong();
             routingTable = RoutingTable.readDiffFrom(in);
-            nodes = DiscoveryNodes.readDiffFrom(in, localNode);
+            nodes = Diffs.readDiffFrom(in1 -> DiscoveryNodes.readFrom(in1, localNode), in);
             metadata = Metadata.readDiffFrom(in);
-            blocks = ClusterBlocks.readDiffFrom(in);
+            blocks = Diffs.readDiffFrom(ClusterBlocks::readFrom, in);
             customs = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
         }
 

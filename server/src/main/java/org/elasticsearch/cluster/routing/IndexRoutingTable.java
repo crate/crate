@@ -27,8 +27,9 @@ import java.util.List;
 import java.util.Set;
 
 import org.apache.lucene.util.CollectionUtil;
-import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
+import org.elasticsearch.cluster.Diffs;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.RecoverySource.EmptyStoreRecoverySource;
@@ -60,7 +61,7 @@ import com.carrotsearch.hppc.cursors.IntCursor;
  * represented as {@link ShardRouting}.
  * </p>
  */
-public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> implements Iterable<IndexShardRoutingTable> {
+public class IndexRoutingTable implements Diffable<IndexRoutingTable>, Iterable<IndexShardRoutingTable> {
 
     private final Index index;
 
@@ -279,7 +280,7 @@ public class IndexRoutingTable extends AbstractDiffable<IndexRoutingTable> imple
     }
 
     public static Diff<IndexRoutingTable> readDiffFrom(StreamInput in) throws IOException {
-        return readDiffFrom(IndexRoutingTable::readFrom, in);
+        return Diffs.readDiffFrom(IndexRoutingTable::readFrom, in);
     }
 
     @Override

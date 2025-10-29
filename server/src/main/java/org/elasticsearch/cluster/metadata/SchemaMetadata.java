@@ -24,8 +24,9 @@ package org.elasticsearch.cluster.metadata;
 import java.io.IOException;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractDiffable;
+import org.elasticsearch.cluster.CompleteDiff;
 import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.Diffs;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -34,7 +35,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.RelationName;
 
-public class SchemaMetadata extends AbstractDiffable<SchemaMetadata> {
+public class SchemaMetadata implements Diffable<SchemaMetadata> {
 
     private final ImmutableOpenMap<String, RelationMetadata> relations;
 
@@ -99,7 +100,7 @@ public class SchemaMetadata extends AbstractDiffable<SchemaMetadata> {
                 Diffs.stringKeySerializer(),
                 RelationMetadata.VALUE_SERIALIZER
             );
-            this.legacyDiff = AbstractDiffable.of(before, after);
+            this.legacyDiff = Diffs.completeDiff(before, after);
         }
 
         SchemaMetadataDiff(StreamInput in) throws IOException {

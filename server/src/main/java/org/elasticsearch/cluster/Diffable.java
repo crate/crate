@@ -21,15 +21,19 @@ package org.elasticsearch.cluster;
 
 import org.elasticsearch.common.io.stream.Writeable;
 
-
 /**
  * Cluster state part, changes in which can be serialized
  */
-public interface Diffable<T> extends Writeable {
+public interface Diffable<T extends Diffable<T>> extends Writeable {
 
     /**
      * Returns serializable object representing differences between this and previousState
      */
-    Diff<T> diff(T previousState);
+    @SuppressWarnings("unchecked")
+    default Diff<T> diff(T previousState) {
+        return this.equals(previousState)
+            ? Diffs.empty()
+            : new CompleteDiff<>((T) this);
+    }
 
 }
