@@ -86,8 +86,8 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
-import io.crate.sql.tree.ColumnPolicy;
 import io.crate.rest.action.HttpErrorStatus;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
@@ -440,8 +440,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     @Override
-    public Diff<Metadata> diff(Metadata previousState) {
-        return new MetadataDiff(previousState, this);
+    public Diff<Metadata> diff(Version version, Metadata previousState) {
+        return new MetadataDiff(version, previousState, this);
     }
 
     public static Diff<Metadata> readDiffFrom(StreamInput in) throws IOException {
@@ -467,7 +467,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final Diff<ImmutableOpenMap<String, Custom>> customs;
         private final Diff<ImmutableOpenMap<String, SchemaMetadata>> schemas;
 
-        MetadataDiff(Metadata before, Metadata after) {
+        MetadataDiff(Version v, Metadata before, Metadata after) {
             clusterUUID = after.clusterUUID;
             clusterUUIDCommitted = after.clusterUUIDCommitted;
             version = after.version;
@@ -475,10 +475,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             coordinationMetadata = after.coordinationMetadata;
             transientSettings = after.transientSettings;
             persistentSettings = after.persistentSettings;
-            indices = Diffs.diff(before.indices, after.indices, Diffs.stringKeySerializer());
-            templates = Diffs.diff(before.templates, after.templates, Diffs.stringKeySerializer());
-            customs = Diffs.diff(before.customs, after.customs, Diffs.stringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
-            schemas = Diffs.diff(before.schemas, after.schemas, Diffs.stringKeySerializer());
+            indices = Diffs.diff(v, before.indices, after.indices, Diffs.stringKeySerializer());
+            templates = Diffs.diff(v, before.templates, after.templates, Diffs.stringKeySerializer());
+            customs = Diffs.diff(v, before.customs, after.customs, Diffs.stringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
+            schemas = Diffs.diff(v, before.schemas, after.schemas, Diffs.stringKeySerializer());
         }
 
         private static final Diffs.DiffableValueReader<String, IndexMetadata> INDEX_METADATA_DIFF_VALUE_READER =
@@ -507,6 +507,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 schemas = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), SCHEMA_DIFF_VALUE_READER);
             } else {
                 schemas = Diffs.diff(
+                    in.getVersion(),
                     ImmutableOpenMap.<String, SchemaMetadata>of(),
                     ImmutableOpenMap.<String, SchemaMetadata>of(),
                     Diffs.stringKeySerializer()
@@ -1229,7 +1230,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         @Override
-        public Diff<Custom> diff(Custom previousState) {
+        public Diff<Custom> diff(Version version, Custom previousState) {
             throw new UnsupportedOperationException();
         }
 

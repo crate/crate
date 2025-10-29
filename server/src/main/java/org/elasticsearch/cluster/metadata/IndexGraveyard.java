@@ -143,7 +143,7 @@ public final class IndexGraveyard implements Metadata.Custom {
     }
 
     @Override
-    public Diff<Metadata.Custom> diff(final Metadata.Custom previous) {
+    public Diff<Metadata.Custom> diff(Version version, final Metadata.Custom previous) {
         return new IndexGraveyardDiff((IndexGraveyard) previous, this);
     }
 

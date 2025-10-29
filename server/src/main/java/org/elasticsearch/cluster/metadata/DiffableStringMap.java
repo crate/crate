@@ -19,11 +19,6 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.elasticsearch.cluster.Diff;
-import org.elasticsearch.cluster.Diffable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-
 import java.io.IOException;
 import java.util.AbstractMap;
 import java.util.ArrayList;
@@ -32,6 +27,12 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 /**
  * This is a {@code Map<String, String>} that implements AbstractDiffable so it
@@ -65,7 +66,7 @@ public class DiffableStringMap extends AbstractMap<String, String> implements Di
     }
 
     @Override
-    public Diff<DiffableStringMap> diff(DiffableStringMap previousState) {
+    public Diff<DiffableStringMap> diff(Version version, DiffableStringMap previousState) {
         return new DiffableStringMapDiff(previousState, this);
     }
 
