@@ -181,6 +181,7 @@ public final class MappingUtil {
         return List.of(fqn, typeMappingName);
     }
 
+
     /**
      * Creates the "properties" part of a mapping.
      * Includes all nested sub-columns.
@@ -201,18 +202,10 @@ public final class MappingUtil {
      *     col2: {...}
      * }
      */
-    public static Map<String, Map<String, Object>> toProperties(AllocPosition allocPosition,
-                                                                HashMap<ColumnIdent, List<Reference>> tree) {
-        return toProperties(allocPosition, null, tree);
-    }
-
-    /**
-     * See {@link #toProperties(AllocPosition, HashMap)}
-     */
     @Nullable
-    private static Map<String, Map<String, Object>> toProperties(AllocPosition position,
-                                                                 @Nullable ColumnIdent currentNode,
-                                                                 HashMap<ColumnIdent, List<Reference>> tree) {
+    public static Map<String, Map<String, Object>> toProperties(AllocPosition position,
+                                                                @Nullable ColumnIdent currentNode,
+                                                                HashMap<ColumnIdent, List<Reference>> tree) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
