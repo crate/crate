@@ -755,7 +755,7 @@ public class SQLExecutor {
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata());
         RoutingTable.Builder routingBuilder = RoutingTable.builder(prevState.routingTable());
         LongSupplier columnOidSupplier =
-                this.columnOidSupplier != null ? this.columnOidSupplier : mdBuilder.columnOidSupplier();
+                this.columnOidSupplier != null ? this.columnOidSupplier : new DocTableInfo.OidSupplier(0);
 
         Version smallestVersion = prevState.nodes().getSmallestNonClientNodeVersion();
         Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(combinedSettings);
