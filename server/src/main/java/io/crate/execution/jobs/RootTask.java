@@ -404,8 +404,10 @@ public class RootTask implements CompletionListenable<Void> {
             assert profiler != null : "profiler must not be null";
             assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
             Timer removed = taskTimersByPhaseId.remove(id);
-            assert removed != null : "removed must not be null";
-            profiler.stopTimerAndStoreDuration(removed);
+            // Can be null if killed before start
+            if (removed != null) {
+                profiler.stopTimerAndStoreDuration(removed);
+            }
         }
     }
 }
