@@ -34,8 +34,7 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 import java.util.stream.Stream;
 
-import org.elasticsearch.cluster.AbstractDiffable;
-import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -49,7 +48,7 @@ import io.crate.rest.action.HttpErrorStatus;
 /**
  * Represents current cluster level blocks to block dirty operations done against the cluster.
  */
-public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
+public class ClusterBlocks implements Diffable<ClusterBlocks> {
 
     public static final ClusterBlocks EMPTY_CLUSTER_BLOCK = new ClusterBlocks(emptySet(), ImmutableOpenMap.of());
 
@@ -293,10 +292,6 @@ public class ClusterBlocks extends AbstractDiffable<ClusterBlocks> {
     private static Set<ClusterBlock> readBlockSet(StreamInput in) throws IOException {
         final Set<ClusterBlock> blocks = in.readSet(ClusterBlock::new);
         return blocks.isEmpty() ? blocks : unmodifiableSet(blocks);
-    }
-
-    public static Diff<ClusterBlocks> readDiffFrom(StreamInput in) throws IOException {
-        return AbstractDiffable.readDiffFrom(ClusterBlocks::readFrom, in);
     }
 
     record ImmutableLevelHolder(Set<ClusterBlock> global,
