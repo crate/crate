@@ -26,6 +26,8 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Objects;
 import java.util.function.Function;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -36,6 +38,7 @@ import org.elasticsearch.common.xcontent.ParseField;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.MetadataStateFormat;
+import org.elasticsearch.index.shard.ShardId;
 
 /**
  * Represents a versioned collection of retention leases. We version the collection of retention leases to ensure that sync requests that
@@ -109,7 +112,7 @@ public class RetentionLeases implements Writeable {
      * @return true if this retention lease collection contains a retention lease with the specified ID, otherwise false
      */
     public boolean contains(final String id) {
-        return leases.containsKey(id);
+        return leases.containsKey(id) || leases.containsKey(getFallBackLeaseIdForLogicalReplication(id));
     }
 
     /**
@@ -119,7 +122,11 @@ public class RetentionLeases implements Writeable {
      * @return the retention lease, or null if no retention lease with the specified ID exists
      */
     public RetentionLease get(final String id) {
-        return leases.get(id);
+        var lease = leases.get(id);
+        if (lease == null) {
+            lease = leases.get(getFallBackLeaseIdForLogicalReplication(id));
+        }
+        return lease;
     }
 
     /**
@@ -260,5 +267,23 @@ public class RetentionLeases implements Writeable {
             },
             LinkedHashMap::new)
         );
+    }
+
+    /**
+     * Starting from 6.1, {@link ShardId#toString()} includes the index UUID.
+     * As a result, existing retention lease keys in {@link RetentionLeases#leases}
+     * may no longer match newly generated IDs.
+     * <p>
+     * This method produces a fallback lease ID by removing the index UUID.
+     * <p>
+     * Original(new format): logical_replication:<cluster>:[<index>/<uuid>][<shard>]
+     * Fallback(old format): logical_replication:<cluster>:[<index>][<shard>]
+     */
+    private static String getFallBackLeaseIdForLogicalReplication(String id) {
+        Matcher m = Pattern.compile("^(logical_replication:[^:]+:\\[)([^/\\]]+)/[^\\]]+(])(\\[[^\\]]+])$").matcher(id);
+        if (m.matches()) {
+            return m.group(1) + m.group(2) + m.group(3) + m.group(4);
+        }
+        return id;
     }
 }
