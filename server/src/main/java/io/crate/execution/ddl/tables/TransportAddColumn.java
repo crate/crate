@@ -27,7 +27,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.ClusterStateTaskExecutor;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -37,7 +36,6 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.execution.ddl.AbstractDDLTransportAction;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.doc.DocTableInfo;
 
 public class TransportAddColumn extends AbstractDDLTransportAction<AddColumnRequest, AcknowledgedResponse> {
 
@@ -56,9 +54,6 @@ public class TransportAddColumn extends AbstractDDLTransportAction<AddColumnRequ
         (req, doctableInfo, metadataBuilder, nodeCtx, fulltextAnalyzerResolver) -> doctableInfo.addColumns(
             nodeCtx,
             fulltextAnalyzerResolver,
-            doctableInfo.versionCreated().onOrAfter(DocTableInfo.COLUMN_OID_VERSION) ?
-                metadataBuilder.columnOidSupplier() :
-                () -> Metadata.COLUMN_OID_UNASSIGNED,
             req.references(),
             req.pKeyIndices(),
             req.checkConstraints());
