@@ -81,7 +81,7 @@ public class DeclarePlan implements Plan {
             declare.query().outputs()
         );
         cursors.add(declareStmt.cursorName(), cursor);
-        queryPlan.execute(dependencies, plannerContext, cursorRowConsumer, params, subQueryResults);
+        Plan.execute(queryPlan, dependencies, plannerContext, cursorRowConsumer, params, subQueryResults);
     }
 
     private static class CursorRowConsumer implements RowConsumer {

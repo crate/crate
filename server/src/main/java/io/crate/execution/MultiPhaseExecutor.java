@@ -39,6 +39,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.FirstColumnConsumers;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.planner.DependencyCarrier;
+import io.crate.planner.Plan;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.SubQueryResults;
@@ -68,8 +69,14 @@ public final class MultiPhaseExecutor {
             SelectSymbol selectSymbol = entry.getValue();
 
             CollectingRowConsumer<?, ?> rowConsumer = getConsumer(selectSymbol, ramAccounting);
-            depPlan.execute(
-                executor, PlannerContext.forSubPlan(plannerContext), rowConsumer, params, SubQueryResults.EMPTY);
+            Plan.execute(
+                depPlan,
+                executor,
+                PlannerContext.forSubPlan(plannerContext),
+                rowConsumer,
+                params,
+                SubQueryResults.EMPTY
+            );
 
             dependencyFutures.add(rowConsumer.completionFuture().thenAccept(val -> {
                 synchronized (valueBySubQuery) {
