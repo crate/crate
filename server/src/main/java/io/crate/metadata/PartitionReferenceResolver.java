@@ -21,29 +21,29 @@
 
 package io.crate.metadata;
 
-import io.crate.expression.reference.ReferenceResolver;
-import io.crate.expression.reference.partitioned.PartitionExpression;
-
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import io.crate.expression.reference.ReferenceResolver;
+import io.crate.expression.reference.partitioned.PartitionExpression;
+
 public class PartitionReferenceResolver implements ReferenceResolver<PartitionExpression> {
 
-    private final Map<ReferenceIdent, PartitionExpression> expressionMap;
+    private final Map<ColumnIdent, PartitionExpression> expressionMap;
     private final List<PartitionExpression> partitionExpressions;
 
     public PartitionReferenceResolver(List<PartitionExpression> partitionExpressions) {
         this.partitionExpressions = partitionExpressions;
         this.expressionMap = new HashMap<>(partitionExpressions.size(), 1.0f);
         for (PartitionExpression partitionExpression : partitionExpressions) {
-            expressionMap.put(partitionExpression.reference().ident(), partitionExpression);
+            expressionMap.put(partitionExpression.reference().column(), partitionExpression);
         }
     }
 
     @Override
     public PartitionExpression getImplementation(Reference ref) {
-        PartitionExpression expression = expressionMap.get(ref.ident());
+        PartitionExpression expression = expressionMap.get(ref.column());
         assert expression != null : "granularity < PARTITION should have been resolved already";
         return expression;
     }
