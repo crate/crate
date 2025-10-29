@@ -69,3 +69,7 @@ Fixes
 - Fixed an issue resulting in stuck :ref:`sys-jobs` entries when an
   :ref:`sql-insert` statement using :ref:`ref-values` results in an execution
   error, e.g. due to implicit cast or parsing issues.
+
+- Fixed an issue causing ``SELECT *`` or ``ANALYZE`` statements to fail with an
+  error ``unexpected docvalues type... Re-index with correct docvalues type.``
+  if a column was added into restored table.

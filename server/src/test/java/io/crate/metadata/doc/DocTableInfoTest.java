@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -412,7 +411,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table2 = table1.addColumns(
             e.nodeCtx,
             e.fulltextAnalyzerResolver(),
-            oidSupplier::incrementAndGet,
             List.of(newReference),
             new IntArrayList(),
             Map.of());
@@ -488,11 +486,9 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             -1,
             null
         );
-        AtomicLong oidSupplier = new AtomicLong(2);
         DocTableInfo table2 = table1.addColumns(
             e.nodeCtx,
             e.fulltextAnalyzerResolver(),
-            oidSupplier::incrementAndGet,
             List.of(newReference),
             new IntArrayList(),
             Map.of());
@@ -524,7 +520,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo table3 = table2.addColumns(
             e.nodeCtx,
             e.fulltextAnalyzerResolver(),
-            oidSupplier::incrementAndGet,
             List.of(pointY),
             new IntArrayList(),
             Map.of());
@@ -550,7 +545,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             table.addColumns(
                 e.nodeCtx,
                 e.fulltextAnalyzerResolver(),
-                () -> 2,
                 List.of(ox),
                 new IntArrayList(),
                 Map.of())
@@ -587,7 +581,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo newTable = table.addColumns(
             e.nodeCtx,
             e.fulltextAnalyzerResolver(),
-            () -> 10, // any oid
             List.of(newReference1, newReference2, newReference3),
             new IntArrayList(),
             Map.of()
@@ -632,7 +625,6 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThatThrownBy(() -> table.addColumns(
             e.nodeCtx,
             e.fulltextAnalyzerResolver(),
-            () -> 1,
             List.of(a, b, c),
             new IntArrayList(),
             Map.of()
@@ -821,5 +813,27 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(table.isIgnoredOrImmediateChildOfIgnored(unknown2)).isTrue(); // child of o
         assertThat(table.isIgnoredOrImmediateChildOfIgnored(unknown3)).isFalse(); // child of o2
+    }
+
+    public void test_tables_use_their_own_oids() throws IOException {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("""
+                create table tbl1 (
+                    o1 object as (a1 int)
+                )
+                """)
+            .addTable("""
+                create table tbl2 (
+                    o2 object as (a2 int)
+                )
+                """);
+
+        DocTableInfo table1 = e.resolveTableInfo("tbl1");
+        DocTableInfo table2 = e.resolveTableInfo("tbl2");
+        // 2 tables with similar schemas have same max oids
+        assertThat(table1.maxOid()).isEqualTo(2L);
+        assertThat(table2.maxOid()).isEqualTo(2L);
+
+
     }
 }
