@@ -57,6 +57,7 @@ public class SysNodesTableInfo {
     private static final String SYS_COL_VERSION = "version";
     private static final String SYS_COL_THREAD_POOLS = "thread_pools";
     private static final String SYS_COL_NETWORK = "network";
+    private static final String SYS_COL_CONNECTIONS = "connections";
     private static final String SYS_COL_OS = "os";
     private static final String SYS_COL_OS_INFO = "os_info";
     private static final String SYS_COL_PROCESS = "process";
@@ -68,59 +69,46 @@ public class SysNodesTableInfo {
         public static final ColumnIdent HOSTNAME = ColumnIdent.of(SYS_COL_HOSTNAME);
         public static final ColumnIdent REST_URL = ColumnIdent.of(SYS_COL_REST_URL);
         public static final ColumnIdent ATTRIBUTES = ColumnIdent.of(SYS_COL_ATTRIBUTES);
-
         public static final ColumnIdent PORT = ColumnIdent.of(SYS_COL_PORT);
         public static final ColumnIdent CLUSTER_STATE_VERSION = ColumnIdent.of(SYS_COL_CLUSTER_STATE_VERSION);
-
         public static final ColumnIdent LOAD = ColumnIdent.of(SYS_COL_LOAD);
-
         public static final ColumnIdent MEM = ColumnIdent.of(SYS_COL_MEM);
-
         public static final ColumnIdent HEAP = ColumnIdent.of(SYS_COL_HEAP);
-
         public static final ColumnIdent VERSION = ColumnIdent.of(SYS_COL_VERSION);
-
         public static final ColumnIdent THREAD_POOLS = ColumnIdent.of(SYS_COL_THREAD_POOLS);
-
         public static final ColumnIdent NETWORK = ColumnIdent.of(SYS_COL_NETWORK);
-
-        public static final ColumnIdent CONNECTIONS = ColumnIdent.of("connections");
-
+        public static final ColumnIdent CONNECTIONS = ColumnIdent.of(SYS_COL_CONNECTIONS);
         public static final ColumnIdent OS = ColumnIdent.of(SYS_COL_OS);
-
         public static final ColumnIdent OS_INFO = ColumnIdent.of(SYS_COL_OS_INFO);
-
         public static final ColumnIdent PROCESS = ColumnIdent.of(SYS_COL_PROCESS);
-
         public static final ColumnIdent FS = ColumnIdent.of(SYS_COL_FS);
     }
 
-
     public static SystemTable<NodeStatsContext> INSTANCE = SystemTable.<NodeStatsContext>builder(IDENT)
-        .add("id", STRING, NodeStatsContext::id)
-        .add("name", STRING, NodeStatsContext::name)
-        .add("hostname", STRING, NodeStatsContext::hostname)
-        .add("rest_url", STRING, NodeStatsContext::restUrl)
-        .addDynamicObject("attributes", STRING, NodeStatsContext::attributes)
-        .startObject("port")
+        .add(SYS_COL_ID, STRING, NodeStatsContext::id)
+        .add(SYS_COL_NODE_NAME, STRING, NodeStatsContext::name)
+        .add(SYS_COL_HOSTNAME, STRING, NodeStatsContext::hostname)
+        .add(SYS_COL_REST_URL, STRING, NodeStatsContext::restUrl)
+        .addDynamicObject(SYS_COL_ATTRIBUTES, STRING, NodeStatsContext::attributes)
+        .startObject(SYS_COL_PORT)
             .add("http", INTEGER, NodeStatsContext::httpPort)
             .add("transport", INTEGER, NodeStatsContext::transportPort)
             .add("psql", INTEGER, NodeStatsContext::pgPort)
         .endObject()
-        .startObject("load")
+        .startObject(SYS_COL_LOAD)
             .add("1", DOUBLE, x -> x.extendedOsStats().loadAverage()[0])
             .add("5", DOUBLE, x -> x.extendedOsStats().loadAverage()[1])
             .add("15", DOUBLE, x -> x.extendedOsStats().loadAverage()[2])
             .add("probe_timestamp", TIMESTAMPZ, x -> x.extendedOsStats().timestamp())
         .endObject()
-        .startObject("mem")
+        .startObject(SYS_COL_MEM)
             .add("free", LONG, x -> x.osStats().getMem().getFree().getBytes())
             .add("used", LONG, x -> x.osStats().getMem().getUsed().getBytes())
             .add("free_percent", SHORT, x -> x.osStats().getMem().getFreePercent())
             .add("used_percent", SHORT, x -> x.osStats().getMem().getUsedPercent())
             .add("probe_timestamp", TIMESTAMPZ, x -> x.osStats().getTimestamp())
         .endObject()
-        .startObject("heap")
+        .startObject(SYS_COL_HEAP)
             .add("free", LONG, x -> {
                 JvmStats.Mem mem = x.jvmStats().getMem();
                 return mem.getHeapMax().getBytes() - mem.getHeapUsed().getBytes();
@@ -129,15 +117,15 @@ public class SysNodesTableInfo {
             .add("max", LONG, x -> x.jvmStats().getMem().getHeapMax().getBytes())
             .add("probe_timestamp", TIMESTAMPZ, x -> x.jvmStats().getTimestamp())
         .endObject()
-        .startObject("version")
+        .startObject(SYS_COL_VERSION)
             .add("number", STRING, x -> x.version().externalNumber())
             .add("build_hash", STRING, x -> x.build().hash())
             .add("build_snapshot", DataTypes.BOOLEAN, x -> x.version().isSnapshot())
-            .add("minimum_index_compatibility_version", STRING, x -> Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber())
-            .add("minimum_wire_compatibility_version", STRING, x -> Version.CURRENT.minimumCompatibilityVersion().externalNumber())
+            .add("minimum_index_compatibility_version", STRING, _ -> Version.CURRENT.minimumIndexCompatibilityVersion().externalNumber())
+            .add("minimum_wire_compatibility_version", STRING, _ -> Version.CURRENT.minimumCompatibilityVersion().externalNumber())
         .endObject()
-        .add("cluster_state_version", LONG, NodeStatsContext::clusterStateVersion)
-        .startObjectArray("thread_pools", NodeStatsContext::threadPools)
+        .add(SYS_COL_CLUSTER_STATE_VERSION, LONG, NodeStatsContext::clusterStateVersion)
+        .startObjectArray(SYS_COL_THREAD_POOLS, NodeStatsContext::threadPools)
             .add("name", STRING, ThreadPoolStats.Stats::name)
             .add("active", INTEGER, ThreadPoolStats.Stats::active)
             .add("rejected", LONG, ThreadPoolStats.Stats::rejected)
@@ -146,7 +134,7 @@ public class SysNodesTableInfo {
             .add("threads", INTEGER, ThreadPoolStats.Stats::threads)
             .add("queue", INTEGER, ThreadPoolStats.Stats::queue)
         .endObjectArray()
-        .startObject("connections")
+        .startObject(SYS_COL_CONNECTIONS)
             .startObject("http")
                 .add("open", LONG, x -> x.httpStats().open())
                 .add("total", LONG, x -> x.httpStats().total())
@@ -160,14 +148,14 @@ public class SysNodesTableInfo {
                 .add("total", LONG, x -> x.transportStats().total())
             .endObject()
         .endObject()
-        .startObject("os")
+        .startObject(SYS_COL_OS)
             .add("uptime", LONG, x -> x.extendedOsStats().uptime().millis())
             .add("timestamp", TIMESTAMPZ, NodeStatsContext::timestamp)
             .add("probe_timestamp", TIMESTAMPZ, x -> x.extendedOsStats().timestamp())
             .startObject("cpu")
-                .add("used", SHORT, x -> (short) -1)
-                .add("system", SHORT, x -> (short) - 1)
-                .add("user", SHORT, x -> (short) -1)
+                .add("used", SHORT, _ -> (short) -1)
+                .add("system", SHORT, _ -> (short) - 1)
+                .add("user", SHORT, _ -> (short) -1)
             .endObject()
             .startObject("cgroup")
                 .startObject("cpuacct")
@@ -192,7 +180,7 @@ public class SysNodesTableInfo {
                 .endObject()
             .endObject()
         .endObject()
-        .startObject("os_info")
+        .startObject(SYS_COL_OS_INFO)
             .add("available_processors", INTEGER, x -> x.osInfo().getAvailableProcessors())
             .add("name", STRING, NodeStatsContext::osName)
             .add("arch", STRING, NodeStatsContext::osArch)
@@ -204,7 +192,7 @@ public class SysNodesTableInfo {
                 .add("vm_version", STRING, NodeStatsContext::jvmVersion)
             .endObject()
         .endObject()
-        .startObject("process")
+        .startObject(SYS_COL_PROCESS)
             .add("open_file_descriptors", LONG, x -> x.processStats().getOpenFileDescriptors())
             .add("max_open_file_descriptors", LONG, x -> x.processStats().getMaxFileDescriptors())
             .add("probe_timestamp", TIMESTAMPZ, x -> x.processStats().getTimestamp())
@@ -212,7 +200,7 @@ public class SysNodesTableInfo {
                 .add("percent", SHORT, x -> x.processStats().getCpu().getPercent())
             .endObject()
         .endObject()
-        .startObject("fs")
+        .startObject(SYS_COL_FS)
             .startObject("total")
                 .add("size", LONG, x -> FsInfoHelpers.Path.size(x.fsInfo().getTotal()))
                 .add("used", LONG, x -> FsInfoHelpers.Path.used(x.fsInfo().getTotal()))
@@ -233,6 +221,6 @@ public class SysNodesTableInfo {
                 .add("path", STRING, FsInfo.Path::getPath)
             .endObjectArray()
         .endObject()
-        .setPrimaryKeys(ColumnIdent.of("id"))
+        .setPrimaryKeys(Columns.ID)
         .build();
 }
