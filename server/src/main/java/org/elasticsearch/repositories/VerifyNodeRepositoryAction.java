@@ -76,7 +76,7 @@ public class VerifyNodeRepositoryAction {
             if (readOnly && node.getVersion().before(Version.V_4_2_0)) {
                 continue;
             }
-            if (RepositoriesService.isDedicatedVotingOnlyNode(node.getRoles()) == false) {
+            if (RepositoriesService.isDedicatedVotingOnlyNode(node.roles()) == false) {
                 nodes.add(node);
             }
         }
