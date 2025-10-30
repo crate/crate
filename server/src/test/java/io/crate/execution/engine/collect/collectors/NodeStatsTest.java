@@ -108,6 +108,7 @@ public class NodeStatsTest extends ESTestCase {
         when(collectPhase.where()).thenReturn(Literal.BOOLEAN_FALSE);
 
         nodes = DiscoveryNodes.builder()
+            .masterNodeId("nodeTwo")
             .add(newNode("nodeOne"))
             .add(newNode("nodeTwo"))
             .build();

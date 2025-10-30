@@ -21,11 +21,13 @@
 
 package io.crate.metadata.sys;
 
+import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.DOUBLE;
 import static io.crate.types.DataTypes.INTEGER;
 import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.SHORT;
 import static io.crate.types.DataTypes.STRING;
+import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.TIMESTAMPZ;
 
 import org.elasticsearch.Version;
@@ -46,6 +48,8 @@ public class SysNodesTableInfo {
 
     private static final String SYS_COL_ID = "id";
     private static final String SYS_COL_NODE_NAME = "name";
+    private static final String SYS_COL_ROLES = "roles";
+    private static final String SYS_COL_IS_MASTER = "is_master";
     private static final String SYS_COL_HOSTNAME = "hostname";
     private static final String SYS_COL_REST_URL = "rest_url";
     private static final String SYS_COL_ATTRIBUTES = "attributes";
@@ -66,6 +70,8 @@ public class SysNodesTableInfo {
     public static class Columns {
         public static final ColumnIdent ID = ColumnIdent.of(SYS_COL_ID);
         public static final ColumnIdent NAME = ColumnIdent.of(SYS_COL_NODE_NAME);
+        public static final ColumnIdent ROLES = ColumnIdent.of(SYS_COL_ROLES);
+        public static final ColumnIdent IS_MASTER = ColumnIdent.of(SYS_COL_IS_MASTER);
         public static final ColumnIdent HOSTNAME = ColumnIdent.of(SYS_COL_HOSTNAME);
         public static final ColumnIdent REST_URL = ColumnIdent.of(SYS_COL_REST_URL);
         public static final ColumnIdent ATTRIBUTES = ColumnIdent.of(SYS_COL_ATTRIBUTES);
@@ -87,6 +93,8 @@ public class SysNodesTableInfo {
     public static SystemTable<NodeStatsContext> INSTANCE = SystemTable.<NodeStatsContext>builder(IDENT)
         .add(SYS_COL_ID, STRING, NodeStatsContext::id)
         .add(SYS_COL_NODE_NAME, STRING, NodeStatsContext::name)
+        .add(SYS_COL_ROLES, STRING_ARRAY, NodeStatsContext::roles)
+        .add(SYS_COL_IS_MASTER, BOOLEAN, NodeStatsContext::isMaster)
         .add(SYS_COL_HOSTNAME, STRING, NodeStatsContext::hostname)
         .add(SYS_COL_REST_URL, STRING, NodeStatsContext::restUrl)
         .addDynamicObject(SYS_COL_ATTRIBUTES, STRING, NodeStatsContext::attributes)

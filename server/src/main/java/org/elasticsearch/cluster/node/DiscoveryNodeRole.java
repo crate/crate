@@ -19,11 +19,11 @@
 
 package org.elasticsearch.cluster.node;
 
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.node.Node;
-
 import java.util.Objects;
 import java.util.Set;
+
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.node.Node;
 
 /**
  * Represents a node role.
@@ -109,7 +109,6 @@ public abstract sealed class DiscoveryNodeRole permits
             assert false;
             return Setting.boolSetting("node. " + roleName(), false, Setting.Property.NodeScope);
         }
-
     }
 
     private static final class DataRole extends DiscoveryNodeRole {

@@ -108,12 +108,17 @@ public class NodeStatsCollectSource implements CollectSource {
             referenceResolver,
             null
         );
+        String masterNodeId = nodes.getMasterNodeId();
         DiscoveryNodes.Builder newNodes = DiscoveryNodes.builder()
-            .masterNodeId(nodes.getMasterNodeId())
+            .masterNodeId(masterNodeId)
             .localNodeId(nodes.getLocalNodeId());
         for (DiscoveryNode node : nodes) {
             String nodeId = node.getId();
-            NodeStatsContext statsContext = new NodeStatsContext(nodeId, node.getName());
+            NodeStatsContext statsContext = new NodeStatsContext(
+                nodeId,
+                node.getName(),
+                masterNodeId,
+                node.roles());
             nameExpr.setNextRow(statsContext);
             idExpr.setNextRow(statsContext);
             Symbol normalized = normalizer.normalize(predicate, CoordinatorTxnCtx.systemTransactionContext());

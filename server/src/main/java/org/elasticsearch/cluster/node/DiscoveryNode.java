@@ -407,7 +407,7 @@ public class DiscoveryNode implements Writeable {
 
     // This is initialized to the proper value via #setPossibleRoles in the Node constructor.
     // It is set here to a non-null default value to avoid NPEs if DiscoveryNode is used in unit tests
-    private static Map<String, DiscoveryNodeRole> roleNameToPossibleRoles = DiscoveryNodeRole.BUILT_IN_ROLES.stream()
+    public static Map<String, DiscoveryNodeRole> roleNameToPossibleRoles = DiscoveryNodeRole.BUILT_IN_ROLES.stream()
         .collect(Collectors.toUnmodifiableMap(DiscoveryNodeRole::roleName, Function.identity()));
 
     public static void setPossibleRoles(final Set<DiscoveryNodeRole> possibleRoles) {

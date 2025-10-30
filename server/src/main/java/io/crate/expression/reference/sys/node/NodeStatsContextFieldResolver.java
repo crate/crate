@@ -31,6 +31,7 @@ import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.Locale;
 import java.util.Map;
+import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.LongSupplier;
 import java.util.function.Supplier;
@@ -68,6 +69,7 @@ public class NodeStatsContextFieldResolver {
 
     private static final Logger LOGGER = LogManager.getLogger(NodeStatsContextFieldResolver.class);
     private final Supplier<DiscoveryNode> localNode;
+    private final BooleanSupplier isMaster;
     private final Supplier<TransportAddress> boundHttpAddress;
     private final Supplier<ConnectionStats> httpStats;
     private final ThreadPool threadPool;
@@ -91,6 +93,7 @@ public class NodeStatsContextFieldResolver {
                                          ExtendedNodeInfo extendedNodeInfo,
                                          PostgresNetty postgresNetty) {
         this(
+            () -> clusterService.state().nodes().isLocalNodeElectedMaster(),
             clusterService::localNode,
             nodeService.getMonitorService(),
             () -> httpServerTransport == null ? null : httpServerTransport.boundAddress().publishAddress(),
@@ -111,7 +114,8 @@ public class NodeStatsContextFieldResolver {
     }
 
     @VisibleForTesting
-    NodeStatsContextFieldResolver(Supplier<DiscoveryNode> localNode,
+    NodeStatsContextFieldResolver(BooleanSupplier isMaster,
+                                  Supplier<DiscoveryNode> localNode,
                                   MonitorService monitorService,
                                   Supplier<TransportAddress> boundHttpAddress,
                                   Supplier<ConnectionStats> httpStats,
@@ -121,6 +125,7 @@ public class NodeStatsContextFieldResolver {
                                   Supplier<TransportAddress> boundPostgresAddress,
                                   Supplier<ConnectionStats> transportStats,
                                   LongSupplier clusterStateVersion) {
+        this.isMaster = isMaster;
         this.localNode = localNode;
         processService = monitorService.processService();
         osService = monitorService.osService();
@@ -169,6 +174,19 @@ public class NodeStatsContextFieldResolver {
             @Override
             public void accept(NodeStatsContext context) {
                 context.name(localNode.get().getName());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.ROLES, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                DiscoveryNode discoveryNode = localNode.get();
+                context.roles(discoveryNode.roles());
+            }
+        }),
+        entry(SysNodesTableInfo.Columns.IS_MASTER, new Consumer<>() {
+            @Override
+            public void accept(NodeStatsContext context) {
+                context.isMaster(isMaster.getAsBoolean());
             }
         }),
         entry(SysNodesTableInfo.Columns.HOSTNAME, context -> {

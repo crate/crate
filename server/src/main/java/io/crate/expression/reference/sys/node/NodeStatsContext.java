@@ -22,11 +22,17 @@
 package io.crate.expression.reference.sys.node;
 
 import java.io.IOException;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -48,6 +54,8 @@ public class NodeStatsContext implements Writeable {
 
     private String id;
     private String name;
+    private Set<DiscoveryNodeRole> roles = Set.of();
+    private boolean isMaster;
     private String hostname;
     private long timestamp;
     private Version version;
@@ -78,10 +86,13 @@ public class NodeStatsContext implements Writeable {
     private Integer httpPort;
     private Integer pgPort;
 
-    public NodeStatsContext(String id, String name) {
+
+    public NodeStatsContext(String id, String name, String masterNodeId, Set<DiscoveryNodeRole> roles) {
         this(false);
         this.id = id;
         this.name = name;
+        this.isMaster = id.equals(masterNodeId);
+        this.roles = roles;
     }
 
     public NodeStatsContext(boolean complete) {
@@ -109,6 +120,17 @@ public class NodeStatsContext implements Writeable {
 
     public String name() {
         return name;
+    }
+
+    public List<String> roles() {
+        return roles.stream()
+            .map(role -> role.roleName().equals("master") ? "master_eligible" : role.roleName())
+            .sorted()
+            .toList();
+    }
+
+    public boolean isMaster() {
+        return isMaster;
     }
 
     public String hostname() {
@@ -227,6 +249,14 @@ public class NodeStatsContext implements Writeable {
         this.name = name;
     }
 
+    public void roles(Set<DiscoveryNodeRole> roles) {
+        this.roles = roles;
+    }
+
+    public void isMaster(boolean isMaster) {
+        this.isMaster = isMaster;
+    }
+
     public void hostname(String hostname) {
         this.hostname = hostname;
     }
@@ -311,6 +341,27 @@ public class NodeStatsContext implements Writeable {
         this.complete = complete;
         this.id = DataTypes.STRING.readValueFrom(in);
         this.name = DataTypes.STRING.readValueFrom(in);
+
+        Set<DiscoveryNodeRole> rolesFromStream = Set.of();
+        if (in.getVersion().onOrAfter(Version.V_6_2_0)) {
+            this.isMaster = in.readBoolean();
+            int rolesSize = in.readVInt();
+            rolesFromStream = new HashSet<>(rolesSize);
+            for (int i = 0; i < rolesSize; i++) {
+                final String roleName = in.readString();
+                final String roleNameAbbreviation = in.readString();
+                final DiscoveryNodeRole role = DiscoveryNode.roleNameToPossibleRoles.get(roleName);
+                if (role == null) {
+                    rolesFromStream.add(new DiscoveryNodeRole.UnknownRole(roleName, roleNameAbbreviation));
+                } else {
+                    assert roleName.equals(role.roleName()) : "role name [" + roleName + "] does not match role [" + role.roleName() + "]";
+                    assert roleNameAbbreviation.equals(role.roleNameAbbreviation())
+                        : "role name abbreviation [" + roleName + "] does not match role [" + role.roleNameAbbreviation() + "]";
+                    rolesFromStream.add(role);
+                }
+            }
+        }
+        this.roles = Collections.unmodifiableSet(rolesFromStream);
         this.hostname = DataTypes.STRING.readValueFrom(in);
         this.timestamp = in.readLong();
         this.version = in.readBoolean() ? Version.readVersion(in) : null;
@@ -363,6 +414,14 @@ public class NodeStatsContext implements Writeable {
     public void writeTo(StreamOutput out) throws IOException {
         DataTypes.STRING.writeValueTo(out, id);
         DataTypes.STRING.writeValueTo(out, name);
+        if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
+            out.writeBoolean(isMaster);
+            out.writeVInt(roles.size());
+            for (final DiscoveryNodeRole role : roles) {
+                out.writeString(role.roleName());
+                out.writeString(role.roleNameAbbreviation());
+            }
+        }
         DataTypes.STRING.writeValueTo(out, hostname);
         out.writeLong(timestamp);
         out.writeBoolean(version != null);
@@ -425,3 +484,4 @@ public class NodeStatsContext implements Writeable {
         DataTypes.STRING.writeValueTo(out, jvmVersion);
     }
 }
+
