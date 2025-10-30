@@ -32,13 +32,11 @@ import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -69,11 +67,11 @@ import io.crate.types.DataTypes;
 
 public class NodeStatsTest extends ESTestCase {
 
+    private final TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
     private RoutedCollectPhase collectPhase;
-    private Collection<DiscoveryNode> nodes = new HashSet<>();
+    private DiscoveryNodes nodes;
     private TransportNodeStatsAction nodeStatsAction;
     private ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatesExecutor;
-    private TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
 
     private Reference idRef;
     private Reference nameRef;
@@ -109,8 +107,10 @@ public class NodeStatsTest extends ESTestCase {
         collectPhase = mock(RoutedCollectPhase.class);
         when(collectPhase.where()).thenReturn(Literal.BOOLEAN_FALSE);
 
-        nodes.add(newNode("nodeOne"));
-        nodes.add(newNode("nodeTwo"));
+        nodes = DiscoveryNodes.builder()
+            .add(newNode("nodeOne"))
+            .add(newNode("nodeTwo"))
+            .build();
         nodeCtx = createNodeContext();
     }
 
@@ -171,7 +171,6 @@ public class NodeStatsTest extends ESTestCase {
 
         ArgumentCaptor<NodeStatsRequest> req = ArgumentCaptor.forClass(NodeStatsRequest.class);
         // Hostnames needs to be collected so requests need to be performed
-        //noinspection unchecked
         verify(nodeStatsAction, times(2)).execute(req.capture());
         var capturedReq1 = req.getAllValues().get(0);
         var capturedReq2 = req.getAllValues().get(1);

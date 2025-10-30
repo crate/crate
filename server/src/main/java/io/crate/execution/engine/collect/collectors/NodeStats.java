@@ -22,7 +22,6 @@
 package io.crate.execution.engine.collect.collectors;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
@@ -33,6 +32,7 @@ import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.transport.ConnectTransportException;
 import org.elasticsearch.transport.ReceiveTimeoutTransportException;
 
@@ -67,13 +67,13 @@ public final class NodeStats {
 
     public static BatchIterator<Row> newInstance(ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatesAction,
                                                  RoutedCollectPhase collectPhase,
-                                                 Collection<DiscoveryNode> nodes,
+                                                 DiscoveryNodes nodes,
                                                  TransactionContext txnCtx,
                                                  InputFactory inputFactory) {
 
         return CollectingBatchIterator.newInstance(
             () -> {},
-            t -> {},
+            _ -> {},
             new LoadNodeStats(
                 nodeStatesAction,
                 collectPhase,
@@ -90,14 +90,14 @@ public final class NodeStats {
         private static final TimeValue REQUEST_TIMEOUT = TimeValue.timeValueMillis(3000L);
         private final ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatsAction;
         private final RoutedCollectPhase collectPhase;
-        private final Collection<DiscoveryNode> nodes;
+        private final DiscoveryNodes nodes;
         private final TransactionContext txnCtx;
         private final InputFactory inputFactory;
         private final Map<ColumnIdent, RowCollectExpressionFactory<NodeStatsContext>> expressions;
 
         LoadNodeStats(ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatsAction,
                       RoutedCollectPhase collectPhase,
-                      Collection<DiscoveryNode> nodes,
+                      DiscoveryNodes nodes,
                       TransactionContext txnCtx,
                       InputFactory inputFactory) {
             this.nodeStatsAction = nodeStatsAction;
@@ -125,7 +125,7 @@ public final class NodeStats {
         }
 
         private CompletableFuture<List<NodeStatsContext>> getStatsFromLocalState() {
-            List<NodeStatsContext> rows = new ArrayList<>(nodes.size());
+            List<NodeStatsContext> rows = new ArrayList<>(nodes.getSize());
             for (DiscoveryNode node : nodes) {
                 rows.add(new NodeStatsContext(node.getId(), node.getName()));
             }
@@ -135,7 +135,7 @@ public final class NodeStats {
         private CompletableFuture<List<NodeStatsContext>> getStatsFromRemote(Set<ColumnIdent> toCollect) {
             FutureActionListener<List<NodeStatsContext>> listener = new FutureActionListener<>();
             MultiActionListener<NodeStatsContext, Object, List<NodeStatsContext>> multiListener
-                = new MultiActionListener<>(nodes.size(), Collectors.toList(), listener);
+                = new MultiActionListener<>(nodes.getSize(), Collectors.toList(), listener);
             for (final DiscoveryNode node : nodes) {
                 final String nodeId = node.getId();
                 NodeStatsRequest request = new NodeStatsRequest(nodeId, REQUEST_TIMEOUT, toCollect);
