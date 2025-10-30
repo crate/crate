@@ -67,6 +67,7 @@ public class NodeStatsContextFieldResolverTest {
 
         postgresAddress = new TransportAddress(Inet4Address.getLocalHost(), 5432);
         resolver = new NodeStatsContextFieldResolver(
+            () -> true,
             () -> discoveryNode,
             monitorService,
             () -> null,
