@@ -23,7 +23,6 @@ package io.crate.expression.reference.sys.node;
 
 import java.io.IOException;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -31,7 +30,6 @@ import java.util.Set;
 import org.apache.lucene.util.Constants;
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -342,26 +340,10 @@ public class NodeStatsContext implements Writeable {
         this.id = DataTypes.STRING.readValueFrom(in);
         this.name = DataTypes.STRING.readValueFrom(in);
 
-        Set<DiscoveryNodeRole> rolesFromStream = Set.of();
         if (in.getVersion().onOrAfter(Version.V_6_2_0)) {
             this.isMaster = in.readBoolean();
-            int rolesSize = in.readVInt();
-            rolesFromStream = new HashSet<>(rolesSize);
-            for (int i = 0; i < rolesSize; i++) {
-                final String roleName = in.readString();
-                final String roleNameAbbreviation = in.readString();
-                final DiscoveryNodeRole role = DiscoveryNode.roleNameToPossibleRoles.get(roleName);
-                if (role == null) {
-                    rolesFromStream.add(new DiscoveryNodeRole.UnknownRole(roleName, roleNameAbbreviation));
-                } else {
-                    assert roleName.equals(role.roleName()) : "role name [" + roleName + "] does not match role [" + role.roleName() + "]";
-                    assert roleNameAbbreviation.equals(role.roleNameAbbreviation())
-                        : "role name abbreviation [" + roleName + "] does not match role [" + role.roleNameAbbreviation() + "]";
-                    rolesFromStream.add(role);
-                }
-            }
+            this.roles = Collections.unmodifiableSet(in.readSet(DiscoveryNodeRole::fromStream));
         }
-        this.roles = Collections.unmodifiableSet(rolesFromStream);
         this.hostname = DataTypes.STRING.readValueFrom(in);
         this.timestamp = in.readLong();
         this.version = in.readBoolean() ? Version.readVersion(in) : null;
@@ -416,11 +398,7 @@ public class NodeStatsContext implements Writeable {
         DataTypes.STRING.writeValueTo(out, name);
         if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
             out.writeBoolean(isMaster);
-            out.writeVInt(roles.size());
-            for (final DiscoveryNodeRole role : roles) {
-                out.writeString(role.roleName());
-                out.writeString(role.roleNameAbbreviation());
-            }
+            out.writeCollection(roles);
         }
         DataTypes.STRING.writeValueTo(out, hostname);
         out.writeLong(timestamp);
