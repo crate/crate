@@ -19,16 +19,20 @@
 
 package org.elasticsearch.cluster.node;
 
+import java.io.IOException;
 import java.util.Objects;
 import java.util.Set;
 
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.node.Node;
 
 /**
  * Represents a node role.
  */
-public abstract sealed class DiscoveryNodeRole permits
+public abstract sealed class DiscoveryNodeRole implements Writeable permits
     DiscoveryNodeRole.MasterEligibleRole,
     DiscoveryNodeRole.DataRole,
     DiscoveryNodeRole.UnknownRole {
@@ -59,6 +63,26 @@ public abstract sealed class DiscoveryNodeRole permits
     protected DiscoveryNodeRole(final String roleName, final String roleNameAbbreviation) {
         this.roleName = Objects.requireNonNull(roleName);
         this.roleNameAbbreviation = Objects.requireNonNull(roleNameAbbreviation);
+    }
+
+    public static DiscoveryNodeRole fromStream(StreamInput in) throws IOException {
+        final String roleName = in.readString();
+        final String roleNameAbbreviation = in.readString();
+        final DiscoveryNodeRole role = DiscoveryNode.roleNameToPossibleRoles.get(roleName);
+        if (role == null) {
+            return new DiscoveryNodeRole.UnknownRole(roleName, roleNameAbbreviation);
+        } else {
+            assert roleName.equals(role.roleName()) : "role name [" + roleName + "] does not match role [" + role.roleName() + "]";
+            assert roleNameAbbreviation.equals(role.roleNameAbbreviation())
+                : "role name abbreviation [" + roleName + "] does not match role [" + role.roleNameAbbreviation() + "]";
+            return role;
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeString(roleName);
+        out.writeString(roleNameAbbreviation);
     }
 
     protected abstract Setting<Boolean> roleSetting();
