@@ -100,6 +100,10 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
         return localNodeId.equals(masterNodeId);
     }
 
+    public boolean isEmpty() {
+        return nodes.isEmpty();
+    }
+
     /**
      * Get the number of known nodes
      *
@@ -514,7 +518,7 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
                 summary.append("]}");
             }
             if (removed()) {
-                if (summary.length() > 0) {
+                if (!summary.isEmpty()) {
                     summary.append(", ");
                 }
                 summary.append("removed {");
@@ -526,7 +530,7 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
             if (added()) {
                 // don't print if there is one added, and it is us
                 if (!(addedNodes().size() == 1 && addedNodes().get(0).getId().equals(localNodeId))) {
-                    if (summary.length() > 0) {
+                    if (!summary.isEmpty()) {
                         summary.append(", ");
                     }
                     summary.append("added {");
