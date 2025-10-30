@@ -28,7 +28,10 @@ import java.util.Set;
 /**
  * Represents a node role.
  */
-public abstract class DiscoveryNodeRole {
+public abstract sealed class DiscoveryNodeRole permits
+    DiscoveryNodeRole.MasterEligibleRole,
+    DiscoveryNodeRole.DataRole,
+    DiscoveryNodeRole.UnknownRole {
 
     private final String roleName;
 
@@ -71,27 +74,13 @@ public abstract class DiscoveryNodeRole {
     /**
      * Represents the role for a data node.
      */
-    public static final DiscoveryNodeRole DATA_ROLE = new DiscoveryNodeRole("data", "d") {
-
-        @Override
-        protected Setting<Boolean> roleSetting() {
-            return Node.NODE_DATA_SETTING;
-        }
-
-    };
+    public static final DiscoveryNodeRole DATA_ROLE = new DataRole();
 
 
     /**
      * Represents the role for a master-eligible node.
      */
-    public static final DiscoveryNodeRole MASTER_ROLE = new DiscoveryNodeRole("master", "m") {
-
-        @Override
-        protected Setting<Boolean> roleSetting() {
-            return Node.NODE_MASTER_SETTING;
-        }
-
-    };
+    public static final DiscoveryNodeRole MASTER_ROLE = new MasterEligibleRole();
 
     /**
      * The built-in node roles.
@@ -102,7 +91,7 @@ public abstract class DiscoveryNodeRole {
      * Represents an unknown role. This can occur if a newer version adds a role that an older version does not know about, or a newer
      * version removes a role that an older version knows about.
      */
-    static class UnknownRole extends DiscoveryNodeRole {
+    public static final class UnknownRole extends DiscoveryNodeRole {
 
         /**
          * Construct an unknown role with the specified role name and role name abbreviation.
@@ -110,7 +99,7 @@ public abstract class DiscoveryNodeRole {
          * @param roleName             the role name
          * @param roleNameAbbreviation the role name abbreviation
          */
-        UnknownRole(final String roleName, final String roleNameAbbreviation) {
+        public UnknownRole(final String roleName, final String roleNameAbbreviation) {
             super(roleName, roleNameAbbreviation);
         }
 
@@ -121,5 +110,29 @@ public abstract class DiscoveryNodeRole {
             return Setting.boolSetting("node. " + roleName(), false, Setting.Property.NodeScope);
         }
 
+    }
+
+    private static final class DataRole extends DiscoveryNodeRole {
+
+        public DataRole() {
+            super("data", "d");
+        }
+
+        @Override
+        protected Setting<Boolean> roleSetting() {
+            return Node.NODE_DATA_SETTING;
+        }
+    }
+
+    private static final class MasterEligibleRole extends DiscoveryNodeRole {
+
+        public MasterEligibleRole() {
+            super("master", "m");
+        }
+
+        @Override
+        protected Setting<Boolean> roleSetting() {
+            return Node.NODE_MASTER_SETTING;
+        }
     }
 }

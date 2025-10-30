@@ -37,7 +37,6 @@ import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.test.ESTestCase;
 
@@ -62,7 +61,7 @@ public class DiscoveryNodesTests extends ESTestCase {
             assertThat(matchingNodeIds).hasSize(1);
             assertThat(resolvedNode.getId()).isEqualTo(matchingNodeIds.iterator().next());
         } catch (IllegalArgumentException e) {
-            if (matchingNodeIds.size() == 0) {
+            if (matchingNodeIds.isEmpty()) {
                 assertThat(e.getMessage()).isEqualTo("failed to resolve [" + nodeSelector.selector + "], no matching nodes");
             } else if (matchingNodeIds.size() > 1) {
                 assertThat(e.getMessage()).contains("where expected to be resolved to a single node");
@@ -78,7 +77,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         final String[] allNodes =
                 StreamSupport.stream(discoveryNodes.spliterator(), false).map(DiscoveryNode::getId).toArray(String[]::new);
         assertThat(discoveryNodes.resolveNodes()).containsExactlyInAnyOrder(allNodes);
-        assertThat(discoveryNodes.resolveNodes(new String[0])).containsExactlyInAnyOrder(allNodes);
+        assertThat(discoveryNodes.resolveNodes()).containsExactlyInAnyOrder(allNodes);
         assertThat(discoveryNodes.resolveNodes("_all")).containsExactlyInAnyOrder(allNodes);
 
         final String[] nonMasterNodes =
@@ -142,9 +141,9 @@ public class DiscoveryNodesTests extends ESTestCase {
             expectedNodeIdsSet.add(discoveryNode.getId());
         }
 
-        String[] resolvedNodesIds = discoveryNodes.resolveNodes(nodeSelectors.toArray(new String[nodeSelectors.size()]));
+        String[] resolvedNodesIds = discoveryNodes.resolveNodes(nodeSelectors.toArray(new String[0]));
         Arrays.sort(resolvedNodesIds);
-        String[] expectedNodesIds = expectedNodeIdsSet.toArray(new String[expectedNodeIdsSet.size()]);
+        String[] expectedNodesIds = expectedNodeIdsSet.toArray(new String[0]);
         Arrays.sort(expectedNodesIds);
         assertThat(resolvedNodesIds).isEqualTo(expectedNodesIds);
     }
@@ -157,15 +156,13 @@ public class DiscoveryNodesTests extends ESTestCase {
         assertThat(inputNodes.size()).isEqualTo(returnedNodes.size());
         assertThat(new HashSet<>(inputNodes)).isEqualTo(new HashSet<>(returnedNodes));
         final List<DiscoveryNode> sortedNodes = new ArrayList<>(returnedNodes);
-        Collections.sort(sortedNodes, Comparator.comparing(n -> n.isMasterEligibleNode() == false));
+        sortedNodes.sort(Comparator.comparing(n -> n.isMasterEligibleNode() == false));
         assertThat(returnedNodes).isEqualTo(sortedNodes);
     }
 
     public void testDeltas() {
-        Set<DiscoveryNode> nodesA = new HashSet<>();
-        nodesA.addAll(randomNodes(1 + randomInt(10)));
-        Set<DiscoveryNode> nodesB = new HashSet<>();
-        nodesB.addAll(randomNodes(1 + randomInt(5)));
+        Set<DiscoveryNode> nodesA = new HashSet<>(randomNodes(1 + randomInt(10)));
+        Set<DiscoveryNode> nodesB = new HashSet<>(randomNodes(1 + randomInt(5)));
         for (DiscoveryNode node : randomSubsetOf(nodesA)) {
             if (randomBoolean()) {
                 // change an attribute
@@ -182,13 +179,13 @@ public class DiscoveryNodesTests extends ESTestCase {
         DiscoveryNode masterB = randomBoolean() ? null : RandomPicks.randomFrom(random(), nodesB);
 
         DiscoveryNodes.Builder builderA = DiscoveryNodes.builder();
-        nodesA.stream().forEach(builderA::add);
+        nodesA.forEach(builderA::add);
         final String masterAId = masterA == null ? null : masterA.getId();
         builderA.masterNodeId(masterAId);
         builderA.localNodeId(RandomPicks.randomFrom(random(), nodesA).getId());
 
         DiscoveryNodes.Builder builderB = DiscoveryNodes.builder();
-        nodesB.stream().forEach(builderB::add);
+        nodesB.forEach(builderB::add);
         final String masterBId = masterB == null ? null : masterB.getId();
         builderB.masterNodeId(masterBId);
         builderB.localNodeId(RandomPicks.randomFrom(random(), nodesB).getId());
@@ -230,7 +227,7 @@ public class DiscoveryNodesTests extends ESTestCase {
         assertThat(delta.removedNodes()).hasSize(removedNodes.size());
     }
 
-    private static AtomicInteger idGenerator = new AtomicInteger();
+    private static final AtomicInteger idGenerator = new AtomicInteger();
 
     private static List<DiscoveryNode> randomNodes(final int numNodes) {
         List<DiscoveryNode> nodesList = new ArrayList<>();
@@ -241,12 +238,7 @@ public class DiscoveryNodesTests extends ESTestCase {
             }
             final Set<DiscoveryNodeRole> roles = new HashSet<>(randomSubsetOf(DiscoveryNodeRole.BUILT_IN_ROLES));
             if (frequently()) {
-                roles.add(new DiscoveryNodeRole("custom_role", "cr") {
-                    @Override
-                    protected Setting<Boolean> roleSetting() {
-                        return null;
-                    }
-                });
+                roles.add(new DiscoveryNodeRole.UnknownRole("custom_role", "cr"));
             }
             final DiscoveryNode node = newNode(idGenerator.getAndIncrement(), attributes, roles);
             nodesList.add(node);
