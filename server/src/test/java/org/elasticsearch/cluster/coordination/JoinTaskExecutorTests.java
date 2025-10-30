@@ -111,7 +111,7 @@ public class JoinTaskExecutorTests extends ESTestCase {
         final DiscoveryNode actualNode = new DiscoveryNode(UUIDs.base64UUID(), buildNewFakeTransportAddress(), Version.CURRENT);
         final DiscoveryNode bwcNode = new DiscoveryNode(actualNode.getName(), actualNode.getId(), actualNode.getEphemeralId(),
                 actualNode.getHostName(), actualNode.getHostAddress(), actualNode.getAddress(), actualNode.getAttributes(),
-                new HashSet<>(randomSubsetOf(actualNode.getRoles())), actualNode.getVersion());
+                new HashSet<>(randomSubsetOf(actualNode.roles())), actualNode.getVersion());
         final ClusterState clusterState = ClusterState.builder(ClusterName.DEFAULT).nodes(DiscoveryNodes.builder()
                 .add(masterNode)
                 .localNodeId(masterNode.getId())
@@ -125,6 +125,6 @@ public class JoinTaskExecutorTests extends ESTestCase {
         final ClusterStateTaskExecutor.TaskResult taskResult = result.executionResults.values().iterator().next();
         assertThat(taskResult.isSuccess()).isTrue();
 
-        assertThat(result.resultingState.nodes().get(actualNode.getId()).getRoles()).isEqualTo(actualNode.getRoles());
+        assertThat(result.resultingState.nodes().get(actualNode.getId()).roles()).isEqualTo(actualNode.roles());
     }
 }

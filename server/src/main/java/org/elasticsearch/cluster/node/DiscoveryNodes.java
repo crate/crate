@@ -209,7 +209,7 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
      */
     public boolean nodeExistsWithSameRoles(DiscoveryNode discoveryNode) {
         final DiscoveryNode existing = nodes.get(discoveryNode.getId());
-        return existing != null && existing.equals(discoveryNode) && existing.getRoles().equals(discoveryNode.getRoles());
+        return existing != null && existing.equals(discoveryNode) && existing.roles().equals(discoveryNode.roles());
     }
 
     /**
@@ -384,7 +384,7 @@ public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<Discov
                             }
                         } else {
                             for (DiscoveryNode node : this) {
-                                for (DiscoveryNodeRole role : Sets.difference(node.getRoles(), DiscoveryNodeRole.BUILT_IN_ROLES)) {
+                                for (DiscoveryNodeRole role : Sets.difference(node.roles(), DiscoveryNodeRole.BUILT_IN_ROLES)) {
                                     if (role.roleName().equals(matchAttrName)) {
                                         if (Booleans.parseBoolean(matchAttrValue, true)) {
                                             resolvedNodesIds.add(node.getId());

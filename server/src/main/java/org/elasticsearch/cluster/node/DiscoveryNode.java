@@ -276,7 +276,7 @@ public class DiscoveryNode implements Writeable {
         } else {
             // an old node will only understand legacy roles since pluggable roles is a new concept
             final List<DiscoveryNodeRole> rolesToWrite =
-                    roles.stream().filter(DiscoveryNodeRole.BUILT_IN_ROLES::contains).collect(Collectors.toUnmodifiableList());
+                    roles.stream().filter(DiscoveryNodeRole.BUILT_IN_ROLES::contains).toList();
             out.writeVInt(rolesToWrite.size());
             for (final DiscoveryNodeRole role : rolesToWrite) {
                 if (role == DiscoveryNodeRole.MASTER_ROLE) {
@@ -346,7 +346,7 @@ public class DiscoveryNode implements Writeable {
      * Returns a set of all the roles that the node fulfills.
      * If the node doesn't have any specific role, the set is returned empty, which means that the node is a coordinating only node.
      */
-    public Set<DiscoveryNodeRole> getRoles() {
+    public Set<DiscoveryNodeRole> roles() {
         return roles;
     }
 
@@ -387,7 +387,7 @@ public class DiscoveryNode implements Writeable {
     @Override
     public String toString() {
         StringBuilder sb = new StringBuilder();
-        if (nodeName.length() > 0) {
+        if (!nodeName.isEmpty()) {
             sb.append('{').append(nodeName).append('}');
         }
         sb.append('{').append(nodeId).append('}');
@@ -420,10 +420,6 @@ public class DiscoveryNode implements Writeable {
         assert roleNameToPossibleRoles.size() == roleNameAbbreviationToPossibleRoles.size() :
                 "roles by name [" + roleNameToPossibleRoles + "], roles by name abbreviation [" + roleNameAbbreviationToPossibleRoles + "]";
         DiscoveryNode.roleNameToPossibleRoles = roleNameToPossibleRoles;
-    }
-
-    public static Set<String> getPossibleRoleNames() {
-        return roleNameToPossibleRoles.keySet();
     }
 
     /**

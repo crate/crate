@@ -170,7 +170,7 @@ public class DiscoveryNodesTests extends ESTestCase {
                 attrs.put("new", "new");
                 final TransportAddress nodeAddress = node.getAddress();
                 node = new DiscoveryNode(node.getName(), node.getId(), node.getEphemeralId(), nodeAddress.address().getHostString(),
-                    nodeAddress.getAddress(), nodeAddress, attrs, node.getRoles(), node.getVersion());
+                    nodeAddress.getAddress(), nodeAddress, attrs, node.roles(), node.getVersion());
             }
             nodesB.add(node);
         }
@@ -311,7 +311,7 @@ public class DiscoveryNodesTests extends ESTestCase {
             Set<String> matchingNodeIds(DiscoveryNodes nodes) {
                 Set<String> ids = new HashSet<>();
                 nodes.getNodes().valuesIt().forEachRemaining(node -> {
-                    if (node.getRoles().stream().anyMatch(role -> role.roleName().equals("custom_role"))) {
+                    if (node.roles().stream().anyMatch(role -> role.roleName().equals("custom_role"))) {
                         ids.add(node.getId());
                     }
                 });
