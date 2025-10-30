@@ -21,14 +21,15 @@
 
 package io.crate.replication.logical.action;
 
+import java.io.IOException;
+
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.single.shard.SingleShardRequest;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.RemoteClusterAwareRequest;
-
-import java.io.IOException;
 
 public class RestoreShardRequest extends SingleShardRequest
     implements RemoteClusterAwareRequest {
@@ -37,16 +38,18 @@ public class RestoreShardRequest extends SingleShardRequest
     private final DiscoveryNode node;
     private final ShardId shardId;
     private final String subscriberClusterName;
+    private final Version senderVersion;
 
     public RestoreShardRequest(String restoreUUID,
                                DiscoveryNode node,
                                ShardId shardId,
                                String subscriberClusterName) {
-        super(shardId.getIndexName());
+        super(shardId.getIndex());
         this.restoreUUID = restoreUUID;
         this.node = node;
         this.shardId = shardId;
         this.subscriberClusterName = subscriberClusterName;
+        this.senderVersion = Version.CURRENT;
     }
 
     public RestoreShardRequest(StreamInput in) throws IOException {
@@ -55,6 +58,7 @@ public class RestoreShardRequest extends SingleShardRequest
         this.node = new DiscoveryNode(in);
         this.shardId = new ShardId(in);
         this.subscriberClusterName = in.readString();
+        this.senderVersion = in.getVersion();
     }
 
     @Override
@@ -81,6 +85,10 @@ public class RestoreShardRequest extends SingleShardRequest
 
     public String restoreUUID() {
         return restoreUUID;
+    }
+
+    public Version senderVersion() {
+        return senderVersion;
     }
 
     @Override

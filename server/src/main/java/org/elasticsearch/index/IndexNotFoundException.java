@@ -19,10 +19,11 @@
 
 package org.elasticsearch.index;
 
+import java.io.IOException;
+import java.util.Locale;
+
 import org.elasticsearch.ResourceNotFoundException;
 import org.elasticsearch.common.io.stream.StreamInput;
-
-import java.io.IOException;
 
 public final class IndexNotFoundException extends ResourceNotFoundException {
     /**
@@ -38,7 +39,7 @@ public final class IndexNotFoundException extends ResourceNotFoundException {
     }
 
     public IndexNotFoundException(String index, Throwable cause) {
-        super("no such index", cause);
+        super(String.format(Locale.ENGLISH, "no such index %s", index), cause);
         setIndex(index);
     }
 
@@ -47,7 +48,7 @@ public final class IndexNotFoundException extends ResourceNotFoundException {
     }
 
     public IndexNotFoundException(Index index, Throwable cause) {
-        super("no such index", cause);
+        super(String.format(Locale.ENGLISH, "no such index %s", index), cause);
         setIndex(index);
     }
 
