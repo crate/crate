@@ -24,6 +24,7 @@ import java.io.IOException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.ActionRunnable;
@@ -34,14 +35,18 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.block.ClusterBlockException;
 import org.elasticsearch.cluster.block.ClusterBlockLevel;
 import org.elasticsearch.cluster.block.ClusterBlocks;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
+import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.cluster.routing.ShardsIterator;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.logging.LoggerMessageFormat;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportChannel;
@@ -125,6 +130,23 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
     @Nullable
     protected abstract ShardsIterator shards(ClusterState state, Request request);
 
+    public static IndexShardRoutingTable shardRoutingTable(ClusterState state, ShardId shardId, Version senderVersion) {
+        String indexUUID = shardId.getIndexUUID();
+
+        // Older version uses their shardId containing their local indexUUID
+        // In these cases, the local indexUUID must be resolved using the provided indexName
+        if (senderVersion.onOrBefore(Version.V_6_1_0)) {
+            String indexName = shardId.getIndexName();
+            IndexMetadata indexMetadata = state.metadata().getIndexByName(indexName);
+            if (indexMetadata == null) {
+                throw new IndexNotFoundException(shardId.getIndex());
+            }
+            indexUUID = indexMetadata.getIndex().getUUID();
+        }
+
+        return state.routingTable().shardRoutingTable(indexUUID, shardId.id());
+    }
+
     class AsyncSingleAction {
 
         private final ActionListener<Response> listener;
@@ -149,7 +171,19 @@ public abstract class TransportSingleShardAction<Request extends SingleShardRequ
 
 
             ClusterBlocks blocks = clusterState.blocks();
-            blockException = blocks.indexBlockedException(ClusterBlockLevel.READ, request.index());
+            Index index = request.index();
+
+            // Nodes <= 6.1.0 are sending the index name instead of the UUID while everything is based on UUID's
+            // nowadays. This we try to resolve the actually UUID by the given name.
+            if (index.getUUID().equals(IndexMetadata.INDEX_UUID_NA_VALUE)) {
+                IndexMetadata indexMetadata = clusterState.metadata().getIndexByName(index.getName());
+                if (indexMetadata == null) {
+                    throw new IndexNotFoundException(index);
+                }
+                index = indexMetadata.getIndex();
+            }
+
+            blockException = blocks.indexBlockedException(ClusterBlockLevel.READ, index.getUUID());
             if (blockException != null) {
                 throw blockException;
             }

@@ -372,9 +372,9 @@ public class ShardReplicationChangesTracker implements Closeable {
                                     () -> renewLeasesThenReschedule(toSeqNoReceived)
                                 );
                             } else if (isClosed) {
-                                LOGGER.debug("Exception renewing retention lease. Stopping tracking (closed=true)");
+                                LOGGER.debug("Exception renewing retention lease. Stopping tracking (closed=true)", e);
                             } else {
-                                LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=false)");
+                                LOGGER.warn("Exception renewing retention lease. Stopping tracking (closed=false)", e);
                             }
                         }
                     )

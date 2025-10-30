@@ -122,7 +122,7 @@ public class GetFileChunkAction extends ActionType<GetFileChunkAction.Response> 
         @Nullable
         @Override
         protected ShardsIterator shards(ClusterState state, Request request) {
-            return state.routingTable().shardRoutingTable(request.shardId()).primaryShardIt();
+            return shardRoutingTable(state, request.shardId(), request.senderVersion()).primaryShardIt();
         }
     }
 
