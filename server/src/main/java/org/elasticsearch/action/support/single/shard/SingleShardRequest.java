@@ -21,17 +21,17 @@ package org.elasticsearch.action.support.single.shard;
 
 import java.io.IOException;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.transport.TransportRequest;
 
 public abstract class SingleShardRequest extends TransportRequest {
 
-    /**
-     * The concrete index name
-     */
-    protected final String index;
+    protected final Index index;
 
     ShardId internalShardId;
 
@@ -40,15 +40,21 @@ public abstract class SingleShardRequest extends TransportRequest {
         if (in.readBoolean()) {
             internalShardId = new ShardId(in);
         }
-        index = in.readOptionalString();
-        // no need to pass threading over the network, they are always false when coming throw a thread pool
+        String indexName = IndexMetadata.INDEX_NAME_NA_VALUE;
+        String indexUUID = IndexMetadata.INDEX_UUID_NA_VALUE;
+        if (in.getVersion().before(Version.V_6_1_0)) {
+            indexName = in.readOptionalString();
+        } else {
+            indexUUID = in.readString();
+        }
+        index = new Index(indexName, indexUUID);
     }
 
-    protected SingleShardRequest(String index) {
+    protected SingleShardRequest(Index index) {
         this.index = index;
     }
 
-    public String index() {
+    public Index index() {
         return index;
     }
 
@@ -56,6 +62,10 @@ public abstract class SingleShardRequest extends TransportRequest {
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         out.writeOptionalWriteable(internalShardId);
-        out.writeOptionalString(index);
+        if (out.getVersion().before(Version.V_6_1_0)) {
+            out.writeOptionalString(index.getName());
+        } else {
+            out.writeString(index.getUUID());
+        }
     }
 }

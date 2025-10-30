@@ -73,3 +73,6 @@ Fixes
 - Fixed an issue causing ``SELECT *`` or ``ANALYZE`` statements to fail with an
   error ``unexpected docvalues type... Re-index with correct docvalues type.``
   if a column was added into restored table.
+
+- Fixed an issue resulting in broken :ref:`administration-logical-replication`
+  when subscribing to clusters running versions < :ref:`version_6.1.0`.
