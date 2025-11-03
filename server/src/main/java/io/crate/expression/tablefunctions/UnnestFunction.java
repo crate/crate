@@ -23,7 +23,6 @@ package io.crate.expression.tablefunctions;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariableOfAnyType;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.List;
@@ -131,20 +130,17 @@ public class UnnestFunction {
         @SafeVarargs
         @Override
         public final Iterable<Row> evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<List<Object>>... arguments) {
-            ArrayList<List<Object>> valuesPerColumn = new ArrayList<>(arguments.length);
-            for (Input<List<Object>> argument : arguments) {
-                valuesPerColumn.add(argument.value());
-            }
-            return new ColumnOrientedRowsIterator(() -> createIterators(valuesPerColumn));
+            return new ColumnOrientedRowsIterator(() -> createIterators(arguments));
         }
 
         @SuppressWarnings({"unchecked", "rawtypes"})
-        private Iterator<Object>[] createIterators(ArrayList<List<Object>> valuesPerColumn) {
-            Iterator[] iterators = new Iterator[valuesPerColumn.size()];
-            for (int i = 0; i < valuesPerColumn.size(); i++) {
+        private Iterator<Object>[] createIterators(Input<List<Object>>... arguments) {
+            Iterator[] iterators = new Iterator[arguments.length];
+            for (int i = 0; i < arguments.length; i++) {
+                Input<List<Object>> input = arguments[i];
                 DataType<?> dataType = argumentTypes.get(i);
                 assert dataType instanceof ArrayType : "Argument to unnest must be an array";
-                iterators[i] = createIterator(valuesPerColumn.get(i), (ArrayType<?>) dataType);
+                iterators[i] = createIterator(input.value(), (ArrayType<?>) dataType);
             }
             return iterators;
         }
@@ -154,10 +150,10 @@ public class UnnestFunction {
             if (objects == null) {
                 return Collections.emptyIterator();
             }
-            if (type.innerType() instanceof ArrayType) {
+            if (type.innerType() instanceof ArrayType arrayType) {
                 List<Iterator<Object>> iterators = Lists.map(
                     objects,
-                    x -> createIterator((List<Object>) x, (ArrayType<?>) type.innerType())
+                    x -> createIterator((List<Object>) x, arrayType)
                 );
                 return Iterators.concat(iterators.toArray(new Iterator[0]));
             } else {
