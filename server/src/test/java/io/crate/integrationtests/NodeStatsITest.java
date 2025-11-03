@@ -22,7 +22,6 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.HashMap;
 import java.util.List;
@@ -299,5 +298,21 @@ public class NodeStatsITest extends IntegTestCase {
         assertThat(response).hasRowCount(2L);
         assertThat((String) response.rows()[0][0]).isEqualTo("node_s0");
         assertThat((String) response.rows()[1][0]).isEqualTo("node_s1");
+    }
+
+    @Test
+    public void test_roles_and_is_master() {
+        SQLResponse response = execute("select name, is_master, roles from sys.nodes order by name");
+        if (cluster().getMasterName().equals("node_s0")) {
+            assertThat(response).hasRows(
+                "node_s0| true| [data, master_eligible]",
+                "node_s1| false| [data, master_eligible]"
+            );
+        } else {
+            assertThat(response).hasRows(
+                "node_s0| false| [data, master_eligible]",
+                "node_s1| true| [data, master_eligible]"
+            );
+        }
     }
 }

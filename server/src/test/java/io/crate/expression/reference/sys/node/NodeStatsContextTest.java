@@ -26,10 +26,12 @@ import static org.assertj.core.api.Assertions.assertThat;
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.Build;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.InputStreamStreamInput;
 import org.elasticsearch.common.io.stream.OutputStreamStreamOutput;
@@ -182,10 +184,28 @@ public class NodeStatsContextTest extends ESTestCase {
         assertThat(ctx2.transportStats().sentMsgs()).isEqualTo(-1);
     }
 
+    @Test
+    public void test_streaming_roles_bwc() throws Exception {
+        var ctx1 = generateNodeStatsContext();
+        var outBuffer = new ByteArrayOutputStream();
+        var out = new OutputStreamStreamOutput(outBuffer);
+        out.setVersion(Version.V_6_1_0);
+        ctx1.writeTo(out);
+
+        var inBuffer = new ByteArrayInputStream(outBuffer.toByteArray());
+        var in = new InputStreamStreamInput(inBuffer);
+        in.setVersion(Version.V_6_1_0);
+        var ctx2 = new NodeStatsContext(in, true);
+        assertThat(ctx2.isMaster()).isFalse();
+        assertThat(ctx2.roles()).isEmpty();
+    }
+
     private NodeStatsContext generateNodeStatsContext() {
         var ctx = new NodeStatsContext(true); // sets os/java/jvm automatically
         ctx.id("93c7ff92-52fa-11e6-aad8-3c15c2d3ad18");
         ctx.name("crate1");
+        ctx.isMaster(true);
+        ctx.roles(Set.of(new DiscoveryNodeRole.UnknownRole("customRole", "cr"), DiscoveryNodeRole.DATA_ROLE));
         ctx.hostname("crate1.example.com");
         ctx.timestamp(100L);
         ctx.version(Version.CURRENT);

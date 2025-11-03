@@ -153,6 +153,10 @@ Administration and Operations
 - Added a ``primary`` flag to :ref:`ShardInfo <node_info_mxbean_shardinfo>` to
   expose whether the shard is primary or replica.
 
+- Added columns ``is_master``, and ``roles`` to :ref:`sys.nodes <sys-nodes>`,
+  which expose which is the current ``master`` node of the cluster, and what are
+  the roles of the node in the cluster (``master_eligible`` and/or ``data``).
+
 
 Client interfaces
 -----------------

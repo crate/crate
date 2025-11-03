@@ -218,39 +218,28 @@ public class DiscoveryNode implements Writeable {
         for (int i = 0; i < size; i++) {
             this.attributes.put(in.readString(), in.readString());
         }
-        int rolesSize = in.readVInt();
-        final Set<DiscoveryNodeRole> roles = new HashSet<>(rolesSize);
+
         if (in.getVersion().onOrAfter(Version.V_4_5_0)) {
-            for (int i = 0; i < rolesSize; i++) {
-                final String roleName = in.readString();
-                final String roleNameAbbreviation = in.readString();
-                final DiscoveryNodeRole role = roleNameToPossibleRoles.get(roleName);
-                if (role == null) {
-                    roles.add(new DiscoveryNodeRole.UnknownRole(roleName, roleNameAbbreviation));
-                } else {
-                    assert roleName.equals(role.roleName()) : "role name [" + roleName + "] does not match role [" + role.roleName() + "]";
-                    assert roleNameAbbreviation.equals(role.roleNameAbbreviation())
-                            : "role name abbreviation [" + roleName + "] does not match role [" + role.roleNameAbbreviation() + "]";
-                    roles.add(role);
-                }
-            }
+            this.roles = Collections.unmodifiableSet(in.readSet(DiscoveryNodeRole::fromStream));
         } else {
             // an old node will only send us legacy roles since pluggable roles is a new concept
+            int rolesSize = in.readVInt();
+            final Set<DiscoveryNodeRole> rolesFromStream = new HashSet<>(rolesSize);
             for (int i = 0; i < rolesSize; i++) {
                 final LegacyRole legacyRole = in.readEnum(LegacyRole.class);
                 switch (legacyRole) {
                     case MASTER:
-                        roles.add(DiscoveryNodeRole.MASTER_ROLE);
+                        rolesFromStream.add(DiscoveryNodeRole.MASTER_ROLE);
                         break;
                     case DATA:
-                        roles.add(DiscoveryNodeRole.DATA_ROLE);
+                        rolesFromStream.add(DiscoveryNodeRole.DATA_ROLE);
                         break;
                     default:
                         throw new AssertionError(legacyRole.roleName());
                 }
             }
+            this.roles = Set.copyOf(rolesFromStream);
         }
-        this.roles = Set.copyOf(roles);
         this.version = Version.readVersion(in);
     }
 
@@ -268,11 +257,7 @@ public class DiscoveryNode implements Writeable {
             out.writeString(entry.getValue());
         }
         if (out.getVersion().onOrAfter(Version.V_4_5_0)) {
-            out.writeVInt(roles.size());
-            for (final DiscoveryNodeRole role : roles) {
-                out.writeString(role.roleName());
-                out.writeString(role.roleNameAbbreviation());
-            }
+            out.writeCollection(roles);
         } else {
             // an old node will only understand legacy roles since pluggable roles is a new concept
             final List<DiscoveryNodeRole> rolesToWrite =
@@ -407,7 +392,7 @@ public class DiscoveryNode implements Writeable {
 
     // This is initialized to the proper value via #setPossibleRoles in the Node constructor.
     // It is set here to a non-null default value to avoid NPEs if DiscoveryNode is used in unit tests
-    private static Map<String, DiscoveryNodeRole> roleNameToPossibleRoles = DiscoveryNodeRole.BUILT_IN_ROLES.stream()
+    public static Map<String, DiscoveryNodeRole> roleNameToPossibleRoles = DiscoveryNodeRole.BUILT_IN_ROLES.stream()
         .collect(Collectors.toUnmodifiableMap(DiscoveryNodeRole::roleName, Function.identity()));
 
     public static void setPossibleRoles(final Set<DiscoveryNodeRole> possibleRoles) {
@@ -439,7 +424,5 @@ public class DiscoveryNode implements Writeable {
         public String roleName() {
             return roleName;
         }
-
     }
-
 }
