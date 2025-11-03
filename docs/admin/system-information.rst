@@ -265,6 +265,36 @@ The table schema is as follows:
 |              | and port.                                           |             |
 +--------------+-----------------------------------------------------+-------------+
 
+``is_master``
+-------------
+
++---------------+-------------------------------------------------+-------------+
+| Column Name   | Description                                     | Return Type |
++===============+=================================================+=============+
+| ``is_master`` | Boolean flag which is ``true`` for the          | ``BOOLEAN`` |
+|               | currently elected master node of the cluster,   |             |
+|               | and ``false`` for all other nodes.              |             |
++---------------+-------------------------------------------------+-------------+
+
+.. _sys-nodes-roles:
+
+``roles``
+---------
+
+.. list-table::
+    :header-rows: 1
+    :widths: auto
+    :align: left
+
+    * - Column Name
+      - Description
+      - Return Type
+    * - ``roles``
+      - List the roles of the node in the cluster:
+         * ``master_eligible``: the node can be elected as :ref:`master <node.master>`
+         * ``data``: the node can store :ref:`data <node.data>`
+      - ``TEXT_ARRAY``
+
 ``attributes``
 --------------
 

@@ -38,6 +38,10 @@ public interface NodeInfoMXBean {
 
     String getNodeName();
 
+    boolean isMaster();
+
+    List<String> roles();
+
     long getClusterStateVersion();
 
     ShardStats getShardStats();
