@@ -1,0 +1,62 @@
+.. _version_5.10.14:
+
+===============
+Version 5.10.14
+===============
+
+Released on 2025-11-03.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.10.14.
+
+    We recommend that you upgrade to the latest 5.9 release before moving to
+    5.10.14.
+
+    A rolling upgrade from 5.9.x to 5.10.14 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_5.10.0` release notes for a full list of changes in the
+5.10 series.
+
+
+Fixes
+=====
+
+- Improved ``WHERE`` clause analysis for queries on tables with both ``PARTITION
+  BY`` and ``CLUSTERED BY`` clause to narrow the partitions and shards that are
+  hit if the query filters on the ``PARTITIONED BY`` and ``CLUSTERED BY``
+  columns. An example::
+
+    CREATE TABLE tbl (x int, c int, p int) clustered by (c) partitioned by (p);
+    SELECT * FROM tbl WHERE c = 1 and p = 1;
+
+  In this case the query will only search in the partition ``p=1`` and hit a
+  single shard depending on the routing for ``c=1``
+
+- Fixed an issue resulting in stuck :ref:`sys-jobs` entries when an
+  :ref:`sql-insert` statement using :ref:`ref-values` results in an execution
+  error, e.g. due to implicit cast or parsing issues.
+
+- Fixed a replication issue happening when an integral value, not fitting to
+  ``INT`` or ``LONG`` types, was stored in an OBJECT with policy ``IGNORED``.
+
+
