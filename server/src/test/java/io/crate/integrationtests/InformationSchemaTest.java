@@ -577,7 +577,7 @@ public class InformationSchemaTest extends IntegTestCase {
     @Test
     public void testDefaultColumns() {
         execute("select * from information_schema.columns order by table_schema, table_name");
-        assertThat(response.rowCount()).isEqualTo(1069);
+        assertThat(response.rowCount()).isEqualTo(1070);
     }
 
     @Test
@@ -597,6 +597,7 @@ public class InformationSchemaTest extends IntegTestCase {
             "column_default| text",
             "column_details| object",
             "column_details['name']| text",
+            "column_details['oid']| bigint",
             "column_details['path']| text_array",
             "column_details['policy']| text",
             "column_name| text",
@@ -781,14 +782,35 @@ public class InformationSchemaTest extends IntegTestCase {
         assertThat(response.rows()[4][cols.get("numeric_precision")]).isEqualTo(53);
         assertThat(response.rows()[5][cols.get("numeric_precision")]).isEqualTo(24);
 
-        assertThat(response.rows()[7][cols.get("column_details")])
-            .isEqualTo(Map.of("name","stuff","path", List.of(), "policy", "dynamic"));
-        assertThat(response.rows()[8][cols.get("column_details")])
-            .isEqualTo(Map.of("name","stuff","path", List.of("level1"), "policy", "dynamic"));
-        assertThat(response.rows()[9][cols.get("column_details")])
-            .isEqualTo(Map.of("name","stuff","path", List.of("level1","level2"), "policy", "strict"));
-        assertThat(response.rows()[10][cols.get("column_details")])
-            .isEqualTo(Map.of("name","stuff","path", List.of("level1","level2_nullable"), "policy", "strict"));
+        // Select the column_details values explicitly to preserve the long value of column_details['oid'].
+        // If column_details is select, it will be returned as JSON using pgJDBC, resulting in an integer.
+        execute("""
+            select column_details['name'],
+                   column_details['oid'],
+                   column_details['path'],
+                   column_details['policy']
+            from INFORMATION_SCHEMA.Columns where table_schema = ? order by column_details['oid']
+            """, new Object[]{defaultSchema});
+
+        assertThat(response.rows()[7][1]).isEqualTo(8L);
+        assertThat(response.rows()[7][2]).isEqualTo(List.of());
+        assertThat(response.rows()[7][3]).isEqualTo("dynamic");
+        assertThat(response.rows()[7][0]).isEqualTo("stuff");
+
+        assertThat(response.rows()[8][1]).isEqualTo(9L);
+        assertThat(response.rows()[8][0]).isEqualTo("stuff");
+        assertThat(response.rows()[8][2]).isEqualTo(List.of("level1"));
+        assertThat(response.rows()[8][3]).isEqualTo("dynamic");
+
+        assertThat(response.rows()[9][0]).isEqualTo("stuff");
+        assertThat(response.rows()[9][1]).isEqualTo(10L);
+        assertThat(response.rows()[9][2]).isEqualTo(List.of("level1", "level2"));
+        assertThat(response.rows()[9][3]).isEqualTo("strict");
+
+        assertThat(response.rows()[10][0]).isEqualTo("stuff");
+        assertThat(response.rows()[10][1]).isEqualTo(11L);
+        assertThat(response.rows()[10][2]).isEqualTo(List.of("level1", "level2_nullable"));
+        assertThat(response.rows()[10][3]).isEqualTo("strict");
     }
 
     @Test

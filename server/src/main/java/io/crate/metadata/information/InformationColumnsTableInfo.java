@@ -23,6 +23,7 @@ package io.crate.metadata.information;
 
 import static io.crate.types.DataTypes.BOOLEAN;
 import static io.crate.types.DataTypes.INTEGER;
+import static io.crate.types.DataTypes.LONG;
 import static io.crate.types.DataTypes.STRING;
 import static io.crate.types.DataTypes.STRING_ARRAY;
 import static io.crate.types.DataTypes.TIMESTAMP;
@@ -120,6 +121,7 @@ public final class InformationColumnsTableInfo {
         .add("check_action", INTEGER, ignored -> null)
         .startObject("column_details")
             .add("name", STRING , r -> r.ref().column().name())
+            .add("oid", LONG, r -> r.ref().oid())
             .add("path", STRING_ARRAY, r -> r.ref().column().path())
             .add("policy", STRING, r -> r.ref().valueType().columnPolicy().lowerCaseName())
         .endObject()

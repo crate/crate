@@ -161,6 +161,13 @@ Administration and Operations
   the roles of the node in the cluster (``master_eligible`` and/or ``data``).
   Additionally, exposed this info is through :ref:`NodeInfo <node_info_mxbean>`.
 
+- Added the column ``column_details['oid']`` to the
+  :ref:`information_schema.columns <information_schema_columns>` view. A
+  column's ``oid`` is an internal identifier for each column of a table.
+  It's unique inside a table and used in some rather internal column
+  representation. Some exceptions or information like an ``ANALYZE`` output
+  exposing this identifier instead of a column name. Using this new column
+  helps to lookup the column name by its ``oid`` in such situations.
 
 Client interfaces
 -----------------
