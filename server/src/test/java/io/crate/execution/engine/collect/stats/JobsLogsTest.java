@@ -42,6 +42,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
@@ -432,5 +433,36 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(10L))).isEqualTo(1000L);
         assertThat(JobsLogService.clearInterval(TimeValue.timeValueSeconds(20L))).isEqualTo(2000L);
         assertThat(JobsLogService.clearInterval(TimeValue.timeValueHours(720L))).isEqualTo(86_400_000L);  // 30 days
+    }
+
+    @Test
+    public void test_accounted_memory_is_released_on_sink_change() throws Exception {
+        CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
+        assertThat(breaker.getUsed()).isEqualTo(0);
+        Settings settings = Settings.builder()
+            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
+            .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 100)
+            .build();
+        try (JobsLogService stats = new JobsLogService(settings, clusterService, nodeCtx, breakerService)) {
+            LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
+
+            jobsLogSink.add(new JobContextLog(
+                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), null, 20L));
+
+            assertThat(jobsLogSink).hasSize(1);
+            assertThat(breaker.getUsed()).isEqualTo(96);
+
+            clusterSettings.applySettings(Settings.builder()
+                .put(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey(), "10s")
+                .build());
+
+            assertThat(jobsLogSink)
+                .as("Updating logs setting changes the jobsLog sink")
+                .isNotSameAs(stats.get().jobsLog());
+
+            // Old entries are added to new sink, so entries get re-accounted and breaker usage remains the same
+            assertThat(stats.get().jobsLog()).hasSize(1);
+            assertThat(breaker.getUsed()).isEqualTo(96);
+        }
     }
 }
