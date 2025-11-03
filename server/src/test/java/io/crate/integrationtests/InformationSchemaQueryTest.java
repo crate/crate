@@ -30,6 +30,7 @@ import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.testing.SQLResponse;
+import io.crate.testing.UseJdbc;
 
 public class InformationSchemaQueryTest extends IntegTestCase {
 
@@ -50,6 +51,13 @@ public class InformationSchemaQueryTest extends IntegTestCase {
         assertThat(response.rowCount()).isEqualTo(2);
     }
 
+    /**
+     * The response will contain an OBJECT column which will be returned as JSON by pgJDBC.
+     * The JSON converter will write LONG values as INTEGERS if in integer range, compared to
+     * non-JDBC execution which always returns LONG values. Comparing these different responses
+     * will fail, such both must be executed using the same protocol.
+     */
+    @UseJdbc(1)
     @Test
     public void testConcurrentInformationSchemaQueries() throws Exception {
         final SQLResponse response = execute("select * from information_schema.columns " +

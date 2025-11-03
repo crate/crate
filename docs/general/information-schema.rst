@@ -367,38 +367,39 @@ infinite recursion of your mind, beware!)::
     | column_default           | text       |               11 |
     | column_details           | object     |               12 |
     | column_details['name']   | text       |               13 |
-    | column_details['path']   | text_array |               14 |
-    | column_details['policy'] | text       |               15 |
-    | column_name              | text       |               16 |
-    | data_type                | text       |               17 |
-    | datetime_precision       | integer    |               18 |
-    | domain_catalog           | text       |               19 |
-    | domain_name              | text       |               20 |
-    | domain_schema            | text       |               21 |
-    | generation_expression    | text       |               22 |
-    | identity_cycle           | boolean    |               23 |
-    | identity_generation      | text       |               24 |
-    | identity_increment       | text       |               25 |
-    | identity_maximum         | text       |               26 |
-    | identity_minimum         | text       |               27 |
-    | identity_start           | text       |               28 |
-    | interval_precision       | integer    |               29 |
-    | interval_type            | text       |               30 |
-    | is_generated             | text       |               31 |
-    | is_identity              | boolean    |               32 |
-    | is_nullable              | text       |               33 |
-    | numeric_precision        | integer    |               34 |
-    | numeric_precision_radix  | integer    |               35 |
-    | numeric_scale            | integer    |               36 |
-    | ordinal_position         | integer    |               37 |
-    | table_catalog            | text       |               38 |
-    | table_name               | text       |               39 |
-    | table_schema             | text       |               40 |
-    | udt_catalog              | text       |               41 |
-    | udt_name                 | text       |               42 |
-    | udt_schema               | text       |               43 |
+    | column_details['oid']    | bigint     |               14 |
+    | column_details['path']   | text_array |               15 |
+    | column_details['policy'] | text       |               16 |
+    | column_name              | text       |               17 |
+    | data_type                | text       |               18 |
+    | datetime_precision       | integer    |               19 |
+    | domain_catalog           | text       |               20 |
+    | domain_name              | text       |               21 |
+    | domain_schema            | text       |               22 |
+    | generation_expression    | text       |               23 |
+    | identity_cycle           | boolean    |               24 |
+    | identity_generation      | text       |               25 |
+    | identity_increment       | text       |               26 |
+    | identity_maximum         | text       |               27 |
+    | identity_minimum         | text       |               28 |
+    | identity_start           | text       |               29 |
+    | interval_precision       | integer    |               30 |
+    | interval_type            | text       |               31 |
+    | is_generated             | text       |               32 |
+    | is_identity              | boolean    |               33 |
+    | is_nullable              | text       |               34 |
+    | numeric_precision        | integer    |               35 |
+    | numeric_precision_radix  | integer    |               36 |
+    | numeric_scale            | integer    |               37 |
+    | ordinal_position         | integer    |               38 |
+    | table_catalog            | text       |               39 |
+    | table_name               | text       |               40 |
+    | table_schema             | text       |               41 |
+    | udt_catalog              | text       |               42 |
+    | udt_name                 | text       |               43 |
+    | udt_schema               | text       |               44 |
     +--------------------------+------------+------------------+
-    SELECT 43 rows in set (... sec)
+    SELECT 44 rows in set (... sec)
 
 
 .. rubric:: Schema
@@ -430,6 +431,22 @@ infinite recursion of your mind, beware!)::
 +-------------------------------+-----------------------------------------------+---------------+
 | ``column_default``            | The default :ref:`expression                  | ``TEXT``      |
 |                               | <gloss-expression>` of the column             |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``column_details``            | Contains CrateDB specific column information  | ``OBJECT``    |
++-------------------------------+-----------------------------------------------+---------------+
+| ``column_details['name']``    | The top-level name of any nested column.      | ``TEXT``      |
+|                               | If the column is not a child of an ``OBJECT`` |               |
+|                               | it's equal to ``column_name``.                |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``column_details['oid']``     | The internal identifier of a column, unique   | ``TEXT``      |
+|                               | inside the same table. Used mostly internal   |               |
+|                               | and may change in future versions.            |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``column_details['path']``    | The child path of a nested column.            | ``TEXT_ARRAY``|
+|                               | Empty list for any non-nested column.         |               |
++-------------------------------+-----------------------------------------------+---------------+
+| ``column_details['policy']``  | The column policy, mostly interesting on      | ``TEXT``      |
+|                               | columns of type ``OBJECT``.                   |               |
 +-------------------------------+-----------------------------------------------+---------------+
 | ``character_maximum_length``  | If the data type is a :ref:`character type    | ``INTEGER``   |
 |                               | <data-types-character-data>` then return the  |               |
