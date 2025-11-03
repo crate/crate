@@ -37,7 +37,7 @@ With read operations, there is no difference between executing the
 operation on the primary shard or on any of the replicas. CrateDB
 randomly assigns a shard when routing an operation. It is possible to
 configure this behavior if required, see our best practice guide on
-`multi zone setups <https://cratedb.com/docs/crate/howtos/en/latest/scaling/multi-zone-setup.html>`_
+:ref:`multi zone setups <multi-zone-setup>`
 for more details.
 
 Write operations are handled differently than reads. Such operations are
