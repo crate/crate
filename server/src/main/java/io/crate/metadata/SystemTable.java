@@ -278,8 +278,8 @@ public final class SystemTable<T> implements TableInfo {
 
         public SystemTable<T> build() {
             HashMap<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns = new HashMap<>();
-            LinkedHashMap<ColumnIdent, Reference> refByColumns = new LinkedHashMap<>();
-            HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions = new HashMap<>();
+            LinkedHashMap<ColumnIdent, Reference> refByColumns = LinkedHashMap.newLinkedHashMap(columns.size());
+            HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions = HashMap.newHashMap(columns.size());
             columns.sort(Comparator.comparing(x -> x.column));
             for (int i = 0; i < columns.size(); i++) {
                 int position = i + 1;     // start at 1
@@ -435,7 +435,7 @@ public final class SystemTable<T> implements TableInfo {
                 var items = getItems.apply(xs);
                 ArrayList<Map<String, Object>> result = new ArrayList<>(items.size());
                 for (ItemType item : items) {
-                    HashMap<String, Object> map = new HashMap<>(directChildren.size());
+                    HashMap<String, Object> map = HashMap.newHashMap(directChildren.size());
                     for (int i = 0; i < directChildren.size(); i++) {
                         Column<ItemType, ?> column = directChildren.get(i);
                         try {
@@ -540,7 +540,7 @@ public final class SystemTable<T> implements TableInfo {
             if (objectIsNull.test(t)) {
                 return null;
             }
-            HashMap<String, Object> values = new HashMap<>(columns.size());
+            HashMap<String, Object> values = HashMap.newHashMap(columns.size());
             for (int i = 0; i < columns.size(); i++) {
                 Column<T, ?> column = columns.get(i);
                 try {
