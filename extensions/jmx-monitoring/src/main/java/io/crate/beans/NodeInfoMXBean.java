@@ -40,7 +40,7 @@ public interface NodeInfoMXBean {
 
     boolean isMaster();
 
-    List<String> roles();
+    List<String> getRoles();
 
     long getClusterStateVersion();
 

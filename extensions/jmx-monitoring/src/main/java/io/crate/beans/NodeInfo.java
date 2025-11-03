@@ -72,7 +72,7 @@ public class NodeInfo implements NodeInfoMXBean {
     }
 
     @Override
-    public List<String> roles() {
+    public List<String> getRoles() {
         return clusterState.get().nodes().getLocalNode().roles().stream()
             .map(DiscoveryNodeRole::externalName)
             .sorted()
