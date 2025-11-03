@@ -24,13 +24,9 @@ package io.crate.execution.engine.collect.sources;
 import static io.crate.testing.DiscoveryNodes.newNode;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Before;
 import org.junit.Test;
@@ -45,17 +41,18 @@ import io.crate.testing.SqlExpressions;
 
 public class NodeStatsCollectSourceTest extends ESTestCase {
 
-    private Collection<DiscoveryNode> discoveryNodes;
+    private DiscoveryNodes discoveryNodes;
 
     @Before
     public void prepare() throws Exception {
-        discoveryNodes = new ArrayList<>();
-        discoveryNodes.add(newNode("Ford Perfect", "node-1"));
-        discoveryNodes.add(newNode("Trillian", "node-2"));
-        discoveryNodes.add(newNode("Arthur", "node-3"));
+        discoveryNodes = DiscoveryNodes.builder()
+            .add(newNode("Ford Perfect", "node-1"))
+            .add(newNode("Trillian", "node-2"))
+            .add(newNode("Arthur", "node-3"))
+            .build();
     }
 
-    private List<DiscoveryNode> filterNodes(String where) throws NoSuchFieldException, IllegalAccessException {
+    private DiscoveryNodes filterNodes(String where) {
         // build where clause with id = ?
         TableInfo tableInfo = SysNodesTableInfo.INSTANCE;
         TableRelation tableRelation = new TableRelation(tableInfo);
@@ -63,55 +60,59 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
         SqlExpressions sqlExpressions = new SqlExpressions(tableSources, tableRelation);
         Symbol query = sqlExpressions.normalize(sqlExpressions.asSymbol(where));
 
-        List<DiscoveryNode> nodes = new ArrayList<>(NodeStatsCollectSource.filterNodes(
+        return NodeStatsCollectSource.filterNodes(
             discoveryNodes,
             query,
-            sqlExpressions.nodeCtx));
-        nodes.sort(Comparator.comparing(DiscoveryNode::getId));
-        return nodes;
+            sqlExpressions.nodeCtx);
     }
 
     @Test
     public void testFilterNodesById() throws Exception {
-        List<DiscoveryNode> discoveryNodes = filterNodes("id = 'node-3'");
-        assertThat(discoveryNodes).hasSize(1);
-        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-3");
+        DiscoveryNodes discoveryNodes = filterNodes("id = 'node-3'");
+        assertThat(discoveryNodes).satisfiesExactly(
+            d -> assertThat(d.getId()).isEqualTo("node-3")
+        );
 
         // Filter for two nodes by id
         discoveryNodes = filterNodes("id = 'node-3' or id ='node-2' or id='unknown'");
-        assertThat(discoveryNodes).hasSize(2);
-        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-2");
-        assertThat(discoveryNodes.get(1).getId()).isEqualTo("node-3");
+        assertThat(discoveryNodes).satisfiesExactlyInAnyOrder(
+            d -> assertThat(d.getId()).isEqualTo("node-2"),
+            d -> assertThat(d.getId()).isEqualTo("node-3")
+        );
     }
 
     @Test
     public void testFilterNodesByName() throws Exception {
-        List<DiscoveryNode> discoveryNodes = filterNodes("name = 'Arthur'");
-        assertThat(discoveryNodes).hasSize(1);
-        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-3");
+        DiscoveryNodes discoveryNodes = filterNodes("name = 'Arthur'");
+        assertThat(discoveryNodes).satisfiesExactly(
+            d -> assertThat(d.getId()).isEqualTo("node-3")
+        );
 
         // Filter for two nodes by id
         discoveryNodes = filterNodes("name = 'Arthur' or name ='Trillian' or name='unknown'");
-        assertThat(discoveryNodes).hasSize(2);
-        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-2");
-        assertThat(discoveryNodes.get(1).getId()).isEqualTo("node-3");
+        assertThat(discoveryNodes).satisfiesExactlyInAnyOrder(
+            d -> assertThat(d.getId()).isEqualTo("node-2"),
+            d -> assertThat(d.getId()).isEqualTo("node-3")
+        );
     }
 
     @Test
     public void testMixedFilter() throws Exception {
-        List<DiscoveryNode> discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' or name='unknown'");
-        assertThat(discoveryNodes).hasSize(2);
-        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-2");
-        assertThat(discoveryNodes.get(1).getId()).isEqualTo("node-3");
+        DiscoveryNodes discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' or name='unknown'");
+        assertThat(discoveryNodes).satisfiesExactlyInAnyOrder(
+            d -> assertThat(d.getId()).isEqualTo("node-2"),
+            d -> assertThat(d.getId()).isEqualTo("node-3")
+        );
 
 
         discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' or hostname='unknown'");
         assertThat(discoveryNodes).hasSize(3);
 
         discoveryNodes = filterNodes("name = 'Arthur' or id ='node-2' and hostname='unknown'");
-        assertThat(discoveryNodes).hasSize(2);
-        assertThat(discoveryNodes.get(0).getId()).isEqualTo("node-2");
-        assertThat(discoveryNodes.get(1).getId()).isEqualTo("node-3");
+        assertThat(discoveryNodes).satisfiesExactlyInAnyOrder(
+            d -> assertThat(d.getId()).isEqualTo("node-2"),
+            d -> assertThat(d.getId()).isEqualTo("node-3")
+        );
 
         discoveryNodes = filterNodes("name = 'Arthur' and id = 'node-2'");
         assertThat(discoveryNodes).hasSize(0);
@@ -119,8 +120,7 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
 
     @Test
     public void testNoLocalInfoInWhereClause() throws Exception {
-        List<DiscoveryNode> discoveryNodes = filterNodes("hostname = 'localhost'");
+        DiscoveryNodes discoveryNodes = filterNodes("hostname = 'localhost'");
         assertThat(discoveryNodes).hasSize(3);
     }
-
 }

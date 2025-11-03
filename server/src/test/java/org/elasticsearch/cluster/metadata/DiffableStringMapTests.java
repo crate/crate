@@ -19,12 +19,13 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.test.ESTestCase;
@@ -44,7 +45,7 @@ public class DiffableStringMapTests extends ESTestCase {
         m2.put("baz", "eggplant");
         DiffableStringMap dsm2 = new DiffableStringMap(m2);
 
-        Diff<DiffableStringMap> diff = dsm2.diff(dsm);
+        Diff<DiffableStringMap> diff = dsm2.diff(Version.CURRENT, dsm);
         assertThat(diff).isInstanceOf((DiffableStringMap.DiffableStringMapDiff.class));
         DiffableStringMap.DiffableStringMapDiff dsmd = (DiffableStringMap.DiffableStringMapDiff) diff;
 
@@ -78,7 +79,7 @@ public class DiffableStringMapTests extends ESTestCase {
             } else {
                 expected.put(randomAlphaOfLength(2), randomAlphaOfLength(4));
             }
-            dsm = new DiffableStringMap(expected).diff(dsm).apply(dsm);
+            dsm = new DiffableStringMap(expected).diff(Version.CURRENT, dsm).apply(dsm);
         }
         assertThat(expected).isEqualTo(dsm);
     }

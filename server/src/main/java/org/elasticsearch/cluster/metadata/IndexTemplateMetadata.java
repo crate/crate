@@ -28,8 +28,9 @@ import java.util.Set;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
+import org.elasticsearch.cluster.Diffs;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -53,7 +54,7 @@ import io.crate.metadata.RelationName;
  * See also {@link MetadataUpgradeService#upgradeMetadata(Metadata)}
  */
 @Deprecated(since = "6.0.0")
-public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadata> {
+public class IndexTemplateMetadata implements Diffable<IndexTemplateMetadata> {
 
     private final String name;
 
@@ -184,7 +185,7 @@ public class IndexTemplateMetadata extends AbstractDiffable<IndexTemplateMetadat
     }
 
     public static Diff<IndexTemplateMetadata> readDiffFrom(StreamInput in) throws IOException {
-        return readDiffFrom(IndexTemplateMetadata::readFrom, in);
+        return Diffs.readDiffFrom(IndexTemplateMetadata::readFrom, in);
     }
 
     @Override

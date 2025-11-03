@@ -30,8 +30,7 @@ import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractDiffable;
-import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -50,7 +49,7 @@ import io.crate.common.collections.Sets;
  * This class holds all {@link DiscoveryNode} in the cluster and provides convenience methods to
  * access, modify merge / diff discovery nodes.
  */
-public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements Iterable<DiscoveryNode> {
+public class DiscoveryNodes implements Diffable<DiscoveryNodes>, Iterable<DiscoveryNode> {
 
     public static final DiscoveryNodes EMPTY_NODES = builder().build();
 
@@ -99,6 +98,10 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
             return false;
         }
         return localNodeId.equals(masterNodeId);
+    }
+
+    public boolean isEmpty() {
+        return nodes.isEmpty();
     }
 
     /**
@@ -206,7 +209,7 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
      */
     public boolean nodeExistsWithSameRoles(DiscoveryNode discoveryNode) {
         final DiscoveryNode existing = nodes.get(discoveryNode.getId());
-        return existing != null && existing.equals(discoveryNode) && existing.getRoles().equals(discoveryNode.getRoles());
+        return existing != null && existing.equals(discoveryNode) && existing.roles().equals(discoveryNode.roles());
     }
 
     /**
@@ -381,7 +384,7 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
                             }
                         } else {
                             for (DiscoveryNode node : this) {
-                                for (DiscoveryNodeRole role : Sets.difference(node.getRoles(), DiscoveryNodeRole.BUILT_IN_ROLES)) {
+                                for (DiscoveryNodeRole role : Sets.difference(node.roles(), DiscoveryNodeRole.BUILT_IN_ROLES)) {
                                     if (role.roleName().equals(matchAttrName)) {
                                         if (Booleans.parseBoolean(matchAttrValue, true)) {
                                             resolvedNodesIds.add(node.getId());
@@ -515,7 +518,7 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
                 summary.append("]}");
             }
             if (removed()) {
-                if (summary.length() > 0) {
+                if (!summary.isEmpty()) {
                     summary.append(", ");
                 }
                 summary.append("removed {");
@@ -527,7 +530,7 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
             if (added()) {
                 // don't print if there is one added, and it is us
                 if (!(addedNodes().size() == 1 && addedNodes().get(0).getId().equals(localNodeId))) {
-                    if (summary.length() > 0) {
+                    if (!summary.isEmpty()) {
                         summary.append(", ");
                     }
                     summary.append("added {");
@@ -579,10 +582,6 @@ public class DiscoveryNodes extends AbstractDiffable<DiscoveryNodes> implements 
             builder.putUnsafe(node);
         }
         return builder.build();
-    }
-
-    public static Diff<DiscoveryNodes> readDiffFrom(StreamInput in, DiscoveryNode localNode) throws IOException {
-        return AbstractDiffable.readDiffFrom(in1 -> readFrom(in1, localNode), in);
     }
 
     public static Builder builder() {

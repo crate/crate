@@ -23,20 +23,17 @@ package io.crate.execution.engine.collect.sources;
 
 import static java.util.concurrent.CompletableFuture.completedFuture;
 
-import java.util.ArrayList;
-import java.util.Collection;
-import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.node.Node;
 
 import io.crate.analyze.WhereClause;
-import io.crate.common.collections.Lists;
 import io.crate.data.BatchIterator;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -87,8 +84,8 @@ public class NodeStatsCollectSource implements CollectSource {
         if (!WhereClause.canMatch(collectPhase.where())) {
             return completedFuture(InMemoryBatchIterator.empty(SentinelRow.SENTINEL));
         }
-        Collection<DiscoveryNode> nodes = filterNodes(
-            Lists.of(clusterService.state().nodes()),
+        DiscoveryNodes nodes = filterNodes(
+            clusterService.state().nodes(),
             collectPhase.where(),
             nodeCtx);
         if (nodes.isEmpty()) {
@@ -97,7 +94,7 @@ public class NodeStatsCollectSource implements CollectSource {
         return completedFuture(NodeStats.newInstance(nodeStatsAction, collectPhase, nodes, txnCtx, inputFactory));
     }
 
-    static Collection<DiscoveryNode> filterNodes(Collection<DiscoveryNode> nodes, Symbol predicate, NodeContext nodeCtx) {
+    static DiscoveryNodes filterNodes(DiscoveryNodes nodes, Symbol predicate, NodeContext nodeCtx) {
         var expressions = SysNodesTableInfo.INSTANCE.expressions();
         var nameExpr = expressions.get(SysNodesTableInfo.Columns.NAME).create();
         var idExpr = expressions.get(SysNodesTableInfo.Columns.ID).create();
@@ -111,7 +108,9 @@ public class NodeStatsCollectSource implements CollectSource {
             referenceResolver,
             null
         );
-        List<DiscoveryNode> newNodes = new ArrayList<>();
+        DiscoveryNodes.Builder newNodes = DiscoveryNodes.builder()
+            .masterNodeId(nodes.getMasterNodeId())
+            .localNodeId(nodes.getLocalNodeId());
         for (DiscoveryNode node : nodes) {
             String nodeId = node.getId();
             NodeStatsContext statsContext = new NodeStatsContext(nodeId, node.getName());
@@ -125,6 +124,6 @@ public class NodeStatsCollectSource implements CollectSource {
                 newNodes.add(node);
             }
         }
-        return newNodes;
+        return newNodes.build();
     }
 }

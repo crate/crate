@@ -30,6 +30,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.Predicate;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.Diffs;
@@ -325,8 +326,8 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
     }
 
     @Override
-    public Diff<RoutingTable> diff(RoutingTable previousState) {
-        return new RoutingTableDiff(previousState, this);
+    public Diff<RoutingTable> diff(Version version, RoutingTable previousState) {
+        return new RoutingTableDiff(version, previousState, this);
     }
 
     public static Diff<RoutingTable> readDiffFrom(StreamInput in) throws IOException {
@@ -360,9 +361,9 @@ public class RoutingTable implements Iterable<IndexRoutingTable>, Diffable<Routi
 
         private final Diff<ImmutableOpenMap<String, IndexRoutingTable>> indicesRouting;
 
-        RoutingTableDiff(RoutingTable before, RoutingTable after) {
+        RoutingTableDiff(Version v, RoutingTable before, RoutingTable after) {
             version = after.version;
-            indicesRouting = Diffs.diff(before.indicesRouting, after.indicesRouting, Diffs.stringKeySerializer());
+            indicesRouting = Diffs.diff(v, before.indicesRouting, after.indicesRouting, Diffs.stringKeySerializer());
         }
 
         private static final Diffs.DiffableValueReader<String, IndexRoutingTable> DIFF_VALUE_READER =
