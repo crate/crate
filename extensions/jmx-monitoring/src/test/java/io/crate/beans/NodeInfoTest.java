@@ -44,10 +44,6 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.test.ClusterServiceUtils;
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import com.carrotsearch.randomizedtesting.RandomizedRunner;
-import com.carrotsearch.randomizedtesting.annotations.ThreadLeakScope;
 
 import io.crate.beans.NodeInfo.ShardStateStoreSize;
 import io.crate.metadata.PartitionName;
@@ -55,8 +51,6 @@ import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
-@RunWith(RandomizedRunner.class)
-@ThreadLeakScope(ThreadLeakScope.Scope.NONE)
 public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
 
     ClusterState.Builder csBuilder;
@@ -112,6 +106,8 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_1");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_1");
+        assertThat(nodeInfo.isMaster()).isTrue();
+        assertThat(nodeInfo.roles()).containsExactly("data", "master_eligible");
 
         assertThat(nodeInfo.getClusterStateVersion()).isEqualTo(1L);
         ShardStats shardStats = nodeInfo.getShardStats();
@@ -142,6 +138,9 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_2");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_2");
+        assertThat(nodeInfo.isMaster()).isFalse();
+        assertThat(nodeInfo.roles()).containsExactly("data", "master_eligible");
+
         var shardStats = nodeInfo.getShardStats();
         assertThat(shardStats.getPrimaries()).isEqualTo(0);
         assertThat(shardStats.getTotal()).isEqualTo(0);
@@ -154,7 +153,7 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
         var nodes = DiscoveryNodes
             .builder()
             .add(discoveryNode("node_1"))
-            .add(discoveryNode("node_2"))
+            .add(discoveryNode("node_2", Set.of(DiscoveryNodeRole.MASTER_ROLE)))
             .masterNodeId("node_2")
             .localNodeId("node_2")
             .build();
@@ -163,6 +162,9 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_2");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_2");
+        assertThat(nodeInfo.isMaster()).isTrue();
+        assertThat(nodeInfo.roles()).containsExactly("master_eligible");
+
         var shardStats = nodeInfo.getShardStats();
         assertThat(shardStats.getPrimaries()).isEqualTo(0);
         assertThat(shardStats.getTotal()).isEqualTo(0);
@@ -177,13 +179,18 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
     public void test_local_node_is_data_node_all_shards_locally() throws Exception {
         var nodes = DiscoveryNodes
             .builder()
-            .add(discoveryNode("node_1"))
+            .add(discoveryNode("node_1", Set.of(DiscoveryNodeRole.DATA_ROLE)))
             .add(discoveryNode("node_2"))
             .masterNodeId("node_2")
             .localNodeId("node_1")
             .build();
 
         var nodeInfo = new NodeInfo(() -> csBuilder.nodes(nodes).build(), this::shardStateAndSizeProvider);
+        assertThat(nodeInfo.getNodeId()).isEqualTo("node_1");
+        assertThat(nodeInfo.getNodeName()).isEqualTo("node_1");
+        assertThat(nodeInfo.isMaster()).isFalse();
+        assertThat(nodeInfo.roles()).containsExactly("data");
+
         var shardStats = nodeInfo.getShardStats();
         assertThat(shardStats.getPrimaries()).isEqualTo(1);
         assertThat(shardStats.getTotal()).isEqualTo(3);
@@ -259,11 +266,15 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     DiscoveryNode discoveryNode(String id) {
+        return discoveryNode(id, Set.of(DiscoveryNodeRole.MASTER_ROLE, DiscoveryNodeRole.DATA_ROLE));
+    }
+
+    DiscoveryNode discoveryNode(String id, Set<DiscoveryNodeRole> roles) {
         return new DiscoveryNode(id,
                                  id,
                                  buildNewFakeTransportAddress(),
                                  Map.of(),
-                                 Set.of(DiscoveryNodeRole.MASTER_ROLE, DiscoveryNodeRole.DATA_ROLE),
+                                 roles,
                                  Version.CURRENT);
     }
 

@@ -173,6 +173,14 @@ NodeInfo can be accessed using the JMX MXBean object name
 +-------------------------+---------------------------------------------------+
 | ``NodeName``            | Provides the human friendly name of the node.     |
 +-------------------------+---------------------------------------------------+
+| ``Master``              | Boolean flag, which shows if the node is the      |
+|                         | currently elected master node of the cluster.     |
++-------------------------+---------------------------------------------------+
+| ``Roles``               | The roles of the node in the cluster. For details |
+|                         | see the corresponding column                      |
+|                         | :ref:`roles <sys-nodes-roles>` in                 |
+|                         | :ref:`sys.nodes <sys-nodes>` table.               |
++-------------------------+---------------------------------------------------+
 | ``ClusterStateVersion`` | Provides the version of the current applied       |
 |                         | cluster state.                                    |
 +-------------------------+---------------------------------------------------+
