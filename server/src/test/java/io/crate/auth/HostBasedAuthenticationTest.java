@@ -22,9 +22,9 @@
 package io.crate.auth;
 
 import static io.crate.auth.AuthenticationWithSSLIntegrationTest.getAbsoluteFilePathFromClassPath;
-import static io.crate.auth.HostBasedAuthentication.Matchers.isValidAddress;
-import static io.crate.auth.HostBasedAuthentication.Matchers.isValidProtocol;
-import static io.crate.auth.HostBasedAuthentication.Matchers.isValidUser;
+import static io.crate.auth.HostBasedAuthentication.isValidAddress;
+import static io.crate.auth.HostBasedAuthentication.isValidProtocol;
+import static io.crate.auth.HostBasedAuthentication.isValidUser;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -36,8 +36,6 @@ import java.net.UnknownHostException;
 import java.nio.file.Path;
 import java.security.cert.Certificate;
 import java.util.HashMap;
-import java.util.Map;
-import java.util.Optional;
 
 import javax.net.ssl.SSLSession;
 
@@ -237,22 +235,22 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             DnsResolver.SYSTEM,
             () -> "dummy"
         );
-        Optional<Map.Entry<String, HBAConf>> entry;
+        HBAConf entry;
 
         entry = authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null));
-        assertThat(entry).isPresent();
+        assertThat(entry).isNotNull();
 
         entry = authService.getEntry(
             "cr8",
             new ConnectionProperties(new Credentials("cr8", null), LOCALHOST, Protocol.POSTGRES, null)
         );
-        assertThat(entry).isNotPresent();
+        assertThat(entry).isNull();
 
         entry = authService.getEntry(
             "crate",
             new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("10.0.0.1"), Protocol.POSTGRES, null)
         );
-        assertThat(entry).isNotPresent();
+        assertThat(entry).isNull();
     }
 
     @Test
@@ -265,25 +263,25 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
 
-        Optional<Map.Entry<String, HBAConf>> entry;
+        HBAConf entry;
 
         entry = authService.getEntry("crate",
             new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null));
-        assertThat(entry).isPresent();
-        assertThat(entry.get().getValue().method()).isEqualTo("password");
+        assertThat(entry).isNotNull();
+        assertThat(entry.method()).isEqualTo("password");
 
         entry = authService.getEntry(
             "cr8",
             new ConnectionProperties(new Credentials("cr8", null), InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null)
         );
-        assertThat(entry).isPresent();
-        assertThat(entry.get().getValue().method()).isEqualTo("password");
+        assertThat(entry).isNotNull();
+        assertThat(entry.method()).isEqualTo("password");
 
         entry = authService.getEntry(
             "cr8",
             new ConnectionProperties(new Credentials("cr8", null), InetAddresses.forString("123.45.67.89"), Protocol.POSTGRES, null)
         );
-        assertThat(entry).isNotPresent();
+        assertThat(entry).isNull();
     }
 
     @Test
@@ -295,13 +293,13 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
 
-        Optional<Map.Entry<String, HBAConf>> entry;
+        HBAConf entry;
         entry = authService.getEntry("crate",
             new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("127.0.0.1"), Protocol.POSTGRES, null));
-        assertThat(entry).isPresent();
+        assertThat(entry).isNotNull();
         entry = authService.getEntry("crate",
             new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString("::1"), Protocol.POSTGRES, null));
-        assertThat(entry).isPresent();
+        assertThat(entry).isNotNull();
     }
 
     @Test
@@ -313,21 +311,21 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
 
-        Optional<?> entry = authService.getEntry("crate",
+        HBAConf entry = authService.getEntry("crate",
             new ConnectionProperties(CRATE_USER_CREDENTIALS, InetAddresses.forString(TEST_DNS_IP), Protocol.POSTGRES, null));
 
-        assertThat(entry).isPresent();
+        assertThat(entry).isNotNull();
     }
 
     @Test
     public void testMatchUser() throws Exception {
         // only "crate" matches
-        Map.Entry<String, HBAConf> entry = Map.entry("0", new HBAConf("trust", SSL.OPTIONAL, "crate", null, null));
+        var entry = new HBAConf("trust", SSL.OPTIONAL, "crate", null, null);
         assertThat(isValidUser(entry, "crate")).isTrue();
         assertThat(isValidUser(entry, "postgres")).isFalse();
 
         // any user matches
-        entry = Map.entry("0", new HBAConf("trust", SSL.OPTIONAL, null, null, null));
+        entry = new HBAConf("trust", SSL.OPTIONAL, null, null, null);
         assertThat(isValidUser(entry, randomAlphaOfLength(8))).isTrue();
     }
 
@@ -359,7 +357,7 @@ public class HostBasedAuthenticationTest extends ESTestCase {
                             randomInt(255),
                             randomInt(255),
                             randomInt(255)));
-        long randomAddressAsLong = HostBasedAuthentication.Matchers.inetAddressToInt(randomAddress);
+        long randomAddressAsLong = HostBasedAuthentication.inetAddressToInt(randomAddress);
 
         assertThat(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_SUBDOMAIN_HOSTNAME, IN_MEMORY_RESOLVER)).isTrue();
         assertThat(isValidAddress(hbaAddress, randomAddressAsLong, () -> TEST_DOMAIN_HOSTNAME, IN_MEMORY_RESOLVER)).isFalse();
@@ -408,9 +406,9 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         assertThat(authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null)))
-            .isNotEmpty();
+            .isNotNull();
         assertThat(authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, sslSession)))
-            .isNotEmpty();
+            .isNotNull();
 
         sslConfig = Settings.builder().put(HBA_1)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE)
@@ -422,9 +420,9 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         assertThat(
-            authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null))).isEmpty();
+            authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null))).isNull();
         assertThat(authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, sslSession)))
-            .isNotEmpty();
+            .isNotNull();
 
         sslConfig = Settings.builder().put(HBA_1)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE)
@@ -436,9 +434,9 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             () -> "dummy"
         );
         assertThat(authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, null)))
-            .isNotEmpty();
+            .isNotNull();
         assertThat(authService.getEntry("crate", new ConnectionProperties(CRATE_USER_CREDENTIALS, LOCALHOST, Protocol.POSTGRES, sslSession)))
-            .isEmpty();
+            .isNull();
     }
 
     @Test
@@ -466,8 +464,8 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             DnsResolver.SYSTEM,
             () -> "dummy"
         );
-        assertThat(authService.getEntry("crate", noSslConnProperties)).isNotEmpty();
-        assertThat(authService.getEntry("crate", sslConnProperties)).isNotEmpty();
+        assertThat(authService.getEntry("crate", noSslConnProperties)).isNotNull();
+        assertThat(authService.getEntry("crate", sslConnProperties)).isNotNull();
 
         sslConfig = Settings.builder().put(baseConfig)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.REQUIRED.VALUE)
@@ -478,8 +476,8 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             DnsResolver.SYSTEM,
             () -> "dummy"
         );
-        assertThat(authService.getEntry("crate", noSslConnProperties)).isEmpty();
-        assertThat(authService.getEntry("crate", sslConnProperties)).isNotEmpty();
+        assertThat(authService.getEntry("crate", noSslConnProperties)).isNull();
+        assertThat(authService.getEntry("crate", sslConnProperties)).isNotNull();
 
         sslConfig = Settings.builder().put(baseConfig)
             .put("auth.host_based.config.1." + HostBasedAuthentication.SSL.KEY, HostBasedAuthentication.SSL.NEVER.VALUE)
@@ -490,8 +488,8 @@ public class HostBasedAuthenticationTest extends ESTestCase {
             DnsResolver.SYSTEM,
             () -> "dummy"
         );
-        assertThat(authService.getEntry("crate", noSslConnProperties)).isNotEmpty();
-        assertThat(authService.getEntry("crate", sslConnProperties)).isEmpty();
+        assertThat(authService.getEntry("crate", noSslConnProperties)).isNotNull();
+        assertThat(authService.getEntry("crate", sslConnProperties)).isNull();
     }
 
     public void testKeyOrderIsRespectedInHbaConfig() throws Exception {

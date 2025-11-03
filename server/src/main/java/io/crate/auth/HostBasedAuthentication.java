@@ -27,7 +27,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Optional;
 import java.util.SortedMap;
 import java.util.TreeMap;
 import java.util.function.Supplier;
@@ -48,6 +47,12 @@ import io.crate.role.Roles;
 public class HostBasedAuthentication implements Authentication {
 
     private static final Logger LOGGER = LogManager.getLogger(HostBasedAuthentication.class);
+
+    // IPv4 127.0.0.1 -> 2130706433
+    private static final long IPV4_LOCALHOST = inetAddressToInt(InetAddresses.forString("127.0.0.1"));
+    // IPv6 ::1 -> 1
+    private static final long IPV6_LOCALHOST = inetAddressToInt(InetAddresses.forString("::1"));
+
 
     enum SSL {
         REQUIRED("on"),
@@ -155,14 +160,8 @@ public class HostBasedAuthentication implements Authentication {
     @Nullable
     public AuthenticationMethod resolveAuthenticationType(@Nullable String user, ConnectionProperties connProperties) {
         assert hbaConf != null : "hba configuration is missing";
-        Optional<Map.Entry<String, HBAConf>> entry = getEntry(user, connProperties);
-        if (entry.isPresent()) {
-            String methodName = entry.get()
-                .getValue()
-                .method();
-            return methodForName(methodName);
-        }
-        return null;
+        HBAConf conf = getEntry(user, connProperties);
+        return conf == null ? null : methodForName(conf.method());
     }
 
     @VisibleForTesting
@@ -171,105 +170,103 @@ public class HostBasedAuthentication implements Authentication {
     }
 
     @VisibleForTesting
-    Optional<Map.Entry<String, HBAConf>> getEntry(@Nullable String user, ConnectionProperties connectionProperties) {
+    @Nullable
+    HBAConf getEntry(@Nullable String user, ConnectionProperties connectionProperties) {
         if (user == null || connectionProperties == null) {
-            return Optional.empty();
+            return null;
         }
-        return hbaConf.entrySet().stream()
-            .filter(e -> Matchers.isValidUser(e, user))
-            .filter(e -> Matchers.isValidAddress(e.getValue().address(), connectionProperties.address(), dnsResolver))
-            .filter(e -> Matchers.isValidProtocol(e.getValue().protocol(), connectionProperties.protocol()))
-            .filter(e -> Matchers.isValidConnection(e.getValue().ssl(), connectionProperties))
-            .filter(e -> Matchers.isValidMethod(e.getValue().method(), connectionProperties.clientMethods()))
-            .findFirst();
+        for (var entry : hbaConf.entrySet()) {
+            HBAConf conf = entry.getValue();
+            if (isValidUser(conf, user)
+                    && isValidAddress(conf.address(), connectionProperties.address(), dnsResolver)
+                    && isValidProtocol(conf.protocol(), connectionProperties.protocol())
+                    && isValidConnection(conf.ssl(), connectionProperties)
+                    && isValidMethod(conf.method(), connectionProperties.clientMethods())) {
+
+                return conf;
+            }
+        }
+        return null;
     }
 
-    static class Matchers {
+    static boolean isValidUser(HBAConf conf, String user) {
+        String hbaUser = conf.user();
+        return hbaUser == null || user.equals(hbaUser);
+    }
 
-        // IPv4 127.0.0.1 -> 2130706433
-        private static final long IPV4_LOCALHOST = inetAddressToInt(InetAddresses.forString("127.0.0.1"));
-        // IPv6 ::1 -> 1
-        private static final long IPV6_LOCALHOST = inetAddressToInt(InetAddresses.forString("::1"));
-
-        static boolean isValidUser(Map.Entry<String, HBAConf> entry, String user) {
-            String hbaUser = entry.getValue().user();
-            return hbaUser == null || user.equals(hbaUser);
+    static boolean isValidAddress(@Nullable String hbaAddressOrHostname, long address, Supplier<String> getHostname, DnsResolver resolver) {
+        if (hbaAddressOrHostname == null) {
+            // no IP/CIDR --> 0.0.0.0/0 --> match all
+            return true;
         }
-
-        static boolean isValidAddress(@Nullable String hbaAddressOrHostname, long address, Supplier<String> getHostname, DnsResolver resolver) {
-            if (hbaAddressOrHostname == null) {
-                // no IP/CIDR --> 0.0.0.0/0 --> match all
-                return true;
-            }
-            if (hbaAddressOrHostname.equals("_local_")) {
-                // special case "_local_" which matches both IPv4 and IPv6 localhost addresses
-                return address == IPV4_LOCALHOST || address == IPV6_LOCALHOST;
-            }
-            int p = hbaAddressOrHostname.indexOf('/');
-            if (p < 0) {
-                try {
-                    if (hbaAddressOrHostname.startsWith(".")) {
-                        // not an ip address, subdomain
-                        var clientHostName = getHostname.get();
-                        return clientHostName != null && clientHostName.endsWith(hbaAddressOrHostname);
-                    } else {
-                        // SystemDefaultDnsResolver is injected here and internally it uses InetAddress.getAllByName
-                        // which tries to treat argument as an ip address and then as a hostname.
-                        for (var resolvedAddress : resolver.resolve(hbaAddressOrHostname)) {
-                            if (inetAddressToInt(resolvedAddress) == address) {
-                                return true;
-                            }
+        if (hbaAddressOrHostname.equals("_local_")) {
+            // special case "_local_" which matches both IPv4 and IPv6 localhost addresses
+            return address == IPV4_LOCALHOST || address == IPV6_LOCALHOST;
+        }
+        int p = hbaAddressOrHostname.indexOf('/');
+        if (p < 0) {
+            try {
+                if (hbaAddressOrHostname.startsWith(".")) {
+                    // not an ip address, subdomain
+                    var clientHostName = getHostname.get();
+                    return clientHostName != null && clientHostName.endsWith(hbaAddressOrHostname);
+                } else {
+                    // SystemDefaultDnsResolver is injected here and internally it uses InetAddress.getAllByName
+                    // which tries to treat argument as an ip address and then as a hostname.
+                    for (var resolvedAddress : resolver.resolve(hbaAddressOrHostname)) {
+                        if (inetAddressToInt(resolvedAddress) == address) {
+                            return true;
                         }
-                        return false;
                     }
-                } catch (UnknownHostException e) {
-                    LOGGER.warn("Cannot resolve hostname {} specified in the HBA configuration.", hbaAddressOrHostname);
                     return false;
                 }
+            } catch (UnknownHostException e) {
+                LOGGER.warn("Cannot resolve hostname {} specified in the HBA configuration.", hbaAddressOrHostname);
+                return false;
             }
-            long[] minAndMax = Cidrs.cidrMaskToMinMax(hbaAddressOrHostname);
-            return minAndMax[0] <= address && address < minAndMax[1];
         }
+        long[] minAndMax = Cidrs.cidrMaskToMinMax(hbaAddressOrHostname);
+        return minAndMax[0] <= address && address < minAndMax[1];
+    }
 
-        static boolean isValidAddress(@Nullable String hbaAddressOrHostname, InetAddress address, DnsResolver resolver) {
-            return isValidAddress(hbaAddressOrHostname, inetAddressToInt(address), address::getCanonicalHostName, resolver);
+    static boolean isValidAddress(@Nullable String hbaAddressOrHostname, InetAddress address, DnsResolver resolver) {
+        return isValidAddress(hbaAddressOrHostname, inetAddressToInt(address), address::getCanonicalHostName, resolver);
+    }
+
+    static boolean isValidProtocol(String hbaProtocol, Protocol protocol) {
+        return hbaProtocol == null || hbaProtocol.equals(protocol.toString());
+    }
+
+    private static boolean isValidConnection(SSL sslMode, ConnectionProperties connectionProperties) {
+        return switch (sslMode) {
+            case OPTIONAL -> true;
+            case NEVER -> !connectionProperties.hasSSL();
+            case REQUIRED -> connectionProperties.hasSSL();
+        };
+    }
+
+    /**
+     * Last Matcher in the chain.
+     * @param method can be null and in this case we return true so that we can fall back to trust later.
+     */
+    private static boolean isValidMethod(@Nullable String method, List<ConnectionProperties.ClientMethod> clientMethods) {
+        if (method == null) {
+            return true;
         }
-
-        static boolean isValidProtocol(String hbaProtocol, Protocol protocol) {
-            return hbaProtocol == null || hbaProtocol.equals(protocol.toString());
-        }
-
-        static boolean isValidConnection(SSL sslMode, ConnectionProperties connectionProperties) {
-            return switch (sslMode) {
-                case OPTIONAL -> true;
-                case NEVER -> !connectionProperties.hasSSL();
-                case REQUIRED -> connectionProperties.hasSSL();
-            };
-        }
-
-        /**
-         * Last Matcher in the chain.
-         * @param method can be null and in this case we return true so that we can fall back to trust later.
-         */
-        static boolean isValidMethod(@Nullable String method, List<ConnectionProperties.ClientMethod> clientMethods) {
-            if (method == null) {
+        for (ConnectionProperties.ClientMethod clientMethod: clientMethods) {
+            if (clientMethod.toString().equalsIgnoreCase(method)) {
                 return true;
             }
-            for (ConnectionProperties.ClientMethod clientMethod: clientMethods) {
-                if (clientMethod.toString().equalsIgnoreCase(method)) {
-                    return true;
-                }
-            }
-            return false;
         }
+        return false;
+    }
 
-        static long inetAddressToInt(InetAddress address) {
-            long net = 0;
-            for (byte a : address.getAddress()) {
-                net <<= 8;
-                net |= a & 0xFF;
-            }
-            return net;
+    static long inetAddressToInt(InetAddress address) {
+        long net = 0;
+        for (byte a : address.getAddress()) {
+            net <<= 8;
+            net |= a & 0xFF;
         }
+        return net;
     }
 }
