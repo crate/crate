@@ -235,7 +235,8 @@ Node-to-node communication
 You can use the :ref:`Host-Based Authentication <admin_hba>` mechanism for
 node-to-node communication.
 
-For example, if you wanted to configure a `multi-zone cluster`_, you should
+For example, if you wanted to configure a :ref:`multi-zone cluster
+<multi-zone-setup>`, you should
 enable certificate authentication like this:
 
 .. code-block:: yaml
@@ -253,6 +254,3 @@ enable certificate authentication like this:
 
     CrateDB only supports the :ref:`trust <auth_trust>` and :ref:`cert
     <auth_cert>` authentication methods for node-to-node communication.
-
-
-.. _multi-zone cluster: https://crate.io/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html
