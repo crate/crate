@@ -156,6 +156,7 @@ Administration and Operations
 - Added columns ``is_master``, and ``roles`` to :ref:`sys.nodes <sys-nodes>`,
   which expose which is the current ``master`` node of the cluster, and what are
   the roles of the node in the cluster (``master_eligible`` and/or ``data``).
+  Additionally, exposed this info is through :ref:`NodeInfo <node_info_mxbean>`.
 
 
 Client interfaces

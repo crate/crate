@@ -30,6 +30,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRoutingState;
 import org.elasticsearch.index.Index;
@@ -64,6 +65,20 @@ public class NodeInfo implements NodeInfoMXBean {
     public String getNodeName() {
         return clusterState.get().nodes().getLocalNode().getName();
     }
+
+    @Override
+    public boolean isMaster() {
+        return clusterState.get().nodes().isLocalNodeElectedMaster();
+    }
+
+    @Override
+    public List<String> roles() {
+        return clusterState.get().nodes().getLocalNode().roles().stream()
+            .map(DiscoveryNodeRole::externalName)
+            .sorted()
+            .toList();
+    }
+
 
     @Override
     public long getClusterStateVersion() {

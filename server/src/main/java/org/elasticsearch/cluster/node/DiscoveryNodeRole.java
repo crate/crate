@@ -60,6 +60,14 @@ public abstract sealed class DiscoveryNodeRole implements Writeable permits
         return roleNameAbbreviation;
     }
 
+    /**
+     * @return the role name for exposing externally like in {@link io.crate.metadata.sys.SysNodesTableInfo}
+     *         and {@code NodeInfoMXBean}.
+     */
+    public String externalName() {
+        return roleName;
+    }
+
     protected DiscoveryNodeRole(final String roleName, final String roleNameAbbreviation) {
         this.roleName = Objects.requireNonNull(roleName);
         this.roleNameAbbreviation = Objects.requireNonNull(roleNameAbbreviation);
@@ -156,6 +164,11 @@ public abstract sealed class DiscoveryNodeRole implements Writeable permits
         @Override
         protected Setting<Boolean> roleSetting() {
             return Node.NODE_MASTER_SETTING;
+        }
+
+        @Override
+        public String externalName() {
+            return "master_eligible";
         }
     }
 }

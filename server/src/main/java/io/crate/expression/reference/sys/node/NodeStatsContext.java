@@ -122,7 +122,7 @@ public class NodeStatsContext implements Writeable {
 
     public List<String> roles() {
         return roles.stream()
-            .map(role -> role.roleName().equals("master") ? "master_eligible" : role.roleName())
+            .map(DiscoveryNodeRole::externalName)
             .sorted()
             .toList();
     }

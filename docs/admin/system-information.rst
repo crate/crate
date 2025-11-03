@@ -276,6 +276,8 @@ The table schema is as follows:
 |               | and ``false`` for all other nodes.              |             |
 +---------------+-------------------------------------------------+-------------+
 
+.. _sys-nodes-roles:
+
 ``roles``
 ---------
 
