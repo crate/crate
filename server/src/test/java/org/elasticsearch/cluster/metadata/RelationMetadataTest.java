@@ -23,6 +23,7 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.UUIDs;
@@ -50,7 +51,7 @@ public class RelationMetadataTest {
             State.CLOSE
         );
 
-        Diff<RelationMetadata> diff = t1Close.diff(t1Open);
+        Diff<RelationMetadata> diff = t1Close.diff(Version.CURRENT, t1Open);
         try (var out = new BytesStreamOutput()) {
             diff.writeTo(out);
             try (var in = out.bytes().streamInput()) {

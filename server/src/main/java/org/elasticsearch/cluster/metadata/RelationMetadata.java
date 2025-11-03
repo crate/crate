@@ -27,6 +27,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.Diffable;
 import org.elasticsearch.cluster.Diffs.ValueSerializer;
@@ -61,7 +62,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
     }
 
     @Override
-    default Diff<RelationMetadata> diff(RelationMetadata prev) {
+    default Diff<RelationMetadata> diff(Version version, RelationMetadata prev) {
         if (this.equals(prev)) {
             return RelationMetadataDiff.EMPTY;
         } else {
@@ -95,8 +96,8 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         }
 
         @Override
-        public Diff<RelationMetadata> diff(RelationMetadata value, RelationMetadata beforePart) {
-            return value.diff(beforePart);
+        public Diff<RelationMetadata> diff(Version version, RelationMetadata value, RelationMetadata beforePart) {
+            return value.diff(version, beforePart);
         }
 
         @Override

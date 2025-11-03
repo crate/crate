@@ -58,7 +58,8 @@ public class CreateSubscriptionPlanTest extends CrateDummyClusterServiceUnitTest
 
     private void executePlan(SQLExecutor executor, Plan plan) throws Exception {
         TestingRowConsumer consumer = new TestingRowConsumer(true, false);
-        plan.execute(
+        Plan.execute(
+            plan,
             mock(DependencyCarrier.class, Answers.RETURNS_MOCKS),
             executor.getPlannerContext(),
             consumer,

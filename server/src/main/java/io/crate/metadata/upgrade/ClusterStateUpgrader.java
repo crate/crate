@@ -101,12 +101,12 @@ public class ClusterStateUpgrader {
                                                 ClusterState newState,
                                                 Version targetVersion) {
         if (targetVersion.onOrAfter(IndexUUID.INDICES_RESOLVED_BY_UUID_VERSION)) {
-            return newState.diff(previousState);
+            return newState.diff(targetVersion, previousState);
         }
         // we need to downgrade both states before creating the diff
         ClusterState downgradedPrevious = downgrade(previousState, targetVersion);
         ClusterState downgradedCurrent = downgrade(newState, targetVersion);
-        return downgradedCurrent.diff(downgradedPrevious);
+        return downgradedCurrent.diff(targetVersion, downgradedPrevious);
     }
 
     public static ClusterState applyDiff(ClusterState currentState,

@@ -25,8 +25,9 @@ import java.util.Map;
 
 import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.AbstractDiffable;
 import org.elasticsearch.cluster.Diff;
+import org.elasticsearch.cluster.Diffable;
+import org.elasticsearch.cluster.Diffs;
 import org.elasticsearch.common.compress.CompressedXContent;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -38,7 +39,7 @@ import io.crate.server.xcontent.XContentHelper;
 /**
  * Mapping configuration for a type.
  */
-public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
+public class MappingMetadata implements Diffable<MappingMetadata> {
 
     private final CompressedXContent source;
 
@@ -106,6 +107,6 @@ public class MappingMetadata extends AbstractDiffable<MappingMetadata> {
     }
 
     public static Diff<MappingMetadata> readDiffFrom(StreamInput in) throws IOException {
-        return readDiffFrom(MappingMetadata::new, in);
+        return Diffs.readDiffFrom(MappingMetadata::new, in);
     }
 }

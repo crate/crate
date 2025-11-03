@@ -23,7 +23,6 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Set;
 
-import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -32,22 +31,8 @@ public class DiscoveryNodeRoleTests extends ESTestCase {
     @Test
     public void testDiscoveryNodeSetPossibleRolesRejectsDuplicateRoleNames() {
         assertThatThrownBy(() -> DiscoveryNode.setPossibleRoles(Set.of(
-                        new DiscoveryNodeRole("foo", "f") {
-
-                            @Override
-                            protected Setting<Boolean> roleSetting() {
-                                return null;
-                            }
-
-                        },
-                        new DiscoveryNodeRole("foo", "f") {
-
-                            @Override
-                            protected Setting<Boolean> roleSetting() {
-                                return null;
-                            }
-
-                        }))
+            new DiscoveryNodeRole.UnknownRole("foo", "f"),
+            new DiscoveryNodeRole.UnknownRole("foo", "f")))
         ).isExactlyInstanceOf(IllegalStateException.class)
             .hasMessageContaining("Duplicate key foo ");
     }
@@ -55,24 +40,9 @@ public class DiscoveryNodeRoleTests extends ESTestCase {
     @Test
     public void testDiscoveryNodeSetPossibleRolesRejectsDuplicateRoleNameAbbreviations() {
         assertThatThrownBy(() -> DiscoveryNode.setPossibleRoles(Set.of(
-                        new DiscoveryNodeRole("foo_1", "f") {
-
-                            @Override
-                            protected Setting<Boolean> roleSetting() {
-                                return null;
-                            }
-
-                        },
-                        new DiscoveryNodeRole("foo_2", "f") {
-
-                            @Override
-                            protected Setting<Boolean> roleSetting() {
-                                return null;
-                            }
-
-                        }))
+            new DiscoveryNodeRole.UnknownRole("foo_1", "f"),
+            new DiscoveryNodeRole.UnknownRole("foo_2", "f")))
         ).isExactlyInstanceOf(IllegalStateException.class)
             .hasMessageContaining("Duplicate key f ");
     }
-
 }
