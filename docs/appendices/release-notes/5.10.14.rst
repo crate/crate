@@ -1,16 +1,10 @@
 .. _version_5.10.14:
 
-============================
-Version 5.10.14 - Unreleased
-============================
+===============
+Version 5.10.14
+===============
 
-.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
-.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
-.. comment    (without a NOTE entry, simply starting from col 1 of the line)
-.. NOTE::
-
-    In development. 5.10.14 isn't released yet. These are the release notes for
-    the upcoming release.
+Released on 2025-11-03.
 
 .. NOTE::
 
@@ -47,4 +41,22 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Improved ``WHERE`` clause analysis for queries on tables with both ``PARTITION
+  BY`` and ``CLUSTERED BY`` clause to narrow the partitions and shards that are
+  hit if the query filters on the ``PARTITIONED BY`` and ``CLUSTERED BY``
+  columns. An example::
+
+    CREATE TABLE tbl (x int, c int, p int) clustered by (c) partitioned by (p);
+    SELECT * FROM tbl WHERE c = 1 and p = 1;
+
+  In this case the query will only search in the partition ``p=1`` and hit a
+  single shard depending on the routing for ``c=1``
+
+- Fixed an issue resulting in stuck :ref:`sys-jobs` entries when an
+  :ref:`sql-insert` statement using :ref:`ref-values` results in an execution
+  error, e.g. due to implicit cast or parsing issues.
+
+- Fixed a replication issue happening when an integral value, not fitting to
+  ``INT`` or ``LONG`` types, was stored in an OBJECT with policy ``IGNORED``.
+
+
