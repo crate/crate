@@ -107,7 +107,7 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_1");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_1");
         assertThat(nodeInfo.isMaster()).isTrue();
-        assertThat(nodeInfo.roles()).containsExactly("data", "master_eligible");
+        assertThat(nodeInfo.getRoles()).containsExactly("data", "master_eligible");
 
         assertThat(nodeInfo.getClusterStateVersion()).isEqualTo(1L);
         ShardStats shardStats = nodeInfo.getShardStats();
@@ -139,7 +139,7 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_2");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_2");
         assertThat(nodeInfo.isMaster()).isFalse();
-        assertThat(nodeInfo.roles()).containsExactly("data", "master_eligible");
+        assertThat(nodeInfo.getRoles()).containsExactly("data", "master_eligible");
 
         var shardStats = nodeInfo.getShardStats();
         assertThat(shardStats.getPrimaries()).isEqualTo(0);
@@ -163,7 +163,7 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_2");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_2");
         assertThat(nodeInfo.isMaster()).isTrue();
-        assertThat(nodeInfo.roles()).containsExactly("master_eligible");
+        assertThat(nodeInfo.getRoles()).containsExactly("master_eligible");
 
         var shardStats = nodeInfo.getShardStats();
         assertThat(shardStats.getPrimaries()).isEqualTo(0);
@@ -189,7 +189,7 @@ public class NodeInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nodeInfo.getNodeId()).isEqualTo("node_1");
         assertThat(nodeInfo.getNodeName()).isEqualTo("node_1");
         assertThat(nodeInfo.isMaster()).isFalse();
-        assertThat(nodeInfo.roles()).containsExactly("data");
+        assertThat(nodeInfo.getRoles()).containsExactly("data");
 
         var shardStats = nodeInfo.getShardStats();
         assertThat(shardStats.getPrimaries()).isEqualTo(1);

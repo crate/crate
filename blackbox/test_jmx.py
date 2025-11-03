@@ -25,6 +25,7 @@ import unittest
 from crate.client import connect
 from testutils.ports import bind_port
 from testutils.paths import crate_path
+from testutils.assertions import assert_busy
 from cr8.run_crate import CrateNode
 from jnius import autoclass
 
@@ -44,9 +45,11 @@ env['CRATE_HEAP_SIZE'] = '256M'
 crate_node = CrateNode(
     crate_dir=crate_path(),
     settings={
+        'cluster.name' : 'crate-jmx-test',
         'transport.tcp.port': 0,
         'psql.port': 0,
         'node.name': 'crate-jmx-test',
+        "discovery.type": "single-node",
     },
     env=env
 )
@@ -115,6 +118,25 @@ class JmxIntegrationTest(unittest.TestCase):
             'NodeId'
         )
         self.assertNotEqual(result.rstrip(), '', 'node id must not be empty')
+
+    def test_mbean_master(self):
+        jmx_client = JmxClient(JMX_PORT)
+        def assert_is_master():
+            result = jmx_client.query_jmx(
+            'io.crate.monitoring:type=NodeInfo',
+                'Master'
+            )
+            self.assertEqual(result, 1, 'master be true')
+
+        assert_busy(assert_is_master)
+
+    def test_mbean_roles(self):
+        jmx_client = JmxClient(JMX_PORT)
+        result = jmx_client.query_jmx(
+            'io.crate.monitoring:type=NodeInfo',
+            'Roles'
+        )
+        self.assertEqual(result, ['data', 'master_eligible'], 'must have both roles')
 
     def test_mbean_shards(self):
         jmx_client = JmxClient(JMX_PORT)
