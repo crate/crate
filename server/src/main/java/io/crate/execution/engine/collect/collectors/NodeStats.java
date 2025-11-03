@@ -127,7 +127,12 @@ public final class NodeStats {
         private CompletableFuture<List<NodeStatsContext>> getStatsFromLocalState() {
             List<NodeStatsContext> rows = new ArrayList<>(nodes.getSize());
             for (DiscoveryNode node : nodes) {
-                rows.add(new NodeStatsContext(node.getId(), node.getName()));
+                rows.add(new NodeStatsContext(
+                    node.getId(),
+                    node.getName(),
+                    nodes.getMasterNodeId(),
+                    node.roles())
+                );
             }
             return CompletableFuture.completedFuture(rows);
         }
@@ -145,7 +150,12 @@ public final class NodeStats {
                     .exceptionally(err -> {
                         Throwable t = SQLExceptions.unwrap(err);
                         if (isTimeoutOrNodeNotReachable(t)) {
-                            return new NodeStatsContext(nodeId, node.getName());
+                            return new NodeStatsContext(
+                                nodeId,
+                                node.getName(),
+                                nodes.getMasterNodeId(),
+                                node.roles()
+                            );
                         }
                         throw Exceptions.toRuntimeException(t);
                     })

@@ -33,7 +33,6 @@ import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -208,6 +207,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "heap",
             "hostname",
             "id",
+            "is_master",
             "load",
             "mem",
             "name",
@@ -216,6 +216,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             "port",
             "process",
             "rest_url",
+            "roles",
             "thread_pools",
             "version"
         );

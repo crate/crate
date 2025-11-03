@@ -378,7 +378,7 @@ public class IndexTemplateMetadata implements Diffable<IndexTemplateMetadata> {
                 .putMapping(new CompressedXContent(Map.of(
                     Constants.DEFAULT_MAPPING_TYPE,
                     MappingUtil.createMapping(
-                        MappingUtil.AllocPosition.forTable(table),
+                        MappingUtil.AllocPosition.forExistingRefs(),
                         table.pkConstraintName(),
                         table.columns(),
                         table.primaryKeys(),

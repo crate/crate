@@ -29,10 +29,8 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Objects;
 import java.util.function.ToIntFunction;
 
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
@@ -55,14 +53,15 @@ public final class MappingUtil {
 
     public static class AllocPosition {
 
-        private final ToIntFunction<ColumnIdent> getExistingPosition;
+        private final ToIntFunction<Reference> getExistingPosition;
         private int nextPosition;
 
         /**
          * Important: The table must be based on the _latest_ cluster state, retrieved from within a clusterState update routine.
          */
         public static AllocPosition forTable(TableInfo table) {
-            return new AllocPosition(table.maxPosition(), column -> {
+            return new AllocPosition(table.maxPosition(), ref -> {
+                ColumnIdent column = ref.column();
                 var reference = table.getReference(column);
                 if (reference == null) {
                     for (Reference droppedColumn : table.droppedColumns()) {
@@ -76,41 +75,24 @@ public final class MappingUtil {
             });
         }
 
-        public static AllocPosition forTable(RelationMetadata.Table table) {
-            int maxPosition = 0;
-            HashMap<ColumnIdent, Integer> colPositions = new HashMap<>();
-            HashMap<ColumnIdent, Integer> droppedColPositions = new HashMap<>();
-
-            for (Reference reference : table.columns()) {
-                if (reference.isDropped()) {
-                    droppedColPositions.put(reference.column(), reference.position());
-                } else {
-                    colPositions.put(reference.column(), reference.position());
-                }
-                if (reference.position() > maxPosition) {
-                    maxPosition = reference.position();
-                }
-            }
-            return new AllocPosition(maxPosition, column -> {
-                var position = colPositions.get(column);
-                if (position == null) {
-                    position = droppedColPositions.get(column);
-                }
-                return Objects.requireNonNullElse(position, -1);
-            });
+        /**
+         * Doesn't assign positions, takes them from References.
+         */
+        public static AllocPosition forExistingRefs() {
+            return new AllocPosition(0, Reference::position);
         }
 
         public static AllocPosition forNewTable() {
             return new AllocPosition(0, column -> -1);
         }
 
-        private AllocPosition(int maxPosition, ToIntFunction<ColumnIdent> getExistingPosition) {
+        private AllocPosition(int maxPosition, ToIntFunction<Reference> getExistingPosition) {
             this.getExistingPosition = getExistingPosition;
             this.nextPosition = maxPosition + 1;
         }
 
-        public int position(ColumnIdent column) {
-            int position = getExistingPosition.applyAsInt(column);
+        public int position(Reference reference) {
+            int position = getExistingPosition.applyAsInt(reference);
             if (position < 0) {
                 return nextPosition++;
             }
@@ -181,6 +163,7 @@ public final class MappingUtil {
         return List.of(fqn, typeMappingName);
     }
 
+
     /**
      * Creates the "properties" part of a mapping.
      * Includes all nested sub-columns.
@@ -201,18 +184,10 @@ public final class MappingUtil {
      *     col2: {...}
      * }
      */
-    public static Map<String, Map<String, Object>> toProperties(AllocPosition allocPosition,
-                                                                HashMap<ColumnIdent, List<Reference>> tree) {
-        return toProperties(allocPosition, null, tree);
-    }
-
-    /**
-     * See {@link #toProperties(AllocPosition, HashMap)}
-     */
     @Nullable
-    private static Map<String, Map<String, Object>> toProperties(AllocPosition position,
-                                                                 @Nullable ColumnIdent currentNode,
-                                                                 HashMap<ColumnIdent, List<Reference>> tree) {
+    public static Map<String, Map<String, Object>> toProperties(AllocPosition position,
+                                                                @Nullable ColumnIdent currentNode,
+                                                                HashMap<ColumnIdent, List<Reference>> tree) {
         List<Reference> children = tree.get(currentNode);
         if (children == null) {
             return null;
@@ -233,10 +208,10 @@ public final class MappingUtil {
         }
     }
 
-    private static Map<String, Object> addColumnProperties(AllocPosition position,
+    private static Map<String, Object> addColumnProperties(AllocPosition allocPosition,
                                                            Reference reference,
                                                            HashMap<ColumnIdent, List<Reference>> tree) {
-        Map<String, Object> leafProperties = reference.toMapping(position.position(reference.column()));
+        Map<String, Object> leafProperties = reference.toMapping(allocPosition.position(reference));
         Map<String, Object> properties = leafProperties;
         DataType<?> valueType = reference.valueType();
         while (valueType instanceof ArrayType<?> arrayType) {
@@ -247,7 +222,7 @@ public final class MappingUtil {
             properties = arrayMapping;
         }
         if (valueType instanceof ObjectType objectType) {
-            objectMapping(position, leafProperties, objectType, reference.column(), tree);
+            objectMapping(allocPosition, leafProperties, objectType, reference.column(), tree);
         }
         return properties;
     }

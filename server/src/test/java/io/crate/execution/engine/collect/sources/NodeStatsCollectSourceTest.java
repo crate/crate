@@ -46,6 +46,7 @@ public class NodeStatsCollectSourceTest extends ESTestCase {
     @Before
     public void prepare() throws Exception {
         discoveryNodes = DiscoveryNodes.builder()
+            .masterNodeId("node-2")
             .add(newNode("Ford Perfect", "node-1"))
             .add(newNode("Trillian", "node-2"))
             .add(newNode("Arthur", "node-3"))
