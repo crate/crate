@@ -51,7 +51,6 @@ import io.crate.analyze.validator.GroupBySymbolValidator;
 import io.crate.analyze.validator.HavingSymbolValidator;
 import io.crate.analyze.validator.SemanticSortValidator;
 import io.crate.analyze.where.WhereClauseValidator;
-import io.crate.common.collections.Lists;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.RelationValidationException;
@@ -769,8 +768,9 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
 
     @Override
     public AnalyzedRelation visitValues(Values values, StatementAnalysisContext context) {
+        CoordinatorTxnCtx transactionContext = context.transactionContext();
         var expressionAnalyzer = new ExpressionAnalyzer(
-            context.transactionContext(),
+            transactionContext,
             nodeCtx,
             context.paramTyeHints(),
             FieldProvider.UNSUPPORTED,
@@ -793,11 +793,11 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
         ValuesList firstRow = rows.get(0);
         int numColumns = firstRow.values().size();
 
-        ArrayList<List<Symbol>> columns = new ArrayList<>();
+        ArrayList<ArrayList<Symbol>> columns = new ArrayList<>();
         ArrayList<DataType<?>> targetTypes = new ArrayList<>(numColumns);
         var parentOutputColumns = context.parentOutputColumns();
         for (int c = 0; c < numColumns; c++) {
-            ArrayList<Symbol> columnValues = new ArrayList<>();
+            ArrayList<Symbol> columnValues = new ArrayList<>(rows.size());
             DataType<?> targetType;
             boolean usePrecedence = true;
             if (parentOutputColumns.size() > c) {
@@ -836,20 +836,17 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             nodeCtx,
             f -> f.signature().isDeterministic()
         );
-
         ArrayList<Symbol> arrays = new ArrayList<>(columns.size());
         for (int c = 0; c < numColumns; c++) {
             DataType<?> targetType = targetTypes.get(c);
             ArrayType<?> arrayType = new ArrayType<>(targetType);
-            List<Symbol> columnValues = Lists.map(
-                columns.get(c),
-                s -> normalizer.normalize(s.cast(targetType), context.transactionContext())
-            );
-            arrays.add(new Function(
-                ArrayFunction.SIGNATURE,
-                columnValues,
-                arrayType
-            ));
+            ArrayList<Symbol> columnValues = columns.get(c);
+            for (int i = 0; i < columnValues.size(); i++) {
+                Symbol value = columnValues.get(i);
+                Symbol castValue = normalizer.normalize(value.cast(targetType), transactionContext);
+                columnValues.set(i, castValue);
+            }
+            arrays.add(new Function(ArrayFunction.SIGNATURE, columnValues, arrayType));
         }
         FunctionImplementation implementation = nodeCtx.functions().getQualified(
             ValuesFunction.SIGNATURE,
@@ -861,7 +858,6 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             arrays,
             RowType.EMPTY
         );
-
         TableFunctionImplementation<?> tableFunc = TableFunctionFactory.from(implementation);
         TableFunctionRelation relation = new TableFunctionRelation(tableFunc, function);
         context.startRelation();
