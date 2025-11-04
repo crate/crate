@@ -63,7 +63,6 @@ import io.crate.session.Sessions;
 import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedSchema;
 
 @IntegTestCase.ClusterScope(numDataNodes = 2)
@@ -890,7 +889,6 @@ public class CopyIntegrationTest extends SQLHttpIntegrationTest {
         );
     }
 
-    @UseNewCluster
     @Test
     public void test_copy_excludes_partitioned_values_from_source() throws Exception {
         execute("create table tbl (x int, p int) partitioned by (p)");

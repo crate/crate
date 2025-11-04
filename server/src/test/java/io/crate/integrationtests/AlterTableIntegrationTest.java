@@ -42,7 +42,6 @@ import io.crate.common.unit.TimeValue;
 import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
-import io.crate.testing.UseNewCluster;
 
 public class AlterTableIntegrationTest extends IntegTestCase {
 
@@ -221,7 +220,6 @@ public class AlterTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void test_alter_table_drop_column_can_add_again() {
         execute("create table t(a integer, b integer, o object AS(a int, oo object AS(a int)))");
         execute("insert into t(a, b, o) values(1, 11, '{\"a\":111, \"oo\":{\"a\":1111}}')");
@@ -230,7 +228,6 @@ public class AlterTableIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void test_alter_partitioned_table_drop_column_can_add_again() {
         // Method execute_statements_that_drop_and_add_column_with_the_same_name_again has some INSERT statements.
         // Using generated partitioned column in order not to adjust them.
