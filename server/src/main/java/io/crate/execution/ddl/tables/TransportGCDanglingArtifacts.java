@@ -22,7 +22,6 @@
 package io.crate.execution.ddl.tables;
 
 import java.util.HashSet;
-import java.util.List;
 import java.util.Set;
 
 import org.elasticsearch.action.ActionType;
@@ -81,24 +80,14 @@ public class TransportGCDanglingArtifacts extends AbstractDDLTransportAction<GCD
             protected ClusterState execute(ClusterState currentState,
                                            GCDanglingArtifactsRequest gcDanglingArtifactsRequest) {
                 Metadata metadata = currentState.metadata();
-
                 Set<Index> danglingIndicesToDelete = new HashSet<>();
-                Set<Index> allTableIndices = new HashSet<>();
-                for (RelationMetadata rm : metadata.relations(RelationMetadata.class)) {
-                    allTableIndices.addAll(metadata.getIndices(
-                        rm.name(),
-                        List.of(),
-                        false,
-                        IndexMetadata::getIndex)
-                    );
-                }
                 for (ObjectCursor<IndexMetadata> indexMetadata : metadata.indices().values()) {
                     Index index = indexMetadata.value.getIndex();
-                    if (allTableIndices.contains(index) == false) {
+                    RelationMetadata relation = metadata.getRelation(index.getUUID());
+                    if (relation == null) {
                         danglingIndicesToDelete.add(index);
                     }
                 }
-
                 if (danglingIndicesToDelete.isEmpty()) {
                     return currentState;
                 }
