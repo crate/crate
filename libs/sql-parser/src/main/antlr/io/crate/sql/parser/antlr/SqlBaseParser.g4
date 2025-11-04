@@ -124,7 +124,8 @@ alterStmt
     | ALTER TABLE alterTableDefinition DROP CONSTRAINT ident                         #dropCheckConstraint
     | ALTER TABLE alterTableDefinition
         (SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET
-        | RESET (OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET)?)      #alterTableProperties
+        | RESET (OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET)?)
+        withProperties?                                                              #alterTableProperties
     | ALTER BLOB TABLE alterTableDefinition
         (SET OPEN_ROUND_BRACKET genericProperties CLOSE_ROUND_BRACKET
         | RESET (OPEN_ROUND_BRACKET ident (COMMA ident)* CLOSE_ROUND_BRACKET)?)      #alterBlobTableProperties

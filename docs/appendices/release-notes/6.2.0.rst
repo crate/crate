@@ -147,6 +147,9 @@ Performance and Resilience Improvements
 Administration and Operations
 -----------------------------
 
+- Added a ``WITH`` clause with a ``timeout`` property to
+  :ref:`ALTER TABLE .. SET <sql-alter-table>`.
+
 - Enabled TCP fallback for SRV DNS queries used when
   :ref:`Node Discovery via DNS <conf_dns_discovery>` is enabled.
 

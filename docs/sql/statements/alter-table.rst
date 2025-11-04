@@ -17,8 +17,8 @@ Synopsis
 
     ALTER [ BLOB ] TABLE { ONLY table_ident
                            | table_ident [ PARTITION (partition_column = value [ , ... ]) ] }
-      { SET ( parameter = value [ , ... ] )
-        | RESET ( parameter [ , ... ] )
+      { SET ( parameter = value [ , ... ] ) [ WITH ( property = value [ , ...] ) ]
+        | RESET ( parameter [ , ... ] ) [ WITH ( property = value [ , ...] ) ]
         | { ADD [ COLUMN ] column_name data_type [ column_constraint [ ... ] ] } [, ... ]
         | { DROP [ COLUMN ] [ IF EXISTS ] column_name } [, ... ]
         | { RENAME [ COLUMN ] column_name TO new_name } [, ... ]
@@ -147,6 +147,16 @@ changing the number of :ref:`allocated shards <gloss-shard-allocation>`, the
 parameter ``number_of_shards`` can be used. For more info on that, see
 :ref:`alter-shard-number`.
 
+
+The additional ``WITH`` clause can be used to set properties changing the
+behavior of the statement. Supported properties are:
+
+
+:timeout:
+  Sets the timeout for the statement. Defaults to 60 seconds for resize
+  operations and 30 seconds for other setting changes.
+  Note that if a global or per session :ref:`statement_timeout
+  <conf-session-statement-timeout>` is shorter, it will take effect first.
 
 .. _sql-alter-table-add-column:
 
