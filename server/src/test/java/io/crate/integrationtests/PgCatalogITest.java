@@ -45,7 +45,6 @@ import io.crate.role.Roles;
 import io.crate.session.Sessions;
 import io.crate.testing.UseHashJoins;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -443,7 +442,6 @@ public class PgCatalogITest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster // Dropped column prefix contains OID and must be deterministic.
     public void test_dropped_columns_shown_in_pg_attribute() {
         execute("create table t(a integer, o object AS(oo object AS(a int)))");
 

@@ -39,7 +39,6 @@ import org.junit.Test;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.testing.Asserts;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseNewCluster;
 
 public class ObjectColumnTest extends IntegTestCase {
 
@@ -433,7 +432,6 @@ public class ObjectColumnTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void test_add_sub_column_with_numeric_name_into_ignored_object() {
         execute("create table t (o object(ignored) as (a int))");
 
