@@ -89,7 +89,6 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.DataTypeTesting;
 import io.crate.testing.IndexEnv;
 import io.crate.testing.SQLExecutor;
-import io.crate.testing.UseNewCluster;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -1358,7 +1357,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         assertTranslogParses(doc, e.resolveTableInfo("tbl"), Version.V_5_4_0);
     }
 
-    @UseNewCluster
     @Test
     public void test_ignored_object_child_columns_are_prefixed() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
@@ -1405,7 +1403,6 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
      * {@link TranslogIndexer#index(String, BytesReference)} is used to parse translog entries,
      * ensure it can parse a document containing OIDs instead of column names.
      */
-    @UseNewCluster
     @Test
     public void test_translog_indexer_can_read_source_with_oids() throws Exception {
         var tableName = "tbl";

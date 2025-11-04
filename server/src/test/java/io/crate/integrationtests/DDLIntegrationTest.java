@@ -52,7 +52,6 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.testing.Asserts;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataTypes;
@@ -64,7 +63,6 @@ import io.netty.handler.codec.http.HttpResponseStatus;
 public class DDLIntegrationTest extends IntegTestCase {
 
     @Test
-    @UseNewCluster
     public void testCreateTable() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards with (number_of_replicas = 1, \"write.wait_for_active_shards\"=1)");
@@ -124,7 +122,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void testCreateTableWithReplicasAndShards() throws Exception {
         execute("create table test (col1 integer primary key, col2 string)" +
                 "clustered by (col1) into 10 shards with (number_of_replicas=2, \"write.wait_for_active_shards\"=1)");
@@ -143,7 +140,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void testCreateTableWithStrictColumnPolicy() throws Exception {
         execute("create table test (col1 integer primary key, col2 string) " +
                 "clustered into 5 shards " +
@@ -163,7 +159,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void testCreateGeoShapeExplicitIndex() throws Exception {
         execute("create table test (col1 geo_shape INDEX using QUADTREE with (precision='1m', distance_error_pct='0.25'))");
         DocTableInfo table = getTable("test");
@@ -181,7 +176,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void testCreateColumnWithDefaultExpression() throws Exception {
         execute("create table test (id int, col1 text default 'foo', col2 int[] default [1,2])");
         DocTableInfo table = getTable("test");
@@ -207,7 +201,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void testCreateGeoShape() throws Exception {
         execute("create table test (col1 geo_shape)");
         DocTableInfo table = getTable("test");
@@ -309,7 +302,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void testCreateTableWithCompositeIndex() throws Exception {
         execute("""
             create table novels (
@@ -594,7 +586,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void testAlterTableAddObjectColumnToExistingObject() throws IOException {
         execute("create table t (o object as (x string)) " +
                 "clustered into 1 shards " +
@@ -853,7 +844,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void testCreateTableWithGeneratedColumn() throws Exception {
         execute(
             "create table test (" +
@@ -877,7 +867,6 @@ public class DDLIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseNewCluster
     public void testAddGeneratedColumnToTableWithExistingGeneratedColumns() throws Exception {
         execute(
             "create table test (" +
