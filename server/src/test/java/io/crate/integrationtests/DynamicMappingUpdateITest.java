@@ -40,9 +40,7 @@ import org.junit.rules.TemporaryFolder;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
-import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedSchema;
-
 
 @UseRandomizedSchema(random = false)
 public class DynamicMappingUpdateITest extends IntegTestCase {
@@ -51,14 +49,12 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
     public TemporaryFolder folder = new TemporaryFolder();
 
     @Test
-    @UseNewCluster
     public void test_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates() throws InterruptedException, IOException {
         execute("create table t (a int, b object as (x int))");
         execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates();
     }
 
     @Test
-    @UseNewCluster
     public void test_concurrent_statements_that_add_columns_to_partitioned_table_result_in_dynamic_mapping_updates() throws InterruptedException, IOException {
         execute("create table t (a int, b object as (x int)) partitioned by (a)");
         execute_concurrent_statements_that_add_columns_result_in_dynamic_mapping_updates();

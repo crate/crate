@@ -63,7 +63,6 @@ import io.crate.testing.Asserts;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
-import io.crate.testing.UseNewCluster;
 import io.crate.testing.UseRandomizedOptimizerRules;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -1869,7 +1868,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         execute("alter table t set (number_of_replicas = 0)");
     }
 
-    @UseNewCluster
     @Test
     public void testPartitionedColumnIsNotIn_Raw() throws Exception {
         execute("create table t (p string primary key, v string) " +
@@ -2137,7 +2135,6 @@ public class PartitionedTableIntegrationTest extends IntegTestCase {
         assertThat(printedTable(execute("SELECT count(*) FROM test").rows())).isEqualTo("2\n");
     }
 
-    @UseNewCluster
     @Test
     public void test_nested_partition_column_is_included_when_selecting_the_object_but_not_in_the_source() {
         execute("create table tbl (pk object as (id text, part text), primary key (pk['id'], pk['part'])) " +
