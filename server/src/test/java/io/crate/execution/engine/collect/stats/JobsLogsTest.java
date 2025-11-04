@@ -453,15 +453,16 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             assertThat(breaker.getUsed()).isEqualTo(96);
 
             clusterSettings.applySettings(Settings.builder()
-                .put(JobsLogService.STATS_JOBS_LOG_EXPIRATION_SETTING.getKey(), "10s")
+                .put(JobsLogService.STATS_JOBS_LOG_SIZE_SETTING.getKey(), 200)
                 .build());
 
+            Iterable<JobContextLog> updatedSink = stats.get().jobsLog();
             assertThat(jobsLogSink)
                 .as("Updating logs setting changes the jobsLog sink")
-                .isNotSameAs(stats.get().jobsLog());
+                .isNotSameAs(updatedSink);
 
             // Old entries are added to new sink, so entries get re-accounted and breaker usage remains the same
-            assertThat(stats.get().jobsLog()).hasSize(1);
+            assertThat(updatedSink).hasSize(1);
             assertThat(breaker.getUsed()).isEqualTo(96);
         }
     }
