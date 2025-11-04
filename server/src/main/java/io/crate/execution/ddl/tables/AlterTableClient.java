@@ -35,10 +35,12 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
+import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
 import org.elasticsearch.action.admin.indices.shrink.TransportResize;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -202,10 +204,22 @@ public class AlterTableClient {
         List<String> partitionValues = partitionName == null
             ? List.of()
             : partitionName.values();
-        IndexMetadata sourceIndexMetadata = currentState.metadata().getIndex(table.ident(), partitionValues, true, im -> im);
+        Metadata metadata = currentState.metadata();
+        IndexMetadata sourceIndexMetadata = metadata.getIndex(table.ident(), partitionValues, true, im -> im);
         if (sourceIndexMetadata == null) {
             throw new RelationUnknown(
                 String.format(Locale.ENGLISH, "Table/Partition '%s' does not exist", table.ident().fqn()));
+        }
+
+        String staleIndexUUID = null;
+        for (var cursor : metadata.indices().values()) {
+            IndexMetadata indexMetadata = cursor.value;
+            Settings settings = indexMetadata.getSettings();
+            String sourceUUID = IndexMetadata.INDEX_RESIZE_SOURCE_UUID.get(settings);
+            if (sourceIndexMetadata.getIndexUUID().equals(sourceUUID)) {
+                staleIndexUUID = indexMetadata.getIndexUUID();
+                break;
+            }
         }
 
         final int targetNumberOfShards = getNumberOfShards(analysis.settings());
@@ -224,9 +238,15 @@ public class AlterTableClient {
             request.timeout(timeValue);
             request.masterNodeTimeout(timeValue);
         }
-        return deleteTempIndices()
-            .thenCompose(_ -> client.execute(TransportResize.ACTION, request))
-            .thenApply(_ -> 0L);
+        CompletableFuture<ResizeResponse> resizeFuture;
+        if (staleIndexUUID == null) {
+            resizeFuture = client.execute(TransportResize.ACTION, request);
+        } else {
+            GCDanglingArtifactsRequest gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
+            resizeFuture = client.execute(TransportGCDanglingArtifacts.ACTION, gcReq)
+                .thenCompose(_ -> client.execute(TransportResize.ACTION, request));
+        }
+        return resizeFuture.thenApply(_ -> 0L);
     }
 
     @VisibleForTesting
@@ -294,10 +314,5 @@ public class AlterTableClient {
                 }
             }
         }
-    }
-
-    private CompletableFuture<Long> deleteTempIndices() {
-        return client.execute(TransportGCDanglingArtifacts.ACTION, GCDanglingArtifactsRequest.INSTANCE)
-            .thenApply(_ -> 0L);
     }
 }

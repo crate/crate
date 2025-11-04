@@ -22,19 +22,46 @@
 package io.crate.execution.ddl.tables;
 
 import java.io.IOException;
+import java.util.List;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
 
 public class GCDanglingArtifactsRequest extends AcknowledgedRequest<GCDanglingArtifactsRequest> {
 
-    public static final GCDanglingArtifactsRequest INSTANCE = new GCDanglingArtifactsRequest();
+    public static final GCDanglingArtifactsRequest ALL = new GCDanglingArtifactsRequest(List.of());
 
-    private GCDanglingArtifactsRequest() {
+    private final List<String> indexUUIDs;
+
+    /// @param indexUUIDs indexUUIDs to delete. If empty, all dangling indices UUIDs are deleted.
+    public GCDanglingArtifactsRequest(List<String> indexUUIDs) {
         super();
+        this.indexUUIDs = indexUUIDs;
     }
 
     public GCDanglingArtifactsRequest(StreamInput in) throws IOException {
         super(in);
+        Version version = in.getVersion();
+        if (version.after(Version.V_6_0_3) && !version.equals(Version.V_6_1_0)) {
+            this.indexUUIDs = in.readStringList();
+        } else {
+            this.indexUUIDs = List.of();
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        Version version = out.getVersion();
+        if (version.after(Version.V_6_0_3) && !version.equals(Version.V_6_1_0)) {
+            out.writeStringCollection(indexUUIDs);
+        }
+    }
+
+    /// Dangling indices to delete. Empty = all dangling indices
+    public List<String> indexUUIDs() {
+        return indexUUIDs;
     }
 }
