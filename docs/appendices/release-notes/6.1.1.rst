@@ -1,7 +1,7 @@
-.. _version_6.0.4:
+.. _version_6.1.1:
 
 ==========================
-Version 6.0.4 - Unreleased
+Version 6.1.1 - Unreleased
 ==========================
 
 .. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
@@ -9,18 +9,18 @@ Version 6.0.4 - Unreleased
 .. comment    (without a NOTE entry, simply starting from col 1 of the line)
 .. NOTE::
 
-    In development. 6.0.4 isn't released yet. These are the release notes for
+    In development. 6.1.1 isn't released yet. These are the release notes for
     the upcoming release.
 
 .. NOTE::
 
     If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
-    before you upgrade to 6.0.4.
+    before you upgrade to 6.1.1.
 
-    We recommend that you upgrade to the latest 5.10 release before moving to
-    6.0.4.
+    We recommend that you upgrade to the latest 6.0 release before moving to
+    6.1.1.
 
-    A rolling upgrade from >= 5.10.1 to 6.0.4 is supported.
+    A rolling upgrade from >= 6.0.2 to 6.1.1 is supported.
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::
@@ -31,8 +31,8 @@ Version 6.0.4 - Unreleased
     You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
     `inserting the data into a new table`_.
 
-.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
-.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
 
 .. rubric:: Table of contents
 
@@ -40,7 +40,7 @@ Version 6.0.4 - Unreleased
    :local:
 
 
-See the :ref:`version_6.0.0` release notes for a full list of changes in the 6.0
+See the :ref:`version_6.1.0` release notes for a full list of changes in the 6.1
 series.
 
 Fixes
@@ -60,37 +60,12 @@ Fixes
   result in queries getting rejected with a circuit breaker exception, despite
   having memory available.
 
-- Improved ``WHERE`` clause analysis for queries on tables with both ``PARTITION
-  BY`` and ``CLUSTERED BY`` clause to narrow the partitions and shards that are
-  hit if the query filters on the ``PARTITIONED BY`` and ``CLUSTERED BY``
-  columns. An example::
-
-    CREATE TABLE tbl (x int, c int, p int) clustered by (c) partitioned by (p);
-    SELECT * FROM tbl WHERE c = 1 and p = 1;
-
-  In this case the query will only search in the partition ``p=1`` and hit a
-  single shard depending on the routing for ``c=1``
-
-- Fixed a replication issue happening when an integral value, not fitting to
-  ``INT`` or ``LONG`` types, was stored in an OBJECT with policy ``IGNORED``.
-
-- Fixed an issue with ``crate.bat`` Windows startup script throwing error and
-  preventing bootstrap of CrateDB, if ``PowerShell`` was used instead of plain
-  ``CMD`` and parameters were passed with ``-C<key>=value`` command line
-  arguments.
-
-- Fixed a ``SQLParseException`` thrown when ``optimizer_equi_join_to_lookup_join``
-  was incorrectly applied to a complex equi-join query. The optimizer rule
-  currently supports only simple equi-join queries like ::
-
-    SELECT * FROM t INNER JOIN t2 ON t.a = t2.a;
-
-- Fixed an issue that caused RAM under-accounting, potentially leading to an
-  ``OutOfMemoryError`` when a large result set was returned by the ``HTTP``
-  endpoint.
-
 - Fixed an issue where generated and default sub-columns were missing from
   results returned by the ``RETURNING`` clause.
+
+- Fixed an issue that led to deleting persisted
+  :ref:`pg_catalog.pg_stats <pg_stats>` during full cluster restart, thus making
+  it necessary to run again :ref:`analyze`.
 
 - Disallowed generated sub-columns within object arrays or referencing their
   sub-columns, which is unsupported and leading to errors or wrong behavior.
@@ -105,4 +80,7 @@ Fixes
 
 - Fixed an issue causing ``SELECT *`` or ``ANALYZE`` statements to fail with an
   error ``unexpected docvalues type... Re-index with correct docvalues type.``
-  if a column was added to a  restored table.
+  if a column was added into restored table.
+
+- Fixed an issue resulting in broken :ref:`administration-logical-replication`
+  when subscribing to clusters running versions < :ref:`version_6.1.0`.

@@ -27,6 +27,14 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
+<<<<<<< HEAD
+=======
+
+import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.CyclicBarrier;
+import java.util.concurrent.TimeUnit;
+>>>>>>> 091d3a3d55 (Change resize to only remove its owned dangling indices)
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -130,14 +138,39 @@ public class ResizeShardsITest extends IntegTestCase {
     }
 
     @Test
-    public void testNumberOfShardsOfATableCanBeIncreased() throws Exception {
+    public void test_number_of_shards_on_tables_can_be_increased() throws Exception {
         execute("create table t1 (x int, p int) clustered into 1 shards " +
                 "with (number_of_replicas = 1, number_of_routing_shards = 10)");
+        execute("create table t2 (x int) clustered into 1 shards with (number_of_replicas = 1)");
+
         execute("insert into t1 (x, p) values (1, 1), (2, 1)");
+        execute("insert into t2 (x) values (10), (20)");
 
         execute("alter table t1 set (\"blocks.write\" = true)");
+        execute("alter table t2 set (\"blocks.write\" = true)");
 
-        execute("alter table t1 set (number_of_shards = 2)");
+        CyclicBarrier barrier = new CyclicBarrier(2);
+        CountDownLatch threadsDone = new CountDownLatch(2);
+        var t1 = new Thread(() -> {
+            try {
+                barrier.await();
+                execute("alter table t1 set (number_of_shards = 2)");
+                threadsDone.countDown();
+            } catch (InterruptedException | BrokenBarrierException e) {
+            }
+        });
+        var t2 = new Thread(() -> {
+            try {
+                barrier.await();
+                execute("alter table t2 set (number_of_shards = 2)");
+                threadsDone.countDown();
+            } catch (InterruptedException | BrokenBarrierException e) {
+            }
+        });
+        t1.start();
+        t2.start();
+
+        threadsDone.await(5, TimeUnit.SECONDS);
         ensureYellow();
 
         execute("select count(*), primary from sys.shards where table_name = 't1' group by primary order by 2");
@@ -146,6 +179,25 @@ public class ResizeShardsITest extends IntegTestCase {
             "2| true");
         execute("select x from t1");
         assertThat(response).hasRowCount(2L);
+
+        ClusterService clusterService = cluster().getInstance(ClusterService.class);
+        ClusterState state = clusterService.state();
+        assertThat(state.metadata().indices()).hasSize(2);
+
+        execute("alter table t2 set (number_of_shards = 4)");
+        ensureYellow();
+        state = clusterService.state();
+        assertThat(state.metadata().indices()).hasSize(2);
+
+        execute("select count(*), primary from sys.shards where table_name = 't2' group by primary order by 2");
+        assertThat(response).hasRows(
+            "4| false",
+            "4| true");
+        execute("select x from t2 order by 1");
+        assertThat(response).hasRows(
+            "10",
+            "20"
+        );
     }
 
     @Test

@@ -42,7 +42,7 @@ public final class GCDanglingArtifactsPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) {
         var listener = OneRowActionListener.oneIfAcknowledged(consumer);
-        dependencies.client().execute(TransportGCDanglingArtifacts.ACTION, GCDanglingArtifactsRequest.INSTANCE)
+        dependencies.client().execute(TransportGCDanglingArtifacts.ACTION, GCDanglingArtifactsRequest.ALL)
             .whenComplete(listener);
     }
 }

@@ -28,6 +28,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 
+<<<<<<< HEAD
+=======
+import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
+import org.elasticsearch.action.admin.indices.shrink.TransportResize;
+import org.elasticsearch.client.node.NodeClient;
+>>>>>>> 091d3a3d55 (Change resize to only remove its owned dangling indices)
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Before;
@@ -36,6 +42,14 @@ import org.junit.Test;
 import io.crate.analyze.BoundAlterTable;
 import io.crate.data.Row;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
+<<<<<<< HEAD
+=======
+import io.crate.execution.ddl.tables.AlterTableClient;
+import io.crate.execution.ddl.tables.AlterTableRequest;
+import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
+import io.crate.execution.ddl.tables.TransportAlterTable;
+import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
+>>>>>>> 091d3a3d55 (Change resize to only remove its owned dangling indices)
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -140,6 +154,65 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
     }
 
 
+<<<<<<< HEAD
+=======
+    @Test
+    public void test_alter_table_resize_with_timeout_sets_timeout_values() throws Exception {
+        e.addTable("create table tbl (x int) clustered into 4 shards with (\"blocks.write\" = true)");
+        BoundAlterTable alterTable = analyze(
+            "alter table tbl set (number_of_shards = 8) with (timeout = '2s')");
+        assertThat(alterTable).isNotNull();
+        NodeClient client = mock(NodeClient.class, Answers.RETURNS_MOCKS);
+        AlterTableClient alterTableClient = new AlterTableClient(
+            clusterService,
+            client,
+            e.sqlOperations,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            mock(LogicalReplicationService.class)
+        );
+
+        Mockito.verify(client, Mockito.times(0))
+            .execute(Mockito.eq(TransportGCDanglingArtifacts.ACTION), Mockito.any(GCDanglingArtifactsRequest.class));
+
+        var reqCaptor = ArgumentCaptor.forClass(ResizeRequest.class);
+        alterTableClient.setSettingsOrResize(alterTable);
+        Mockito.verify(client).execute(Mockito.eq(TransportResize.ACTION), reqCaptor.capture());
+
+        ResizeRequest req = reqCaptor.getValue();
+        assertThat(req.timeout()).isEqualTo(TimeValue.timeValueSeconds(2));
+    }
+
+    @Test
+    public void test_alter_table_set_with_timeout_sets_timeout_values() throws Exception {
+        BoundAlterTable alterTable = analyze(
+            "alter table doc.test set (number_of_replicas = 2) with (timeout = '2s')");
+
+        NodeClient client = mock(NodeClient.class, Answers.RETURNS_MOCKS);
+        AlterTableClient alterTableClient = new AlterTableClient(
+            clusterService,
+            client,
+            e.sqlOperations,
+            IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
+            mock(LogicalReplicationService.class)
+        );
+
+        var reqCaptor = ArgumentCaptor.forClass(AlterTableRequest.class);
+        alterTableClient.setSettingsOrResize(alterTable);
+        Mockito.verify(client).execute(Mockito.eq(TransportAlterTable.ACTION), reqCaptor.capture());
+
+        AlterTableRequest req = reqCaptor.getValue();
+        assertThat(req.timeout()).isEqualTo(TimeValue.timeValueSeconds(2));
+    }
+
+    @Test
+    public void test_cannot_use_unsupported_properties_in_alter_table_with() throws Exception {
+        assertThatThrownBy(() -> e.analyze("alter table doc.test set (number_of_replicas = 2) with (foo = 1)"))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Setting 'foo' is not supported");
+    }
+
+
+>>>>>>> 091d3a3d55 (Change resize to only remove its owned dangling indices)
     private BoundAlterTable analyze(String stmt) {
         AlterTablePlan plan = e.plan(stmt);
         return AlterTablePlan.bind(

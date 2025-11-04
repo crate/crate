@@ -35,10 +35,12 @@ import java.util.stream.Collectors;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
+import org.elasticsearch.action.admin.indices.shrink.ResizeResponse;
 import org.elasticsearch.action.admin.indices.shrink.TransportResize;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
@@ -188,12 +190,37 @@ public class AlterTableClient {
     private CompletableFuture<Long> resize(BoundAlterTable analysis) {
         final TableInfo table = analysis.table();
         PartitionName partitionName = analysis.partitionName();
+<<<<<<< HEAD
         String sourceIndexName = partitionName == null
             ? table.ident().indexNameOrAlias()
             : partitionName.asIndexName();
 
         final ClusterState currentState = clusterService.state();
         final IndexMetadata sourceIndexMetadata = currentState.metadata().index(sourceIndexName);
+=======
+        final ClusterState currentState = clusterService.state();
+        List<String> partitionValues = partitionName == null
+            ? List.of()
+            : partitionName.values();
+        Metadata metadata = currentState.metadata();
+        IndexMetadata sourceIndexMetadata = metadata.getIndex(table.ident(), partitionValues, true, im -> im);
+        if (sourceIndexMetadata == null) {
+            throw new RelationUnknown(
+                String.format(Locale.ENGLISH, "Table/Partition '%s' does not exist", table.ident().fqn()));
+        }
+
+        String staleIndexUUID = null;
+        for (var cursor : metadata.indices().values()) {
+            IndexMetadata indexMetadata = cursor.value;
+            Settings settings = indexMetadata.getSettings();
+            String sourceUUID = IndexMetadata.INDEX_RESIZE_SOURCE_UUID.get(settings);
+            if (sourceIndexMetadata.getIndexUUID().equals(sourceUUID)) {
+                staleIndexUUID = indexMetadata.getIndexUUID();
+                break;
+            }
+        }
+
+>>>>>>> 091d3a3d55 (Change resize to only remove its owned dangling indices)
         final int targetNumberOfShards = getNumberOfShards(analysis.settings());
         validateNumberOfShardsForResize(sourceIndexMetadata, targetNumberOfShards);
         validateReadOnlyIndexForResize(sourceIndexMetadata);
@@ -212,9 +239,28 @@ public class AlterTableClient {
             partitionName == null ? List.of() : partitionName.values(),
             targetNumberOfShards
         );
+<<<<<<< HEAD
         return future
             .thenCompose(_ -> client.execute(TransportResize.ACTION, request))
             .thenApply(_ -> 0L);
+=======
+        GenericProperties<Object> withProperties = analysis.withProperties();
+        Object timeout = withProperties.get("timeout");
+        if (timeout != null) {
+            TimeValue timeValue = TimeValue.parseTimeValue(timeout.toString(), "timeout");
+            request.timeout(timeValue);
+            request.masterNodeTimeout(timeValue);
+        }
+        CompletableFuture<ResizeResponse> resizeFuture;
+        if (staleIndexUUID == null) {
+            resizeFuture = client.execute(TransportResize.ACTION, request);
+        } else {
+            GCDanglingArtifactsRequest gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
+            resizeFuture = client.execute(TransportGCDanglingArtifacts.ACTION, gcReq)
+                .thenCompose(_ -> client.execute(TransportResize.ACTION, request));
+        }
+        return resizeFuture.thenApply(_ -> 0L);
+>>>>>>> 091d3a3d55 (Change resize to only remove its owned dangling indices)
     }
 
     @VisibleForTesting
@@ -282,10 +328,5 @@ public class AlterTableClient {
                 }
             }
         }
-    }
-
-    private CompletableFuture<Long> deleteTempIndices() {
-        return client.execute(TransportGCDanglingArtifacts.ACTION, GCDanglingArtifactsRequest.INSTANCE)
-            .thenApply(_ -> 0L);
     }
 }

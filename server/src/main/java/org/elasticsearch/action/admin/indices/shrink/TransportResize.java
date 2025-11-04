@@ -19,6 +19,7 @@
 package org.elasticsearch.action.admin.indices.shrink;
 
 import java.io.IOException;
+import java.util.List;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
@@ -117,11 +118,17 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
             .thenCompose(statsResponse -> createIndexService.resizeIndex(request, statsResponse))
             .thenCompose(resizeResp -> {
                 if (resizeResp.isAcknowledged() && resizeResp.isShardsAcknowledged()) {
+<<<<<<< HEAD
                     SwapAndDropIndexRequest req = new SwapAndDropIndexRequest(resizedIndex, sourceIndex);
                     return swapAndDropIndexAction.execute(req).thenApply(ignored -> resizeResp);
+=======
+                    SwapAndDropIndexRequest req = new SwapAndDropIndexRequest(resizedIndexUUID, sourceIndexUUID);
+                    return swapAndDropIndexAction.execute(req).thenApply(_ -> resizeResp);
+>>>>>>> 091d3a3d55 (Change resize to only remove its owned dangling indices)
                 } else {
-                    return gcDanglingArtifactsAction.execute(GCDanglingArtifactsRequest.INSTANCE).handle(
-                        (ignored, err) -> {
+                    GCDanglingArtifactsRequest gcReq = new GCDanglingArtifactsRequest(List.of(resizedIndexUUID));
+                    return gcDanglingArtifactsAction.execute(gcReq).handle(
+                        (_, err) -> {
                             throw new IllegalStateException(
                                 "Resize operation wasn't acknowledged. Check shard allocation and retry", err);
                         });
