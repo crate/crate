@@ -41,6 +41,7 @@ import io.crate.sql.tree.AlterRoleReset;
 import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
+import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
@@ -647,6 +648,7 @@ public class TestStatementBuilder {
         printStatement("alter table t add foo integer null");
 
         printStatement("alter table t set (number_of_replicas=4)");
+        printStatement("alter table t set (number_of_replicas=4) with (timeout = '60s')");
         printStatement("alter table schema.t set (number_of_replicas=4)");
         printStatement("alter table t reset (number_of_replicas)");
         printStatement("alter table t reset (property1, property2, property3)");
@@ -2285,7 +2287,8 @@ public class TestStatementBuilder {
             statement instanceof CreateUserMapping ||
             statement instanceof DropServer ||
             statement instanceof DropForeignTable ||
-            statement instanceof DropUserMapping) {
+            statement instanceof DropUserMapping ||
+            statement instanceof AlterTable) {
 
 
             println(SqlFormatter.formatSql(statement));

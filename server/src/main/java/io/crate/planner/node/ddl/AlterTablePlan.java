@@ -137,6 +137,7 @@ public class AlterTablePlan implements Plan {
             tableInfo,
             partitionName,
             settings,
+            alterTable.withProperties(),
             table.excludePartitions(),
             isPartitioned
         );
@@ -155,8 +156,8 @@ public class AlterTablePlan implements Plan {
 
     private static Settings.Builder getTableParameter(AlterTable<Object> node, TableParameters tableParameters) {
         Settings.Builder settingsBuilder = Settings.builder();
-        if (!node.genericProperties().isEmpty()) {
-            TableProperties.analyze(settingsBuilder, tableParameters, node.genericProperties());
+        if (!node.setProperties().isEmpty()) {
+            TableProperties.analyze(settingsBuilder, tableParameters, node.setProperties());
         } else if (!node.resetProperties().isEmpty()) {
             TableProperties.analyzeResetProperties(settingsBuilder, tableParameters, node.resetProperties());
         }

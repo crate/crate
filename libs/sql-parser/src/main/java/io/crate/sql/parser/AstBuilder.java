@@ -1387,14 +1387,14 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
 
     // Amending tables
 
-    @SuppressWarnings({"rawtypes", "unchecked"})
+    @SuppressWarnings({"unchecked"})
     @Override
     public Node visitAlterTableProperties(SqlBaseParser.AlterTablePropertiesContext context) {
-        Table<?> name = (Table<?>) visit(context.alterTableDefinition());
-        if (context.SET() != null) {
-            return new AlterTable(name, extractGenericProperties(context.genericProperties()));
-        }
-        return new AlterTable(name, identsToStrings(context.ident()));
+        Table<Expression> name = (Table<Expression>) visit(context.alterTableDefinition());
+        GenericProperties<Expression> withProperties = extractGenericProperties(context.withProperties());
+        GenericProperties<Expression> setProperties = extractGenericProperties(context.genericProperties());
+        List<String> resetProperties = identsToStrings(context.ident());
+        return new AlterTable<>(name, setProperties, resetProperties, withProperties);
     }
 
     @SuppressWarnings({"unchecked"})
@@ -1417,10 +1417,10 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
             }
             default -> throw new IllegalArgumentException("Invalid tableName \"" + name + "\"");
         };
-        if (context.SET() != null) {
-            return new AlterTable<>(table, extractGenericProperties(context.genericProperties()));
-        }
-        return new AlterTable<>(table, identsToStrings(context.ident()));
+        GenericProperties<Expression> withProperties = GenericProperties.empty();
+        GenericProperties<Expression> setProperties = extractGenericProperties(context.genericProperties());
+        List<String> resetProperties = identsToStrings(context.ident());
+        return new AlterTable<>(table, setProperties, resetProperties, withProperties);
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})

@@ -28,25 +28,18 @@ import java.util.function.Function;
 public class AlterTable<T> extends Statement {
 
     private final Table<T> table;
-    private final GenericProperties<T> genericProperties;
+    private final GenericProperties<T> setProperties;
     private final List<String> resetProperties;
+    private final GenericProperties<T> withProperties;
 
-    public AlterTable(Table<T> table, GenericProperties<T> genericProperties) {
+    public AlterTable(Table<T> table,
+                      GenericProperties<T> setProperties,
+                      List<String> resetProperties,
+                      GenericProperties<T> withProperties) {
         this.table = table;
-        this.genericProperties = genericProperties;
-        this.resetProperties = List.of();
-    }
-
-    public AlterTable(Table<T> table, List<String> resetProperties) {
-        this.table = table;
+        this.setProperties = setProperties;
         this.resetProperties = resetProperties;
-        this.genericProperties = GenericProperties.empty();
-    }
-
-    private AlterTable(Table<T> table, GenericProperties<T> genericProperties, List<String> resetProperties) {
-        this.table = table;
-        this.genericProperties = genericProperties;
-        this.resetProperties = resetProperties;
+        this.withProperties = withProperties;
     }
 
     @Override
@@ -58,19 +51,24 @@ public class AlterTable<T> extends Statement {
         return table;
     }
 
-    public GenericProperties<T> genericProperties() {
-        return genericProperties;
+    public GenericProperties<T> setProperties() {
+        return setProperties;
     }
 
     public List<String> resetProperties() {
         return resetProperties;
     }
 
+    public GenericProperties<T> withProperties() {
+        return withProperties;
+    }
+
     public <U> AlterTable<U> map(Function<? super T, ? extends U> mapper) {
         return new AlterTable<>(
             table.map(mapper),
-            genericProperties.map(mapper),
-            resetProperties
+            setProperties.map(mapper),
+            resetProperties,
+            withProperties.map(mapper)
         );
     }
 
@@ -83,22 +81,24 @@ public class AlterTable<T> extends Statement {
             return false;
         }
         AlterTable<?> that = (AlterTable<?>) o;
-        return Objects.equals(table, that.table) &&
-               Objects.equals(genericProperties, that.genericProperties) &&
-               Objects.equals(resetProperties, that.resetProperties);
+        return table.equals(that.table)
+            && setProperties.equals(that.setProperties)
+            && resetProperties.equals(that.resetProperties)
+            && withProperties.equals(that.withProperties);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(table, genericProperties, resetProperties);
+        return Objects.hash(table, setProperties, resetProperties, withProperties);
     }
 
     @Override
     public String toString() {
         return "AlterTable{" +
                "table=" + table +
-               ", genericProperties=" + genericProperties +
-               ", resetProperties=" + resetProperties +
+               ", set=" + setProperties +
+               ", reset=" + resetProperties +
+               ", with=" + withProperties +
                '}';
     }
 }

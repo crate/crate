@@ -26,10 +26,12 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;
+import io.crate.sql.tree.GenericProperties;
 
 public record BoundAlterTable(TableInfo table,
                               @Nullable PartitionName partitionName,
                               Settings settings,
+                              GenericProperties<Object> withProperties,
                               boolean excludePartitions,
                               boolean isPartitioned) {
 }
