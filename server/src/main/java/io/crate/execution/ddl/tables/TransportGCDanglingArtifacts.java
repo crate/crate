@@ -81,11 +81,24 @@ public class TransportGCDanglingArtifacts extends AbstractDDLTransportAction<GCD
                                            GCDanglingArtifactsRequest gcDanglingArtifactsRequest) {
                 Metadata metadata = currentState.metadata();
                 Set<Index> danglingIndicesToDelete = new HashSet<>();
-                for (ObjectCursor<IndexMetadata> indexMetadata : metadata.indices().values()) {
-                    Index index = indexMetadata.value.getIndex();
-                    RelationMetadata relation = metadata.getRelation(index.getUUID());
-                    if (relation == null) {
-                        danglingIndicesToDelete.add(index);
+                if (gcDanglingArtifactsRequest.indexUUIDs().isEmpty()) {
+                    for (ObjectCursor<IndexMetadata> cursor : metadata.indices().values()) {
+                        Index index = cursor.value.getIndex();
+                        RelationMetadata relation = metadata.getRelation(index.getUUID());
+                        if (relation == null) {
+                            danglingIndicesToDelete.add(index);
+                        }
+                    }
+                } else {
+                    for (String indexUUID : gcDanglingArtifactsRequest.indexUUIDs()) {
+                        IndexMetadata indexMetadata = metadata.index(indexUUID);
+                        if (indexMetadata == null) {
+                            continue;
+                        }
+                        RelationMetadata relation = metadata.getRelation(indexUUID);
+                        if (relation == null) {
+                            danglingIndicesToDelete.add(indexMetadata.getIndex());
+                        }
                     }
                 }
                 if (danglingIndicesToDelete.isEmpty()) {
