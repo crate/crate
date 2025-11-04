@@ -29,6 +29,7 @@ import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Locale;
@@ -399,12 +400,19 @@ public class AlterTableIntegrationTest extends IntegTestCase {
         execute("refresh table tbl");
         execute("alter table tbl partition (p = 1) set (\"blocks.write\" = true)");
         int numShards = (cluster().numNodes() + 1) * 2;
+
+        TimeValue sessionTimeout = TimeValue.timeValueSeconds(10);
+        long start = System.nanoTime();
         assertThatThrownBy(() ->
-            execute("alter table tbl partition (p = 1) set (number_of_shards = ?)", new Object[] { numShards }, TimeValue.timeValueSeconds(30))
+            execute("alter table tbl partition (p = 1) set (number_of_shards = ?) with (timeout = '1s')", new Object[] { numShards }, sessionTimeout)
         ).extracting(ex -> ex.getMessage()).satisfiesAnyOf(
             x -> assertThat(x).contains("Resize operation wasn't acknowledged. Check shard allocation and retry"),
             x -> assertThat(x).contains("Timeout while running")
         );
+        long durationNs = System.nanoTime() - start;
+        assertThat(durationNs)
+            .isBetween(TimeValue.timeValueSeconds(1).nanos(), sessionTimeout.nanos());
+
         assertThat(execute("select * from tbl")).hasRowCount(4);
 
         execute("alter table tbl set (\"routing.allocation.total_shards_per_node\" = 200)");

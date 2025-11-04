@@ -47,6 +47,7 @@ import io.crate.sql.tree.AlterRoleReset;
 import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterServer;
 import io.crate.sql.tree.AlterSubscription;
+import io.crate.sql.tree.AlterTable;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.AstVisitor;
 import io.crate.sql.tree.CascadeMode;
@@ -734,6 +735,37 @@ public final class SqlFormatter {
                 appendNewLineOrSpace();
                 node.properties().accept(this, indent);
             }
+            return null;
+        }
+
+        @Override
+        public Void visitAlterTable(AlterTable<?> node, Integer indent) {
+            builder.append("ALTER TABLE ");
+            node.table().accept(this, indent);
+
+            if (node.resetProperties().isEmpty()) {
+                builder.append(" SET (");
+                appendProperties(node.setProperties(), indent);
+                builder.append(")");
+            } else {
+                builder.append(" RESET (");
+                Iterator<String> iterator = node.resetProperties().iterator();
+                while (iterator.hasNext()) {
+                    String property = iterator.next();
+                    builder.append(property);
+                    if (iterator.hasNext()) {
+                        builder.append(", ");
+                    }
+                }
+                builder.append(")");
+            }
+
+            if (!node.withProperties().isEmpty()) {
+                builder.append(" WITH (");
+                appendProperties(node.withProperties(), indent);
+                builder.append(")");
+            }
+
             return null;
         }
 

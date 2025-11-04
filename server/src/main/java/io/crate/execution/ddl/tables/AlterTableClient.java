@@ -48,6 +48,7 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.BoundAlterTable;
+import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.GeneratedReference;
@@ -60,6 +61,7 @@ import io.crate.replication.logical.metadata.Publication;
 import io.crate.session.CollectingResultReceiver;
 import io.crate.session.Sessions;
 import io.crate.sql.tree.ColumnPolicy;
+import io.crate.sql.tree.GenericProperties;
 
 @Singleton
 public class AlterTableClient {
@@ -180,6 +182,13 @@ public class AlterTableClient {
                 analysis.excludePartitions(),
                 analysis.settings()
             );
+            GenericProperties<Object> withProperties = analysis.withProperties();
+            Object timeout = withProperties.get("timeout");
+            if (timeout != null) {
+                TimeValue timeValue = TimeValue.parseTimeValue(timeout.toString(), "timeout");
+                request.timeout(timeValue);
+                request.masterNodeTimeout(timeValue);
+            }
             return client.execute(TransportAlterTable.ACTION, request).thenApply(_ -> -1L);
         } catch (IOException e) {
             return CompletableFuture.failedFuture(e);
@@ -208,6 +217,13 @@ public class AlterTableClient {
             partitionName == null ? List.of() : partitionName.values(),
             targetNumberOfShards
         );
+        GenericProperties<Object> withProperties = analysis.withProperties();
+        Object timeout = withProperties.get("timeout");
+        if (timeout != null) {
+            TimeValue timeValue = TimeValue.parseTimeValue(timeout.toString(), "timeout");
+            request.timeout(timeValue);
+            request.masterNodeTimeout(timeValue);
+        }
         return deleteTempIndices()
             .thenCompose(_ -> client.execute(TransportResize.ACTION, request))
             .thenApply(_ -> 0L);

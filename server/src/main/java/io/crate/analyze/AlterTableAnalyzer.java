@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import java.util.List;
+import java.util.Set;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -45,6 +46,8 @@ import io.crate.sql.tree.Table;
 
 class AlterTableAnalyzer {
 
+    private static final Set<String> SUPPORTED_WITH_PROPERTIES = Set.of("timeout");
+
     private final Schemas schemas;
     private final NodeContext nodeCtx;
 
@@ -62,12 +65,14 @@ class AlterTableAnalyzer {
         CoordinatorSessionSettings sessionSettings = txnCtx.sessionSettings();
         var exprCtx = new ExpressionAnalysisContext(sessionSettings);
         AlterTable<Symbol> alterTable = node.map(x -> exprAnalyzerWithFieldsAsString.convert(x, exprCtx));
+        alterTable.withProperties().ensureContainsOnly(SUPPORTED_WITH_PROPERTIES);
         TableInfo TableInfo = schemas.findRelation(
             alterTable.table().getName(),
             Operation.ALTER_BLOCKS,
             sessionSettings.sessionUser(),
             sessionSettings.searchPath()
         );
+
 
         return new AnalyzedAlterTable(TableInfo, alterTable);
     }
