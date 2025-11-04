@@ -29,6 +29,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.assertj.core.api.InstanceOfAssertFactories;
@@ -36,76 +37,60 @@ import org.junit.jupiter.api.Test;
 
 import io.crate.sql.Literals;
 import io.crate.sql.SqlFormatter;
-import io.crate.sql.tree.AlterPublication;
-import io.crate.sql.tree.AlterRoleReset;
-import io.crate.sql.tree.AlterRoleSet;
 import io.crate.sql.tree.AlterServer;
-import io.crate.sql.tree.AlterSubscription;
-import io.crate.sql.tree.AlterTable;
+import io.crate.sql.tree.AlterTableAddColumn;
+import io.crate.sql.tree.AlterTableDropColumn;
+import io.crate.sql.tree.AlterTableOpenClose;
+import io.crate.sql.tree.AlterTableRenameColumn;
+import io.crate.sql.tree.AlterTableRenameTable;
+import io.crate.sql.tree.AlterTableReroute;
+import io.crate.sql.tree.AnalyzeStatement;
 import io.crate.sql.tree.ArrayComparisonExpression;
 import io.crate.sql.tree.ArrayLikePredicate;
 import io.crate.sql.tree.ArrayLiteral;
 import io.crate.sql.tree.Assignment;
 import io.crate.sql.tree.BeginStatement;
-import io.crate.sql.tree.Close;
 import io.crate.sql.tree.CommitStatement;
 import io.crate.sql.tree.ComparisonExpression;
-import io.crate.sql.tree.CopyFrom;
-import io.crate.sql.tree.CreateForeignTable;
-import io.crate.sql.tree.CreateFunction;
-import io.crate.sql.tree.CreatePublication;
-import io.crate.sql.tree.CreateRole;
-import io.crate.sql.tree.CreateServer;
-import io.crate.sql.tree.CreateSubscription;
-import io.crate.sql.tree.CreateTable;
-import io.crate.sql.tree.CreateTableAs;
-import io.crate.sql.tree.CreateUserMapping;
+import io.crate.sql.tree.CopyTo;
+import io.crate.sql.tree.CreateAnalyzer;
+import io.crate.sql.tree.CreateBlobTable;
+import io.crate.sql.tree.CreateRepository;
+import io.crate.sql.tree.CreateView;
 import io.crate.sql.tree.DeallocateStatement;
-import io.crate.sql.tree.Declare;
 import io.crate.sql.tree.DefaultTraversalVisitor;
-import io.crate.sql.tree.DenyPrivilege;
-import io.crate.sql.tree.DropAnalyzer;
-import io.crate.sql.tree.DropBlobTable;
-import io.crate.sql.tree.DropForeignTable;
-import io.crate.sql.tree.DropFunction;
-import io.crate.sql.tree.DropPublication;
-import io.crate.sql.tree.DropRepository;
-import io.crate.sql.tree.DropRole;
-import io.crate.sql.tree.DropServer;
-import io.crate.sql.tree.DropSnapshot;
-import io.crate.sql.tree.DropSubscription;
-import io.crate.sql.tree.DropTable;
-import io.crate.sql.tree.DropUserMapping;
-import io.crate.sql.tree.DropView;
+import io.crate.sql.tree.Delete;
+import io.crate.sql.tree.DiscardStatement;
+import io.crate.sql.tree.DropCheckConstraint;
 import io.crate.sql.tree.EscapedCharStringLiteral;
-import io.crate.sql.tree.Explain;
 import io.crate.sql.tree.Expression;
 import io.crate.sql.tree.Fetch;
 import io.crate.sql.tree.FunctionCall;
-import io.crate.sql.tree.GCDanglingArtifacts;
-import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.IntegerLiteral;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.MatchPredicate;
 import io.crate.sql.tree.NegativeExpression;
 import io.crate.sql.tree.ObjectLiteral;
+import io.crate.sql.tree.OptimizeStatement;
 import io.crate.sql.tree.ParameterExpression;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.QualifiedNameReference;
-import io.crate.sql.tree.Query;
-import io.crate.sql.tree.RevokePrivilege;
-import io.crate.sql.tree.SetSessionAuthorizationStatement;
+import io.crate.sql.tree.RefreshStatement;
+import io.crate.sql.tree.ResetStatement;
+import io.crate.sql.tree.RestoreSnapshot;
 import io.crate.sql.tree.SetStatement;
+import io.crate.sql.tree.SetTransactionStatement;
+import io.crate.sql.tree.ShowColumns;
 import io.crate.sql.tree.ShowCreateTable;
+import io.crate.sql.tree.ShowSchemas;
+import io.crate.sql.tree.ShowSessionParameter;
+import io.crate.sql.tree.ShowTables;
+import io.crate.sql.tree.ShowTransaction;
 import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
 import io.crate.sql.tree.SubqueryExpression;
 import io.crate.sql.tree.SubscriptExpression;
-import io.crate.sql.tree.SwapTable;
-import io.crate.sql.tree.Update;
-import io.crate.sql.tree.Window;
-import io.crate.sql.tree.With;
 
 public class TestStatementBuilder {
 
@@ -2244,53 +2229,40 @@ public class TestStatementBuilder {
         println(statement.toString());
         println("");
 
-        // TODO: support formatting all statement types
-        if (statement instanceof Query ||
-            statement instanceof CreateTable ||
-            statement instanceof CreateTableAs ||
-            statement instanceof CreateForeignTable ||
-            statement instanceof CopyFrom ||
-            statement instanceof SwapTable ||
-            statement instanceof GCDanglingArtifacts ||
-            statement instanceof CreateFunction ||
-            statement instanceof CreateRole ||
-            statement instanceof GrantPrivilege ||
-            statement instanceof DenyPrivilege ||
-            statement instanceof RevokePrivilege ||
-            statement instanceof AlterRoleSet ||
-            statement instanceof AlterRoleReset ||
-            statement instanceof DropRole ||
-            statement instanceof DropAnalyzer ||
-            statement instanceof DropFunction ||
-            statement instanceof DropTable ||
-            statement instanceof DropBlobTable ||
-            statement instanceof DropView ||
-            statement instanceof DropRepository ||
-            statement instanceof DropSnapshot ||
-            statement instanceof Update ||
-            statement instanceof Insert ||
-            statement instanceof Explain ||
-            statement instanceof SetSessionAuthorizationStatement ||
-            statement instanceof Window ||
-            statement instanceof CreatePublication ||
-            statement instanceof DropPublication ||
-            statement instanceof AlterPublication ||
-            statement instanceof CreateSubscription ||
-            statement instanceof DropSubscription ||
-            statement instanceof AlterSubscription ||
-            statement instanceof With ||
-            statement instanceof Declare ||
-            statement instanceof Fetch ||
-            statement instanceof Close ||
-            statement instanceof CreateServer ||
-            statement instanceof AlterServer ||
-            statement instanceof CreateUserMapping ||
-            statement instanceof DropServer ||
-            statement instanceof DropForeignTable ||
-            statement instanceof DropUserMapping ||
-            statement instanceof AlterTable) {
-
-
+        Set<Class<?>> noFormatSupport = Set.of(
+            AlterTableAddColumn.class,
+            AlterTableDropColumn.class,
+            AlterTableOpenClose.class,
+            AlterTableRenameColumn.class,
+            AlterTableRenameTable.class,
+            AlterTableReroute.class,
+            AnalyzeStatement.class,
+            BeginStatement.class,
+            CommitStatement.class,
+            CopyTo.class,
+            CreateAnalyzer.class,
+            CreateBlobTable.class,
+            CreateRepository.class,
+            CreateView.class,
+            DeallocateStatement.class,
+            Delete.class,
+            DiscardStatement.class,
+            DropCheckConstraint.class,
+            KillStatement.class,
+            OptimizeStatement.class,
+            RefreshStatement.class,
+            ResetStatement.class,
+            RestoreSnapshot.class,
+            SetStatement.class,
+            SetTransactionStatement.class,
+            ShowColumns.class,
+            ShowCreateTable.class,
+            ShowSchemas.class,
+            ShowSessionParameter.class,
+            ShowTables.class,
+            ShowTransaction.class
+        );
+        if (!noFormatSupport.contains(statement.getClass())) {
             println(SqlFormatter.formatSql(statement));
             println("");
             assertFormattedSql(statement, SqlFormatter::formatSql);
