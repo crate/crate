@@ -139,7 +139,6 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage("The Schema \"schema\" isn't valid in a [CREATE | ALTER] BLOB TABLE clause");
     }
 
-
     private BoundAlterTable analyze(String stmt) {
         AlterTablePlan plan = e.plan(stmt);
         return AlterTablePlan.bind(
