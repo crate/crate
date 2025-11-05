@@ -43,12 +43,14 @@ import org.elasticsearch.action.admin.cluster.state.ClusterStateRequest;
 import org.elasticsearch.action.admin.cluster.state.ClusterStateResponse;
 import org.elasticsearch.action.admin.cluster.state.TransportClusterState;
 import org.elasticsearch.client.node.NodeClient;
+import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.jetbrains.annotations.Nullable;
-import io.netty.buffer.ByteBuf;
+
 import io.crate.rest.action.HttpErrorStatus;
+import io.netty.buffer.ByteBuf;
 import io.netty.buffer.ByteBufAllocator;
 import io.netty.buffer.ByteBufOutputStream;
 import io.netty.buffer.ByteBufUtil;
@@ -195,7 +197,9 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
                                                                    ClusterStateResponse response,
                                                                    ByteBufAllocator alloc,
                                                                    @Nullable String nodeName) {
-        var httpStatus = response.getState().blocks().hasGlobalBlockWithStatus(HttpErrorStatus.SERVICE_UNAVAILABLE)
+        ClusterBlocks blocks = response.getState().blocks();
+        var httpStatus = (blocks.hasGlobalBlockWithStatus(HttpErrorStatus.SERVICE_UNAVAILABLE)
+             || blocks.hasGlobalBlockWithStatus(HttpErrorStatus.MASTER_NOT_DISCOVERED))
             ? HttpResponseStatus.SERVICE_UNAVAILABLE
             : HttpResponseStatus.OK;
         try {
