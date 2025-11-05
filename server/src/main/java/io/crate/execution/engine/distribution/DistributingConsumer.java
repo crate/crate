@@ -227,6 +227,7 @@ public class DistributingConsumer implements RowConsumer {
 
     private void forwardResults(BatchIterator<Row> it, boolean isLast) {
         consuming.set(false);
+        int fullPageSize = multiBucketBuilder.size();
         multiBucketBuilder.build(buckets);
         AtomicInteger numActiveRequests = new AtomicInteger(downstreams.size());
         for (int i = 0; i < downstreams.size(); i++) {
@@ -235,9 +236,19 @@ public class DistributingConsumer implements RowConsumer {
                 countdownAndMaybeContinue(it, numActiveRequests, true);
                 continue;
             }
+            StreamBucket rows = buckets[i];
             if (traceEnabled) {
-                LOGGER.trace("forwardResults targetNode={} jobId={} targetPhase={}/{} bucket={} isLast={}",
-                             downstream.nodeId, jobId, targetPhaseId, inputId, bucketIdx, isLast);
+                LOGGER.trace(
+                    "forwardResults targetNode={} jobId={} targetPhase={}/{} bucket={} numRows={} fullPageSize={} isLast={}",
+                    downstream.nodeId,
+                    jobId,
+                    targetPhaseId,
+                    inputId,
+                    bucketIdx,
+                    rows.size(),
+                    fullPageSize,
+                    isLast
+                );
             }
             NodeRequest<DistributedResultRequest> request = DistributedResultRequest.of(
                 downstream.nodeId,
@@ -245,7 +256,7 @@ public class DistributingConsumer implements RowConsumer {
                 targetPhaseId,
                 inputId,
                 bucketIdx,
-                buckets[i],
+                rows,
                 isLast
             );
             var responseHandler = new ResponseHandler(
