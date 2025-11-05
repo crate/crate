@@ -121,14 +121,11 @@ class JmxIntegrationTest(unittest.TestCase):
 
     def test_mbean_master(self):
         jmx_client = JmxClient(JMX_PORT)
-        def assert_is_master():
-            result = jmx_client.query_jmx(
+        result = jmx_client.query_jmx(
             'io.crate.monitoring:type=NodeInfo',
-                'Master'
-            )
-            self.assertEqual(result, 1, 'master be true')
-
-        assert_busy(assert_is_master)
+            'Master'
+        )
+        self.assertEqual(result, 1, 'master must be true')
 
     def test_mbean_roles(self):
         jmx_client = JmxClient(JMX_PORT)
