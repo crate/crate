@@ -137,7 +137,11 @@ public class HashJoinBatchIteratorBehaviouralTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
         List<Object[]> result = consumer.getResult();
-        assertThat(result).containsExactly(new Object[]{2, 2}, new Object[]{1, null}, new Object[]{4, 4});
+        assertThat(result).containsExactly(
+            new Object[]{1, null},
+            new Object[]{2, 2},
+            new Object[]{4, 4}
+        );
 
         // as the blocksize is defined of 2 but the left batch size 1, normally it would call left loadNextBatch until
         // the blocksize is reached. we don't want that as parallel running hash iterators must call loadNextBatch always
@@ -169,6 +173,11 @@ public class HashJoinBatchIteratorBehaviouralTest {
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
         List<Object[]> result = consumer.getResult();
-        assertThat(result).containsExactly(new Object[]{2, 2}, new Object[]{4, 4}, new Object[]{1, null}, new Object[]{3, null});
+        assertThat(result).containsExactly(
+            new Object[]{2, 2},
+            new Object[]{1, null},
+            new Object[]{4, 4},
+            new Object[]{3, null}
+        );
     }
 }
