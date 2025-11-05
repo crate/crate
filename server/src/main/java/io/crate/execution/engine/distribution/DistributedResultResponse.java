@@ -21,11 +21,11 @@
 
 package io.crate.execution.engine.distribution;
 
+import java.io.IOException;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
-
-import java.io.IOException;
 
 public class DistributedResultResponse extends TransportResponse {
 
@@ -46,5 +46,10 @@ public class DistributedResultResponse extends TransportResponse {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeBoolean(needMore);
+    }
+
+    @Override
+    public String toString() {
+        return "DistributedResultResponse{needMore=" + needMore + "}";
     }
 }

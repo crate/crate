@@ -23,7 +23,6 @@ package io.crate.execution.engine.join;
 
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.concurrent.CompletionStage;
 import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
@@ -33,7 +32,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.data.BatchIterator;
-import io.crate.data.Paging;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
 import io.crate.data.breaker.RowAccounting;
@@ -111,14 +109,11 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private int blockSize;
     private int numberOfRowsInBuffer = 0;
     private boolean leftBatchHasItems = false;
-    private int numberOfLeftBatchesForBlock;
-    private int numberOfLeftBatchesLoadedForBlock;
     private Iterator<Object[]> leftMatchingRowsIterator;
     private IntArrayList nonMatchingKeys;
     private int nonMatchingKeysIdx = 0;
     private Iterator<Object[]> nonMatchValuesIterator;
     private Values leftMatchingRows;
-    private boolean blockFull = false;
 
     public HashJoinBatchIterator(CircuitBreaker circuitBreaker,
                                  BatchIterator<Row> left,
@@ -140,7 +135,6 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         // resized upon block size calculation
         this.buffer = new IntObjectHashMap<>();
         resetBuffer();
-        numberOfLeftBatchesLoadedForBlock = 0;
         this.activeIt = left;
         this.emitNullValues = emitNullValues;
     }
@@ -161,15 +155,6 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         nonMatchingKeysIdx = 0;
         nonMatchValuesIterator = null;
         leftMatchingRows = null;
-        blockFull = false;
-    }
-
-    @Override
-    public CompletionStage<?> loadNextBatch() throws Exception {
-        if (activeIt == left) {
-            numberOfLeftBatchesLoadedForBlock++;
-        }
-        return super.loadNextBatch();
     }
 
     @Override
@@ -248,17 +233,28 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         buffer.clear();
         numberOfRowsInBuffer = 0;
         leftRowAccounting.release();
-        blockFull = false;
-
-        // A batch is not guaranteed to deliver PAGE_SIZE number of rows. It could be more or less.
-        // So we cannot rely on that to decide if processing 1 block is done, we must also know and track how much
-        // batches should be required for processing 1 block.
-        numberOfLeftBatchesForBlock = Math.max(1, (int) Math.ceil((double) blockSize / Paging.PAGE_SIZE));
-        numberOfLeftBatchesLoadedForBlock = leftBatchHasItems ? 1 : 0;
     }
 
     private boolean buildBufferAndMatchRight() {
         if (activeIt == left) {
+            // Build phase to create a block (hash map buffer) for the left side.
+            //
+            // It finishes and switches to probing the right side if:
+            //
+            // 1. Block size has been reached
+            // 2. There is hardly any free memory left
+            // 3. The current source "page" is exhausted (left.moveNext() return false)
+            //
+            // In case 3) we don't return false to trigger a left.loadNextBatch() and try to
+            // fill up the block buffer further because we need to ensure that all nodes
+            // executing join operations consume the same amount of pages per block: Always 1
+            //
+            // Otherwise it could create a deadlock scenario where one
+            // downstream wants to fetch a page for the left side and another
+            // downstream a page for the right side.
+            //
+            // Due to the upstreams always collecting data for _all_ downstreams, they also
+            // wait for all downstreams to request new data.
             long numItems = 0;
             long sum = 0;
             while (leftBatchHasItems = left.moveNext()) {
@@ -269,18 +265,14 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 int hash = hashBuilderForLeft.applyAsInt(unsafeArrayRow.cells(leftRow));
                 addToBuffer(leftRow, hash);
                 if (numberOfRowsInBuffer == blockSize || circuitBreaker.getFree() < 512 * 1024) {
-                    blockFull = true;
                     break;
                 }
             }
             leftAverageRowSize = numItems > 0 ? (int) (sum / numItems) : -1;
 
-            if (mustLoadLeftNextBatch()) {
-                // we should load the left side
+            if (numberOfRowsInBuffer == 0 && !left.allLoaded()) {
                 return false;
-            }
-
-            if (mustSwitchToRight()) {
+            } else {
                 activeIt = right;
             }
         }
@@ -340,19 +332,6 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             }
         }
         return false;
-    }
-
-    private boolean mustSwitchToRight() {
-        return left.allLoaded()
-               || blockFull
-               || (leftBatchHasItems == false && numberOfLeftBatchesLoadedForBlock == numberOfLeftBatchesForBlock);
-    }
-
-    private boolean mustLoadLeftNextBatch() {
-        return leftBatchHasItems == false
-               && left.allLoaded() == false
-               && !blockFull
-               && numberOfLeftBatchesLoadedForBlock < numberOfLeftBatchesForBlock;
     }
 
     private static final class Values {

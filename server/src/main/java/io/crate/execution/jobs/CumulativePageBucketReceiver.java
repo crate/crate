@@ -144,7 +144,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
         final boolean allBucketsOfPageReceived;
         synchronized (lock) {
             if (traceEnabled) {
-                LOGGER.trace("method=setBucket phaseId={} bucket={} istLast={}", phaseId, bucketIdx, isLast);
+                LOGGER.trace("method=setBucket phaseId={} bucket={} size={} istLast={}", phaseId, bucketIdx, rows.size(), isLast);
             }
 
             if (bucketsByIdx.putIfAbsent(bucketIdx, rows) != null) {
