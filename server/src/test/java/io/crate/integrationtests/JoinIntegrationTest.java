@@ -24,6 +24,7 @@ package io.crate.integrationtests;
 import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Arrays;
@@ -1786,5 +1787,70 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         execute(query);
         assertThat(response.rows()).isEmpty();
+    }
+
+    @Test
+    @UseHashJoins(1)
+    public void test_hash_join() throws Exception {
+        execute(
+            """
+            CREATE TABLE uservisits_large (
+                "sourceIP" STRING PRIMARY KEY,
+                "destinationURL" STRING,
+                "visitDate" TIMESTAMP,
+                "adRevenue" FLOAT,
+                "UserAgent" STRING INDEX USING FULLTEXT,
+                "cCode" STRING,
+                "lCode" STRING,
+                "searchWord" STRING,
+                "duration" INTEGER
+            ) WITH (
+                number_of_replicas = 0,
+                refresh_interval = 0
+            )
+            """
+        );
+        execute(
+            """
+            CREATE TABLE uservisits_small (
+                "sourceIP" STRING PRIMARY KEY,
+                "destinationURL" STRING,
+                "visitDate" TIMESTAMP,
+                "adRevenue" FLOAT,
+                "UserAgent" STRING INDEX USING FULLTEXT,
+                "cCode" STRING,
+                "lCode" STRING,
+                "searchWord" STRING,
+                "duration" INTEGER
+            ) WITH (
+              number_of_replicas = 0,
+              refresh_interval = 0
+            )
+            """
+        );
+
+        logger.info("Importing data");
+        execute("copy uservisits_small from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00000.gz' with (compression = 'gzip')");
+        execute("copy uservisits_small from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00001.gz' with (compression = 'gzip')");
+        execute("copy uservisits_small from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00002.gz' with (compression = 'gzip')");
+        execute("copy uservisits_small from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00003.gz' with (compression = 'gzip')");
+        execute("copy uservisits_small from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00004.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00000.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00001.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00002.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00003.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00004.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00005.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00006.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00007.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00008.gz' with (compression = 'gzip')");
+        execute("copy uservisits_large from 'https://cdn.crate.io/downloads/datasets/amplab/1node/uservisits/part-00009.gz' with (compression = 'gzip')");
+        execute("refresh table uservisits_large, uservisits_small");
+        logger.info("Executing join");
+        execute(
+            """
+            select t1."sourceIP" from uservisits_large t1 inner join uservisits_small t2 on t1."sourceIP" = t2."sourceIP" order by t1."sourceIP" limit 10
+            """
+        );
     }
 }
