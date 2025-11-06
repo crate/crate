@@ -111,8 +111,8 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
                     .addListener(ChannelFutureListener.CLOSE);
             }
             case IOException _ -> {
-                if (message.contains("Connection reset by peer")) {
-                    LOGGER.debug("Connection reset by peer");
+                if (message.contains("Connection reset")) {
+                    LOGGER.debug(message);
                 } else {
                     LOGGER.warn(message, cause);
                     send500(ctx, message);

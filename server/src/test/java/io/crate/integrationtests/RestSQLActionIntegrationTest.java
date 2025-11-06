@@ -23,7 +23,6 @@ package io.crate.integrationtests;
 
 import static io.crate.execution.engine.indexing.ShardingUpsertExecutor.BULK_RESPONSE_MAX_ERRORS_PER_SHARD;
 import static io.crate.testing.Asserts.assertThat;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.OutputStream;
 import java.net.Socket;
@@ -82,7 +81,7 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
                 "connection reset is logged",
                 "io.crate.protocols.http.MainAndStaticFileHandler",
                 Level.DEBUG,
-                "Connection reset by peer"
+                "Connection reset"
             ));
 
             // This tries to cause a connection reset via soLinger with timeout=0, which means that it won't wait for
