@@ -33,6 +33,7 @@ import java.util.concurrent.TimeoutException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.ElasticsearchTimeoutException;
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.SingleShardRequest;
@@ -226,10 +227,8 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
         @Nullable
         @Override
         protected ShardsIterator shards(ClusterState state, Request request) {
-            return state.routingTable().shardRoutingTable(
-                request.shardId().getIndexUUID(),
-                request.shardId().id()
-            ).activeInitializingShardsRandomIt();
+            return shardRoutingTable(state, request.shardId, request.senderVersion)
+                .activeInitializingShardsRandomIt();
         }
     }
 
@@ -238,12 +237,14 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
         private final ShardId shardId;
         private final long fromSeqNo;
         private final long toSeqNo;
+        private final Version senderVersion;
 
         public Request(ShardId shardId, long fromSeqNo, long toSeqNo) {
-            super(shardId.getIndexName());
+            super(shardId.getIndex());
             this.shardId = shardId;
             this.fromSeqNo = fromSeqNo;
             this.toSeqNo = toSeqNo;
+            senderVersion = Version.CURRENT;
         }
 
         public Request(StreamInput in) throws IOException {
@@ -251,6 +252,7 @@ public class ShardChangesAction extends ActionType<ShardChangesAction.Response> 
             this.shardId = new ShardId(in);
             this.fromSeqNo = in.readLong();
             this.toSeqNo = in.readVLong();
+            this.senderVersion = in.getVersion();
         }
 
         @Override

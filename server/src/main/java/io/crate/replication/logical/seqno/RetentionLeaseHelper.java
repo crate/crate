@@ -28,6 +28,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.index.seqno.RetentionLeaseAlreadyExistsException;
 import org.elasticsearch.index.shard.ShardId;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;
@@ -43,9 +44,10 @@ public class RetentionLeaseHelper {
         return "logical_replication:" + subscriberClusterName;
     }
 
-    private static String retentionLeaseIdForShard(String subscriberClusterName, ShardId shardId) {
+    @VisibleForTesting
+    static String retentionLeaseIdForShard(String subscriberClusterName, ShardId shardId) {
         var retentionLeaseSource = retentionLeaseSource(subscriberClusterName);
-        return retentionLeaseSource + ":" + shardId;
+        return retentionLeaseSource + ":" + "[" + shardId.getIndex().getName() + "][" + shardId.id() + "]";
     }
 
 

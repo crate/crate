@@ -22,6 +22,7 @@ package org.elasticsearch.index.seqno;
 import java.io.IOException;
 import java.util.Objects;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.support.single.shard.SingleShardRequest;
@@ -77,9 +78,7 @@ public class RetentionLeaseActions {
 
         @Override
         protected ShardsIterator shards(final ClusterState state, final T request) {
-            return state
-                .routingTable()
-                .shardRoutingTable(request.getShardId().getIndexUUID(), request.getShardId().id())
+            return shardRoutingTable(state, request.getShardId(), request.senderVersion())
                 .primaryShardIt();
         }
 
@@ -241,6 +240,7 @@ public class RetentionLeaseActions {
     private abstract static class Request extends SingleShardRequest {
 
         private final ShardId shardId;
+        private final Version senderVersion;
 
         public ShardId getShardId() {
             return shardId;
@@ -256,12 +256,14 @@ public class RetentionLeaseActions {
             super(in);
             shardId = new ShardId(in);
             id = in.readString();
+            senderVersion = in.getVersion();
         }
 
         Request(final ShardId shardId, final String id) {
-            super(Objects.requireNonNull(shardId).getIndexUUID());
+            super(Objects.requireNonNull(shardId).getIndex());
             this.shardId = shardId;
             this.id = Objects.requireNonNull(id);
+            this.senderVersion = Version.CURRENT;
         }
 
         @Override
@@ -271,6 +273,9 @@ public class RetentionLeaseActions {
             out.writeString(id);
         }
 
+        public Version senderVersion() {
+            return senderVersion;
+        }
     }
 
     public static class AddOrRenewRequest extends Request {
