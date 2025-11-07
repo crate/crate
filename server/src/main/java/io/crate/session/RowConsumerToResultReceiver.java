@@ -22,7 +22,7 @@
 package io.crate.session;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.function.ObjLongConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -49,12 +49,10 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     private CompletableFuture<BatchIterator<Row>> suspendedIt = new CompletableFuture<>();
     private boolean waitingForWrite = false;
 
-    public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
+    public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, ObjLongConsumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
-        completionFuture.whenComplete((_, err) -> {
-            onCompletion.accept(err);
-        });
+        completionFuture.whenComplete((_, err) -> onCompletion.accept(err, resultReceiver.affectedRowCount()));
     }
 
     @Override
@@ -105,9 +103,9 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                     }
                 }
                 if (iterator.allLoaded()) {
-                    completionFuture.complete(null);
                     iterator.close();
                     resultReceiver.allFinished();
+                    completionFuture.complete(null);
                     return;
                 } else {
                     var nextBatch = iterator.loadNextBatch().toCompletableFuture();

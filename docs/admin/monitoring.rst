@@ -104,7 +104,8 @@ QueryStats MBean
 The ``QueryStats`` MBean exposes the sum of durations, in milliseconds, total
 and failed count of all statements executed since the node was started, grouped
 by type, for ``SELECT``, ``UPDATE``, ``DELETE``, ``INSERT``, ``MANAGEMENT``,
-``DDL``, ``COPY`` and ``UNDEFINED`` queries.
+``DDL``, ``COPY`` and ``UNDEFINED`` queries. In addition, the number of
+affected rows is exposed, grouped by the aforementioned types.
 
 Metrics can be accessed using the JMX MBean object name
 ``io.crate.monitoring:type=QueryStats`` and the following attributes:
@@ -130,6 +131,18 @@ Statements failed count since the node was started:
 - ``DDLQueryFailedCount``
 - ``CopyQueryFailedCount``
 - ``UndefinedQueryFailedCount``
+
+The total number of affected rows of all statement executions grouped by type
+since the node was started:
+
+- ``SelectQueryAffectedRowCount``
+- ``InsertQueryAffectedRowCount``
+- ``UpdateQueryAffectedRowCount``
+- ``DeleteQueryAffectedRowCount``
+- ``ManagementQueryAffectedRowCount``
+- ``DDLQueryAffectedRowCount``
+- ``CopyQueryAffectedRowCount``
+- ``UndefinedQueryAffectedRowCount``
 
 The sum of the durations, in milliseconds, since the node was started, of all
 statement executions grouped by type:

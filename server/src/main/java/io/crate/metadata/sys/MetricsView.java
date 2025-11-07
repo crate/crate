@@ -32,6 +32,7 @@ public final class MetricsView {
     private final Histogram histogram;
     private final long sumOfDurations;
     private final long failedCount;
+    private final long affectedRowCount;
     private final StatementClassifier.Classification classification;
 
     /**
@@ -42,10 +43,12 @@ public final class MetricsView {
     public MetricsView(Histogram histogram,
                        long sumOfDurations,
                        long failedCount,
+                       long affectedRowCount,
                        StatementClassifier.Classification classification) {
         this.histogram = histogram;
         this.sumOfDurations = sumOfDurations;
         this.failedCount = failedCount;
+        this.affectedRowCount = affectedRowCount;
         this.classification = classification;
     }
 
@@ -84,5 +87,9 @@ public final class MetricsView {
 
     public StatementClassifier.Classification classification() {
         return classification;
+    }
+
+    public long affectedRowCount() {
+        return affectedRowCount;
     }
 }

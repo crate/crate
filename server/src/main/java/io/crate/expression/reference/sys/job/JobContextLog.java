@@ -22,6 +22,7 @@
 package io.crate.expression.reference.sys.job;
 
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.planner.operators.StatementClassifier;
 
 import org.jetbrains.annotations.Nullable;
@@ -35,20 +36,24 @@ public class JobContextLog implements ContextLog, Accountable {
 
     private final JobContext jobContext;
 
+    private final long affectedRowCount;
+
     @Nullable
     private final String errorMessage;
 
     private final long ended;
 
-    public JobContextLog(JobContext jobContext, @Nullable String errorMessage) {
+    public JobContextLog(JobContext jobContext, long affectedRowCount, @Nullable String errorMessage) {
         this.jobContext = jobContext;
+        this.affectedRowCount = affectedRowCount;
         this.errorMessage = errorMessage;
         this.ended = System.currentTimeMillis();
     }
 
     @VisibleForTesting
-    public JobContextLog(JobContext jobContext, @Nullable String errorMessage, long ended) {
+    public JobContextLog(JobContext jobContext, long affectedRowCount, @Nullable String errorMessage, long ended) {
         this.jobContext = jobContext;
+        this.affectedRowCount = affectedRowCount;
         this.errorMessage = errorMessage;
         this.ended = ended;
     }
@@ -83,6 +88,10 @@ public class JobContextLog implements ContextLog, Accountable {
     @Nullable
     public String errorMessage() {
         return errorMessage;
+    }
+
+    public long affectedRowCount() {
+        return affectedRowCount;
     }
 
     @Override

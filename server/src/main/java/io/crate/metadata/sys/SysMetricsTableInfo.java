@@ -42,6 +42,7 @@ public class SysMetricsTableInfo {
     public static SystemTable<MetricsView> create(Supplier<DiscoveryNode> localNode) {
         return SystemTable.<MetricsView>builder(NAME)
             .add("total_count", LONG, MetricsView::totalCount)
+            .add("total_affected_row_count", LONG, MetricsView::affectedRowCount)
             .add("sum_of_durations", LONG, MetricsView::sumOfDurations)
             .add("failed_count", LONG, MetricsView::failedCount)
             .add("mean", DOUBLE, MetricsView::mean)

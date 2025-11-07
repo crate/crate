@@ -65,7 +65,7 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
                     return f;
                 }
             };
-            var batchConsumer = new RowConsumerToResultReceiver(resultReceiver, 0, _ -> {});
+            var batchConsumer = new RowConsumerToResultReceiver(resultReceiver, 0, (_, _) -> {});
 
             batchConsumer.accept(batchSimulatingIterator, null);
             resultReceiver.completionFuture().get(10, TimeUnit.SECONDS);
@@ -80,7 +80,7 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
     @Test
     public void testExceptionOnAllLoadedCallIsForwardedToResultReceiver() throws Exception {
         BaseResultReceiver resultReceiver = new BaseResultReceiver();
-        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, _ -> {});
+        RowConsumerToResultReceiver consumer = new RowConsumerToResultReceiver(resultReceiver, 0, (_, _) -> {});
 
         consumer.accept(FailingBatchIterator.failOnAllLoaded(), null);
         assertThat(resultReceiver.completionFuture().isCompletedExceptionally()).isTrue();
@@ -105,7 +105,7 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
                     return writeFutureRef.get();
                 }
             };
-            var batchConsumer = new RowConsumerToResultReceiver(resultReceiver, 1, _ -> {});
+            var batchConsumer = new RowConsumerToResultReceiver(resultReceiver, 1, (_, _) -> {});
 
             batchConsumer.accept(batchSimulatingIterator, null);
 
@@ -133,7 +133,7 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
                 return writeFuture;
             }
         };
-        var consumerToResultReceiver = new RowConsumerToResultReceiver(resultReceiver, 0, _ -> {});
+        var consumerToResultReceiver = new RowConsumerToResultReceiver(resultReceiver, 0, (_, _) -> {});
         consumerToResultReceiver.accept(TestingBatchIterators.range(0, 10), null);
 
         assertThat(resultReceiver.completionFuture()).isNotDone();
@@ -150,7 +150,7 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
             int numRows = randomIntBetween(1, 10);
             BatchIterator<Row> batchIterator = TestingBatchIterators.range(0, numRows);
             BaseResultReceiver resultReceiver = new BaseResultReceiver();
-            var consumer = new RowConsumerToResultReceiver(resultReceiver, numRows, _ -> {});
+            var consumer = new RowConsumerToResultReceiver(resultReceiver, numRows, (_, _) -> {});
 
             consumer.accept(batchIterator, null);
             assertThat(consumer.suspended()).isFalse();
@@ -162,7 +162,7 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
                 BatchIterator<Row> numbers = TestingBatchIterators.range(0, numRows);
                 var batchIterator = new BatchSimulatingIterator<>(numbers, numRows - 1, 1, executor);
                 BaseResultReceiver resultReceiver = new BaseResultReceiver();
-                var consumer = new RowConsumerToResultReceiver(resultReceiver, numRows, _ -> {});
+                var consumer = new RowConsumerToResultReceiver(resultReceiver, numRows, (_, _) -> {});
 
                 consumer.accept(batchIterator, null);
                 assertThat(consumer.completionFuture()).succeedsWithin(5, TimeUnit.SECONDS);
