@@ -454,6 +454,11 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return Builder.fromXContent(parser, false);
     }
 
+    private static boolean hasGlobalColumnOID(Version version) {
+        return version.onOrAfter(Version.V_5_5_0) &&
+            (version.onOrBefore(Version.V_6_0_3) || version.equals(Version.V_6_1_0));
+    }
+
     private static class MetadataDiff implements Diff<Metadata> {
 
         private final long version;
@@ -494,7 +499,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             clusterUUID = in.readString();
             clusterUUIDCommitted = in.readBoolean();
             version = in.readLong();
-            if (in.getVersion().onOrAfter(Version.V_5_5_0) && in.getVersion().onOrBefore(Version.V_6_0_3)) {
+            if (hasGlobalColumnOID(in.getVersion())) {
                 columnOID = in.readLong();
             } else {
                 columnOID = COLUMN_OID_UNASSIGNED;
@@ -522,7 +527,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             out.writeString(clusterUUID);
             out.writeBoolean(clusterUUIDCommitted);
             out.writeLong(version);
-            if (out.getVersion().onOrAfter(Version.V_5_5_0) && out.getVersion().onOrBefore(Version.V_6_0_3)) {
+            if (hasGlobalColumnOID(out.getVersion())) {
                 out.writeLong(columnOID);
             }
             coordinationMetadata.writeTo(out);
@@ -557,7 +562,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     public static Metadata readFrom(StreamInput in) throws IOException {
         Builder builder = new Builder();
         builder.version = in.readLong();
-        if (in.getVersion().onOrAfter(Version.V_5_5_0) && in.getVersion().onOrBefore(Version.V_6_0_3)) {
+        if (hasGlobalColumnOID(in.getVersion())) {
             builder.columnOID(in.readLong());
         }
         builder.clusterUUID = in.readString();
@@ -598,7 +603,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeLong(version);
-        if (out.getVersion().onOrAfter(Version.V_5_5_0) && out.getVersion().onOrBefore(Version.V_6_0_3)) {
+        if (hasGlobalColumnOID(out.getVersion())) {
             out.writeLong(columnOID);
         }
         out.writeString(clusterUUID);
