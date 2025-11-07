@@ -27,6 +27,8 @@ import io.crate.execution.engine.collect.stats.JobsLogs;
 import java.util.UUID;
 import java.util.function.Consumer;
 
+import org.jetbrains.annotations.Nullable;
+
 public class JobsLogsUpdateListener implements Consumer<JobsLogsUpdateListener.JobsLogsUpdate> {
 
     private final UUID jobId;
@@ -42,6 +44,6 @@ public class JobsLogsUpdateListener implements Consumer<JobsLogsUpdateListener.J
         jobsLogs.logExecutionEnd(jobId, jobsLogsUpdate.rowCount, jobsLogsUpdate.throwable == null ? null : SQLExceptions.messageOf(jobsLogsUpdate.throwable));
     }
 
-    public record JobsLogsUpdate(long rowCount, Throwable throwable) {
+    public record JobsLogsUpdate(long rowCount, @Nullable Throwable throwable) {
     }
 }

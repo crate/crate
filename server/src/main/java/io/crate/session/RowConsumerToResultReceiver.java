@@ -54,7 +54,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
         completionFuture.whenComplete((rowCount, err) -> {
-            onCompletion.accept(new JobsLogsUpdateListener.JobsLogsUpdate(rowCount, err));
+            onCompletion.accept(new JobsLogsUpdateListener.JobsLogsUpdate(rowCount == null ? 0 : rowCount, err));
         });
     }
 
