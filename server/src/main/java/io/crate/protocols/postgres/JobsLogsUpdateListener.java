@@ -24,11 +24,10 @@ package io.crate.protocols.postgres;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
-import java.util.function.Consumer;
+import java.util.function.ObjLongConsumer;
 
-public class JobsLogsUpdateListener implements Consumer<Throwable> {
+public class JobsLogsUpdateListener implements ObjLongConsumer<Throwable> {
 
     private final UUID jobId;
     private final JobsLogs jobsLogs;
@@ -39,11 +38,7 @@ public class JobsLogsUpdateListener implements Consumer<Throwable> {
     }
 
     @Override
-    public void accept(@Nullable Throwable throwable) {
-        if (throwable == null) {
-            jobsLogs.logExecutionEnd(jobId, null);
-        } else {
-            jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(throwable));
-        }
+    public void accept(Throwable throwable, long rowCount) {
+        jobsLogs.logExecutionEnd(jobId, rowCount, throwable == null ? null : SQLExceptions.messageOf(throwable));
     }
 }

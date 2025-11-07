@@ -21,6 +21,7 @@
 
 import os
 import re
+import time
 import unittest
 from crate.client import connect
 from testutils.ports import bind_port
@@ -84,16 +85,37 @@ class JmxIntegrationTest(unittest.TestCase):
     def tearDownClass(cls):
         crate_node.stop()
 
+    def test_mbean_insert_affected_row_count(self):
+        jmx_client = JmxClient(JMX_PORT)
+        with connect(crate_node.http_url) as conn:
+            c = conn.cursor()
+            c.execute("create table t(x int primary key)")
+            c.execute("insert into t values (1), (1), (2), (3)")
+            c.execute("drop table t")
+            assert_busy(
+                lambda: self.assertEqual(
+                    jmx_client.query_jmx(
+                        'io.crate.monitoring:type=QueryStats',
+                        'InsertQueryAffectedRowCount'
+                    ),
+                    3
+                )
+            )
+
     def test_mbean_select_total_count(self):
         jmx_client = JmxClient(JMX_PORT)
         with connect(crate_node.http_url) as conn:
             c = conn.cursor()
             c.execute("select 1")
-            result = jmx_client.query_jmx(
-                'io.crate.monitoring:type=QueryStats',
-                'SelectQueryTotalCount'
+            assert_busy(
+                lambda: self.assertGreater(
+                    jmx_client.query_jmx(
+                        'io.crate.monitoring:type=QueryStats',
+                        'SelectQueryTotalCount'
+                    ),
+                    0
+                )
             )
-            self.assertGreater(int(result), 0)
 
     def test_mbean_select_ready(self):
         jmx_client = JmxClient(JMX_PORT)

@@ -99,4 +99,9 @@ class RestRowCountReceiver implements ResultReceiver<XContentBuilder> {
     public CompletableFuture<XContentBuilder> completionFuture() {
         return result;
     }
+
+    @Override
+    public long affectedRowCount() {
+        return rowCount;
+    }
 }

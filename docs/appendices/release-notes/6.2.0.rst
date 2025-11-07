@@ -183,6 +183,9 @@ Administration and Operations
 - Added the ``refresh_stats`` and ``merge_stats`` columns to the
   :ref:`sys.shards <sys-shards>` table.
 
+- Added ``total_affected_row_count`` to the `QueryStats` JMX MBean and the
+  `sys.jobs_metrics` table, grouped by query type.
+
 Client interfaces
 -----------------
 

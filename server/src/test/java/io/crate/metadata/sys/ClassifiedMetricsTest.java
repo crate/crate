@@ -37,14 +37,14 @@ public class ClassifiedMetricsTest {
     public void testRecordHighDurationDoesNotCauseArrayIndexOutOfBoundsException() {
         ClassifiedMetrics histograms = new ClassifiedMetrics();
         histograms.recordValue(
-            new StatementClassifier.Classification(Plan.StatementType.SELECT), TimeUnit.MINUTES.toMillis(30));
+            new StatementClassifier.Classification(Plan.StatementType.SELECT), TimeUnit.MINUTES.toMillis(30), 0);
     }
 
     @Test
     public void testRecordValueWithNegativeDurationDoesNotThrowException() {
         ClassifiedMetrics histograms = new ClassifiedMetrics();
         histograms.recordValue(
-            new StatementClassifier.Classification(Plan.StatementType.SELECT), -2);
+            new StatementClassifier.Classification(Plan.StatementType.SELECT), -2, 0);
         MetricsView metricsView = histograms.iterator().next();
         assertThat(metricsView.totalCount()).isEqualTo(1L);
         assertThat(metricsView.minValue()).isEqualTo(0L);
@@ -54,13 +54,13 @@ public class ClassifiedMetricsTest {
     public void testSumOfAllDurations() {
         ClassifiedMetrics histograms = new ClassifiedMetrics();
         histograms.recordValue(
-            new StatementClassifier.Classification(Plan.StatementType.SELECT), SECONDS.toMillis(30));
+            new StatementClassifier.Classification(Plan.StatementType.SELECT), SECONDS.toMillis(30), 0);
         histograms.recordValue(
-            new StatementClassifier.Classification(Plan.StatementType.SELECT), SECONDS.toMillis(15));
+            new StatementClassifier.Classification(Plan.StatementType.SELECT), SECONDS.toMillis(15), 0);
         histograms.recordValue(
-            new StatementClassifier.Classification(Plan.StatementType.UPDATE), SECONDS.toMillis(10));
+            new StatementClassifier.Classification(Plan.StatementType.UPDATE), SECONDS.toMillis(10), 0);
         histograms.recordValue(
-            new StatementClassifier.Classification(Plan.StatementType.UPDATE), SECONDS.toMillis(25));
+            new StatementClassifier.Classification(Plan.StatementType.UPDATE), SECONDS.toMillis(25), 0);
 
         for (MetricsView metrics : histograms) {
             if (metrics.classification().type().equals(Plan.StatementType.SELECT)) {

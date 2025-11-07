@@ -21,6 +21,7 @@
 
 package io.crate.rest.action;
 
+import java.util.Arrays;
 import java.util.concurrent.CompletableFuture;
 
 import org.jetbrains.annotations.NotNull;
@@ -68,6 +69,11 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     public void fail(@NotNull Throwable t) {
         results[resultIdx] = new Result(rowCount, t);
         super.fail(t);
+    }
+
+    @Override
+    public long affectedRowCount() {
+        return Arrays.stream(results).mapToLong(Result::rowCount).filter(rc -> rc >= 0).sum();
     }
 
     record Result(long rowCount, @Nullable Throwable error) {

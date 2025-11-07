@@ -96,9 +96,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), null, 20L));
+                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), 0, null, 20L));
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "select * from t1", 10L, Role.CRATE_USER, null), null, 20L));
+                new JobContext(UUID.randomUUID(), "select * from t1", 10L, Role.CRATE_USER, null), 0, null, 20L));
             assertThat(StreamSupport.stream(jobsLogSink.spliterator(), false).count()).isEqualTo(1L);
         }
     }
@@ -242,7 +242,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 new Classification(SELECT, Collections.singleton("Collect"));
 
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "select 1", 1L, Role.CRATE_USER, classification), null));
+                new JobContext(UUID.randomUUID(), "select 1", 1L, Role.CRATE_USER, classification), 0, null));
 
             clusterSettings.applySettings(Settings.builder()
                 .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
@@ -300,7 +300,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                     int i = numJobs.getAndIncrement();
                     jobsLogs.logExecutionStart(uuid, "select 1", Role.CRATE_USER, classification);
                     if (i % 2 == 0) {
-                        jobsLogs.logExecutionEnd(uuid, null);
+                        jobsLogs.logExecutionEnd(uuid, 0, null);
                     } else {
                         jobsLogs.logPreExecutionFailure(uuid, "select 1", "failure", Role.CRATE_USER);
                     }
@@ -397,7 +397,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), null, 20L));
+                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), 0, null, 20L));
 
             assertThat(jobsLogSink).hasSize(1);
             assertThat(breaker.getUsed()).isEqualTo(96);

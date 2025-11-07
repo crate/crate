@@ -132,4 +132,9 @@ class ResultSetReceiver extends BaseResultReceiver {
             super.fail(throwable);
         });
     }
+
+    @Override
+    public long affectedRowCount() {
+        return rowCount;
+    }
 }
