@@ -61,6 +61,6 @@ public class BaseResultReceiver implements ResultReceiver<Void> {
 
     @Override
     public long rowCount() {
-        return 1;
+        return 0;
     }
 }

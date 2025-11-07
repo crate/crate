@@ -38,7 +38,8 @@ public final class CollectingResultReceiver<A, R> implements ResultReceiver<R> {
     private final BiConsumer<A, Row> accumulator;
     private final Function<A, R> finisher;
     private final CompletableFuture<R> result;
-    private A state;
+    private final A state;
+    private long rowCount;
 
     public CollectingResultReceiver(Collector<Row, A, R> collector) {
         this.state = collector.supplier().get();
@@ -56,6 +57,7 @@ public final class CollectingResultReceiver<A, R> implements ResultReceiver<R> {
     @Nullable
     public CompletableFuture<Void> setNextRow(Row row) {
         accumulator.accept(state, row);
+        rowCount++;
         return null;
     }
 
@@ -75,6 +77,6 @@ public final class CollectingResultReceiver<A, R> implements ResultReceiver<R> {
 
     @Override
     public long rowCount() {
-        return 1;
+        return rowCount;
     }
 }
