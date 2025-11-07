@@ -84,4 +84,9 @@ class RowCountReceiver extends BaseResultReceiver {
             super.fail(throwable);
         });
     }
+
+    @Override
+    public long rowCount() {
+        return rowCount;
+    }
 }

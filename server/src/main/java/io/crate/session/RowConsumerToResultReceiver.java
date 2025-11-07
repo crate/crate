@@ -33,12 +33,13 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.protocols.postgres.JobsLogsUpdateListener;
 
 public class RowConsumerToResultReceiver implements RowConsumer {
 
     private static final Logger LOGGER = LogManager.getLogger(RowConsumerToResultReceiver.class);
 
-    private final CompletableFuture<?> completionFuture = new CompletableFuture<>();
+    private final CompletableFuture<Long> completionFuture = new CompletableFuture<>();
     private ResultReceiver<?> resultReceiver;
     private int maxRows;
 
@@ -49,11 +50,11 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     private CompletableFuture<BatchIterator<Row>> suspendedIt = new CompletableFuture<>();
     private boolean waitingForWrite = false;
 
-    public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
+    public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<JobsLogsUpdateListener.JobsLogsUpdate> onCompletion) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
-        completionFuture.whenComplete((_, err) -> {
-            onCompletion.accept(err);
+        completionFuture.whenComplete((rowCount, err) -> {
+            onCompletion.accept(new JobsLogsUpdateListener.JobsLogsUpdate(rowCount, err));
         });
     }
 
@@ -99,7 +100,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                     }
                 }
                 if (iterator.allLoaded()) {
-                    completionFuture.complete(null);
+                    completionFuture.complete(resultReceiver.rowCount());
                     iterator.close();
                     resultReceiver.allFinished();
                     return;

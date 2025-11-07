@@ -28,7 +28,7 @@ import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 import java.util.function.Consumer;
 
-public class JobsLogsUpdateListener implements Consumer<Throwable> {
+public class JobsLogsUpdateListener implements Consumer<JobsLogsUpdateListener.JobsLogsUpdate> {
 
     private final UUID jobId;
     private final JobsLogs jobsLogs;
@@ -39,11 +39,15 @@ public class JobsLogsUpdateListener implements Consumer<Throwable> {
     }
 
     @Override
-    public void accept(@Nullable Throwable throwable) {
-        if (throwable == null) {
+    public void accept(@Nullable JobsLogsUpdate jobsLogsUpdate) {
+        System.out.println("'" + jobsLogsUpdate.rowCount + "'rows affected passed to JobsLogs");
+        if (jobsLogsUpdate == null) {
             jobsLogs.logExecutionEnd(jobId, null);
         } else {
-            jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(throwable));
+            jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(jobsLogsUpdate.throwable()));
         }
+    }
+
+    public record JobsLogsUpdate(long rowCount, Throwable throwable) {
     }
 }

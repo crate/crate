@@ -48,4 +48,6 @@ public interface ResultReceiver<T> extends CompletionListenable<T> {
     void allFinished();
 
     void fail(Throwable t);
+
+    long rowCount();
 }

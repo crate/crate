@@ -72,4 +72,9 @@ public final class CollectingResultReceiver<A, R> implements ResultReceiver<R> {
     public void fail(Throwable t) {
         result.completeExceptionally(t);
     }
+
+    @Override
+    public long rowCount() {
+        return 1;
+    }
 }

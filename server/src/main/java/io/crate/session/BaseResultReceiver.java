@@ -58,4 +58,9 @@ public class BaseResultReceiver implements ResultReceiver<Void> {
     public CompletableFuture<Void> completionFuture() {
         return completionFuture;
     }
+
+    @Override
+    public long rowCount() {
+        return 1;
+    }
 }

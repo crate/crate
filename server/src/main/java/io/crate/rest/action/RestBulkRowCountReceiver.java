@@ -70,6 +70,11 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
         super.fail(t);
     }
 
+    @Override
+    public long rowCount() {
+        return rowCount;
+    }
+
     record Result(long rowCount, @Nullable Throwable error) {
     }
 }
