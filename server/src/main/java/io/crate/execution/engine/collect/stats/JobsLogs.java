@@ -117,7 +117,7 @@ public class JobsLogs {
         if (!isEnabled() || jobContext == null) {
             return;
         }
-        JobContextLog jobContextLog = new JobContextLog(jobContext, errorMessage);
+        JobContextLog jobContextLog = new JobContextLog(jobContext, rowCount, errorMessage);
         recordMetrics(jobContextLog);
         long stamp = jobsLogLock.readLock();
         try {
@@ -131,9 +131,9 @@ public class JobsLogs {
         StatementClassifier.Classification classification = log.classification();
         assert classification != null : "A job must have a classification";
         if (log.errorMessage() == null) {
-            classifiedMetrics.recordValue(classification, log.ended() - log.started());
+            classifiedMetrics.recordValue(classification, log.ended() - log.started(), log.rowCount());
         } else {
-            classifiedMetrics.recordFailedExecution(classification, log.ended() - log.started());
+            classifiedMetrics.recordFailedExecution(classification, log.ended() - log.started(), 0);
         }
     }
 
@@ -146,7 +146,7 @@ public class JobsLogs {
      */
     public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, Role user) {
         JobContextLog jobContextLog = new JobContextLog(
-            new JobContext(jobId, stmt, System.currentTimeMillis(), user, new StatementClassifier.Classification(UNDEFINED)), errorMessage);
+            new JobContext(jobId, stmt, System.currentTimeMillis(), user, new StatementClassifier.Classification(UNDEFINED)), 0, errorMessage);
         long stamp = jobsLogLock.readLock();
         try {
             jobsLog.add(jobContextLog);

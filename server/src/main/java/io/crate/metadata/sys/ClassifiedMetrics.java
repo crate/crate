@@ -42,6 +42,7 @@ public class ClassifiedMetrics implements Iterable<MetricsView> {
         private final Classification classification;
         private final LongAdder sumOfDurations = new LongAdder();
         private final LongAdder failedCount = new LongAdder();
+        private final LongAdder rowCount = new LongAdder();
         private final Recorder recorder;
 
         private final Histogram totalHistogram = new Histogram(HIGHEST_TRACKABLE_VALUE, NUMBER_OF_SIGNIFICANT_VALUE_DIGITS);
@@ -51,7 +52,7 @@ public class ClassifiedMetrics implements Iterable<MetricsView> {
             this.recorder = new Recorder(HIGHEST_TRACKABLE_VALUE, NUMBER_OF_SIGNIFICANT_VALUE_DIGITS);
         }
 
-        public void recordValue(long duration) {
+        public void recordValue(long duration, long rowCount) {
             // We use start and end time to calculate the duration (since we track them anyway)
             // If the system time is adjusted this can lead to negative durations
             // so we protect here against it.
@@ -59,10 +60,11 @@ public class ClassifiedMetrics implements Iterable<MetricsView> {
             // we record the real duration (with no upper capping) in the sum of durations as there are no upper limits
             // for the values we record as it is the case with the histogram
             sumOfDurations.add(Math.max(0, duration));
+            this.rowCount.add(rowCount);
         }
 
-        public void recordFailedExecution(long duration) {
-            recordValue(duration);
+        public void recordFailedExecution(long duration, long rowCount) {
+            recordValue(duration, rowCount);
             failedCount.increment();
         }
 
@@ -79,17 +81,18 @@ public class ClassifiedMetrics implements Iterable<MetricsView> {
                 histogram,
                 sumOfDurations.longValue(),
                 failedCount.longValue(),
+                rowCount.longValue(),
                 classification
             );
         }
     }
 
-    public void recordValue(Classification classification, long duration) {
-        getOrCreate(classification).recordValue(duration);
+    public void recordValue(Classification classification, long duration, long rowCount) {
+        getOrCreate(classification).recordValue(duration, rowCount);
     }
 
-    public void recordFailedExecution(Classification classification, long duration) {
-        getOrCreate(classification).recordFailedExecution(duration);
+    public void recordFailedExecution(Classification classification, long duration, long rowCount) {
+        getOrCreate(classification).recordFailedExecution(duration, rowCount);
     }
 
     private Metrics getOrCreate(Classification classification) {

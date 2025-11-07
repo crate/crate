@@ -243,7 +243,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                 new Classification(SELECT, Collections.singleton("Collect"));
 
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "select 1", 1L, Role.CRATE_USER, classification), null));
+                new JobContext(UUID.randomUUID(), "select 1", 1L, Role.CRATE_USER, classification), 0, null));
 
             clusterSettings.applySettings(Settings.builder()
                 .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)

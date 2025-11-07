@@ -35,13 +35,16 @@ public class JobContextLog implements ContextLog, Accountable {
 
     private final JobContext jobContext;
 
+    private final long rowCount;
+
     @Nullable
     private final String errorMessage;
 
     private final long ended;
 
-    public JobContextLog(JobContext jobContext, @Nullable String errorMessage) {
+    public JobContextLog(JobContext jobContext, long rowCount, @Nullable String errorMessage) {
         this.jobContext = jobContext;
+        this.rowCount = rowCount;
         this.errorMessage = errorMessage;
         this.ended = System.currentTimeMillis();
     }
@@ -51,6 +54,7 @@ public class JobContextLog implements ContextLog, Accountable {
         this.jobContext = jobContext;
         this.errorMessage = errorMessage;
         this.ended = ended;
+        this.rowCount = 0;
     }
 
     public UUID id() {
@@ -83,6 +87,10 @@ public class JobContextLog implements ContextLog, Accountable {
     @Nullable
     public String errorMessage() {
         return errorMessage;
+    }
+
+    public long rowCount() {
+        return rowCount;
     }
 
     @Override

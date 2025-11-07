@@ -39,7 +39,6 @@ public class JobsLogsUpdateListener implements Consumer<JobsLogsUpdateListener.J
 
     @Override
     public void accept(JobsLogsUpdate jobsLogsUpdate) {
-        //System.out.println("'" + jobsLogsUpdate.rowCount + "'rows affected passed to JobsLogs");
         jobsLogs.logExecutionEnd(jobId, jobsLogsUpdate.rowCount, jobsLogsUpdate.throwable == null ? null : SQLExceptions.messageOf(jobsLogsUpdate.throwable));
     }
 
