@@ -80,7 +80,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testNoExitIfRequestAreActive() throws Exception {
-        jobsLogs.logExecutionEnd(UUID.randomUUID(), null);
+        jobsLogs.logExecutionEnd(UUID.randomUUID(), 0, null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime());
         assertThat(exited.get()).isFalse();
         assertThat(decommissioningService.forceStopOrAbortCalled).isFalse();
@@ -90,7 +90,7 @@ public class DecommissioningServiceTest extends CrateDummyClusterServiceUnitTest
 
     @Test
     public void testAbortOrForceStopIsCalledOnTimeout() throws Exception {
-        jobsLogs.logExecutionEnd(UUID.randomUUID(), null);
+        jobsLogs.logExecutionEnd(UUID.randomUUID(), 0, null);
         decommissioningService.exitIfNoActiveRequests(System.nanoTime() - TimeValue.timeValueHours(3).nanos());
         assertThat(decommissioningService.forceStopOrAbortCalled).isTrue();
         verify(sqlOperations, times(1)).enable();

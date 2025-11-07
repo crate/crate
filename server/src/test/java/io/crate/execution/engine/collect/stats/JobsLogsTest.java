@@ -287,7 +287,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
                     int i = numJobs.getAndIncrement();
                     jobsLogs.logExecutionStart(uuid, "select 1", Role.CRATE_USER, classification);
                     if (i % 2 == 0) {
-                        jobsLogs.logExecutionEnd(uuid, null);
+                        jobsLogs.logExecutionEnd(uuid, 0, null);
                     } else {
                         jobsLogs.logPreExecutionFailure(uuid, "select 1", "failure", Role.CRATE_USER);
                     }

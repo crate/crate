@@ -24,6 +24,7 @@ package io.crate.session;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -782,7 +783,7 @@ public class Session implements AutoCloseable {
                 for (int i = 0; i < toExec.size(); i++) {
                     toExec.get(i).resultReceiver().fail(t);
                 }
-                jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(t));
+                jobsLogs.logExecutionEnd(jobId, toExec.stream().map(DeferredExecution::resultReceiver).mapToLong(ResultReceiver::rowCount).sum(), SQLExceptions.messageOf(t));
                 return null;
             });
         addStatementTimeout(result, timeoutToken);
@@ -813,7 +814,7 @@ public class Session implements AutoCloseable {
                 resultReceiver.allFinished();
             }
         }
-        jobsLogs.logExecutionEnd(jobId, null);
+        jobsLogs.logExecutionEnd(jobId, Arrays.stream(bulkResponse.rowCounts()).sum(), null);
     }
 
     @VisibleForTesting

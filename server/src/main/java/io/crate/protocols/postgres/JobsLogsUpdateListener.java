@@ -24,7 +24,6 @@ package io.crate.protocols.postgres;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 
-import org.jetbrains.annotations.Nullable;
 import java.util.UUID;
 import java.util.function.Consumer;
 
@@ -39,13 +38,9 @@ public class JobsLogsUpdateListener implements Consumer<JobsLogsUpdateListener.J
     }
 
     @Override
-    public void accept(@Nullable JobsLogsUpdate jobsLogsUpdate) {
-        System.out.println("'" + jobsLogsUpdate.rowCount + "'rows affected passed to JobsLogs");
-        if (jobsLogsUpdate == null) {
-            jobsLogs.logExecutionEnd(jobId, null);
-        } else {
-            jobsLogs.logExecutionEnd(jobId, SQLExceptions.messageOf(jobsLogsUpdate.throwable()));
-        }
+    public void accept(JobsLogsUpdate jobsLogsUpdate) {
+        //System.out.println("'" + jobsLogsUpdate.rowCount + "'rows affected passed to JobsLogs");
+        jobsLogs.logExecutionEnd(jobId, jobsLogsUpdate.rowCount, jobsLogsUpdate.throwable == null ? null : SQLExceptions.messageOf(jobsLogsUpdate.throwable));
     }
 
     public record JobsLogsUpdate(long rowCount, Throwable throwable) {

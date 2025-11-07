@@ -93,7 +93,7 @@ public class JobsLogs {
     }
 
     /**
-     * Track a job. If the job has finished {@link #logExecutionEnd(java.util.UUID, String)}
+     * Track a job. If the job has finished {@link #logExecutionEnd(UUID, long, String)}
      * must be called.
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
@@ -111,7 +111,7 @@ public class JobsLogs {
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void logExecutionEnd(UUID jobId, @Nullable String errorMessage) {
+    public void logExecutionEnd(UUID jobId, long rowCount, @Nullable String errorMessage) {
         activeRequests.decrement();
         JobContext jobContext = jobsTable.remove(jobId);
         if (!isEnabled() || jobContext == null) {
@@ -139,7 +139,7 @@ public class JobsLogs {
 
     /**
      * Create a entry into `sys.jobs_log`
-     * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)}
+     * This method can be used instead of {@link #logExecutionEnd(UUID, long, String)} if there was no {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)}
      * Call because an error happened during parse, analysis or plan.
      * <p>
      * {@link #logExecutionStart(UUID, String, Role, StatementClassifier.Classification)} is only called after a Plan has been created and execution starts.
