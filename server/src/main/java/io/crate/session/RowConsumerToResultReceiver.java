@@ -100,9 +100,12 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                     }
                 }
                 if (iterator.allLoaded()) {
-                    completionFuture.complete(resultReceiver.rowCount());
                     iterator.close();
                     resultReceiver.allFinished();
+                    // the difference between this.rowCount and resultReceiver.rowCount() is that the former is the
+                    // row count of a result set to be returned, and the latter is the row count of the affected rows.
+                    // i.e., INSERT or UPDATE that do not return any rows but written multiple rows.
+                    completionFuture.complete(resultReceiver.rowCount());
                     return;
                 } else {
                     var nextBatch = iterator.loadNextBatch().toCompletableFuture();
