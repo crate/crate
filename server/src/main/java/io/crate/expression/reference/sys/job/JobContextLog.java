@@ -22,6 +22,7 @@
 package io.crate.expression.reference.sys.job;
 
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.planner.operators.StatementClassifier;
 
 import org.jetbrains.annotations.Nullable;
@@ -50,11 +51,11 @@ public class JobContextLog implements ContextLog, Accountable {
     }
 
     @VisibleForTesting
-    public JobContextLog(JobContext jobContext, @Nullable String errorMessage, long ended) {
+    public JobContextLog(JobContext jobContext, long rowCount, @Nullable String errorMessage, long ended) {
         this.jobContext = jobContext;
+        this.rowCount = rowCount;
         this.errorMessage = errorMessage;
         this.ended = ended;
-        this.rowCount = 0;
     }
 
     public UUID id() {

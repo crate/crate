@@ -133,7 +133,7 @@ public class JobsLogs {
         if (log.errorMessage() == null) {
             classifiedMetrics.recordValue(classification, log.ended() - log.started(), log.rowCount());
         } else {
-            classifiedMetrics.recordFailedExecution(classification, log.ended() - log.started(), 0);
+            classifiedMetrics.recordFailedExecution(classification, log.ended() - log.started());
         }
     }
 

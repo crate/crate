@@ -783,7 +783,10 @@ public class Session implements AutoCloseable {
                 for (int i = 0; i < toExec.size(); i++) {
                     toExec.get(i).resultReceiver().fail(t);
                 }
-                jobsLogs.logExecutionEnd(jobId, toExec.stream().map(DeferredExecution::resultReceiver).mapToLong(ResultReceiver::rowCount).sum(), SQLExceptions.messageOf(t));
+                jobsLogs.logExecutionEnd(
+                    jobId,
+                    0, // rowCount unused when the error msg is not null
+                    SQLExceptions.messageOf(t));
                 return null;
             });
         addStatementTimeout(result, timeoutToken);

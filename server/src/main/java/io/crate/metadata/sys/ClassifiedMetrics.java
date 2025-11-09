@@ -52,7 +52,7 @@ public class ClassifiedMetrics implements Iterable<MetricsView> {
             this.recorder = new Recorder(HIGHEST_TRACKABLE_VALUE, NUMBER_OF_SIGNIFICANT_VALUE_DIGITS);
         }
 
-        public void recordValue(long duration, long rowCount) {
+        public void recordValues(long duration, long rowCount) {
             // We use start and end time to calculate the duration (since we track them anyway)
             // If the system time is adjusted this can lead to negative durations
             // so we protect here against it.
@@ -63,8 +63,8 @@ public class ClassifiedMetrics implements Iterable<MetricsView> {
             this.rowCount.add(rowCount);
         }
 
-        public void recordFailedExecution(long duration, long rowCount) {
-            recordValue(duration, rowCount);
+        public void recordFailedExecution(long duration) {
+            recordValues(duration, 0);
             failedCount.increment();
         }
 
@@ -88,11 +88,11 @@ public class ClassifiedMetrics implements Iterable<MetricsView> {
     }
 
     public void recordValue(Classification classification, long duration, long rowCount) {
-        getOrCreate(classification).recordValue(duration, rowCount);
+        getOrCreate(classification).recordValues(duration, rowCount);
     }
 
-    public void recordFailedExecution(Classification classification, long duration, long rowCount) {
-        getOrCreate(classification).recordFailedExecution(duration, rowCount);
+    public void recordFailedExecution(Classification classification, long duration) {
+        getOrCreate(classification).recordFailedExecution(duration);
     }
 
     private Metrics getOrCreate(Classification classification) {

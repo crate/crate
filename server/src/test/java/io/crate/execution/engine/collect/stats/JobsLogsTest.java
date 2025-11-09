@@ -97,9 +97,9 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), null, 20L));
+                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), 0, null, 20L));
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "select * from t1", 10L, Role.CRATE_USER, null), null, 20L));
+                new JobContext(UUID.randomUUID(), "select * from t1", 10L, Role.CRATE_USER, null), 0, null, 20L));
             assertThat(StreamSupport.stream(jobsLogSink.spliterator(), false).count()).isEqualTo(1L);
         }
     }
@@ -447,7 +447,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             LogSink<JobContextLog> jobsLogSink = (LogSink<JobContextLog>) stats.get().jobsLog();
 
             jobsLogSink.add(new JobContextLog(
-                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), null, 20L));
+                new JobContext(UUID.randomUUID(), "insert into", 10L, Role.CRATE_USER, null), 0, null, 20L));
 
             assertThat(jobsLogSink).hasSize(1);
             assertThat(breaker.getUsed()).isEqualTo(96);

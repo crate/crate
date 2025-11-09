@@ -58,13 +58,13 @@ public class QueryStatsTest {
 
     private MetricsView createMetric(Classification classification, long duration) {
         Metrics metrics = new Metrics(classification);
-        metrics.recordValue(duration, 0);
+        metrics.recordValues(duration, 0);
         return metrics.createMetricsView();
     }
 
     private MetricsView createFailedExecutionMetric(Classification classification, long duration) {
         Metrics metrics = new Metrics(classification);
-        metrics.recordFailedExecution(duration, 0);
+        metrics.recordFailedExecution(duration);
         return metrics.createMetricsView();
     }
 
