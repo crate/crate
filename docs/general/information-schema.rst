@@ -438,7 +438,7 @@ infinite recursion of your mind, beware!)::
 |                               | If the column is not a child of an ``OBJECT`` |               |
 |                               | it's equal to ``column_name``.                |               |
 +-------------------------------+-----------------------------------------------+---------------+
-| ``column_details['oid']``     | The internal identifier of a column, unique   | ``TEXT``      |
+| ``column_details['oid']``     | The internal identifier of a column, unique   | ``LONG``      |
 |                               | inside the same table. Used mostly internal   |               |
 |                               | and may change in future versions.            |               |
 +-------------------------------+-----------------------------------------------+---------------+
