@@ -107,7 +107,7 @@ public class TransportResize extends TransportMasterNodeAction<ResizeRequest, Re
     protected void masterOperation(final ResizeRequest request,
                                    final ClusterState state,
                                    final ActionListener<ResizeResponse> listener) {
-        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_6_0_0) == false) {
+        if (state.nodes().getMinNodeVersion().onOrAfter(Version.V_6_1_0) == false) {
             throw new IllegalStateException("Cannot resize a table/partition until all nodes are upgraded to 6.0");
         }
 
