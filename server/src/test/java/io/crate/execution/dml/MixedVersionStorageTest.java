@@ -24,7 +24,9 @@ package io.crate.execution.dml;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.Version;
 import org.junit.Test;
@@ -55,6 +57,33 @@ public class MixedVersionStorageTest extends CrateDummyClusterServiceUnitTest {
             var row = lookup.getStoredRow(new ReaderContext(reader), 0);
             assertThat(row.asRaw()).isNotEmpty();
             assertThat(row.get(List.of("numbers"))).isOfAnyClassIn(ArrayList.class);
+        }
+    }
+
+    @Test
+    public void test_writing_null_subcolumn_to_ignored_object_in_table_without_oids() throws Exception {
+        var columns = List.of("obj");
+        var builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.V_5_4_0, // No oids
+            "create table t (obj object(ignored))"
+        );
+        Map<String, Object> map = new HashMap<>();
+        map.put("key", null);
+        builder.indexValues(columns, map);
+        try (var tester = builder.build()) {
+            // We write NULL-s to translog since 5.10.13 (https://github.com/crate/crate/pull/18369).
+            // This change introduced a regression, causing NULL values in the OBJECT(IGNORED)
+            // to be persisted twice in the translog, if table had no oids.
+            // We imitate translog lookup to ensure that we are not hitting JSON parsing exception when parsing the source.
+            boolean fromTranslog = true;
+            var table = tester.tableInfo();
+            var lookup = StoredRowLookup.create(Version.V_5_4_0, table, table.ident().indexNameOrAlias(), List.of(), fromTranslog);
+            var reader = tester.searcher().getTopReaderContext().leaves().getFirst();
+            var row = lookup.getStoredRow(new ReaderContext(reader), 0);
+            // Used to fail with "JsonParseException: Duplicate field 'key'".
+            assertThat(row.asMap().get("obj")).isEqualTo(map);
         }
     }
 }
