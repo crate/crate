@@ -26,11 +26,13 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ConcurrentMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 import java.util.stream.Stream;
 
 import org.apache.logging.log4j.LogManager;
@@ -57,6 +59,7 @@ import io.crate.common.collections.Lists;
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.RootTask.Builder;
 import io.crate.execution.jobs.kill.KillAllListener;
 import io.crate.role.Role;
 
@@ -153,14 +156,35 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
 
     public RootTask.Builder newBuilder(UUID jobId,
                                        String user,
-                                       String coordinatorNodeId,
                                        Collection<String> participatingNodes) {
-        return new RootTask.Builder(LOGGER, jobId, user, coordinatorNodeId, participatingNodes, jobsLogs);
+        String localNodeId = clusterService.localNode().getId();
+        return new RootTask.Builder(LOGGER, jobId, user, localNodeId, participatingNodes, jobsLogs);
     }
 
     public int numActive() {
         return activeTasks.size();
     }
+
+    /// Create and run a task for a single async function
+    ///
+    /// @return result of the async function
+    public <T> CompletableFuture<T> runAsyncFnTask(UUID jobId,
+                                                   String user,
+                                                   String name,
+                                                   Callable<CompletableFuture<T>> run,
+                                                   Consumer<Throwable> kill) {
+        var task = new AsyncFnTask<>(0, name, run, kill);
+        Builder builder = newBuilder(jobId, user, List.of());
+        builder.addTask(task);
+        try {
+            RootTask rootTask = createTask(builder);
+            rootTask.start();
+        } catch (Throwable t) {
+            return CompletableFuture.failedFuture(t);
+        }
+        return task.result();
+    }
+
 
     public RootTask createTask(RootTask.Builder builder) throws Exception {
         if (builder.isEmpty()) {

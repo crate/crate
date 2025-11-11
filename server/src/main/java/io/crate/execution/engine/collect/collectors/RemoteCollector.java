@@ -29,8 +29,8 @@ import java.util.concurrent.Executor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
-
 import org.jetbrains.annotations.VisibleForTesting;
+
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.breaker.RamAccounting;
@@ -173,7 +173,6 @@ public class RemoteCollector {
         RootTask.Builder builder = tasksService.newBuilder(
             jobId,
             sessionSettings.userName(),
-            localNode,
             Collections.emptySet()
         );
 

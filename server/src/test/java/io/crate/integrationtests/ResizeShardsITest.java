@@ -28,15 +28,28 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.BrokenBarrierException;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.TimeUnit;
 
+import org.assertj.core.api.InstanceOfAssertFactories;
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.index.Index;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
+
+import com.carrotsearch.hppc.cursors.ObjectCursor;
+
+import io.crate.testing.Asserts;
+import io.crate.testing.SQLResponse;
 
 public class ResizeShardsITest extends IntegTestCase {
 
@@ -269,5 +282,56 @@ public class ResizeShardsITest extends IntegTestCase {
             "5| true");
         execute("select x from t_parted");
         assertThat(response).hasRowCount(2L);
+    }
+
+    @Test
+    public void test_can_kill_resize_operation() throws Exception {
+        execute("create table tbl (x int, p int) clustered into 1 shards partitioned by (p) with (\"routing.allocation.total_shards_per_node\" = 2)");
+        execute("insert into tbl (x, p) values (1, 1), (1, 2), (2, 1), (2, 2)");
+        execute("refresh table tbl");
+        execute("alter table tbl partition (p = 1) set (\"blocks.write\" = true)");
+
+        int numShards = (cluster().numNodes() + 1) * 2;
+        CompletableFuture<SQLResponse> resize = sqlExecutor.execute(
+            "alter table tbl partition (p = 1) set (number_of_shards = ?)",
+            new Object[] { numShards }
+        );
+        assertThat(resize).isNotDone();
+
+        assertBusy(() -> {
+            Metadata metadata = clusterService().state().metadata();
+            assertThat(getResizeIndices(metadata)).isNotEmpty();
+        });
+
+        execute("select id from sys.jobs where stmt like 'alter table%'");
+        Object jobId = response.rows()[0][0];
+        execute("kill ?", new Object[] { jobId });
+        assertThat(resize).completesExceptionallyWithin(5, TimeUnit.SECONDS)
+            .withThrowableThat()
+            .extracting(Throwable::getMessage, Asserts.as(InstanceOfAssertFactories.STRING))
+            .contains("Resize operation killed due to removal of temporary resize index");
+
+        assertThat(getResizeIndices(clusterService().state().metadata())).isEmpty();
+
+        assertThat(execute("select x from tbl order by 1"))
+            .as("Original table still works")
+            .hasRows(
+                "1",
+                "1",
+                "2",
+                "2"
+            );
+    }
+
+    private static Set<Index> getResizeIndices(Metadata metadata) {
+        Set<Index> resizeIndices = new HashSet<>();
+        for (ObjectCursor<IndexMetadata> cursor : metadata.indices().values()) {
+            Index index = cursor.value.getIndex();
+            RelationMetadata relation = metadata.getRelation(index.getUUID());
+            if (relation == null && index.getName().startsWith(".resized")) {
+                resizeIndices.add(index);
+            }
+        }
+        return resizeIndices;
     }
 }

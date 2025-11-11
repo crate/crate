@@ -220,7 +220,6 @@ public class JobLauncher {
         RootTask.Builder builder = tasksService.newBuilder(
             jobId,
             txnCtx.sessionSettings().userName(),
-            localNodeId,
             operationByServer.keySet()
         );
         SharedShardContexts sharedShardContexts = maybeInstrumentProfiler(builder);

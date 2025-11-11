@@ -35,6 +35,7 @@ import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.transport.TransportService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Answers;
@@ -50,6 +51,8 @@ import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
 import io.crate.execution.ddl.tables.TransportAlterTable;
 import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
+import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.LogicalReplicationService;
@@ -59,6 +62,7 @@ import io.crate.testing.SQLExecutor;
 public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
+    private TasksService tasksService;
 
     @Before
     public void prepare() throws IOException {
@@ -69,6 +73,11 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
                     .put(REPLICATION_SUBSCRIPTION_NAME.getKey(), "sub1")
                     .build()
             );
+        tasksService = new TasksService(
+            clusterService,
+            mock(TransportService.class),
+            new JobsLogs(() -> false)
+        );
     }
 
     /**
@@ -166,6 +175,7 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             client,
             e.sqlOperations,
+            tasksService,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
             mock(LogicalReplicationService.class)
         );
@@ -174,7 +184,7 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             .execute(Mockito.eq(TransportGCDanglingArtifacts.ACTION), Mockito.any(GCDanglingArtifactsRequest.class));
 
         var reqCaptor = ArgumentCaptor.forClass(ResizeRequest.class);
-        alterTableClient.setSettingsOrResize(alterTable);
+        alterTableClient.setSettingsOrResize(e.getPlannerContext(), alterTable);
         Mockito.verify(client).execute(Mockito.eq(TransportResize.ACTION), reqCaptor.capture());
 
         ResizeRequest req = reqCaptor.getValue();
@@ -191,12 +201,13 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             clusterService,
             client,
             e.sqlOperations,
+            tasksService,
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
             mock(LogicalReplicationService.class)
         );
 
         var reqCaptor = ArgumentCaptor.forClass(AlterTableRequest.class);
-        alterTableClient.setSettingsOrResize(alterTable);
+        alterTableClient.setSettingsOrResize(e.getPlannerContext(), alterTable);
         Mockito.verify(client).execute(Mockito.eq(TransportAlterTable.ACTION), reqCaptor.capture());
 
         AlterTableRequest req = reqCaptor.getValue();
