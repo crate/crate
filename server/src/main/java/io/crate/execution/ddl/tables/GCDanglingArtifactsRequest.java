@@ -44,7 +44,7 @@ public class GCDanglingArtifactsRequest extends AcknowledgedRequest<GCDanglingAr
     public GCDanglingArtifactsRequest(StreamInput in) throws IOException {
         super(in);
         Version version = in.getVersion();
-        if (version.after(Version.V_6_0_3) && !version.equals(Version.V_6_1_0)) {
+        if (version.onOrAfter(Version.V_6_1_1)) {
             this.indexUUIDs = in.readStringList();
         } else {
             this.indexUUIDs = List.of();
@@ -55,7 +55,7 @@ public class GCDanglingArtifactsRequest extends AcknowledgedRequest<GCDanglingAr
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
         Version version = out.getVersion();
-        if (version.after(Version.V_6_0_3) && !version.equals(Version.V_6_1_0)) {
+        if (version.onOrAfter(Version.V_6_1_1)) {
             out.writeStringCollection(indexUUIDs);
         }
     }
