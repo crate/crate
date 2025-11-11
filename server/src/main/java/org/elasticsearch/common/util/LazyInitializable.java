@@ -20,13 +20,12 @@
 package org.elasticsearch.common.util;
 
 
-import io.crate.common.CheckedSupplier;
-
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.function.Consumer;
 
 /**
- * Encapsulates a {@link CheckedSupplier} which is lazily invoked once on the
+ * Encapsulates a {@link Callable} which is lazily invoked once on the
  * first call to {@code #getOrCompute()}. The value which the
  * <code>supplier</code> returns is memorized and will be served until
  * {@code #reset()} is called. Each value returned by {@code #getOrCompute()},
@@ -35,9 +34,9 @@ import java.util.function.Consumer;
  * <code>onReset</code> {@code Consumer} and the next {@code #getOrCompute()}
  * will regenerate the value.
  */
-public final class LazyInitializable<T, E extends Exception> {
+public final class LazyInitializable<T> {
 
-    private final CheckedSupplier<T, E> supplier;
+    private final Callable<T> callable;
     private final Consumer<T> onGet;
     private final Consumer<T> onReset;
     private volatile T value;
@@ -45,18 +44,18 @@ public final class LazyInitializable<T, E extends Exception> {
     /**
      * Creates the simple LazyInitializable instance.
      *
-     * @param supplier
-     *            The {@code CheckedSupplier} to generate values which will be
+     * @param callable
+     *            The {@code Callable} to generate values which will be
      *            served on {@code #getOrCompute()} invocations.
      */
-    public LazyInitializable(CheckedSupplier<T, E> supplier) {
-        this(supplier, v -> {}, v -> {});
+    public LazyInitializable(Callable<T> callable) {
+        this(callable, v -> {}, v -> {});
     }
 
     /**
      * Creates the complete LazyInitializable instance.
      *
-     * @param supplier
+     * @param callable
      *            The {@code CheckedSupplier} to generate values which will be
      *            served on {@code #getOrCompute()} invocations.
      * @param onGet
@@ -66,8 +65,8 @@ public final class LazyInitializable<T, E extends Exception> {
      *            A {@code Consumer} which is invoked on the value that will be
      *            erased when calling {@code #reset()}
      */
-    public LazyInitializable(CheckedSupplier<T, E> supplier, Consumer<T> onGet, Consumer<T> onReset) {
-        this.supplier = supplier;
+    public LazyInitializable(Callable<T> callable, Consumer<T> onGet, Consumer<T> onReset) {
+        this.callable = callable;
         this.onGet = onGet;
         this.onReset = onReset;
     }
@@ -77,9 +76,9 @@ public final class LazyInitializable<T, E extends Exception> {
      * have been previously created, if not it will be created now, thread safe of
      * course.
      */
-    public T getOrCompute() throws E {
+    public T getOrCompute() throws Exception {
         final T readOnce = value; // Read volatile just once...
-        final T result = readOnce == null ? maybeCompute(supplier) : readOnce;
+        final T result = readOnce == null ? maybeCompute(callable) : readOnce;
         onGet.accept(result);
         return result;
     }
@@ -99,9 +98,9 @@ public final class LazyInitializable<T, E extends Exception> {
     /**
      * Creates a new value thread safely.
      */
-    private synchronized T maybeCompute(CheckedSupplier<T, E> supplier) throws E {
+    private synchronized T maybeCompute(Callable<T> supplier) throws Exception {
         if (value == null) {
-            value = Objects.requireNonNull(supplier.get());
+            value = Objects.requireNonNull(supplier.call());
         }
         return value;
     }

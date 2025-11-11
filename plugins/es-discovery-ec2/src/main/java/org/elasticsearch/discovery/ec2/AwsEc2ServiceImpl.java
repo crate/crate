@@ -19,6 +19,15 @@
 
 package org.elasticsearch.discovery.ec2;
 
+import java.util.Random;
+import java.util.concurrent.atomic.AtomicReference;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.Randomness;
+import org.elasticsearch.common.Strings;
+import org.elasticsearch.common.util.LazyInitializable;
+
 import com.amazonaws.ClientConfiguration;
 import com.amazonaws.auth.AWSCredentials;
 import com.amazonaws.auth.AWSCredentialsProvider;
@@ -30,15 +39,8 @@ import com.amazonaws.regions.Regions;
 import com.amazonaws.retry.RetryPolicy;
 import com.amazonaws.services.ec2.AmazonEC2;
 import com.amazonaws.services.ec2.AmazonEC2Client;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.common.Randomness;
-import org.elasticsearch.common.Strings;
-import org.elasticsearch.common.util.LazyInitializable;
 
-import java.util.Random;
-import java.util.concurrent.atomic.AtomicReference;
+import io.crate.common.exceptions.Exceptions;
 
 class AwsEc2ServiceImpl implements AwsEc2Service {
 
@@ -46,7 +48,7 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
 
     public static final String EC2_METADATA_URL = "http://169.254.169.254/latest/meta-data/";
 
-    private final AtomicReference<LazyInitializable<AmazonEc2Reference, ElasticsearchException>> lazyClientReference =
+    private final AtomicReference<LazyInitializable<AmazonEc2Reference>> lazyClientReference =
             new AtomicReference<>();
 
 
@@ -117,11 +119,15 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
 
     @Override
     public AmazonEc2Reference client() {
-        final LazyInitializable<AmazonEc2Reference, ElasticsearchException> clientReference = this.lazyClientReference.get();
+        final LazyInitializable<AmazonEc2Reference> clientReference = this.lazyClientReference.get();
         if (clientReference == null) {
             throw new IllegalStateException("Missing ec2 client configs");
         }
-        return clientReference.getOrCompute();
+        try {
+            return clientReference.getOrCompute();
+        } catch (Exception ex) {
+            throw Exceptions.toRuntimeException(ex);
+        }
     }
 
     /**
@@ -131,12 +137,12 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
      */
     @Override
     public void refreshAndClearCache(Ec2ClientSettings clientSettings) {
-        final LazyInitializable<AmazonEc2Reference, ElasticsearchException> newClient = new LazyInitializable<>(
+        final LazyInitializable<AmazonEc2Reference> newClient = new LazyInitializable<>(
             () -> new AmazonEc2Reference(buildClient(clientSettings)),
             clientReference -> clientReference.incRef(),
             clientReference -> clientReference.decRef()
         );
-        final LazyInitializable<AmazonEc2Reference, ElasticsearchException> oldClient = this.lazyClientReference.getAndSet(newClient);
+        final LazyInitializable<AmazonEc2Reference> oldClient = this.lazyClientReference.getAndSet(newClient);
         if (oldClient != null) {
             oldClient.reset();
         }
@@ -144,7 +150,7 @@ class AwsEc2ServiceImpl implements AwsEc2Service {
 
     @Override
     public void close() {
-        final LazyInitializable<AmazonEc2Reference, ElasticsearchException> clientReference = this.lazyClientReference.getAndSet(null);
+        final LazyInitializable<AmazonEc2Reference> clientReference = this.lazyClientReference.getAndSet(null);
         if (clientReference != null) {
             clientReference.reset();
         }
