@@ -134,7 +134,7 @@ public final class NodeStats {
 
         private CompletableFuture<List<NodeStatsContext>> getStatsFromRemote(Set<ColumnIdent> toCollect) {
             FutureActionListener<List<NodeStatsContext>> listener = new FutureActionListener<>();
-            MultiActionListener<NodeStatsContext, Object, List<NodeStatsContext>> multiListener
+            MultiActionListener<NodeStatsContext, ?, List<NodeStatsContext>> multiListener
                 = new MultiActionListener<>(nodes.size(), Collectors.toList(), listener);
             for (final DiscoveryNode node : nodes) {
                 final String nodeId = node.getId();

@@ -51,7 +51,7 @@ public class IncrementalPageBucketReceiverTest {
     @Test
     public void test_processing_future_completed_when_finisher_throws() {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
-        Collector<Row, Object, Iterable<Row>> collector = Collectors.collectingAndThen(Collectors.toList(), _ -> {
+        Collector<Row, ?, Iterable<Row>> collector = Collectors.collectingAndThen(Collectors.toList(), _ -> {
             throw new CircuitBreakingException("dummy"); // Failing finisher
         });
         var pageBucketReceiver = new IncrementalPageBucketReceiver<>(
