@@ -751,7 +751,7 @@ then configure :ref:`cluster-wide attribute filtering
 .. SEEALSO::
 
     For an in-depth example of using custom node attributes, check out the
-    `multi-zone setup how-to guide`_.
+    :ref:`multi-zone setup how-to guide <multi-node-setup>`.
 
 
 .. _conf-routing-allocation-awareness:
@@ -1491,4 +1491,3 @@ clusters during the recovery.
    RESET OK, 1 row affected (... sec)
 
 .. _bootstrap checks: https://cratedb.com/docs/crate/howtos/en/latest/admin/bootstrap-checks.html
-.. _multi-zone setup how-to guide: https://cratedb.com/docs/crate/howtos/en/latest/clustering/multi-zone-setup.html

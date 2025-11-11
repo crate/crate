@@ -83,8 +83,8 @@ Here are some considerations:
 -  CrateDB is designed to scale horizontally. Make sure that your machines are
    fit for purpose, i.e. use SSDs, increase RAM up to 64 GB, and use multiple
    CPU cores when you can. But if you want to dynamically increase (or
-   decrease) the capacity of your cluster, `add (or remove) nodes
-   <https://cratedb.com/docs/crate/howtos/en/latest/clustering/multi-node-setup.html>`_.
+   decrease) the capacity of your cluster, :ref:`add (or remove) nodes
+   <multi-node-setup>`.
 
 -  If availability is a concern, you can add :ref:`nodes across multiple zones
    <multi-zone-setup>`
