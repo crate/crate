@@ -172,9 +172,8 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
             }
             throwable = lastThrowable;
         }
-        final Throwable error = throwable;
         if (invokeConsumer) {
-            if (error == null) {
+            if (throwable == null) {
                 try {
                     pagingIterator.merge(buckets);
                     PrioritizedRunnable runnable = PriorityRunnable.of(
@@ -188,10 +187,10 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                     throwable = e;
                 }
             } else {
-                consumer.accept(null, error);
+                consumer.accept(null, throwable);
             }
         } else {
-            if (error == null) {
+            if (throwable == null) {
                 try {
                     PrioritizedRunnable runnable = PriorityRunnable.of(
                         PRIORITY,
@@ -204,7 +203,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
                     throwable = e;
                 }
             } else {
-                currentPage.completeExceptionally(error);
+                currentPage.completeExceptionally(throwable);
             }
         }
         if (throwable != null) {
