@@ -132,6 +132,28 @@ public class SQLExceptions {
         }).orElse(null);
     }
 
+    /// Similar to [io.crate.common.exceptions.Exceptions#useOrSuppress(Throwable, Throwable)] but:
+    ///
+    /// - Biased against [io.crate.exceptions.JobKilledException]
+    /// - Both args and therefore the result can be null.
+    @Nullable
+    public static <T extends Throwable> T useOrSuppress(@Nullable T first, @Nullable T second) {
+        if (first == null) {
+            return second;
+        }
+        if (second == null) {
+            return first;
+        }
+        if (first instanceof JobKilledException) {
+            return second;
+        }
+        if (second instanceof JobKilledException) {
+            return first;
+        }
+        first.addSuppressed(second);
+        return first;
+    }
+
     public static String messageOf(@Nullable Throwable t) {
         if (t == null) {
             return "Unknown";

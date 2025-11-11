@@ -131,7 +131,7 @@ public class DistributingConsumer implements RowConsumer {
 
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
-        Throwable t = failure == null ? this.failure : failure;
+        Throwable t = SQLExceptions.useOrSuppress(failure, this.failure);
         if (t == null) {
             consumeIt(iterator);
         } else {
