@@ -147,6 +147,7 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
             out.writeString(shardId.getIndexName());
         }
         out.writeVLong(routedBasedOnClusterVersion);
+        System.out.println("Replication request: shardID: " + shardId);
     }
 
     @Override
