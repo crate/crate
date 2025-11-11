@@ -35,7 +35,7 @@ public class GCDanglingArtifactsRequestTest {
     public void test_bwc_streaming() throws Exception {
         String indexUUID = "uuid1";
         var req = new GCDanglingArtifactsRequest(List.of(indexUUID));
-        List<Version> noUUIDVersions = List.of(Version.V_6_0_2, Version.V_6_1_0);
+        List<Version> noUUIDVersions = List.of(Version.V_6_0_2);
         for (var version : noUUIDVersions) {
             try (var out = new BytesStreamOutput()) {
                 out.setVersion(version);
@@ -49,7 +49,7 @@ public class GCDanglingArtifactsRequestTest {
             }
         }
 
-        List<Version> uuidVersions = List.of(Version.V_6_0_4, Version.V_6_1_1, Version.CURRENT);
+        List<Version> uuidVersions = List.of(Version.V_6_1_1, Version.CURRENT);
         for (var version : uuidVersions) {
             try (var out = new BytesStreamOutput()) {
                 out.setVersion(version);
