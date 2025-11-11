@@ -139,8 +139,8 @@ public final class NodeStats {
 
         private CompletableFuture<List<NodeStatsContext>> getStatsFromRemote(Set<ColumnIdent> toCollect) {
             FutureActionListener<List<NodeStatsContext>> listener = new FutureActionListener<>();
-            MultiActionListener<NodeStatsContext, Object, List<NodeStatsContext>> multiListener
-                = new MultiActionListener<>(nodes.getSize(), Collectors.toList(), listener);
+            MultiActionListener<NodeStatsContext, ?, List<NodeStatsContext>> multiListener =
+                new MultiActionListener<>(nodes.getSize(), Collectors.toList(), listener);
             for (final DiscoveryNode node : nodes) {
                 final String nodeId = node.getId();
                 NodeStatsRequest request = new NodeStatsRequest(nodeId, REQUEST_TIMEOUT, toCollect);
