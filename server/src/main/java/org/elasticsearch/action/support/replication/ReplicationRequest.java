@@ -56,11 +56,14 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
 
     private long routedBasedOnClusterVersion = 0;
 
+    private final Version senderVersion;
+
     /**
      * Creates a new request with resolved shard id
      */
     public ReplicationRequest(ShardId shardId) {
         this.shardId = shardId;
+        this.senderVersion = Version.CURRENT;
     }
 
     /**
@@ -128,6 +131,7 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
             in.readString();
         }
         routedBasedOnClusterVersion = in.readVLong();
+        senderVersion = in.getVersion();
     }
 
     @Override
@@ -154,5 +158,9 @@ public abstract class ReplicationRequest<Request extends ReplicationRequest<Requ
      */
     public void onRetry() {
         // nothing by default
+    }
+
+    public Version senderVersion() {
+        return senderVersion;
     }
 }
