@@ -206,7 +206,7 @@ public class ExplainProfilePlan implements Plan {
 
         // Dummy collecting consumer.
         // The result is discarded. Instead fetch the profile timings from all nodes and output that
-        CollectingRowConsumer<Object, Long> discardingConsumer = new CollectingRowConsumer<>(Collectors.counting());
+        CollectingRowConsumer<?, Long> discardingConsumer = new CollectingRowConsumer<>(Collectors.counting());
         discardingConsumer.completionFuture()
             .whenComplete((_, _) -> context.stopTimerAndStoreDuration(timer))
             .thenCompose(_ -> fetchTimingResults(plannerContext.jobId(), executor, operationTree.nodeOperations()))
