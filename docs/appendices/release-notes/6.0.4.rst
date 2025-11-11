@@ -46,10 +46,6 @@ series.
 Fixes
 =====
 
-- Fixed an issue that could cause a ``ALTER TABLE`` operation changing the
-  number of shards of a table to interrupt a concurrent ``ALTER TABLE``
-  operation also changing the number of shards.
-
 - Fixed an issue that could lead to a deadlock when executing a statement
   containing a ``JOIN`` that got executed using a hash join algorithm on a
   cluster with more than one node.
