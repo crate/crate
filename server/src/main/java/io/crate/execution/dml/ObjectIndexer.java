@@ -129,8 +129,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 translogWriter.writeFieldName(this.unknownColumnPrefix + k);
                 translogWriter.writeValue(v);
                 columnsToStore.put(k, v);
-            }
-            if (v == null) {
+            } else if (v == null) {
                 translogWriter.writeFieldName(k);
                 translogWriter.writeValue(null);
                 columnsToStore.put(k, null);
