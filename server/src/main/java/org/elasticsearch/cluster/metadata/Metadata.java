@@ -455,6 +455,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     private static boolean hasGlobalColumnOID(Version version) {
+        System.out.println("hasGlobalColumnOID: " + version);
         return version.onOrAfter(Version.V_5_5_0) &&
             (version.onOrBefore(Version.V_6_0_3) || version.equals(Version.V_6_1_0));
     }
