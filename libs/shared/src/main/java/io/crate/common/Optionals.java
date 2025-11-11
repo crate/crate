@@ -22,15 +22,16 @@
 package io.crate.common;
 
 import java.util.Optional;
+import java.util.concurrent.Callable;
 
 public final class Optionals {
 
     private Optionals() {
     }
 
-    public static <T> Optional<T> of(CheckedSupplier<? extends T, Exception> supplier) {
+    public static <T> Optional<T> of(Callable<? extends T> callable) {
         try {
-            return Optional.ofNullable(supplier.get());
+            return Optional.ofNullable(callable.call());
         } catch (Exception e) {
             return Optional.empty();
         }

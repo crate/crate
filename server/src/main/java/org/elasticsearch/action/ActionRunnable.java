@@ -19,11 +19,12 @@
 
 package org.elasticsearch.action;
 
+import java.util.concurrent.Callable;
+
 import org.elasticsearch.common.CheckedConsumer;
 import org.elasticsearch.common.CheckedRunnable;
 import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 
-import io.crate.common.CheckedSupplier;
 
 /**
  * Base class for {@link Runnable}s that need to call {@link ActionListener#onFailure(Exception)} in case an uncaught
@@ -52,11 +53,11 @@ public abstract class ActionRunnable<Response> implements RejectableRunnable {
     /**
      * Creates a {@link Runnable} that invokes the given listener with the return of the given supplier.
      * @param listener Listener to invoke
-     * @param supplier Supplier that provides value to pass to listener
+     * @param callable Supplier that provides value to pass to listener
      * @return Wrapped {@code Runnable}
      */
-    public static <T> ActionRunnable<T> supply(ActionListener<T> listener, CheckedSupplier<T, Exception> supplier) {
-        return ActionRunnable.wrap(listener, l -> l.onResponse(supplier.get()));
+    public static <T> ActionRunnable<T> supply(ActionListener<T> listener, Callable<T> callable) {
+        return ActionRunnable.wrap(listener, l -> l.onResponse(callable.call()));
     }
 
     /**
