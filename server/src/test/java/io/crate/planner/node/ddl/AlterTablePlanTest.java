@@ -28,11 +28,9 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
-import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.action.admin.indices.shrink.ResizeRequest;
 import org.elasticsearch.action.admin.indices.shrink.TransportResize;
-import org.elasticsearch.action.support.master.AcknowledgedResponse;
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.IndexScopedSettings;
@@ -51,6 +49,7 @@ import io.crate.execution.ddl.tables.AlterTableClient;
 import io.crate.execution.ddl.tables.AlterTableRequest;
 import io.crate.execution.ddl.tables.GCDanglingArtifactsRequest;
 import io.crate.execution.ddl.tables.TransportAlterTable;
+import io.crate.execution.ddl.tables.TransportGCDanglingArtifacts;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.replication.logical.LogicalReplicationService;
@@ -170,8 +169,9 @@ public class AlterTablePlanTest extends CrateDummyClusterServiceUnitTest {
             IndexScopedSettings.DEFAULT_SCOPED_SETTINGS,
             mock(LogicalReplicationService.class)
         );
-        Mockito.when(client.execute(Mockito.any(), Mockito.eq(GCDanglingArtifactsRequest.INSTANCE)))
-            .thenReturn(CompletableFuture.completedFuture(new AcknowledgedResponse(true)));
+
+        Mockito.verify(client, Mockito.times(0))
+            .execute(Mockito.eq(TransportGCDanglingArtifacts.ACTION), Mockito.any(GCDanglingArtifactsRequest.class));
 
         var reqCaptor = ArgumentCaptor.forClass(ResizeRequest.class);
         alterTableClient.setSettingsOrResize(alterTable);
