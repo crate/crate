@@ -29,6 +29,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -221,7 +223,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNormalUserCannotKillJobOfOtherUser() throws Exception {
         UUID jobId = UUID.randomUUID();
-        RootTask.Builder builder = tasksService.newBuilder(jobId, "Arthur", "dummyNode", List.of());
+        RootTask.Builder builder = tasksService.newBuilder(jobId, "Arthur", List.of());
         builder.addTask(new DummyTask());
         tasksService.createTask(builder);
 
@@ -309,5 +311,22 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         assertThat(rootTask.completionFuture()).failsWithin(5, TimeUnit.SECONDS);
         assertThat(tasksService.getTaskOrNull(jobId)).isNull();
         assertThat(tasksService.numActive()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_can_run_async_callable_wrapped_in_task() throws Exception {
+        UUID jobId = UUID.randomUUID();
+        CompletableFuture<Integer> future = new CompletableFuture<>();
+        Callable<CompletableFuture<Integer>> run = () -> future;
+        CompletableFuture<Integer> result = tasksService.runAsyncFnTask(jobId, Role.CRATE_USER.name(), "dummy", run, _ -> {});
+
+        RootTask task = tasksService.getTask(jobId);
+        Task asyncFnTask = task.getTask(0);
+        assertThat(asyncFnTask).isExactlyInstanceOf(AsyncFnTask.class);
+
+        future.complete(1);
+        assertThat(tasksService.getTaskOrNull(jobId)).isNull();
+        assertThat(asyncFnTask.completionFuture()).isCompleted();
+        assertThat(result).isCompletedWithValue(1);
     }
 }
