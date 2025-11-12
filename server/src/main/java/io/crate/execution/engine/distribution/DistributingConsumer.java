@@ -132,9 +132,11 @@ public class DistributingConsumer implements RowConsumer {
     @Override
     public void accept(BatchIterator<Row> iterator, @Nullable Throwable failure) {
         Throwable t = SQLExceptions.useOrSuppress(failure, this.failure);
+        // Throwable t = failure == null ? this.failure : failure;
         if (t == null) {
             consumeIt(iterator);
         } else {
+            this.failure = t;
             completionFuture.completeExceptionally(t);
             forwardFailure(null, t);
         }
@@ -175,11 +177,13 @@ public class DistributingConsumer implements RowConsumer {
                         if (t == null) {
                             consumeIt(it, true);
                         } else {
+                            this.failure = SQLExceptions.useOrSuppress(t, this.failure);
                             forwardFailure(it, t);
                         }
                     });
                 }
             } catch (Throwable t) {
+                this.failure = SQLExceptions.useOrSuppress(t, this.failure);
                 forwardFailure(it, t);
             }
         } else {
@@ -340,11 +344,7 @@ public class DistributingConsumer implements RowConsumer {
         }
 
         private void handleFailure(Throwable err) {
-            // Downstream can receive kill from other nodes and send `JobKilledException` back due to it
-            // We want to preserve original errors that led to the kill
-            if (failure == null || !(err instanceof JobKilledException)) {
-                failure = err;
-            }
+            failure = SQLExceptions.useOrSuppress(err, failure);
             downstream.needsMoreData = false;
             // continue because it's necessary to send something to the other downstreams still waiting for data
             if (isFailureReq) {

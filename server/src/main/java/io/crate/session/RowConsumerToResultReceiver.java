@@ -32,6 +32,7 @@ import org.jetbrains.annotations.VisibleForTesting;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
 
 public class RowConsumerToResultReceiver implements RowConsumer {
@@ -49,6 +50,8 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     private CompletableFuture<BatchIterator<Row>> suspendedIt = new CompletableFuture<>();
     private boolean waitingForWrite = false;
 
+    private volatile Throwable killed;
+
     public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
@@ -62,6 +65,9 @@ public class RowConsumerToResultReceiver implements RowConsumer {
         if (failure == null) {
             consumeIt(iterator);
         } else {
+            if (failure instanceof JobKilledException jobKilled) {
+                System.out.println(jobKilled);
+            }
             if (iterator != null) {
                 iterator.close();
             }
@@ -178,6 +184,11 @@ public class RowConsumerToResultReceiver implements RowConsumer {
             completionFuture.completeExceptionally(t);
             resultReceiver.fail(t);
         }
+    }
+
+    @Override
+    public void kill(Throwable throwable) {
+        killed = throwable;
     }
 
     @Override

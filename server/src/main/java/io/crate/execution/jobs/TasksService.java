@@ -57,6 +57,7 @@ import com.github.benmanes.caffeine.cache.Caffeine;
 
 import io.crate.common.collections.Lists;
 import io.crate.concurrent.CountdownFuture;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.RootTask.Builder;
@@ -76,7 +77,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
     private final List<KillAllListener> killAllListeners = new CopyOnWriteArrayList<>();
 
     private final Object failedSentinel = new Object();
-    private final Cache<UUID, Object> recentlyFailed = Caffeine.newBuilder()
+    private final Cache<UUID, Throwable> recentlyFailed = Caffeine.newBuilder()
         .executor(Runnable::run)
         .maximumSize(1000L)
         .expireAfterWrite(30, TimeUnit.SECONDS)
@@ -258,11 +259,14 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         assert !toKill.isEmpty() : "toKill must not be empty";
         int numKilled = 0;
         CountdownFuture countDownFuture = new CountdownFuture(toKill.size());
+        JobKilledException killed = JobKilledException.of(reason);
         boolean isSuperUser = userName.equals(Role.CRATE_USER.name());
         for (UUID jobId : toKill) {
             RootTask ctx = activeTasks.get(jobId);
             if (ctx == null) {
-                recentlyFailed.put(jobId, failedSentinel);
+                IllegalStateException illegalStateException = new IllegalStateException();
+                illegalStateException.initCause(killed);
+                recentlyFailed.put(jobId, illegalStateException);
                 // no kill but we need to count down
                 countDownFuture.onSuccess();
                 continue;
@@ -307,6 +311,11 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         return recentlyFailed.getIfPresent(jobId) == failedSentinel;
     }
 
+    @Nullable
+    public Throwable recentlyFailedCause(UUID jobId) {
+        return recentlyFailed.getIfPresent(jobId);
+    }
+
     private class TaskCallback implements BiConsumer<Void, Throwable> {
 
         private final UUID jobId;
@@ -319,7 +328,9 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
         public void accept(Void aVoid, Throwable throwable) {
             activeTasks.remove(jobId);
             if (throwable != null) {
-                recentlyFailed.put(jobId, failedSentinel);
+                IllegalStateException illegalStateException = new IllegalStateException();
+                illegalStateException.initCause(throwable);
+                recentlyFailed.put(jobId, illegalStateException);
             }
             if (LOGGER.isTraceEnabled()) {
                 LOGGER.trace("RootTask removed from active tasks: jobId={} remainingTasks={} failure={}",
