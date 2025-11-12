@@ -28,6 +28,7 @@ import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
@@ -98,6 +99,12 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Collection<Reference> rootColumns() {
         return columns;
+    }
+
+    @Override
+    public Stream<Reference> allColumnsSorted() {
+        // Columns are ordered already
+        return columns.stream();
     }
 
     @Override

@@ -24,7 +24,6 @@ package io.crate.execution.engine.collect.sources;
 import static io.crate.common.collections.Iterables.sequentialStream;
 import static java.util.Collections.emptyList;
 import static java.util.stream.Stream.concat;
-import static java.util.stream.StreamSupport.stream;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -510,7 +509,7 @@ public class InformationSchemaIterables {
 
         NotNullConstraintIterator(RelationInfo relationInfo) {
             this.relationInfo = relationInfo;
-            notNullableColumns = stream(relationInfo.spliterator(), false)
+            notNullableColumns = relationInfo.allColumnsSorted()
                 .filter(reference -> reference.column().isSystemColumn() == false &&
                                      reference.valueType() != DataTypes.NOT_SUPPORTED &&
                                      reference.isNullable() == false)
@@ -572,7 +571,7 @@ public class InformationSchemaIterables {
         private final RelationInfo tableInfo;
 
         ColumnsIterator(RelationInfo tableInfo) {
-            columns = Stream.concat(stream(tableInfo.spliterator(), false), tableInfo.droppedColumns().stream())
+            columns = Stream.concat(tableInfo.allColumnsSorted(), tableInfo.droppedColumns().stream())
                 .filter(reference -> !reference.column().isSystemColumn()
                                      && reference.valueType() != DataTypes.NOT_SUPPORTED).iterator();
             this.tableInfo = tableInfo;

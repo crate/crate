@@ -27,6 +27,7 @@ import java.util.EnumSet;
 import java.util.Iterator;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
@@ -109,6 +110,12 @@ public class ViewInfo implements RelationInfo {
     @Override
     public Iterator<Reference> iterator() {
         return references.iterator();
+    }
+
+    @Override
+    public Stream<Reference> allColumnsSorted() {
+        // references are sorted
+        return references.stream();
     }
 
     @Override
