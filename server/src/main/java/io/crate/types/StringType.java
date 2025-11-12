@@ -355,6 +355,11 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     @Override
+    public boolean valueEq(String val1, String val2) {
+        return val1.equals(val2);
+    }
+
+    @Override
     public int compare(String val1, String val2) {
         return val1.compareTo(val2);
     }

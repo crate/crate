@@ -193,6 +193,11 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
     }
 
     @Override
+    public boolean valueEq(Double val1, Double val2) {
+        return val1.equals(val2);
+    }
+
+    @Override
     public int compare(Double val1, Double val2) {
         return Double.compare(val1, val2);
     }
