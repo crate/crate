@@ -633,9 +633,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Override
     public Iterator<Reference> iterator() {
+        return allColumns.values().iterator();
+    }
+
+    @Override
+    public Stream<Reference> allColumnsSorted() {
         return allColumns.values().stream()
-            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
-            .iterator();
+            .sorted(Reference.CMP_BY_POSITION_THEN_NAME);
     }
 
     /**

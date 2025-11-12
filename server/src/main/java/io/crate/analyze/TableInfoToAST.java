@@ -148,7 +148,7 @@ public class TableInfoToAST {
     }
 
     private List<ColumnDefinition<Expression>> extractColumnDefinitions(@Nullable ColumnIdent parent) {
-        Iterator<Reference> referenceIterator = tableInfo.iterator();
+        Iterator<Reference> referenceIterator = tableInfo.allColumnsSorted().iterator();
         List<ColumnDefinition<Expression>> elements = new ArrayList<>();
         while (referenceIterator.hasNext()) {
             Reference ref = referenceIterator.next();
