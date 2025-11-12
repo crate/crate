@@ -106,7 +106,7 @@ class RestResultSetReceiver implements ResultReceiver<XContentBuilder> {
     }
 
     @Override
-    public long rowCount() {
+    public long affectedRowCount() {
         return rowCount;
     }
 }

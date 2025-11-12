@@ -345,7 +345,7 @@ public class SQLTransportExecutor {
                     }
 
                     @Override
-                    public long rowCount() {
+                    public long affectedRowCount() {
                         return rowCount;
                     }
                 });
@@ -670,7 +670,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public long rowCount() {
+        public long affectedRowCount() {
             return rows.size();
         }
 
@@ -733,7 +733,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public long rowCount() {
+        public long affectedRowCount() {
             return rowCount;
         }
     }
@@ -776,7 +776,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public long rowCount() {
+        public long affectedRowCount() {
             return Arrays.stream(bulkResponse.rowCounts()).sum();
         }
     }

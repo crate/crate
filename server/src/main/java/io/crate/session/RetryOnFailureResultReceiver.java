@@ -111,7 +111,7 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
     }
 
     @Override
-    public long rowCount() {
-        return delegate.rowCount();
+    public long affectedRowCount() {
+        return delegate.affectedRowCount();
     }
 }

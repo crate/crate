@@ -76,7 +76,7 @@ public final class CollectingResultReceiver<A, R> implements ResultReceiver<R> {
     }
 
     @Override
-    public long rowCount() {
+    public long affectedRowCount() {
         return rowCount;
     }
 }

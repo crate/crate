@@ -86,7 +86,7 @@ class RowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public long rowCount() {
+    public long affectedRowCount() {
         return rowCount;
     }
 }

@@ -25,11 +25,9 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 
 import java.util.UUID;
-import java.util.function.Consumer;
+import java.util.function.ObjLongConsumer;
 
-import org.jetbrains.annotations.Nullable;
-
-public class JobsLogsUpdateListener implements Consumer<JobsLogsUpdateListener.JobsLogsUpdate> {
+public class JobsLogsUpdateListener implements ObjLongConsumer<Throwable> {
 
     private final UUID jobId;
     private final JobsLogs jobsLogs;
@@ -40,10 +38,7 @@ public class JobsLogsUpdateListener implements Consumer<JobsLogsUpdateListener.J
     }
 
     @Override
-    public void accept(JobsLogsUpdate jobsLogsUpdate) {
-        jobsLogs.logExecutionEnd(jobId, jobsLogsUpdate.rowCount, jobsLogsUpdate.throwable == null ? null : SQLExceptions.messageOf(jobsLogsUpdate.throwable));
-    }
-
-    public record JobsLogsUpdate(long rowCount, @Nullable Throwable throwable) {
+    public void accept(Throwable throwable, long rowCount) {
+        jobsLogs.logExecutionEnd(jobId, rowCount, throwable == null ? null : SQLExceptions.messageOf(throwable));
     }
 }

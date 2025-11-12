@@ -60,7 +60,7 @@ public class BaseResultReceiver implements ResultReceiver<Void> {
     }
 
     @Override
-    public long rowCount() {
+    public long affectedRowCount() {
         return 0;
     }
 }

@@ -22,7 +22,7 @@
 package io.crate.session;
 
 import java.util.concurrent.CompletableFuture;
-import java.util.function.Consumer;
+import java.util.function.ObjLongConsumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -33,7 +33,6 @@ import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.exceptions.SQLExceptions;
-import io.crate.protocols.postgres.JobsLogsUpdateListener;
 
 public class RowConsumerToResultReceiver implements RowConsumer {
 
@@ -50,12 +49,10 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     private CompletableFuture<BatchIterator<Row>> suspendedIt = new CompletableFuture<>();
     private boolean waitingForWrite = false;
 
-    public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, Consumer<JobsLogsUpdateListener.JobsLogsUpdate> onCompletion) {
+    public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, ObjLongConsumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
-        completionFuture.whenComplete((rowCount, err) -> {
-            onCompletion.accept(new JobsLogsUpdateListener.JobsLogsUpdate(rowCount == null ? 0 : rowCount, err));
-        });
+        completionFuture.whenComplete((rowCount, err) -> onCompletion.accept(err, rowCount == null ? 0 : rowCount));
     }
 
     @Override
@@ -102,10 +99,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                 if (iterator.allLoaded()) {
                     iterator.close();
                     resultReceiver.allFinished();
-                    // the difference between this.rowCount and resultReceiver.rowCount() is that the former is the
-                    // row count of a result set to be returned, and the latter is the row count of the affected rows.
-                    // i.e., INSERT or UPDATE that do not return any rows but written multiple rows.
-                    completionFuture.complete(resultReceiver.rowCount());
+                    completionFuture.complete(resultReceiver.affectedRowCount());
                     return;
                 } else {
                     var nextBatch = iterator.loadNextBatch().toCompletableFuture();

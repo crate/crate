@@ -52,5 +52,5 @@ public interface ResultReceiver<T> extends CompletionListenable<T> {
     /**
      * @return the total row count of the affected rows after {@link ResultReceiver#allFinished()}
      */
-    long rowCount();
+    long affectedRowCount();
 }

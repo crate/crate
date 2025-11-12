@@ -72,7 +72,7 @@ class RestBulkRowCountReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public long rowCount() {
+    public long affectedRowCount() {
         return Arrays.stream(results).mapToLong(Result::rowCount).sum();
     }
 
