@@ -135,6 +135,11 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
     }
 
     @Override
+    public boolean valueEq(Integer val1, Integer val2) {
+        return val1.intValue() == val2.intValue();
+    }
+
+    @Override
     public int compare(Integer val1, Integer val2) {
         return Integer.compare(val1, val2);
     }

@@ -106,7 +106,7 @@ public final class EqOperator extends Operator<Object> {
         if (right == null) {
             return null;
         }
-        return argType.compare(left, right) == 0;
+        return argType.valueEq(left, right);
     }
 
     @Override
