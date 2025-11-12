@@ -111,13 +111,13 @@ public class JobsLogs {
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void logExecutionEnd(UUID jobId, long rowCount, @Nullable String errorMessage) {
+    public void logExecutionEnd(UUID jobId, long affectedRowCount, @Nullable String errorMessage) {
         activeRequests.decrement();
         JobContext jobContext = jobsTable.remove(jobId);
         if (!isEnabled() || jobContext == null) {
             return;
         }
-        JobContextLog jobContextLog = new JobContextLog(jobContext, rowCount, errorMessage);
+        JobContextLog jobContextLog = new JobContextLog(jobContext, affectedRowCount, errorMessage);
         recordMetrics(jobContextLog);
         long stamp = jobsLogLock.readLock();
         try {
@@ -131,7 +131,7 @@ public class JobsLogs {
         StatementClassifier.Classification classification = log.classification();
         assert classification != null : "A job must have a classification";
         if (log.errorMessage() == null) {
-            classifiedMetrics.recordValue(classification, log.ended() - log.started(), log.rowCount());
+            classifiedMetrics.recordValue(classification, log.ended() - log.started(), log.affectedRowCount());
         } else {
             classifiedMetrics.recordFailedExecution(classification, log.ended() - log.started());
         }

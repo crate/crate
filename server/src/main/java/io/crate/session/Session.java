@@ -817,7 +817,7 @@ public class Session implements AutoCloseable {
                 resultReceiver.allFinished();
             }
         }
-        jobsLogs.logExecutionEnd(jobId, Arrays.stream(bulkResponse.rowCounts()).sum(), null);
+        jobsLogs.logExecutionEnd(jobId, Arrays.stream(bulkResponse.rowCounts()).filter(rc -> rc >= 0).sum(), null);
     }
 
     @VisibleForTesting

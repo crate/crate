@@ -52,7 +52,7 @@ public class RowConsumerToResultReceiver implements RowConsumer {
     public RowConsumerToResultReceiver(ResultReceiver<?> resultReceiver, int maxRows, ObjLongConsumer<Throwable> onCompletion) {
         this.resultReceiver = resultReceiver;
         this.maxRows = maxRows;
-        completionFuture.whenComplete((rowCount, err) -> onCompletion.accept(err, rowCount == null ? 0 : rowCount));
+        completionFuture.whenComplete((affectedRowCount, err) -> onCompletion.accept(err, affectedRowCount == null ? 0 : affectedRowCount));
     }
 
     @Override

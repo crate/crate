@@ -777,7 +777,7 @@ public class SQLTransportExecutor {
 
         @Override
         public long affectedRowCount() {
-            return Arrays.stream(bulkResponse.rowCounts()).sum();
+            return Arrays.stream(bulkResponse.rowCounts()).filter(rc -> rc >= 0).sum();
         }
     }
 }

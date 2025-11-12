@@ -87,6 +87,6 @@ class RowCountReceiver extends BaseResultReceiver {
 
     @Override
     public long affectedRowCount() {
-        return rowCount;
+        return Math.max(rowCount, 0);
     }
 }
