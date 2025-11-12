@@ -44,17 +44,20 @@ public class QueryStats implements QueryStatsMBean {
         private long failedCount;
         private long totalCount;
         private long sumOfDurations;
+        private long affectedRowCount;
 
-        Metric(long sumOfDurations, long totalCount, long failedCount) {
+        Metric(long sumOfDurations, long totalCount, long failedCount, long affectedRowCount) {
             this.sumOfDurations = sumOfDurations;
             this.totalCount = totalCount;
             this.failedCount = failedCount;
+            this.affectedRowCount = affectedRowCount;
         }
 
-        void inc(long duration, long totalCount, long failedCount) {
+        void inc(long duration, long totalCount, long failedCount, long affectedRowCount) {
             this.sumOfDurations += duration;
             this.totalCount += totalCount;
             this.failedCount += failedCount;
+            this.affectedRowCount += affectedRowCount;
         }
 
         long totalCount() {
@@ -68,13 +71,17 @@ public class QueryStats implements QueryStatsMBean {
         long failedCount() {
             return failedCount;
         }
+
+        long affectedRowCount() {
+            return affectedRowCount;
+        }
     }
 
     public static final String NAME = "io.crate.monitoring:type=QueryStats";
-    private static final Metric DEFAULT_METRIC = new Metric(0, 0, 0) {
+    private static final Metric DEFAULT_METRIC = new Metric(0, 0, 0, 0) {
 
         @Override
-        void inc(long duration, long totalCount, long failedCount) {
+        void inc(long duration, long totalCount, long failedCount, long affectedRowCount) {
             throw new AssertionError("inc must not be called on default metric - it's immutable");
         }
     };
@@ -95,9 +102,9 @@ public class QueryStats implements QueryStatsMBean {
             long failedCount = classifiedMetrics.failedCount();
             metricsByStmtType.compute(classificationType(classifiedMetrics.classification()), (_, oldMetric) -> {
                 if (oldMetric == null) {
-                    return new Metric(sumOfDurations, classifiedMetrics.totalCount(), failedCount);
+                    return new Metric(sumOfDurations, classifiedMetrics.totalCount(), failedCount, classifiedMetrics.affectedRowCount());
                 }
-                oldMetric.inc(sumOfDurations, classifiedMetrics.totalCount(), failedCount);
+                oldMetric.inc(sumOfDurations, classifiedMetrics.totalCount(), failedCount, classifiedMetrics.affectedRowCount());
                 return oldMetric;
             });
         }
@@ -189,6 +196,46 @@ public class QueryStats implements QueryStatsMBean {
     @Override
     public long getUndefinedQuerySumOfDurations() {
         return metricByStmtType.get().getOrDefault(StatementType.UNDEFINED, DEFAULT_METRIC).sumOfDurations();
+    }
+
+    @Override
+    public long getSelectQueryAffectedRowCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.SELECT, DEFAULT_METRIC).affectedRowCount();
+    }
+
+    @Override
+    public long getInsertQueryAffectedRowCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.INSERT, DEFAULT_METRIC).affectedRowCount();
+    }
+
+    @Override
+    public long getUpdateQueryAffectedRowCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.UPDATE, DEFAULT_METRIC).affectedRowCount();
+    }
+
+    @Override
+    public long getDeleteQueryAffectedRowCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.DELETE, DEFAULT_METRIC).affectedRowCount();
+    }
+
+    @Override
+    public long getManagementQueryAffectedRowCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.MANAGEMENT, DEFAULT_METRIC).affectedRowCount();
+    }
+
+    @Override
+    public long getDDLQueryAffectedRowCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.DDL, DEFAULT_METRIC).affectedRowCount();
+    }
+
+    @Override
+    public long getCopyQueryAffectedRowCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.COPY, DEFAULT_METRIC).affectedRowCount();
+    }
+
+    @Override
+    public long getUndefinedQueryAffectedRowCount() {
+        return metricByStmtType.get().getOrDefault(StatementType.UNDEFINED, DEFAULT_METRIC).affectedRowCount();
     }
 
     @Override
