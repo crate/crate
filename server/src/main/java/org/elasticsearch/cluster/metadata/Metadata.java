@@ -552,6 +552,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     public static Metadata readFrom(StreamInput in) throws IOException {
+       LOGGER.info("readFrom with current = " + Version.CURRENT + ", in.version = " + in.getVersion());
         Builder builder = new Builder();
         builder.version = in.readLong();
         if (in.getVersion().onOrAfter(Version.V_5_5_0)) {

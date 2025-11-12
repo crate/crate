@@ -432,9 +432,11 @@ public class PersistedClusterStateService {
                     preserveUnknownCustoms
                 );
             } else {
+                LOGGER.info("loadOnDiskState in {}", Version.CURRENT.toString());
                 try (var in = new NamedWriteableAwareStreamInput(
                             StreamInput.wrap(bytes.bytes, bytes.offset, bytes.length), namedWriteableRegistry)) {
                     Version version = Version.readVersion(in);
+                    LOGGER.info("loadOnDiskState in {}, got version {} from state", Version.CURRENT.toString(), version.toString());
                     stateVersion.set(version);
                     in.setVersion(version);
                     metadata = Metadata.readFrom(in);
@@ -875,6 +877,7 @@ public class PersistedClusterStateService {
             return makeDocument(
                 GLOBAL_TYPE_NAME,
                 out -> {
+                    LOGGER.info("makeGlobalMetadataDocument persisting version {}", Version.CURRENT.toString());
                     Version.writeVersion(Version.CURRENT, out);
                     // Reflecting state after https://github.com/crate/crate/commit/4a82981501619780ce1156aa5015a627de5ff1e1
                     Metadata globalMetadata = Metadata.builder(metadata)
