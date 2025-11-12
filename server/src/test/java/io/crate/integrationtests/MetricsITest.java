@@ -132,4 +132,30 @@ public class MetricsITest extends IntegTestCase {
         execute("SELECT sum(total_affected_row_count) FROM sys.jobs_metrics WHERE classification['type'] = 'UPDATE'");
         assertThat(response).hasRows(String.valueOf(x));
     }
+
+    @Test
+    public void test_total_affected_row_count_from_bulk_operations() throws Exception {
+        execute("create table t (a int primary key, b int)");
+        execute("insert into t(a) values (?)", new Object[][]{{1}, {2}, {2}, {3}}); // 3 rows inserted
+        execute("refresh table t");
+        execute("update t set b=? where a>=?", new Object[][]{{1, 1}, {2, 2}}); // 5(3+2) rows updated
+        execute("refresh table t");
+
+        assertBusy(() -> {
+            long cnt = 0;
+            for (JobsLogService jobsLogService : cluster().getInstances(JobsLogService.class)) {
+                for (MetricsView metrics: jobsLogService.get().metrics()) {
+                    if (metrics.classification().type() == Plan.StatementType.INSERT || metrics.classification().type() == Plan.StatementType.UPDATE) {
+                        cnt += metrics.totalCount();
+                    }
+                }
+            }
+            assertThat(cnt).isEqualTo(2);
+        });
+
+        execute("SELECT sum(total_affected_row_count) FROM sys.jobs_metrics WHERE classification['type'] = 'INSERT'");
+        assertThat(response).hasRows(String.valueOf(3));
+        execute("SELECT sum(total_affected_row_count) FROM sys.jobs_metrics WHERE classification['type'] = 'UPDATE'");
+        assertThat(response).hasRows(String.valueOf(5));
+    }
 }
