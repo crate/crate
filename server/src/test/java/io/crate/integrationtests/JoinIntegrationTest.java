@@ -1788,4 +1788,21 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute(query);
         assertThat(response.rows()).isEmpty();
     }
+
+    /**
+     * https://github.com/crate/crate/issues/18680
+     */
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    public void test_left_join_with_identical_column_names() throws Exception {
+        execute("CREATE TABLE t0(c0 BOOLEAN, c1 VARCHAR);");
+        execute("INSERT INTO t0(c0) VALUES (NULL);");
+        execute("INSERT INTO t0(c1, c0) VALUES ('', true);");
+        execute("REFRESH TABLE t0;");
+
+        execute("SELECT t0.c0 FROM t0 LEFT JOIN t0 AS t1 ON ((t1.c1)=(t0.c1));");
+        assertThat(response.rows().length).isEqualTo(2);
+        assertThat(response).hasRowsInAnyOrder("NULL", "true");
+    }
 }
