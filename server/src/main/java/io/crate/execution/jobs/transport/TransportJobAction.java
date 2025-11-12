@@ -126,7 +126,6 @@ public class TransportJobAction extends TransportAction<NodeRequest<JobRequest>,
         RootTask.Builder contextBuilder = tasksService.newBuilder(
             request.jobId(),
             request.sessionSettings().userName(),
-            request.coordinatorNodeId(),
             Collections.emptySet()
         );
 

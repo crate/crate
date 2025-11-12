@@ -29,7 +29,9 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Objects;
+import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
@@ -50,14 +52,19 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.BoundAlterTable;
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
+import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.SQLExceptions;
+import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
+import io.crate.planner.PlannerContext;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.session.CollectingResultReceiver;
@@ -77,17 +84,20 @@ public class AlterTableClient {
     private final Sessions sessions;
     private final IndexScopedSettings indexScopedSettings;
     private final LogicalReplicationService logicalReplicationService;
+    private final TasksService tasksService;
 
     @Inject
     public AlterTableClient(ClusterService clusterService,
                             NodeClient client,
                             Sessions sessions,
+                            TasksService tasksService,
                             IndexScopedSettings indexScopedSettings,
                             LogicalReplicationService logicalReplicationService) {
 
         this.clusterService = clusterService;
         this.client = client;
         this.sessions = sessions;
+        this.tasksService = tasksService;
         this.indexScopedSettings = indexScopedSettings;
         this.logicalReplicationService = logicalReplicationService;
     }
@@ -154,7 +164,7 @@ public class AlterTableClient {
         }
     }
 
-    public CompletableFuture<Long> setSettingsOrResize(BoundAlterTable analysis) {
+    public CompletableFuture<Long> setSettingsOrResize(PlannerContext plannerContext, BoundAlterTable analysis) {
         validateSettingsForPublishedTables(analysis.table().ident(),
                                            analysis.settings(),
                                            logicalReplicationService.publications(),
@@ -169,7 +179,7 @@ public class AlterTableClient {
             if (settings.size() > 1) {
                 throw new IllegalArgumentException("Setting [number_of_shards] cannot be combined with other settings");
             }
-            return resize(analysis);
+            return resize(plannerContext, analysis);
         }
         return setSettings(analysis);
     }
@@ -197,7 +207,20 @@ public class AlterTableClient {
         }
     }
 
-    private CompletableFuture<Long> resize(BoundAlterTable analysis) {
+    @Nullable
+    private String findResizeSourceUUID(IndexMetadata index) {
+        for (var cursor : clusterService.state().metadata().indices().values()) {
+            IndexMetadata indexMetadata = cursor.value;
+            Settings settings = indexMetadata.getSettings();
+            String sourceUUID = IndexMetadata.INDEX_RESIZE_SOURCE_UUID.get(settings);
+            if (index.getIndexUUID().equals(sourceUUID)) {
+                return indexMetadata.getIndexUUID();
+            }
+        }
+        return null;
+    }
+
+    private CompletableFuture<Long> resize(PlannerContext plannerContext, BoundAlterTable analysis) {
         final TableInfo table = analysis.table();
         PartitionName partitionName = analysis.partitionName();
         final ClusterState currentState = clusterService.state();
@@ -211,42 +234,58 @@ public class AlterTableClient {
                 String.format(Locale.ENGLISH, "Table/Partition '%s' does not exist", table.ident().fqn()));
         }
 
-        String staleIndexUUID = null;
-        for (var cursor : metadata.indices().values()) {
-            IndexMetadata indexMetadata = cursor.value;
-            Settings settings = indexMetadata.getSettings();
-            String sourceUUID = IndexMetadata.INDEX_RESIZE_SOURCE_UUID.get(settings);
-            if (sourceIndexMetadata.getIndexUUID().equals(sourceUUID)) {
-                staleIndexUUID = indexMetadata.getIndexUUID();
-                break;
+        Callable<CompletableFuture<Long>> doResize = () -> {
+            String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata);
+            final int targetNumberOfShards = getNumberOfShards(analysis.settings());
+            validateNumberOfShardsForResize(sourceIndexMetadata, targetNumberOfShards);
+            validateReadOnlyIndexForResize(sourceIndexMetadata);
+
+            final ResizeRequest request = new ResizeRequest(
+                table.ident(),
+                partitionName == null ? List.of() : partitionName.values(),
+                targetNumberOfShards
+            );
+            GenericProperties<Object> withProperties = analysis.withProperties();
+            Object timeout = withProperties.get("timeout");
+            if (timeout != null) {
+                TimeValue timeValue = TimeValue.parseTimeValue(timeout.toString(), "timeout");
+                request.timeout(timeValue);
+                request.masterNodeTimeout(timeValue);
             }
-        }
+            CompletableFuture<ResizeResponse> resizeFuture;
+            if (staleIndexUUID == null) {
+                resizeFuture = client.execute(TransportResize.ACTION, request);
+            } else {
+                GCDanglingArtifactsRequest gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
+                resizeFuture = client.execute(TransportGCDanglingArtifacts.ACTION, gcReq)
+                    .thenCompose(_ -> client.execute(TransportResize.ACTION, request));
+            }
+            return resizeFuture.thenApply(_ -> 0L).exceptionally(err -> {
+                err = SQLExceptions.unwrap(err);
+                if (err instanceof IllegalArgumentException ex
+                        && ex.getMessage().startsWith("Source index must exist: ")) {
+                    throw JobKilledException.of("Resize operation killed due to removal of temporary resize index");
+                }
+                throw Exceptions.toRuntimeException(err);
+            });
+        };
 
-        final int targetNumberOfShards = getNumberOfShards(analysis.settings());
-        validateNumberOfShardsForResize(sourceIndexMetadata, targetNumberOfShards);
-        validateReadOnlyIndexForResize(sourceIndexMetadata);
+        Consumer<Throwable> kill = _ -> {
+            String staleIndexUUID = findResizeSourceUUID(sourceIndexMetadata);
+            if (staleIndexUUID != null) {
+                var gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
+                client.execute(TransportGCDanglingArtifacts.ACTION, gcReq);
+            }
+        };
 
-        final ResizeRequest request = new ResizeRequest(
-            table.ident(),
-            partitionName == null ? List.of() : partitionName.values(),
-            targetNumberOfShards
+        String taskName = "resize-table: " + table.ident();
+        return tasksService.runAsyncFnTask(
+            plannerContext.jobId(),
+            plannerContext.transactionContext().sessionSettings().userName(),
+            taskName,
+            doResize,
+            kill
         );
-        GenericProperties<Object> withProperties = analysis.withProperties();
-        Object timeout = withProperties.get("timeout");
-        if (timeout != null) {
-            TimeValue timeValue = TimeValue.parseTimeValue(timeout.toString(), "timeout");
-            request.timeout(timeValue);
-            request.masterNodeTimeout(timeValue);
-        }
-        CompletableFuture<ResizeResponse> resizeFuture;
-        if (staleIndexUUID == null) {
-            resizeFuture = client.execute(TransportResize.ACTION, request);
-        } else {
-            GCDanglingArtifactsRequest gcReq = new GCDanglingArtifactsRequest(List.of(staleIndexUUID));
-            resizeFuture = client.execute(TransportGCDanglingArtifacts.ACTION, gcReq)
-                .thenCompose(_ -> client.execute(TransportResize.ACTION, request));
-        }
-        return resizeFuture.thenApply(_ -> 0L);
     }
 
     @VisibleForTesting

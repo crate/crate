@@ -85,7 +85,7 @@ public class AlterTablePlan implements Plan {
         );
 
 
-        dependencies.alterTableClient().setSettingsOrResize(stmt)
+        dependencies.alterTableClient().setSettingsOrResize(plannerContext, stmt)
             .whenComplete(new OneRowActionListener<>(consumer, rCount -> new Row1(rCount == null ? -1 : rCount)));
     }
 
