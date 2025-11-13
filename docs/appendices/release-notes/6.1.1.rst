@@ -84,3 +84,7 @@ Fixes
 
 - Fixed an issue resulting in broken :ref:`administration-logical-replication`
   when subscribing to clusters running versions < :ref:`version_6.1.0`.
+
+- Fixed a translog recovery issue, happening when a ``NULL`` value was stored
+  in an :ref:`type-object` with policy :ref:`type-object-columns-ignored` on
+  tables created before :ref:`version 5.5.0 <version_5.5.0>`.
