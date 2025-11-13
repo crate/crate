@@ -94,3 +94,6 @@ Administration and Operations
   available after a cluster restart.
 
 - Added ``last_job_id`` column to the :ref:`sys.sessions <sys-sessions>` table.
+
+- Added ``total_affected_row_count`` to the `QueryStats` JMX MBean and the
+  `sys.jobs_metrics` table, grouped by query type.
