@@ -53,6 +53,7 @@ import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
 
 /**
@@ -250,7 +251,7 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
         }
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {
-            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref, ref.column(), sourceSymbols.inputs);
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref.ident().tableIdent(), ref, ref.column(), sourceSymbols.inputs);
             if (subscriptOnRoot != null) {
                 return subscriptOnRoot;
             }
@@ -267,7 +268,7 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
     public Symbol visitField(ScopedSymbol field, SourceSymbols sourceSymbols) {
         InputColumn inputColumn = sourceSymbols.inputs.get(field);
         if (inputColumn == null) {
-            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(field, field.column(), sourceSymbols.inputs);
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(field.relation(), field, field.column(), sourceSymbols.inputs);
             if (subscriptOnRoot == null) {
                 throw new IllegalArgumentException("Couldn't find " + field + " in " + sourceSymbols);
             } else {
@@ -297,12 +298,12 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
     }
 
     @Nullable
-    private static Symbol tryCreateSubscriptOnRoot(Symbol symbol, ColumnIdent column, HashMap<Symbol, InputColumn> inputs) {
+    private static Symbol tryCreateSubscriptOnRoot(RelationName relationName, Symbol symbol, ColumnIdent column, HashMap<Symbol, InputColumn> inputs) {
         if (column.isRoot()) {
             return null;
         }
         ColumnIdent root = column.getRoot();
-        InputColumn rootIC = lookupValueByColumn(inputs, root);
+        InputColumn rootIC = lookupValueByColumn(relationName, inputs, root);
         if (rootIC == null) {
             return symbol;
         }

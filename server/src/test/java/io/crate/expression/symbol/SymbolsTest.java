@@ -25,12 +25,15 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -83,5 +86,19 @@ public class SymbolsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(Symbols.contains(List.of(o), o1)).isEqualTo(true);
         assertThat(Symbols.contains(List.of(o), y)).isEqualTo(false);
         assertThat(Symbols.contains(List.of(o1), ox)).isEqualTo(true);
+    }
+
+    @Test
+    public void test_lookupValueByColumn_must_compare_scoped_symbols_relations() throws IOException {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl1 (o object)")
+            .addTable("create table tbl2 (o object)");
+        ScopedSymbol t1o = (ScopedSymbol) e.analyze("select t1.o from tbl1 as t1").outputs().getFirst();
+        ScopedSymbol t2o = (ScopedSymbol) e.analyze("select t2.o from tbl2 as t2").outputs().getFirst();
+        var valuesBySymbol = Map.of(t1o, "lookupValueByColumn returned t1.o", t2o, "lookupValueByColumn returned t2.o");
+        ColumnIdent o = ColumnIdent.of("o");
+
+        assertThat(Symbols.lookupValueByColumn(new RelationName(null, "t1"), valuesBySymbol, o)).isEqualTo("lookupValueByColumn returned t1.o");
+        assertThat(Symbols.lookupValueByColumn(new RelationName(null, "t2"), valuesBySymbol, o)).isEqualTo("lookupValueByColumn returned t2.o");
     }
 }
