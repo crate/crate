@@ -58,7 +58,7 @@ public class QueryStatsTest {
 
     private MetricsView createMetric(Classification classification, long duration) {
         Metrics metrics = new Metrics(classification);
-        metrics.recordValue(duration);
+        metrics.recordValues(duration, 0);
         return metrics.createMetricsView();
     }
 

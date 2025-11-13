@@ -109,4 +109,9 @@ public class RetryOnFailureResultReceiver<T> implements ResultReceiver<T> {
                ", attempt=" + attempt +
                '}';
     }
+
+    @Override
+    public long affectedRowCount() {
+        return delegate.affectedRowCount();
+    }
 }

@@ -65,6 +65,22 @@ public interface QueryStatsMBean {
 
     long getUndefinedQuerySumOfDurations();
 
+    long getSelectQueryAffectedRowCount();
+
+    long getInsertQueryAffectedRowCount();
+
+    long getUpdateQueryAffectedRowCount();
+
+    long getDeleteQueryAffectedRowCount();
+
+    long getManagementQueryAffectedRowCount();
+
+    long getDDLQueryAffectedRowCount();
+
+    long getCopyQueryAffectedRowCount();
+
+    long getUndefinedQueryAffectedRowCount();
+
     long getSelectQueryFailedCount();
 
     long getInsertQueryFailedCount();
