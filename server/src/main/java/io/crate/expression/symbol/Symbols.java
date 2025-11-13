@@ -41,6 +41,7 @@ import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.types.DataType;
 
 public final class Symbols {
@@ -69,13 +70,17 @@ public final class Symbols {
     }
 
     @Nullable
-    public static <V> V lookupValueByColumn(Map<? extends Symbol, V> valuesBySymbol, ColumnIdent column) {
+    public static <V> V lookupValueByColumn(RelationName relationName, Map<? extends Symbol, V> valuesBySymbol, ColumnIdent column) {
         for (Map.Entry<? extends Symbol, V> entry : valuesBySymbol.entrySet()) {
             Symbol key = entry.getKey();
-            if (key instanceof Reference ref && ref.column().equals(column)) {
+            if (key instanceof Reference ref
+                    && ref.column().equals(column)
+                    && ref.ident().tableIdent().equals(relationName)) {
                 return entry.getValue();
             }
-            if (key instanceof ScopedSymbol scopedSymbol && scopedSymbol.column().equals(column)) {
+            if (key instanceof ScopedSymbol scopedSymbol
+                    && scopedSymbol.column().equals(column)
+                    && scopedSymbol.relation().equals(relationName)) {
                 return entry.getValue();
             }
         }
