@@ -532,4 +532,22 @@ public class SourceParserTest extends ESTestCase {
         ));
         assertThat(Maps.getByPath(result, "o.x")).isInstanceOf(BigDecimal.class);
     }
+
+    @Test
+    public void test_invalid_translog_entry_with_duplicate_keys_can_still_be_parsed() throws Exception {
+        SourceParser sourceParser = new SourceParser(UnaryOperator.identity(), true);
+        ObjectType objectType = ObjectType.of(ColumnPolicy.IGNORED).build();
+        sourceParser.register(ColumnIdent.of("_doc", List.of("o")), objectType);
+        Map<String, Object> result = sourceParser.parse(new BytesArray(
+            """
+                {
+                    "o": {
+                        "x": null,
+                        "x": null
+                    }
+                }
+            """
+        ));
+        assertThat(Maps.getByPath(result, "o.x")).isEqualTo(null);
+    }
 }

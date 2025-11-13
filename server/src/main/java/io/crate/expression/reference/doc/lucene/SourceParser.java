@@ -32,12 +32,14 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -45,6 +47,8 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentParser.Token;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jetbrains.annotations.Nullable;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.SysColumns;
@@ -75,6 +79,8 @@ public final class SourceParser {
     public static final String UNKNOWN_COLUMN_PREFIX = "_u_";
 
     private static final Logger LOGGER = LogManager.getLogger(SourceParser.class);
+    // Thread safe, can be re-used
+    private static final ObjectMapper OBJECT_MAPPER = new ObjectMapper();
 
     private final Map<String, Object> requiredColumns = new HashMap<>();
     private final UnaryOperator<String> lookupNameBySourceKey;
@@ -141,9 +147,22 @@ public final class SourceParser {
             }
             return parseObject(parser, requiredColumns, includeUnknownCols);
         } catch (IOException e) {
-            // Not logging exception, it's bubbled up and shown as MapperParsingException.
-            LOGGER.warn("Failed to parse doc's source: {}", bytes.utf8ToString());
-            throw new UncheckedIOException(e);
+            // Not logging exception, it's bubbled up
+            // and shown as MapperParsingException (if last resort attempt fails as well).
+            String json = bytes.utf8ToString();
+            LOGGER.warn("Failed to parse doc's source: {}", json);
+            try {
+                // There was a regression in 5.10.13 allowing duplicate keys to be persisted in the translog.
+                // As a last resort to fix corrupted translog, we sanitize json by removing duplicate keys,
+                // create a parser out of sanitized data and try to parse again.
+
+                // Jackson parser doesn't throw on duplicate keys, last value wins.
+                // Only NULL value was hitting duplicate key issue, so it's not important which value wins.
+                LinkedHashMap<String, Object> result = OBJECT_MAPPER.readValue(json, LinkedHashMap.class);
+                return parse(new BytesArray(OBJECT_MAPPER.writeValueAsString(result)), requiredColumns, includeUnknownCols);
+            } catch (IOException ex) {
+                throw new UncheckedIOException(ex);
+            }
         }
     }
 
