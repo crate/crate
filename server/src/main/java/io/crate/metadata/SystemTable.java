@@ -33,9 +33,11 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.SequencedMap;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
+import java.util.stream.Stream;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.settings.Settings;
@@ -60,7 +62,7 @@ import io.crate.types.ObjectType;
 public final class SystemTable<T> implements TableInfo {
 
     private final RelationName name;
-    private final Map<ColumnIdent, Reference> columns;
+    private final SequencedMap<ColumnIdent, Reference> columns;
     private final Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions;
     private final List<ColumnIdent> primaryKeys;
     private final List<Reference> rootColumns;
@@ -69,8 +71,9 @@ public final class SystemTable<T> implements TableInfo {
     private final Set<Operation> supportedOperations;
     private final RowGranularity rowGranularity;
 
+    /// @param columns top level and child columns ordered by position and name
     public SystemTable(RelationName name,
-                       Map<ColumnIdent, Reference> columns,
+                       SequencedMap<ColumnIdent, Reference> columns,
                        Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions,
                        List<ColumnIdent> primaryKeys,
                        Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns,
@@ -163,6 +166,12 @@ public final class SystemTable<T> implements TableInfo {
     @NotNull
     public Iterator<Reference> iterator() {
         return columns.values().iterator();
+    }
+
+    @Override
+    public Stream<Reference> allColumnsSorted() {
+        // Columns are ordered already
+        return columns.values().stream();
     }
 
     public Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions() {

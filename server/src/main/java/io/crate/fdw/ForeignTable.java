@@ -154,6 +154,12 @@ public record ForeignTable(RelationName name,
     }
 
     @Override
+    public Stream<Reference> allColumnsSorted() {
+        return references.values().stream()
+            .sorted(Reference.CMP_BY_POSITION_THEN_NAME);
+    }
+
+    @Override
     public Iterator<Reference> iterator() {
         return references.values().iterator();
     }

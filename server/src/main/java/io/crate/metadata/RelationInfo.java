@@ -26,6 +26,7 @@ import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 import java.util.Collection;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
@@ -57,6 +58,9 @@ public interface RelationInfo extends Iterable<Reference> {
             return this.prettyName;
         }
     }
+
+    /// A stream over both - top level and child columns - sorted by position and name
+    public Stream<Reference> allColumnsSorted();
 
     /**
      * Returns the root columns of this table with predictable order.
