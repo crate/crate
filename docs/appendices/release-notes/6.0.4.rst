@@ -127,3 +127,7 @@ Fixes
 
 - Fixed an issue causing a ``GROUP BY ... LIMIT 0`` statement to not release
   it's accounted memory on the ``QUERY`` circuit breaker.
+
+- Fixed an issue where certain join queries returned incorrect results when the
+  join condition referenced unknown object sub-columns coming from aliased CTEs
+  in nested joins.
