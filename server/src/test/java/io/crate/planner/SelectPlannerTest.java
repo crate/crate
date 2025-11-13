@@ -1692,4 +1692,33 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(pkAndVersions).hasSize(1);
         assertThat(pkAndVersions.iterator().next()).hasSize(1);
     }
+
+    @Test
+    public void test_join_condition_on_object_subscript_with_same_name() throws Exception {
+        var e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (o object as (x int))")
+            .addTable("create table t2 (o object as (x int))");
+        String statement =
+            """
+            WITH cte as (SELECT * FROM t1)
+            SELECT
+                t2.o
+            FROM
+                t2
+                INNER JOIN cte on t2.o['x'] = cte.o['x']
+            """;
+        LogicalPlan logicalPlan = e.logicalPlan(statement);
+        assertThat(logicalPlan).hasOperators(
+            "Eval[o]",
+            "  └ HashJoin[INNER | (o['x'] = o['x'])]",
+            "    ├ Collect[doc.t2 | [o, o['x']] | true]",
+            "    └ Rename[o] AS cte",
+            "      └ Collect[doc.t1 | [o] | true]"
+        );
+        Join join = e.plan(statement);
+        // join inputs are left.outputs() + right.outputs()
+        //   [o, o['x'], o]
+        //    0, 1,      2
+        assertThat(join.joinPhase().joinCondition()).isSQL("(INPUT(1) = INPUT(2)['x'])");
+    }
 }
