@@ -44,6 +44,7 @@ import org.elasticsearch.transport.TransportService;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
+import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.TaskMissing;
@@ -134,10 +135,17 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
     private CompletableFuture<DistributedResultResponse> nodeOperation(final DistributedResultRequest request,
                                                                        @Nullable Iterator<TimeValue> retryDelay) {
         RootTask rootTask = tasksService.getTaskOrNull(request.jobId());
+        final Throwable throwable = request.throwable();
         if (rootTask == null) {
-            if (tasksService.recentlyFailed(request.jobId())) {
-                throw JobKilledException.of(
+            Throwable recentlyFailed = tasksService.recentlyFailedCause(request.jobId());
+            if (recentlyFailed != null) {
+                if (throwable != null) {
+                    throw Exceptions.toRuntimeException(throwable);
+                }
+                var ex = JobKilledException.of(
                     "Received result for job=" + request.jobId() + " but there is no context for this job due to a failure during the setup.");
+                ex.addSuppressed(recentlyFailed);
+                throw ex;
             } else {
                 return retryOrFailureResponse(request, retryDelay);
             }
@@ -163,7 +171,6 @@ public class TransportDistributedResultAction extends TransportAction<NodeReques
                     request.executionPhaseInputId()));
         }
 
-        Throwable throwable = request.throwable();
         if (throwable == null) {
             SendResponsePageResultListener pageResultListener = new SendResponsePageResultListener();
             pageBucketReceiver.setBucket(
