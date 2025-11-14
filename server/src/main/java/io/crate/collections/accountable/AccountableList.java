@@ -21,7 +21,6 @@
 
 package io.crate.collections.accountable;
 
-import static org.apache.lucene.util.RamUsageEstimator.NUM_BYTES_ARRAY_HEADER;
 import static org.apache.lucene.util.RamUsageEstimator.NUM_BYTES_OBJECT_REF;
 
 import java.util.AbstractList;
@@ -33,8 +32,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.RandomAccess;
 import java.util.function.LongConsumer;
-
-import org.apache.lucene.util.RamUsageEstimator;
 
 /**
  * List implementation accounting for shallow memory usage.
@@ -166,13 +163,11 @@ public class AccountableList<T> extends AbstractList<T> {
             int newCapacity = newLength(oldCapacity,
                 minCapacity - oldCapacity, /* minimum growth */
                 oldCapacity >> 1           /* preferred growth */);
-            // Same as RamUsageEstimator.shallowSizeOf(array) but without NUM_BYTES_ARRAY_HEADER as we are accounting only for expansion.
-            allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_OBJECT_REF * (newCapacity - oldCapacity)));
+            allocateBytes.accept(Long.MAX_VALUE - Integer.MAX_VALUE);
             elementData = Arrays.copyOf(elementData, newCapacity);
         } else {
             int length = Math.max(DEFAULT_CAPACITY, minCapacity);
-            // Inlining RamUsageEstimator.shallowSizeOf(array) since we want to account before allocation.
-            allocateBytes.accept(RamUsageEstimator.alignObjectSize((long) NUM_BYTES_ARRAY_HEADER + (long) NUM_BYTES_OBJECT_REF * length));
+            allocateBytes.accept(Long.MAX_VALUE - Integer.MAX_VALUE);
             elementData = new Object[length];
         }
         return elementData;
