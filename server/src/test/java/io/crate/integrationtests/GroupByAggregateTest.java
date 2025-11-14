@@ -35,7 +35,10 @@ import java.util.List;
 import java.util.stream.Stream;
 
 import org.assertj.core.data.Percentage;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.indices.breaker.CircuitBreakerService;
+import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -1481,5 +1484,25 @@ public class GroupByAggregateTest extends IntegTestCase {
             "[NULL]| 4",
             "NULL| 5"
         );
+    }
+
+    @Test
+    public void test_group_by_limit_zero_releases_breaker() throws Exception {
+        execute("CREATE TABLE t1 (name TEXT, x INT)");
+        execute("INSERT INTO t1 (name, x) VALUES ('Apple', 1), ('Apple', 2), ('Apple', 3)");
+        execute("REFRESH TABLE t1");
+
+        execute("SELECT name, MAX(x) FROM t1 GROUP BY name LIMIT 0");
+        assertThat(response.rowCount()).isEqualTo(0L);
+
+        assertBusy(() -> {
+            for (var node : cluster().getNodeNames()) {
+                var breakerService = cluster().getInstance(CircuitBreakerService.class, node);
+                CircuitBreaker queryCircuitBreaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+                assertThat(queryCircuitBreaker.getUsed())
+                    .withFailMessage("QUERY breaker did not reset on node=%s, used=%d", node, queryCircuitBreaker.getUsed())
+                    .isEqualTo(0L);
+            }
+        });
     }
 }
