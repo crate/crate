@@ -37,6 +37,7 @@ import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.collections.accountable.AccountableList;
@@ -96,8 +97,7 @@ public final class WindowFunctionBatchIterator {
         // As optimization we use 1 list that acts both as inputs(source) and as outputs.
         // The window function results are injected during the computation into spare cells that are eagerly created
         Function<Row, Object[]> materialize = row -> {
-            rowAccounting.accountForAndMaybeBreak(row);
-            return materializeWithSpare(row, windowFunctions.size());
+            throw new CircuitBreakingException("dummy");
         };
         return CollectingBatchIterator.newInstance(
             source,
