@@ -58,3 +58,6 @@ Fixes
   :ref:`sys.shards <sys-shards>` table stops exceeding
   :ref:`flush_threshold_size <sql-create-table-translog-flush-threshold-size>`.
 
+- Fixed an issue where certain join queries failed when the join condition
+  referenced unknown object sub-columns coming from aliased CTEs in nested
+  joins.

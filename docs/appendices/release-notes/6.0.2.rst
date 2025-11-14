@@ -47,3 +47,7 @@ Fixes
 - Fixed a regression introduced in :ref:`version_6.0.0`. When upgrading
   from a ``5.x`` cluster it changed metadata for blob tables in a way that
   is not forward compatible with 6.1.
+
+- Fixed an issue where certain join queries failed when the join condition
+  referenced unknown object sub-columns coming from aliased CTEs in nested
+  joins.

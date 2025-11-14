@@ -94,3 +94,7 @@ Fixes
 - Fixed the usage of the ``FORCE_MERGE`` thread pool to support parallel shard
   operations per node when increasing the pools size. As the default size is
   ``1``, this change does not affect existing installations.
+
+- Fixed an issue where certain join queries failed when the join condition
+  referenced unknown object sub-columns coming from aliased CTEs in nested
+  joins.
