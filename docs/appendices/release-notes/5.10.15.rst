@@ -58,3 +58,5 @@ Fixes
   :ref:`sys.shards <sys-shards>` table stops exceeding
   :ref:`flush_threshold_size <sql-create-table-translog-flush-threshold-size>`.
 
+- Fixed an issue causing a ``GROUP BY ... LIMIT 0`` statement to not release
+  it's accounted memory on the ``QUERY`` circuit breaker.
