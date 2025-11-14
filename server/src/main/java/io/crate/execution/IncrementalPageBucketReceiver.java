@@ -21,25 +21,25 @@
 
 package io.crate.execution;
 
-import io.crate.Streamer;
-import io.crate.common.exceptions.Exceptions;
-import io.crate.data.BatchIterator;
-import io.crate.data.Bucket;
-import io.crate.data.CollectingBatchIterator;
-import io.crate.data.Row;
-import io.crate.data.RowConsumer;
-import io.crate.execution.jobs.PageBucketReceiver;
-import io.crate.execution.jobs.PageResultListener;
-
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-
-import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collector;
+
+import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
+import org.jetbrains.annotations.NotNull;
+
+import io.crate.Streamer;
+import io.crate.common.exceptions.Exceptions;
+import io.crate.data.Bucket;
+import io.crate.data.InMemoryBatchIterator;
+import io.crate.data.Row;
+import io.crate.data.RowConsumer;
+import io.crate.data.SentinelRow;
+import io.crate.execution.jobs.PageBucketReceiver;
+import io.crate.execution.jobs.PageResultListener;
 
 public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
 
@@ -51,7 +51,6 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
     private final Executor executor;
     private final Streamer<?>[] streamers;
 
-    private final BatchIterator<Row> lazyBatchIterator;
     private CompletableFuture<?> currentlyAccumulating;
 
     public IncrementalPageBucketReceiver(Collector<Row, T, Iterable<Row>> collector,
@@ -65,12 +64,15 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
         this.executor = executor;
         this.streamers = streamers;
         this.remainingUpstreams = new AtomicInteger(upstreamsCount);
-        lazyBatchIterator = CollectingBatchIterator.newInstance(
-            () -> {},
-            t -> {},
-            () -> processingFuture,
-            true);
-        rowConsumer.accept(lazyBatchIterator, null);
+
+        processingFuture.whenComplete((it, t) -> {
+            if (t == null) {
+                assert it != null : "Iterable must not be NULL";
+                rowConsumer.accept(InMemoryBatchIterator.of(it, SentinelRow.SENTINEL, false), t);
+            } else {
+                rowConsumer.accept(null, t);
+            }
+        });
     }
 
     private void processRows(Bucket rows) {
@@ -142,7 +144,6 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
 
     @Override
     public void kill(@NotNull Throwable t) {
-        lazyBatchIterator.kill(t);
         processingFuture.completeExceptionally(t);
     }
 }
