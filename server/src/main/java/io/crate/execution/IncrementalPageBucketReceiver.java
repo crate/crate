@@ -32,7 +32,6 @@ import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.Streamer;
-import io.crate.common.exceptions.Exceptions;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -52,6 +51,7 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
     private final Streamer<?>[] streamers;
 
     private CompletableFuture<?> currentlyAccumulating;
+    private volatile boolean killed = false;
 
     public IncrementalPageBucketReceiver(Collector<Row, T, Iterable<Row>> collector,
                                          RowConsumer rowConsumer,
@@ -76,8 +76,15 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
     }
 
     private void processRows(Bucket rows) {
-        for (Row row : rows) {
-            accumulator.accept(state, row);
+        try {
+            for (Row row : rows) {
+                if (killed) {
+                    return;
+                }
+                accumulator.accept(state, row);
+            }
+        } catch (Exception e) {
+            processingFuture.completeExceptionally(e);
         }
     }
 
@@ -101,17 +108,9 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
             } else {
                 currentlyAccumulating = currentlyAccumulating.whenComplete((r, t) -> {
                     if (t == null) {
-                        try {
-                            processRows(rows);
-                        } catch (Exception e) {
-                            var runtimeErr = Exceptions.toRuntimeException(t);
-                            processingFuture.completeExceptionally(runtimeErr);
-                            throw runtimeErr;
-                        }
+                        processRows(rows);
                     } else {
-                        var runtimeErr = Exceptions.toRuntimeException(t);
-                        processingFuture.completeExceptionally(runtimeErr);
-                        throw runtimeErr;
+                        processingFuture.completeExceptionally(t);
                     }
                 });
             }
@@ -144,6 +143,7 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
 
     @Override
     public void kill(@NotNull Throwable t) {
+        killed = true;
         processingFuture.completeExceptionally(t);
     }
 }
