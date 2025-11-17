@@ -184,45 +184,47 @@ public class WindowAgg extends ForwardingLogicalPlan {
             for (Projection projection : projections) {
                 sourcePlan.addProjection(projection);
             }
-        } else {
-            Symbol firstPartition = windowDefinition.partitions().getFirst();
-            int index = source.outputs().indexOf(firstPartition);
-            if (index == -1) {
-                //  We can have a top-level object column in outputs and partition by a sub-column.
-                //  Find index of the top column.
-                List<Symbol> intersection = new ArrayList<>();
-                Symbols.intersection(firstPartition, source.outputs(), intersection::add);
-                assert !intersection.isEmpty() : "Intersection of source outputs and partition definition must not be empty";
-                index = source.outputs().indexOf(intersection.getFirst());
+            return sourcePlan;
+        }
+
+        Symbol firstPartition = windowDefinition.partitions().getFirst();
+        int index = source.outputs().indexOf(firstPartition);
+        if (index == -1) {
+            // PARTITION BY on subscript/expression not contained in source outputs
+            // Modulo bucketing in nodes < 6.1.1 can't handle arbitrary expressions -> fallback to non distributed execution
+            sourcePlan = Merge.ensureOnHandler(sourcePlan, plannerContext);
+            for (Projection projection : projections) {
+                sourcePlan.addProjection(projection);
             }
+            return sourcePlan;
+        } else {
             assert index >= 0 && index < source.outputs().size() : "Column to distribute must be present in the source plan outputs";
             sourcePlan.setDistributionInfo(
                 new DistributionInfo(DistributionType.MODULO, index)
             );
-            MergePhase distWindowAgg = new MergePhase(
-                UUIDs.dirtyUUID(),
-                plannerContext.nextExecutionPhaseId(),
-                "distWindowAgg",
-                resultDescription.nodeIds().size(),
-                resultDescription.numOutputs(),
-                resultDescription.nodeIds(),
-                resultDescription.streamOutputs(),
-                projections,
-                resultDescription.nodeIds(),
-                DistributionInfo.DEFAULT_BROADCAST,
-                null
-            );
-            return new Merge(
-                sourcePlan,
-                distWindowAgg,
-                LimitAndOffset.NO_LIMIT,
-                LimitAndOffset.NO_OFFSET,
-                windowAggProjection.outputs().size(),
-                resultDescription.maxRowsPerNode(),
-                null
-            );
         }
-        return sourcePlan;
+        MergePhase distWindowAgg = new MergePhase(
+            UUIDs.dirtyUUID(),
+            plannerContext.nextExecutionPhaseId(),
+            "distWindowAgg",
+            resultDescription.nodeIds().size(),
+            resultDescription.numOutputs(),
+            resultDescription.nodeIds(),
+            resultDescription.streamOutputs(),
+            projections,
+            resultDescription.nodeIds(),
+            DistributionInfo.DEFAULT_BROADCAST,
+            null
+        );
+        return new Merge(
+            sourcePlan,
+            distWindowAgg,
+            LimitAndOffset.NO_LIMIT,
+            LimitAndOffset.NO_OFFSET,
+            windowAggProjection.outputs().size(),
+            resultDescription.maxRowsPerNode(),
+            null
+        );
     }
 
     @Nullable
