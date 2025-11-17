@@ -30,6 +30,7 @@ import static io.crate.types.GeoShapeType.Names.TREE_BKD;
 import static io.crate.types.GeoShapeType.Names.TREE_GEOHASH;
 import static io.crate.types.GeoShapeType.Names.TREE_LEGACY_QUADTREE;
 import static io.crate.types.GeoShapeType.Names.TREE_QUADTREE;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -1729,6 +1730,27 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
         returning = indexer.returnValues(item(MapBuilder.newMapBuilder().put("a", null).put("c", null).map()));
         // {a=null, b=null, c=null} - 'b' is correctly generated and 'c' is not defaulted to 10
         assertThat(returning[0]).isEqualTo(MapBuilder.newMapBuilder().put("a", null).put("b", null).put("c", null).map());
+    }
+
+    @Test
+    public void test_array_type_uses_value_for_insert_from_inner_type() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (x array(varchar(1)))");
+        DocTableInfo table = executor.resolveTableInfo("t");
+        Indexer indexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            new ArrayList<>(List.of(table.getReference(ColumnIdent.of("x")))),
+            null,
+            null
+        );
+
+        assertThatThrownBy(() -> indexer.index(item(List.of("aa", "bb"))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("'aa' is too long for the text type of length: 1");
     }
 
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
