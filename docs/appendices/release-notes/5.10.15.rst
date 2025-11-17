@@ -47,6 +47,10 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that allowed inserting values into ``ARRAY`` columns that
+  violated the array's inner type constraints. For example it was possible to
+  insert ``['aa']`` into a column of type ``ARRAY(VARCHAR(1))``.
+
 - Fixed an issue that could lead to incorrect results for window functions when
   the window function used a ``PARTITION BY`` clause on an object subscript
   coming from a view or CTE and if running in a cluster with more than one node.
