@@ -25,6 +25,7 @@ import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -32,6 +33,10 @@ import static org.mockito.Mockito.when;
 
 import java.util.Set;
 
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.node.DiscoveryNodes.Builder;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -39,11 +44,13 @@ import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;
 import io.crate.data.Row;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
+import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -222,7 +229,37 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
 
         // distributeByColumn used to be not found be -1 due to  virtual table having only top-level column in its outputs.
         var collect = (Collect) ((Merge) merge.subPlan()).subPlan();
-        assertThat(collect.collectPhase().distributionInfo().distributeByColumn()).isEqualTo(0);
+        assertThat(collect.collectPhase().distributionInfo().distributeByColumn()).isFunction(
+            SubscriptObjectFunction.NAME,
+            x -> assertThat(x).isInputColumn(0),
+            x -> assertThat(x).isLiteral("a")
+        );
+
+
+        // If there is a < 6.1.1 node it will use a non-distributed execution plan
+        ClusterState currentState = clusterService.state();
+        ClusterState stateWithOldNode = new ClusterState.Builder(currentState)
+            .nodes(
+                new Builder(currentState.nodes())
+                    .add(new DiscoveryNode("dummy-node", buildNewFakeTransportAddress(), Version.V_6_0_3))
+            )
+            .build();
+        when(plannerContext.clusterState()).thenReturn(stateWithOldNode);
+        merge = (Merge) plan.build(
+            mock(DependencyCarrier.class),
+            plannerContext,
+            Set.of(),
+            new ProjectionBuilder(e.nodeCtx),
+            NO_LIMIT,
+            NO_OFFSET,
+            null,
+            null,
+            Row.EMPTY,
+            SubQueryResults.EMPTY
+        );
+        assertThat(merge.nodeIds()).hasSize(1);
+        collect = (Collect) merge.subPlan();
+        assertThat(collect.collectPhase().distributionInfo()).isEqualTo(DistributionInfo.DEFAULT_BROADCAST);
     }
 
     private WindowDefinition wd(String expression) {

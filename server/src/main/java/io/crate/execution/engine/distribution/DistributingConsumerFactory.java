@@ -33,6 +33,7 @@ import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 
 import io.crate.Streamer;
+import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.NodeOperation;
@@ -42,6 +43,9 @@ import io.crate.execution.jobs.kill.KillJobsNodeRequest;
 import io.crate.execution.jobs.kill.KillResponse;
 import io.crate.execution.support.ActionExecutor;
 import io.crate.execution.support.NodeRequest;
+import io.crate.expression.InputFactory;
+import io.crate.metadata.NodeContext;
+import io.crate.metadata.TransactionContext;
 import io.crate.planner.distribution.DistributionInfo;
 
 @Singleton
@@ -54,9 +58,11 @@ public class DistributingConsumerFactory {
     private final ActionExecutor<NodeRequest<DistributedResultRequest>, DistributedResultResponse> distributedResultAction;
     private final ActionExecutor<KillJobsNodeRequest, KillResponse> killNodeAction;
     private final ThreadPool threadPool;
+    private final InputFactory inputFactory;
 
     @Inject
     public DistributingConsumerFactory(ClusterService clusterService,
+                                       NodeContext nodeContext,
                                        ThreadPool threadPool,
                                        Node node) {
         this.clusterService = clusterService;
@@ -64,10 +70,12 @@ public class DistributingConsumerFactory {
         this.distributedResultAction = req -> node.client().execute(DistributedResultAction.INSTANCE, req);
         this.killNodeAction = req -> node.client().execute(KillJobsNodeAction.INSTANCE, req);
         this.threadPool = threadPool;
+        this.inputFactory = new InputFactory(nodeContext);
 
     }
 
-    public DistributingConsumer create(NodeOperation nodeOperation,
+    public DistributingConsumer create(TransactionContext txnCtx,
+                                       NodeOperation nodeOperation,
                                        RamAccounting ramAccounting,
                                        DistributionInfo distributionInfo,
                                        UUID jobId,
@@ -90,10 +98,13 @@ public class DistributingConsumerFactory {
                         ramAccounting
                     );
                 } else {
+                    var ctx = inputFactory.ctxForInputColumns(txnCtx);
+                    Input<?> input = ctx.add(distributionInfo.distributeByColumn());
                     multiBucketBuilder = new ModuloBucketBuilder(
                         streamers,
                         nodeOperation.downstreamNodes().size(),
-                        distributionInfo.distributeByColumn(),
+                        input,
+                        ctx.expressions(),
                         ramAccounting
                     );
                 }

@@ -41,10 +41,12 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.NodeOperation;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
+import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.TestingHelpers;
 import io.crate.types.LongType;
 
 public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUnitTest {
@@ -55,6 +57,7 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
     public void prepare() {
         rowDownstreamFactory = new DistributingConsumerFactory(
             clusterService,
+            TestingHelpers.createNodeContext(),
             THREAD_POOL,
             mock(Node.class)
         );
@@ -91,7 +94,14 @@ public class DistributingConsumerFactoryTest extends CrateDummyClusterServiceUni
             null
         );
         NodeOperation nodeOperation = NodeOperation.withDownstream(collectPhase, mergePhase, (byte) 0);
-        return rowDownstreamFactory.create(nodeOperation, RamAccounting.NO_ACCOUNTING, collectPhase.distributionInfo(), jobId, Paging.PAGE_SIZE);
+        return rowDownstreamFactory.create(
+            CoordinatorTxnCtx.systemTransactionContext(),
+            nodeOperation,
+            RamAccounting.NO_ACCOUNTING,
+            collectPhase.distributionInfo(),
+            jobId,
+            Paging.PAGE_SIZE
+        );
     }
 
     @Test

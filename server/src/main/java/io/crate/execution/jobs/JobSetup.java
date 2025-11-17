@@ -517,7 +517,13 @@ public class JobSetup {
                 case BROADCAST:
                 case MODULO:
                     RowConsumer consumer = distributingConsumerFactory.create(
-                        nodeOperation, ramAccounting, phase.distributionInfo(), jobId(), pageSize);
+                        transactionContext,
+                        nodeOperation,
+                        ramAccounting,
+                        phase.distributionInfo(),
+                        jobId(),
+                        pageSize
+                    );
                     if (logger.isTraceEnabled()) {
                         logger.trace(
                             "action=getRowReceiver, distributionType={}, phase={}, targetConsumer={}, target={}/{},",

@@ -54,6 +54,7 @@ import io.crate.data.testing.BatchSimulatingIterator;
 import io.crate.data.testing.FailingBatchIterator;
 import io.crate.data.testing.TestingBatchIterators;
 import io.crate.data.testing.TestingRowConsumer;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.execution.engine.distribution.merge.PassThroughPagingIterator;
 import io.crate.execution.jobs.CumulativePageBucketReceiver;
 import io.crate.execution.jobs.DistResultRXTask;
@@ -165,10 +166,11 @@ public class DistributingConsumerTest extends ESTestCase {
 
     private DistributingConsumer createDistributingConsumer(Streamer<?>[] streamers, TransportDistributedResultAction distributedResultAction) {
         int pageSize = 2;
+        RowCollectExpression rowCollectExpression = new RowCollectExpression(0);
         return new DistributingConsumer(
             executorService,
             UUID.randomUUID(),
-            new ModuloBucketBuilder(streamers, 1, 0, RamAccounting.NO_ACCOUNTING),
+            new ModuloBucketBuilder(streamers, 1, rowCollectExpression, List.of(rowCollectExpression), RamAccounting.NO_ACCOUNTING),
             1,
             (byte) 0,
             0,
