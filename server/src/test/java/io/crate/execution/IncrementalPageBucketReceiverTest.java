@@ -21,7 +21,7 @@
 
 package io.crate.execution;
 
-import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import java.time.Duration;
 import java.util.ArrayList;
@@ -81,6 +81,26 @@ public class IncrementalPageBucketReceiverTest {
         pageBucketReceiver.setBucket(0, Bucket.EMPTY, true, _ -> {});
         assertThat(pageBucketReceiver.completionFuture().isCompletedExceptionally()).isTrue();
         assertThat(batchConsumer.completionFuture().isCompletedExceptionally()).isTrue();
+    }
+
+    @Test
+    public void test_processing_future_completed_when_accumulator_throws() {
+        TestingRowConsumer batchConsumer = new TestingRowConsumer();
+
+        Collector<Row, ?, Iterable<Row>> collector = Collectors.collectingAndThen(Collectors.toList(), r -> r);
+        collector = Collectors.flatMapping(_ -> {
+            throw new RuntimeException("dummy"); // Failing accumulator
+        }, collector);
+        var pageBucketReceiver = new IncrementalPageBucketReceiver<>(
+            collector,
+            batchConsumer,
+            Runnable::run,
+            new Streamer[1],
+            1
+        );
+        pageBucketReceiver.setBucket(0, new CollectionBucket(Collections.singletonList(new Object[]{1})), true, _ -> {});
+        assertThat(pageBucketReceiver.completionFuture()).isCompletedExceptionally();
+        assertThat(batchConsumer.completionFuture()).isCompletedExceptionally();
     }
 
     @Test
