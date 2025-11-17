@@ -21,12 +21,16 @@
 
 package io.crate.planner.distribution;
 
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
+
+import io.crate.expression.symbol.InputColumn;
 
 public class DistributionInfoTest extends ESTestCase {
 
@@ -54,5 +58,21 @@ public class DistributionInfoTest extends ESTestCase {
         DistributionInfo streamed = new DistributionInfo(in);
 
         assertThat(streamed).isEqualTo(distributionInfo);
+    }
+
+    @Test
+    public void test_bwc_streaming() throws Exception {
+        DistributionInfo distributionInfo = new DistributionInfo(DistributionType.MODULO, new InputColumn(2));
+        try (var out = new BytesStreamOutput()) {
+            out.setVersion(Version.V_5_10_13);
+            distributionInfo.writeTo(out);
+
+            try (var in = out.bytes().streamInput()) {
+                in.setVersion(Version.V_5_10_13);
+                DistributionInfo infoIn = new DistributionInfo(in);
+                assertThat(infoIn).isEqualTo(distributionInfo);
+                assertThat(infoIn.distributeByColumn()).isInputColumn(2);
+            }
+        }
     }
 }

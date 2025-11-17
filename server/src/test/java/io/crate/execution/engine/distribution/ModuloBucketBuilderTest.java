@@ -23,6 +23,8 @@ package io.crate.execution.engine.distribution;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.List;
+
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
@@ -30,6 +32,7 @@ import io.crate.Streamer;
 import io.crate.data.Bucket;
 import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
@@ -37,8 +40,14 @@ public class ModuloBucketBuilderTest extends ESTestCase {
 
     @Test
     public void testRowsAreDistributedByModulo() throws Exception {
+        RowCollectExpression rowCollectExpression = new RowCollectExpression(0);
         final ModuloBucketBuilder builder = new ModuloBucketBuilder(
-            new Streamer[]{DataTypes.INTEGER.streamer()}, 2, 0, RamAccounting.NO_ACCOUNTING);
+            new Streamer[]{DataTypes.INTEGER.streamer()},
+            2,
+            rowCollectExpression,
+            List.of(rowCollectExpression),
+            RamAccounting.NO_ACCOUNTING
+        );
 
         builder.add(new Row1(1));
         builder.add(new Row1(2));

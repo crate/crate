@@ -21,13 +21,16 @@
 
 package io.crate.execution.engine.distribution;
 
-import io.crate.Streamer;
-import io.crate.data.Row;
-import io.crate.data.breaker.RamAccounting;
-
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.List;
+
+import org.jetbrains.annotations.Nullable;
+
+import io.crate.Streamer;
+import io.crate.data.Input;
+import io.crate.data.Row;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.collect.CollectExpression;
 
 /**
  * builds N buckets where N is passed in the CTOR.
@@ -37,12 +40,18 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
 
     private final int numBuckets;
     private final List<StreamBucket.Builder> bucketBuilders;
-    private final int distributedByColumnIdx;
+    private final Input<?> distributeBy;
+    private final List<CollectExpression<Row, ?>> expressions;
     private int size = 0;
 
-    public ModuloBucketBuilder(Streamer<?>[] streamers, int numBuckets, int distributedByColumnIdx, RamAccounting ramAccounting) {
+    public ModuloBucketBuilder(Streamer<?>[] streamers,
+                               int numBuckets,
+                               Input<?> distributeBy,
+                               List<CollectExpression<Row, ?>> expressions,
+                               RamAccounting ramAccounting) {
         this.numBuckets = numBuckets;
-        this.distributedByColumnIdx = distributedByColumnIdx;
+        this.distributeBy = distributeBy;
+        this.expressions = expressions;
         this.bucketBuilders = new ArrayList<>(numBuckets);
         for (int i = 0; i < numBuckets; i++) {
             bucketBuilders.add(new StreamBucket.Builder(streamers, ramAccounting));
@@ -51,7 +60,8 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
 
     @Override
     public void add(Row row) {
-        StreamBucket.Builder builder = bucketBuilders.get(getBucket(row));
+        int bucket = getBucket(row);
+        StreamBucket.Builder builder = bucketBuilders.get(bucket);
         builder.add(row);
         size++;
     }
@@ -76,11 +86,16 @@ public class ModuloBucketBuilder implements MultiBucketBuilder {
      * get bucket number by doing modulo hashcode of the defined row-element
      */
     private int getBucket(Row row) {
-        int hash = hashCode(row.get(distributedByColumnIdx));
+        for (int i = 0; i < expressions.size(); i++) {
+            expressions.get(i).setNextRow(row);
+        }
+        Object value = distributeBy.value();
+        int hash = hashCode(value);
         if (hash == Integer.MIN_VALUE) {
             hash = 0; // Math.abs(Integer.MIN_VALUE) == Integer.MIN_VALUE
         }
-        return Math.abs(hash) % numBuckets;
+        int bucketIdx = Math.abs(hash) % numBuckets;
+        return bucketIdx;
     }
 
     private static int hashCode(@Nullable Object value) {
