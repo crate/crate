@@ -813,7 +813,7 @@ public class Indexer {
         Object[] values = item.insertValues();
         for (int i = 0; i < values.length; i++) {
             Reference reference = columns.get(i);
-            Object value = valueForInsert(reference.valueType(), values[i]);
+            Object value = values[i];
             // No granularity check since PARTITIONED BY columns cannot be added dynamically.
             if (value == null) {
                 continue;
