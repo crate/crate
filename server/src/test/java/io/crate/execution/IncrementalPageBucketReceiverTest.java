@@ -85,6 +85,26 @@ public class IncrementalPageBucketReceiverTest {
     }
 
     @Test
+    public void test_processing_future_completed_when_accumulator_throws() {
+        TestingRowConsumer batchConsumer = new TestingRowConsumer();
+
+        Collector<Row, ?, Iterable<Row>> collector = Collectors.collectingAndThen(Collectors.toList(), r -> r);
+        collector = Collectors.flatMapping(_ -> {
+            throw new RuntimeException("dummy"); // Failing accumulator
+        }, collector);
+        var pageBucketReceiver = new IncrementalPageBucketReceiver<>(
+            collector,
+            batchConsumer,
+            Runnable::run,
+            new Streamer[1],
+            1
+        );
+        pageBucketReceiver.setBucket(0, new CollectionBucket(Collections.singletonList(new Object[]{1})), true, _ -> {});
+        assertThat(pageBucketReceiver.completionFuture()).completesExceptionallyWithin(1, TimeUnit.SECONDS);
+        assertThat(batchConsumer.completionFuture()).completesExceptionallyWithin(1, TimeUnit.SECONDS);
+    }
+
+    @Test
     public void test_listener_doesnt_need_more_when_processRows_throws() {
         TestingRowConsumer batchConsumer = new TestingRowConsumer();
         Collector<Row, Object, Iterable<Row>> collector = new Collector<>() {
