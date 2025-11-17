@@ -75,3 +75,7 @@ Fixes
 - Fixed an issue that caused RAM under-accounting, potentially leading to an
   ``OutOfMemoryError`` when a large result set was returned by the ``HTTP``
   endpoint.
+
+- Fixed an issue causing :ref:`sql-copy-from` statements to fail with an
+  ``CircuitBreakerException`` when no concrete ``bulk_size`` argument was
+  defined and the available memory is saturated on the first internal requests.
