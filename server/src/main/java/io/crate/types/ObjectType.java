@@ -232,7 +232,10 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
             return map;
         }
 
-        HashMap<String, Object> newMap = (map instanceof LinkedHashMap<String, Object>) ? new LinkedHashMap<>(map) : new HashMap<>(map);
+        int size = map.size();
+        HashMap<String, Object> newMap = (map instanceof LinkedHashMap<String, Object>)
+            ? LinkedHashMap.newLinkedHashMap(size)
+            : HashMap.newHashMap(size);
         for (Map.Entry<String, Object> entry : map.entrySet()) {
             String key = entry.getKey();
             DataType<?> targetType = innerType(key);
