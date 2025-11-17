@@ -124,6 +124,27 @@ public class RowConsumerToResultReceiverTest extends ESTestCase {
     }
 
     @Test
+    public void test_consumer_aborts_if_write_future_fails() throws Exception {
+        CompletableFuture<Void> writeFuture = new CompletableFuture<>();
+        BaseResultReceiver resultReceiver = new BaseResultReceiver() {
+            @Override
+            @Nullable
+            public CompletableFuture<Void> setNextRow(Row row) {
+                return writeFuture;
+            }
+        };
+        var consumerToResultReceiver = new RowConsumerToResultReceiver(resultReceiver, 0, _ -> {});
+        consumerToResultReceiver.accept(TestingBatchIterators.range(0, 10), null);
+
+        assertThat(resultReceiver.completionFuture()).isNotDone();
+        writeFuture.completeExceptionally(new IllegalStateException("Kaputt"));
+        assertThat(resultReceiver.completionFuture()).failsWithin(1, TimeUnit.SECONDS)
+            .withThrowableThat()
+            .havingRootCause()
+            .extracting(Throwable::getMessage).isEqualTo("Kaputt");
+    }
+
+    @Test
     public void test_does_not_suspend_consumer_on_last_row() throws Exception {
         {
             int numRows = randomIntBetween(1, 10);
