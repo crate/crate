@@ -113,3 +113,7 @@ Fixes
 - Fixed an issue where certain join queries returned incorrect results when the
   join condition referenced unknown object sub-columns coming from aliased CTEs
   in nested joins.
+
+- Fixed an issue causing :ref:`sql-copy-from` statements to fail with an
+  ``CircuitBreakerException`` when no concrete ``bulk_size`` argument was
+  defined and the available memory is saturated on the first internal requests.

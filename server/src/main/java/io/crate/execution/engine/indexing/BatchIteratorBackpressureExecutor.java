@@ -35,10 +35,9 @@ import java.util.function.BinaryOperator;
 import java.util.function.Function;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
 import io.crate.exceptions.JobKilledException;
@@ -181,7 +180,10 @@ public class BatchIteratorBackpressureExecutor<T, R> {
                         scheduler.schedule(this::resumeConsumption, delayInMs, TimeUnit.MILLISECONDS);
                         return;
                     }
-                    // fall through to execute
+                    // No delay available, execute and let any response continue (release semaphore)
+                    execute(item);
+                    semaphore.release();
+                    return;
                 }
                 execute(item);
             }
