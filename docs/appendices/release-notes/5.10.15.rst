@@ -47,6 +47,9 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed a memory leak that could happen if running a query with a large result
+  set via a PostgreSQL client and then interrupting the connection.
+
 - Fixed an issue that allowed inserting values into ``ARRAY`` columns that
   violated the array's inner type constraints. For example it was possible to
   insert ``['aa']`` into a column of type ``ARRAY(VARCHAR(1))``.
