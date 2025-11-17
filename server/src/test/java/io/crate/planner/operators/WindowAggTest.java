@@ -25,6 +25,7 @@ import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_LIMIT;
 import static io.crate.execution.engine.pipeline.LimitAndOffset.NO_OFFSET;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.spy;
@@ -44,6 +45,7 @@ import io.crate.expression.symbol.WindowFunction;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.Merge;
 import io.crate.planner.PlannerContext;
+import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -220,9 +222,10 @@ public class WindowAggTest extends CrateDummyClusterServiceUnitTest {
             SubQueryResults.EMPTY
         );
 
-        // distributeByColumn used to be not found be -1 due to  virtual table having only top-level column in its outputs.
-        var collect = (Collect) ((Merge) merge.subPlan()).subPlan();
-        assertThat(collect.collectPhase().distributionInfo().distributeByColumn()).isEqualTo(0);
+        // Must use a non-distributed execution plan
+        assertThat(merge.nodeIds()).hasSize(1);
+        var collect = (Collect) merge.subPlan();
+        assertThat(collect.collectPhase().distributionInfo()).isEqualTo(DistributionInfo.DEFAULT_BROADCAST);
     }
 
     private WindowDefinition wd(String expression) {
