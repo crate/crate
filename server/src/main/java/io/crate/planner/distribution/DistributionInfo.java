@@ -23,9 +23,13 @@ package io.crate.planner.distribution;
 
 import java.io.IOException;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
+
+import io.crate.expression.symbol.InputColumn;
+import io.crate.expression.symbol.Symbol;
 
 public class DistributionInfo implements Writeable {
 
@@ -34,22 +38,40 @@ public class DistributionInfo implements Writeable {
     public static final DistributionInfo DEFAULT_MODULO = new DistributionInfo(DistributionType.MODULO);
 
     private final DistributionType distributionType;
-    private final int distributeByColumn;
+    private final Symbol distributeByColumn;
 
     public DistributionInfo(DistributionType distributionType, int distributeByColumn) {
+        this.distributionType = distributionType;
+        this.distributeByColumn = new InputColumn(distributeByColumn);
+    }
+
+    public DistributionInfo(DistributionType distributionType, Symbol distributeByColumn) {
         this.distributionType = distributionType;
         this.distributeByColumn = distributeByColumn;
     }
 
     public DistributionInfo(StreamInput in) throws IOException {
         distributionType = DistributionType.values()[in.readVInt()];
-        distributeByColumn = in.readVInt();
+        if (in.getVersion().onOrAfter(Version.V_6_1_1)) {
+            distributeByColumn = Symbol.fromStream(in);
+        } else {
+            int columnIdx = in.readVInt();
+            distributeByColumn = new InputColumn(columnIdx);
+        }
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeVInt(distributionType.ordinal());
-        out.writeVInt(distributeByColumn);
+        if (out.getVersion().onOrAfter(Version.V_6_1_1)) {
+            Symbol.toStream(distributeByColumn, out);
+        } else if (distributeByColumn instanceof InputColumn inputColumn) {
+            out.writeVInt(inputColumn.index());
+        } else {
+            assert false
+                : "Must not use expression for `distributeByColumn` if nodes < 6.1.1 are in the cluster";
+            out.writeVInt(0);
+        }
     }
 
     public DistributionInfo(DistributionType distributionType) {
@@ -60,7 +82,7 @@ public class DistributionInfo implements Writeable {
         return distributionType;
     }
 
-    public int distributeByColumn() {
+    public Symbol distributeByColumn() {
         return distributeByColumn;
     }
 
@@ -71,13 +93,13 @@ public class DistributionInfo implements Writeable {
 
         DistributionInfo that = (DistributionInfo) o;
 
-        return distributeByColumn == that.distributeByColumn && distributionType == that.distributionType;
+        return distributeByColumn.equals(that.distributeByColumn) && distributionType == that.distributionType;
     }
 
     @Override
     public int hashCode() {
         int result = distributionType.hashCode();
-        result = 31 * result + distributeByColumn;
+        result = 31 * result + distributeByColumn.hashCode();
         return result;
     }
 

@@ -47,6 +47,10 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
+- Fixed an issue that could lead to incorrect results for window functions when
+  the window function used a ``PARTITION BY`` clause on an object subscript
+  coming from a view or CTE and if running in a cluster with more than one node.
+
 - Fixed a translog recovery issue, happening when a ``NULL`` value was stored
   in an :ref:`type-object` with policy :ref:`type-object-columns-ignored` on
   tables created before :ref:`version 5.5.0 <version_5.5.0>`.

@@ -67,7 +67,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
         assertThat(map.toString()).isEqualTo(
             "{Collect={" +
             "collectPhase={COLLECT={" +
-                "distribution={distributedByColumn=0, type=BROADCAST}, executionNodes=[n1], id=0, " +
+                "distribution={distributedByColumn=INPUT(0), type=BROADCAST}, executionNodes=[n1], id=0, " +
 
                 "projections=[" +
                     "{keys=INPUT(1), type=HashAggregation, aggregations=max(INPUT(0))}, " +
@@ -107,7 +107,7 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "limit 10");
         assertThat(map.toString()).isEqualTo("{UnionExecutionPlan={" +
                "left={Collect={" +
-                    "collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +
+                    "collectPhase={COLLECT={distribution={distributedByColumn=INPUT(0), type=BROADCAST}, " +
                     "executionNodes=[n1], id=0, orderBy=x ASC, " +
                     "routing={n1={t1=[0, 1, 2, 3]}}, " +
                     "toCollect=[x], " +
@@ -115,12 +115,12 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                     "where=true}}, " +
                     "type=executionPlan}}, " +
                "mergePhase={MERGE={" +
-                    "distribution={distributedByColumn=0, type=BROADCAST}, " +
+                    "distribution={distributedByColumn=INPUT(0), type=BROADCAST}, " +
                     "executionNodes=[n1], id=2, " +
                     "projections=[{outputs=INPUT(0), offset=0, limit=10, type=LimitAndOffset}], " +
                     "type=executionPhase}}, " +
                "right={Collect={" +
-                    "collectPhase={COLLECT={distribution={distributedByColumn=0, type=BROADCAST}, " +
+                    "collectPhase={COLLECT={distribution={distributedByColumn=INPUT(0), type=BROADCAST}, " +
                     "executionNodes=[n1], id=1, orderBy=y ASC, " +
                     "routing={n1={t2=[0, 1, 2, 3]}}, " +
                     "toCollect=[y], " +
@@ -136,10 +136,10 @@ public class PlanPrinterTest extends CrateDummyClusterServiceUnitTest {
                                             "where t1.x > 10");
         assertThat(map.toString()).isEqualTo("{CountPlan={type=executionPlan}, " +
                "countPhase={COUNT={executionNodes=[n1], id=0, type=executionPhase}, " +
-                   "distribution={distributedByColumn=0, type=BROADCAST}, " +
+                   "distribution={distributedByColumn=INPUT(0), type=BROADCAST}, " +
                    "routing={n1={t1=[0, 1, 2, 3]}}, " +
                    "where=(x > 10)}, " +
-               "mergePhase={MERGE={distribution={distributedByColumn=0, type=BROADCAST}, " +
+               "mergePhase={MERGE={distribution={distributedByColumn=INPUT(0), type=BROADCAST}, " +
                     "executionNodes=[n1], id=1, " +
                     "projections=[{type=MERGE_COUNT_AGGREGATION}], type=executionPhase}}}");
     }

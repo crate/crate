@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that could lead to incorrect results for window functions when
+  the window function used a ``PARTITION BY`` clause on an object subscript
+  coming from a view or CTE and if running in a cluster with more than one node.
+
 - Fixed an issue that could cause a ``ALTER TABLE`` operation changing the
   number of shards of a table to interrupt a concurrent ``ALTER TABLE``
   operation also changing the number of shards.
