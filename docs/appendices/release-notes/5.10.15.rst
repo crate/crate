@@ -1,0 +1,60 @@
+.. _version_5.10.15:
+
+============================
+Version 5.10.15 - Unreleased
+============================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 5.10.15 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 4.0.2 or higher
+    before you upgrade to 5.10.15.
+
+    We recommend that you upgrade to the latest 5.9 release before moving to
+    5.10.15.
+
+    A rolling upgrade from 5.9.x to 5.10.15 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 4.x will not function with 5.x
+    and must be recreated before moving to 5.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_5.10.0` release notes for a full list of changes in the
+5.10 series.
+
+
+Fixes
+=====
+
+- Fixed a translog recovery issue, happening when a ``NULL`` value was stored
+  in an :ref:`type-object` with policy :ref:`type-object-columns-ignored` on
+  tables created before :ref:`version 5.5.0 <version_5.5.0>`.
+  To mitigate the issue, run CrateDB with a CLI option
+  ``-Des.xcontent.strict_duplicate_detection=false``. Please note, that this
+  flag has a global effect, and it's recommended to set it back to the default
+  value ``true`` once invalid records are processed. Issue can be considered
+  as mitigated when ``translog_stats['uncommitted_size']`` in the
+  :ref:`sys.shards <sys-shards>` table stops exceeding
+  :ref:`flush_threshold_size <sql-create-table-translog-flush-threshold-size>`.
+
