@@ -21,6 +21,8 @@
 
 package io.crate.window;
 
+import static io.crate.testing.Asserts.assertThat;
+
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -91,6 +93,67 @@ public class WindowFunctionsITest extends IntegTestCase {
             "  ) AS t1 " +
             "GROUP BY \"time\" " +
             "ORDER BY \"time\""
+        );
+    }
+
+    @Test
+    public void test_window_function_partitioned_on_object_subscript() throws Exception {
+        execute(
+            """
+            CREATE TABLE tbl (
+               "x" int not null,
+               "data" OBJECT(STRICT) AS (
+                  "id" BIGINT,
+                  "attribute" TEXT
+               )
+            )
+            CLUSTERED INTO 6 SHARDS
+            WITH (
+               column_policy = 'strict',
+               number_of_replicas = '0-1'
+            );
+            """
+        );
+        execute(
+            """
+            INSERT INTO tbl (x, data) VALUES
+            (1, '{"attribute":"a-1","id":1842}'),
+            (2, '{"attribute":"a-1","id":1844}'),
+            (3, '{"attribute":"a-1","id":1848}'),
+            (4, '{"attribute":"a-1","id":1851}'),
+            (5, '{"attribute":"a-1","id":1859}'),
+            (6, '{"attribute":"a-1","id":1871}'),
+            (7, '{"attribute":"a-1","id":1838}');
+            """
+        );
+        execute("refresh table tbl");
+        execute(
+            """
+            CREATE OR REPLACE VIEW v AS
+            SELECT x, data FROM tbl
+            """
+        );
+        execute(
+            """
+            SELECT
+                x,
+                data['id'],
+                data['attribute'],
+                rank() OVER (PARTITION BY data['attribute'] ORDER BY x) AS lag_id,
+                LEAD(data['id']) OVER (PARTITION BY data['attribute'] ORDER BY x) AS lag_id
+            FROM v
+            ORDER BY x DESC
+            LIMIT 100;
+            """
+        );
+        assertThat(response).hasRows(
+            "7| 1838| a-1| 7| NULL",
+            "6| 1871| a-1| 6| 1838",
+            "5| 1859| a-1| 5| 1871",
+            "4| 1851| a-1| 4| 1859",
+            "3| 1848| a-1| 3| 1851",
+            "2| 1844| a-1| 2| 1848",
+            "1| 1842| a-1| 1| 1844"
         );
     }
 }
