@@ -32,6 +32,7 @@ import org.junit.Test;
 import io.crate.Streamer;
 import io.crate.data.Row1;
 import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.collect.RowCollectExpression;
 import io.crate.types.DataTypes;
 
 public class MultiBucketBuilderTest {
@@ -40,7 +41,14 @@ public class MultiBucketBuilderTest {
 
     @Before
     public void setUp() throws Exception {
-        builders.add(new ModuloBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 1, 0, RamAccounting.NO_ACCOUNTING));
+        RowCollectExpression rowCollectExpression = new RowCollectExpression(0);
+        builders.add(new ModuloBucketBuilder(
+            new Streamer[]{DataTypes.INTEGER.streamer()},
+            1,
+            rowCollectExpression,
+            List.of(rowCollectExpression),
+            RamAccounting.NO_ACCOUNTING
+        ));
         builders.add(new BroadcastingBucketBuilder(new Streamer[]{DataTypes.INTEGER.streamer()}, 1, RamAccounting.NO_ACCOUNTING));
     }
 
