@@ -21,6 +21,7 @@
 
 import os
 import re
+import time
 import unittest
 from crate.client import connect
 from testutils.ports import bind_port
@@ -96,6 +97,8 @@ class JmxIntegrationTest(unittest.TestCase):
                 'InsertQueryAffectedRowCount'
             )
             self.assertEqual(result, 3)
+            c.execute("drop table t")
+            time.sleep(1)
 
     def test_mbean_select_total_count(self):
         jmx_client = JmxClient(JMX_PORT)
