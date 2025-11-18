@@ -244,16 +244,12 @@ public class ArrayType<T> extends DataType<List<T>> {
         return convert(value, innerType, innerType::sanitizeValue, CoordinatorTxnCtx.systemTransactionContext().sessionSettings());
     }
 
-    public static List<String> fromAnyArray(Object[] values) throws IllegalArgumentException {
-        if (values == null) {
+    @Override
+    public List<T> valueForInsert(List<T> value) {
+        if (value == null) {
             return null;
-        } else {
-            ArrayList<String> array = new ArrayList<>(values.length);
-            for (var value : values) {
-                array.add(anyValueToString(value));
-            }
-            return array;
         }
+        return Lists.map(value, innerType::valueForInsert);
     }
 
     public static List<String> fromAnyArray(List<?> values) throws IllegalArgumentException {
@@ -275,13 +271,11 @@ public class ArrayType<T> extends DataType<List<T>> {
         }
         try {
             if (value instanceof Map) {
-                //noinspection unchecked
-                return
-                    Strings.toString(
+                return Strings.toString(
                         JsonXContent.builder().map((Map<String, ?>) value));
-            } else if (value instanceof Collection) {
+            } else if (value instanceof Collection<?> collection) {
                 var array = JsonXContent.builder().startArray();
-                for (var element : (Collection<?>) value) {
+                for (var element : collection) {
                     array.value(element);
                 }
                 array.endArray();

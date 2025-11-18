@@ -89,11 +89,17 @@ public class RowConsumerToResultReceiver implements RowConsumer {
                     if (writeFuture != null) {
                         LOGGER.trace("Suspended execution after {} rows as the receiver is not writable anymore", rowCount);
                         waitingForWrite = true;
-                        writeFuture.thenRun(() -> {
-                            LOGGER.trace("Resume execution after {} rows", rowCount);
-                            waitingForWrite = false;
-                            rowCount = 0;
-                            consumeIt(iterator);
+                        writeFuture.whenComplete((_, t) -> {
+                            if (t == null) {
+                                LOGGER.trace("Resume execution after {} rows", rowCount);
+                                waitingForWrite = false;
+                                rowCount = 0;
+                                consumeIt(iterator);
+                            } else {
+                                iterator.close();
+                                completionFuture.completeExceptionally(t);
+                                resultReceiver.fail(t);
+                            }
                         });
                         return;
                     }
