@@ -251,6 +251,16 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
                 return;
             }
             this.parentTripCount.incrementAndGet();
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn(
+                    "[Parent] New used memory {} [{}] for [{}] would be larger than configured breaker: {} [{}], breaking",
+                    newBytesReserved,
+                    ByteSizeValue.humanReadableBytes(newBytesReserved),
+                    label,
+                    parentLimit,
+                    ByteSizeValue.humanReadableBytes(parentLimit)
+                );
+            }
             throw new CircuitBreakingException(newBytesReserved, totalUsed, parentLimit, "parent: " + label);
         }
     }
