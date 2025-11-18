@@ -197,6 +197,16 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
     }
 
     @Override
+    public Symbol visitCast(CastSymbol castSymbol, C context) {
+        Symbol symbol = castSymbol.symbol();
+        Symbol newChild = symbol.accept(this, context);
+        if (symbol == newChild) {
+            return castSymbol;
+        }
+        return new CastSymbol(newChild, castSymbol.valueType(), castSymbol.mode());
+    }
+
+    @Override
     public Symbol visitFetchMarker(FetchMarker fetchMarker, C context) {
         // By default fetchMarker calls visitReference on the inner _fetchId
         // That behavior breaks generic `visitSymbol` replacements

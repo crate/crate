@@ -37,9 +37,6 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.cast.CastMode;
-import io.crate.expression.scalar.cast.ExplicitCastFunction;
-import io.crate.expression.scalar.cast.ImplicitCastFunction;
-import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
@@ -238,30 +235,12 @@ public interface Symbol extends Writeable, Accountable {
             throw new ConversionException(sourceType, targetType);
         }
 
-        if (modes.contains(CastMode.TRY) || modes.contains(CastMode.EXPLICIT)) {
-            // Currently, it is not possible to resolve a function based on
-            // its return type. For instance, it is not possible to generate
-            // an object cast function with the object return type which inner
-            // types have to be considered as well. Therefore, to bypass this
-            // limitation we encode the return type info as the second function
-            // argument.
-            var signature = modes.contains(CastMode.TRY)
-                ? TryCastFunction.SIGNATURE
-                : ExplicitCastFunction.SIGNATURE;
-
-            // a literal with a NULL value is passed as an argument
-            // to match the method signature
-            List<Symbol> arguments = List.of(sourceSymbol, Literal.of(targetType, null));
-            return new Function(signature, arguments, targetType);
+        if (modes.contains(CastMode.TRY)) {
+            return new CastSymbol(sourceSymbol, targetType, CastMode.TRY);
+        } else if (modes.contains(CastMode.EXPLICIT)) {
+            return new CastSymbol(sourceSymbol, targetType, CastMode.EXPLICIT);
         } else {
-            return new Function(
-                ImplicitCastFunction.SIGNATURE,
-                List.of(
-                    sourceSymbol,
-                    Literal.of(targetType.getTypeSignature().toString())
-                ),
-                targetType
-            );
+            return new CastSymbol(sourceSymbol, targetType, CastMode.IMPLICIT);
         }
     }
 }

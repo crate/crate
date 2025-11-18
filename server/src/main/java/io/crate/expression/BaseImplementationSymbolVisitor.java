@@ -28,6 +28,7 @@ import io.crate.common.collections.Lists;
 import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.CastSymbol;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -39,6 +40,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.settings.SessionSettings;
+import io.crate.types.DataType;
 
 public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?>> {
 
@@ -75,6 +78,45 @@ public class BaseImplementationSymbolVisitor<C> extends SymbolVisitor<C, Input<?
                 )
             );
         }
+    }
+
+    record ExplicitCast<T, U>(SessionSettings settings, Input<T> input, DataType<U> type) implements Input<U> {
+
+        @Override
+        public U value() {
+            return CastSymbol.explicitCast(settings, input.value(), type);
+        }
+    }
+
+    record TryCast<T, U>(SessionSettings settings, Input<T> input, DataType<U> type) implements Input<U> {
+
+        @Override
+        public U value() {
+            try {
+                return type.explicitCast(input.value(), settings);
+            } catch (ClassCastException | IllegalArgumentException ignored) {
+                return null;
+            }
+        }
+    }
+
+    record ImplicitCast<T, U>(Input<T> input, DataType<U> type) implements Input<U> {
+
+        @Override
+        public U value() {
+            return CastSymbol.implicitCast(input.value(), type);
+        }
+    }
+
+    @Override
+    public Input<?> visitCast(CastSymbol castSymbol, C context) {
+        Input<?> input = castSymbol.symbol().accept(this, context);
+        DataType<?> targetType = castSymbol.valueType();
+        return switch (castSymbol.mode()) {
+            case EXPLICIT -> new ExplicitCast<>(txnCtx.sessionSettings(), input, targetType);
+            case IMPLICIT -> new ImplicitCast<>(input, targetType);
+            case TRY -> new TryCast<>(txnCtx.sessionSettings(), input, targetType);
+        };
     }
 
     @Override

@@ -23,6 +23,7 @@ package io.crate.expression.scalar;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isNull;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Arrays;
 import java.util.LinkedList;
@@ -138,7 +139,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
         // Explicit normalization happens further below
         sqlExpressions.context().allowEagerNormalize(false);
         Symbol functionSymbol = sqlExpressions.asSymbol(functionExpression);
-        if (functionSymbol instanceof Literal) {
+        if (functionSymbol instanceof Literal || !(functionSymbol instanceof Function)) {
             assertThat(functionSymbol).satisfies(expectedSymbol);
             return;
         }
@@ -219,6 +220,7 @@ public abstract class ScalarTestCase extends CrateDummyClusterServiceUnitTest {
             assertThat((T)((Literal<?>) functionSymbol).value()).satisfies(expectedValue);
             return;
         }
+        assertThat(functionSymbol).isExactlyInstanceOf(Function.class);
         LinkedList<Literal<?>> unusedLiterals = new LinkedList<>(Arrays.asList(literals));
         Function function = (Function) RefReplacer.replaceRefs(functionSymbol, r -> {
             if (unusedLiterals.isEmpty()) {

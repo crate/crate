@@ -44,6 +44,7 @@ import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.CastSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -239,6 +240,12 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
     @Override
     public SortField visitAlias(AliasSymbol aliasSymbol, SortSymbolContext context) {
         return aliasSymbol.symbol().accept(this, context);
+    }
+
+    @Override
+    public SortField visitCast(CastSymbol castSymbol, SortSymbolContext context) {
+        // TODO:
+        return castSymbol.symbol().accept(this, context);
     }
 
     @Override

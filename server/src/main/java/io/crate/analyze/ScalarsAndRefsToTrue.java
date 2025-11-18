@@ -28,6 +28,7 @@ import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.Operators;
 import io.crate.expression.predicate.IsNullPredicate;
 import io.crate.expression.predicate.NotPredicate;
+import io.crate.expression.symbol.CastSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
@@ -77,6 +78,11 @@ public final class ScalarsAndRefsToTrue extends SymbolVisitor<ScalarsAndRefsToTr
 
     public static Symbol rewrite(EvaluatingNormalizer normalizer, TransactionContext txnCtx, Symbol symbol) {
         return symbol.accept(INSTANCE, new ScalarsAndRefsToTrue.Context(normalizer, txnCtx));
+    }
+
+    @Override
+    public Symbol visitCast(CastSymbol castSymbol, Context context) {
+        return castSymbol.symbol().accept(this, context);
     }
 
     @Override

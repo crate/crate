@@ -86,6 +86,7 @@ import io.crate.expression.scalar.conditional.CaseFunction;
 import io.crate.expression.scalar.conditional.IfFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimeFunction;
 import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
+import io.crate.expression.symbol.CastSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -579,11 +580,7 @@ public class ExpressionAnalyzer {
             if (node.isIntegerOnly() && !returnType.isConvertableTo(DataTypes.INTEGER, false)) {
                 throw new IllegalArgumentException("Cannot cast to a datatype that is not convertible to `integer`");
             }
-            return expression
-                .cast(
-                    returnType,
-                    CastMode.EXPLICIT
-                );
+            return new CastSymbol(expression, returnType, CastMode.EXPLICIT);
         }
 
         @Override
@@ -593,13 +590,8 @@ public class ExpressionAnalyzer {
                 throw new IllegalArgumentException("Cannot cast to a datatype that is not convertible to `integer`");
             }
             try {
-                return node.getExpression()
-                    .accept(this, context)
-                    .cast(
-                        returnType,
-                        CastMode.EXPLICIT,
-                        CastMode.TRY
-                    );
+                Symbol expression = node.getExpression().accept(this, context);
+                return new CastSymbol(expression, returnType, CastMode.TRY);
             } catch (ConversionException e) {
                 return Literal.NULL;
             }

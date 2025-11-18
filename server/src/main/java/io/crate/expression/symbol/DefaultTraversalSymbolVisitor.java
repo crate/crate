@@ -46,6 +46,12 @@ public abstract class DefaultTraversalSymbolVisitor<C, R> extends SymbolVisitor<
     }
 
     @Override
+    public R visitCast(CastSymbol castSymbol, C context) {
+        castSymbol.symbol().accept(this, context);
+        return null;
+    }
+
+    @Override
     public R visitWindowFunction(WindowFunction symbol, C context) {
         for (Symbol arg : symbol.arguments()) {
             arg.accept(this, context);

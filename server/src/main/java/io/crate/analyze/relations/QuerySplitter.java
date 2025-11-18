@@ -29,6 +29,7 @@ import java.util.Set;
 
 import io.crate.analyze.RelationNames;
 import io.crate.expression.operator.AndOperator;
+import io.crate.expression.symbol.CastSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
@@ -119,6 +120,11 @@ public class QuerySplitter {
                 arg.accept(this, ctx);
             }
             return null;
+        }
+
+        @Override
+        public Void visitCast(CastSymbol castSymbol, Context context) {
+            return castSymbol.symbol().accept(this, context);
         }
 
         @Override

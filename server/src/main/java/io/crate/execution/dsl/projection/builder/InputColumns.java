@@ -36,6 +36,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.CastSymbol;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.FetchStub;
@@ -233,6 +234,16 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
                 throw new IllegalArgumentException("Couldn't find " + aliasSymbol + " in " + sourceSymbols);
             }
             return column;
+        }
+        return inputColumn;
+    }
+
+    @Override
+    public Symbol visitCast(CastSymbol castSymbol, SourceSymbols sourceSymbols) {
+        InputColumn inputColumn = sourceSymbols.inputs.get(castSymbol);
+        if (inputColumn == null) {
+            Symbol newSymbol = castSymbol.symbol().accept(this, sourceSymbols);
+            return new CastSymbol(newSymbol, castSymbol.valueType(), castSymbol.mode());
         }
         return inputColumn;
     }

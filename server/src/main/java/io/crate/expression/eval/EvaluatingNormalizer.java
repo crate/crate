@@ -43,6 +43,7 @@ import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.scalar.arithmetic.MapFunction;
 import io.crate.expression.symbol.AliasSymbol;
+import io.crate.expression.symbol.CastSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.FunctionCopyVisitor;
 import io.crate.expression.symbol.Literal;
@@ -221,6 +222,18 @@ public class EvaluatingNormalizer {
                 LOGGER.trace(Symbols.format("Can't resolve reference %s", symbol));
             }
             return symbol;
+        }
+
+        @Override
+        public Symbol visitCast(CastSymbol castSymbol, TransactionContext context) {
+            Symbol symbol = castSymbol.symbol().accept(this, context);
+            if (symbol instanceof Input<?> input) {
+                return Literal.ofUnchecked(
+                    castSymbol.valueType(),
+                    castSymbol.eval(context.sessionSettings(), input.value())
+                );
+            }
+            return castSymbol;
         }
 
         @Override

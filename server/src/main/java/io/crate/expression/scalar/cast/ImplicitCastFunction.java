@@ -28,7 +28,7 @@ import java.util.List;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
-import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.CastSymbol;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionType;
@@ -93,19 +93,9 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         if (targetType == null) {
             var targetTypeSignature = TypeSignature.parse((String) args[1].value());
             var targetType = targetTypeSignature.createType();
-            return castToTargetType(targetType, arg);
+            return CastSymbol.implicitCast(arg, targetType);
         } else {
-            return castToTargetType(targetType, arg);
-        }
-    }
-
-    private static Object castToTargetType(DataType<?> targetType, Object arg) {
-        try {
-            return targetType.implicitCast(arg);
-        } catch (ConversionException e) {
-            throw e;
-        } catch (ClassCastException | IllegalArgumentException e) {
-            throw new ConversionException(arg, targetType);
+            return CastSymbol.implicitCast(arg, targetType);
         }
     }
 
@@ -124,13 +114,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
 
         if (argument instanceof Input<?> input) {
             Object value = input.value();
-            try {
-                return Literal.ofUnchecked(targetType, targetType.implicitCast(value));
-            } catch (ConversionException e) {
-                throw e;
-            } catch (ClassCastException | IllegalArgumentException e) {
-                throw new ConversionException(argument, targetType);
-            }
+            return Literal.ofUnchecked(targetType, CastSymbol.implicitCast(value, targetType));
         }
         return symbol;
     }

@@ -97,5 +97,9 @@ public class SymbolVisitor<C, R> {
     public R visitOuterColumn(OuterColumn outerColumn, C context) {
         return visitSymbol(outerColumn, context);
     }
+
+    public R visitCast(CastSymbol castSymbol, C context) {
+        return visitSymbol(castSymbol, context);
+    }
 }
 

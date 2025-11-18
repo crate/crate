@@ -25,6 +25,7 @@ import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
+import io.crate.expression.symbol.CastSymbol;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionType;
@@ -77,16 +78,12 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
         if (argument.valueType().equals(returnType)) {
             return argument;
         }
-
-        if (argument instanceof Input) {
-            Object value = ((Input<?>) argument).value();
-            try {
-                return Literal.ofUnchecked(returnType, returnType.explicitCast(value, txnCtx.sessionSettings()));
-            } catch (ConversionException e) {
-                throw e;
-            } catch (ClassCastException | IllegalArgumentException e) {
-                throw new ConversionException(argument, returnType);
-            }
+        if (argument instanceof Input<?> input) {
+            Object value = input.value();
+            return Literal.ofUnchecked(
+                returnType,
+                CastSymbol.explicitCast(txnCtx.sessionSettings(), value, returnType)
+            );
         }
         return symbol;
     }
