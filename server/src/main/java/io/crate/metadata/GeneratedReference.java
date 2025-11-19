@@ -239,8 +239,8 @@ public final class GeneratedReference implements Reference {
     }
 
     @Override
-    public Symbol cast(DataType<?> targetType, CastMode... modes) {
-        Symbol result = Reference.super.cast(targetType, modes);
+    public Symbol cast(DataType<?> targetType, CastMode mode) {
+        Symbol result = Reference.super.cast(targetType, mode);
         if (result == this) {
             return this;
         }
@@ -296,7 +296,7 @@ public final class GeneratedReference implements Reference {
         return new GeneratedReference(
             ref.withValueType(type),
             formattedGeneratedExpression,
-            generatedExpression.cast(type)
+            generatedExpression.cast(type, CastMode.IMPLICIT)
         );
     }
 

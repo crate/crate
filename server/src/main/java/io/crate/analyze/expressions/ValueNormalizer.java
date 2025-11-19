@@ -29,6 +29,7 @@ import java.util.function.UnaryOperator;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.exceptions.ConversionException;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -65,7 +66,7 @@ public final class ValueNormalizer {
 
         DataType<?> targetType = getTargetType(valueSymbol, reference);
         try {
-            valueSymbol = normalizer.apply(valueSymbol.cast(reference.valueType()));
+            valueSymbol = normalizer.apply(valueSymbol.cast(reference.valueType(), CastMode.IMPLICIT));
         } catch (PgArrayParsingException | ConversionException e) {
             throw new ColumnValidationException(
                 reference.column().name(),
@@ -80,7 +81,7 @@ public final class ValueNormalizer {
             );
         }
         if (!(valueSymbol instanceof Literal)) {
-            return valueSymbol.cast(targetType);
+            return valueSymbol.cast(targetType, CastMode.IMPLICIT);
         }
         Object value = ((Literal<?>) valueSymbol).value();
         if (value == null) {

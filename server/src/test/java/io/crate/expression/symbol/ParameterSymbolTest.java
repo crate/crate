@@ -28,6 +28,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.types.DataTypes;
 
 public class ParameterSymbolTest extends ESTestCase {
@@ -65,7 +66,7 @@ public class ParameterSymbolTest extends ESTestCase {
     @Test
     public void testCasting() {
         Symbol parameter = new ParameterSymbol(0, DataTypes.INTEGER);
-        ParameterSymbol newParameter = (ParameterSymbol) parameter.cast(DataTypes.LONG);
+        ParameterSymbol newParameter = (ParameterSymbol) parameter.cast(DataTypes.LONG, CastMode.IMPLICIT);
         assertThat(newParameter.valueType()).isEqualTo(DataTypes.LONG);
         assertThat(newParameter.index()).isEqualTo(0);
         assertThat(newParameter.getBoundType()).isEqualTo(DataTypes.INTEGER);

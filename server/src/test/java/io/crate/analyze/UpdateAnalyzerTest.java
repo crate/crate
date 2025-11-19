@@ -691,10 +691,17 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t (a array(object(dynamic)))");
 
         AnalyzedUpdateStatement stmt = e.analyze("update t set a[1] = {c=1}");
+        ObjectType objectType = ObjectType.of(ColumnPolicy.DYNAMIC)
+            .setInnerType("c", DataTypes.INTEGER)
+            .build();
+        ArrayType<Map<String, Object>> expectedType = new ArrayType<>(objectType);
         assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("a", new ArrayType<>(DataTypes.UNTYPED_OBJECT))),
             toCondition(isFunction("array_set",
-                isFunction("_cast", isReference("a"), isLiteral("array(object(text,\"c\" integer))")),
+                isFunction("_cast",
+                    x -> assertThat(x).isReference().hasName("a"),
+                    x -> assertThat(x).hasDataType(expectedType)
+                ),
                 isFunction("_array", isLiteral(1)),
                 isFunction("_array", isLiteral(Map.of("c", 1))))));
 
@@ -725,16 +732,16 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 isReference("id"),
                 isFunction(
                     ImplicitCastFunction.NAME,
-                    isFunction(CurrentDateFunction.NAME),
-                    isLiteral("bigint")
+                    x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
+                    x -> assertThat(x).hasDataType(DataTypes.LONG)
                 )
             );
         assertThat(analyzedUpdateStatement.assignmentByTargetCol().values())
             .satisfiesExactly(
                 isFunction(
                     ImplicitCastFunction.NAME,
-                    isFunction(CurrentDateFunction.NAME),
-                    isLiteral("timestamp with time zone")
+                    x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
+                    x -> assertThat(x).hasDataType(DataTypes.TIMESTAMPZ)
                 )
             );
     }

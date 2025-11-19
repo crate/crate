@@ -24,7 +24,6 @@ package io.crate.expression.symbol;
 import java.io.IOException;
 import java.util.List;
 import java.util.Objects;
-import java.util.Set;
 import java.util.function.Consumer;
 import java.util.function.Predicate;
 
@@ -182,16 +181,14 @@ public interface Symbol extends Writeable, Accountable {
     }
 
     /**
-     * Casts this Symbol to a new {@link DataType} by wrapping an implicit cast
-     * function around it if no {@link CastMode} modes are provided.
-     * <p>
-     * Subclasses of this class may provide another cast methods.
+     * Casts this Symbol to a new {@link DataType} with the given {@link CastMode}
      *
      * @param targetType The resulting data type after applying the cast
-     * @param modes      One of the {@link CastMode} types.
-     * @return An instance of {@link Function} which casts this symbol.
+     * @param modes      {@link CastMode}
+     * @return Symbol itself if it already matches the targetType, otherwise a
+     *         {@link Function} which casts this symbol.
      */
-    default Symbol cast(DataType<?> targetType, CastMode... modes) {
+    default Symbol cast(DataType<?> targetType, CastMode mode) {
         if (targetType.equals(UndefinedType.INSTANCE)) {
             return this;
         } else if (targetType.equals(valueType())) {
@@ -210,7 +207,7 @@ public interface Symbol extends Writeable, Accountable {
             }
         }
 
-        return generateCastFunction(this, targetType, modes);
+        return generateCastFunction(this, targetType, mode);
     }
 
     /**
@@ -227,41 +224,21 @@ public interface Symbol extends Writeable, Accountable {
     String toString(Style style);
 
     private static Symbol generateCastFunction(Symbol sourceSymbol,
-                                              DataType<?> targetType,
-                                              CastMode... castModes) {
-        var modes = Set.of(castModes);
-        assert !modes.containsAll(List.of(CastMode.EXPLICIT, CastMode.IMPLICIT))
-            : "explicit and implicit cast modes are mutually exclusive";
+                                               DataType<?> targetType,
+                                               CastMode castMode) {
 
         DataType<?> sourceType = sourceSymbol.valueType();
-        if (!sourceType.isConvertableTo(targetType, modes.contains(CastMode.EXPLICIT))) {
+        if (!sourceType.isConvertableTo(targetType, castMode != CastMode.IMPLICIT)) {
             throw new ConversionException(sourceType, targetType);
         }
-
-        if (modes.contains(CastMode.TRY) || modes.contains(CastMode.EXPLICIT)) {
-            // Currently, it is not possible to resolve a function based on
-            // its return type. For instance, it is not possible to generate
-            // an object cast function with the object return type which inner
-            // types have to be considered as well. Therefore, to bypass this
-            // limitation we encode the return type info as the second function
-            // argument.
-            var signature = modes.contains(CastMode.TRY)
-                ? TryCastFunction.SIGNATURE
-                : ExplicitCastFunction.SIGNATURE;
-
-            // a literal with a NULL value is passed as an argument
-            // to match the method signature
-            List<Symbol> arguments = List.of(sourceSymbol, Literal.of(targetType, null));
-            return new Function(signature, arguments, targetType);
-        } else {
-            return new Function(
-                ImplicitCastFunction.SIGNATURE,
-                List.of(
-                    sourceSymbol,
-                    Literal.of(targetType.getTypeSignature().toString())
-                ),
-                targetType
-            );
-        }
+        var signature = switch (castMode) {
+            case IMPLICIT -> ImplicitCastFunction.SIGNATURE;
+            case EXPLICIT -> ExplicitCastFunction.SIGNATURE;
+            case TRY -> TryCastFunction.SIGNATURE;
+        };
+        // a literal with a NULL value is passed as an argument
+        // to match the method signature
+        List<Symbol> arguments = List.of(sourceSymbol, Literal.of(targetType, null));
+        return new Function(signature, arguments, targetType);
     }
 }

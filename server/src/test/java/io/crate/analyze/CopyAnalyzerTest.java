@@ -60,6 +60,7 @@ import io.crate.planner.statement.CopyFromPlan;
 import io.crate.planner.statement.CopyToPlan;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
 
 public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
@@ -421,8 +422,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             isLiteral("/tmp/t_"),
             isFunction(
                 ImplicitCastFunction.NAME,
-                isFunction(CurrentDateFunction.NAME),
-                isLiteral("text")
+                x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
+                x -> assertThat(x).hasDataType(DataTypes.STRING)
             )
         );
         AnalyzedCopyTo analyzedCopyTo = e.analyze("copy users to directory '/tmp/' || curdate()");
@@ -431,8 +432,8 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             isLiteral("/tmp/"),
             isFunction(
                 ImplicitCastFunction.NAME,
-                isFunction(CurrentDateFunction.NAME),
-                isLiteral("text")
+                x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
+                x -> assertThat(x).hasDataType(DataTypes.STRING)
             )
         );
     }

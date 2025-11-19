@@ -30,6 +30,7 @@ import org.joda.time.Period;
 import org.junit.Test;
 import org.locationtech.spatial4j.shape.Point;
 
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.testing.Asserts;
 import io.crate.types.ArrayType;
@@ -119,10 +120,10 @@ public class LiteralTest extends ESTestCase {
     @Test
     public void test_cast_on_literal_returns_cast_function() {
         Symbol intLiteral = Literal.of(1);
-        Asserts.assertThat(intLiteral.cast(DataTypes.LONG))
+        Asserts.assertThat(intLiteral.cast(DataTypes.LONG, CastMode.IMPLICIT))
             .isFunction(
                 ImplicitCastFunction.NAME,
-                List.of(intLiteral.valueType(), DataTypes.STRING)
-            );
+                List.of(intLiteral.valueType(), DataTypes.LONG)
+            ).hasDataType(DataTypes.LONG);
     }
 }

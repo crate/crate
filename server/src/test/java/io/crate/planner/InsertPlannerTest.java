@@ -424,7 +424,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
             .satisfiesExactly(
                 s -> assertThat(s).isFunction(
                     ImplicitCastFunction.NAME,
-                    List.of(DataTypes.INTEGER, DataTypes.STRING)),
+                    List.of(DataTypes.INTEGER, DataTypes.LONG)),
                 s -> assertThat(s).isInputColumn(1));
     }
 

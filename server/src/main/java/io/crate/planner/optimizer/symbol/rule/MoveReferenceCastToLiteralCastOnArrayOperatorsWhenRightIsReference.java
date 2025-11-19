@@ -88,7 +88,7 @@ public class MoveReferenceCastToLiteralCastOnArrayOperatorsWhenRightIsReference 
 
         return functionLookup.get(
             operator.name(),
-            List.of(literalOrParam.cast(targetType), reference)
+            List.of(literalOrParam.cast(targetType, CastMode.IMPLICIT), reference)
         );
     }
 }

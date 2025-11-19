@@ -27,6 +27,7 @@ import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 import java.util.List;
 
 import io.crate.expression.scalar.ArrayUpperFunction;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
@@ -78,7 +79,7 @@ public class MoveArrayLengthOnReferenceCastToLiteralCastInsideOperators implemen
 
         return functionLookup.get(
             operator.name(),
-            List.of(function, literalOrParam.cast(targetType))
+            List.of(function, literalOrParam.cast(targetType, CastMode.IMPLICIT))
         );
     }
 }

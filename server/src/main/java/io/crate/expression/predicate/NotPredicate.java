@@ -132,7 +132,7 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
         public Void visitLiteral(Literal<?> symbol, NullabilityContext context) {
             // if an arg is a null literal and all its parents are nullable
             // then we need to enforce 3vl logic, ex) `<ref> % null != 1`, it is equivalent to a `null`.
-            if (symbol.symbolType().isValueSymbol() && symbol.value() == null && context.isNullable) {
+            if (symbol.value() == null && context.isNullable) {
                 context.enforceThreeValuedLogic = true;
             }
             return null;
@@ -146,13 +146,19 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                 // datatype is an object. There we need to exclude null values to not match
                 // empty objects on the query
                 var a = function.arguments().get(0);
-                var b = function.arguments().get(1);
-                if (a instanceof Reference ref && b instanceof Literal<?>) {
+                if (a instanceof Reference ref) {
                     if (ref.valueType().id() == DataTypes.UNTYPED_OBJECT.id()) {
                         context.enforceThreeValuedLogic = true;
                         return null;
                     }
                 }
+                // For casts the second argument is always a null-literal carrying the target type
+                // Only visit the first argument to prevent visitLiteral on the second argument
+                // to set enforceThreeValuedLogic = true
+                boolean isNullable = context.isNullable;
+                a.accept(this, context);
+                context.isNullable = isNullable;
+                return null;
             } else if (Ignore3vlFunction.NAME.equals(functionName)) {
                 context.isNullable = false;
                 return null;

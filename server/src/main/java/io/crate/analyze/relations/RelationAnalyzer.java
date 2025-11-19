@@ -58,6 +58,7 @@ import io.crate.exceptions.UnauthorizedException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.scalar.arithmetic.ArrayFunction;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.GroupAndAggregateSemantics;
 import io.crate.expression.symbol.Literal;
@@ -457,7 +458,7 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
                                            CoordinatorTxnCtx coordinatorTxnCtx) {
         if (optExpression.isPresent()) {
             Symbol symbol = expressionAnalyzer.convert(optExpression.get(), expressionAnalysisContext);
-            return normalizer.normalize(symbol.cast(DataTypes.LONG), coordinatorTxnCtx);
+            return normalizer.normalize(symbol.cast(DataTypes.LONG, CastMode.IMPLICIT), coordinatorTxnCtx);
         }
         return null;
     }
@@ -843,8 +844,8 @@ public class RelationAnalyzer extends DefaultTraversalVisitor<AnalyzedRelation, 
             ArrayList<Symbol> columnValues = columns.get(c);
             for (int i = 0; i < columnValues.size(); i++) {
                 Symbol value = columnValues.get(i);
-                Symbol castValue = normalizer.normalize(value.cast(targetType), transactionContext);
-                columnValues.set(i, castValue);
+                Symbol castValue = value.cast(targetType, CastMode.IMPLICIT);
+                columnValues.set(i, normalizer.normalize(castValue, transactionContext));
             }
             arrays.add(new Function(ArrayFunction.SIGNATURE, columnValues, arrayType));
         }
