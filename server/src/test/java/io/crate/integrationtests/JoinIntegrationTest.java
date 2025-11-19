@@ -1749,6 +1749,54 @@ public class JoinIntegrationTest extends IntegTestCase {
         );
     }
 
+    @Test
+    @UseRandomizedSchema(random = false)
+    @UseRandomizedOptimizerRules(0)
+    @UseHashJoins(1)
+    public void test_left_outer_join_emits_non_matching_rows_having_hash_collisions() throws Exception {
+        execute("CREATE TABLE t1 (x text)");
+        execute("CREATE TABLE t2 (x text)");
+
+        // 'Aa' and 'BB', null and '' are mapped to the same hash values
+        execute("insert into t1 values (null), (''), ('Aa'), ('BB')");
+        execute("insert into t2 values (''), ('BB')");
+        execute("refresh table t1, t2");
+
+        String query = "SELECT * FROM t1 LEFT JOIN t2 on t1.x = t2.x";
+
+        execute(query);
+
+        assertThat(response).hasRowsInAnyOrder(
+            "NULL| NULL",
+            "| ",
+            "Aa| NULL",
+            "BB| BB"
+        );
+
+        execute("insert into t2 values (null)");
+        execute("refresh table t2");
+
+        execute(query);
+
+        assertThat(response).hasRowsInAnyOrder(
+            "NULL| NULL",
+            "| ",
+            "Aa| NULL",
+            "BB| BB"
+        );
+
+        execute("insert into t2 values ('Aa')");
+        execute("refresh table t2");
+
+        execute(query);
+
+        assertThat(response).hasRowsInAnyOrder(
+            "NULL| NULL",
+            "| ",
+            "Aa| Aa",
+            "BB| BB"
+        );
+    }
 
     /**
      * https://github.com/crate/crate/issues/16951

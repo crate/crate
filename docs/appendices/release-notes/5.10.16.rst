@@ -47,4 +47,8 @@ See the :ref:`version_5.10.0` release notes for a full list of changes in the
 Fixes
 =====
 
-None
+- Fixed a hash collision issue resulting in some unmatched rows not being
+  returned when using a ``LEFT JOIN`` query with an equal join condition.
+  Example::
+
+    SELECT * FROM t1 LEFT JOIN t2 ON t1.id = t2.id;
