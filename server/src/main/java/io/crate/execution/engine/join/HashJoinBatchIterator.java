@@ -23,13 +23,12 @@ package io.crate.execution.engine.join;
 
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.List;
 import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
-
-import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -100,20 +99,20 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private final ToIntFunction<Row> hashBuilderForLeft;
     private final ToIntFunction<Row> hashBuilderForRight;
     private final LongToIntFunction calculateBlockSize;
-    private final IntObjectHashMap<Values> buffer;
-    private final boolean emitNullValues;
+    private final IntObjectHashMap<HashGroup> buffer;
+    private final boolean emitUnmatchedRows;
 
     private final UnsafeArrayRow unsafeArrayRow = new UnsafeArrayRow();
 
     private int leftAverageRowSize = -1;
     private int blockSize;
-    private int numberOfRowsInBuffer = 0;
+    private int numberOfHashGroupsInBuffer = 0;
     private boolean leftBatchHasItems = false;
-    private Iterator<Object[]> leftMatchingRowsIterator;
-    private IntArrayList nonMatchingKeys;
-    private int nonMatchingKeysIdx = 0;
-    private Iterator<Object[]> nonMatchValuesIterator;
-    private Values leftMatchingRows;
+    private Iterator<HashGroup.Entry> matchedHashGroupIteratorFromLeft;
+    private HashGroup matchedHashGroupFromLeft;
+
+    private final List<Object[]> unmatchedRows;
+    private int unmatchedRowsIdx = 0;
 
     public HashJoinBatchIterator(CircuitBreaker circuitBreaker,
                                  BatchIterator<Row> left,
@@ -124,7 +123,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                                  ToIntFunction<Row> hashBuilderForLeft,
                                  ToIntFunction<Row> hashBuilderForRight,
                                  LongToIntFunction calculateBlockSize,
-                                 boolean emitNullValues) {
+                                 boolean emitUnmatchedRows) {
         super(left, right, combiner);
         this.circuitBreaker = circuitBreaker;
         this.leftRowAccounting = leftRowAccounting;
@@ -136,7 +135,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         this.buffer = new IntObjectHashMap<>();
         resetBuffer();
         this.activeIt = left;
-        this.emitNullValues = emitNullValues;
+        this.emitUnmatchedRows = emitUnmatchedRows;
+        this.unmatchedRows = new ArrayList<>();
     }
 
     @Override
@@ -150,11 +150,10 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         right.moveToStart();
         activeIt = left;
         resetBuffer();
-        leftMatchingRowsIterator = null;
-        nonMatchingKeys = null;
-        nonMatchingKeysIdx = 0;
-        nonMatchValuesIterator = null;
-        leftMatchingRows = null;
+        matchedHashGroupIteratorFromLeft = null;
+        matchedHashGroupFromLeft = null;
+        unmatchedRows.clear();
+        unmatchedRowsIdx = 0;
     }
 
     @Override
@@ -162,10 +161,10 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         while (buildBufferAndMatchRight() == false) {
             if (right.allLoaded() && leftBatchHasItems == false && left.allLoaded()) {
                 // both sides are fully loaded
-                if (emitNullValues) {
-                    extractNonMatchingKeys();
-                    if (hasMoreNonMatchingKeys()) {
-                        return emitNullValuesPairs();
+                if (emitUnmatchedRows) {
+                    extractUnmatchedRows();
+                    if (hasMoreUnmatchedKeys()) {
+                        return emitUnmatchedRows();
                     }
                 }
                 // we are fully done
@@ -175,18 +174,18 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 return false;
             } else if (right.allLoaded()) {
                 // one batch completed
-                if (emitNullValues) {
-                    extractNonMatchingKeys();
-                    if (hasMoreNonMatchingKeys()) {
-                        return emitNullValuesPairs();
+                if (emitUnmatchedRows) {
+                    extractUnmatchedRows();
+                    if (hasMoreUnmatchedKeys()) {
+                        return emitUnmatchedRows();
                     }
                 }
                 // get ready for the next batch
                 right.moveToStart();
                 activeIt = left;
                 resetBuffer();
-                nonMatchingKeys = null;
-                nonMatchingKeysIdx = 0;
+                unmatchedRows.clear();
+                unmatchedRowsIdx = 0;
             } else {
                 return false;
             }
@@ -196,42 +195,36 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         return true;
     }
 
-    private boolean hasMoreNonMatchingKeys() {
-        return nonMatchingKeysIdx < nonMatchingKeys.size();
-    }
-
-    private void extractNonMatchingKeys() {
-        if (nonMatchingKeys == null) {
-            nonMatchingKeys = new IntArrayList();
-            for (var values : buffer.entries()) {
-                if (values.value().matched == false) {
-                    nonMatchingKeys.add(values.key());
+    private void extractUnmatchedRows() {
+        if (!unmatchedRows.isEmpty()) {
+            return;
+        }
+        for (var bufferEntry : buffer.entries()) {
+            HashGroup hashGroup = bufferEntry.value();
+            for (HashGroup.Entry hashGroupEntry : hashGroup.entries) {
+                if (!hashGroupEntry.joinConditionSatisfied) {
+                    unmatchedRows.add(hashGroupEntry.row);
                 }
             }
         }
     }
 
-    private boolean emitNullValuesPairs() {
-        if (nonMatchValuesIterator == null) {
-            var key = nonMatchingKeys.get(nonMatchingKeysIdx);
-            nonMatchValuesIterator = buffer.get(key).items.iterator();
-        }
+    private boolean hasMoreUnmatchedKeys() {
+        return unmatchedRowsIdx < unmatchedRows.size();
+    }
 
-        combiner.setLeft(unsafeArrayRow.cells(nonMatchValuesIterator.next()));
+    private boolean emitUnmatchedRows() {
+        Object[] unmatchedRow = unmatchedRows.get(unmatchedRowsIdx);
+        combiner.setLeft(unsafeArrayRow.cells(unmatchedRow));
         combiner.nullRight();
-
-        if (nonMatchValuesIterator.hasNext() == false) {
-            nonMatchingKeysIdx++;
-            nonMatchValuesIterator = null;
-        }
-
+        unmatchedRowsIdx++;
         return true;
     }
 
     private void resetBuffer() {
         blockSize = calculateBlockSize.applyAsInt(leftAverageRowSize);
         buffer.clear();
-        numberOfRowsInBuffer = 0;
+        numberOfHashGroupsInBuffer = 0;
         leftRowAccounting.release();
     }
 
@@ -264,13 +257,13 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 numItems++;
                 int hash = hashBuilderForLeft.applyAsInt(unsafeArrayRow.cells(leftRow));
                 addToBuffer(leftRow, hash);
-                if (numberOfRowsInBuffer == blockSize || circuitBreaker.getFree() < 512 * 1024) {
+                if (numberOfHashGroupsInBuffer == blockSize || circuitBreaker.getFree() < 512 * 1024) {
                     break;
                 }
             }
             leftAverageRowSize = numItems > 0 ? (int) (sum / numItems) : -1;
 
-            if (numberOfRowsInBuffer == 0 && !left.allLoaded()) {
+            if (numberOfHashGroupsInBuffer == 0 && !left.allLoaded()) {
                 return false;
             } else {
                 activeIt = right;
@@ -278,32 +271,18 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         }
 
         // In case of multiple matches on the left side (duplicate values or hash collisions)
-        if (leftMatchingRowsIterator != null && findMatchingRows()) {
-            if (emitNullValues) {
-                // We found matching rows, therefore we mark the values to emit
-                // non-matching values later with null value pairs
-                if (leftMatchingRows.matched == false) {
-                    leftMatchingRows.matched = true;
-                }
-            }
+        if (matchedHashGroupIteratorFromLeft != null && findMatchingRows()) {
             return true;
         }
 
-        leftMatchingRowsIterator = null;
+        matchedHashGroupIteratorFromLeft = null;
         while (right.moveNext()) {
             int rightHash = hashBuilderForRight.applyAsInt(right.currentElement());
-            leftMatchingRows = buffer.get(rightHash);
-            if (leftMatchingRows != null) {
-                leftMatchingRowsIterator = leftMatchingRows.items.iterator();
+            matchedHashGroupFromLeft = buffer.get(rightHash);
+            if (matchedHashGroupFromLeft != null) {
+                matchedHashGroupIteratorFromLeft = matchedHashGroupFromLeft.entries.iterator();
                 combiner.setRight(right.currentElement());
                 if (findMatchingRows()) {
-                    if (emitNullValues) {
-                        // We found matching rows, therefore we mark the values to emit
-                        // non-matching values later with null value pairs
-                        if (leftMatchingRows.matched == false) {
-                            leftMatchingRows.matched = true;
-                        }
-                    }
                     return true;
                 }
             }
@@ -314,30 +293,48 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     }
 
     private void addToBuffer(Object[] currentRow, int hash) {
-        Values existingRows = buffer.get(hash);
-        if (existingRows == null) {
-            existingRows = new Values();
-            buffer.put(hash, existingRows);
+        HashGroup hashGroup = buffer.get(hash);
+        if (hashGroup == null) {
+            hashGroup = new HashGroup();
+            buffer.put(hash, hashGroup);
         }
-        existingRows.items.add(currentRow);
-        numberOfRowsInBuffer++;
+        hashGroup.add(currentRow);
+        numberOfHashGroupsInBuffer++;
     }
 
     private boolean findMatchingRows() {
-        while (leftMatchingRowsIterator.hasNext()) {
-            leftRow.cells(leftMatchingRowsIterator.next());
+        while (matchedHashGroupIteratorFromLeft.hasNext()) {
+            var matchedHashGroupEntryFromLeft = matchedHashGroupIteratorFromLeft.next();
+            leftRow.cells(matchedHashGroupEntryFromLeft.row);
             combiner.setLeft(leftRow);
             if (joinCondition.test(combiner.currentElement())) {
+                if (emitUnmatchedRows) {
+                    matchedHashGroupEntryFromLeft.joinConditionSatisfied = true;
+                }
                 return true;
             }
         }
         return false;
     }
 
-    private static final class Values {
+    private static final class HashGroup {
 
-        ArrayList<Object[]> items = new ArrayList<>();
-        boolean matched = false;
+        private final ArrayList<Entry> entries = new ArrayList<>();
 
+        public void add(Object[] row) {
+            entries.add(new Entry(row));
+        }
+
+        private static class Entry {
+            private final Object[] row;
+            private boolean joinConditionSatisfied;
+
+            private Entry(Object[] row) {
+                this.row = row;
+                this.joinConditionSatisfied = false;
+            }
+        }
     }
+
+
 }
