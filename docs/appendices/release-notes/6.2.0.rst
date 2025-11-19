@@ -119,6 +119,8 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Improved the performance of implicit type casts
+
 - Added an optimization rule to push down query predicates in cases where the
   child relation is using scalar sub-queries.
 
