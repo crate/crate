@@ -48,3 +48,9 @@ Fixes
 
 - Fixed an issue that caused ``SELECT COUNT(NULL) FROM tbl`` to return one
   record per row in the table instead of a single row with value ``0``.
+
+- Fixed a hash collision issue resulting in some unmatched rows not being
+  returned when using a ``LEFT JOIN`` query with an equal join condition.
+  Example::
+
+    SELECT * FROM t1 LEFT JOIN t2 ON t1.id = t2.id;
