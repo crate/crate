@@ -236,9 +236,7 @@ public interface Symbol extends Writeable, Accountable {
             case EXPLICIT -> ExplicitCastFunction.SIGNATURE;
             case TRY -> TryCastFunction.SIGNATURE;
         };
-        // a literal with a NULL value is passed as an argument
-        // to match the method signature
-        List<Symbol> arguments = List.of(sourceSymbol, Literal.of(targetType, null));
+        List<Symbol> arguments = List.of(sourceSymbol);
         return new Function(signature, arguments, targetType);
     }
 }
