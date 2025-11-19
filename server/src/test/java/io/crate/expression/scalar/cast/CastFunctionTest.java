@@ -24,7 +24,6 @@ package io.crate.expression.scalar.cast;
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
-import static io.crate.testing.Asserts.isNotSameInstance;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.types.DataTypes.GEO_POINT;
@@ -44,6 +43,7 @@ import org.junit.Test;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.scalar.ScalarTestCase;
+import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.format.Style;
@@ -74,6 +74,20 @@ public class CastFunctionTest extends ScalarTestCase {
     @AfterClass
     public static void afterTestClass() {
         System.setProperty("user.timezone", timezone);
+    }
+
+    @Test
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    public void test_cast_function_lookup_with_legacy_signature() throws Exception {
+        Literal<Long> arg = Literal.of(10L);
+        Function function = new Function(
+            ImplicitCastFunction.BWC_SIGNATURE,
+            List.of(arg, Literal.of("string")),
+            DataTypes.STRING
+        );
+        Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
+        Object result = scalar.evaluate(sqlExpressions.txnCtx(), sqlExpressions.nodeCtx, arg);
+        assertThat(result).isEqualTo("10");
     }
 
     @Test
@@ -297,11 +311,6 @@ public class CastFunctionTest extends ScalarTestCase {
     @Test
     public void test_can_cast_text_to_json_array() throws Exception {
         assertEvaluate("'[{\"x\": 10}, {\"x\": 20}]'::json[]", List.of("{\"x\":10}", "{\"x\":20}"));
-    }
-
-    @Test
-    public void test_implicit_cast_is_compiled() throws Exception {
-        assertCompile("_cast(a, 'double precision')", isNotSameInstance());
     }
 
     @Test
