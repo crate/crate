@@ -1,0 +1,49 @@
+.. _version_6.1.2:
+
+==========================
+Version 6.1.2 - Unreleased
+==========================
+
+.. comment 1. Remove the " - Unreleased" from the header above and adjust the ==
+.. comment 2. Remove the NOTE below and replace with: "Released on 20XX-XX-XX."
+.. comment    (without a NOTE entry, simply starting from col 1 of the line)
+.. NOTE::
+
+    In development. 6.1.2 isn't released yet. These are the release notes for
+    the upcoming release.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
+    before you upgrade to 6.1.2.
+
+    We recommend that you upgrade to the latest 6.0 release before moving to
+    6.1.2.
+
+    A rolling upgrade from >= 6.0.2 to 6.1.2 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 5.x will not function with 6.x
+    and must be recreated before moving to 6.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://cratedb.com/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://cratedb.com/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_6.1.0` release notes for a full list of changes in the 6.1
+series.
+
+Fixes
+=====
+
+None

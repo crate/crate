@@ -210,7 +210,7 @@ public class Version implements Comparable<Version> {
     public static final Version V_6_0_4 = new Version(9_00_04_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
 
     public static final Version V_6_1_0 = new Version(9_01_00_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
-    public static final Version V_6_1_1 = new Version(9_01_01_99, true, org.apache.lucene.util.Version.LUCENE_10_2_2);
+    public static final Version V_6_1_1 = new Version(9_01_01_99, false, org.apache.lucene.util.Version.LUCENE_10_2_2);
 
     public static final Version V_6_2_0 = new Version(9_02_00_99, true, org.apache.lucene.util.Version.LUCENE_10_3_1);
 
