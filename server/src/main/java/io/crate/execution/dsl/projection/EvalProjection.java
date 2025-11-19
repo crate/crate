@@ -33,6 +33,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -62,7 +63,7 @@ public class EvalProjection extends Projection {
                 casts.add(inputColumn);
             } else {
                 requiresCasts = true;
-                casts.add(inputColumn.cast(targetType));
+                casts.add(inputColumn.cast(targetType, CastMode.IMPLICIT));
             }
         }
         return requiresCasts ? new EvalProjection(casts) : null;

@@ -180,7 +180,7 @@ public class Function implements Symbol, Cloneable {
     }
 
     @Override
-    public Symbol cast(DataType<?> targetType, CastMode... modes) {
+    public Symbol cast(DataType<?> targetType, CastMode mode) {
         String name = signature.getName().name();
         if (targetType instanceof ArrayType<?> arrayType && name.equals(ArrayFunction.NAME)) {
             /* We treat _array(...) in a special way since it's a value constructor and no regular function
@@ -190,9 +190,9 @@ public class Function implements Symbol, Cloneable {
              * or
              *      some_array = array_cat([?, ?], [1, 2])
              */
-            return castArrayElements(arrayType, modes);
+            return castArrayElements(arrayType, mode);
         } else {
-            return Symbol.super.cast(targetType, modes);
+            return Symbol.super.cast(targetType, mode);
         }
     }
 
@@ -204,12 +204,12 @@ public class Function implements Symbol, Cloneable {
         return this;
     }
 
-    private Symbol castArrayElements(ArrayType<?> targetType, CastMode... modes) {
+    private Symbol castArrayElements(ArrayType<?> targetType, CastMode mode) {
         DataType<?> innerType = targetType.innerType();
         ArrayList<Symbol> newArgs = new ArrayList<>(arguments.size());
         for (Symbol arg : arguments) {
             try {
-                newArgs.add(arg.cast(innerType, modes));
+                newArgs.add(arg.cast(innerType, mode));
             } catch (ConversionException e) {
                 throw new ConversionException(returnType, targetType);
             }

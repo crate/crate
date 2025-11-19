@@ -71,7 +71,7 @@ public class ParameterSymbol implements Symbol {
     }
 
     @Override
-    public ParameterSymbol cast(DataType<?> targetType, CastMode... modes) {
+    public ParameterSymbol cast(DataType<?> targetType, CastMode mode) {
         return new ParameterSymbol(index, boundType, targetType);
     }
 

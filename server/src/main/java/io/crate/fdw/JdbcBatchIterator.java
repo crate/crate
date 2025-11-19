@@ -323,8 +323,8 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             return ref.granularity();
         }
 
-        public Symbol cast(DataType<?> targetType, CastMode... modes) {
-            return ref.cast(targetType, modes);
+        public Symbol cast(DataType<?> targetType, CastMode mode) {
+            return ref.cast(targetType, mode);
         }
 
         public int position() {

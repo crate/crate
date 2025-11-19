@@ -36,6 +36,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -110,7 +111,7 @@ public class SimpleReference implements Reference {
                 throw new UnsupportedOperationException(
                     "Cannot use table function in default expression of column `" + ident.columnIdent().fqn() + "`");
             }
-            this.defaultExpression = defaultExpression.cast(type);
+            this.defaultExpression = defaultExpression.cast(type, CastMode.IMPLICIT);
         }
     }
 

@@ -54,6 +54,7 @@ import io.crate.analyze.relations.FieldProvider;
 import io.crate.common.Booleans;
 import io.crate.common.collections.Maps;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -299,7 +300,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             Symbol generatedExpression = refExpressionAnalyzer.convert(
                 SqlParser.createExpression(generatedExpressionStr),
                 expressionAnalysisContext
-            ).cast(reference.valueType());
+            ).cast(reference.valueType(), CastMode.IMPLICIT);
             GeneratedReference generatedRef = new GeneratedReference(
                 reference,
                 generatedExpression

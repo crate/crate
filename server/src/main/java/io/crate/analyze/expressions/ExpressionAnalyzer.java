@@ -440,7 +440,7 @@ public class ExpressionAnalyzer {
             if (targetType.id() == UndefinedType.ID) {
                 castList.add(symbolToCast);
             } else {
-                castList.add(symbolToCast.cast(targetType));
+                castList.add(symbolToCast.cast(targetType, CastMode.IMPLICIT));
             }
         }
         return castList;
@@ -595,11 +595,7 @@ public class ExpressionAnalyzer {
             try {
                 return node.getExpression()
                     .accept(this, context)
-                    .cast(
-                        returnType,
-                        CastMode.EXPLICIT,
-                        CastMode.TRY
-                    );
+                    .cast(returnType, CastMode.TRY);
             } catch (ConversionException e) {
                 return Literal.NULL;
             }
@@ -1204,7 +1200,7 @@ public class ExpressionAnalyzer {
             assert columnType != null : "columnType must not be null";
             verifyTypesForMatch(identBoostMap.keySet(), columnType);
 
-            Symbol queryTerm = node.value().accept(this, context).cast(columnType);
+            Symbol queryTerm = node.value().accept(this, context).cast(columnType, CastMode.IMPLICIT);
             String matchType = io.crate.expression.predicate.MatchPredicate.getMatchType(node.matchType(), columnType);
 
             List<Symbol> mapArgs = new ArrayList<>(node.properties().size() * 2);

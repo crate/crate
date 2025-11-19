@@ -528,8 +528,8 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                     ArrayFunction.NAME,
                     isFunction(
                         ImplicitCastFunction.NAME,
-                        isFunction(NowFunction.NAME),
-                        isLiteral("bigint")
+                        x -> assertThat(x).isFunction(NowFunction.NAME),
+                        x -> assertThat(x).hasDataType(DataTypes.LONG)
                     )
                 )
             );
@@ -537,8 +537,8 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             .satisfiesExactly(
                 isFunction(
                     ImplicitCastFunction.NAME,
-                    isFunction(CurrentDateFunction.NAME),
-                    isLiteral("timestamp with time zone")
+                    x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
+                    x -> assertThat(x).hasDataType(DataTypes.TIMESTAMPZ)
                 )
             );
     }

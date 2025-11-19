@@ -283,11 +283,12 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testFunctionsCanBeCasted() {
-        Function symbol2 = (Function) executor.asSymbol("doc.t5.w = doc.t2.i + 1::smallint");
-        assertThat(symbol2).isFunction(EqOperator.NAME);
-        assertThat(symbol2.arguments().get(0)).isReference().hasName("w");
-        assertThat(symbol2.arguments().get(1))
-            .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.STRING));
+        Function eq = (Function) executor.asSymbol("doc.t5.w = doc.t2.i + 1::smallint");
+        assertThat(eq).isFunction(
+            EqOperator.NAME,
+            x -> assertThat(x).isReference().hasName("w"),
+            x -> assertThat(x).isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.LONG))
+        );
     }
 
     @Test
@@ -295,7 +296,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Function symbol = (Function) executor.asSymbol("doc.t5.i < doc.t5.w");
         assertThat(symbol).isFunction(LtOperator.NAME);
         assertThat(symbol.arguments().get(0))
-            .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.STRING));
+            .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.LONG));
         assertThat(symbol.arguments().get(1)).hasDataType(DataTypes.LONG);
     }
 
@@ -575,7 +576,7 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             x -> assertThat(x).isFunction(
                 ImplicitCastFunction.NAME,
                 y -> assertThat(y).isReference().hasName("b"),
-                y -> assertThat(y).isLiteral("numeric") // implicit cast to 'numeric' NOT 'numeric(4,2)'
+                y -> assertThat(y).hasDataType(DataTypes.NUMERIC)
             )
         );
     }
