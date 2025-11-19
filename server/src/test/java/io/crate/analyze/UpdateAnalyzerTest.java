@@ -698,10 +698,9 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(stmt.assignmentByTargetCol()).hasEntrySatisfying(
             toCondition(isReference("a", new ArrayType<>(DataTypes.UNTYPED_OBJECT))),
             toCondition(isFunction("array_set",
-                isFunction("_cast",
-                    x -> assertThat(x).isReference().hasName("a"),
-                    x -> assertThat(x).hasDataType(expectedType)
-                ),
+                x -> assertThat(x).isFunction("_cast",
+                    y -> assertThat(y).isReference().hasName("a")
+                ).hasDataType(expectedType),
                 isFunction("_array", isLiteral(1)),
                 isFunction("_array", isLiteral(Map.of("c", 1))))));
 
@@ -729,20 +728,19 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(analyzedUpdateStatement.query())
             .isFunction(
                 LtOperator.NAME,
-                isReference("id"),
-                isFunction(
+                x -> assertThat(x).isReference().hasName("id"),
+                x -> assertThat(x).isFunction(
                     ImplicitCastFunction.NAME,
-                    x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
-                    x -> assertThat(x).hasDataType(DataTypes.LONG)
-                )
+                    y -> assertThat(y).isFunction(CurrentDateFunction.NAME)
+                ).hasDataType(DataTypes.LONG)
             );
         assertThat(analyzedUpdateStatement.assignmentByTargetCol().values())
             .satisfiesExactly(
-                isFunction(
-                    ImplicitCastFunction.NAME,
-                    x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
-                    x -> assertThat(x).hasDataType(DataTypes.TIMESTAMPZ)
-                )
+                x -> assertThat(x)
+                    .isFunction(
+                        ImplicitCastFunction.NAME,
+                        y -> assertThat(y).isFunction(CurrentDateFunction.NAME)
+                    ).hasDataType(DataTypes.TIMESTAMPZ)
             );
     }
 }

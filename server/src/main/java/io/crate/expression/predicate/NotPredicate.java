@@ -152,13 +152,6 @@ public class NotPredicate extends Scalar<Boolean, Boolean> {
                         return null;
                     }
                 }
-                // For casts the second argument is always a null-literal carrying the target type
-                // Only visit the first argument to prevent visitLiteral on the second argument
-                // to set enforceThreeValuedLogic = true
-                boolean isNullable = context.isNullable;
-                a.accept(this, context);
-                context.isNullable = isNullable;
-                return null;
             } else if (Ignore3vlFunction.NAME.equals(functionName)) {
                 context.isNullable = false;
                 return null;

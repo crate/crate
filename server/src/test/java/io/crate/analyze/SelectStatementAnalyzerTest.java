@@ -33,6 +33,7 @@ import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
 import static io.crate.types.ArrayType.makeArray;
 import static org.assertj.core.api.Assertions.anyOf;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -1700,14 +1701,14 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         AnalyzedRelation relation = executor.analyze("select cast(other_id as text) from users");
         assertThat(relation.outputs().getFirst())
-            .isFunction(ExplicitCastFunction.NAME, List.of(DataTypes.LONG, DataTypes.STRING));
+            .isFunction(ExplicitCastFunction.NAME, List.of(DataTypes.LONG)).hasDataType(DataTypes.STRING);
 
         relation = executor.analyze("select cast(1+1 as string) from users");
         assertThat(relation.outputs().getFirst()).isLiteral("2", DataTypes.STRING);
 
         relation = executor.analyze("select cast(friends['id'] as array(text)) from users");
         assertThat(relation.outputs().getFirst())
-            .isFunction(ExplicitCastFunction.NAME, List.of(DataTypes.BIGINT_ARRAY, DataTypes.STRING_ARRAY));
+            .isFunction(ExplicitCastFunction.NAME, List.of(DataTypes.BIGINT_ARRAY)).hasDataType(DataTypes.STRING_ARRAY);
     }
 
     @Test
@@ -1716,9 +1717,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(TableDefinitions.USER_TABLE_DEFINITION);
         AnalyzedRelation relation = executor.analyze("select try_cast(other_id as text) from users");
         assertThat(relation.outputs().getFirst())
-            .isFunction(
-                TryCastFunction.NAME,
-                List.of(DataTypes.LONG, DataTypes.STRING));
+            .isFunction(TryCastFunction.NAME, List.of(DataTypes.LONG)).hasDataType(DataTypes.STRING);
 
         relation = executor.analyze("select try_cast(1+1 as string) from users");
         assertThat(relation.outputs().getFirst()).isLiteral("2", DataTypes.STRING);
@@ -1729,8 +1728,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
         relation = executor.analyze("select try_cast(counters as array(boolean)) from users");
         assertThat(relation.outputs().getFirst())
             .isFunction(
-                TryCastFunction.NAME,
-                List.of(DataTypes.BIGINT_ARRAY, DataTypes.BOOLEAN_ARRAY));
+                TryCastFunction.NAME, List.of(DataTypes.BIGINT_ARRAY)).hasDataType(DataTypes.BOOLEAN_ARRAY);
     }
 
     @Test
@@ -1844,7 +1842,7 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
 
         Symbol argument = ((Function) symbol).arguments().getFirst();
         assertThat(argument)
-            .isFunction(ExplicitCastFunction.NAME, List.of(DataTypes.STRING, DataTypes.TIMESTAMPZ));
+            .isFunction(ExplicitCastFunction.NAME, List.of(DataTypes.STRING)).hasDataType(DataTypes.TIMESTAMPZ);
     }
 
     @Test

@@ -34,12 +34,22 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
 public class TryCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "try_cast";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"))
+        .returnType(DataTypes.UNDEFINED.getTypeSignature())
+        .features(Feature.DETERMINISTIC)
+        .typeVariableConstraints(typeVariable("E"))
+        .build();
+
+    // For mixed clusters or if used in cluster state in tables
+    // E.g. create table tbl (x int, y long generated always as x + 1)
+    static final Signature BWC_SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
         .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("V"))
         .returnType(TypeSignature.parse("V"))
         .features(Feature.DETERMINISTIC)
@@ -48,6 +58,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
 
     public static void register(Functions.Builder module) {
         module.add(SIGNATURE, TryCastFunction::new);
+        module.add(BWC_SIGNATURE, TryCastFunction::new);
     }
 
     private final DataType<?> returnType;
