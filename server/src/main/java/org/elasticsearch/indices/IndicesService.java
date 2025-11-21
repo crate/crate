@@ -44,6 +44,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
@@ -77,7 +78,6 @@ import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.concurrent.AbstractRefCounted;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
 import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.env.NodeEnvironment;
@@ -1118,7 +1118,7 @@ public class IndicesService extends AbstractLifecycleComponent
                         }
                     }
                 });
-            } catch (EsRejectedExecutionException e) {
+            } catch (RejectedExecutionException e) {
                 // ignore cases where we are shutting down..., there is really nothing interesting to be done here...
                 assert danglingIndicesThreadPoolExecutor.isShutdown();
             }
