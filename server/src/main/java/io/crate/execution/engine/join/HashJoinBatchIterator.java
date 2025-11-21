@@ -22,6 +22,7 @@
 package io.crate.execution.engine.join;
 
 import java.util.ArrayList;
+import java.util.BitSet;
 import java.util.List;
 import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
@@ -198,13 +199,14 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     }
 
     private void extractUnmatchedRows() {
+        assert emitUnmatchedRows : "extractUnmatchedRows() must be called when emitUnmatchedRows is true";
         if (!unmatchedRows.isEmpty()) {
             return;
         }
         for (var bufferEntry : buffer.entries()) {
             HashGroup hashGroup = bufferEntry.value();
             List<Object[]> hashGroupRows = hashGroup.rows;
-            List<Boolean> rowIsJoinedFlags = hashGroup.rowIsJoinedFlags;
+            BitSet rowIsJoinedFlags = hashGroup.rowIsJoinedFlags;
             for (int i = 0; i < hashGroupRows.size(); i++) {
                 if (rowIsJoinedFlags.get(i) == false) {
                     unmatchedRows.add(hashGroupRows.get(i));
@@ -307,7 +309,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private boolean findMatchingRows() {
         List<Object[]> matchedRows = matchedHashGroup.rows;
-        List<Boolean> rowIsJoinedFlags = matchedHashGroup.rowIsJoinedFlags;
+        BitSet rowIsJoinedFlags = matchedHashGroup.rowIsJoinedFlags;
         for (; matchedHashGroupIdx < matchedRows.size(); matchedHashGroupIdx++) {
             leftRow.cells(matchedRows.get(matchedHashGroupIdx));
             combiner.setLeft(leftRow);
@@ -327,13 +329,10 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private static final class HashGroup {
 
         private final List<Object[]> rows = new ArrayList<>();
-        private final List<Boolean> rowIsJoinedFlags = new ArrayList<>();
+        private final BitSet rowIsJoinedFlags = new BitSet();
 
         public void add(Object[] row) {
             rows.add(row);
-            rowIsJoinedFlags.add(Boolean.FALSE);
         }
     }
-
-
 }
