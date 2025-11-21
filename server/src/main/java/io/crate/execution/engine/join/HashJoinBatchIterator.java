@@ -109,7 +109,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private boolean leftBatchHasItems = false;
 
     private HashGroup matchedHashGroup;
-    private int matchedHashGroupIdx = -1;
+    private int matchedHashGroupIdx = 0;
 
     private final List<Object[]> unmatchedRows;
     private int unmatchedRowsIdx = 0;
@@ -151,7 +151,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         activeIt = left;
         resetBuffer();
         matchedHashGroup = null;
-        matchedHashGroupIdx = -1;
+        matchedHashGroupIdx = 0;
         unmatchedRows.clear();
         unmatchedRowsIdx = 0;
     }
@@ -184,6 +184,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 right.moveToStart();
                 activeIt = left;
                 resetBuffer();
+                matchedHashGroup = null;
+                matchedHashGroupIdx = 0;
                 unmatchedRows.clear();
                 unmatchedRowsIdx = 0;
             } else {
@@ -273,7 +275,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         }
 
         // In case of multiple matches on the left side (duplicate values or hash collisions)
-        if (matchedHashGroupIdx >= 0 && findMatchingRows()) {
+        if (matchedHashGroup != null && findMatchingRows()) {
             return true;
         }
 
@@ -317,7 +319,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 return true;
             }
         }
-        matchedHashGroupIdx = -1;
+        matchedHashGroup = null;
+        matchedHashGroupIdx = 0;
         return false;
     }
 
