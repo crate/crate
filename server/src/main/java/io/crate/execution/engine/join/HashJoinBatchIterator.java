@@ -22,7 +22,6 @@
 package io.crate.execution.engine.join;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.List;
 import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
@@ -108,8 +107,9 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private int blockSize;
     private int numberOfHashGroupsInBuffer = 0;
     private boolean leftBatchHasItems = false;
-    private Iterator<HashGroup.Entry> matchedHashGroupIteratorFromLeft;
-    private HashGroup matchedHashGroupFromLeft;
+
+    private HashGroup matchedHashGroup;
+    private int matchedHashGroupIdx = -1;
 
     private final List<Object[]> unmatchedRows;
     private int unmatchedRowsIdx = 0;
@@ -150,8 +150,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         right.moveToStart();
         activeIt = left;
         resetBuffer();
-        matchedHashGroupIteratorFromLeft = null;
-        matchedHashGroupFromLeft = null;
+        matchedHashGroup = null;
+        matchedHashGroupIdx = -1;
         unmatchedRows.clear();
         unmatchedRowsIdx = 0;
     }
@@ -201,9 +201,11 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         }
         for (var bufferEntry : buffer.entries()) {
             HashGroup hashGroup = bufferEntry.value();
-            for (HashGroup.Entry hashGroupEntry : hashGroup.entries) {
-                if (!hashGroupEntry.joinConditionSatisfied) {
-                    unmatchedRows.add(hashGroupEntry.row);
+            List<Object[]> hashGroupRows = hashGroup.rows;
+            List<Boolean> rowIsJoinedFlags = hashGroup.rowIsJoinedFlags;
+            for (int i = 0; i < hashGroupRows.size(); i++) {
+                if (rowIsJoinedFlags.get(i) == false) {
+                    unmatchedRows.add(hashGroupRows.get(i));
                 }
             }
         }
@@ -271,16 +273,15 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         }
 
         // In case of multiple matches on the left side (duplicate values or hash collisions)
-        if (matchedHashGroupIteratorFromLeft != null && findMatchingRows()) {
+        if (matchedHashGroupIdx >= 0 && findMatchingRows()) {
             return true;
         }
 
-        matchedHashGroupIteratorFromLeft = null;
         while (right.moveNext()) {
             int rightHash = hashBuilderForRight.applyAsInt(right.currentElement());
-            matchedHashGroupFromLeft = buffer.get(rightHash);
-            if (matchedHashGroupFromLeft != null) {
-                matchedHashGroupIteratorFromLeft = matchedHashGroupFromLeft.entries.iterator();
+            matchedHashGroup = buffer.get(rightHash);
+            if (matchedHashGroup != null) {
+                matchedHashGroupIdx = 0;
                 combiner.setRight(right.currentElement());
                 if (findMatchingRows()) {
                     return true;
@@ -303,36 +304,31 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     }
 
     private boolean findMatchingRows() {
-        while (matchedHashGroupIteratorFromLeft.hasNext()) {
-            var matchedHashGroupEntryFromLeft = matchedHashGroupIteratorFromLeft.next();
-            leftRow.cells(matchedHashGroupEntryFromLeft.row);
+        List<Object[]> matchedRows = matchedHashGroup.rows;
+        List<Boolean> rowIsJoinedFlags = matchedHashGroup.rowIsJoinedFlags;
+        for (; matchedHashGroupIdx < matchedRows.size(); matchedHashGroupIdx++) {
+            leftRow.cells(matchedRows.get(matchedHashGroupIdx));
             combiner.setLeft(leftRow);
             if (joinCondition.test(combiner.currentElement())) {
                 if (emitUnmatchedRows) {
-                    matchedHashGroupEntryFromLeft.joinConditionSatisfied = true;
+                    rowIsJoinedFlags.set(matchedHashGroupIdx, true);
                 }
+                matchedHashGroupIdx++;
                 return true;
             }
         }
+        matchedHashGroupIdx = -1;
         return false;
     }
 
     private static final class HashGroup {
 
-        private final ArrayList<Entry> entries = new ArrayList<>();
+        private final List<Object[]> rows = new ArrayList<>();
+        private final List<Boolean> rowIsJoinedFlags = new ArrayList<>();
 
         public void add(Object[] row) {
-            entries.add(new Entry(row));
-        }
-
-        private static class Entry {
-            private final Object[] row;
-            private boolean joinConditionSatisfied;
-
-            private Entry(Object[] row) {
-                this.row = row;
-                this.joinConditionSatisfied = false;
-            }
+            rows.add(row);
+            rowIsJoinedFlags.add(Boolean.FALSE);
         }
     }
 
