@@ -23,12 +23,12 @@ package io.crate.execution;
 
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collector;
 
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.Streamer;
@@ -102,7 +102,7 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
             if (currentlyAccumulating == null) {
                 try {
                     currentlyAccumulating = CompletableFuture.runAsync(() -> processRows(rows), executor);
-                } catch (EsRejectedExecutionException e) {
+                } catch (RejectedExecutionException e) {
                     processingFuture.completeExceptionally(e);
                 }
             } else {

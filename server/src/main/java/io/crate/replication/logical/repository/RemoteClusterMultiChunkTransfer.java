@@ -24,6 +24,7 @@ package io.crate.replication.logical.repository;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.List;
+import java.util.concurrent.RejectedExecutionException;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -31,7 +32,6 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
@@ -129,7 +129,7 @@ public class RemoteClusterMultiChunkTransfer extends MultiChunkTransfer<StoreFil
                             listener.onFailure(new UncheckedIOException(e));
                         }
                     });
-                } catch (EsRejectedExecutionException e) {
+                } catch (RejectedExecutionException e) {
                     listener.onFailure(e);
                 }
             } else {

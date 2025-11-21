@@ -20,6 +20,7 @@
 package org.elasticsearch.action.support;
 
 import java.util.Iterator;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
@@ -149,7 +150,7 @@ public abstract class RetryableAction<Response> {
                     logger.debug("Retrying action that failed in delay={} err={}", currentDelay, e);
                     try {
                         retryTask = scheduler.schedule(runnable, currentDelay.millis(), TimeUnit.MILLISECONDS);
-                    } catch (EsRejectedExecutionException ree) {
+                    } catch (RejectedExecutionException ree) {
                         onFinalFailure(ree);
                     }
                 }

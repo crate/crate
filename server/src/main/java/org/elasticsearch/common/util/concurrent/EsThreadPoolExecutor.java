@@ -21,6 +21,7 @@ package org.elasticsearch.common.util.concurrent;
 
 
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.ThreadFactory;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
@@ -69,7 +70,7 @@ public class EsThreadPoolExecutor extends ThreadPoolExecutor {
         command = wrapRunnable(command);
         try {
             super.execute(command);
-        } catch (EsRejectedExecutionException ex) {
+        } catch (RejectedExecutionException ex) {
             if (command instanceof RejectableRunnable runnable) {
                 try {
                     runnable.onRejection(ex);

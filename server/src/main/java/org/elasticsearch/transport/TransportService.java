@@ -28,6 +28,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -49,7 +50,6 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.transport.BoundTransportAddress;
 import org.elasticsearch.common.transport.TransportAddress;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.Scheduler;
@@ -771,7 +771,7 @@ public class TransportService extends AbstractLifecycleComponent implements Tran
                     holderToNotify.handler().handleException(new NodeDisconnectedException(connection.getNode(), holderToNotify.action()));
                 }
             });
-        } catch (EsRejectedExecutionException ex) {
+        } catch (RejectedExecutionException ex) {
             LOGGER.debug("Rejected execution on onConnectionClosed", ex);
         }
     }
