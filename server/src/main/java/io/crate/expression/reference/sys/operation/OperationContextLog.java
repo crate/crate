@@ -21,66 +21,21 @@
 
 package io.crate.expression.reference.sys.operation;
 
-import io.crate.expression.reference.sys.job.ContextLog;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.UUID;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.jetbrains.annotations.Nullable;
 
-import java.util.UUID;
+import io.crate.expression.reference.sys.job.ContextLog;
 
-public class OperationContextLog implements ContextLog, Accountable {
-
-    @Nullable
-    private final String errorMessage;
-    private final long ended;
-    private final int id;
-    private final UUID jobId;
-    private final String name;
-    private final long started;
-    private final long usedBytes;
-
-    public OperationContextLog(OperationContext operationContext, @Nullable String errorMessage) {
-        // We don't want to have a reference to operationContext so that it can be GC'd
-        this.id = operationContext.id();
-        this.jobId = operationContext.jobId();
-        this.name = operationContext.name();
-        this.started = operationContext.started();
-        this.usedBytes = operationContext.usedBytes();
-        this.errorMessage = errorMessage;
-        this.ended = System.currentTimeMillis();
-    }
-
-    public int id() {
-        return id;
-    }
-
-    public UUID jobId() {
-        return jobId;
-    }
-
-    public String name() {
-        return name;
-    }
-
-    public long started() {
-        return started;
-    }
-
-    @Override
-    public long ended() {
-        return ended;
-    }
-
-    public long usedBytes() {
-        return usedBytes;
-    }
-
-    @Nullable
-    public String errorMessage() {
-        return errorMessage;
-    }
+public record OperationContextLog(UUID jobId,
+                                  int id,
+                                  String name,
+                                  long started,
+                                  long ended,
+                                  long usedBytes,
+                                  @Nullable String errorMessage) implements ContextLog, Accountable {
 
     @Override
     public long ramBytesUsed() {
@@ -95,30 +50,6 @@ public class OperationContextLog implements ContextLog, Accountable {
         size += name.length();
 
         return RamUsageEstimator.alignObjectSize(size);
-    }
-
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) {
-            return true;
-        }
-        if (o == null || getClass() != o.getClass()) {
-            return false;
-        }
-
-        OperationContextLog that = (OperationContextLog) o;
-
-        if (id != that.id) {
-            return false;
-        }
-        return jobId.equals(that.jobId);
-    }
-
-    @Override
-    public int hashCode() {
-        int result = id;
-        result = 31 * result + jobId.hashCode();
-        return result;
     }
 
     @Override

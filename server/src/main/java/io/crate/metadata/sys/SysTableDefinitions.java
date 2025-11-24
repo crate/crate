@@ -37,6 +37,7 @@ import org.elasticsearch.repositories.RepositoriesService;
 
 import io.crate.execution.engine.collect.files.SummitsIterable;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.StaticTableDefinition;
 import io.crate.expression.reference.sys.check.SysCheck;
 import io.crate.expression.reference.sys.check.SysChecker;
@@ -70,6 +71,7 @@ public class SysTableDefinitions {
                                SysSnapshots sysSnapshots,
                                SysAllocations sysAllocations,
                                ShardSegments shardSegmentInfos,
+                               TasksService tasksService,
                                Sessions sessions) {
         Supplier<DiscoveryNode> localNode = clusterService::localNode;
         var sysClusterTableInfo = (SystemTable<Void>) sysSchemaInfo.getTableInfo(SysClusterTableInfo.IDENT.name());
@@ -141,7 +143,7 @@ public class SysTableDefinitions {
             Map.entry(
                 SysOperationsTableInfo.IDENT,
                 new StaticTableDefinition<>(
-                    () -> completedFuture(jobsLogs.activeOperations()),
+                    () -> completedFuture(tasksService.operations()),
                     SysOperationsTableInfo.create(localNode).expressions(),
                     false)
             ),

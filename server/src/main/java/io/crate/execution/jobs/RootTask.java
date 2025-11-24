@@ -66,6 +66,8 @@ public class RootTask implements CompletionListenable<Void> {
     @Nullable
     private final ProfilingContext profiler;
     private final boolean traceEnabled;
+    private final long startedTimestamp;
+
     private volatile Throwable failure;
 
     @Nullable
@@ -159,6 +161,7 @@ public class RootTask implements CompletionListenable<Void> {
         int numTasks = orderedTasks.size();
         this.numActiveTasks = new AtomicInteger(numTasks);
         this.traceEnabled = logger.isTraceEnabled();
+        this.startedTimestamp = System.currentTimeMillis();
         if (profilingContext == null) {
             taskTimersByPhaseId = null;
             profilingFuture = null;
@@ -169,13 +172,21 @@ public class RootTask implements CompletionListenable<Void> {
             profilingFuture = new CompletableFuture<>();
         }
         for (Task task : orderedTasks) {
-            jobsLogs.operationStarted(task.id(), jobId, task.name(), task::bytesUsed);
-            task.completionFuture().whenComplete(new TaskFinishedListener(task.id()));
+            task.completionFuture().whenComplete(new TaskFinishedListener(task));
         }
+    }
+
+    public List<Task> tasks() {
+        return orderedTasks;
     }
 
     public UUID jobId() {
         return jobId;
+    }
+
+    /// `System.currentTimeMillis()` when RootTask was created.
+    public long started() {
+        return startedTimestamp;
     }
 
     String coordinatorNodeId() {
@@ -341,10 +352,10 @@ public class RootTask implements CompletionListenable<Void> {
 
     private final class TaskFinishedListener implements BiConsumer<Void, Throwable> {
 
-        private final int id;
+        private final Task task;
 
-        private TaskFinishedListener(int id) {
-            this.id = id;
+        private TaskFinishedListener(Task task) {
+            this.task = task;
         }
 
         /**
@@ -353,8 +364,7 @@ public class RootTask implements CompletionListenable<Void> {
          */
         private boolean finishIfNeeded() {
             if (traceEnabled) {
-                Task task = getTask(id);
-                logger.trace("Task completed job={} id={} task={} error={}", jobId, id, task, failure);
+                logger.trace("Task completed job={} task={} error={}", jobId, task, failure);
             }
             if (numActiveTasks.decrementAndGet() == 0) {
                 finish();
@@ -364,26 +374,26 @@ public class RootTask implements CompletionListenable<Void> {
         }
 
         private void onSuccess() {
-            jobsLogs.operationFinished(id, jobId, null);
+            jobsLogs.operationFinished(jobId, startedTimestamp, task, null);
             finishIfNeeded();
         }
 
         private void onFailure(@NotNull Throwable t) {
             t = SQLExceptions.unwrap(t);
             failure = t;
-            jobsLogs.operationFinished(id, jobId, SQLExceptions.messageOf(t));
+            jobsLogs.operationFinished(jobId, startedTimestamp, task, SQLExceptions.messageOf(t));
             if (finishIfNeeded()) {
                 return;
             }
             if (killTasksOngoing.compareAndSet(false, true)) {
-                for (Task task : orderedTasks) {
-                    if (task.id() == id || task.completionFuture().isDone()) {
+                for (Task otherTask : orderedTasks) {
+                    if (otherTask.id() == this.task.id() || otherTask.completionFuture().isDone()) {
                         continue;
                     }
                     if (traceEnabled) {
-                        logger.trace("Task id={} failed, killing other task={}", id, task);
+                        logger.trace("Task id={} failed, killing other task={}", this.task.id(), otherTask);
                     }
-                    task.kill(t);
+                    otherTask.kill(t);
                 }
             }
         }
@@ -403,7 +413,7 @@ public class RootTask implements CompletionListenable<Void> {
         private void stopTaskTimer() {
             assert profiler != null : "profiler must not be null";
             assert taskTimersByPhaseId != null : "taskTimersByPhaseId must not be null";
-            Timer removed = taskTimersByPhaseId.remove(id);
+            Timer removed = taskTimersByPhaseId.remove(task.id());
             // Can be null if killed before start
             if (removed != null) {
                 profiler.stopTimerAndStoreDuration(removed);
