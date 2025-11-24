@@ -41,7 +41,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "try_cast";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.parse("E"))
+        .argumentTypes(TypeSignature.E)
         .returnType(DataTypes.UNDEFINED.getTypeSignature())
         .features(Feature.DETERMINISTIC)
         .typeVariableConstraints(typeVariable("E"))
@@ -50,8 +50,8 @@ public class TryCastFunction extends Scalar<Object, Object> {
     // For mixed clusters or if used in cluster state in tables
     // E.g. create table tbl (x int, y long generated always as x + 1)
     static final Signature BWC_SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("V"))
-        .returnType(TypeSignature.parse("V"))
+        .argumentTypes(TypeSignature.E, TypeSignature.V)
+        .returnType(TypeSignature.V)
         .features(Feature.DETERMINISTIC)
         .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
         .build();

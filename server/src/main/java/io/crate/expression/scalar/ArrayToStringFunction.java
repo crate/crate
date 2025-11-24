@@ -47,7 +47,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder(FQN, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"),
+                .argumentTypes(TypeSignature.ARRAY_E,
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
                 .typeVariableConstraints(typeVariable("E"))
@@ -57,7 +57,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
         );
         module.add(
             Signature.builder(FQN, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"),
+                .argumentTypes(TypeSignature.ARRAY_E,
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())

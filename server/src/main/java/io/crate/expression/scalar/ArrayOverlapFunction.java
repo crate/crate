@@ -42,8 +42,8 @@ public class ArrayOverlapFunction extends Scalar<Boolean, List<Object>> {
     public static final String NAME = "array_overlap";
 
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.parse("array(E)"),
-            TypeSignature.parse("array(E)"))
+        .argumentTypes(TypeSignature.ARRAY_E,
+            TypeSignature.ARRAY_E)
         .returnType(DataTypes.BOOLEAN.getTypeSignature())
         .typeVariableConstraints(typeVariable("E"))
         .features(Scalar.Feature.DETERMINISTIC, Scalar.Feature.NOTNULL)

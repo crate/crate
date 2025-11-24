@@ -47,6 +47,7 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
     public static final DoubleType INSTANCE = new DoubleType();
     public static final int ID = 6;
+    public static final String NAME = "double precision";
     public static final int PRECISION = 53;
     public static final int DOUBLE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Double.class);
     private static final StorageSupport<Double> STORAGE = new StorageSupport<>(
@@ -137,7 +138,12 @@ public class DoubleType extends DataType<Double> implements FixedWidthType, Stre
 
     @Override
     public String getName() {
-        return "double precision";
+        return NAME;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return TypeSignature.DOUBLE;
     }
 
     @Override

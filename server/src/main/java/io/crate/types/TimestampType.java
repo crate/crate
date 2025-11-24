@@ -56,15 +56,20 @@ public final class TimestampType extends DataType<Long>
     public static final int ID_WITH_TZ = 11;
     public static final int ID_WITHOUT_TZ = 15;
 
+    public static final String NAME_WITH_TZ = "timestamp with time zone";
+    public static final String NAME_WITHOUT_TZ = "timestamp without time zone";
+
     public static final TimestampType INSTANCE_WITH_TZ = new TimestampType(
         ID_WITH_TZ,
-        "timestamp with time zone",
+        NAME_WITH_TZ,
+        TypeSignature.TIMESTAMP_WITH_TZ,
         TimestampType::parseTimestamp,
         Precedence.TIMESTAMP_WITH_TIME_ZONE);
 
     public static final TimestampType INSTANCE_WITHOUT_TZ = new TimestampType(
         ID_WITHOUT_TZ,
-        "timestamp without time zone",
+        NAME_WITHOUT_TZ,
+        TypeSignature.TIMESTAMP_WITHOUT_TZ,
         TimestampType::parseTimestampIgnoreTimeZone,
         Precedence.TIMESTAMP);
 
@@ -86,10 +91,16 @@ public final class TimestampType extends DataType<Long>
     private final String name;
     private final Function<String, Long> parse;
     private final Precedence precedence;
+    private final TypeSignature typeSignature;
 
-    private TimestampType(int id, String name, Function<String, Long> parse, Precedence precedence) {
+    private TimestampType(int id,
+                          String name,
+                          TypeSignature typeSignature,
+                          Function<String, Long> parse,
+                          Precedence precedence) {
         this.id = id;
         this.name = name;
+        this.typeSignature = typeSignature;
         this.parse = parse;
         this.precedence = precedence;
     }
@@ -102,6 +113,11 @@ public final class TimestampType extends DataType<Long>
     @Override
     public String getName() {
         return name;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return typeSignature;
     }
 
     @Override

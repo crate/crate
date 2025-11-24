@@ -41,6 +41,7 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
 
     public static final IntegerType INSTANCE = new IntegerType();
     public static final int ID = 9;
+    public static final String NAME = "integer";
     public static final int PRECISION = 32;
     public static final int INTEGER_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Integer.class);
     private static final StorageSupport<Number> STORAGE = new StorageSupport<>(true, true, new IntEqQuery()) {
@@ -73,7 +74,12 @@ public class IntegerType extends DataType<Integer> implements Streamer<Integer>,
 
     @Override
     public String getName() {
-        return "integer";
+        return NAME;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return TypeSignature.INT;
     }
 
     @Override

@@ -8,7 +8,7 @@ cr8>=0.19.1
 tqdm>=4.66.4
 pycodestyle==2.4.0
 zc.customdoctests==1.0.1
-minio>=5.0.0
+minio>=7.2.19
 pyjnius
 
 # used for dns-discovery tests

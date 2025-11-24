@@ -50,6 +50,7 @@ import io.crate.statistics.ColumnStatsSupport;
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
 
     public static final int ID = 3;
+    public static final String NAME = "boolean";
     public static final BooleanType INSTANCE = new BooleanType();
 
     private static final EqQuery<Boolean> EQ_QUERY = new EqQuery<>() {
@@ -187,7 +188,12 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
 
     @Override
     public String getName() {
-        return "boolean";
+        return NAME;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return TypeSignature.BOOLEAN;
     }
 
     @Override

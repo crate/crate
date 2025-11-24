@@ -51,7 +51,7 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
     public static void register(Functions.Builder builder) {
         builder.add(
             Signature.builder(NAME, FunctionType.TABLE)
-                .argumentTypes(TypeSignature.parse("array(E)"),
+                .argumentTypes(TypeSignature.ARRAY_E,
                     INTEGER.getTypeSignature())
                 .returnType(INTEGER.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
@@ -61,7 +61,7 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
         );
         builder.add(
             Signature.builder(NAME, FunctionType.TABLE)
-                .argumentTypes(TypeSignature.parse("array(E)"),
+                .argumentTypes(TypeSignature.ARRAY_E,
                     INTEGER.getTypeSignature(),
                     DataTypes.BOOLEAN.getTypeSignature())
                 .returnType(INTEGER.getTypeSignature())

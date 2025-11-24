@@ -63,7 +63,7 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
         );
         module.add(
             Signature.builder("null_or_empty", FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E)
                 .returnType(DataTypes.BOOLEAN.getTypeSignature())
                 .typeVariableConstraints(TypeVariableConstraint.typeVariableOfAnyType("E"))
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)

@@ -41,8 +41,8 @@ public class ArrayFunction extends Scalar<Object, Object> {
     public static final Signature SIGNATURE =
         Signature.builder(NAME, FunctionType.SCALAR)
             .typeVariableConstraints(typeVariable("E"))
-            .argumentTypes(TypeSignature.parse("E"))
-            .returnType(TypeSignature.parse("array(E)"))
+            .argumentTypes(TypeSignature.E)
+            .returnType(TypeSignature.ARRAY_E)
             .setVariableArity(true)
             .features(Feature.NOTNULL, Feature.DETERMINISTIC)
             .build();

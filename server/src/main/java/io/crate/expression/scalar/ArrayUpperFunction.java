@@ -74,7 +74,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         for (var name : List.of(ARRAY_UPPER, ARRAY_LENGTH)) {
             module.add(
                     Signature.builder(name, FunctionType.SCALAR)
-                            .argumentTypes(TypeSignature.parse("array(E)"),
+                            .argumentTypes(TypeSignature.ARRAY_E,
                                     DataTypes.INTEGER.getTypeSignature())
                             .returnType(DataTypes.INTEGER.getTypeSignature())
                             .typeVariableConstraints(typeVariable("E"))

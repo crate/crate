@@ -281,7 +281,7 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_bind_type_text_types_with_limit_length_binds_type_with_highest_length() {
         var signature = functionSignature()
-            .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("E"))
+            .argumentTypes(TypeSignature.E, TypeSignature.E)
             .returnType(DataTypes.BOOLEAN.getTypeSignature())
             .typeVariableConstraints(List.of(typeVariable("E")))
             .build();
@@ -295,7 +295,7 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_bind_type_character_types_with_limit_length_binds_type_with_highest_length() {
         var signature = functionSignature()
-            .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("E"))
+            .argumentTypes(TypeSignature.E, TypeSignature.E)
             .returnType(DataTypes.BOOLEAN.getTypeSignature())
             .typeVariableConstraints(List.of(typeVariable("E")))
             .build();
@@ -309,7 +309,7 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void test_bind_type_bit_types_binds_type_with_highest_length() {
         var signature = functionSignature()
-            .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("E"))
+            .argumentTypes(TypeSignature.E, TypeSignature.E)
             .returnType(DataTypes.BOOLEAN.getTypeSignature())
             .typeVariableConstraints(List.of(typeVariable("E")))
             .build();
@@ -338,9 +338,9 @@ public class SignatureBinderTest extends ESTestCase {
     public void testVariableArityGroup() {
         Signature mapFunction = functionSignature()
             .returnType(TypeSignature.parse("object(text, V)"))
-            .argumentTypes(TypeSignature.parse("text"), TypeSignature.parse("V"))
+            .argumentTypes(TypeSignature.parse("text"), TypeSignature.V)
             .typeVariableConstraints(List.of(typeVariable("V")))
-            .variableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.parse("V")))
+            .variableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.V))
             .build();
 
         assertThatSignature(mapFunction)
@@ -370,7 +370,7 @@ public class SignatureBinderTest extends ESTestCase {
     public void testVariableArityOfAnyTypeConstraint() {
         Signature fooFunction = functionSignature()
             .returnType(TypeSignature.parse("text"))
-            .argumentTypes(TypeSignature.parse("text"), TypeSignature.parse("V"))
+            .argumentTypes(TypeSignature.parse("text"), TypeSignature.V)
             .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
             .setVariableArity(true)
             .build();
@@ -398,7 +398,7 @@ public class SignatureBinderTest extends ESTestCase {
     public void test_variable_arity_with_array_nested_variable_constraint_of_any_type() {
         Signature signature = functionSignature()
             .returnType(TypeSignature.parse("integer"))
-            .argumentTypes(TypeSignature.parse("array(E)"))
+            .argumentTypes(TypeSignature.ARRAY_E)
             .typeVariableConstraints(List.of(typeVariableOfAnyType("E")))
             .setVariableArity(true)
             .build();

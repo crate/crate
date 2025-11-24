@@ -49,6 +49,7 @@ import io.crate.statistics.ColumnStatsSupport;
 public class IpType extends DataType<String> implements Streamer<String> {
 
     public static final int ID = 5;
+    public static final String NAME = "ip";
     public static final IpType INSTANCE = new IpType();
     private static final StorageSupport<String> STORAGE = new StorageSupport<>(
         true,
@@ -131,7 +132,12 @@ public class IpType extends DataType<String> implements Streamer<String> {
 
     @Override
     public String getName() {
-        return "ip";
+        return NAME;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return TypeSignature.IP;
     }
 
     @Override

@@ -237,7 +237,7 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     @Override
     public TypeSignature getTypeSignature() {
         if (unscaled()) {
-            return super.getTypeSignature();
+            return TypeSignature.NUMERIC_UNSCALED;
         } else {
             ArrayList<TypeSignature> parameters = new ArrayList<>();
             parameters.add(TypeSignature.of(precision));
