@@ -24,11 +24,9 @@ package io.crate.metadata.sys;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.UUID;
-import java.util.function.LongSupplier;
 
 import org.junit.jupiter.api.Test;
 
-import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.ColumnIdent;
 
@@ -44,9 +42,17 @@ public class SysOperationsLogTableInfoTest {
         UUID jobId = UUID.randomUUID();
         String name = "Dummy";
         long started = 1;
-        LongSupplier bytesUsed = () -> 10;
+        long bytesUsed = 10L;
         String errorMessage = null;
-        expression.setNextRow(new OperationContextLog(new OperationContext(id, jobId, name, started, bytesUsed), errorMessage));
+        expression.setNextRow(new OperationContextLog(
+            jobId,
+            id,
+            name,
+            started,
+            System.currentTimeMillis(),
+            bytesUsed,
+            errorMessage
+        ));
         Object value = (String) expression.value();
         assertThat(value).isEqualTo(jobId.toString());
     }

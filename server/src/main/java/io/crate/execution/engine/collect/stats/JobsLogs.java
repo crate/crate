@@ -29,15 +29,15 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.StampedLock;
 import java.util.function.BooleanSupplier;
-import java.util.function.LongSupplier;
 
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.common.annotations.ThreadSafe;
+import io.crate.execution.jobs.Task;
+import io.crate.execution.jobs.TasksService;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
-import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.sys.ClassifiedMetrics;
 import io.crate.metadata.sys.MetricsView;
@@ -48,14 +48,13 @@ import io.crate.role.Role;
 /**
  * JobsLogs is responsible for adding jobs and operations of that node.
  * It also provides the functionality to expose that data for system tables,
- * such as sys.jobs, sys.jobs_log, sys.operations and sys.operations_log;
+ * such as sys.jobs, sys.jobs_log and sys.operations_log;
  * <p>
  * The data is exposed via the properties
  *
  *   - {@link #activeJobs()}
  *   - {@link #jobsLog()} ()}
- *   - {@link #activeOperations()} ()}
- *   - {@link #operationsLog()} ()}
+ *   - {@link #operationsLog()} (active operations are available via {@link TasksService#operations()}
  *
  * Note that on configuration updates (E.g.: resizing of jobs-log size, etc.) the Iterable instances previously returned
  * from the properties may become obsolete.
@@ -65,10 +64,7 @@ import io.crate.role.Role;
 @ThreadSafe
 public class JobsLogs {
 
-    record OperationId(int operationId, UUID jobId) {}
-
     private final Map<UUID, JobContext> jobsTable = new ConcurrentHashMap<>();
-    private final Map<OperationId, OperationContext> operationsTable = new ConcurrentHashMap<>();
 
     private LogSink<JobContextLog> jobsLog = NoopLogSink.instance();
     private LogSink<OperationContextLog> operationsLog = NoopLogSink.instance();
@@ -156,29 +152,23 @@ public class JobsLogs {
         recordMetrics(jobContextLog);
     }
 
-    public void operationStarted(int operationId, UUID jobId, String name, LongSupplier bytesUsed) {
-        if (isEnabled()) {
-            operationsTable.put(
-                new OperationId(operationId, jobId),
-                new OperationContext(operationId, jobId, name, System.currentTimeMillis(), bytesUsed));
-        }
-    }
-
     public Iterable<MetricsView> metrics() {
         return classifiedMetrics;
     }
 
-    public void operationFinished(int operationId, UUID jobId, @Nullable String errorMessage) {
+    public void operationFinished(UUID jobId, long startedTs, Task task, @Nullable String errorMessage) {
         if (!isEnabled()) {
             return;
         }
-        OperationContext operationContext = operationsTable.remove(new OperationId(operationId, jobId));
-        if (operationContext == null) {
-            // this might be the case if the stats were disabled when the operation started but have
-            // been enabled before the finish
-            return;
-        }
-        OperationContextLog operationContextLog = new OperationContextLog(operationContext, errorMessage);
+        OperationContextLog operationContextLog = new OperationContextLog(
+            jobId,
+            task.id(),
+            task.name(),
+            startedTs,
+            System.currentTimeMillis(),
+            task.bytesUsed(),
+            errorMessage
+        );
         long stamp = operationsLogRWLock.readLock();
         try {
             operationsLog.add(operationContextLog);
@@ -198,10 +188,6 @@ public class JobsLogs {
         } finally {
             jobsLogLock.unlockRead(stamp);
         }
-    }
-
-    public Iterable<OperationContext> activeOperations() {
-        return operationsTable.values();
     }
 
     public Iterable<OperationContextLog> operationsLog() {

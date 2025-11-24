@@ -53,7 +53,6 @@ import io.crate.common.collections.BlockingEvictingQueue;
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.reference.sys.job.JobContext;
 import io.crate.expression.reference.sys.job.JobContextLog;
-import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.expression.reference.sys.operation.OperationContextLog;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.sys.MetricsView;
@@ -252,9 +251,23 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             assertThat(StreamSupport.stream(stats.get().jobsLog().spliterator(), false).count()).isEqualTo(1L);
 
             operationsLogSink.add(new OperationContextLog(
-                new OperationContext(1, UUID.randomUUID(), "foo", 2L, () -> -1), null));
+                UUID.randomUUID(),
+                1,
+                "dummy",
+                System.currentTimeMillis() - 1, // started
+                System.currentTimeMillis(),     // ended
+                2L,
+                null
+            ));
             operationsLogSink.add(new OperationContextLog(
-                new OperationContext(1, UUID.randomUUID(), "foo", 3L, () -> 1), null));
+                UUID.randomUUID(),
+                2,
+                "dummy",
+                System.currentTimeMillis() - 1, // started
+                System.currentTimeMillis(),     // ended
+                3L,
+                null
+            ));
 
             clusterSettings.applySettings(Settings.builder()
                 .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
@@ -303,44 +316,6 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
             latch.await(10, TimeUnit.SECONDS);
             assertThat(
                 StreamSupport.stream(jobsLogs.jobsLog().spliterator(), false).count()).isEqualTo((long) numJobs.get());
-        } finally {
-            executor.shutdown();
-            executor.awaitTermination(2, TimeUnit.SECONDS);
-        }
-    }
-
-    @Test
-    public void testRunningOperationsAreNotLostOnSettingsChange() throws Exception {
-        ExecutorService executor = Executors.newFixedThreadPool(2);
-
-        Settings settings = Settings.builder()
-            .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true).build();
-        try (var jobsLogService = new JobsLogService(settings, clusterService, nodeCtx, breakerService)) {
-            JobsLogs jobsLogs = jobsLogService.get();
-
-            CountDownLatch latch = new CountDownLatch(2);
-            AtomicBoolean doInsertJobs = new AtomicBoolean(true);
-            AtomicInteger numJobs = new AtomicInteger();
-            int maxQueueSize = JobsLogService.STATS_OPERATIONS_LOG_SIZE_SETTING.getDefault(Settings.EMPTY);
-
-            executor.submit(() -> {
-                while (doInsertJobs.get() && numJobs.get() < maxQueueSize) {
-                    UUID uuid = UUID.randomUUID();
-                    jobsLogs.operationStarted(1, uuid, "dummy", () -> -1);
-                    jobsLogs.operationFinished(1, uuid, null);
-                    numJobs.incrementAndGet();
-                }
-                latch.countDown();
-            });
-            executor.submit(() -> {
-                jobsLogService.updateOperationSink(maxQueueSize + 10, JobsLogService.STATS_OPERATIONS_LOG_EXPIRATION_SETTING.getDefault(Settings.EMPTY));
-                doInsertJobs.set(false);
-                latch.countDown();
-            });
-
-            latch.await(10, TimeUnit.SECONDS);
-            assertThat(
-                StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false).count()).isEqualTo((long) numJobs.get());
         } finally {
             executor.shutdown();
             executor.awaitTermination(2, TimeUnit.SECONDS);
@@ -399,31 +374,6 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
         assertThat(job.failedCount()).isEqualTo(1L);
         assertThat(job.totalCount()).isEqualTo(1L);
         assertThat(job.classification()).isEqualTo(new Classification(UNDEFINED));
-    }
-
-    @Test
-    public void testUniqueOperationIdsInOperationsTable() {
-        JobsLogs jobsLogs = new JobsLogs(() -> true);
-        Queue<OperationContextLog> q = new BlockingEvictingQueue<>(10);
-        jobsLogs.updateOperationsLog(new QueueSink<>(q, () -> {}));
-
-        OperationContext ctxA = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L, () -> -1);
-        jobsLogs.operationStarted(ctxA.id, ctxA.jobId, ctxA.name, () -> -1);
-
-        OperationContext ctxB = new OperationContext(0, UUID.randomUUID(), "dummyOperation", 1L, () -> -1);
-        jobsLogs.operationStarted(ctxB.id, ctxB.jobId, ctxB.name, () -> 1);
-
-        jobsLogs.operationFinished(ctxB.id, ctxB.jobId, null);
-        List<OperationContextLog> entries = StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false)
-            .toList();
-
-        assertThat(entries)
-            .containsExactly(new OperationContextLog(ctxB, null))
-            .doesNotContain(new OperationContextLog(ctxA, null));
-
-        jobsLogs.operationFinished(ctxA.id, ctxA.jobId, null);
-        entries = StreamSupport.stream(jobsLogs.operationsLog().spliterator(), false).toList();
-        assertThat(entries).contains(new OperationContextLog(ctxA, null));
     }
 
     @Test
