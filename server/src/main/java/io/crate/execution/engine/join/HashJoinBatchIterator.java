@@ -23,6 +23,7 @@ package io.crate.execution.engine.join;
 
 import java.util.ArrayList;
 import java.util.BitSet;
+import java.util.Iterator;
 import java.util.List;
 import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
@@ -100,7 +101,6 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private final ToIntFunction<Row> hashBuilderForRight;
     private final LongToIntFunction calculateBlockSize;
     private final IntObjectHashMap<HashGroup> buffer;
-    private final boolean emitUnmatchedRows;
 
     private final UnsafeArrayRow unsafeArrayRow = new UnsafeArrayRow();
 
@@ -112,8 +112,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private HashGroup matchedHashGroup;
     private int matchedHashGroupIdx = 0;
 
-    private final List<Object[]> unmatchedRows;
-    private int unmatchedRowsIdx = 0;
+    private boolean emitUnmatchedRows;
+    private UnmatchedRowsIterator unmatchedRowsIterator;
 
     public HashJoinBatchIterator(CircuitBreaker circuitBreaker,
                                  BatchIterator<Row> left,
@@ -137,7 +137,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         resetBuffer();
         this.activeIt = left;
         this.emitUnmatchedRows = emitUnmatchedRows;
-        this.unmatchedRows = new ArrayList<>();
+        this.unmatchedRowsIterator = null;
     }
 
     @Override
@@ -153,8 +153,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         resetBuffer();
         matchedHashGroup = null;
         matchedHashGroupIdx = 0;
-        unmatchedRows.clear();
-        unmatchedRowsIdx = 0;
+        unmatchedRowsIterator = null;
     }
 
     @Override
@@ -163,9 +162,14 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             if (right.allLoaded() && leftBatchHasItems == false && left.allLoaded()) {
                 // both sides are fully loaded
                 if (emitUnmatchedRows) {
-                    extractUnmatchedRows();
-                    if (hasMoreUnmatchedKeys()) {
-                        return emitUnmatchedRows();
+                    if (unmatchedRowsIterator == null) {
+                        unmatchedRowsIterator = new UnmatchedRowsIterator(buffer);
+                    }
+                    if (unmatchedRowsIterator.hasNext()) {
+                        Object[] unmatchedRow = unmatchedRowsIterator.next();
+                        combiner.setLeft(unsafeArrayRow.cells(unmatchedRow));
+                        combiner.nullRight();
+                        return true;
                     }
                 }
                 // we are fully done
@@ -176,9 +180,14 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             } else if (right.allLoaded()) {
                 // one batch completed
                 if (emitUnmatchedRows) {
-                    extractUnmatchedRows();
-                    if (hasMoreUnmatchedKeys()) {
-                        return emitUnmatchedRows();
+                    if (unmatchedRowsIterator == null) {
+                        unmatchedRowsIterator = new UnmatchedRowsIterator(buffer);
+                    }
+                    if (unmatchedRowsIterator.hasNext()) {
+                        Object[] unmatchedRow = unmatchedRowsIterator.next();
+                        combiner.setLeft(unsafeArrayRow.cells(unmatchedRow));
+                        combiner.nullRight();
+                        return true;
                     }
                 }
                 // get ready for the next batch
@@ -187,43 +196,13 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 resetBuffer();
                 matchedHashGroup = null;
                 matchedHashGroupIdx = 0;
-                unmatchedRows.clear();
-                unmatchedRowsIdx = 0;
+                unmatchedRowsIterator = null;
             } else {
                 return false;
             }
         }
 
         // match found
-        return true;
-    }
-
-    private void extractUnmatchedRows() {
-        assert emitUnmatchedRows : "extractUnmatchedRows() must be called when emitUnmatchedRows is true";
-        if (!unmatchedRows.isEmpty()) {
-            return;
-        }
-        for (var bufferEntry : buffer.entries()) {
-            HashGroup hashGroup = bufferEntry.value();
-            List<Object[]> hashGroupRows = hashGroup.rows;
-            BitSet rowIsJoinedFlags = hashGroup.rowIsJoinedFlags;
-            for (int i = 0; i < hashGroupRows.size(); i++) {
-                if (rowIsJoinedFlags.get(i) == false) {
-                    unmatchedRows.add(hashGroupRows.get(i));
-                }
-            }
-        }
-    }
-
-    private boolean hasMoreUnmatchedKeys() {
-        return unmatchedRowsIdx < unmatchedRows.size();
-    }
-
-    private boolean emitUnmatchedRows() {
-        Object[] unmatchedRow = unmatchedRows.get(unmatchedRowsIdx);
-        combiner.setLeft(unsafeArrayRow.cells(unmatchedRow));
-        combiner.nullRight();
-        unmatchedRowsIdx++;
         return true;
     }
 
@@ -310,7 +289,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private boolean findMatchingRows() {
         List<Object[]> matchedRows = matchedHashGroup.rows;
         BitSet rowIsJoinedFlags = matchedHashGroup.rowIsJoinedFlags;
-        for (; matchedHashGroupIdx < matchedRows.size(); matchedHashGroupIdx++) {
+        while (matchedHashGroupIdx < matchedRows.size()) {
             leftRow.cells(matchedRows.get(matchedHashGroupIdx));
             combiner.setLeft(leftRow);
             if (joinCondition.test(combiner.currentElement())) {
@@ -320,6 +299,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 matchedHashGroupIdx++;
                 return true;
             }
+            matchedHashGroupIdx++;
         }
         matchedHashGroup = null;
         matchedHashGroupIdx = 0;
@@ -333,6 +313,62 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
         public void add(Object[] row) {
             rows.add(row);
+        }
+    }
+
+    private static class UnmatchedRowsIterator implements Iterator<Object[]> {
+
+        private final Iterator<IntObjectHashMap.PrimitiveEntry<HashJoinBatchIterator.HashGroup>> hashGroupsIterator;
+
+        private HashGroup currentHashGroup;
+        private int currentHashGroupRowsIdx;
+        private Object[] nextUnmatchedRow;
+
+        public UnmatchedRowsIterator(IntObjectHashMap<HashGroup> buffer) {
+            this.hashGroupsIterator = buffer.entries().iterator();
+            advancedToNextUnmatchedRow();
+        }
+
+        @Override
+        public boolean hasNext() {
+            return nextUnmatchedRow != null;
+        }
+
+        @Override
+        public Object[] next() {
+            try {
+                return nextUnmatchedRow;
+            } finally {
+                advancedToNextUnmatchedRow();
+            }
+        }
+
+        private void advancedToNextUnmatchedRow() {
+            while (true) {
+                if (currentHashGroup == null && hashGroupsIterator.hasNext()) {
+                    currentHashGroup = hashGroupsIterator.next().value();
+                    currentHashGroupRowsIdx = 0;
+                }
+                if (currentHashGroup == null) {
+                    nextUnmatchedRow = null;
+                    return;
+                }
+                List<Object[]> currentHashGroupRows = currentHashGroup.rows;
+                BitSet rowIsJoinedFlags = currentHashGroup.rowIsJoinedFlags;
+                final int currentHashGroupSize = currentHashGroupRows.size();
+                while (currentHashGroupRowsIdx < currentHashGroupSize) {
+                    if (rowIsJoinedFlags.get(currentHashGroupRowsIdx) == false) {
+                        nextUnmatchedRow = currentHashGroupRows.get(currentHashGroupRowsIdx);
+                        currentHashGroupRowsIdx++;
+                        return;
+                    }
+                    currentHashGroupRowsIdx++;
+                }
+
+                // no unmatched rows found from currentHashGroup
+                currentHashGroupRowsIdx = 0;
+                currentHashGroup = null;
+            }
         }
     }
 }
