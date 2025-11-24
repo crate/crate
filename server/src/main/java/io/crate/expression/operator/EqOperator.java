@@ -23,7 +23,6 @@ package io.crate.expression.operator;
 
 import static io.crate.common.collections.Lists.flattenUnique;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -62,6 +61,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -80,7 +80,7 @@ public final class EqOperator extends Operator<Object> {
             TypeSignature.E)
         .returnType(Operator.RETURN_TYPE.getTypeSignature())
         .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
-        .typeVariableConstraints(typeVariable("E"))
+        .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
     public static void register(Functions.Builder builder) {

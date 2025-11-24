@@ -59,7 +59,7 @@ public class SignatureBinderTest extends ESTestCase {
     @Test
     public void testBasic() {
         Signature function = functionSignature()
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .returnType(TypeSignature.parse("T"))
             .argumentTypes(TypeSignature.parse("T"))
             .build();
@@ -99,7 +99,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature function = functionSignature()
             .returnType(TypeSignature.parse("T"))
             .argumentTypes(TypeSignature.parse("array(T)"), TypeSignature.parse("T"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(function)
@@ -113,7 +113,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature function = functionSignature()
             .returnType(TypeSignature.parse("T"))
             .argumentTypes(TypeSignature.parse("array(T)"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(function)
@@ -131,7 +131,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature function = functionSignature()
             .returnType(TypeSignature.parse("T"))
             .argumentTypes(TypeSignature.parse("T"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(function)
@@ -174,7 +174,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature getFunction = functionSignature()
             .returnType(TypeSignature.parse("T"))
             .argumentTypes(TypeSignature.parse("array(T)"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(getFunction)
@@ -190,7 +190,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature containsFunction = functionSignature()
             .returnType(TypeSignature.parse("T"))
             .argumentTypes(TypeSignature.parse("array(T)"), TypeSignature.parse("T"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(containsFunction)
@@ -221,7 +221,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature fooFunction = functionSignature()
             .returnType(TypeSignature.parse("T"))
             .argumentTypes(TypeSignature.parse("array(T)"), TypeSignature.parse("array(T)"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(fooFunction)
@@ -264,7 +264,7 @@ public class SignatureBinderTest extends ESTestCase {
         var signature = functionSignature()
             .returnType(TypeSignature.parse("T"))
             .argumentTypes(TypeSignature.parse("record(T)"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(signature)
@@ -283,7 +283,7 @@ public class SignatureBinderTest extends ESTestCase {
         var signature = functionSignature()
             .argumentTypes(TypeSignature.E, TypeSignature.E)
             .returnType(DataTypes.BOOLEAN.getTypeSignature())
-            .typeVariableConstraints(List.of(typeVariable("E")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.E))
             .build();
 
         assertThatSignature(signature)
@@ -297,7 +297,7 @@ public class SignatureBinderTest extends ESTestCase {
         var signature = functionSignature()
             .argumentTypes(TypeSignature.E, TypeSignature.E)
             .returnType(DataTypes.BOOLEAN.getTypeSignature())
-            .typeVariableConstraints(List.of(typeVariable("E")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.E))
             .build();
 
         assertThatSignature(signature)
@@ -311,7 +311,7 @@ public class SignatureBinderTest extends ESTestCase {
         var signature = functionSignature()
             .argumentTypes(TypeSignature.E, TypeSignature.E)
             .returnType(DataTypes.BOOLEAN.getTypeSignature())
-            .typeVariableConstraints(List.of(typeVariable("E")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.E))
             .build();
 
         assertThatSignature(signature)
@@ -325,7 +325,7 @@ public class SignatureBinderTest extends ESTestCase {
         var signature = functionSignature()
             .returnType(TypeSignature.parse("record(col T)"))
             .argumentTypes(TypeSignature.parse("T"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(signature)
@@ -339,7 +339,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature mapFunction = functionSignature()
             .returnType(TypeSignature.parse("object(text, V)"))
             .argumentTypes(TypeSignature.parse("text"), TypeSignature.V)
-            .typeVariableConstraints(List.of(typeVariable("V")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.V))
             .variableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.V))
             .build();
 
@@ -455,7 +455,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature variableArityFunction = functionSignature()
             .returnType(TypeSignature.parse("boolean"))
             .argumentTypes(TypeSignature.parse("T"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .setVariableArity(true)
             .build();
 
@@ -492,7 +492,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature function = functionSignature()
             .returnType(TypeSignature.parse("boolean"))
             .argumentTypes(TypeSignature.parse("T"), TypeSignature.parse("double precision"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(function)
@@ -527,7 +527,7 @@ public class SignatureBinderTest extends ESTestCase {
         Signature foo = functionSignature()
             .returnType(TypeSignature.parse("boolean"))
             .argumentTypes(TypeSignature.parse("T"), TypeSignature.parse("T"))
-            .typeVariableConstraints(List.of(typeVariable("T")))
+            .typeVariableConstraints(List.of(TypeVariableConstraint.T))
             .build();
 
         assertThatSignature(foo)

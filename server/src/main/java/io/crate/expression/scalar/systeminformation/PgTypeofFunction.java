@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar.systeminformation;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import io.crate.data.Input;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
@@ -32,6 +30,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -46,7 +45,7 @@ public final class PgTypeofFunction extends Scalar<String, Object> {
                 .argumentTypes(TypeSignature.E)
                 .returnType(DataTypes.STRING.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             PgTypeofFunction::new
         );

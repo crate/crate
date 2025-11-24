@@ -22,7 +22,6 @@
 package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureBothInnerTypesAreNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -42,6 +41,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.role.Roles;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -58,7 +58,7 @@ class ArrayDifferenceFunction extends Scalar<List<Object>, List<Object>> {
                     TypeSignature.ARRAY_E)
                 .returnType(TypeSignature.ARRAY_E)
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, boundSignature) ->
                 new ArrayDifferenceFunction(

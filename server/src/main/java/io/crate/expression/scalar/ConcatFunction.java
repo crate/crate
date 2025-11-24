@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.scalar.object.ObjectMergeFunction;
@@ -36,6 +34,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -73,7 +72,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                     TypeSignature.ARRAY_E)
                 .returnType(TypeSignature.ARRAY_E)
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             ArrayCatFunction::new
         );
@@ -112,7 +111,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                     TypeSignature.ARRAY_E)
                 .returnType(TypeSignature.ARRAY_E)
                 .features(Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             ArrayCatFunction::new
         );
@@ -123,7 +122,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                     TypeSignature.E
                 )
                 .returnType(TypeSignature.ARRAY_E)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Feature.DETERMINISTIC)
                 .build(),
             (signature, boundSignature) -> new ArrayAppendFunction(signature, boundSignature, true)
@@ -135,7 +134,7 @@ public abstract class ConcatFunction extends Scalar<String, String> {
                     TypeSignature.ARRAY_E
                 )
                 .returnType(TypeSignature.ARRAY_E)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Feature.DETERMINISTIC)
                 .build(),
             (signature, boundSignature) -> new ArrayPrependFunction(signature, boundSignature, true)
