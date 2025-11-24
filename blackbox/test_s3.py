@@ -130,7 +130,8 @@ class S3SnapshotIntegrationTest(unittest.TestCase):
         crate_node.stop()
 
     def test_copy_to_s3_copy_from_s3_roundtrip(self):
-        client = Minio('127.0.0.1:9000',
+        client = Minio(
+                   endpoint='127.0.0.1:9000',
                    access_key = MinioServer.MINIO_ACCESS_KEY,
                    secret_key = MinioServer.MINIO_SECRET_KEY,
                    secure = False)
@@ -168,7 +169,9 @@ class S3SnapshotIntegrationTest(unittest.TestCase):
                 rowcount = c.fetchone()[0]
                 self.assertEqual(rowcount, 0)
 
-                [self.assertEqual(n.object_name.endswith('.dat'), False) for n in client.list_objects('backups')]
+                for n in client.list_objects(bucket_name="backups"):
+                    assert n and n.object_name
+                    self.assertEqual(n.object_name.endswith('.dat'), False)
 
 
 class S3CopyIntegrationTest(unittest.TestCase):
@@ -182,7 +185,7 @@ class S3CopyIntegrationTest(unittest.TestCase):
         crate_node.stop()
 
     def test_basic_copy_to_and_copy_from(self):
-        client = Minio('127.0.0.1:9000',
+        client = Minio(endpoint='127.0.0.1:9000',
                        access_key = MinioServer.MINIO_ACCESS_KEY,
                        secret_key = MinioServer.MINIO_SECRET_KEY,
                        region = "myRegion",
@@ -194,7 +197,7 @@ class S3CopyIntegrationTest(unittest.TestCase):
             t.start()
             wait_until(lambda: _is_up('127.0.0.1', 9000))
 
-            client.make_bucket("my-bucket")
+            client.make_bucket(bucket_name="my-bucket")
 
             with connect(crate_node.http_url) as conn:
                 c = conn.cursor()
@@ -231,7 +234,7 @@ class S3CopyIntegrationTest(unittest.TestCase):
                 c.execute('DROP TABLE r1')
 
     def test_anonymous_read_write(self):
-        client = Minio('127.0.0.1:9000',
+        client = Minio(endpoint='127.0.0.1:9000',
                        access_key = MinioServer.MINIO_ACCESS_KEY,
                        secret_key = MinioServer.MINIO_SECRET_KEY,
                        region = "myRegion",
@@ -243,7 +246,7 @@ class S3CopyIntegrationTest(unittest.TestCase):
             t.start()
             wait_until(lambda: _is_up('127.0.0.1', 9000))
 
-            client.make_bucket("my.bucket")
+            client.make_bucket(bucket_name="my.bucket")
 
             # https://docs.min.io/docs/python-client-api-reference.html#set_bucket_policy
             # Example anonymous read-write bucket policy.
@@ -274,7 +277,7 @@ class S3CopyIntegrationTest(unittest.TestCase):
                     },
                 ],
             }
-            client.set_bucket_policy("my.bucket", json.dumps(policy))
+            client.set_bucket_policy(bucket_name="my.bucket", policy=json.dumps(policy))
 
             with connect(crate_node.http_url) as conn:
                 c = conn.cursor()
