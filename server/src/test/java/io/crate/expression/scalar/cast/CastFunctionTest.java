@@ -21,7 +21,6 @@
 
 package io.crate.expression.scalar.cast;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
@@ -53,6 +52,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -287,7 +287,7 @@ public class CastFunctionTest extends ScalarTestCase {
                 TypeSignature.V)
             .returnType(TypeSignature.V)
             .features(Scalar.Feature.DETERMINISTIC)
-            .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
+            .typeVariableConstraints(TypeVariableConstraint.E, TypeVariableConstraint.V)
             .build();
         var functionImpl = sqlExpressions.nodeCtx.functions().getQualified(
             signature,

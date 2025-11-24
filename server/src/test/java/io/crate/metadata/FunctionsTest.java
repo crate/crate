@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -39,6 +38,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 import io.crate.types.UndefinedType;
@@ -149,7 +149,7 @@ public class FunctionsTest extends ESTestCase {
                 .argumentTypes(TypeSignature.ARRAY_E)
                 .returnType(DataTypes.INTEGER.getTypeSignature())
                 .features(Scalar.Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, args) -> new DummyFunction(signature));
 
@@ -198,7 +198,7 @@ public class FunctionsTest extends ESTestCase {
                 .argumentTypes(TypeSignature.ARRAY_E)
                 .returnType(TypeSignature.ARRAY_E)
                 .features(Scalar.Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, args) -> new DummyFunction(signature));
 
@@ -257,7 +257,7 @@ public class FunctionsTest extends ESTestCase {
                     TypeSignature.ARRAY_E,
                     TypeSignature.ARRAY_E)
                 .returnType(TypeSignature.ARRAY_E)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Scalar.Feature.DETERMINISTIC)
                 .build(),
             DummyFunction::new);
@@ -267,7 +267,7 @@ public class FunctionsTest extends ESTestCase {
                     TypeSignature.ARRAY_E,
                     TypeSignature.E)
                 .returnType(TypeSignature.ARRAY_E)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Scalar.Feature.DETERMINISTIC)
                 .build(),
             DummyFunction::new);

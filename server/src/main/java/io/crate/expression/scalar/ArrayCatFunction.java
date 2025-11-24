@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -34,6 +32,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
@@ -49,7 +48,7 @@ public class ArrayCatFunction extends Scalar<List<Object>, List<Object>> {
                     TypeSignature.ARRAY_E)
                 .returnType(TypeSignature.ARRAY_E)
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             ArrayCatFunction::new
         );

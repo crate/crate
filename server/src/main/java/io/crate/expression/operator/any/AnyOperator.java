@@ -92,7 +92,7 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
                     TypeSignature.ARRAY_E)
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
                 .features(Feature.DETERMINISTIC)
-                .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             operatorFactory
         );

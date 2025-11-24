@@ -22,7 +22,6 @@
 package io.crate.window;
 
 import static io.crate.execution.engine.window.WindowFrameState.isLowerBoundIncreasing;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.List;
 import java.util.function.LongConsumer;
@@ -40,6 +39,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -167,7 +167,7 @@ public class NthValueFunctions implements WindowFunction {
                 .argumentTypes(TypeSignature.E)
                 .returnType(TypeSignature.E)
                 .features(Scalar.Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, boundSignature) ->
                 new NthValueFunctions(
@@ -182,7 +182,7 @@ public class NthValueFunctions implements WindowFunction {
                 .argumentTypes(TypeSignature.E)
                 .returnType(TypeSignature.E)
                 .features(Scalar.Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, boundSignature) ->
                 new NthValueFunctions(
@@ -198,7 +198,7 @@ public class NthValueFunctions implements WindowFunction {
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(TypeSignature.E)
                 .features(Scalar.Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, boundSignature) ->
                 new NthValueFunctions(

@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar.conditional;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import java.util.List;
 
 import io.crate.data.Input;
@@ -34,6 +32,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.TypeSignature;
 /**
  * The CaseFunction evaluates a case statement.
@@ -68,7 +67,7 @@ public class CaseFunction extends Scalar<Object, Object> {
         TypeSignature bool = TypeSignature.parse("boolean");
         module.add(
             Signature.builder(new FunctionName(null, NAME), FunctionType.SCALAR)
-                .typeVariableConstraints(typeVariable("T"))
+                .typeVariableConstraints(TypeVariableConstraint.T)
                 .argumentTypes(bool, t)
                 .returnType(t)
                 .variableArityGroup(List.of(bool, t))

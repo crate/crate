@@ -21,8 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import java.util.ArrayList;
 import java.util.List;
 
@@ -38,6 +36,7 @@ import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
@@ -48,7 +47,7 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
         .argumentTypes(TypeSignature.E)
         .returnType(TypeSignature.ARRAY_E)
         .features(Scalar.Feature.DETERMINISTIC)
-        .typeVariableConstraints(typeVariable("E"))
+        .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
 

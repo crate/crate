@@ -21,7 +21,6 @@
 
 package io.crate.metadata.functions;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
@@ -57,7 +56,7 @@ public class SignatureTest {
                     objectType.getTypeSignature()
                 )
             )
-            .typeVariableConstraints(typeVariable("E"))
+            .typeVariableConstraints(TypeVariableConstraint.E)
             .build();
 
         BytesStreamOutput out = new BytesStreamOutput();

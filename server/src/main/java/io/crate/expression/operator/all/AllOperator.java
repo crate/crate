@@ -84,7 +84,7 @@ public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOpe
                     TypeSignature.ARRAY_E)
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
                 .features(Feature.DETERMINISTIC)
-                .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             operatorFactory
         );
