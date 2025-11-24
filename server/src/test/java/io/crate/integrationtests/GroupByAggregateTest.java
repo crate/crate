@@ -26,6 +26,7 @@ import static io.crate.protocols.postgres.PGErrorStatus.INTERNAL_ERROR;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.assertj.core.api.Assertions.fail;
 
@@ -38,7 +39,6 @@ import org.assertj.core.data.Percentage;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.test.transport.MockTransportService;
@@ -1498,7 +1498,7 @@ public class GroupByAggregateTest extends IntegTestCase {
         assertBusy(() -> {
             for (var node : cluster().getNodeNames()) {
                 var breakerService = cluster().getInstance(CircuitBreakerService.class, node);
-                CircuitBreaker queryCircuitBreaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+                CircuitBreaker queryCircuitBreaker = breakerService.getBreaker(CircuitBreaker.QUERY);
                 assertThat(queryCircuitBreaker.getUsed())
                     .withFailMessage("QUERY breaker did not reset on node=%s, used=%d", node, queryCircuitBreaker.getUsed())
                     .isEqualTo(0L);

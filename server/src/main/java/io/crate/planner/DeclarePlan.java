@@ -24,7 +24,6 @@ package io.crate.planner;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedDeclare;
@@ -69,7 +68,7 @@ public class DeclarePlan implements Plan {
         CursorRowConsumer cursorRowConsumer = new CursorRowConsumer(consumer);
         Cursors cursors = plannerContext.cursors();
         Declare declareStmt = declare.declare();
-        CircuitBreaker circuitBreaker = dependencies.circuitBreaker(HierarchyCircuitBreakerService.QUERY);
+        CircuitBreaker circuitBreaker = dependencies.circuitBreaker(CircuitBreaker.QUERY);
         Cursor cursor = new Cursor(
             circuitBreaker,
             declareStmt.cursorName(),

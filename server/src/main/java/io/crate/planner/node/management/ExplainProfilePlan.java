@@ -36,7 +36,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.client.Client;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.breaker.ConcurrentRamAccounting;
@@ -94,7 +94,7 @@ public class ExplainProfilePlan implements Plan {
                               SubQueryResults subQueryResults) throws Exception {
         var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(
             "multi-phase",
-            dependencies.circuitBreaker(HierarchyCircuitBreakerService.QUERY),
+            dependencies.circuitBreaker(CircuitBreaker.QUERY),
             plannerContext.transactionContext().sessionSettings().memoryLimitInBytes()
         );
         consumer.completionFuture().whenComplete((_, _) -> ramAccounting.close());

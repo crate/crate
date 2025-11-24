@@ -27,7 +27,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -49,7 +48,7 @@ public class CircuitBreakerIntegrationTest extends IntegTestCase {
         execute("refresh table t1");
 
         CircuitBreakerService circuitBreakerService = cluster().getInstance(CircuitBreakerService.class);
-        CircuitBreaker queryBreaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+        CircuitBreaker queryBreaker = circuitBreakerService.getBreaker(CircuitBreaker.QUERY);
         long breakerBytesUsedBeforeQuery = queryBreaker.getUsed();
 
         execute("select text from t1 group by text");

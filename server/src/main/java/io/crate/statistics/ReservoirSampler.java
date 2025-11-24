@@ -63,7 +63,6 @@ import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.LongArrayList;
@@ -145,7 +144,7 @@ public final class ReservoirSampler {
         }
         Random random = Randomness.get();
         Metadata metadata = clusterService.state().metadata();
-        CircuitBreaker breaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+        CircuitBreaker breaker = circuitBreakerService.getBreaker(CircuitBreaker.QUERY);
         RamAccounting ramAccounting = new BlockBasedRamAccounting(
             b -> breaker.addEstimateBytesAndMaybeBreak(b, "Reservoir-sampling"),
             MAX_BLOCK_SIZE_IN_BYTES);

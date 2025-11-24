@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -41,7 +42,6 @@ import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.indices.IndicesService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mockito;
@@ -808,7 +808,7 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         DependencyCarrier dependencies = sqlExecutor.dependencyMock;
         CircuitBreaker circuitBreaker = mock(CircuitBreaker.class);
-        when(dependencies.circuitBreaker(HierarchyCircuitBreakerService.QUERY)).thenReturn(circuitBreaker);
+        when(dependencies.circuitBreaker(CircuitBreaker.QUERY)).thenReturn(circuitBreaker);
 
         // Setup CircuitBreakingException for a sub-plan.
         PhasesTaskFactory phasesTaskFactory = mock(PhasesTaskFactory.class);

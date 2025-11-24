@@ -33,6 +33,7 @@ import java.util.function.ToLongFunction;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.common.inject.Provider;
 import org.elasticsearch.common.inject.Singleton;
@@ -41,7 +42,6 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.analyze.ParamTypeHints;
@@ -220,7 +220,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
     @VisibleForTesting
     void updateJobSink(int size, TimeValue expiration) {
         LogSink<JobContextLog> sink = createSink(
-            size, expiration, JobContextLog::ramBytesUsed, HierarchyCircuitBreakerService.JOBS_LOG);
+            size, expiration, JobContextLog::ramBytesUsed, CircuitBreaker.JOBS_LOG);
         LogSink<JobContextLog> newSink = sink.equals(NoopLogSink.instance()) ? sink : new FilteredLogSink<>(
             memoryFilter,
             persistFilter,
@@ -304,7 +304,7 @@ public class JobsLogService extends AbstractLifecycleComponent implements Provid
             size,
             expiration,
             OperationContextLog::ramBytesUsed,
-            HierarchyCircuitBreakerService.OPERATIONS_LOG);
+            CircuitBreaker.OPERATIONS_LOG);
         jobsLogs.updateOperationsLog(newSink);
     }
 

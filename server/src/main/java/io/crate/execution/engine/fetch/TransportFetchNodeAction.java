@@ -27,12 +27,12 @@ import java.util.concurrent.ThreadPoolExecutor;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.support.TransportAction;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
@@ -65,7 +65,7 @@ public class TransportFetchNodeAction extends TransportAction<NodeFetchRequest, 
             EsExecutors.numberOfProcessors(settings),
             jobsLogs,
             tasksService,
-            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY)
+            circuitBreakerService.getBreaker(CircuitBreaker.QUERY)
         );
 
         transportService.registerRequestHandler(

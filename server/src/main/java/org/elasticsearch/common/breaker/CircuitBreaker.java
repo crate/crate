@@ -48,6 +48,15 @@ public interface CircuitBreaker {
      */
     String IN_FLIGHT_REQUESTS = "in_flight_requests";
 
+    /// For generic query execution
+    String QUERY = "query";
+
+    /// sys.jobs_log
+    String JOBS_LOG = "jobs_log";
+
+    /// sys.operations_log
+    String OPERATIONS_LOG = "operations_log";
+
     /**
      * add bytes to the breaker and maybe trip
      * @param bytes number of bytes to add

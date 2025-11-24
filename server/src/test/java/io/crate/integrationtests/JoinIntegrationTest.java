@@ -36,7 +36,6 @@ import java.util.Random;
 import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
 import org.junit.Test;
@@ -896,7 +895,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         long memoryLimit = 6 * 1024 * 1024;
         execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b'");
-        CircuitBreaker queryCircuitBreaker = cluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
+        CircuitBreaker queryCircuitBreaker = cluster().getInstance(CircuitBreakerService.class).getBreaker(CircuitBreaker.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 5L, queryCircuitBreaker);
         randomiseAndConfigureJoinBlockSize("t2", 5L, queryCircuitBreaker);
 
@@ -970,7 +969,7 @@ public class JoinIntegrationTest extends IntegTestCase {
 
         long memoryLimit = 6 * 1024 * 1024;
         execute("set global \"indices.breaker.query.limit\" = '" + memoryLimit + "b'");
-        CircuitBreaker queryCircuitBreaker = cluster().getInstance(CircuitBreakerService.class).getBreaker(HierarchyCircuitBreakerService.QUERY);
+        CircuitBreaker queryCircuitBreaker = cluster().getInstance(CircuitBreakerService.class).getBreaker(CircuitBreaker.QUERY);
         randomiseAndConfigureJoinBlockSize("t1", 10L, queryCircuitBreaker);
 
         execute("select x from t1 left_rel JOIN (select x x2, count(x) from t1 group by x2) right_rel " +

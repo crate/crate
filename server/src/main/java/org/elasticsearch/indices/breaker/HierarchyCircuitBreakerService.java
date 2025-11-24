@@ -62,16 +62,12 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
     public static final Setting<ByteSizeValue> IN_FLIGHT_REQUESTS_CIRCUIT_BREAKER_LIMIT_SETTING =
         Setting.memorySizeSetting("network.breaker.inflight_requests.limit", "100%", Property.Dynamic, Property.NodeScope);
 
-    public static final String QUERY = "query";
-
     public static final Setting<ByteSizeValue> QUERY_CIRCUIT_BREAKER_LIMIT_SETTING = Setting.memorySizeSetting(
         "indices.breaker.query.limit", "60%", Property.Dynamic, Property.NodeScope, Property.Exposed);
 
-    public static final String JOBS_LOG = "jobs_log";
     public static final Setting<ByteSizeValue> JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = Setting.memorySizeSetting(
         "stats.breaker.log.jobs.limit", "5%", Property.Dynamic, Property.NodeScope, Property.Exposed);
 
-    public static final String OPERATIONS_LOG = "operations_log";
     public static final Setting<ByteSizeValue> OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING = Setting.memorySizeSetting(
         "stats.breaker.log.operations.limit", "5%", Property.Dynamic, Property.NodeScope, Property.Exposed);
 
@@ -106,17 +102,17 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
         );
 
         queryBreakerSettings = new BreakerSettings(
-            QUERY,
+            CircuitBreaker.QUERY,
             QUERY_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes()
         );
 
         logJobsBreakerSettings = new BreakerSettings(
-            JOBS_LOG,
+            CircuitBreaker.JOBS_LOG,
             JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes()
         );
 
         logOperationsBreakerSettings = new BreakerSettings(
-            OPERATIONS_LOG,
+            CircuitBreaker.OPERATIONS_LOG,
             OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING.get(settings).getBytes()
         );
 
@@ -135,14 +131,14 @@ public class HierarchyCircuitBreakerService extends CircuitBreakerService {
         clusterSettings.addSettingsUpdateConsumer(REQUEST_CIRCUIT_BREAKER_LIMIT_SETTING, this::setRequestBreakerLimit);
         clusterSettings.addSettingsUpdateConsumer(
             QUERY_CIRCUIT_BREAKER_LIMIT_SETTING,
-            (newLimit) -> setBreakerLimit(queryBreakerSettings, QUERY, s -> this.queryBreakerSettings = s, newLimit));
+            (newLimit) -> setBreakerLimit(queryBreakerSettings, CircuitBreaker.QUERY, s -> this.queryBreakerSettings = s, newLimit));
         clusterSettings.addSettingsUpdateConsumer(
             JOBS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
-            (newLimit) -> setBreakerLimit(logJobsBreakerSettings, JOBS_LOG, s -> this.logJobsBreakerSettings = s, newLimit));
+            (newLimit) -> setBreakerLimit(logJobsBreakerSettings, CircuitBreaker.JOBS_LOG, s -> this.logJobsBreakerSettings = s, newLimit));
         clusterSettings.addSettingsUpdateConsumer(
             OPERATIONS_LOG_CIRCUIT_BREAKER_LIMIT_SETTING,
             (newLimit) ->
-                setBreakerLimit(logOperationsBreakerSettings, OPERATIONS_LOG, s -> this.logOperationsBreakerSettings = s, newLimit));
+                setBreakerLimit(logOperationsBreakerSettings, CircuitBreaker.OPERATIONS_LOG, s -> this.logOperationsBreakerSettings = s, newLimit));
     }
 
     public static String breakingExceptionMessage(String label, long limit) {

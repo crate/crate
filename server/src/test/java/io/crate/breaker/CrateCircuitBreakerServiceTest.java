@@ -21,7 +21,7 @@
 
 package io.crate.breaker;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Locale;
 
@@ -44,10 +44,10 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
             clusterService.getClusterSettings()
         )) {
 
-            CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+            CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.QUERY);
             assertThat(breaker).isNotNull();
             assertThat(breaker).isInstanceOf(CircuitBreaker.class);
-            assertThat(breaker.getName()).isEqualTo(HierarchyCircuitBreakerService.QUERY);
+            assertThat(breaker.getName()).isEqualTo(CircuitBreaker.QUERY);
         }
     }
 
@@ -61,7 +61,7 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
             clusterService.getClusterSettings()
         )) {
 
-            CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+            CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.QUERY);
             assertThat(breaker.getLimit()).isEqualTo(10_485_760L);
 
             Settings newSettings = Settings.builder()
@@ -69,7 +69,7 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
                 .build();
             clusterService.getClusterSettings().applySettings(newSettings);
 
-            breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+            breaker = breakerService.getBreaker(CircuitBreaker.QUERY);
             assertThat(breaker.getLimit()).isEqualTo(104_857_600L);
         }
     }
@@ -84,10 +84,10 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
                 settings,
                 clusterService.getClusterSettings()
         )) {
-            CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
+            CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.JOBS_LOG);
             assertThat(breaker.getLimit()).isEqualTo(10_485_760L);
 
-            breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.OPERATIONS_LOG);
+            breaker = breakerService.getBreaker(CircuitBreaker.OPERATIONS_LOG);
             assertThat(breaker.getLimit()).isEqualTo(10_485_760L);
 
             Settings newSettings = Settings.builder()
@@ -97,10 +97,10 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
 
             clusterService.getClusterSettings().applySettings(newSettings);
 
-            breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
+            breaker = breakerService.getBreaker(CircuitBreaker.JOBS_LOG);
             assertThat(breaker.getLimit()).isEqualTo(104_857_600L);
 
-            breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.OPERATIONS_LOG);
+            breaker = breakerService.getBreaker(CircuitBreaker.OPERATIONS_LOG);
             assertThat(breaker.getLimit()).isEqualTo(104_857_600L);
         }
     }
@@ -116,7 +116,7 @@ public class CrateCircuitBreakerServiceTest extends CrateDummyClusterServiceUnit
         try (CircuitBreakerService breakerService = new HierarchyCircuitBreakerService(
             Settings.EMPTY, clusterService.getClusterSettings()
         )) {
-            CircuitBreakerStats queryBreakerStats = breakerService.stats(HierarchyCircuitBreakerService.QUERY);
+            CircuitBreakerStats queryBreakerStats = breakerService.stats(CircuitBreaker.QUERY);
             assertThat(queryBreakerStats.getUsed()).isEqualTo(0L);
         }
     }

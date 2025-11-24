@@ -39,7 +39,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
@@ -136,7 +135,7 @@ public abstract class TransportShardAction<
 
     private <WrapperResponse> WrapperResponse withActiveOperation(ShardRequest<?, ?> request,
                                                                   KillableCallable<WrapperResponse> callable) {
-        CircuitBreaker breaker = circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY);
+        CircuitBreaker breaker = circuitBreakerService.getBreaker(CircuitBreaker.QUERY);
         // Request is already accounted by the transport layer, but we account extra to account for the replica request copy
         long ramBytesUsed = request.ramBytesUsed();
         breaker.addEstimateBytesAndMaybeBreak(ramBytesUsed, "upsert request");
