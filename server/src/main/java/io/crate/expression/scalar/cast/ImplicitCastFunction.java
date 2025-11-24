@@ -23,8 +23,6 @@ package io.crate.expression.scalar.cast;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
-import java.util.List;
-
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
@@ -38,7 +36,6 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
-import io.crate.role.Roles;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -53,50 +50,33 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         .typeVariableConstraints(typeVariable("E"))
         .build();
 
+    // Forward compatibility with 6.2.0 which uses single arg cast function symbols
+    static final Signature FWC_SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"))
+        .returnType(DataTypes.UNDEFINED.getTypeSignature())
+        .features(Feature.DETERMINISTIC)
+        .typeVariableConstraints(typeVariable("E"))
+        .build();
+
     public static void register(Functions.Builder module) {
         module.add(SIGNATURE, ImplicitCastFunction::new);
+        module.add(FWC_SIGNATURE, ImplicitCastFunction::new);
     }
 
     @Nullable
     private final DataType<?> targetType;
 
     private ImplicitCastFunction(Signature signature, BoundSignature boundSignature) {
-        this(signature, boundSignature, null);
-    }
-
-    private ImplicitCastFunction(Signature signature, BoundSignature boundSignature, @Nullable DataType<?> targetType) {
         super(signature, boundSignature);
-        this.targetType = targetType;
+        this.targetType = boundSignature.returnType();
     }
 
-    @Override
-    public Scalar<Object, Object> compile(List<Symbol> args, String currentUser, Roles roles) {
-        assert args.size() == 2 : "number of arguments must be 2";
-        Symbol input = args.get(1);
-        if (input instanceof Input) {
-            String targetTypeValue = (String) ((Input<?>) input).value();
-            var targetTypeSignature = TypeSignature.parse(targetTypeValue);
-            var targetType = targetTypeSignature.createType();
-            return new ImplicitCastFunction(
-                signature,
-                boundSignature,
-                targetType
-            );
-        }
-        return this;
-    }
 
     @Override
     public Object evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Object>[] args) {
         assert args.length == 1 || args.length == 2 : "number of args must be 1 or 2";
         var arg = args[0].value();
-        if (targetType == null) {
-            var targetTypeSignature = TypeSignature.parse((String) args[1].value());
-            var targetType = targetTypeSignature.createType();
-            return castToTargetType(targetType, arg);
-        } else {
-            return castToTargetType(targetType, arg);
-        }
+        return castToTargetType(targetType, arg);
     }
 
     private static Object castToTargetType(DataType<?> targetType, Object arg) {
@@ -114,14 +94,11 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
                                   TransactionContext txnCtx,
                                   NodeContext nodeCtx) {
         Symbol argument = symbol.arguments().get(0);
-
-        var targetTypeAsString = (String) ((Input<?>) symbol.arguments().get(1)).value();
-        var targetType = TypeSignature.parse(targetTypeAsString).createType();
+        DataType<?> targetType = boundSignature.returnType();
 
         if (argument.valueType().equals(targetType)) {
             return argument;
         }
-
         if (argument instanceof Input<?> input) {
             Object value = input.value();
             try {
