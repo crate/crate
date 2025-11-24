@@ -46,6 +46,7 @@ public final class BlockBasedRamAccounting implements RamAccounting {
 
     private long usedBytes = 0;
     private long reservedBytes = 0;
+    private boolean closed = false;
 
     /**
      * Scale the block size that is eagerly allocated depending on the circuit breakers current limit and the shards
@@ -67,6 +68,7 @@ public final class BlockBasedRamAccounting implements RamAccounting {
 
     @Override
     public void addBytes(long bytes) {
+        assert !closed : "Cannot account bytes if BlockBasedRamAccounting instance was closed";
         usedBytes += bytes;
         if ((reservedBytes - usedBytes) < 0) {
             long reserveBytes = bytes > blockSizeInBytes ? bytes : blockSizeInBytes;
@@ -95,6 +97,7 @@ public final class BlockBasedRamAccounting implements RamAccounting {
 
     @Override
     public void close() {
+        closed = true;
         release();
     }
 

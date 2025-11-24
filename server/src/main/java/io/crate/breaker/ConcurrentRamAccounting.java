@@ -45,6 +45,8 @@ public final class ConcurrentRamAccounting implements RamAccounting {
     private final String label;
     private final int operationMemoryLimit;
 
+    private boolean closed = false;
+
     public static ConcurrentRamAccounting forCircuitBreaker(String label, CircuitBreaker circuitBreaker, int operationMemoryLimit) {
         return new ConcurrentRamAccounting(
             bytes -> circuitBreaker.addEstimateBytesAndMaybeBreak(bytes, label),
@@ -69,6 +71,7 @@ public final class ConcurrentRamAccounting implements RamAccounting {
         if (bytes == 0) {
             return;
         }
+        assert !closed : "Cannot account bytes if ConcurrentRamAccounting instance was closed";
         long currentUsedBytes = usedBytes.addAndGet(bytes);
         if (operationMemoryLimit > 0 && currentUsedBytes > operationMemoryLimit) {
             usedBytes.addAndGet(- bytes);
@@ -104,6 +107,7 @@ public final class ConcurrentRamAccounting implements RamAccounting {
 
     @Override
     public void close() {
+        closed = true;
         release();
     }
 }
