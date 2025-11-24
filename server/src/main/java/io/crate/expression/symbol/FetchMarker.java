@@ -45,7 +45,7 @@ public final class FetchMarker implements Symbol {
     private final Reference fetchId;
 
     public FetchMarker(RelationName relationName, List<Reference> fetchRefs) {
-        this(relationName, fetchRefs, SysColumns.forTable(relationName, SysColumns.FETCHID));
+        this(relationName, fetchRefs, SysColumns.forTable(SysColumns.FETCHID));
     }
 
     public FetchMarker(RelationName relationName, List<Reference> fetchRefs, Reference fetchId) {

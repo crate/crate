@@ -42,7 +42,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
@@ -66,7 +65,7 @@ public abstract class AbstractTableFunctionsTest extends ESTestCase {
         RelationName relationName = new RelationName(null, "t");
         when(relation.getField(any(ColumnIdent.class), any(Operation.class), any(Boolean.class)))
             .thenReturn(new SimpleReference(
-                new ReferenceIdent(relationName, "name"),
+                ColumnIdent.of("name"),
                 RowGranularity.NODE,
                 DataTypes.STRING,
                 0,

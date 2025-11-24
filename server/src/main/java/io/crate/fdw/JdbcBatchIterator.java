@@ -63,7 +63,6 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.Identifiers;
@@ -123,7 +122,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             ? "1"
             : String.join(", ", Lists.mapLazy(
                 columns,
-                ref -> new QuotedReference(ref, qs).toString(Style.UNQUALIFIED)));
+                ref -> new QuotedReference(table, ref, qs).toString(Style.UNQUALIFIED)));
         var stmt = String.format(
             Locale.ENGLISH,
             "SELECT %s FROM %s WHERE %s",
@@ -131,7 +130,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             relationName.toString(),
             RefReplacer.replaceRefs(
                 query,
-                ref -> new QuotedReference(ref, qs)).toString(Style.UNQUALIFIED)
+                ref -> new QuotedReference(table, ref, qs)).toString(Style.UNQUALIFIED)
         );
         LOGGER.debug("Generated statement for foreign JDBC source: {}", stmt);
         return stmt;
@@ -250,8 +249,10 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
 
         private final Reference ref;
         private final String quoteString;
+        private final RelationName table;
 
-        private QuotedReference(Reference ref, String quoteString) {
+        private QuotedReference(RelationName table, Reference ref, String quoteString) {
+            this.table = table;
             this.ref = ref;
             this.quoteString = quoteString;
         }
@@ -261,8 +262,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             ColumnIdent column = ref.column();
             StringBuilder sb = new StringBuilder();
             if (style == Style.QUALIFIED) {
-                RelationName tableIdent = ref.ident().tableIdent();
-                String schema = tableIdent.schema();
+                String schema = table.schema();
                 if (schema != null) {
                     sb.append(quoteString);
                     sb.append(schema);
@@ -270,7 +270,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
                     sb.append('.');
                 }
                 sb.append(quoteString);
-                sb.append(tableIdent.name());
+                sb.append(table.name());
                 sb.append(quoteString);
             }
             sb.append(quoteString);
@@ -289,10 +289,6 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
 
         public void writeTo(StreamOutput out) throws IOException {
             ref.writeTo(out);
-        }
-
-        public ReferenceIdent ident() {
-            return ref.ident();
         }
 
         public ColumnIdent column() {
@@ -351,8 +347,8 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             return ref.isGenerated();
         }
 
-        public Reference withReferenceIdent(ReferenceIdent referenceIdent) {
-            return ref.withReferenceIdent(referenceIdent);
+        public Reference withName(ColumnIdent name) {
+            return ref.withName(name);
         }
 
         public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {

@@ -52,7 +52,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         super(
             tableInfo,
             List.copyOf(tableInfo.rootColumns()),
-            concat(SysColumns.forTable(tableInfo.ident()), tableInfo.indexColumns())
+            concat(SysColumns.forTable(), tableInfo.indexColumns())
         );
     }
 

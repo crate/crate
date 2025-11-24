@@ -62,8 +62,6 @@ public interface Reference extends Symbol {
         return -1;
     }
 
-    ReferenceIdent ident();
-
     ColumnIdent column();
 
     @Override
@@ -102,7 +100,7 @@ public interface Reference extends Symbol {
 
     boolean isGenerated();
 
-    Reference withReferenceIdent(ReferenceIdent referenceIdent);
+    Reference withName(ColumnIdent name);
 
     Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition);
 

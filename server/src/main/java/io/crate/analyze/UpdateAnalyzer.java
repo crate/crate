@@ -202,7 +202,7 @@ public final class UpdateAnalyzer {
 
                     SimpleReference arrayElementRefForValueNormalization =
                         new SimpleReference(
-                            targetCol.ident(),
+                            targetCol.column(),
                             targetCol.granularity(),
                             ((ArrayType<?>) targetCol.valueType()).innerType(),
                             targetCol.indexType(),

@@ -36,6 +36,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
@@ -156,7 +157,7 @@ public final class ValueNormalizer {
             } else if (isObjectArray(nestedInfo.valueType()) && entry.getValue() instanceof List) {
                 normalizeObjectArrayValue((List<Map<String, Object>>) entry.getValue(), nestedInfo, tableInfo);
             } else {
-                entry.setValue(normalizePrimitiveValue(entry.getValue(), nestedInfo));
+                entry.setValue(normalizePrimitiveValue(tableInfo.ident(), entry.getValue(), nestedInfo));
             }
         }
     }
@@ -172,7 +173,7 @@ public final class ValueNormalizer {
         }
     }
 
-    private static Object normalizePrimitiveValue(Object primitiveValue, Reference info) {
+    private static Object normalizePrimitiveValue(RelationName table, Object primitiveValue, Reference info) {
         if (info.valueType().equals(DataTypes.STRING) && primitiveValue instanceof String) {
             return primitiveValue;
         }
@@ -181,7 +182,7 @@ public final class ValueNormalizer {
         } catch (Exception e) {
             throw new ColumnValidationException(
                 info.column().sqlFqn(),
-                info.ident().tableIdent(),
+                table,
                 String.format(Locale.ENGLISH, "Invalid %s", info.valueType().getName())
             );
         }

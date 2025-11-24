@@ -251,7 +251,7 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
         }
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {
-            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref.ident().tableIdent(), ref, ref.column(), sourceSymbols.inputs);
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(null, ref, ref.column(), sourceSymbols.inputs);
             if (subscriptOnRoot != null) {
                 return subscriptOnRoot;
             }
@@ -298,7 +298,10 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
     }
 
     @Nullable
-    private static Symbol tryCreateSubscriptOnRoot(RelationName relationName, Symbol symbol, ColumnIdent column, HashMap<Symbol, InputColumn> inputs) {
+    private static Symbol tryCreateSubscriptOnRoot(@Nullable RelationName relationName,
+                                                   Symbol symbol,
+                                                   ColumnIdent column,
+                                                   HashMap<Symbol, InputColumn> inputs) {
         if (column.isRoot()) {
             return null;
         }

@@ -66,7 +66,6 @@ import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -161,7 +160,7 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         RelationMetadata.Table table = new RelationMetadata.Table(
             relationName,
             List.of(new SimpleReference(
-                new ReferenceIdent(relationName, "x"),
+                ColumnIdent.of("x"),
                 RowGranularity.PARTITION,
                 DataTypes.STRING,
                 IndexType.PLAIN,

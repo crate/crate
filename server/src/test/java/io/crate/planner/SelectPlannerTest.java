@@ -671,7 +671,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
             .as("would require merge with more than 1 nodeIds")
             .hasSize(1);
         assertThat(((RoutedCollectPhase) collect.collectPhase()).where())
-            .isSQL("(((doc.t1.i + doc.t1.i) * 2) > 4)");
+            .isSQL("(((i + i) * 2) > 4)");
         List<Projection> projections = collect.collectPhase().projections();
         assertThat(projections).satisfiesExactly(
             p -> assertThat(p).isExactlyInstanceOf(GroupProjection.class), // parallel on shard-level
@@ -734,7 +734,7 @@ public class SelectPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(nl.joinPhase().joinType()).isEqualTo(JoinType.INNER);
         Collect rightCM = (Collect) nl.right();
         assertThat(((RoutedCollectPhase) rightCM.collectPhase()).where())
-            .isSQL("((doc.users.name = 'Arthur') AND (doc.users.id > 1::bigint))");
+            .isSQL("((name = 'Arthur') AND (id > 1::bigint))");
     }
 
     @Test

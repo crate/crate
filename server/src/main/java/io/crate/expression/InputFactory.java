@@ -45,7 +45,6 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
 
 /**
@@ -239,11 +238,7 @@ public class InputFactory {
             }
             implementation = referenceResolver.getImplementation(ref);
             if (implementation == null) {
-                String schema = ref.ident().tableIdent().schema();
-                String msg = Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schema)
-                    ? "Column implementation not found for: " + ref + ". This can happen in mixed clusters when using " +
-                        "`SELECT *`; Declare the column list explicitly instead"
-                    : "Column implementation not found for: " + ref;
+                String msg = "Column implementation not found for: " + ref;
                 throw new IllegalArgumentException(msg);
             }
             referenceMap.put(ref, implementation);

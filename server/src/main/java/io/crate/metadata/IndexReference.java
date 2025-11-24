@@ -46,7 +46,7 @@ import io.crate.types.DataTypes;
 public class IndexReference extends SimpleReference {
 
     public static class Builder {
-        private final ReferenceIdent ident;
+        private final ColumnIdent column;
         private IndexType indexType = IndexType.FULLTEXT;
 
         @Deprecated
@@ -60,9 +60,9 @@ public class IndexReference extends SimpleReference {
         // Temporal source names holder, real references resolved by names on build();
         private List<String> sourceNames = new ArrayList<>();
 
-        public Builder(ReferenceIdent ident) {
-            requireNonNull(ident, "ident is null");
-            this.ident = ident;
+        public Builder(ColumnIdent column) {
+            requireNonNull(column, "ident is null");
+            this.column = column;
         }
 
         public Builder indexType(IndexType indexType) {
@@ -107,7 +107,7 @@ public class IndexReference extends SimpleReference {
                 // columns is derived from copy_to which has been deprecated in 5.4.
                 // When a node is upgraded it can have shards on older nodes with outdated mapping (still having copy_to and no sources).
                 // This code handles outdated shards case.
-                return new IndexReference(position, oid, isDropped, ident, indexType, columns, analyzer);
+                return new IndexReference(position, oid, isDropped, column, indexType, columns, analyzer);
             }
             List<Reference> sources = new ArrayList<>(sourceNames.size());
             for (String sourceName : sourceNames) {
@@ -117,7 +117,7 @@ public class IndexReference extends SimpleReference {
                     .orElseThrow();
                 sources.add(ref);
             }
-            return new IndexReference(position, oid, isDropped, ident, indexType, sources, analyzer);
+            return new IndexReference(position, oid, isDropped, column, indexType, sources, analyzer);
         }
     }
 
@@ -139,17 +139,17 @@ public class IndexReference extends SimpleReference {
     public IndexReference(int position,
                           long oid,
                           boolean isDropped,
-                          ReferenceIdent ident,
+                          ColumnIdent column,
                           IndexType indexType,
                           List<Reference> columns,
                           @Nullable String analyzer) {
-        super(ident, RowGranularity.DOC, DataTypes.STRING, indexType,
+        super(column, RowGranularity.DOC, DataTypes.STRING, indexType,
               false, false, position, oid, isDropped, null);
         this.columns = columns;
         this.analyzer = analyzer;
     }
 
-    public IndexReference(ReferenceIdent ident,
+    public IndexReference(ColumnIdent column,
                           RowGranularity granularity,
                           DataType<?> type,
                           IndexType indexType,
@@ -161,7 +161,7 @@ public class IndexReference extends SimpleReference {
                           Symbol defaultExpression,
                           List<Reference> columns,
                           String analyzer) {
-        super(ident,
+        super(column,
               granularity,
               type,
               indexType,
@@ -222,9 +222,9 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Reference withReferenceIdent(ReferenceIdent newIdent) {
+    public Reference withName(ColumnIdent name) {
         return new IndexReference(
-            newIdent,
+            name,
             granularity,
             type,
             indexType,
@@ -247,7 +247,7 @@ public class IndexReference extends SimpleReference {
             return this;
         }
         return new IndexReference(
-            ident,
+            column,
             granularity,
             type,
             indexType,
@@ -265,7 +265,7 @@ public class IndexReference extends SimpleReference {
     @Override
     public Reference withDropped(boolean dropped) {
         return new IndexReference(
-            ident,
+            column,
             granularity,
             type,
             indexType,
@@ -283,7 +283,7 @@ public class IndexReference extends SimpleReference {
     @Override
     public IndexReference withValueType(DataType<?> newType) {
         return new IndexReference(
-            ident,
+            column,
             granularity,
             newType,
             indexType,
@@ -315,7 +315,7 @@ public class IndexReference extends SimpleReference {
 
     public IndexReference withColumns(List<Reference> newColumns) {
         return new IndexReference(
-                ident,
+                column,
                 granularity,
                 type,
                 indexType,

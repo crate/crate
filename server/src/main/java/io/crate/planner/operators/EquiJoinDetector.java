@@ -171,7 +171,6 @@ public final class EquiJoinDetector {
 
         @Override
         public Void visitReference(Reference ref, Context context) {
-            context.relations.add(ref.ident().tableIdent());
             return null;
         }
     }

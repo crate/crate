@@ -106,7 +106,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                     int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
                     assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
                         "Must not retrieve value indexer of the child array of a multi dimensional array";
-                    return ArrayIndexer.of(ref, getRef);
+                    return ArrayIndexer.of(table, ref, getRef);
                 }
 
                 @Override
@@ -143,7 +143,7 @@ public class ArrayType<T> extends DataType<List<T>> {
                     int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
                     assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
                         "Must not retrieve value indexer of the child array of a multi dimensional array";
-                    return ArrayIndexer.of(ref, getRef);
+                    return ArrayIndexer.of(table, ref, getRef);
                 }
 
                 @Override

@@ -106,7 +106,6 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocTableInfo;
 
@@ -602,10 +601,7 @@ public class RestoreService implements ClusterStateApplier {
                 mdBuilder.setTable(
                     columnOidSupplier,
                     targetName,
-                    Lists.map(
-                        table.columns(),
-                        ref -> ref.withReferenceIdent(new ReferenceIdent(targetName, ref.column()))
-                    ),
+                    table.columns(),
                     table.settings(),
                     table.routingColumn(),
                     table.columnPolicy(),
@@ -626,10 +622,7 @@ public class RestoreService implements ClusterStateApplier {
                     mdBuilder.setTable(
                         columnOidSupplier,
                         targetName,
-                        Lists.map(
-                            table.columns(),
-                            ref -> ref.withReferenceIdent(new ReferenceIdent(targetName, ref.column()))
-                        ),
+                        table.columns(),
                         table.settings(),
                         table.routingColumn(),
                         table.columnPolicy(),

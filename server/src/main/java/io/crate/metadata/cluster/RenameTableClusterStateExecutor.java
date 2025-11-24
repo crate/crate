@@ -35,11 +35,9 @@ import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.routing.RoutingTable;
 import org.elasticsearch.cluster.routing.allocation.AllocationService;
 
-import io.crate.common.collections.Lists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.RenameTableRequest;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 
@@ -94,10 +92,7 @@ public class RenameTableClusterStateExecutor {
             .dropRelation(source)
             .setTable(
                 target,
-                Lists.map(
-                    table.columns(),
-                    ref -> ref.withReferenceIdent(new ReferenceIdent(target, ref.column()))
-                ),
+                table.columns(),
                 table.settings(),
                 table.routingColumn(),
                 table.columnPolicy(),
