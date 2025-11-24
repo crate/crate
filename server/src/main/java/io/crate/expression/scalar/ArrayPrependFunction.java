@@ -46,10 +46,10 @@ public class ArrayPrependFunction extends Scalar<List<Object>, Object> {
         builder.add(
                 Signature.builder(NAME, FunctionType.SCALAR)
                         .argumentTypes(
-                            TypeSignature.parse("E"),
-                            TypeSignature.parse("array(E)")
+                            TypeSignature.E,
+                            TypeSignature.ARRAY_E
                             )
-                        .returnType(TypeSignature.parse("array(E)"))
+                        .returnType(TypeSignature.ARRAY_E)
                         .typeVariableConstraints(typeVariable("E"))
                         .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                         .build(),

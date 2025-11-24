@@ -88,8 +88,8 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
     private static void reg(Functions.Builder builder, String name, FunctionFactory operatorFactory) {
         builder.add(
             Signature.builder(name, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("E"),
-                    TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.E,
+                    TypeSignature.ARRAY_E)
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
                 .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))

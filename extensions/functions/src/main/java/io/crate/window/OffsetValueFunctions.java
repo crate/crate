@@ -265,8 +265,8 @@ public class OffsetValueFunctions implements WindowFunction {
     public static void register(Functions.Builder builder) {
         builder.add(
                 Signature.builder(LEAD_NAME, FunctionType.WINDOW)
-                        .argumentTypes(TypeSignature.parse("E"))
-                        .returnType(TypeSignature.parse("E"))
+                        .argumentTypes(TypeSignature.E)
+                        .returnType(TypeSignature.E)
                         .features(Scalar.Feature.DETERMINISTIC)
                         .typeVariableConstraints(typeVariable("E"))
                         .build(),
@@ -279,9 +279,9 @@ public class OffsetValueFunctions implements WindowFunction {
         );
         builder.add(
                 Signature.builder(LEAD_NAME, FunctionType.WINDOW)
-                        .argumentTypes(TypeSignature.parse("E"),
+                        .argumentTypes(TypeSignature.E,
                                 DataTypes.INTEGER.getTypeSignature())
-                        .returnType(TypeSignature.parse("E"))
+                        .returnType(TypeSignature.E)
                         .features(Scalar.Feature.DETERMINISTIC)
                         .typeVariableConstraints(typeVariable("E"))
                         .build(),
@@ -294,10 +294,10 @@ public class OffsetValueFunctions implements WindowFunction {
         );
         builder.add(
                 Signature.builder(LEAD_NAME, FunctionType.WINDOW)
-                        .argumentTypes(TypeSignature.parse("E"),
+                        .argumentTypes(TypeSignature.E,
                                 DataTypes.INTEGER.getTypeSignature(),
-                                TypeSignature.parse("E"))
-                        .returnType(TypeSignature.parse("E"))
+                                TypeSignature.E)
+                        .returnType(TypeSignature.E)
                         .features(Scalar.Feature.DETERMINISTIC)
                         .typeVariableConstraints(typeVariable("E"))
                         .build(),
@@ -311,8 +311,8 @@ public class OffsetValueFunctions implements WindowFunction {
 
         builder.add(
                 Signature.builder(LAG_NAME, FunctionType.WINDOW)
-                        .argumentTypes(TypeSignature.parse("E"))
-                        .returnType(TypeSignature.parse("E"))
+                        .argumentTypes(TypeSignature.E)
+                        .returnType(TypeSignature.E)
                         .features(Scalar.Feature.DETERMINISTIC)
                         .typeVariableConstraints(typeVariable("E"))
                         .build(),
@@ -325,9 +325,9 @@ public class OffsetValueFunctions implements WindowFunction {
         );
         builder.add(
                 Signature.builder(LAG_NAME, FunctionType.WINDOW)
-                        .argumentTypes(TypeSignature.parse("E"),
+                        .argumentTypes(TypeSignature.E,
                                 DataTypes.INTEGER.getTypeSignature())
-                        .returnType(TypeSignature.parse("E"))
+                        .returnType(TypeSignature.E)
                         .features(Scalar.Feature.DETERMINISTIC)
                         .typeVariableConstraints(typeVariable("E"))
                         .build(),
@@ -340,10 +340,10 @@ public class OffsetValueFunctions implements WindowFunction {
         );
         builder.add(
                 Signature.builder(LAG_NAME, FunctionType.WINDOW)
-                        .argumentTypes(TypeSignature.parse("E"),
+                        .argumentTypes(TypeSignature.E,
                                 DataTypes.INTEGER.getTypeSignature(),
-                                TypeSignature.parse("E"))
-                        .returnType(TypeSignature.parse("E"))
+                                TypeSignature.E)
+                        .returnType(TypeSignature.E)
                         .features(Scalar.Feature.DETERMINISTIC)
                         .typeVariableConstraints(typeVariable("E"))
                         .build(),

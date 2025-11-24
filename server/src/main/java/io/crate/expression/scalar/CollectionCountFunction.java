@@ -43,7 +43,7 @@ public class CollectionCountFunction extends Scalar<Long, List<Object>> {
     public static void register(Functions.Builder builder) {
         builder.add(
                 Signature.builder(NAME, FunctionType.SCALAR)
-                        .argumentTypes(TypeSignature.parse("array(E)"))
+                        .argumentTypes(TypeSignature.ARRAY_E)
                         .returnType(DataTypes.LONG.getTypeSignature())
                         .typeVariableConstraints(typeVariable("E"))
                         .features(Feature.DETERMINISTIC, Feature.STRICTNULL)

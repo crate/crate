@@ -38,6 +38,7 @@ import io.crate.statistics.ColumnStatsSupport;
 public class IntervalType extends DataType<Period> implements FixedWidthType, Streamer<Period> {
 
     public static final int ID = 17;
+    public static final String NAME = "interval";
     public static final IntervalType INSTANCE = new IntervalType();
     public static final PeriodFormatter PERIOD_FORMATTER = new PeriodFormatterBuilder()
         .appendYears()
@@ -77,7 +78,12 @@ public class IntervalType extends DataType<Period> implements FixedWidthType, St
 
     @Override
     public String getName() {
-        return "interval";
+        return NAME;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return TypeSignature.INTERVAL;
     }
 
     @Override

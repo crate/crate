@@ -116,9 +116,9 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         // subscript(array(any)), integer) -> any
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"),
+                .argumentTypes(TypeSignature.ARRAY_E,
                     DataTypes.INTEGER.getTypeSignature())
-                .returnType(TypeSignature.parse("E"))
+                .returnType(TypeSignature.E)
                 .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
