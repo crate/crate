@@ -50,11 +50,11 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
 
     public static final String NAME = OPERATOR_PREFIX + ComparisonExpression.Type.NOT_EQUAL.getValue();
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.parse("E"),
-            TypeSignature.parse("array(E)"))
+        .argumentTypes(TypeSignature.E,
+            TypeSignature.ARRAY_E)
         .returnType(Operator.RETURN_TYPE.getTypeSignature())
         .features(Feature.DETERMINISTIC)
-        .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
+        .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
     AnyNeqOperator(Signature signature, BoundSignature boundSignature) {

@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import java.util.List;
 
 import io.crate.data.Input;
@@ -33,6 +31,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -43,9 +42,9 @@ public class CollectionAverageFunction extends Scalar<Double, List<Object>> {
     public static void register(Functions.Builder builder) {
         builder.add(
                 Signature.builder(NAME, FunctionType.SCALAR)
-                        .argumentTypes(TypeSignature.parse("array(E)"))
+                        .argumentTypes(TypeSignature.ARRAY_E)
                         .returnType(DataTypes.DOUBLE.getTypeSignature())
-                        .typeVariableConstraints(typeVariable("E"))
+                        .typeVariableConstraints(TypeVariableConstraint.E)
                         .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                         .build(),
                 CollectionAverageFunction::new

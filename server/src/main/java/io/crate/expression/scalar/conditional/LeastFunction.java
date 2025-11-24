@@ -21,12 +21,11 @@
 
 package io.crate.expression.scalar.conditional;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
 
@@ -37,11 +36,11 @@ public class LeastFunction extends ConditionalCompareFunction {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("E"))
-                .returnType(TypeSignature.parse("E"))
+                .argumentTypes(TypeSignature.E)
+                .returnType(TypeSignature.E)
                 .features(Feature.DETERMINISTIC)
                 .setVariableArity(true)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             LeastFunction::new
         );

@@ -43,7 +43,6 @@ import io.crate.Streamer;
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.data.breaker.BlockBasedRamAccounting;
 import io.crate.data.breaker.RamAccounting;
-import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.engine.distribution.StreamBucket;
 import io.crate.execution.jobs.RootTask;
@@ -121,14 +120,11 @@ public class NodeFetchOperation {
             if (closeTaskOnFinish) {
                 tryCloseTask(jobId, phaseId);
             }
-            jobsLogs.operationStarted(phaseId, jobId, "fetch", () -> -1);
-            jobsLogs.operationFinished(phaseId, jobId, null);
             return CompletableFuture.completedFuture(new IntObjectHashMap<>(0));
         }
 
         RootTask context = tasksService.getTask(jobId);
         FetchTask fetchTask = context.getTask(phaseId);
-        jobsLogs.operationStarted(phaseId, jobId, "fetch", () -> -1);
         BiConsumer<? super IntObjectMap<StreamBucket>, ? super Throwable> whenComplete = (res, err) -> {
             if (closeTaskOnFinish) {
                 if (err == null) {
@@ -136,11 +132,6 @@ public class NodeFetchOperation {
                 } else {
                     fetchTask.kill(err);
                 }
-            }
-            if (err == null) {
-                jobsLogs.operationFinished(phaseId, jobId, null);
-            } else {
-                jobsLogs.operationFinished(phaseId, jobId, SQLExceptions.messageOf(err));
             }
         };
         try {

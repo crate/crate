@@ -40,6 +40,7 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
 
     public static final ByteType INSTANCE = new ByteType();
     public static final int ID = 2;
+    public static final String NAME = "byte";
     public static final int PRECISION = 8;
     private static final StorageSupport<Number> STORAGE = new StorageSupport<>(
             true,
@@ -74,7 +75,12 @@ public class ByteType extends DataType<Byte> implements Streamer<Byte>, FixedWid
 
     @Override
     public String getName() {
-        return "byte";
+        return NAME;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return TypeSignature.BYTE;
     }
 
     @Override

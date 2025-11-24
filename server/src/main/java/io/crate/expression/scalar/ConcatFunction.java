@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import io.crate.data.Input;
 import io.crate.expression.operator.Operator;
 import io.crate.expression.scalar.object.ObjectMergeFunction;
@@ -36,6 +34,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -69,11 +68,11 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         // concat(array[], array[]) -> same as `array_cat(...)`
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E,
+                    TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             ArrayCatFunction::new
         );
@@ -108,22 +107,22 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         );
         module.add(
             Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E,
+                    TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
                 .features(Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             ArrayCatFunction::new
         );
         module.add(
             Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
                 .argumentTypes(
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("E")
+                    TypeSignature.ARRAY_E,
+                    TypeSignature.E
                 )
-                .returnType(TypeSignature.parse("array(E)"))
-                .typeVariableConstraints(typeVariable("E"))
+                .returnType(TypeSignature.ARRAY_E)
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Feature.DETERMINISTIC)
                 .build(),
             (signature, boundSignature) -> new ArrayAppendFunction(signature, boundSignature, true)
@@ -131,11 +130,11 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         module.add(
             Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
                 .argumentTypes(
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("array(E)")
+                    TypeSignature.E,
+                    TypeSignature.ARRAY_E
                 )
-                .returnType(TypeSignature.parse("array(E)"))
-                .typeVariableConstraints(typeVariable("E"))
+                .returnType(TypeSignature.ARRAY_E)
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Feature.DETERMINISTIC)
                 .build(),
             (signature, boundSignature) -> new ArrayPrependFunction(signature, boundSignature, true)

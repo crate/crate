@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar.conditional;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import io.crate.data.Input;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -31,6 +29,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.TypeSignature;
 
 public class CoalesceFunction extends Scalar<Object, Object> {
@@ -40,11 +39,11 @@ public class CoalesceFunction extends Scalar<Object, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("E"))
-                .returnType(TypeSignature.parse("E"))
+                .argumentTypes(TypeSignature.E)
+                .returnType(TypeSignature.E)
                 .features(Feature.DETERMINISTIC)
                 .setVariableArity(true)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             CoalesceFunction::new
         );

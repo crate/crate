@@ -22,8 +22,6 @@
 package io.crate.execution.engine.aggregation.impl;
 
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
@@ -61,6 +59,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.statistics.SketchStreamer;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -81,29 +80,29 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     static final Signature DEFAULT_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
-            .argumentTypes(TypeSignature.parse("V"))
+            .argumentTypes(TypeSignature.V)
             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
-            .typeVariableConstraints(typeVariable("V"))
+            .typeVariableConstraints(TypeVariableConstraint.V)
             .build();
 
     static final Signature LIMIT_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
-            .argumentTypes(TypeSignature.parse("V"),
+            .argumentTypes(TypeSignature.V,
                 DataTypes.INTEGER.getTypeSignature())
             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
-            .typeVariableConstraints(typeVariable("V"))
+            .typeVariableConstraints(TypeVariableConstraint.V)
             .build();
 
     static final Signature LIMIT_CAPACITY_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
-            .argumentTypes(TypeSignature.parse("V"),
+            .argumentTypes(TypeSignature.V,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature())
             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
-            .typeVariableConstraints(typeVariable("V"))
+            .typeVariableConstraints(TypeVariableConstraint.V)
             .build();
 
     static {

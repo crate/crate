@@ -53,12 +53,12 @@ public class MapFunction extends Scalar<Object, Object> {
     public static final Signature SIGNATURE =
             Signature.builder(new FunctionName(null, NAME), FunctionType.SCALAR)
                     .typeVariableConstraints(List.of(typeVariableOfAnyType("V")))
-            .argumentTypes(TypeSignature.parse("text"), TypeSignature.parse("V"))
+            .argumentTypes(TypeSignature.parse("text"), TypeSignature.V)
             // This is not 100% correct because each variadic `V` is type independent, resulting in a return type
             // of e.g. `object(text, int, text, geo_point, ...)`.
             // This is *ok* as the returnType is currently not used directly, only for function description.
             .returnType(TypeSignature.parse("object(text, V)"))
-            .variableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.parse("V")))
+            .variableArityGroup(List.of(TypeSignature.parse("text"), TypeSignature.V))
             .features(Feature.DETERMINISTIC)
             .build();
 

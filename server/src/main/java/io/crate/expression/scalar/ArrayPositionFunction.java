@@ -22,7 +22,6 @@
 package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.List;
 import java.util.Objects;
@@ -35,6 +34,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -53,7 +53,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
                         .argumentTypes(TypeSignature.parse("array(T)"),
                                 TypeSignature.parse("T"))
                         .returnType(DataTypes.INTEGER.getTypeSignature())
-                        .typeVariableConstraints(typeVariable("T"))
+                        .typeVariableConstraints(TypeVariableConstraint.T)
                         .features(Feature.DETERMINISTIC)
                         .build(),
                 ArrayPositionFunction::new);
@@ -64,7 +64,7 @@ public class ArrayPositionFunction extends Scalar<Integer, List<Object>> {
                                 TypeSignature.parse("T"),
                                 DataTypes.INTEGER.getTypeSignature())
                         .returnType(DataTypes.INTEGER.getTypeSignature())
-                        .typeVariableConstraints(typeVariable("T"))
+                        .typeVariableConstraints(TypeVariableConstraint.T)
                         .features(Feature.DETERMINISTIC)
                         .build(),
                 ArrayPositionFunction::new);

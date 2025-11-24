@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar.conditional;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import io.crate.data.Input;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
@@ -31,6 +29,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -58,20 +57,20 @@ public class IfFunction extends Scalar<Object, Object> {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.BOOLEAN.getTypeSignature(),
-                    TypeSignature.parse("E"))
-                .returnType(TypeSignature.parse("E"))
+                    TypeSignature.E)
+                .returnType(TypeSignature.E)
                 .features(Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             IfFunction::new
         );
         // if (condition, result, default)
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(DataTypes.BOOLEAN.getTypeSignature(), TypeSignature.parse("E"), TypeSignature.parse("E"))
-                .returnType(TypeSignature.parse("E"))
+                .argumentTypes(DataTypes.BOOLEAN.getTypeSignature(), TypeSignature.E, TypeSignature.E)
+                .returnType(TypeSignature.E)
                 .features(Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             IfFunction::new
         );

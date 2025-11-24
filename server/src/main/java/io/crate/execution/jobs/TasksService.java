@@ -61,6 +61,7 @@ import io.crate.exceptions.TaskMissing;
 import io.crate.execution.engine.collect.stats.JobsLogs;
 import io.crate.execution.jobs.RootTask.Builder;
 import io.crate.execution.jobs.kill.KillAllListener;
+import io.crate.expression.reference.sys.operation.OperationContext;
 import io.crate.role.Role;
 
 @Singleton
@@ -108,6 +109,21 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
 
     public void addListener(KillAllListener listener) {
         killAllListeners.add(listener);
+    }
+
+    public Iterable<OperationContext> operations() {
+        return () -> activeTasks.values().stream()
+            .flatMap(rootTask ->
+                rootTask.tasks().stream()
+                    .map(task -> new OperationContext(
+                        task.id(),
+                        rootTask.jobId(),
+                        task.name(),
+                        rootTask.started(),
+                        task::bytesUsed
+                    ))
+            )
+            .iterator();
     }
 
     @Override

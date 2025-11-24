@@ -23,7 +23,6 @@ package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureBothInnerTypesAreNotUndefined;
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureSingleArgumentArrayInnerTypeIsNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -38,6 +37,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.TypeSignature;
@@ -49,18 +49,18 @@ public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
-                .typeVariableConstraints(typeVariable("E"))
+                .argumentTypes(TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             ArrayUniqueFunction::new
         );
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"), TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
-                .typeVariableConstraints(typeVariable("E"))
+                .argumentTypes(TypeSignature.ARRAY_E, TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
             ArrayUniqueFunction::new

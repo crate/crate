@@ -48,7 +48,7 @@ public class ValuesFunction {
     public static final String NAME = "_values";
 
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.TABLE)
-        .argumentTypes(TypeSignature.parse("array(E)"))
+        .argumentTypes(TypeSignature.ARRAY_E)
         .returnType(RowType.EMPTY.getTypeSignature())
         .typeVariableConstraints(typeVariableOfAnyType("E"))
         .features(Feature.DETERMINISTIC)

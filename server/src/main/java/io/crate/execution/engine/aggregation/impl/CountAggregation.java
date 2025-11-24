@@ -21,8 +21,6 @@
 
 package io.crate.execution.engine.aggregation.impl;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import java.io.IOException;
 import java.util.List;
 
@@ -54,6 +52,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.BitStringType;
 import io.crate.types.ByteType;
 import io.crate.types.DataType;
@@ -76,10 +75,10 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     public static final String NAME = "count";
     public static final Signature SIGNATURE =
             Signature.builder(NAME, FunctionType.AGGREGATE)
-                    .argumentTypes(TypeSignature.parse("V"))
+                    .argumentTypes(TypeSignature.V)
                     .returnType(DataTypes.LONG.getTypeSignature())
                     .features(Scalar.Feature.DETERMINISTIC)
-                    .typeVariableConstraints(typeVariable("V"))
+                    .typeVariableConstraints(TypeVariableConstraint.V)
                     .build();
 
     public static final Signature COUNT_STAR_SIGNATURE =

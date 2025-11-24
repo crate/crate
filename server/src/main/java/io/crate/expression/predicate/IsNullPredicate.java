@@ -23,7 +23,6 @@ package io.crate.expression.predicate;
 
 import static io.crate.execution.dml.ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.Collections;
 import java.util.List;
@@ -56,6 +55,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -67,10 +67,10 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
     public static final String NAME = "op_isnull";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.parse("E"))
+        .argumentTypes(TypeSignature.E)
         .returnType(DataTypes.BOOLEAN.getTypeSignature())
         .features(Feature.DETERMINISTIC, Feature.NOTNULL)
-        .typeVariableConstraints(typeVariable("E"))
+        .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
     public static void register(Functions.Builder builder) {

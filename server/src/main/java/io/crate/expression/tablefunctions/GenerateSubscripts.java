@@ -21,7 +21,6 @@
 
 package io.crate.expression.tablefunctions;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.types.DataTypes.INTEGER;
 
 import java.util.List;
@@ -36,6 +35,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.tablefunctions.TableFunctionImplementation;
 import io.crate.types.DataTypes;
@@ -51,22 +51,22 @@ public final class GenerateSubscripts<T> extends TableFunctionImplementation<T> 
     public static void register(Functions.Builder builder) {
         builder.add(
             Signature.builder(NAME, FunctionType.TABLE)
-                .argumentTypes(TypeSignature.parse("array(E)"),
+                .argumentTypes(TypeSignature.ARRAY_E,
                     INTEGER.getTypeSignature())
                 .returnType(INTEGER.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             GenerateSubscripts::new
         );
         builder.add(
             Signature.builder(NAME, FunctionType.TABLE)
-                .argumentTypes(TypeSignature.parse("array(E)"),
+                .argumentTypes(TypeSignature.ARRAY_E,
                     INTEGER.getTypeSignature(),
                     DataTypes.BOOLEAN.getTypeSignature())
                 .returnType(INTEGER.getTypeSignature())
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             GenerateSubscripts::new
         );

@@ -21,8 +21,6 @@
 
 package io.crate.expression.operator;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import java.util.Collection;
 import java.util.List;
 import java.util.Map;
@@ -45,6 +43,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
@@ -54,10 +53,10 @@ public class DistinctFrom extends Operator<Object> {
 
     public static final String NAME = "op_IS DISTINCT FROM";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("E"))
+        .argumentTypes(TypeSignature.E, TypeSignature.E)
         .returnType(Operator.RETURN_TYPE.getTypeSignature())
         .features(Feature.DETERMINISTIC, Feature.NOTNULL)
-        .typeVariableConstraints(typeVariable("E"))
+        .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
     public static void register(Functions.Builder builder) {

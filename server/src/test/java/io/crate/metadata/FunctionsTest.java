@@ -21,7 +21,6 @@
 
 package io.crate.metadata;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -39,6 +38,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 import io.crate.types.UndefinedType;
@@ -146,10 +146,10 @@ public class FunctionsTest extends ESTestCase {
             (signature, args) -> new DummyFunction(signature));
         functionsBuilder.add(
             Signature.builder("foo", FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E)
                 .returnType(DataTypes.INTEGER.getTypeSignature())
                 .features(Scalar.Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, args) -> new DummyFunction(signature));
 
@@ -195,10 +195,10 @@ public class FunctionsTest extends ESTestCase {
             (signature, args) -> new DummyFunction(signature));
         functionsBuilder.add(
             Signature.builder("foo", FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
                 .features(Scalar.Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             (signature, args) -> new DummyFunction(signature));
 
@@ -254,20 +254,20 @@ public class FunctionsTest extends ESTestCase {
         functionsBuilder.add(
             Signature.builder("foo", FunctionType.SCALAR)
                 .argumentTypes(
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
-                .typeVariableConstraints(typeVariable("E"))
+                    TypeSignature.ARRAY_E,
+                    TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Scalar.Feature.DETERMINISTIC)
                 .build(),
             DummyFunction::new);
         functionsBuilder.add(
             Signature.builder("foo", FunctionType.SCALAR)
                 .argumentTypes(
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("E"))
-                .returnType(TypeSignature.parse("array(E)"))
-                .typeVariableConstraints(typeVariable("E"))
+                    TypeSignature.ARRAY_E,
+                    TypeSignature.E)
+                .returnType(TypeSignature.ARRAY_E)
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Scalar.Feature.DETERMINISTIC)
                 .build(),
             DummyFunction::new);

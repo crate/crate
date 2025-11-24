@@ -33,17 +33,17 @@ class TypeSignaturesASTVisitor extends TypeSignaturesBaseVisitor<TypeSignature> 
 
     @Override
     public TypeSignature visitDoublePrecision(TypeSignaturesParser.DoublePrecisionContext context) {
-        return new TypeSignature(DataTypes.DOUBLE.getName(), List.of());
+        return TypeSignature.DOUBLE;
     }
 
     @Override
     public TypeSignature visitTimeStampWithoutTimeZone(TypeSignaturesParser.TimeStampWithoutTimeZoneContext context) {
-        return new TypeSignature(TimestampType.INSTANCE_WITHOUT_TZ.getName(), List.of());
+        return TypeSignature.TIMESTAMP_WITHOUT_TZ;
     }
 
     @Override
     public TypeSignature visitTimeStampWithTimeZone(TypeSignaturesParser.TimeStampWithTimeZoneContext context) {
-        return new TypeSignature(TimestampType.INSTANCE_WITH_TZ.getName(), List.of());
+        return TypeSignature.TIMESTAMP_WITH_TZ;
     }
 
     @Override

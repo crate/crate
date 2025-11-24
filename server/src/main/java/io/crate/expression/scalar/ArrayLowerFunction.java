@@ -22,7 +22,6 @@
 package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.List;
 
@@ -36,6 +35,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
@@ -46,11 +46,11 @@ class ArrayLowerFunction extends Scalar<Integer, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"),
+                .argumentTypes(TypeSignature.ARRAY_E,
                     DataTypes.INTEGER.getTypeSignature())
                 .returnType(DataTypes.INTEGER.getTypeSignature())
                 .features(Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             ArrayLowerFunction::new
         );
