@@ -47,6 +47,26 @@ import io.crate.sql.tree.ColumnPolicy;
 
 public class TypeSignature implements Writeable, Accountable {
 
+    public static final TypeSignature E = new TypeSignature("E");
+    public static final TypeSignature V = new TypeSignature("V");
+    public static final TypeSignature ARRAY_E = new TypeSignature("array", List.of(TypeSignature.E));
+    public static final TypeSignature BIGINT = new TypeSignature(LongType.NAME);
+    public static final TypeSignature SMALLINT = new TypeSignature(ShortType.NAME);
+    public static final TypeSignature INT = new TypeSignature(IntegerType.NAME);
+    public static final TypeSignature TEXT_UNBOUND = new TypeSignature(StringType.NAME);
+    public static final TypeSignature REAL = new TypeSignature(FloatType.NAME);
+    public static final TypeSignature DOUBLE = new TypeSignature(DoubleType.NAME);
+    public static final TypeSignature NUMERIC_UNSCALED = new TypeSignature(NumericType.NAME);
+    public static final TypeSignature BOOLEAN = new TypeSignature(BooleanType.NAME);
+    public static final TypeSignature UNDEFINED = new TypeSignature(UndefinedType.NAME);
+    public static final TypeSignature DATE = new TypeSignature(DateType.NAME);
+    public static final TypeSignature INTERVAL = new TypeSignature(IntervalType.NAME);
+    public static final TypeSignature IP = new TypeSignature(IpType.NAME);
+    public static final TypeSignature BYTE = new TypeSignature(ByteType.NAME);
+    public static final TypeSignature GEO_POINT = new TypeSignature(GeoPointType.NAME);
+    public static final TypeSignature TIMESTAMP_WITH_TZ = new TypeSignature(TimestampType.NAME_WITH_TZ);
+    public static final TypeSignature TIMESTAMP_WITHOUT_TZ = new TypeSignature(TimestampType.NAME_WITHOUT_TZ);
+
     private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
         @Override
         public void syntaxError(Recognizer<?, ?> recognizer,

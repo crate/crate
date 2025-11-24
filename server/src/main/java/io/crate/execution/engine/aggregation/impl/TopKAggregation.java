@@ -81,7 +81,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     static final Signature DEFAULT_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
-            .argumentTypes(TypeSignature.parse("V"))
+            .argumentTypes(TypeSignature.V)
             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("V"))
@@ -89,7 +89,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     static final Signature LIMIT_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
-            .argumentTypes(TypeSignature.parse("V"),
+            .argumentTypes(TypeSignature.V,
                 DataTypes.INTEGER.getTypeSignature())
             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())
             .features(Scalar.Feature.DETERMINISTIC)
@@ -98,7 +98,7 @@ public class TopKAggregation extends AggregationFunction<TopKAggregation.State, 
 
     static final Signature LIMIT_CAPACITY_SIGNATURE =
         Signature.builder(NAME, FunctionType.AGGREGATE)
-            .argumentTypes(TypeSignature.parse("V"),
+            .argumentTypes(TypeSignature.V,
                 DataTypes.INTEGER.getTypeSignature(),
                 DataTypes.INTEGER.getTypeSignature())
             .returnType(DataTypes.UNTYPED_OBJECT.getTypeSignature())

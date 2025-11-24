@@ -46,7 +46,7 @@ public class SignatureTest {
 
         var signature = Signature.builder("foo", FunctionType.SCALAR)
                 .argumentTypes(
-                TypeSignature.parse("E"),
+                TypeSignature.E,
                 DataTypes.INTEGER.getTypeSignature(),
                 objectType.getTypeSignature()
             )

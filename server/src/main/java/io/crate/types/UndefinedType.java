@@ -41,6 +41,7 @@ import io.crate.sql.tree.ColumnPolicy;
 public class UndefinedType extends DataType<Object> implements Streamer<Object> {
 
     public static final int ID = 0;
+    public static final String NAME = "undefined";
 
     public static final UndefinedType INSTANCE = new UndefinedType();
 
@@ -64,7 +65,12 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
 
     @Override
     public String getName() {
-        return "undefined";
+        return NAME;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return TypeSignature.UNDEFINED;
     }
 
     @Override

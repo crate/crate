@@ -80,8 +80,8 @@ public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOpe
     private static void reg(Functions.Builder builder, String name, FunctionProvider.FunctionFactory operatorFactory) {
         builder.add(
             Signature.builder(name, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("E"),
-                    TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.E,
+                    TypeSignature.ARRAY_E)
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
                 .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))

@@ -54,7 +54,7 @@ public class DistinctFrom extends Operator<Object> {
 
     public static final String NAME = "op_IS DISTINCT FROM";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.parse("E"), TypeSignature.parse("E"))
+        .argumentTypes(TypeSignature.E, TypeSignature.E)
         .returnType(Operator.RETURN_TYPE.getTypeSignature())
         .features(Feature.DETERMINISTIC, Feature.NOTNULL)
         .typeVariableConstraints(typeVariable("E"))

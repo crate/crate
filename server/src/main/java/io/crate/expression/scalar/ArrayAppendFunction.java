@@ -45,9 +45,9 @@ public class ArrayAppendFunction extends Scalar<List<Object>, Object> {
     public static void register(Functions.Builder builder) {
         builder.add(
                 Signature.builder(NAME, FunctionType.SCALAR)
-                        .argumentTypes(TypeSignature.parse("array(E)"),
-                                TypeSignature.parse("E"))
-                        .returnType(TypeSignature.parse("array(E)"))
+                        .argumentTypes(TypeSignature.ARRAY_E,
+                                TypeSignature.E)
+                        .returnType(TypeSignature.ARRAY_E)
                         .typeVariableConstraints(typeVariable("E"))
                         .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                         .build(),

@@ -42,7 +42,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
 
     public static final String NAME = "_cast";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.parse("E"))
+        .argumentTypes(TypeSignature.E)
         // concrete returnType is part of the `Function` symbol and will be available in the BoundSignature.
         .returnType(DataTypes.UNDEFINED.getTypeSignature())
         .features(Feature.DETERMINISTIC)
@@ -50,7 +50,7 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         .build();
 
     static final Signature BWC_SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.parse("E"), DataTypes.STRING.getTypeSignature())
+        .argumentTypes(TypeSignature.E, DataTypes.STRING.getTypeSignature())
         .returnType(DataTypes.UNDEFINED.getTypeSignature())
         .features(Feature.DETERMINISTIC)
         .typeVariableConstraints(typeVariable("E"))

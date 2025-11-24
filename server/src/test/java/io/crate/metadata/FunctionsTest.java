@@ -146,7 +146,7 @@ public class FunctionsTest extends ESTestCase {
             (signature, args) -> new DummyFunction(signature));
         functionsBuilder.add(
             Signature.builder("foo", FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E)
                 .returnType(DataTypes.INTEGER.getTypeSignature())
                 .features(Scalar.Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariable("E"))
@@ -195,8 +195,8 @@ public class FunctionsTest extends ESTestCase {
             (signature, args) -> new DummyFunction(signature));
         functionsBuilder.add(
             Signature.builder("foo", FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
                 .features(Scalar.Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
@@ -254,9 +254,9 @@ public class FunctionsTest extends ESTestCase {
         functionsBuilder.add(
             Signature.builder("foo", FunctionType.SCALAR)
                 .argumentTypes(
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
+                    TypeSignature.ARRAY_E,
+                    TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
                 .typeVariableConstraints(typeVariable("E"))
                 .features(Scalar.Feature.DETERMINISTIC)
                 .build(),
@@ -264,9 +264,9 @@ public class FunctionsTest extends ESTestCase {
         functionsBuilder.add(
             Signature.builder("foo", FunctionType.SCALAR)
                 .argumentTypes(
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("E"))
-                .returnType(TypeSignature.parse("array(E)"))
+                    TypeSignature.ARRAY_E,
+                    TypeSignature.E)
+                .returnType(TypeSignature.ARRAY_E)
                 .typeVariableConstraints(typeVariable("E"))
                 .features(Scalar.Feature.DETERMINISTIC)
                 .build(),

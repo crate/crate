@@ -39,7 +39,7 @@ public class ExistsOperator extends Operator<List<Object>> {
 
     public static void register(Functions.Builder builder) {
         Signature signature = Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E)
                 .returnType(Operator.RETURN_TYPE.getTypeSignature())
                 .typeVariableConstraints(TypeVariableConstraint.typeVariable("E"))
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)

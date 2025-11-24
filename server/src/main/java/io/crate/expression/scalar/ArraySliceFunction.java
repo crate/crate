@@ -45,10 +45,10 @@ public class ArraySliceFunction extends Scalar<List<Object>, Object> {
     public static void register(Functions.Builder module) {
         module.add(
                 Signature.builder(NAME, FunctionType.SCALAR)
-                        .argumentTypes(TypeSignature.parse("array(E)"),
+                        .argumentTypes(TypeSignature.ARRAY_E,
                                 DataTypes.INTEGER.getTypeSignature(),
                                 DataTypes.INTEGER.getTypeSignature())
-                        .returnType(TypeSignature.parse("array(E)"))
+                        .returnType(TypeSignature.ARRAY_E)
                         .typeVariableConstraints(typeVariable("E"))
                         .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                         .build(),

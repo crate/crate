@@ -41,6 +41,7 @@ public class DateType extends DataType<Long>
     implements FixedWidthType, Streamer<Long> {
 
     public static final int ID = 24;
+    public static final String NAME = "date";
     public static final DateType INSTANCE = new DateType();
     public static final int TYPE_SIZE = (int) RamUsageEstimator.shallowSizeOfInstance(Long.class);
 
@@ -56,7 +57,12 @@ public class DateType extends DataType<Long>
 
     @Override
     public String getName() {
-        return "date";
+        return NAME;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return TypeSignature.DATE;
     }
 
     @Override

@@ -43,7 +43,7 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
     public static final String NAME = "array_set";
 
     public static void register(Functions.Builder module) {
-        TypeSignature arrayESignature = TypeSignature.parse("array(E)");
+        TypeSignature arrayESignature = TypeSignature.ARRAY_E;
         module.add(
                 Signature.builder(NAME, FunctionType.SCALAR)
                         .argumentTypes(arrayESignature,
@@ -59,7 +59,7 @@ public class ArraySetFunction extends Scalar<List<Object>, Object> {
                 Signature.builder(NAME, FunctionType.SCALAR)
                         .argumentTypes(arrayESignature,
                                 DataTypes.INTEGER.getTypeSignature(),
-                                TypeSignature.parse("E"))
+                                TypeSignature.E)
                         .returnType(arrayESignature)
                         .typeVariableConstraints(typeVariable("E"))
                         .features(Feature.DETERMINISTIC, Feature.STRICTNULL)

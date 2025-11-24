@@ -40,8 +40,8 @@ public class CoalesceFunction extends Scalar<Object, Object> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("E"))
-                .returnType(TypeSignature.parse("E"))
+                .argumentTypes(TypeSignature.E)
+                .returnType(TypeSignature.E)
                 .features(Feature.DETERMINISTIC)
                 .setVariableArity(true)
                 .typeVariableConstraints(typeVariable("E"))

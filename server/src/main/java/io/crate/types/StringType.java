@@ -69,6 +69,7 @@ import io.crate.statistics.ColumnStatsSupport;
 public class StringType extends DataType<String> implements Streamer<String> {
 
     public static final int ID = 4;
+    public static final String NAME = "text";
     public static final StringType INSTANCE = new StringType();
     public static final String T = "t";
     public static final String F = "f";
@@ -211,7 +212,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
 
     @Override
     public String getName() {
-        return "text";
+        return NAME;
     }
 
     public int lengthLimit() {
@@ -225,7 +226,7 @@ public class StringType extends DataType<String> implements Streamer<String> {
     @Override
     public TypeSignature getTypeSignature() {
         if (unbound()) {
-            return super.getTypeSignature();
+            return TypeSignature.TEXT_UNBOUND;
         } else {
             return new TypeSignature(
                 getName(),
