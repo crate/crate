@@ -69,9 +69,9 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         // concat(array[], array[]) -> same as `array_cat(...)`
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E,
+                    TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
@@ -108,9 +108,9 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         );
         module.add(
             Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E,
+                    TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
                 .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
@@ -119,10 +119,10 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         module.add(
             Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
                 .argumentTypes(
-                    TypeSignature.parse("array(E)"),
-                    TypeSignature.parse("E")
+                    TypeSignature.ARRAY_E,
+                    TypeSignature.E
                 )
-                .returnType(TypeSignature.parse("array(E)"))
+                .returnType(TypeSignature.ARRAY_E)
                 .typeVariableConstraints(typeVariable("E"))
                 .features(Feature.DETERMINISTIC)
                 .build(),
@@ -131,10 +131,10 @@ public abstract class ConcatFunction extends Scalar<String, String> {
         module.add(
             Signature.builder(OPERATOR_NAME, FunctionType.SCALAR)
                 .argumentTypes(
-                    TypeSignature.parse("E"),
-                    TypeSignature.parse("array(E)")
+                    TypeSignature.E,
+                    TypeSignature.ARRAY_E
                 )
-                .returnType(TypeSignature.parse("array(E)"))
+                .returnType(TypeSignature.ARRAY_E)
                 .typeVariableConstraints(typeVariable("E"))
                 .features(Feature.DETERMINISTIC)
                 .build(),

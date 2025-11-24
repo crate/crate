@@ -49,8 +49,8 @@ public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
     public static void register(Functions.Builder module) {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
                 .typeVariableConstraints(typeVariable("E"))
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),
@@ -58,8 +58,8 @@ public class ArrayUniqueFunction extends Scalar<List<Object>, List<Object>> {
         );
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(TypeSignature.parse("array(E)"), TypeSignature.parse("array(E)"))
-                .returnType(TypeSignature.parse("array(E)"))
+                .argumentTypes(TypeSignature.ARRAY_E, TypeSignature.ARRAY_E)
+                .returnType(TypeSignature.ARRAY_E)
                 .typeVariableConstraints(typeVariable("E"))
                 .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                 .build(),

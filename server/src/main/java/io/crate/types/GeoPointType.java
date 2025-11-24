@@ -48,6 +48,7 @@ import io.crate.metadata.RelationName;
 public class GeoPointType extends DataType<Point> implements Streamer<Point>, FixedWidthType {
 
     public static final int ID = 13;
+    public static final String NAME = "geo_point";
     public static final GeoPointType INSTANCE = new GeoPointType();
     private static final StorageSupport<Point> STORAGE = new StorageSupport<>(true, false, null) {
 
@@ -90,7 +91,12 @@ public class GeoPointType extends DataType<Point> implements Streamer<Point>, Fi
 
     @Override
     public String getName() {
-        return "geo_point";
+        return NAME;
+    }
+
+    @Override
+    public TypeSignature getTypeSignature() {
+        return TypeSignature.GEO_POINT;
     }
 
     @Override

@@ -45,8 +45,8 @@ public final class ArrayAgg extends AggregationFunction<List<Object>, List<Objec
 
     public static final String NAME = "array_agg";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.AGGREGATE)
-        .argumentTypes(TypeSignature.parse("E"))
-        .returnType(TypeSignature.parse("array(E)"))
+        .argumentTypes(TypeSignature.E)
+        .returnType(TypeSignature.ARRAY_E)
         .features(Scalar.Feature.DETERMINISTIC)
         .typeVariableConstraints(typeVariable("E"))
         .build();

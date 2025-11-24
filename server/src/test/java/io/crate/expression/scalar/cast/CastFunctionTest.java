@@ -283,9 +283,9 @@ public class CastFunctionTest extends ScalarTestCase {
             .build();
 
         var signature = Signature.builder(ExplicitCastFunction.NAME, FunctionType.SCALAR)
-            .argumentTypes(TypeSignature.parse("E"),
-                TypeSignature.parse("V"))
-            .returnType(TypeSignature.parse("V"))
+            .argumentTypes(TypeSignature.E,
+                TypeSignature.V)
+            .returnType(TypeSignature.V)
             .features(Scalar.Feature.DETERMINISTIC)
             .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
             .build();

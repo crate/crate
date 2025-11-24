@@ -50,7 +50,7 @@ public class ArrayUnnestFunction extends Scalar<List<Object>, List<List<Object>>
     public static final String NAME = "array_unnest";
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
             .argumentTypes(TypeSignature.parse("array(array(E))"))
-            .returnType(TypeSignature.parse("array(E)"))
+            .returnType(TypeSignature.ARRAY_E)
             .typeVariableConstraints(typeVariable("E"))
             .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
             .build();

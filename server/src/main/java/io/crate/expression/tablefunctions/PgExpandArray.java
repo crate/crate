@@ -51,7 +51,7 @@ public final class PgExpandArray extends TableFunctionImplementation<List<Object
     public static void register(Functions.Builder builder) {
         builder.add(
                 Signature.builder(FUNCTION_NAME, FunctionType.TABLE)
-                        .argumentTypes(TypeSignature.parse("array(E)"))
+                        .argumentTypes(TypeSignature.ARRAY_E)
                         .returnType(TypeSignature.parse("record(x E, n integer)"))
                         .features(Feature.DETERMINISTIC, Feature.NOTNULL)
                         .typeVariableConstraints(typeVariable("E"))

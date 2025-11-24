@@ -58,8 +58,8 @@ public class IfFunction extends Scalar<Object, Object> {
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
                 .argumentTypes(DataTypes.BOOLEAN.getTypeSignature(),
-                    TypeSignature.parse("E"))
-                .returnType(TypeSignature.parse("E"))
+                    TypeSignature.E)
+                .returnType(TypeSignature.E)
                 .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),
@@ -68,8 +68,8 @@ public class IfFunction extends Scalar<Object, Object> {
         // if (condition, result, default)
         module.add(
             Signature.builder(NAME, FunctionType.SCALAR)
-                .argumentTypes(DataTypes.BOOLEAN.getTypeSignature(), TypeSignature.parse("E"), TypeSignature.parse("E"))
-                .returnType(TypeSignature.parse("E"))
+                .argumentTypes(DataTypes.BOOLEAN.getTypeSignature(), TypeSignature.E, TypeSignature.E)
+                .returnType(TypeSignature.E)
                 .features(Feature.DETERMINISTIC)
                 .typeVariableConstraints(typeVariable("E"))
                 .build(),

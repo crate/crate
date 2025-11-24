@@ -76,7 +76,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     public static final String NAME = "count";
     public static final Signature SIGNATURE =
             Signature.builder(NAME, FunctionType.AGGREGATE)
-                    .argumentTypes(TypeSignature.parse("V"))
+                    .argumentTypes(TypeSignature.V)
                     .returnType(DataTypes.LONG.getTypeSignature())
                     .features(Scalar.Feature.DETERMINISTIC)
                     .typeVariableConstraints(typeVariable("V"))
