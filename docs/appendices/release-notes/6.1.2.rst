@@ -46,5 +46,8 @@ series.
 Fixes
 =====
 
+- Added forward compatibility for cast function representation used in CrateDB
+  6.2.0+. As a side effect this also improves the performance of implicit casts.
+
 - Fixed an issue that caused ``SELECT COUNT(NULL) FROM tbl`` to return one
   record per row in the table instead of a single row with value ``0``.

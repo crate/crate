@@ -279,7 +279,8 @@ public class Function implements Symbol, Cloneable {
         Function function = (Function) o;
         return Objects.equals(arguments, function.arguments) &&
                Objects.equals(signature, function.signature) &&
-               Objects.equals(filter, function.filter);
+               Objects.equals(filter, function.filter) &&
+               Objects.equals(returnType, function.returnType);
     }
 
     @Override
@@ -287,6 +288,7 @@ public class Function implements Symbol, Cloneable {
         int result = arguments.hashCode();
         result = 31 * result + signature.hashCode();
         result = 31 * result + (filter == null ? 0 : filter.hashCode());
+        result = 31 * result + returnType.hashCode();
         return result;
     }
 

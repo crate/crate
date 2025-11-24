@@ -35,6 +35,7 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
+import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
 public class ExplicitCastFunction extends Scalar<Object, Object> {
@@ -47,8 +48,17 @@ public class ExplicitCastFunction extends Scalar<Object, Object> {
         .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
         .build();
 
+    // Forward compatibility with 6.2.0 which uses single arg cast function symbols
+    public static final Signature FWC_SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
+        .argumentTypes(TypeSignature.parse("E"))
+        .returnType(DataTypes.UNDEFINED.getTypeSignature())
+        .features(Feature.DETERMINISTIC)
+        .typeVariableConstraints(typeVariable("E"))
+        .build();
+
     public static void register(Functions.Builder module) {
         module.add(SIGNATURE, ExplicitCastFunction::new);
+        module.add(FWC_SIGNATURE, ExplicitCastFunction::new);
     }
 
     private final DataType<?> returnType;
