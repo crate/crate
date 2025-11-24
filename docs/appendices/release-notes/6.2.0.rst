@@ -162,6 +162,9 @@ Administration and Operations
   which expose which is the current ``master`` node of the cluster, and what are
   the roles of the node in the cluster (``master_eligible`` and/or ``data``).
   Additionally, exposed this info is through :ref:`NodeInfo <node_info_mxbean>`.
+  To export them to a Prometheus format, you must use the latest version
+  ``1.2.3`` of the
+  `jmx_exporter <https://repo1.maven.org/maven2/io/crate/crate-jmx-exporter/1.2.3>`_.
 
 - Added the column ``column_details['oid']`` to the
   :ref:`information_schema.columns <information_schema_columns>` view. A
