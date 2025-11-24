@@ -24,7 +24,6 @@ package io.crate.expression.scalar;
 import static io.crate.execution.dml.ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION;
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
 import static io.crate.lucene.LuceneQueryBuilder.genericFunctionFilter;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.List;
 import java.util.function.IntPredicate;
@@ -56,6 +55,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -77,7 +77,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
                             .argumentTypes(TypeSignature.ARRAY_E,
                                     DataTypes.INTEGER.getTypeSignature())
                             .returnType(DataTypes.INTEGER.getTypeSignature())
-                            .typeVariableConstraints(typeVariable("E"))
+                            .typeVariableConstraints(TypeVariableConstraint.E)
                             .features(Feature.DETERMINISTIC)
                             .build(),
                     ArrayUpperFunction::new

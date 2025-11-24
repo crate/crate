@@ -22,7 +22,6 @@
 package io.crate.expression.scalar;
 
 import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInnerTypeIsNotUndefined;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 
 import java.util.List;
 import java.util.StringJoiner;
@@ -36,6 +35,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -50,7 +50,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
                 .argumentTypes(TypeSignature.ARRAY_E,
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             ArrayToStringFunction::new
@@ -61,7 +61,7 @@ class ArrayToStringFunction extends Scalar<String, Object> {
                     DataTypes.STRING.getTypeSignature(),
                     DataTypes.STRING.getTypeSignature())
                 .returnType(DataTypes.STRING.getTypeSignature())
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
                 .build(),
             ArrayToStringFunction::new

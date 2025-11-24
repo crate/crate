@@ -21,14 +21,18 @@
 
 package io.crate.metadata.functions;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
-import java.io.IOException;
-import java.util.Objects;
-
 public class TypeVariableConstraint implements Writeable {
+
+    public static final TypeVariableConstraint E = typeVariable("E");
+    public static final TypeVariableConstraint T = typeVariable("T");
+    public static final TypeVariableConstraint V = typeVariable("V");
 
     public static TypeVariableConstraint typeVariable(String name) {
         return new TypeVariableConstraint(name, false);

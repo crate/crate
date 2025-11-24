@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar.cast;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
@@ -33,6 +31,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -44,7 +43,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
         .argumentTypes(TypeSignature.E)
         .returnType(DataTypes.UNDEFINED.getTypeSignature())
         .features(Feature.DETERMINISTIC)
-        .typeVariableConstraints(typeVariable("E"))
+        .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
     // For mixed clusters or if used in cluster state in tables
@@ -53,7 +52,7 @@ public class TryCastFunction extends Scalar<Object, Object> {
         .argumentTypes(TypeSignature.E, TypeSignature.V)
         .returnType(TypeSignature.V)
         .features(Feature.DETERMINISTIC)
-        .typeVariableConstraints(typeVariable("E"), typeVariable("V"))
+        .typeVariableConstraints(TypeVariableConstraint.E, TypeVariableConstraint.V)
         .build();
 
     public static void register(Functions.Builder module) {

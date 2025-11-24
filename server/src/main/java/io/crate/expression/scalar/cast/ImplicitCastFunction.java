@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar.cast;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Literal;
@@ -34,6 +32,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -46,14 +45,14 @@ public class ImplicitCastFunction extends Scalar<Object, Object> {
         // concrete returnType is part of the `Function` symbol and will be available in the BoundSignature.
         .returnType(DataTypes.UNDEFINED.getTypeSignature())
         .features(Feature.DETERMINISTIC)
-        .typeVariableConstraints(typeVariable("E"))
+        .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
     static final Signature BWC_SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
         .argumentTypes(TypeSignature.E, DataTypes.STRING.getTypeSignature())
         .returnType(DataTypes.UNDEFINED.getTypeSignature())
         .features(Feature.DETERMINISTIC)
-        .typeVariableConstraints(typeVariable("E"))
+        .typeVariableConstraints(TypeVariableConstraint.E)
         .build();
 
 

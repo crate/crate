@@ -22,7 +22,6 @@
 package io.crate.data.join;
 
 import static io.crate.data.SentinelRow.SENTINEL;
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
 import static io.crate.window.NthValueFunctions.LAST_VALUE_NAME;
 
 import java.util.List;
@@ -61,6 +60,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
@@ -92,7 +92,7 @@ public class RowsBatchIteratorBenchmark {
                 .argumentTypes(TypeSignature.parse("E"))
                 .returnType(TypeSignature.parse("E"))
                 .features(Scalar.Feature.DETERMINISTIC)
-                .typeVariableConstraints(typeVariable("E"))
+                .typeVariableConstraints(TypeVariableConstraint.E)
                 .build(),
             List.of(DataTypes.INTEGER),
             DataTypes.INTEGER

@@ -21,8 +21,6 @@
 
 package io.crate.expression.scalar.arithmetic;
 
-import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
-
 import java.util.ArrayList;
 
 import io.crate.data.Input;
@@ -33,6 +31,7 @@ import io.crate.metadata.Scalar;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
+import io.crate.metadata.functions.TypeVariableConstraint;
 import io.crate.types.TypeSignature;
 
 public class ArrayFunction extends Scalar<Object, Object> {
@@ -40,7 +39,7 @@ public class ArrayFunction extends Scalar<Object, Object> {
     public static final String NAME = "_array";
     public static final Signature SIGNATURE =
         Signature.builder(NAME, FunctionType.SCALAR)
-            .typeVariableConstraints(typeVariable("E"))
+            .typeVariableConstraints(TypeVariableConstraint.E)
             .argumentTypes(TypeSignature.E)
             .returnType(TypeSignature.ARRAY_E)
             .setVariableArity(true)
