@@ -28,6 +28,7 @@ import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -58,7 +59,6 @@ import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.util.concurrent.PrioritizedEsThreadPoolExecutor;
 import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 import org.elasticsearch.threadpool.Scheduler;
@@ -290,7 +290,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
                     listener.postAdded();
                 }
             });
-        } catch (EsRejectedExecutionException e) {
+        } catch (RejectedExecutionException e) {
             if (lifecycle.stoppedOrClosed()) {
                 listener.onClose();
             } else {
@@ -346,7 +346,7 @@ public class ClusterApplierService extends AbstractLifecycleComponent implements
             } else {
                 threadPoolExecutor.execute(updateTask);
             }
-        } catch (EsRejectedExecutionException e) {
+        } catch (RejectedExecutionException e) {
             // ignore cases where we are shutting down..., there is really nothing interesting
             // to be done here...
             if (!lifecycle.stoppedOrClosed()) {

@@ -23,11 +23,11 @@ package io.crate.execution.support;
 
 import java.util.Iterator;
 import java.util.concurrent.Executor;
+import java.util.concurrent.RejectedExecutionException;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
 
@@ -59,7 +59,7 @@ public class RetryRunnable implements Runnable, Scheduler.Cancellable {
     public void run() {
         try {
             executor.execute(retryCommand);
-        } catch (EsRejectedExecutionException e) {
+        } catch (RejectedExecutionException e) {
             if (delay.hasNext()) {
                 long currentDelay = delay.next().millis();
                 if (LOGGER.isDebugEnabled()) {

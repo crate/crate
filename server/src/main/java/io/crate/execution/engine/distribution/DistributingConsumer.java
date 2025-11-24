@@ -38,7 +38,6 @@ import java.util.function.BiConsumer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.action.bulk.BackoffPolicy;
-import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.ConnectTransportException;
@@ -331,7 +330,7 @@ public class DistributingConsumer implements RowConsumer {
                     if (cancellable == Cancellable.CANCELLED_NOOP) {
                         handleFailure(err);
                     }
-                } catch (EsRejectedExecutionException ex) {
+                } catch (RejectedExecutionException ex) {
                     handleFailure(err);
                 }
                 return;
@@ -373,7 +372,7 @@ public class DistributingConsumer implements RowConsumer {
                         // try to dispatch to different executor, if it fails, forward the error in the same thread
                         try {
                             responseExecutor.execute(() -> consumeIt(it));
-                        } catch (EsRejectedExecutionException e) {
+                        } catch (RejectedExecutionException e) {
                             failure = e;
                             forwardFailure(it, failure);
                         }
