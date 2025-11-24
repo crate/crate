@@ -348,9 +348,10 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projection.outputs())
             .satisfiesExactly(
                 s -> assertThat(s).isInputColumn(0),
-                s -> assertThat(s).isFunction(
-                    ImplicitCastFunction.NAME,
-                    List.of(DataTypes.LONG, DataTypes.STRING)));
+                s -> assertThat(s)
+                    .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.LONG))
+                    .hasDataType(DataTypes.STRING)
+            );
 
         ColumnIndexWriterProjection columnIndexWriterProjection = (ColumnIndexWriterProjection) collectPhase.projections().get(2);
         assertThat(columnIndexWriterProjection.allTargetColumns()).satisfiesExactly(
@@ -422,9 +423,9 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
 
         assertThat(projections.getFirst().outputs())
             .satisfiesExactly(
-                s -> assertThat(s).isFunction(
-                    ImplicitCastFunction.NAME,
-                    List.of(DataTypes.INTEGER, DataTypes.LONG)),
+                s -> assertThat(s)
+                    .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER))
+                    .hasDataType(DataTypes.LONG),
                 s -> assertThat(s).isInputColumn(1));
     }
 

@@ -526,20 +526,18 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
                 ValuesFunction.NAME,
                 isFunction(
                     ArrayFunction.NAME,
-                    isFunction(
+                    x -> assertThat(x).isFunction(
                         ImplicitCastFunction.NAME,
-                        x -> assertThat(x).isFunction(NowFunction.NAME),
-                        x -> assertThat(x).hasDataType(DataTypes.LONG)
-                    )
+                        y -> assertThat(y).isFunction(NowFunction.NAME)
+                    ).hasDataType(DataTypes.LONG)
                 )
             );
         assertThat(analyzedInsertStatement.onDuplicateKeyAssignments().values())
             .satisfiesExactly(
-                isFunction(
+                x -> assertThat(x).isFunction(
                     ImplicitCastFunction.NAME,
-                    x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
-                    x -> assertThat(x).hasDataType(DataTypes.TIMESTAMPZ)
-                )
+                    y -> assertThat(y).isFunction(CurrentDateFunction.NAME)
+                ).hasDataType(DataTypes.TIMESTAMPZ)
             );
     }
 }

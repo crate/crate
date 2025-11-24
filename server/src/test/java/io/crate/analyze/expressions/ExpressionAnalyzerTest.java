@@ -287,7 +287,9 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(eq).isFunction(
             EqOperator.NAME,
             x -> assertThat(x).isReference().hasName("w"),
-            x -> assertThat(x).isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.LONG))
+            x -> assertThat(x)
+                .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER))
+                .hasDataType(DataTypes.LONG)
         );
     }
 
@@ -296,7 +298,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         Function symbol = (Function) executor.asSymbol("doc.t5.i < doc.t5.w");
         assertThat(symbol).isFunction(LtOperator.NAME);
         assertThat(symbol.arguments().get(0))
-            .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER, DataTypes.LONG));
+            .isFunction(ImplicitCastFunction.NAME, List.of(DataTypes.INTEGER))
+            .hasDataType(DataTypes.LONG);
         assertThat(symbol.arguments().get(1)).hasDataType(DataTypes.LONG);
     }
 
@@ -575,9 +578,8 @@ public class ExpressionAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             x -> assertThat(x).isReference().hasName("a"),
             x -> assertThat(x).isFunction(
                 ImplicitCastFunction.NAME,
-                y -> assertThat(y).isReference().hasName("b"),
-                y -> assertThat(y).hasDataType(DataTypes.NUMERIC)
-            )
+                y -> assertThat(y).isReference().hasName("b")
+            ).hasDataType(DataTypes.NUMERIC)
         );
     }
 

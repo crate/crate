@@ -22,6 +22,7 @@
 package io.crate.expression.scalar.cast;
 
 import static io.crate.metadata.functions.TypeVariableConstraint.typeVariable;
+import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.DataTypeTesting.getDataGenerator;
@@ -78,7 +79,7 @@ public class CastFunctionTest extends ScalarTestCase {
 
     @Test
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public void test_cast_function_lookup_with_legacy_signature() throws Exception {
+    public void test_cast_function_lookup_with_legacy_signatures() throws Exception {
         Literal<Long> arg = Literal.of(10L);
         Function function = new Function(
             ImplicitCastFunction.BWC_SIGNATURE,
@@ -88,16 +89,33 @@ public class CastFunctionTest extends ScalarTestCase {
         Scalar scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
         Object result = scalar.evaluate(sqlExpressions.txnCtx(), sqlExpressions.nodeCtx, arg);
         assertThat(result).isEqualTo("10");
+
+        function = new Function(
+            ExplicitCastFunction.BWC_SIGNATURE,
+            List.of(arg, Literal.of((String) null)),
+            DataTypes.STRING
+        );
+        scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
+        result = scalar.evaluate(sqlExpressions.txnCtx(), sqlExpressions.nodeCtx, arg);
+        assertThat(result).isEqualTo("10");
+
+        function = new Function(
+            TryCastFunction.BWC_SIGNATURE,
+            List.of(arg, Literal.of((String) null)),
+            DataTypes.STRING
+        );
+        scalar = (Scalar) sqlExpressions.nodeCtx.functions().getQualified(function);
+        result = scalar.evaluate(sqlExpressions.txnCtx(), sqlExpressions.nodeCtx, arg);
+        assertThat(result).isEqualTo("10");
     }
 
     @Test
     public void testNormalize() {
         assertNormalize(
             "cast(name as bigint)",
-            isFunction(
-                ExplicitCastFunction.NAME,
-                List.of(DataTypes.STRING, DataTypes.LONG)
-            )
+            x -> assertThat(x)
+                .isFunction(ExplicitCastFunction.NAME, List.of(DataTypes.STRING))
+                .hasDataType(DataTypes.LONG)
         );
     }
 

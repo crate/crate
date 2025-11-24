@@ -158,10 +158,11 @@ public final class WhereClauseValidator {
                 || insideNotPredicate(context)) {
                 throw error.get();
             }
-            assert function.arguments().size() == 2 : "function's number of arguments must be 2";
-            Symbol right = function.arguments().get(1);
-            if (!right.symbolType().isValueSymbol() && right.symbolType() != SymbolType.PARAMETER) {
-                throw error.get();
+            if (function.arguments().size() > 1) {
+                Symbol right = function.arguments().get(1);
+                if (!right.symbolType().isValueSymbol() && right.symbolType() != SymbolType.PARAMETER) {
+                    throw error.get();
+                }
             }
         }
     }

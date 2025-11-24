@@ -279,7 +279,8 @@ public class Function implements Symbol, Cloneable {
         Function function = (Function) o;
         return Objects.equals(arguments, function.arguments) &&
                Objects.equals(signature, function.signature) &&
-               Objects.equals(filter, function.filter);
+               Objects.equals(filter, function.filter) &&
+               Objects.equals(returnType, function.returnType);
     }
 
     @Override
@@ -287,6 +288,7 @@ public class Function implements Symbol, Cloneable {
         int result = arguments.hashCode();
         result = 31 * result + signature.hashCode();
         result = 31 * result + (filter == null ? 0 : filter.hashCode());
+        result = 31 * result + returnType.hashCode();
         return result;
     }
 
@@ -502,12 +504,10 @@ public class Function implements Symbol, Cloneable {
 
     private void printCastFunction(StringBuilder builder, Style style) {
         var name = signature.getName().name();
-        assert arguments.size() == 2 : "Expecting 2 arguments for function " + name;
         if (name.equalsIgnoreCase(ImplicitCastFunction.NAME)) {
             builder.append(arguments().get(0).toString(style));
         } else {
-            var targetType = arguments.get(1).valueType();
-            var columnType = targetType.toColumnType(null);
+            var columnType = returnType.toColumnType(null);
             builder
                 .append(name)
                 .append("(")

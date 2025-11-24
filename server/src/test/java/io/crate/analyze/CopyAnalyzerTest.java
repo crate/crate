@@ -25,8 +25,6 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$;
 import static io.crate.analyze.TableDefinitions.TEST_PARTITIONED_TABLE_IDENT;
 import static io.crate.analyze.TableDefinitions.USER_TABLE_IDENT;
 import static io.crate.testing.Asserts.assertThat;
-import static io.crate.testing.Asserts.isFunction;
-import static io.crate.testing.Asserts.isLiteral;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
@@ -419,22 +417,20 @@ public class CopyAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         AnalyzedCopyFrom analyzedCopyFrom = e.analyze("copy users from '/tmp/t_' || curdate()");
         assertThat(analyzedCopyFrom.uri()).isFunction(
             ConcatFunction.OPERATOR_NAME,
-            isLiteral("/tmp/t_"),
-            isFunction(
+            x -> assertThat(x).isLiteral("/tmp/t_"),
+            x -> assertThat(x).isFunction(
                 ImplicitCastFunction.NAME,
-                x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
-                x -> assertThat(x).hasDataType(DataTypes.STRING)
-            )
+                y -> assertThat(y).isFunction(CurrentDateFunction.NAME)
+            ).hasDataType(DataTypes.STRING)
         );
         AnalyzedCopyTo analyzedCopyTo = e.analyze("copy users to directory '/tmp/' || curdate()");
         assertThat(analyzedCopyTo.uri()).isFunction(
             ConcatFunction.OPERATOR_NAME,
-            isLiteral("/tmp/"),
-            isFunction(
+            x -> assertThat(x).isLiteral("/tmp/"),
+            x -> assertThat(x).isFunction(
                 ImplicitCastFunction.NAME,
-                x -> assertThat(x).isFunction(CurrentDateFunction.NAME),
-                x -> assertThat(x).hasDataType(DataTypes.STRING)
-            )
+                y -> assertThat(y).isFunction(CurrentDateFunction.NAME)
+            ).hasDataType(DataTypes.STRING)
         );
     }
 }

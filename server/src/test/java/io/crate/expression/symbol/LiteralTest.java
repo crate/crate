@@ -121,9 +121,7 @@ public class LiteralTest extends ESTestCase {
     public void test_cast_on_literal_returns_cast_function() {
         Symbol intLiteral = Literal.of(1);
         Asserts.assertThat(intLiteral.cast(DataTypes.LONG, CastMode.IMPLICIT))
-            .isFunction(
-                ImplicitCastFunction.NAME,
-                List.of(intLiteral.valueType(), DataTypes.LONG)
-            ).hasDataType(DataTypes.LONG);
+            .isFunction(ImplicitCastFunction.NAME, List.of(intLiteral.valueType()))
+            .hasDataType(DataTypes.LONG);
     }
 }
