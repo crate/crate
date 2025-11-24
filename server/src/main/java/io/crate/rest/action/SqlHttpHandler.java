@@ -45,7 +45,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.transport.netty4.Netty4Utils;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -256,7 +255,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         if (resultFields == null) {
             resultReceiver = new RestRowCountReceiver(resultBuffer, startTimeInNs, includeTypes);
         } else {
-            CircuitBreaker breaker = circuitBreakerProvider.apply(HierarchyCircuitBreakerService.QUERY);
+            CircuitBreaker breaker = circuitBreakerProvider.apply(CircuitBreaker.QUERY);
             RamAccounting ramAccounting = new BlockBasedRamAccounting(
                 b -> breaker.addEstimateBytesAndMaybeBreak(b, "http-result"),
                 MAX_BLOCK_SIZE_IN_BYTES);

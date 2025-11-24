@@ -41,13 +41,13 @@ import java.util.stream.Collector;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.service.ClusterService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
 
@@ -431,7 +431,7 @@ public class ProjectionToProjectorVisitor
         return new IndexWriterProjector(
             clusterService,
             nodeJobsCounter,
-            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
+            circuitBreakerService.getBreaker(CircuitBreaker.QUERY),
             context.ramAccounting,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
@@ -495,7 +495,7 @@ public class ProjectionToProjectorVisitor
             clusterService,
             constraintsChecker,
             nodeJobsCounter,
-            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
+            circuitBreakerService.getBreaker(CircuitBreaker.QUERY),
             context.ramAccounting,
             threadPool.scheduler(),
             threadPool.executor(ThreadPool.Names.SEARCH),
@@ -564,7 +564,7 @@ public class ProjectionToProjectorVisitor
             resolveUidCollectExpression(context.txnCtx, projection.uidSymbol()),
             clusterService,
             context.ramAccounting,
-            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
+            circuitBreakerService.getBreaker(CircuitBreaker.QUERY),
             nodeJobsCounter,
             () -> builder.newRequest(shardId),
             id -> {
@@ -595,7 +595,7 @@ public class ProjectionToProjectorVisitor
             resolveUidCollectExpression(context.txnCtx, projection.uidSymbol()),
             clusterService,
             context.ramAccounting,
-            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY),
+            circuitBreakerService.getBreaker(CircuitBreaker.QUERY),
             nodeJobsCounter,
             () -> new ShardDeleteRequest(shardId, context.jobId).timeout(reqTimeout),
             ShardDeleteRequest.Item::new,
@@ -623,7 +623,7 @@ public class ProjectionToProjectorVisitor
             projection,
             context.ramAccounting,
             () -> FetchProjector.computeReaderBucketsByteThreshold(
-                circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY)
+                circuitBreakerService.getBreaker(CircuitBreaker.QUERY)
             ),
             context.txnCtx,
             nodeCtx,

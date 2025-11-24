@@ -29,7 +29,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
+import org.elasticsearch.common.breaker.CircuitBreaker;
 
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.data.CollectingRowConsumer;
@@ -55,7 +55,7 @@ public final class MultiPhaseExecutor {
                                                              Row params) {
         var ramAccounting = ConcurrentRamAccounting.forCircuitBreaker(
             "multi-phase",
-            executor.circuitBreaker(HierarchyCircuitBreakerService.QUERY),
+            executor.circuitBreaker(CircuitBreaker.QUERY),
             plannerContext.transactionContext().sessionSettings().memoryLimitInBytes()
         );
 

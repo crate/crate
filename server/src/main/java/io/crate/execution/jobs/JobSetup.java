@@ -49,7 +49,6 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.elasticsearch.indices.breaker.HierarchyCircuitBreakerService;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.jetbrains.annotations.Nullable;
@@ -201,7 +200,7 @@ public class JobSetup {
             distributingConsumerFactory,
             nodeOperations,
             sharedShardContexts,
-            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY)
+            circuitBreakerService.getBreaker(CircuitBreaker.QUERY)
         );
         registerContextPhases(nodeOperations, context);
         LOGGER.trace(
@@ -231,7 +230,7 @@ public class JobSetup {
             distributingConsumerFactory,
             nodeOperations,
             sharedShardContexts,
-            circuitBreakerService.getBreaker(HierarchyCircuitBreakerService.QUERY)
+            circuitBreakerService.getBreaker(CircuitBreaker.QUERY)
         );
         for (var handlerPhase : handlerPhases) {
             context.registerLeaf(handlerPhase.phase(), handlerPhase.consumer());

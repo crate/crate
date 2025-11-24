@@ -28,7 +28,7 @@ import org.elasticsearch.common.breaker.NoopCircuitBreaker;
  */
 public class NoneCircuitBreakerService extends CircuitBreakerService {
 
-    private final CircuitBreaker breaker = new NoopCircuitBreaker(HierarchyCircuitBreakerService.QUERY);
+    private final CircuitBreaker breaker = new NoopCircuitBreaker(CircuitBreaker.QUERY);
 
     public NoneCircuitBreakerService() {
     }
@@ -40,7 +40,7 @@ public class NoneCircuitBreakerService extends CircuitBreakerService {
 
     @Override
     public CircuitBreakerStats stats(String name) {
-        return new CircuitBreakerStats(HierarchyCircuitBreakerService.QUERY, -1, -1, 0, 0);
+        return new CircuitBreakerStats(CircuitBreaker.QUERY, -1, -1, 0, 0);
     }
 
     @Override

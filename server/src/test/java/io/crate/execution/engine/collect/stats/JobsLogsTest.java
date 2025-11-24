@@ -387,7 +387,7 @@ public class JobsLogsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_accounted_memory_is_released_on_sink_change() throws Exception {
-        CircuitBreaker breaker = breakerService.getBreaker(HierarchyCircuitBreakerService.JOBS_LOG);
+        CircuitBreaker breaker = breakerService.getBreaker(CircuitBreaker.JOBS_LOG);
         assertThat(breaker.getUsed()).isEqualTo(0);
         Settings settings = Settings.builder()
             .put(JobsLogService.STATS_ENABLED_SETTING.getKey(), true)
