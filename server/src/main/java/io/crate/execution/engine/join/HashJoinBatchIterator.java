@@ -113,7 +113,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private HashGroup matchedHashGroup;
     private int matchedHashGroupIdx = 0;
 
-    private boolean emitUnmatchedRows;
+    private final boolean emitUnmatchedRows;
     private UnmatchedRowsIterator unmatchedRowsIterator;
 
     public HashJoinBatchIterator(CircuitBreaker circuitBreaker,
@@ -162,34 +162,15 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         while (buildBufferAndMatchRight() == false) {
             if (right.allLoaded() && leftBatchHasItems == false && left.allLoaded()) {
                 // both sides are fully loaded
-                if (emitUnmatchedRows) {
-                    if (unmatchedRowsIterator == null) {
-                        unmatchedRowsIterator = new UnmatchedRowsIterator(buffer);
-                    }
-                    if (unmatchedRowsIterator.hasNext()) {
-                        Object[] unmatchedRow = unmatchedRowsIterator.next();
-                        combiner.setLeft(unsafeArrayRow.cells(unmatchedRow));
-                        combiner.nullRight();
-                        return true;
-                    }
-                }
+                return tryEmitUnmatchedRow();
                 // we are fully done
-                return false;
             } else if (activeIt == left) {
                 // left needs the next batch loaded
                 return false;
             } else if (right.allLoaded()) {
                 // one batch completed
-                if (emitUnmatchedRows) {
-                    if (unmatchedRowsIterator == null) {
-                        unmatchedRowsIterator = new UnmatchedRowsIterator(buffer);
-                    }
-                    if (unmatchedRowsIterator.hasNext()) {
-                        Object[] unmatchedRow = unmatchedRowsIterator.next();
-                        combiner.setLeft(unsafeArrayRow.cells(unmatchedRow));
-                        combiner.nullRight();
-                        return true;
-                    }
+                if (tryEmitUnmatchedRow()) {
+                    return true;
                 }
                 // get ready for the next batch
                 right.moveToStart();
@@ -204,6 +185,23 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         }
 
         // match found
+        return true;
+    }
+
+    private boolean tryEmitUnmatchedRow() {
+        if (!emitUnmatchedRows) {
+            return false;
+        }
+        if (unmatchedRowsIterator == null) {
+            unmatchedRowsIterator = new UnmatchedRowsIterator(buffer);
+        }
+        if (!unmatchedRowsIterator.hasNext()) {
+            return false;
+        }
+
+        Object[] unmatchedRow = unmatchedRowsIterator.next();
+        combiner.setLeft(unsafeArrayRow.cells(unmatchedRow));
+        combiner.nullRight();
         return true;
     }
 
@@ -322,7 +320,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         }
     }
 
-    private static class UnmatchedRowsIterator implements Iterator<Object[]> {
+    private class UnmatchedRowsIterator implements Iterator<Object[]> {
 
         private final Iterator<IntObjectHashMap.PrimitiveEntry<HashJoinBatchIterator.HashGroup>> hashGroupsIterator;
 
@@ -331,6 +329,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         private Object[] nextUnmatchedRow;
 
         public UnmatchedRowsIterator(IntObjectHashMap<HashGroup> buffer) {
+            assert HashJoinBatchIterator.this.emitUnmatchedRows : "UnmatchedRowsIterator is used when HashJoinBatchIterator.emitUnmatchedRows is set";
             this.hashGroupsIterator = buffer.entries().iterator();
             advancedToNextUnmatchedRow();
         }
@@ -363,6 +362,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 BitSet rowIsJoinedFlags = currentHashGroup.rowIsJoinedFlags;
                 final int currentHashGroupSize = currentHashGroupRows.size();
                 while (currentHashGroupRowsIdx < currentHashGroupSize) {
+                    assert rowIsJoinedFlags != null : "When HashJoinBatchIterator.emitUnmatchedRows is set(in other words UnmatchedRowsIterator exists), rowIsJoinedFlags must exist";
                     if (rowIsJoinedFlags.get(currentHashGroupRowsIdx) == false) {
                         nextUnmatchedRow = currentHashGroupRows.get(currentHashGroupRowsIdx);
                         currentHashGroupRowsIdx++;
