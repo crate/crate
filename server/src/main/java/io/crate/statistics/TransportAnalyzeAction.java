@@ -105,6 +105,9 @@ public final class TransportAnalyzeAction {
                             .thenApply(FetchSampleResponse::new)
                             .whenComplete((res, err) -> analysisByRequest.remove(req));
                     } else {
+                        if (LOGGER.isDebugEnabled()) {
+                            LOGGER.debug("ANALYZE is already running, re-using its result");
+                        }
                         return previous.thenApply(FetchSampleResponse::new);
                     }
                 }

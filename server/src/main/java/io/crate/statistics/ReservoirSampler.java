@@ -137,6 +137,9 @@ public final class ReservoirSampler {
         try {
             table = schemas.getTableInfo(relationName);
         } catch (RelationUnknown e) {
+            if (LOGGER.isWarnEnabled()) {
+                LOGGER.warn("ANALYZE couldn't find table {}", relationName, e);
+            }
             return Samples.EMPTY;
         }
         if (!(table instanceof DocTableInfo docTable)) {
