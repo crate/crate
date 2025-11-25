@@ -30,8 +30,10 @@ import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.common.collections.Iterables;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
@@ -114,7 +116,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private int matchedHashGroupIdx = 0;
 
     private final boolean emitUnmatchedRows;
-    private UnmatchedRowsIterator unmatchedRowsIterator;
+    private Iterator<Object[]> unmatchedRowsIterator;
 
     public HashJoinBatchIterator(CircuitBreaker circuitBreaker,
                                  BatchIterator<Row> left,
@@ -193,7 +195,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             return false;
         }
         if (unmatchedRowsIterator == null) {
-            unmatchedRowsIterator = new UnmatchedRowsIterator(buffer);
+            unmatchedRowsIterator = Iterables.concat(buffer.values()).iterator();
         }
         if (!unmatchedRowsIterator.hasNext()) {
             return false;
@@ -305,7 +307,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         return false;
     }
 
-    private static final class HashGroup {
+    private static final class HashGroup implements Iterable<Object[]> {
 
         private final List<Object[]> rows = new ArrayList<>();
         @Nullable
@@ -319,9 +321,9 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             rows.add(row);
         }
 
-        // It is required to construct UnmatchedRowsIterator after all rows of this HashGroup are added because,
-        // UnmatchedRowsIterator starts consuming the rows during construction.
-        public Iterator<Object[]> unmatchedRowsIterator() {
+        @NotNull
+        @Override
+        public Iterator<Object[]> iterator() {
             return new UnmatchedRowsIterator(rows, rowIsJoinedFlags);
         }
 
@@ -363,36 +365,6 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 // not found
                 nextUnmatchedRow = null;
             }
-        }
-    }
-
-    private class UnmatchedRowsIterator implements Iterator<Object[]> {
-
-        private final Iterator<IntObjectHashMap.PrimitiveEntry<HashJoinBatchIterator.HashGroup>> hashGroupsIterator;
-        private Iterator<Object[]> currentHashGroupRowsIterator;
-
-        public UnmatchedRowsIterator(IntObjectHashMap<HashGroup> buffer) {
-            assert HashJoinBatchIterator.this.emitUnmatchedRows : "UnmatchedRowsIterator is used when HashJoinBatchIterator.emitUnmatchedRows is set";
-            this.hashGroupsIterator = buffer.entries().iterator();
-        }
-
-        @Override
-        public boolean hasNext() {
-            if (currentHashGroupRowsIterator != null && currentHashGroupRowsIterator.hasNext()) {
-                return true;
-            }
-            while (hashGroupsIterator.hasNext()) {
-                currentHashGroupRowsIterator = hashGroupsIterator.next().value().unmatchedRowsIterator();
-                if (currentHashGroupRowsIterator.hasNext()) {
-                    return true;
-                }
-            }
-            return false;
-        }
-
-        @Override
-        public Object[] next() {
-            return currentHashGroupRowsIterator.next();
         }
     }
 }
