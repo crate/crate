@@ -52,7 +52,12 @@ import com.carrotsearch.randomizedtesting.annotations.Repeat;
 import io.crate.common.collections.MapBuilder;
 import io.crate.exceptions.InvalidColumnNameException;
 import io.crate.exceptions.VersioningValidationException;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.table.TableInfo;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
 import io.crate.testing.UseRandomizedOptimizerRules;
@@ -90,6 +95,28 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         assertThat(response).hasRowCount(1);
         assertThat(response.rows()[0][0]).isEqualTo("Youri");
         assertThat(response.rows()[0][1]).isEqualTo("Zoon");
+    }
+
+    @Test
+    public void test_insert_with_col_dropped_after_plan() throws Exception {
+        execute("create table tbl (x int, y int)");
+        PlanForNode plan = plan("insert into tbl (x, y) values (1, 1)");
+        execute("alter table tbl drop column y");
+        RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "tbl");
+        for (var nodeContext : cluster().getInstances(NodeContext.class)) {
+            TableInfo tableInfo = nodeContext.schemas().getTableInfo(relationName);
+            Reference reference = tableInfo.getReference(ColumnIdent.of("y"));
+            assertThat(reference).isNull();
+        }
+        try {
+            // Insert can succeed if there is no streaming involved
+            // It will write to the dropped column.
+            // Seems ok, given that the insert started before the drop column
+            List<Object[]> result = execute(plan).getResult();
+            assertThat(result).containsExactly(new Object[] { 1L });
+        } catch (IllegalStateException ex) {
+            assertThat(ex.getMessage()).isEqualTo("Reference with oid=2 not found");
+        }
     }
 
     @Test

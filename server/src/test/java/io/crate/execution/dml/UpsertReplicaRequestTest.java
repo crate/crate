@@ -27,29 +27,58 @@ import java.util.List;
 import java.util.UUID;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
+import org.junit.Before;
 import org.junit.Test;
+import org.mockito.Mockito;
 
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
-import io.crate.execution.dml.upsert.ShardUpsertRequestTest;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
-public class UpsertReplicaRequestTest {
+public class UpsertReplicaRequestTest extends CrateDummyClusterServiceUnitTest {
 
-    ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
     SessionSettings sessionSettings = new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema"));
     UUID jobId = UUID.randomUUID();
 
+    private SQLExecutor e;
+    private Reference idRef;
+    private Reference nameRef;
+    private ShardId shardId;
+
+    @Before
+    public void setupTable() throws Exception {
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.characters (id int, name text)");
+        DocTableInfo tableInfo = e.resolveTableInfo("characters");
+        idRef = tableInfo.getReference(ColumnIdent.of("id"));
+        nameRef = tableInfo.getReference(ColumnIdent.of("name"));
+
+        Metadata metadata = clusterService.state().metadata();
+        RelationMetadata relation = metadata.getRelation(tableInfo.ident());
+        assertThat(relation).isNotNull();
+        String indexUUID = relation.indexUUIDs().get(0);
+        IndexMetadata index = metadata.index(indexUUID);
+        assertThat(index).isNotNull();
+        shardId = new ShardId(index.getIndex().getName(), index.getIndexUUID(), 1);
+    }
+
     @Test
     public void test_can_deserialize_replica_request_sent_from_5_10_10() throws Exception {
-        Reference[] insertColumns = new Reference[] { ShardUpsertRequestTest.ID_REF, ShardUpsertRequestTest.NAME_REF };
+        Reference[] insertColumns = new Reference[] { idRef, nameRef };
         ShardUpsertRequest request = new ShardUpsertRequest(
             shardId,
             jobId,
@@ -88,10 +117,10 @@ public class UpsertReplicaRequestTest {
 
             try (var in = out.bytes().streamInput()) {
                 in.setVersion(Version.V_5_10_10);
-                UpsertReplicaRequest replicaRequest = UpsertReplicaRequest.readFrom(in);
+                var replicaRequest = UpsertReplicaRequest.readFrom(Mockito.mock(Schemas.class), in);
                 assertThat(replicaRequest.columns()).containsExactly(
-                    ShardUpsertRequestTest.ID_REF,
-                    ShardUpsertRequestTest.NAME_REF
+                    idRef,
+                    nameRef
                 );
                 assertThat(replicaRequest.items()).hasSize(2);
             }
@@ -108,7 +137,7 @@ public class UpsertReplicaRequestTest {
             shardId,
             jobId,
             sessionSettings,
-            List.of(ShardUpsertRequestTest.ID_REF, ShardUpsertRequestTest.NAME_REF),
+            List.of(idRef, nameRef),
             items
         );
         try (var out = new BytesStreamOutput()) {
@@ -117,10 +146,10 @@ public class UpsertReplicaRequestTest {
 
             try (var in = out.bytes().streamInput()) {
                 in.setVersion(Version.V_5_10_10);
-                ShardUpsertRequest shardUpsertRequest = new ShardUpsertRequest(in);
+                ShardUpsertRequest shardUpsertRequest = new ShardUpsertRequest(e.schemas(), in);
                 assertThat(shardUpsertRequest.insertColumns()).containsExactly(
-                    ShardUpsertRequestTest.ID_REF,
-                    ShardUpsertRequestTest.NAME_REF
+                    idRef,
+                    nameRef
                 );
                 assertThat(shardUpsertRequest.items()).hasSize(2);
                 for (int i = 0; i < items.size(); i++) {
@@ -129,6 +158,34 @@ public class UpsertReplicaRequestTest {
                     assertThat(item.seqNo()).isEqualTo(replicaItem.seqNo());
                     assertThat(item.primaryTerm()).isEqualTo(replicaItem.primaryTerm());
                     assertThat(item.version()).isEqualTo(replicaItem.version());
+                }
+            }
+        }
+    }
+
+    @Test
+    public void test_61_and_current_streaming() throws Exception {
+        List<UpsertReplicaRequest.Item> items = List.of(
+            new UpsertReplicaRequest.Item("1", new Object[] { 1, "Arthur" }, List.of("1"), 1, 2, 3),
+            new UpsertReplicaRequest.Item("2", new Object[] { 2, "Trillian" }, List.of("2"), 4, 5, 6)
+        );
+        UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
+            shardId,
+            jobId,
+            sessionSettings,
+            List.of(idRef, nameRef),
+            items
+        );
+        for (var version : List.of(Version.V_6_1_0, Version.CURRENT)) {
+            try (var out = new BytesStreamOutput()) {
+                out.setVersion(version);
+                replicaRequest.writeTo(out);
+                try (var in = out.bytes().streamInput()) {
+                    in.setVersion(version);
+                    UpsertReplicaRequest request = UpsertReplicaRequest.readFrom(e.schemas(), in);
+                    assertThat(request).isEqualTo(replicaRequest);
+                    assertThat(request.columns()).isEqualTo(replicaRequest.columns());
+                    assertThat(request.items()).isEqualTo(replicaRequest.items());
                 }
             }
         }

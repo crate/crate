@@ -39,8 +39,11 @@ import org.apache.lucene.search.spell.LevenshteinDistance;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterStateListener;
 import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.index.Index;
+import org.elasticsearch.index.IndexNotFoundException;
 import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
@@ -262,6 +265,17 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
                3 : "When identifying schemas or tables a qualified name should not have more the 3 parts";
         List<String> parts = ident.getParts();
         return parts.get(parts.size() - 1);
+    }
+
+    /// @throws [IndexNotFoundException]
+    /// @throws [RelationUnknown]
+    public DocTableInfo getTableInfo(Index index) {
+        Metadata metadata = clusterService.state().metadata();
+        RelationMetadata relation = metadata.getRelation(index.getUUID());
+        if (relation == null) {
+            throw new IndexNotFoundException(index);
+        }
+        return getTableInfo(relation.name());
     }
 
     /**

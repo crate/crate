@@ -21,22 +21,20 @@
 
 package io.crate.execution.dml.upsert;
 
-import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.index.Index;
@@ -75,14 +73,12 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.netty.NettyBootstrap;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -157,13 +153,25 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private TransportShardUpsertAction transportShardUpsertAction;
     private IndexShard indexShard;
     private NettyBootstrap nettyBootstrap;
+    private SQLExecutor executor;
 
     @Before
     public void prepare() throws Exception {
-        SQLExecutor.builder(clusterService).build()
-            .addTable("create table doc.characters (id int, p int) PARTITIONED BY (p)", PARTITION_VALUES);
-        charactersIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of(), true, IndexMetadata::getIndexUUID);
-        partitionIndexUUID = clusterService.state().metadata().getIndex(TABLE_IDENT, List.of("1395874800000"), true, IndexMetadata::getIndexUUID);
+        executor = SQLExecutor.of(clusterService)
+            .addTable(
+                """
+                create table doc.characters (
+                    id int,
+                    p int
+                )
+                PARTITIONED BY (p)
+                WITH (column_policy = 'dynamic')
+                """,
+                PARTITION_VALUES
+            );
+        Metadata metadata = clusterService.state().metadata();
+        charactersIndexUUID = metadata.getIndex(TABLE_IDENT, List.of(), true, IndexMetadata::getIndexUUID);
+        partitionIndexUUID = metadata.getIndex(TABLE_IDENT, List.of("1395874800000"), true, IndexMetadata::getIndexUUID);
 
         nettyBootstrap = new NettyBootstrap(Settings.EMPTY);
         nettyBootstrap.start();
@@ -189,29 +197,6 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         when(indexService.getShard(0)).thenReturn(indexShard);
         when(indexShard.shardId()).thenReturn(new ShardId(charactersIndex, 0));
 
-        // Avoid null pointer exceptions
-        DocTableInfo tableInfo = mock(DocTableInfo.class);
-        Schemas schemas = mock(Schemas.class);
-        when(tableInfo.rootColumns()).thenReturn(Collections.<Reference>emptyList());
-        when(tableInfo.versionCreated()).thenReturn(Version.CURRENT);
-        when(tableInfo.ident()).thenReturn(mock(RelationName.class));
-        when(schemas.getTableInfo(any(RelationName.class))).thenReturn(tableInfo);
-
-        var dynamicLongColRef = new SimpleReference(
-                new ReferenceIdent(TABLE_IDENT,"dynamic_long_col"),
-                RowGranularity.DOC,
-                DataTypes.LONG,
-                IndexType.PLAIN,
-                true,
-                false,
-                1,
-                1,
-                false,
-                null
-        );
-        when(tableInfo.getReference(ColumnIdent.of("dynamic_long_col"))).thenReturn(dynamicLongColRef);
-        when(tableInfo.iterator()).thenReturn(List.<Reference>of(ID_REF, dynamicLongColRef).iterator());
-
         transportShardUpsertAction = new TestingTransportShardUpsertAction(
             mock(ThreadPool.class),
             clusterService,
@@ -219,7 +204,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
             mock(TasksService.class),
             indicesService,
             mock(ShardStateAction.class),
-            createNodeContext(schemas, List.of())
+            executor.nodeCtx
         );
     }
 
@@ -351,6 +336,21 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
                     1
                 )
             )
+        );
+
+
+        // pretend primary operation updated the schema
+        executor.addTable(
+            """
+            create table doc.characters (
+                id int,
+                p int,
+                dynamic_long_col long
+            )
+            PARTITIONED BY (p)
+            WITH (column_policy = 'dynamic')
+            """,
+            PARTITION_VALUES
         );
 
         // verifies that it does not throw a ClassCastException: class java.lang.Integer cannot be cast to class java.lang.Long
