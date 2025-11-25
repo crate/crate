@@ -30,6 +30,7 @@ import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -279,7 +280,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private void addToBuffer(Object[] currentRow, int hash) {
         HashGroup hashGroup = buffer.get(hash);
         if (hashGroup == null) {
-            hashGroup = new HashGroup();
+            hashGroup = new HashGroup(emitUnmatchedRows);
             buffer.put(hash, hashGroup);
         }
         hashGroup.add(currentRow);
@@ -309,7 +310,12 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private static final class HashGroup {
 
         private final List<Object[]> rows = new ArrayList<>();
-        private final BitSet rowIsJoinedFlags = new BitSet();
+        @Nullable
+        private final BitSet rowIsJoinedFlags;
+
+        private HashGroup(boolean emitUnmatchedRows) {
+            this.rowIsJoinedFlags = emitUnmatchedRows ? new BitSet() : null;
+        }
 
         public void add(Object[] row) {
             rows.add(row);
