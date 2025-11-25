@@ -35,13 +35,11 @@ import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.index.IndexNotFoundException;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.engine.DocumentMissingException;
 import org.elasticsearch.index.engine.Engine;
@@ -121,11 +119,11 @@ public class TransportShardUpsertAction extends TransportShardAction<
             threadPool,
             shardStateAction,
             circuitBreakerService,
-            ShardUpsertRequest::new,
-            UpsertReplicaRequest::readFrom
+            in -> new ShardUpsertRequest(nodeCtx.schemas(), in),
+            in -> UpsertReplicaRequest.readFrom(nodeCtx.schemas(), in)
         );
-        this.nodeCtx = nodeCtx;
         this.schemas = nodeCtx.schemas();
+        this.nodeCtx = nodeCtx;
         this.addColumnAction = addColumnAction;
         tasksService.addListener(this);
     }
@@ -137,11 +135,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
                                                                                           AtomicBoolean killed) {
         String indexUUID = indexShard.shardId().getIndexUUID();
         Metadata metadata = clusterService.state().metadata();
-        RelationMetadata relationMetadata = metadata.getRelation(indexUUID);
-        if (relationMetadata == null) {
-            throw new IndexNotFoundException(indexShard.shardId().getIndex());
-        }
-        DocTableInfo tableInfo = schemas.getTableInfo(relationMetadata.name());
+        DocTableInfo tableInfo = schemas.getTableInfo(indexShard.shardId().getIndex());
         IndexMetadata indexMetadata = metadata.index(indexUUID);
         assert indexMetadata != null : "IndexMetadata for index " + indexUUID + " not found in cluster state";
         List<String> partitionValues = indexMetadata.partitionValues();
@@ -275,11 +269,7 @@ public class TransportShardUpsertAction extends TransportShardAction<
         boolean traceEnabled = logger.isTraceEnabled();
 
         Metadata metadata = clusterService.state().metadata();
-        RelationMetadata relationMetadata = metadata.getRelation(indexUUID);
-        if (relationMetadata == null) {
-            throw new IndexNotFoundException(indexShard.shardId().getIndex());
-        }
-        DocTableInfo tableInfo = schemas.getTableInfo(relationMetadata.name());
+        DocTableInfo tableInfo = schemas.getTableInfo(indexShard.shardId().getIndex());
         IndexMetadata indexMetadata = metadata.index(indexUUID);
         assert indexMetadata != null : "IndexMetadata for index " + indexUUID + " not found in cluster state";
         List<String> partitionValues = indexMetadata.partitionValues();

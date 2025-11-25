@@ -28,51 +28,57 @@ import java.util.List;
 import java.util.UUID;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.UUIDs;
+import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
-import org.elasticsearch.test.ESTestCase;
+import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ReferenceIdent;
-import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.SearchPath;
-import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
-import io.crate.types.DataTypes;
+import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
+import io.crate.testing.SQLExecutor;
 
-public class ShardUpsertRequestTest extends ESTestCase {
+public class ShardUpsertRequestTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationName CHARACTERS_IDENTS = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
+    private SQLExecutor e;
+    private Reference idRef;
+    private Reference nameRef;
+    private ShardId shardId;
 
-    public static final SimpleReference ID_REF = new SimpleReference(
-        new ReferenceIdent(CHARACTERS_IDENTS, "id"),
-        RowGranularity.DOC,
-        DataTypes.INTEGER,
-        1,
-        null);
-    public static final SimpleReference NAME_REF = new SimpleReference(
-        new ReferenceIdent(CHARACTERS_IDENTS, "name"),
-        RowGranularity.DOC,
-        DataTypes.STRING,
-        2,
-        null);
+    @Before
+    public void setupTable() throws Exception {
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.characters (id int, name text)");
+        DocTableInfo tableInfo = e.resolveTableInfo("characters");
+        idRef = tableInfo.getReference(ColumnIdent.of("id"));
+        nameRef = tableInfo.getReference(ColumnIdent.of("name"));
+        Metadata metadata = clusterService.state().metadata();
+        RelationMetadata relation = metadata.getRelation(tableInfo.ident());
+        assertThat(relation).isNotNull();
+        String indexUUID = relation.indexUUIDs().get(0);
+        IndexMetadata index = metadata.index(indexUUID);
+        assertThat(index).isNotNull();
+        shardId = new ShardId(index.getIndex().getName(), index.getIndexUUID(), 1);
+    }
 
     @Test
     public void test_streaming_without_returnvalues() throws Exception {
-        ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        SimpleReference[] missingAssignmentColumns = new SimpleReference[]{ID_REF, NAME_REF};
+        Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
@@ -113,21 +119,24 @@ public class ShardUpsertRequestTest extends ESTestCase {
             0
         ));
 
-        BytesStreamOutput out = new BytesStreamOutput();
-        request.writeTo(out);
+        for (var version : List.of(Version.V_6_1_1, Version.CURRENT)) {
+            BytesStreamOutput out = new BytesStreamOutput();
+            out.setVersion(version);
+            request.writeTo(out);
 
-        StreamInput in = out.bytes().streamInput();
-        ShardUpsertRequest request2 = new ShardUpsertRequest(in);
+            StreamInput in = out.bytes().streamInput();
+            in.setVersion(version);
+            ShardUpsertRequest request2 = new ShardUpsertRequest(e.schemas(), in);
 
-        assertThat(request).isEqualTo(request2);
+            assertThat(request).isEqualTo(request2);
+        }
     }
 
     @Test
     public void test_streaming_with_returnvalues() throws Exception {
-        ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        SimpleReference[] missingAssignmentColumns = new SimpleReference[]{ID_REF, NAME_REF};
+        Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
@@ -173,17 +182,16 @@ public class ShardUpsertRequestTest extends ESTestCase {
         request.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        ShardUpsertRequest request2 = new ShardUpsertRequest(in);
+        ShardUpsertRequest request2 = new ShardUpsertRequest(e.schemas(), in);
 
         assertThat(request).isEqualTo(request2);
     }
 
     @Test
     public void test_streaming_item_without_source_from_older_node() throws Exception {
-        ShardId shardId = new ShardId("test", UUIDs.randomBase64UUID(), 1);
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        SimpleReference[] missingAssignmentColumns = new SimpleReference[]{ID_REF, NAME_REF};
+        Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
@@ -211,7 +219,7 @@ public class ShardUpsertRequestTest extends ESTestCase {
 
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_5_2_0);
-        ShardUpsertRequest request2 = new ShardUpsertRequest(in);
+        ShardUpsertRequest request2 = new ShardUpsertRequest(e.schemas(), in);
         assertThat(request2.items().get(0).seqNo()).isEqualTo(SequenceNumbers.SKIP_ON_REPLICA);
     }
 

@@ -30,6 +30,7 @@ import java.util.UUID;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.lucene.uid.Versions;
@@ -45,6 +46,8 @@ import io.crate.execution.dml.ShardRequest;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.types.DataType;
 
@@ -101,8 +104,9 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         this.returnValues = returnValues;
     }
 
-    public ShardUpsertRequest(StreamInput in) throws IOException {
+    public ShardUpsertRequest(Schemas schemas, StreamInput in) throws IOException {
         super(in);
+        DocTableInfo tableInfo = schemas.getTableInfo(shardId.getIndex());
         int assignmentsColumnsSize = in.readVInt();
         if (assignmentsColumnsSize > 0) {
             updateColumns = new String[assignmentsColumnsSize];
@@ -114,8 +118,21 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         Streamer<?>[] insertValuesStreamer = null;
         if (missingAssignmentsColumnsSize > 0) {
             insertColumns = new Reference[missingAssignmentsColumnsSize];
-            for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
-                insertColumns[i] = Reference.fromStream(in);
+            if (in.getVersion().onOrAfter(Version.V_6_2_0)) {
+                for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
+                    long oid = in.readLong();
+                    Reference ref = oid == Metadata.COLUMN_OID_UNASSIGNED
+                        ? Reference.fromStream(in)
+                        : tableInfo.getReference(oid);
+                    if (ref == null) {
+                        throw new IllegalStateException("Reference with oid=" + oid + " not found");
+                    }
+                    insertColumns[i] = ref;
+                }
+            } else {
+                for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
+                    insertColumns[i] = Reference.fromStream(in);
+                }
             }
             insertValuesStreamer = Symbols.streamerArray(insertColumns);
         } else {
@@ -164,8 +181,17 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
         Streamer<?>[] insertValuesStreamer = null;
         if (insertColumns != null) {
             out.writeVInt(insertColumns.length);
-            for (Reference reference : insertColumns) {
-                Reference.toStream(out, reference);
+            if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
+                for (Reference reference : insertColumns) {
+                    out.writeLong(reference.oid());
+                    if (reference.oid() == Metadata.COLUMN_OID_UNASSIGNED) {
+                        Reference.toStream(out, reference);
+                    }
+                }
+            } else {
+                for (var reference : insertColumns) {
+                    Reference.toStream(out, reference);
+                }
             }
             insertValuesStreamer = Symbols.streamerArray(insertColumns);
         } else {

@@ -29,6 +29,7 @@ import java.util.UUID;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.shard.ShardId;
@@ -39,6 +40,8 @@ import io.crate.common.collections.Lists;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.metadata.Reference;
+import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 
 public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, UpsertReplicaRequest.Item> {
@@ -59,9 +62,9 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
         this.items = items;
     }
 
-    public static UpsertReplicaRequest readFrom(StreamInput in) throws IOException {
+    public static UpsertReplicaRequest readFrom(Schemas schemas, StreamInput in) throws IOException {
         if (in.getVersion().onOrBefore(Version.V_5_10_10)) {
-            ShardUpsertRequest request = new ShardUpsertRequest(in);
+            ShardUpsertRequest request = new ShardUpsertRequest(schemas, in);
             return new UpsertReplicaRequest(
                 request.shardId(),
                 request.jobId(),
@@ -70,14 +73,30 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
                 Lists.mapLazy(request.items(), UpsertReplicaRequest.Item::of)
             );
         } else {
-            return new UpsertReplicaRequest(in);
+            return new UpsertReplicaRequest(schemas, in);
         }
     }
 
-    private UpsertReplicaRequest(StreamInput in) throws IOException {
+    private UpsertReplicaRequest(Schemas schemas, StreamInput in) throws IOException {
         super(in);
         this.sessionSettings = new SessionSettings(in);
-        this.columns = in.readList(Reference::fromStream);
+        DocTableInfo table = schemas.getTableInfo(shardId.getIndex());
+        if (in.getVersion().onOrAfter(Version.V_6_2_0)) {
+            int numColumns = in.readVInt();
+            this.columns = new ArrayList<>(numColumns);
+            for (int i = 0; i < numColumns; i++) {
+                long oid = in.readLong();
+                Reference column = oid == Metadata.COLUMN_OID_UNASSIGNED
+                    ? Reference.fromStream(in)
+                    : table.getReference(oid);
+                if (column == null) {
+                    throw new IllegalStateException("Reference with oid=" + oid + " not found");
+                }
+                columns.add(column);
+            }
+        } else {
+            this.columns = in.readList(Reference::fromStream);
+        }
         int numItems = in.readVInt();
         this.items = new ArrayList<>(numItems);
         for (int i = 0; i < numItems; i++) {
@@ -120,7 +139,17 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
         }
         super.writeTo(out);
         sessionSettings.writeTo(out);
-        out.writeCollection(columns, Reference::toStream);
+        if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
+            out.writeVInt(columns.size());
+            for (Reference column : columns) {
+                out.writeLong(column.oid());
+                if (column.oid() == Metadata.COLUMN_OID_UNASSIGNED) {
+                    Reference.toStream(out, column);
+                }
+            }
+        } else {
+            out.writeCollection(columns, Reference::toStream);
+        }
         out.writeVInt(items.size());
         for (Item items : items) {
             items.writeTo(out, columns);
