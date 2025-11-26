@@ -324,17 +324,18 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         @NotNull
         @Override
         public Iterator<Object[]> iterator() {
+            assert rowIsJoinedFlags != null : "UnmatchedRowIterator must have rowIsJoinedFlags to identify unmatched rows";
             return new UnmatchedRowsIterator(rows, rowIsJoinedFlags);
         }
 
         private static final class UnmatchedRowsIterator implements Iterator<Object[]> {
             private final List<Object[]> rows;
+            @NotNull
             private final BitSet rowIsJoinedFlags;
-            private int idx = 0;
+            private int idx = -1;
             private Object[] nextUnmatchedRow;
 
-            public UnmatchedRowsIterator(List<Object[]> rows, BitSet rowIsJoinedFlags) {
-                assert rowIsJoinedFlags != null : "UnmatchedRowIterator must have rowIsJoinedFlags to identify unmatched rows";
+            public UnmatchedRowsIterator(List<Object[]> rows, @NotNull BitSet rowIsJoinedFlags) {
                 this.rows = rows;
                 this.rowIsJoinedFlags = rowIsJoinedFlags;
                 advanceToNextUnmatchedRow();
@@ -342,7 +343,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
             @Override
             public boolean hasNext() {
-                return nextUnmatchedRow != null;
+                return rowIsJoinedFlags.nextClearBit(idx) < rows.size();
             }
 
             @Override
@@ -353,17 +354,12 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             }
 
             private void advanceToNextUnmatchedRow() {
-                int size = rows.size();
-                while (idx < size) {
-                    if (!rowIsJoinedFlags.get(idx)) {
-                        nextUnmatchedRow = rows.get(idx++);
-                        return;
-                    }
-                    idx++;
+                idx = rowIsJoinedFlags.nextClearBit(idx + 1);
+                if (idx < rows.size()) {
+                    nextUnmatchedRow = rows.get(idx);
+                } else {
+                    nextUnmatchedRow = null;
                 }
-
-                // not found
-                nextUnmatchedRow = null;
             }
         }
     }
