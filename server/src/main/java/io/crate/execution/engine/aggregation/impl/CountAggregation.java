@@ -154,7 +154,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
             Symbol arg = function.arguments().get(0);
             if (arg instanceof Input<?> input) {
                 if (input.value() == null) {
-                    return Literal.of(0L);
+                    return function;
                 } else {
                     return new Function(COUNT_STAR_SIGNATURE, List.of(), DataTypes.LONG);
                 }
