@@ -112,8 +112,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private int numberOfHashGroupsInBuffer = 0;
     private boolean leftBatchHasItems = false;
 
+    private HashGroup.IndexedIterator matchedHashGroupRowsIterator;
     private HashGroup matchedHashGroup;
-    private int matchedHashGroupIdx = 0;
 
     private final boolean emitUnmatchedRows;
     private Iterator<Object[]> unmatchedRowsIterator;
@@ -155,7 +155,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         activeIt = left;
         resetBuffer();
         matchedHashGroup = null;
-        matchedHashGroupIdx = 0;
+        matchedHashGroupRowsIterator = null;
         unmatchedRowsIterator = null;
     }
 
@@ -179,7 +179,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 activeIt = left;
                 resetBuffer();
                 matchedHashGroup = null;
-                matchedHashGroupIdx = 0;
+                matchedHashGroupRowsIterator = null;
                 unmatchedRowsIterator = null;
             } else {
                 return false;
@@ -257,7 +257,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         }
 
         // In case of multiple matches on the left side (duplicate values or hash collisions)
-        if (matchedHashGroup != null && findMatchingRows()) {
+        if (matchedHashGroupRowsIterator != null && findMatchingRows()) {
             return true;
         }
 
@@ -265,7 +265,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             int rightHash = hashBuilderForRight.applyAsInt(right.currentElement());
             matchedHashGroup = buffer.get(rightHash);
             if (matchedHashGroup != null) {
-                matchedHashGroupIdx = 0;
+                matchedHashGroupRowsIterator = matchedHashGroup.indexedIterator();
                 combiner.setRight(right.currentElement());
                 if (findMatchingRows()) {
                     return true;
@@ -288,19 +288,16 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     }
 
     private boolean findMatchingRows() {
-        List<Object[]> matchedRows = matchedHashGroup.rows;
-        while (matchedHashGroupIdx < matchedRows.size()) {
-            leftRow.cells(matchedRows.get(matchedHashGroupIdx));
+        while (matchedHashGroupRowsIterator.hasNext()) {
+            leftRow.cells(matchedHashGroupRowsIterator.next());
             combiner.setLeft(leftRow);
             if (joinCondition.test(combiner.currentElement())) {
-                matchedHashGroup.markMatched(matchedHashGroupIdx);
-                matchedHashGroupIdx++;
+                matchedHashGroup.markMatched(matchedHashGroupRowsIterator.currentIdx());
                 return true;
             }
-            matchedHashGroupIdx++;
         }
         matchedHashGroup = null;
-        matchedHashGroupIdx = 0;
+        matchedHashGroupRowsIterator = null;
         return false;
     }
 
@@ -322,6 +319,10 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             if (rowIsJoinedFlags != null) {
                 rowIsJoinedFlags.set(idx, true);
             }
+        }
+
+        public IndexedIterator indexedIterator() {
+            return new IndexedIterator(rows);
         }
 
         @NotNull
@@ -363,6 +364,34 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                 } else {
                     nextUnmatchedRow = null;
                 }
+            }
+        }
+
+        private static final class IndexedIterator implements Iterator<Object[]> {
+
+            private final List<Object[]> rows;
+            private int idx;
+
+            public IndexedIterator(List<Object[]> rows) {
+                this.rows = rows;
+            }
+
+            @Override
+            public boolean hasNext() {
+                return idx < rows.size();
+            }
+
+            @Override
+            public Object[] next() {
+                return rows.get(idx++);
+            }
+
+            /**
+             * Returns the index of the element returned by the last call to next().
+             * Note that if next() has not been called, -1 will be returned.
+             */
+            public int currentIdx() {
+                return idx - 1;
             }
         }
     }
