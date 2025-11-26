@@ -346,15 +346,14 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             @Override
             public boolean hasNext() {
                 int nextIdx = rowIsJoinedFlags.nextClearBit(idx);
-                // Special case for value `0` as we cannot use -1 initially for the nextClearBit call
-                return nextIdx > -1 && nextIdx < rows.size() && (nextIdx == 0 || nextIdx > idx);
+                return nextIdx > -1 && nextIdx < rows.size() && nextIdx >= idx;
             }
 
             @Override
             public Object[] next() {
-                int nextIdx = rowIsJoinedFlags.nextClearBit(idx++);
-                if (nextIdx > idx) {
-                    idx = nextIdx;
+                int nextIdx = rowIsJoinedFlags.nextClearBit(idx);
+                if (nextIdx >= idx) {
+                    idx = nextIdx + 1;
                 }
                 if (nextIdx <= -1 || nextIdx >= rows.size()) {
                     throw new NoSuchElementException("Iterator exhausted");
