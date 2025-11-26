@@ -289,14 +289,11 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private boolean findMatchingRows() {
         List<Object[]> matchedRows = matchedHashGroup.rows;
-        BitSet rowIsJoinedFlags = matchedHashGroup.rowIsJoinedFlags;
         while (matchedHashGroupIdx < matchedRows.size()) {
             leftRow.cells(matchedRows.get(matchedHashGroupIdx));
             combiner.setLeft(leftRow);
             if (joinCondition.test(combiner.currentElement())) {
-                if (emitUnmatchedRows) {
-                    rowIsJoinedFlags.set(matchedHashGroupIdx, true);
-                }
+                matchedHashGroup.markMatched(matchedHashGroupIdx);
                 matchedHashGroupIdx++;
                 return true;
             }
@@ -319,6 +316,12 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
         public void add(Object[] row) {
             rows.add(row);
+        }
+
+        public void markMatched(int idx) {
+            if (rowIsJoinedFlags != null) {
+                rowIsJoinedFlags.set(idx, true);
+            }
         }
 
         @NotNull
