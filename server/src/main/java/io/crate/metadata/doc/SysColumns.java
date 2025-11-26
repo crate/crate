@@ -36,7 +36,6 @@ import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -155,8 +154,8 @@ public class SysColumns {
      * Creates a Reference for a system column.
      * Don't use this for user table columns, it's not safe (e.g. Reference has no oid)
      */
-    private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
-        return new SimpleReference(new ReferenceIdent(table, column),
+    private static Reference newInfo(ColumnIdent column, DataType<?> dataType, int position) {
+        return new SimpleReference(column,
                              RowGranularity.DOC,
                              dataType,
                              IndexType.PLAIN,
@@ -176,21 +175,21 @@ public class SysColumns {
         int position = 1;
         for (Map.Entry<ColumnIdent, DataType<?>> entry : COLUMN_IDENTS.entrySet()) {
             ColumnIdent columnIdent = entry.getKey();
-            consumer.accept(columnIdent, newInfo(relationName, columnIdent, entry.getValue(), position++));
+            consumer.accept(columnIdent, newInfo(columnIdent, entry.getValue(), position++));
         }
     }
 
-    public static List<Reference> forTable(RelationName relationName) {
+    public static List<Reference> forTable() {
         int position = 1;
         var columns = new ArrayList<Reference>();
         for (Map.Entry<ColumnIdent, DataType<?>> entry : COLUMN_IDENTS.entrySet()) {
-            columns.add(newInfo(relationName, entry.getKey(), entry.getValue(), position++));
+            columns.add(newInfo(entry.getKey(), entry.getValue(), position++));
         }
         return columns;
     }
 
-    public static Reference forTable(RelationName table, ColumnIdent column) {
-        return newInfo(table, column, COLUMN_IDENTS.get(column), 0);
+    public static Reference forTable(ColumnIdent column) {
+        return newInfo(column, COLUMN_IDENTS.get(column), 0);
     }
 
     public static String nameForLucene(ColumnIdent ident) {

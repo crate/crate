@@ -40,7 +40,6 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -155,7 +154,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     private void addColumn(String name, DataType<?> type, int position) {
         SimpleReference ref = new SimpleReference(
-            new ReferenceIdent(ident(), name, null),
+            ColumnIdent.of(name),
             RowGranularity.DOC,
             type,
             position,

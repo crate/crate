@@ -30,6 +30,7 @@ import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 
 /**
  * Specialized indexer for an array of objects, which duplicates the translog entry
@@ -41,8 +42,8 @@ import io.crate.metadata.Reference;
  */
 public class ArrayOfObjectIndexer<T> extends ArrayIndexer<T> {
 
-    ArrayOfObjectIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
-        super(innerIndexer, getRef, reference);
+    ArrayOfObjectIndexer(RelationName table, ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+        super(table, innerIndexer, getRef, reference);
     }
 
     @Override
