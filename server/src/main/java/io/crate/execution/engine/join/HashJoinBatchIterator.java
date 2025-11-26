@@ -25,12 +25,13 @@ import java.util.ArrayList;
 import java.util.BitSet;
 import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
+import java.util.NoSuchElementException;
 import java.util.function.LongToIntFunction;
 import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.common.collections.Iterables;
@@ -112,7 +113,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private int numberOfHashGroupsInBuffer = 0;
     private boolean leftBatchHasItems = false;
 
-    private HashGroup.IndexedIterator matchedHashGroupRowsIterator;
+    private ListIterator<Object[]> matchedHashGroupRowsIterator;
     private HashGroup matchedHashGroup;
 
     private final boolean emitUnmatchedRows;
@@ -265,7 +266,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             int rightHash = hashBuilderForRight.applyAsInt(right.currentElement());
             matchedHashGroup = buffer.get(rightHash);
             if (matchedHashGroup != null) {
-                matchedHashGroupRowsIterator = matchedHashGroup.indexedIterator();
+                matchedHashGroupRowsIterator = matchedHashGroup.listIterator();
                 combiner.setRight(right.currentElement());
                 if (findMatchingRows()) {
                     return true;
@@ -289,10 +290,11 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private boolean findMatchingRows() {
         while (matchedHashGroupRowsIterator.hasNext()) {
+            int currentIdx = matchedHashGroupRowsIterator.nextIndex();
             leftRow.cells(matchedHashGroupRowsIterator.next());
             combiner.setLeft(leftRow);
             if (joinCondition.test(combiner.currentElement())) {
-                matchedHashGroup.markMatched(matchedHashGroupRowsIterator.currentIdx());
+                matchedHashGroup.markMatched(currentIdx);
                 return true;
             }
         }
@@ -321,77 +323,43 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
             }
         }
 
-        public IndexedIterator indexedIterator() {
-            return new IndexedIterator(rows);
+        public ListIterator<Object[]> listIterator() {
+            return rows.listIterator();
         }
 
-        @NotNull
         @Override
         public Iterator<Object[]> iterator() {
-            assert rowIsJoinedFlags != null : "UnmatchedRowIterator must have rowIsJoinedFlags to identify unmatched rows";
+            assert rowIsJoinedFlags != null : "UnmatchedRowIterator->rowIsJoinedFlags must not be NULL";
             return new UnmatchedRowsIterator(rows, rowIsJoinedFlags);
         }
 
         private static final class UnmatchedRowsIterator implements Iterator<Object[]> {
             private final List<Object[]> rows;
-            @NotNull
             private final BitSet rowIsJoinedFlags;
-            private int idx = -1;
-            private Object[] nextUnmatchedRow;
+            private int idx = 0;
 
-            public UnmatchedRowsIterator(List<Object[]> rows, @NotNull BitSet rowIsJoinedFlags) {
+            public UnmatchedRowsIterator(List<Object[]> rows, BitSet rowIsJoinedFlags) {
                 this.rows = rows;
                 this.rowIsJoinedFlags = rowIsJoinedFlags;
-                advanceToNextUnmatchedRow();
             }
 
             @Override
             public boolean hasNext() {
-                return rowIsJoinedFlags.nextClearBit(idx) < rows.size();
+                int nextIdx = rowIsJoinedFlags.nextClearBit(idx);
+                // Special case for value `0` as we cannot use -1 initially for the nextClearBit call
+                return nextIdx > -1 && nextIdx < rows.size() && (nextIdx == 0 || nextIdx > idx);
             }
 
             @Override
             public Object[] next() {
-                Object[] row = nextUnmatchedRow;
-                advanceToNextUnmatchedRow();
-                return row;
-            }
-
-            private void advanceToNextUnmatchedRow() {
-                idx = rowIsJoinedFlags.nextClearBit(idx + 1);
-                if (idx < rows.size()) {
-                    nextUnmatchedRow = rows.get(idx);
-                } else {
-                    nextUnmatchedRow = null;
+                int nextIdx = rowIsJoinedFlags.nextClearBit(idx++);
+                if (nextIdx > idx) {
+                    idx = nextIdx;
                 }
-            }
-        }
-
-        private static final class IndexedIterator implements Iterator<Object[]> {
-
-            private final List<Object[]> rows;
-            private int idx;
-
-            public IndexedIterator(List<Object[]> rows) {
-                this.rows = rows;
-            }
-
-            @Override
-            public boolean hasNext() {
-                return idx < rows.size();
-            }
-
-            @Override
-            public Object[] next() {
-                return rows.get(idx++);
-            }
-
-            /**
-             * Returns the index of the element returned by the last call to next().
-             * Note that if next() has not been called, -1 will be returned.
-             */
-            public int currentIdx() {
-                return idx - 1;
+                if (nextIdx <= -1 || nextIdx >= rows.size()) {
+                    throw new NoSuchElementException("Iterator exhausted");
+                }
+                return rows.get(nextIdx);
             }
         }
     }
