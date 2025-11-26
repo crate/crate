@@ -481,12 +481,13 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
-    public void testRewriteCountNull() {
+    public void test_count_on_null_literal_is_preserved() {
         var executor = SQLExecutor.of(clusterService);
         AnalyzedRelation relation = executor.analyze("select count(null) from sys.nodes");
         List<Symbol> outputSymbols = relation.outputs();
-        assertThat(outputSymbols).hasSize(1);
-        assertThat(outputSymbols.getFirst()).isLiteral(0L);
+        assertThat(outputSymbols).satisfiesExactly(
+            x -> assertThat(x).isFunction("count", arg -> assertThat(arg).isLiteral(null))
+        );
     }
 
     @Test

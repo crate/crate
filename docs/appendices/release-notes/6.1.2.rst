@@ -46,4 +46,5 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that caused ``SELECT COUNT(NULL) FROM tbl`` to return one
+  record per row in the table instead of a single row with value ``0``.
