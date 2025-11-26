@@ -22,6 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
@@ -435,8 +436,8 @@ public class CountAggregationTest extends AggregationTestCase {
 
     @Test
     public void testNormalizeWithNullLiteral() {
-        assertThat(normalize("count", null, DataTypes.STRING)).isLiteral(0L);
-        assertThat(normalize("count", null, DataTypes.UNDEFINED)). isLiteral(0L);
+        assertThat(normalize("count", null, DataTypes.STRING)).isFunction("count");
+        assertThat(normalize("count", null, DataTypes.UNDEFINED)).isFunction("count");
     }
 
     @Test
