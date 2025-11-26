@@ -213,6 +213,12 @@ public class CharacterType extends StringType {
     }
 
     @Override
+    public boolean valueEq(String val1, String val2) {
+        return stripTrailingBlankPadding(padEnd(val1, lengthLimit, ' '))
+            .equals(stripTrailingBlankPadding(padEnd(val2, lengthLimit, ' ')));
+    }
+
+    @Override
     public int compare(String val1, String val2) {
         // pads for values shorter than the length limit and also strips excess blank padding which should be ignored
         // when compared.

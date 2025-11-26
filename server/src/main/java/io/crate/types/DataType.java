@@ -269,6 +269,10 @@ public abstract class DataType<T> implements Comparable<DataType<?>>, Writeable,
         return id();
     }
 
+    public boolean valueEq(T val1, T val2) {
+        return compare(val1, val2) == 0;
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
