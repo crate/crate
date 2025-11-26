@@ -26,7 +26,7 @@ import java.util.List;
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
 
@@ -42,7 +42,7 @@ public class TableRelation extends AbstractTableRelation<TableInfo> {
     }
 
     @Override
-    public Reference getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
+    public ScopedRef getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey) throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         return switch (operation) {
             case READ, UPDATE -> getField(column);
             case INSERT, DELETE ->

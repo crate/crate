@@ -54,6 +54,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.DataType;
 
 /**
@@ -240,6 +241,24 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
     @Override
     public Symbol visitLiteral(Literal<?> symbol, SourceSymbols context) {
         return symbol;
+    }
+
+    @Override
+    public Symbol visitScopedRef(ScopedRef scopedRef, SourceSymbols sourceSymbols) {
+        InputColumn inputColumn = sourceSymbols.inputs.get(scopedRef);
+        if (inputColumn == null) {
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(
+                scopedRef.relation(),
+                scopedRef.ref(),
+                scopedRef.ref().column(),
+                sourceSymbols.inputs
+            );
+            if (subscriptOnRoot != null) {
+                return subscriptOnRoot;
+            }
+            return scopedRef.ref().accept(this, sourceSymbols);
+        }
+        return inputColumn;
     }
 
     @Override

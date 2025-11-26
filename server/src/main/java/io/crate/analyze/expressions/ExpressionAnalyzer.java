@@ -100,6 +100,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -1185,7 +1186,7 @@ public class ExpressionAnalyzer {
                 if (columnType == null) {
                     columnType = column.valueType();
                 }
-                if (!(column instanceof ScopedSymbol || column instanceof Reference)) {
+                if (!(column instanceof ScopedSymbol || column instanceof ScopedRef)) {
                     throw new IllegalArgumentException(Symbols.format("can only MATCH on columns, not on %s", column));
                 }
                 Symbol boost = ident.boost().accept(this, context);

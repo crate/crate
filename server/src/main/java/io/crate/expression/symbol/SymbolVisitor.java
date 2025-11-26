@@ -22,6 +22,7 @@
 package io.crate.expression.symbol;
 
 import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 
 public class SymbolVisitor<C, R> {
@@ -96,6 +97,10 @@ public class SymbolVisitor<C, R> {
 
     public R visitOuterColumn(OuterColumn outerColumn, C context) {
         return visitSymbol(outerColumn, context);
+    }
+
+    public R visitScopedRef(ScopedRef scopedRef, C context) {
+        return scopedRef.ref().accept(this, context);
     }
 }
 

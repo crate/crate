@@ -36,6 +36,7 @@ import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.Operation;
@@ -63,8 +64,8 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
     @Nullable
     @Override
-    public Reference getField(ColumnIdent path) {
-        return getField(path, Operation.READ, true);
+    public ScopedRef getField(ColumnIdent path) {
+        return new ScopedRef(tableInfo.ident(), getField(path, Operation.READ, true));
     }
 
     @Override
