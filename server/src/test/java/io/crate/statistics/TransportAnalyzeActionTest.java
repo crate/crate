@@ -105,7 +105,7 @@ public class TransportAnalyzeActionTest extends CrateDummyClusterServiceUnitTest
     }
 
     @Test
-    public void test_existing_run_reused_even_if_table_schema_was_updated() throws Exception {
+    public void test_existing_run_reused_when_second_analyze_is_run() throws Exception {
         SQLExecutor executor = SQLExecutor.of(clusterService)
             .addTable(
                 """
