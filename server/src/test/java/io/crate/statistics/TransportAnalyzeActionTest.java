@@ -46,15 +46,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.auth.AlwaysOKAuthentication;
-import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.doc.DocTableInfo;
-import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.netty.NettyBootstrap;
 import io.crate.protocols.ssl.SslContextProvider;
 import io.crate.role.Role;
@@ -130,11 +127,6 @@ public class TransportAnalyzeActionTest extends CrateDummyClusterServiceUnitTest
                 null // TableStatsService won't be used, is irrelevant for this test.
             );
 
-            RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
-            DocTableInfo table = new DocTableInfoFactory(executor.nodeCtx)
-                .create(relationName, clusterService.state().metadata());
-            Reference ref = table.getReference(ColumnIdent.of("a"));
-            assert ref != null : "ref must be resolved";
             transportAnalyzeAction.fetchSamplesThenGenerateAndPublishStats();
 
             transportAnalyzeAction.fetchSamplesThenGenerateAndPublishStats();
