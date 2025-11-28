@@ -89,7 +89,7 @@ public class JobsLogs {
     }
 
     /**
-     * Track a job. If the job has finished {@link #logExecutionEnd(java.util.UUID, String)}
+     * Track a job. If the job has finished {@link #logExecutionEnd(UUID, long, String)}
      * must be called.
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
@@ -107,13 +107,13 @@ public class JobsLogs {
      * <p>
      * If {@link #isEnabled()} is false this method won't do anything.
      */
-    public void logExecutionEnd(UUID jobId, @Nullable String errorMessage) {
+    public void logExecutionEnd(UUID jobId, long affectedRowCount, @Nullable String errorMessage) {
         activeRequests.decrement();
         JobContext jobContext = jobsTable.remove(jobId);
         if (!isEnabled() || jobContext == null) {
             return;
         }
-        JobContextLog jobContextLog = new JobContextLog(jobContext, errorMessage);
+        JobContextLog jobContextLog = new JobContextLog(jobContext, affectedRowCount, errorMessage);
         recordMetrics(jobContextLog);
         long stamp = jobsLogLock.readLock();
         try {
@@ -127,7 +127,7 @@ public class JobsLogs {
         StatementClassifier.Classification classification = log.classification();
         assert classification != null : "A job must have a classification";
         if (log.errorMessage() == null) {
-            classifiedMetrics.recordValue(classification, log.ended() - log.started());
+            classifiedMetrics.recordValue(classification, log.ended() - log.started(), log.affectedRowCount());
         } else {
             classifiedMetrics.recordFailedExecution(classification, log.ended() - log.started());
         }
@@ -135,14 +135,14 @@ public class JobsLogs {
 
     /**
      * Create a entry into `sys.jobs_log`
-     * This method can be used instead of {@link #logExecutionEnd(UUID, String)} if there was no {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)}
+     * This method can be used instead of {@link #logExecutionEnd(UUID, long, String)} if there was no {@link #logExecutionStart(UUID, String, User, StatementClassifier.Classification)}
      * Call because an error happened during parse, analysis or plan.
      * <p>
      * {@link #logExecutionStart(UUID, String, Role, StatementClassifier.Classification)} is only called after a Plan has been created and execution starts.
      */
     public void logPreExecutionFailure(UUID jobId, String stmt, String errorMessage, Role user) {
         JobContextLog jobContextLog = new JobContextLog(
-            new JobContext(jobId, stmt, System.currentTimeMillis(), user, new StatementClassifier.Classification(UNDEFINED)), errorMessage);
+            new JobContext(jobId, stmt, System.currentTimeMillis(), user, new StatementClassifier.Classification(UNDEFINED)), 0, errorMessage);
         long stamp = jobsLogLock.readLock();
         try {
             jobsLog.add(jobContextLog);

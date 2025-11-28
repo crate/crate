@@ -335,7 +335,20 @@ public class SQLTransportExecutor {
             var bulkResponse = new BulkResponse(bulkArgs == null ? 0 : bulkArgs.length);
             if (bulkArgs == null) {
                 session.bind(UNNAMED, UNNAMED, Collections.emptyList(), null);
-                session.execute(UNNAMED, 0, new BaseResultReceiver());
+                session.execute(UNNAMED, 0, new BaseResultReceiver() {
+                    private long rowCount;
+
+                    @Override
+                    public @Nullable CompletableFuture<Void> setNextRow(Row row) {
+                        rowCount++;
+                        return super.setNextRow(row);
+                    }
+
+                    @Override
+                    public long affectedRowCount() {
+                        return rowCount;
+                    }
+                });
             } else {
                 for (int i = 0; i < bulkArgs.length; i++) {
                     session.bind(UNNAMED, UNNAMED, Arrays.asList(bulkArgs[i]), null);
@@ -656,6 +669,11 @@ public class SQLTransportExecutor {
             super.fail(t);
         }
 
+        @Override
+        public long affectedRowCount() {
+            return rows.size();
+        }
+
         private SQLResponse createSqlResponse() {
             String[] outputNames = new String[outputFields.size()];
             DataType<?>[] outputTypes = new DataType[outputFields.size()];
@@ -713,6 +731,11 @@ public class SQLTransportExecutor {
             listener.onFailure(Exceptions.toException(t));
             super.fail(t);
         }
+
+        @Override
+        public long affectedRowCount() {
+            return rowCount;
+        }
     }
 
 
@@ -750,6 +773,11 @@ public class SQLTransportExecutor {
         @Override
         public void fail(@NotNull Throwable t) {
             super.fail(t);
+        }
+
+        @Override
+        public long affectedRowCount() {
+            return Arrays.stream(bulkResponse.rowCounts()).filter(rc -> rc >= 0).sum();
         }
     }
 }

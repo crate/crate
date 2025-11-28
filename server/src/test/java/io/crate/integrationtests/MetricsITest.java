@@ -21,7 +21,7 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.After;
@@ -101,5 +101,61 @@ public class MetricsITest extends IntegTestCase {
 
         execute("SELECT sum(total_count) FROM sys.jobs_metrics WHERE classification['type'] = 'SELECT'");
         assertThat(response.rows()[0][0]).isEqualTo((long) numQueries);
+    }
+
+    @Test
+    public void test_total_affected_row_count() throws Exception {
+        execute("create table t (a int)");
+        int x = randomInt(10) + 1;
+
+        for (int i = 0; i < x; i++) {
+            execute("insert into t values (1), (2), (3)");
+        }
+        execute("refresh table t");
+        execute("update t set a=10 where a=1");
+        execute("refresh table t");
+
+        assertBusy(() -> {
+            long cnt = 0;
+            for (JobsLogService jobsLogService : cluster().getInstances(JobsLogService.class)) {
+                for (MetricsView metrics: jobsLogService.get().metrics()) {
+                    if (metrics.classification().type() == Plan.StatementType.INSERT || metrics.classification().type() == Plan.StatementType.UPDATE) {
+                        cnt += metrics.totalCount();
+                    }
+                }
+            }
+            assertThat(cnt).isEqualTo(x + 1);
+        });
+
+        execute("SELECT sum(total_affected_row_count) FROM sys.jobs_metrics WHERE classification['type'] = 'INSERT'");
+        assertThat(response).hasRows(String.valueOf(3 * x));
+        execute("SELECT sum(total_affected_row_count) FROM sys.jobs_metrics WHERE classification['type'] = 'UPDATE'");
+        assertThat(response).hasRows(String.valueOf(x));
+    }
+
+    @Test
+    public void test_total_affected_row_count_from_bulk_operations() throws Exception {
+        execute("create table t (a int primary key, b int)");
+        execute("insert into t(a) values (?)", new Object[][]{{1}, {2}, {2}, {3}}); // 3 rows inserted
+        execute("refresh table t");
+        execute("update t set b=? where a>=?", new Object[][]{{1, 1}, {2, 2}}); // 5(3+2) rows updated
+        execute("refresh table t");
+
+        assertBusy(() -> {
+            long cnt = 0;
+            for (JobsLogService jobsLogService : cluster().getInstances(JobsLogService.class)) {
+                for (MetricsView metrics: jobsLogService.get().metrics()) {
+                    if (metrics.classification().type() == Plan.StatementType.INSERT || metrics.classification().type() == Plan.StatementType.UPDATE) {
+                        cnt += metrics.totalCount();
+                    }
+                }
+            }
+            assertThat(cnt).isEqualTo(2);
+        });
+
+        execute("SELECT sum(total_affected_row_count) FROM sys.jobs_metrics WHERE classification['type'] = 'INSERT'");
+        assertThat(response).hasRows(String.valueOf(3));
+        execute("SELECT sum(total_affected_row_count) FROM sys.jobs_metrics WHERE classification['type'] = 'UPDATE'");
+        assertThat(response).hasRows(String.valueOf(5));
     }
 }
