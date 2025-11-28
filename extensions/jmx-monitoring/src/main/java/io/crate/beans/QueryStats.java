@@ -90,7 +90,7 @@ public class QueryStats implements QueryStatsMBean {
     public QueryStats(JobsLogs jobsLogs) {
         metricByStmtType = Suppliers.memoizeWithExpiration(
             () -> createMetricsMap(jobsLogs.metrics()),
-            1,
+            0,
             TimeUnit.SECONDS
         );
     }

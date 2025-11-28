@@ -98,7 +98,6 @@ class JmxIntegrationTest(unittest.TestCase):
             )
             self.assertEqual(result, 3)
             c.execute("drop table t")
-            time.sleep(1)
 
     def test_mbean_select_total_count(self):
         jmx_client = JmxClient(JMX_PORT)
