@@ -36,6 +36,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Optional;
 
+import org.antlr.v4.runtime.dfa.DFA;
 import org.junit.jupiter.api.Test;
 
 import io.crate.common.collections.Lists;
@@ -58,6 +59,27 @@ import io.crate.sql.tree.Statement;
 import io.crate.sql.tree.StringLiteral;
 
 public class TestSqlParser {
+
+    @Test
+    public void test_clear_cache_clears_entries_depending_on_cache_size() throws Exception {
+        SqlParser.createStatement("select 1");
+        DFA[] dfas = SqlParser.dfas();
+        long numEntries = 0;
+        for (var dfa : dfas) {
+            numEntries += dfa.states.size();
+        }
+        assertThat(numEntries).isGreaterThanOrEqualTo(38L);
+        assertThat(SqlParser.contextCacheSize()).isGreaterThanOrEqualTo(138);
+
+        SqlParser.clearCaches(10, 10);
+        dfas = SqlParser.dfas();
+        numEntries = 0;
+        for (var dfa : dfas) {
+            numEntries += dfa.states.size();
+        }
+        assertThat(numEntries).isEqualTo(0);
+        assertThat(SqlParser.contextCacheSize()).isEqualTo(0);
+    }
 
     @Test
     public void testComments() {
