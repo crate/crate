@@ -19,18 +19,7 @@
 
 package org.elasticsearch.monitor.jvm;
 
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-import org.elasticsearch.common.component.AbstractLifecycleComponent;
-import org.elasticsearch.common.settings.Setting;
-import org.elasticsearch.common.settings.Setting.Property;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.common.unit.ByteSizeValue;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.monitor.jvm.JvmStats.GarbageCollector;
-import org.elasticsearch.threadpool.Scheduler.Cancellable;
-import org.elasticsearch.threadpool.ThreadPool;
-import org.elasticsearch.threadpool.ThreadPool.Names;
+import static java.util.Collections.unmodifiableMap;
 
 import java.util.HashMap;
 import java.util.Locale;
@@ -39,7 +28,20 @@ import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiFunction;
 
-import static java.util.Collections.unmodifiableMap;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.elasticsearch.common.component.AbstractLifecycleComponent;
+import org.elasticsearch.common.settings.Setting;
+import org.elasticsearch.common.settings.Setting.Property;
+import org.elasticsearch.common.settings.Settings;
+import org.elasticsearch.common.unit.ByteSizeValue;
+import org.elasticsearch.monitor.jvm.JvmStats.GarbageCollector;
+import org.elasticsearch.threadpool.Scheduler.Cancellable;
+import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.threadpool.ThreadPool.Names;
+
+import io.crate.common.unit.TimeValue;
+import io.crate.sql.parser.SqlParser;
 
 public class JvmGcMonitorService extends AbstractLifecycleComponent {
 
@@ -205,6 +207,9 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
 
             @Override
             void onGcOverhead(final Threshold threshold, final long current, final long elapsed, final long seq) {
+                if (threshold == Threshold.INFO || threshold == Threshold.WARN) {
+                    SqlParser.clearCaches();
+                }
                 logGcOverhead(LOGGER, threshold, current, elapsed, seq);
             }
         }, interval, Names.SAME);

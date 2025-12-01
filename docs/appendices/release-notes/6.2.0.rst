@@ -122,6 +122,11 @@ None
 Performance and Resilience Improvements
 ---------------------------------------
 
+- Added heuristics to clear the SQL parsers internal cache on memory pressure.
+  This should help on clusters where users run hundreds of thousands of unique
+  SQL statements, leading to the parser cache taking up a significant amount of
+  memory.
+
 - Added an optimization rule to push down query predicates in cases where the
   child relation is using scalar sub-queries.
 

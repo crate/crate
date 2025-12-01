@@ -26,6 +26,7 @@ import static java.util.Objects.requireNonNull;
 import java.util.EnumSet;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Function;
 
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -36,11 +37,17 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.atn.ParserATNSimulator;
+import org.antlr.v4.runtime.atn.PredictionContextCache;
 import org.antlr.v4.runtime.atn.PredictionMode;
+import org.antlr.v4.runtime.dfa.DFA;
 import org.antlr.v4.runtime.misc.Pair;
 import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.TerminalNodeImpl;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.jetbrains.annotations.Nullable;
+import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.sql.parser.antlr.SqlBaseLexer;
 import io.crate.sql.parser.antlr.SqlBaseParser;
@@ -51,6 +58,19 @@ import io.crate.sql.tree.Node;
 import io.crate.sql.tree.Statement;
 
 public class SqlParser {
+
+    private static final Logger LOGGER = LogManager.getLogger(SqlParser.class);
+    private static final AtomicReference<DFA[]> DFA_CACHE = new AtomicReference<>(newDecisionToDFA());
+    private static final AtomicReference<PredictionContextCache> CONTEXT_CACHE = new AtomicReference<>(new PredictionContextCache());
+
+    private static DFA[] newDecisionToDFA() {
+        DFA[] decisionToDFA = new DFA[SqlBaseParser._ATN.getNumberOfDecisions()];
+        for (int i = 0; i < decisionToDFA.length; i++) {
+            decisionToDFA[i] = new DFA(SqlBaseParser._ATN.getDecisionState(i), i);
+        }
+        return decisionToDFA;
+    }
+
     private static final BaseErrorListener ERROR_LISTENER = new BaseErrorListener() {
         @Override
         public void syntaxError(Recognizer<?, ?> recognizer, Object offendingSymbol, int line,
@@ -75,7 +95,6 @@ public class SqlParser {
     public static Statement createStatement(String sql) {
         return INSTANCE.generateStatement(sql);
     }
-
 
     public static List<Statement> createStatementsForSimpleQuery(String sql, Function<String, Object> stringLiteralParser) {
         return ((MultiStatement) INSTANCE.invokeParser(
@@ -111,6 +130,12 @@ public class SqlParser {
             SqlBaseLexer lexer = new SqlBaseLexer(new CaseInsensitiveStream(CharStreams.fromString(sql, name)));
             CommonTokenStream tokenStream = new CommonTokenStream(lexer);
             SqlBaseParser parser = new SqlBaseParser(tokenStream);
+            parser.setInterpreter(new ParserATNSimulator(
+                parser,
+                parser.getATN(),
+                DFA_CACHE.get(),
+                CONTEXT_CACHE.get()
+            ));
 
             parser.addParseListener(new PostProcessor());
 
@@ -139,6 +164,45 @@ public class SqlParser {
         } catch (StackOverflowError e) {
             throw new ParsingException(name + " is too large (stack overflow while parsing)");
         }
+    }
+
+    /// Clears the DFA and PredictionContextCache if there are many entries cached
+    public static void clearCaches() {
+        // Thresholds here are to ensure we don't start thrashing the cache on OOM pressure
+        // We only want to clear it if the DFA cache or prediction cache has a significant size.
+        //
+        // The value was taken by running TestStatementBuilder and measuring the size:
+        // There are roughly 4500 DFA entries which require about 2.5 MB of memory.
+        // And 48246 prediction cache entries (amounting to 1.54 MB @ 32 byte each
+        // (with compressedOps 24 byte each))
+        clearCaches(5_000, 50_000);
+    }
+
+    @VisibleForTesting
+    static void clearCaches(int dfaThreshold, int predictionThreshold) {
+        DFA[] dfas = DFA_CACHE.get();
+        long totalDfaEntries = 0;
+        for (var dfa : dfas) {
+            totalDfaEntries += dfa.states.size();
+        }
+        if (totalDfaEntries > dfaThreshold) {
+            DFA_CACHE.set(newDecisionToDFA());
+            LOGGER.info("Clearing SqlParser DFA cache. Had {} entries", totalDfaEntries);
+        }
+        PredictionContextCache predictionContextCache = CONTEXT_CACHE.get();
+        int predictionCacheSize = predictionContextCache.size();
+        if (predictionCacheSize > predictionThreshold) {
+            CONTEXT_CACHE.set(new PredictionContextCache());
+            LOGGER.info("Clearing SqlParser PredictionContextCache. Had {} entries", predictionCacheSize);
+        }
+    }
+
+    static DFA[] dfas() {
+        return DFA_CACHE.get();
+    }
+
+    static int contextCacheSize() {
+        return CONTEXT_CACHE.get().size();
     }
 
     private class PostProcessor extends SqlBaseParserBaseListener {
