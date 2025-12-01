@@ -76,7 +76,7 @@
           <!-- by default is false but is set to true by `serverTest` profile to avoid running tests
                for modules on which `server` module depends on, when running `mvn -Pserver test` -->
           <skip>${skipRunTests}</skip>
-          <argLine>@{argLine} -Xmx100m -Xms100m -XX:MaxDirectMemorySize=1m -XX:+DisableExplicitGC  -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:+UseCompactObjectHeaders --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow</argLine>
+          <argLine>@{argLine} -XX:MaxDirectMemorySize=1k -XX:+DisableExplicitGC  -XX:+UseG1GC -XX:G1ReservePercent=25 -XX:InitiatingHeapOccupancyPercent=30 -XX:+UseCompactObjectHeaders --add-modules jdk.incubator.vector --enable-native-access=ALL-UNNAMED --sun-misc-unsafe-memory-access=allow</argLine>
         </configuration>
       </plugin>
       <plugin>
