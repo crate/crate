@@ -23,3 +23,6 @@ java.util.concurrent.CompletableFuture#supplyAsync(java.util.function.Supplier, 
 
 @defaultMessage Use a logger to print the stacktrace
 java.lang.Throwable#printStackTrace()
+
+@defaultMessage DisableExplicitGC flag was removed in 6.2.0, don't use explicit GC in CrateDB
+java.lang.System#gc()
