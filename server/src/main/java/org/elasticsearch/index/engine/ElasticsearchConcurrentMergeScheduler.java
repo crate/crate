@@ -30,12 +30,15 @@ import org.apache.lucene.index.MergePolicy;
 import org.apache.lucene.index.MergeScheduler;
 import org.apache.lucene.index.SegmentCommitInfo;
 import org.elasticsearch.common.logging.Loggers;
+import org.elasticsearch.common.metrics.CounterMetric;
+import org.elasticsearch.common.metrics.MeanMetric;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.MergeSchedulerConfig;
 import org.elasticsearch.index.merge.OnGoingMerge;
+import org.elasticsearch.index.shard.MergeStats;
 import org.elasticsearch.index.shard.ShardId;
 
 import io.crate.common.collections.Sets;
@@ -50,6 +53,14 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
     protected final Logger logger;
     private final Settings indexSettings;
     private final ShardId shardId;
+
+    private final MeanMetric totalMerges = new MeanMetric();
+    private final CounterMetric totalMergesNumDocs = new CounterMetric();
+    private final CounterMetric totalMergesSizeInBytes = new CounterMetric();
+    private final CounterMetric currentMerges = new CounterMetric();
+    private final CounterMetric currentMergesNumDocs = new CounterMetric();
+    private final CounterMetric currentMergesSizeInBytes = new CounterMetric();
+    private final CounterMetric totalMergeThrottledTime = new CounterMetric();
 
     private final Set<OnGoingMerge> onGoingMerges = Sets.newConcurrentHashSet();
     private final Set<OnGoingMerge> readOnlyOnGoingMerges = Collections.unmodifiableSet(onGoingMerges);
@@ -77,6 +88,10 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
         int totalNumDocs = merge.totalNumDocs();
         long totalSizeInBytes = merge.totalBytesSize();
         long timeNS = System.nanoTime();
+        currentMerges.inc();
+        currentMergesNumDocs.inc(totalNumDocs);
+        currentMergesSizeInBytes.inc(totalSizeInBytes);
+
         OnGoingMerge onGoingMerge = new OnGoingMerge(merge);
         onGoingMerges.add(onGoingMerge);
 
@@ -87,17 +102,26 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
             beforeMerge(onGoingMerge);
             super.doMerge(mergeSource, merge);
         } finally {
-            long tookMS = TimeValue.nsecToMSec(System.nanoTime() - timeNS);
+            final long tookMS = TimeValue.nsecToMSec(System.nanoTime() - timeNS);
 
             onGoingMerges.remove(onGoingMerge);
             afterMerge(onGoingMerge);
 
+            currentMerges.dec();
+            currentMergesNumDocs.dec(totalNumDocs);
+            currentMergesSizeInBytes.dec(totalSizeInBytes);
+
+            totalMergesNumDocs.inc(totalNumDocs);
+            totalMergesSizeInBytes.inc(totalSizeInBytes);
+            totalMerges.inc(tookMS);
             long stoppedMS = TimeValue.nsecToMSec(
                 merge.getMergeProgress().getPauseTimes().get(MergePolicy.OneMergeProgress.PauseReason.STOPPED)
             );
             long throttledMS = TimeValue.nsecToMSec(
                 merge.getMergeProgress().getPauseTimes().get(MergePolicy.OneMergeProgress.PauseReason.PAUSED)
             );
+            totalMergeThrottledTime.inc(throttledMS);
+
             String message = String.format(
                 Locale.ROOT,
                 "merge segment [%s] done: took [%s], [%,.1f MB], [%,d docs], [%s stopped], [%s throttled]",
@@ -149,6 +173,21 @@ class ElasticsearchConcurrentMergeScheduler extends ConcurrentMergeScheduler {
         MergeThread thread = super.getMergeThread(mergeSource, merge);
         thread.setName(EsExecutors.threadName(indexSettings, "[" + shardId.getIndexUUID() + "][" + shardId.id() + "]: " + thread.getName()));
         return thread;
+    }
+
+    MergeStats stats() {
+        long bytesPerSecAutoThrottle = config.isAutoThrottle() ? (long) getIORateLimitMBPerSec() * 1024 * 1024 : -1L;
+        return new MergeStats(
+            totalMerges.count(),
+            totalMerges.sum(),
+            totalMergesNumDocs.count(),
+            totalMergesSizeInBytes.count(),
+            totalMergeThrottledTime.count(),
+            bytesPerSecAutoThrottle,
+            currentMerges.count(),
+            currentMergesNumDocs.count(),
+            currentMergesSizeInBytes.count()
+        );
     }
 
     void refreshConfig() {

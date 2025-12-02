@@ -993,6 +993,11 @@ public class IndexShard extends AbstractIndexShardComponent {
         return engine.getWritingBytes();
     }
 
+    public MergeStats mergeStats() {
+        readAllowed();
+        return getEngine().mergeStats();
+    }
+
     public DocsStats docStats() {
         readAllowed();
         return getEngine().docStats();
@@ -3410,6 +3415,14 @@ public class IndexShard extends AbstractIndexShardComponent {
 
     public long periodicFlushCount() {
         return periodicFlushMetric.count();
+    }
+
+    public MeanMetric getRefreshMetric() {
+        return refreshMetric;
+    }
+
+    public long refreshListenerCount() {
+        return refreshListeners.pendingCount();
     }
 
     private EngineFactory getEngineFactory() {
