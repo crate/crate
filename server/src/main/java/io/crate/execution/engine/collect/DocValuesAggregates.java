@@ -167,7 +167,7 @@ public final class DocValuesAggregates {
                         // to the normal aggregation implementation
                         return null;
                     }
-                    assert reference.ident().columnIdent().fqn().startsWith(SysColumns.Names.DOC) == false :
+                    assert reference.column().fqn().startsWith(SysColumns.Names.DOC) == false :
                         "Source look-up for Reference " + reference + " is not allowed in DocValuesAggregates.";
                     aggregationReferences.add(reference);
                     literals.add(null);

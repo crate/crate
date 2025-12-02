@@ -52,8 +52,8 @@ public final class InformationColumnsTableInfo {
     private InformationColumnsTableInfo() {}
 
     public static SystemTable<ColumnContext> INSTANCE = SystemTable.<ColumnContext>builder(IDENT)
-        .addNonNull("table_schema", STRING, r -> r.ref().ident().tableIdent().schema())
-        .addNonNull("table_name", STRING, r -> r.ref().ident().tableIdent().name())
+        .addNonNull("table_schema", STRING, r -> r.relation().ident().schema())
+        .addNonNull("table_name", STRING, r -> r.relation().ident().name())
         .addNonNull("table_catalog", STRING, r -> Constants.DB_NAME)
         .addNonNull("column_name", STRING, r -> r.ref().column().sqlFqn())
         .addNonNull("ordinal_position", INTEGER, r -> r.ref().position())

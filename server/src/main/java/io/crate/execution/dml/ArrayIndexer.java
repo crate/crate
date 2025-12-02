@@ -43,6 +43,7 @@ import io.crate.Streamer;
 import io.crate.expression.scalar.NumNullTermsPerDocQuery;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -99,12 +100,12 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public static final String ARRAY_VALUES_FIELD_PREFIX = "_array_values_";
 
     @SuppressWarnings("unchecked")
-    public static <T> ValueIndexer<T> of(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+    public static <T> ValueIndexer<T> of(RelationName table, Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
         DataType<?> innerMostType = ArrayType.unnest(arrayRef.valueType());
         StorageSupport<?> innerMostStorageSupport = innerMostType.storageSupportSafe();
-        ValueIndexer<?> childIndexer = innerMostStorageSupport.valueIndexer(arrayRef.ident().tableIdent(), arrayRef, getRef);
+        ValueIndexer<?> childIndexer = innerMostStorageSupport.valueIndexer(table, arrayRef, getRef);
         for (int i = 0; i < ArrayType.dimensions(arrayRef.valueType()) - 1; i++) {
-            childIndexer = new ArrayIndexer<>(childIndexer, getRef, arrayRef);
+            childIndexer = new ArrayIndexer<>(table, childIndexer, getRef, arrayRef);
         }
         // the top most indexer of a multidimensional object array is an ArrayOfObjectIndexer
         // i.e. the indexer for `object[][]`,
@@ -112,8 +113,8 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         //      └ArrayIndexer
         //         └ObjectIndexer
         return (ValueIndexer<T>) (innerMostType instanceof ObjectType ?
-            new ArrayOfObjectIndexer<>(childIndexer, getRef, arrayRef) :
-            new ArrayIndexer<>(childIndexer, getRef, arrayRef));
+            new ArrayOfObjectIndexer<>(table, childIndexer, getRef, arrayRef) :
+            new ArrayIndexer<>(table, childIndexer, getRef, arrayRef));
     }
 
     /**
@@ -121,13 +122,16 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
      */
     public static final String ARRAY_LENGTH_FIELD_PREFIX = "_array_length_";
 
+    private final RelationName table;
     protected final ValueIndexer<T> innerIndexer;
     protected final Streamer<List<T>> bytesConverter;
     protected final String arrayLengthFieldName;
     protected final Reference reference;
 
+
     @SuppressWarnings("unchecked")
-    protected ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+    protected ArrayIndexer(RelationName table, ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+        this.table = table;
         this.innerIndexer = innerIndexer;
         this.bytesConverter = (Streamer<List<T>>) reference.valueType().streamer();
         this.reference = reference;
@@ -195,7 +199,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
             return;
         }
         Reference ref = DynamicIndexer.buildReference(
-            this.reference.ident(),
+            this.reference.column(),
             type,
             this.reference.position(),
             this.reference.oid()
@@ -207,7 +211,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         // The reference resolver passed in to the new type must return `NULL` as the (child) columns are not present
         // yet. They will be added later in the schema update process.
         ValueIndexer<Object> indexer
-            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.ident().tableIdent(), ref, _ -> null);
+            = (ValueIndexer<Object>) storageSupport.valueIndexer(table, ref, _ -> null);
         indexer.collectSchemaUpdates(values, onDynamicColumn, synthetics);
     }
 

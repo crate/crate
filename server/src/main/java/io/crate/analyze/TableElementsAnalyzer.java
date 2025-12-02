@@ -275,7 +275,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 }
                 String analyzer = DataTypes.STRING.sanitizeValue(indexProperties.map(toValue).get("analyzer"));
                 ref = new IndexReference(
-                    refIdent,
+                    name,
                     rowGranularity,
                     type,
                     indexType,
@@ -293,7 +293,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 GeoSettingsApplier.applySettings(geoMap, indexProperties.map(toValue), indexMethod);
                 Double distError = (Double) geoMap.get("distance_error_pct");
                 ref = new GeoReference(
-                    refIdent,
+                    name,
                     type,
                     indexType,
                     nullable,
@@ -308,7 +308,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 );
             } else {
                 ref = new SimpleReference(
-                    refIdent,
+                    name,
                     rowGranularity,
                     type,
                     indexType,
@@ -367,7 +367,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             }
         }
         var columnBuilder = columns.get(columnIdent);
-        var dynamicReference = new DynamicReference(new ReferenceIdent(tableName, columnIdent), RowGranularity.DOC, -1);
+        var dynamicReference = new DynamicReference(columnIdent, RowGranularity.DOC, -1);
         if (columnBuilder == null) {
             if (resolveMissing) {
                 return dynamicReference;

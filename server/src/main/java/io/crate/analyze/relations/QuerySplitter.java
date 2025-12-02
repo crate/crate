@@ -129,7 +129,7 @@ public class QuerySplitter {
 
         @Override
         public Void visitReference(Reference ref, Context ctx) {
-            ctx.parts.merge(Set.of(ref.ident().tableIdent()), ref, AndOperator::of);
+            ctx.parts.merge(Set.of(), ref, AndOperator::of);
             return null;
         }
 
@@ -139,8 +139,6 @@ public class QuerySplitter {
             for (Symbol field : matchPredicate.identBoostMap().keySet()) {
                 if (field instanceof ScopedSymbol scopedSymbol) {
                     relationNames.add(scopedSymbol.relation());
-                } else if (field instanceof Reference ref) {
-                    relationNames.add(ref.ident().tableIdent());
                 }
             }
             ctx.parts.merge(relationNames, matchPredicate, AndOperator::of);

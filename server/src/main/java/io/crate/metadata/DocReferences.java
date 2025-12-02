@@ -88,14 +88,11 @@ public final class DocReferences {
     }
 
     private static Reference toDocLookup(Reference reference, Predicate<Reference> condition) {
-        ReferenceIdent ident = reference.ident();
-        if (ident.columnIdent().isSystemColumn()) {
+        if (reference.column().isSystemColumn()) {
             return reference;
         }
-        if (reference.granularity() == RowGranularity.DOC && Schemas.isDefaultOrCustomSchema(ident.tableIdent().schema())
-            && condition.test(reference)) {
-            return reference.withReferenceIdent(
-                new ReferenceIdent(ident.tableIdent(), ident.columnIdent().prepend(SysColumns.Names.DOC)));
+        if (reference.granularity() == RowGranularity.DOC && condition.test(reference)) {
+            return reference.withName(reference.column().prepend(SysColumns.Names.DOC));
         }
         return reference;
     }
@@ -103,7 +100,7 @@ public final class DocReferences {
     public static Reference docRefToRegularRef(Reference ref) {
         ColumnIdent column = ref.column();
         if (!column.isRoot() && column.name().equals(SysColumns.Names.DOC)) {
-            return ref.withReferenceIdent(new ReferenceIdent(ref.ident().tableIdent(), column.shiftRight()));
+            return ref.withName(column.shiftRight());
         }
         return ref;
     }
