@@ -199,7 +199,6 @@ public enum PGErrorStatus {
     UNDEFINED_DATABASE("3D000",""),
     UNDEFINED_FUNCTION("42883","undefined_function"),
     UNDEFINED_PSTATEMENT("26000",""),
-    UNDEFINED_SCHEMA("3F000",""),
     UNDEFINED_TABLE("42P01","undefined_table"),
     UNDEFINED_PARAMETER("42P02","undefined_parameter"),
     UNDEFINED_OBJECT("42704","undefined_object"),
@@ -288,7 +287,6 @@ public enum PGErrorStatus {
     INTERNAL_ERROR("XX000","internal_error"),
     DATA_CORRUPTED("XX001","data_corrupted"),
     INDEX_CORRUPTED("XX002","index_corrupted");
-
 
     PGErrorStatus(String code, String description) {
         this.code = code;

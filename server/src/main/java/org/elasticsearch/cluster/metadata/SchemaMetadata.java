@@ -37,9 +37,12 @@ import io.crate.metadata.RelationName;
 public class SchemaMetadata implements Diffable<SchemaMetadata> {
 
     private final ImmutableOpenMap<String, RelationMetadata> relations;
+    private final boolean explicit;
 
-    public SchemaMetadata(ImmutableOpenMap<String, RelationMetadata> relations) {
+    /// @param explicit true indicates this was created via CREATE SCHEMA
+    public SchemaMetadata(ImmutableOpenMap<String, RelationMetadata> relations, boolean explicit) {
         this.relations = relations;
+        this.explicit = explicit;
     }
 
     public static SchemaMetadata of(StreamInput in) throws IOException {
@@ -47,7 +50,10 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
             StreamInput::readString,
             RelationMetadata::of
         );
-        return new SchemaMetadata(relations);
+        boolean explicit = in.getVersion().onOrAfter(Version.V_6_2_0)
+            ? in.readBoolean()
+            : false;
+        return new SchemaMetadata(relations, explicit);
     }
 
     public static Diff<SchemaMetadata> readDiffFrom(StreamInput in) throws IOException {
@@ -70,6 +76,9 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeMap(relations, StreamOutput::writeString, RelationMetadata::toStream);
+        if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
+            out.writeBoolean(explicit);
+        }
     }
 
     public ImmutableOpenMap<String, RelationMetadata> relations() {
@@ -79,6 +88,12 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
     @Nullable
     public RelationMetadata get(RelationName relation) {
         return relations.get(relation.name());
+    }
+
+    /// True if schema was created explicitly via CREATE SCHEMA
+    /// Explicit schemas are not removed if the last table within a relation is dropped.
+    public boolean explicit() {
+        return explicit;
     }
 
     @Override
@@ -98,6 +113,7 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
             new Diffs.DiffableValueReader<>(RelationMetadata::of, RelationMetadata::readDiffFrom);
 
         private final Diff<ImmutableOpenMap<String, RelationMetadata>> relations;
+        private final boolean explicit;
 
         SchemaMetadataDiff(Version version, SchemaMetadata before, SchemaMetadata after) {
             this.relations = Diffs.diff(
@@ -107,21 +123,24 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
                 Diffs.stringKeySerializer(),
                 RelationMetadata.VALUE_SERIALIZER
             );
+            this.explicit = after.explicit;
         }
 
         SchemaMetadataDiff(StreamInput in) throws IOException {
             relations = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), REL_DIFF_VALUE_READER);
+            explicit = in.readBoolean();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             relations.writeTo(out);
+            out.writeBoolean(explicit);
         }
 
         @Override
         public SchemaMetadata apply(SchemaMetadata part) {
             ImmutableOpenMap<String, RelationMetadata> newRelations = relations.apply(part.relations);
-            return new SchemaMetadata(newRelations);
+            return new SchemaMetadata(newRelations, explicit);
         }
     }
 }

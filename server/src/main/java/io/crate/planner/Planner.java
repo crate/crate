@@ -56,6 +56,7 @@ import io.crate.analyze.AnalyzedCreateForeignTable;
 import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateRole;
+import io.crate.analyze.AnalyzedCreateSchema;
 import io.crate.analyze.AnalyzedCreateServer;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -71,6 +72,7 @@ import io.crate.analyze.AnalyzedDropForeignTable;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropRole;
+import io.crate.analyze.AnalyzedDropSchema;
 import io.crate.analyze.AnalyzedDropServer;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
@@ -666,6 +668,16 @@ public class Planner extends AnalyzedStatementVisitor<PlannerContext, Plan> {
     @Override
     public Plan visitCreateServer(AnalyzedCreateServer createServer, PlannerContext context) {
         return new CreateServerPlan(foreignDataWrappers, createServer);
+    }
+
+    @Override
+    public Plan visitCreateSchema(AnalyzedCreateSchema createSchema, PlannerContext context) {
+        return new CreateSchemaPlan(createSchema);
+    }
+
+    @Override
+    public Plan visitDropSchema(AnalyzedDropSchema dropSchema, PlannerContext context) {
+        return new DropSchemaPlan(dropSchema);
     }
 
     @Override

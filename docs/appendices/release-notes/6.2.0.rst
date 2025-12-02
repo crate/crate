@@ -67,7 +67,8 @@ Changes
 SQL Statements
 --------------
 
-None
+- Added support for the :ref:`ref-create-schema` and :ref:`ref-drop-schema`
+  statements.
 
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------

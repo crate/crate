@@ -76,6 +76,7 @@ import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateSchema;
 import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
@@ -97,6 +98,7 @@ import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropSchema;
 import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
@@ -772,6 +774,16 @@ public class Analyzer {
                 createServer.ifNotExists(),
                 options
             );
+        }
+
+        @Override
+        public AnalyzedStatement visitCreateSchema(CreateSchema createSchema, Analysis context) {
+            return new AnalyzedCreateSchema(createSchema);
+        }
+
+        @Override
+        public AnalyzedStatement visitDropSchema(DropSchema dropSchema, Analysis context) {
+            return new AnalyzedDropSchema(dropSchema);
         }
 
         @Override

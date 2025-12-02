@@ -28,6 +28,7 @@ SQL Statements
     create-publication
     create-repository
     create-role
+    create-schema
     create-server
     create-snapshot
     create-subscription
@@ -47,6 +48,7 @@ SQL Statements
     drop-publication
     drop-repository
     drop-role
+    drop-schema
     drop-server
     drop-snapshot
     drop-subscription

@@ -751,4 +751,12 @@ public abstract class AstVisitor<R, C> {
     public R visitNumericLiteral(NumericLiteral numericLiteral, C context) {
         return visitLiteral(numericLiteral, context);
     }
+
+    public R visitCreateSchema(CreateSchema createSchema, C context) {
+        return visitStatement(createSchema, context);
+    }
+
+    public R visitDropSchema(DropSchema dropSchema, C context) {
+        return visitStatement(dropSchema, context);
+    }
 }

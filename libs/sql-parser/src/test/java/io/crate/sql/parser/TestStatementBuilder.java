@@ -2158,6 +2158,16 @@ public class TestStatementBuilder {
     }
 
     @Test
+    public void test_create_and_drop_schema() throws Exception {
+        printStatement("create schema foo");
+        printStatement("create schema \"foo bar\"");
+        printStatement("create schema if not exists foo");
+        printStatement("drop schema foo");
+        printStatement("drop schema foo, bar, \"foo bar\"");
+        printStatement("drop schema if exists foo");
+    }
+
+    @Test
     public void test_alter_server() {
         printStatement("ALTER SERVER jarvis OPTIONS (ADD host 'foo', SET dbname 'cratedb', DROP port)");
         printStatement("ALTER SERVER jarvis OPTIONS (ADD host 'foo')");

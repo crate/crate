@@ -114,6 +114,7 @@ dropStmt
     | DROP SERVER (IF EXISTS)? names=idents (CASCADE | RESTRICT)?                    #dropServer
     | DROP FOREIGN TABLE (IF EXISTS)? names=qnames (CASCADE | RESTRICT)?             #dropForeignTable
     | DROP USER MAPPING (IF EXISTS)? FOR mappedUser SERVER server=ident              #dropUserMapping
+    | DROP SCHEMA (IF EXISTS)? names=idents                                          #dropSchema
     ;
 
 alterStmt
@@ -621,6 +622,7 @@ createStmt
           withProperties?                                                            #createSubscription
     | CREATE SERVER (IF NOT EXISTS)? name=ident
           FOREIGN DATA WRAPPER fdw=ident kvOptions?                                  #createServer
+    | CREATE SCHEMA (IF NOT EXISTS)? name=ident                                      #createSchema
     ;
 
 

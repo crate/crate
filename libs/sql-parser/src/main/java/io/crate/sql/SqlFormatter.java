@@ -65,6 +65,7 @@ import io.crate.sql.tree.CreateForeignTable;
 import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateSchema;
 import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
@@ -82,6 +83,7 @@ import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropSchema;
 import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
@@ -232,6 +234,33 @@ public final class SqlFormatter {
                     }
                 }
                 append(indent, ")");
+            }
+            return null;
+        }
+
+        @Override
+        public Void visitCreateSchema(CreateSchema createSchema, Integer indent) {
+            append(indent, "CREATE SCHEMA ");
+            if (createSchema.ifNotExists()) {
+                append(indent, "IF NOT EXISTS ");
+            }
+            append(indent, quoteIdentifierIfNeeded(createSchema.name()));
+            return null;
+        }
+
+        @Override
+        public Void visitDropSchema(DropSchema dropSchema, Integer indent) {
+            append(indent, "DROP SCHEMA ");
+            if (dropSchema.ifExists()) {
+                append(indent, "IF EXISTS ");
+            }
+            Iterator<String> it = dropSchema.names().iterator();
+            while (it.hasNext()) {
+                String name = it.next();
+                append(indent, quoteIdentifierIfNeeded(name));
+                if (it.hasNext()) {
+                    append(indent, ", ");
+                }
             }
             return null;
         }

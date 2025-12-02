@@ -388,6 +388,8 @@ Code   Error
 ------ -----------------------------------------------------------------------
 40012  A running snapshot is using the relation a user wants to drop or close.
 ------ -----------------------------------------------------------------------
+40013  Raised if trying to remove an object while others still depend on it.
+------ -----------------------------------------------------------------------
 4010   User is not authorized to perform the SQL statement.
 ------ -----------------------------------------------------------------------
 4011   Missing privilege for user.

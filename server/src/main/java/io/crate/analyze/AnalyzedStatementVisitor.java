@@ -327,4 +327,12 @@ public class AnalyzedStatementVisitor<C, R> {
     public R visitDropUserMapping(AnalyzedDropUserMapping dropUserMapping, C context) {
         return visitAnalyzedStatement(dropUserMapping, context);
     }
+
+    public R visitCreateSchema(AnalyzedCreateSchema createSchema, C context) {
+        return visitAnalyzedStatement(createSchema, context);
+    }
+
+    public R visitDropSchema(AnalyzedDropSchema dropSchema, C context) {
+        return visitAnalyzedStatement(dropSchema, context);
+    }
 }

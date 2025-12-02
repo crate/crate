@@ -30,6 +30,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.rest.action.HttpErrorStatus;
 import io.crate.sql.Identifiers;
 
@@ -85,5 +86,10 @@ public class SchemaUnknownException extends ElasticsearchException implements Re
     @Override
     public HttpErrorStatus httpErrorStatus() {
         return HttpErrorStatus.SCHEMA_UNKNOWN;
+    }
+
+    @Override
+    public PGErrorStatus pgErrorStatus() {
+        return PGErrorStatus.INVALID_SCHEMA_NAME;
     }
 }

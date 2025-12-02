@@ -104,6 +104,8 @@ import io.crate.fdw.TransportCreateUserMapping;
 import io.crate.fdw.TransportDropForeignTable;
 import io.crate.fdw.TransportDropServer;
 import io.crate.fdw.TransportDropUserMapping;
+import io.crate.metadata.TransportCreateSchema;
+import io.crate.metadata.TransportDropSchema;
 import io.crate.replication.logical.action.DropSubscriptionAction;
 import io.crate.replication.logical.action.GetFileChunkAction;
 import io.crate.replication.logical.action.GetStoreMetadataAction;
@@ -246,5 +248,8 @@ public class ActionModule extends AbstractModule {
         bind(binder, TransportDeleteIndex.ACTION, TransportDeleteIndex.class);
         bind(binder, TransportSwapAndDropIndexName.ACTION, TransportSwapAndDropIndexName.class);
         bind(binder, TransportGCDanglingArtifacts.ACTION, TransportGCDanglingArtifacts.class);
+
+        bind(binder, TransportCreateSchema.ACTION, TransportCreateSchema.class);
+        bind(binder, TransportDropSchema.ACTION, TransportDropSchema.class);
     }
 }

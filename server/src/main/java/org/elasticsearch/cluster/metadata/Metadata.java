@@ -74,8 +74,10 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 
 import io.crate.common.collections.Lists;
+import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
+import io.crate.exceptions.SchemaUnknownException;
 import io.crate.execution.ddl.Templates;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.fdw.ForeignTablesMetadata;
@@ -771,10 +773,10 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             ImmutableOpenMap<String, RelationMetadata> newRelations = ImmutableOpenMap.builder(schemaMetadata.relations())
                 .fRemove(relationName.name())
                 .build();
-            if (newRelations.isEmpty()) {
+            if (newRelations.isEmpty() && !schemaMetadata.explicit()) {
                 schemas.remove(relationName.schema());
             } else {
-                schemas.put(relationName.schema(), new SchemaMetadata(newRelations));
+                schemas.put(relationName.schema(), new SchemaMetadata(newRelations, schemaMetadata.explicit()));
             }
             return this;
         }
@@ -798,16 +800,19 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             RelationName relationName = relation.name();
             String schema = relationName.schema();
             SchemaMetadata schemaMetadata = schemas.get(schema);
+            boolean explicit;
             if (schemaMetadata == null) {
                 relations = ImmutableOpenMap.<String, RelationMetadata>builder(1)
                     .fPut(relationName.name(), relation)
                     .build();
+                explicit = false;
             } else {
                 relations = ImmutableOpenMap.builder(schemaMetadata.relations())
                     .fPut(relationName.name(), relation)
                     .build();
+                explicit = schemaMetadata.explicit();
             }
-            schemas.put(schema, new SchemaMetadata(relations));
+            schemas.put(schema, new SchemaMetadata(relations, explicit));
         }
 
         @Deprecated
@@ -1202,6 +1207,27 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 table.tableVersion() + 1
             );
             setRelation(updatedTable);
+            return this;
+        }
+
+        /// Explicitly adds a schema
+        public Builder createSchema(String schemaName) {
+            schemas.put(schemaName, new SchemaMetadata(ImmutableOpenMap.of(), true));
+            return this;
+        }
+
+        /// @throws [SchemaUnknownException]
+        /// @throws [DependentObjectsExists]
+        public Builder dropSchema(String schema) {
+            SchemaMetadata schemaMetadata = schemas.get(schema);
+            if (schemaMetadata == null) {
+                throw new SchemaUnknownException(schema);
+            }
+            if (schemaMetadata.relations().isEmpty()) {
+                schemas.remove(schema);
+            } else {
+                throw new DependentObjectsExists("schema", schema);
+            }
             return this;
         }
     }

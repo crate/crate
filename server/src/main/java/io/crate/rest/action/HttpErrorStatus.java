@@ -51,6 +51,7 @@ public enum HttpErrorStatus {
     DOCUMENT_SOURCE_MISSING(HttpResponseStatus.BAD_REQUEST,40010),
     SNAPSHOT_INVALID_NAME(HttpResponseStatus.BAD_REQUEST,40011),
     SNAPSHOT_IN_PROGRESS(HttpResponseStatus.BAD_REQUEST,40012),
+    DEPENDENT_OBJECTS_STILL_EXIST(HttpResponseStatus.BAD_REQUEST, 40013),
 
     /**
      * All UNAUTHORIZED errors should be in the 4010-40199 range
