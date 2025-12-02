@@ -75,9 +75,6 @@ if NOT DEFINED CRATE_DISABLE_GC_LOGGING (
   SET JAVA_OPTS=!JAVA_OPTS! -Xlog:gc*,gc+age=trace,safepoint:file="!LOGGC!":utctime,pid,tags:filecount=!GC_LOG_FILES!,filesize=!GC_LOG_SIZE!
 )
 
-REM Disables explicit GC
-set JAVA_OPTS=%JAVA_OPTS% -XX:+DisableExplicitGC
-
 REM Prevent denial of service attacks via SSL renegotiation
 set JAVA_OPTS=%JAVA_OPTS% -Djdk.tls.rejectClientInitiatedRenegotiation=true
 
