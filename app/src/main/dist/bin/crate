@@ -143,9 +143,6 @@ EOF
   JAVA_OPTS="$JAVA_OPTS -Xlog:gc*,gc+age=trace,safepoint:file=\"${LOGGC}\":utctime,pid,tags:filecount=${GC_LOG_FILES},filesize=${GC_LOG_SIZE}"
 fi
 
-# Disables explicit GC
-JAVA_OPTS="$JAVA_OPTS -XX:+DisableExplicitGC"
-
 # https://openjdk.org/jeps/519
 JAVA_OPTS="$JAVA_OPTS -XX:+UseCompactObjectHeaders"
 
