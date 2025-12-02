@@ -96,6 +96,7 @@ import org.elasticsearch.index.merge.OnGoingMerge;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
+import org.elasticsearch.index.shard.MergeStats;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogConfig;
@@ -2369,6 +2370,11 @@ public class InternalEngine extends Engine {
         translogDeletionPolicy.setRetentionAgeInMillis(translogRetentionAge.millis());
         translogDeletionPolicy.setRetentionSizeInBytes(translogRetentionSize.getBytes());
         softDeletesPolicy.setRetentionOperations(softDeletesRetentionOps);
+    }
+
+    @Override
+    public MergeStats mergeStats() {
+        return mergeScheduler.stats();
     }
 
     // Used only for testing! Package private to prevent anyone else from using it

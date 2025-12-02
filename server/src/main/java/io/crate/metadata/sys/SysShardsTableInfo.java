@@ -97,6 +97,8 @@ public class SysShardsTableInfo {
         static final ColumnIdent TRANSLOG_STATS = ColumnIdent.of("translog_stats");
         static final ColumnIdent RETENTION_LEASES = ColumnIdent.of("retention_leases");
         static final ColumnIdent FLUSH_STATS = ColumnIdent.of("flush_stats");
+        static final ColumnIdent MERGE_STATS = ColumnIdent.of("merge_stats");
+        static final ColumnIdent REFRESH_STATS = ColumnIdent.of("refresh_stats");
         static final ColumnIdent LAST_WRITE_BEFORE = ColumnIdent.of("last_write_before");
     }
 
@@ -124,6 +126,7 @@ public class SysShardsTableInfo {
             entry(Columns.TRANSLOG_STATS, NestedNullObjectExpression::new),
             entry(Columns.RETENTION_LEASES, NestedNullObjectExpression::new),
             entry(Columns.FLUSH_STATS, NestedNullObjectExpression::new),
+            entry(Columns.MERGE_STATS, NestedNullObjectExpression::new),
             entry(Columns.LAST_WRITE_BEFORE, () -> constant(null))
         );
     }
@@ -197,6 +200,22 @@ public class SysShardsTableInfo {
                 .add("count", LONG, ShardRowContext::flushCount)
                 .add("periodic_count", LONG, ShardRowContext::flushPeriodicCount)
                 .add("total_time_ns", LONG, ShardRowContext::flushTotalTimeNs)
+            .endObject()
+            .startObject(Columns.REFRESH_STATS.name())
+                .add("count", LONG, ShardRowContext::refreshCount)
+                .add("pending_count", LONG, ShardRowContext::refreshPendingCount)
+                .add("total_time_ns", LONG, ShardRowContext::refreshTotalTimeNs)
+            .endObject()
+            .startObject(Columns.MERGE_STATS.name())
+                .add("count", LONG, (c) -> c.mergeStats().totalCount())
+                .add("total_num_docs", LONG, (c) -> c.mergeStats().totalNumDocs())
+                .add("total_size_bytes", LONG, (c) -> c.mergeStats().totalSizeInBytes())
+                .add("total_time_ms", LONG, (c) -> c.mergeStats().totalTimeInMillis())
+                .add("total_throttled_time_ms", LONG, (c) -> c.mergeStats().totalThrottledTimeInMillis())
+                .add("current_count", LONG, (c) -> c.mergeStats().currentCount())
+                .add("current_num_docs", LONG, (c) -> c.mergeStats().currentNumDocs())
+                .add("current_size_bytes", LONG, (c) -> c.mergeStats().currentSizeInBytes())
+                .add("bytes_per_sec_auto_throttle", LONG, (c) -> c.mergeStats().bytesPerSecAutoThrottle())
             .endObject()
             .add(Columns.LAST_WRITE_BEFORE.name(), DataTypes.TIMESTAMPZ, r -> r.indexShard().lastWriteTimestamp())
             .setPrimaryKeys(

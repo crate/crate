@@ -180,6 +180,9 @@ Administration and Operations
   exposing this identifier instead of a column name. Using this new column
   helps to lookup the column name by its ``oid`` in such situations.
 
+- Added the ``refresh_stats`` and ``merge_stats`` columns to the
+  :ref:`sys.shards <sys-shards>` table.
+
 Client interfaces
 -----------------
 

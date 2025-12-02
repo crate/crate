@@ -1117,6 +1117,50 @@ Table schema
     * - ``flush_stats['total_time_ns']``
       - The total time spent on flush operations on the shard.
       - ``BIGINT``
+    * - ``refresh_stats``
+      - Refresh information. Shard relocation resets this information.
+      - ``OBJECT``
+    * - ``refresh_stats['count']``
+      - The total amount of refresh operations that happened on the shard.
+      - ``BIGINT``
+    * - ``refresh_stats['pending_count']``
+      - The number of pending refresh operations.
+      - ``BIGINT``
+    * - ``refresh_stats['total_time_ns']``
+      - The total time spent on refresh operations on the shard (in nanoseconds).
+      - ``BIGINT``
+    * - ``merge_stats``
+      - Segment merge information. Shard relocation resets this information.
+      - ``OBJECT``
+    * - ``merge_stats['count']``
+      - The total amount of segment merge operations that happened on the shard.
+      - ``BIGINT``
+    * - ``merge_stats['total_num_docs']``
+      - The total number of documents processed by all segment merges.
+      - ``BIGINT``
+    * - ``merge_stats['total_size_bytes']``
+      - The total bytes processed by all segment merges.
+      - ``BIGINT``
+    * - ``merge_stats['total_time_ms']``
+      - The total time spent on segment merge operations on the shard
+        (in milliseconds).
+      - ``BIGINT``
+    * - ``merge_stats['total_throttled_time_ms']``
+      - The total time segment merge IO writes were throttled (in milliseconds).
+      - ``BIGINT``
+    * - ``merge_stats['current_count']``
+      - The total amount of current ongoing segment merge operations.
+      - ``BIGINT``
+    * - ``merge_stats['current_num_docs']``
+      - The total number of documents all current segment merges are processing.
+      - ``BIGINT``
+    * - ``merge_stats['current_size_bytes']``
+      - The total bytes all current segment merges are processing.
+      - ``BIGINT``
+    * - ``merge_stats['bytes_per_sec_auto_throttle']``
+      - The actual throttle value. A value of ``-1`` indicates that auto
+        throttling is being disabled.
+      - ``BIGINT``
     * - ``last_write_before``
       - A timestamp showing the latest time that a write operation could have
         executed against this shard.  The value is held in memory and not
@@ -1202,7 +1246,7 @@ of shards.
       - ``LONG``
     * - ``num_docs``
       - Number of non-deleted Lucene documents in this segment. Documents
-        inserted after the shard becomes ``idle`` are not included. A 
+        inserted after the shard becomes ``idle`` are not included. A
         ``refresh`` is required to ensure they are counted. See
         :ref:`refresh interval <sql-create-table-refresh-interval>` for more
         details about idle tables.

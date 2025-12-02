@@ -76,6 +76,7 @@ import org.elasticsearch.index.mapper.ParsedDocument;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.DocsStats;
+import org.elasticsearch.index.shard.MergeStats;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
@@ -195,6 +196,10 @@ public abstract class Engine implements Closeable {
         try (Searcher searcher = acquireSearcher("numDocs", SearcherScope.INTERNAL)) {
             return searcher.getIndexReader().numDocs();
         }
+    }
+
+    public MergeStats mergeStats() {
+        return MergeStats.EMPTY;
     }
 
     /**

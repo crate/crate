@@ -36,6 +36,7 @@ import org.elasticsearch.index.seqno.RetentionLease;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.IndexShardClosedException;
+import org.elasticsearch.index.shard.MergeStats;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.StoreStats;
 import org.jetbrains.annotations.Nullable;
@@ -60,6 +61,7 @@ public class ShardRowContext {
     @Nullable
     private final String blobPath;
     private final boolean orphanedPartition;
+    private final MergeStats mergeStats;
 
     public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
         this(indexShard, null, clusterService, () -> {
@@ -105,6 +107,7 @@ public class ShardRowContext {
         partitionIdent = partitionValues.isEmpty() ? "" : PartitionName.encodeIdent(index.partitionValues());
         path = indexShard.shardPath().getDataPath().toString();
         blobPath = blobShard == null ? null : blobShard.blobContainer().getBaseDirectory().toString();
+        mergeStats = indexShard.mergeStats();
     }
 
     public RelationName relationName() {
@@ -382,5 +385,21 @@ public class ShardRowContext {
 
     public long flushPeriodicCount() {
         return indexShard.periodicFlushCount();
+    }
+
+    public MergeStats mergeStats() {
+        return mergeStats;
+    }
+
+    public long refreshCount() {
+        return indexShard.getRefreshMetric().count();
+    }
+
+    public long refreshTotalTimeNs() {
+        return indexShard.getRefreshMetric().sum();
+    }
+
+    public long refreshPendingCount() {
+        return indexShard.refreshListenerCount();
     }
 }
