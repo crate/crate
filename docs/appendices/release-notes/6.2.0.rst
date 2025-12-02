@@ -21,7 +21,10 @@ Version 6.2.0 - Unreleased
     We recommend that you upgrade to the latest 6.1 release before moving to
     6.2.0.
 
-    A rolling upgrade from >= 6.1.0 to 6.2.0 is supported.
+    A rolling upgrade from >= 6.1.2 to 6.2.0 is supported. Doing a rolling
+    upgrade from an earlier version than 6.1.2 can cause runtime errors when
+    executing statements relying on implicit casts.
+
     Before upgrading, you should `back up your data`_.
 
 .. WARNING::
@@ -118,8 +121,6 @@ None
 
 Performance and Resilience Improvements
 ---------------------------------------
-
-- Improved the performance of implicit type casts
 
 - Added an optimization rule to push down query predicates in cases where the
   child relation is using scalar sub-queries.
