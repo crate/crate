@@ -51,6 +51,7 @@ import io.crate.sql.parser.antlr.SqlBaseParser.CloseContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.ColumnConstraintNullContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.ConflictTargetContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.CreateForeignTableContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.CreateSchemaContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.CreateServerContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.CreateUserMappingContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DeclareContext;
@@ -58,6 +59,7 @@ import io.crate.sql.parser.antlr.SqlBaseParser.DeclareCursorParamsContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DirectionContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DiscardContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DropForeignTableContext;
+import io.crate.sql.parser.antlr.SqlBaseParser.DropSchemaContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DropServerContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.DropUserMappingContext;
 import io.crate.sql.parser.antlr.SqlBaseParser.FetchContext;
@@ -125,6 +127,7 @@ import io.crate.sql.tree.CreateFunction;
 import io.crate.sql.tree.CreatePublication;
 import io.crate.sql.tree.CreateRepository;
 import io.crate.sql.tree.CreateRole;
+import io.crate.sql.tree.CreateSchema;
 import io.crate.sql.tree.CreateServer;
 import io.crate.sql.tree.CreateSnapshot;
 import io.crate.sql.tree.CreateSubscription;
@@ -151,6 +154,7 @@ import io.crate.sql.tree.DropFunction;
 import io.crate.sql.tree.DropPublication;
 import io.crate.sql.tree.DropRepository;
 import io.crate.sql.tree.DropRole;
+import io.crate.sql.tree.DropSchema;
 import io.crate.sql.tree.DropServer;
 import io.crate.sql.tree.DropSnapshot;
 import io.crate.sql.tree.DropSubscription;
@@ -2423,6 +2427,18 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         String name = getIdentText(ctx.name);
         String fdw = getIdentText(ctx.fdw);
         return new CreateServer(name, fdw, ctx.EXISTS() != null, getOptions(ctx.kvOptions()));
+    }
+
+    @Override
+    public Node visitCreateSchema(CreateSchemaContext ctx) {
+        String name = getIdentText(ctx.name);
+        return new CreateSchema(name, ctx.EXISTS() != null);
+    }
+
+    @Override
+    public Node visitDropSchema(DropSchemaContext ctx) {
+        List<String> names = identsToStrings(ctx.names.ident());
+        return new DropSchema(names, ctx.EXISTS() != null);
     }
 
     @Override

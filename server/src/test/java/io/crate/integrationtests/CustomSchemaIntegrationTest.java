@@ -21,14 +21,18 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.testing.Asserts.assertSQLError;
+import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
+import io.netty.handler.codec.http.HttpResponseStatus;
 
 public class CustomSchemaIntegrationTest extends IntegTestCase {
 
@@ -116,6 +120,62 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
             } catch (Exception ignored) {
             }
         });
+    }
+
+    @Test
+    public void test_create_and_drop_schema_roundtrip() throws Exception {
+        execute("create schema foobar");
+        execute("create schema foo");
+        assertSQLError(() -> execute("create schema foobar"))
+            .hasPGError(PGErrorStatus.DUPLICATE_SCHEMA)
+            .hasHTTPError(HttpResponseStatus.CONFLICT, 40910)
+            .hasMessageContaining("Schema 'foobar' already exists");
+        execute("create schema if not exists foobar");
+
+        execute("select * from information_schema.schemata order by 1");
+        assertThat(response).hasRows(
+            "blob",
+            "doc",
+            "foo",
+            "foobar",
+            "information_schema",
+            "pg_catalog",
+            "sys"
+        );
+
+        execute("create table foobar.tbl (x int)");
+        assertSQLError(() -> execute("drop schema foobar"))
+            .hasPGError(PGErrorStatus.DEPENDENT_OBJECTS_STILL_EXIST)
+            .hasHTTPError(HttpResponseStatus.BAD_REQUEST, 40013)
+            .hasMessageContaining("Cannot drop schema \"foobar\" because other objects depend on it");
+
+        execute("drop table foobar.tbl");
+
+        execute("select * from information_schema.schemata order by 1");
+        assertThat(response).hasRows(
+            "blob",
+            "doc",
+            "foo",
+            "foobar",
+            "information_schema",
+            "pg_catalog",
+            "sys"
+        );
+
+        execute("drop schema foobar, foo");
+        execute("select * from information_schema.schemata order by 1");
+        assertThat(response).hasRows(
+            "blob",
+            "doc",
+            "information_schema",
+            "pg_catalog",
+            "sys"
+        );
+        assertSQLError(() -> execute("drop schema foobar"))
+            .hasHTTPError(HttpResponseStatus.NOT_FOUND, 4045)
+            .hasPGError(PGErrorStatus.INVALID_SCHEMA_NAME)
+            .hasMessageContaining("Schema 'foobar' unknown");
+        execute("drop schema if exists foobar");
     }
 
 }

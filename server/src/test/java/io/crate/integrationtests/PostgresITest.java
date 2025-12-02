@@ -62,6 +62,7 @@ import org.postgresql.util.PSQLState;
 
 import io.crate.execution.engine.collect.stats.JobsLogService;
 import io.crate.execution.engine.collect.stats.JobsLogs;
+import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.protocols.postgres.PostgresNetty;
 import io.crate.session.Sessions;
 import io.crate.testing.Asserts;
@@ -887,7 +888,7 @@ public class PostgresITest extends IntegTestCase {
 
             Asserts.assertSQLError(() -> conn.createStatement().execute("select * from custom.foo"))
                 .isExactlyInstanceOf(PSQLException.class)
-                .hasPGError(INTERNAL_ERROR)
+                .hasPGError(PGErrorStatus.INVALID_SCHEMA_NAME)
                 .hasMessageContaining("Schema 'custom' unknown");
         }
     }

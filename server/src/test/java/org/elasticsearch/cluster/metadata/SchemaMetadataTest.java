@@ -76,13 +76,13 @@ public class SchemaMetadataTest extends ESTestCase {
         ImmutableOpenMap.Builder<String, RelationMetadata> relationsV1 = ImmutableOpenMap.builder();
         relationsV1.put("t1", relT1);
         relationsV1.put("t2", relT2);
-        SchemaMetadata schemaV1 = new SchemaMetadata(relationsV1.build());
+        SchemaMetadata schemaV1 = new SchemaMetadata(relationsV1.build(), true);
 
         ImmutableOpenMap.Builder<String, RelationMetadata> relationsV2 = ImmutableOpenMap.builder();
         relationsV2.put("t1", relT1);
         relationsV2.put("t2", relT2);
         relationsV2.put("t3", relT3);
-        SchemaMetadata schemaV2 = new SchemaMetadata(relationsV2.build());
+        SchemaMetadata schemaV2 = new SchemaMetadata(relationsV2.build(), true);
 
         SchemaMetadata before;
         SchemaMetadata after;

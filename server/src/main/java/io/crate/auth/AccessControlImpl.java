@@ -46,6 +46,7 @@ import io.crate.analyze.AnalyzedCreateForeignTable;
 import io.crate.analyze.AnalyzedCreateFunction;
 import io.crate.analyze.AnalyzedCreateRepository;
 import io.crate.analyze.AnalyzedCreateRole;
+import io.crate.analyze.AnalyzedCreateSchema;
 import io.crate.analyze.AnalyzedCreateServer;
 import io.crate.analyze.AnalyzedCreateSnapshot;
 import io.crate.analyze.AnalyzedCreateTable;
@@ -60,6 +61,7 @@ import io.crate.analyze.AnalyzedDropForeignTable;
 import io.crate.analyze.AnalyzedDropFunction;
 import io.crate.analyze.AnalyzedDropRepository;
 import io.crate.analyze.AnalyzedDropRole;
+import io.crate.analyze.AnalyzedDropSchema;
 import io.crate.analyze.AnalyzedDropServer;
 import io.crate.analyze.AnalyzedDropSnapshot;
 import io.crate.analyze.AnalyzedDropTable;
@@ -856,6 +858,32 @@ public final class AccessControlImpl implements AccessControl {
         @Override
         public Void visitDropServer(AnalyzedDropServer dropServer, Role user) {
             hasALPrivileges(user);
+            return null;
+        }
+
+        @Override
+        public Void visitCreateSchema(AnalyzedCreateSchema createSchema, Role user) {
+            Privileges.ensureUserHasPrivilege(
+                relationVisitor.roles,
+                user,
+                Permission.DDL,
+                Securable.CLUSTER,
+                null
+            );
+            return null;
+        }
+
+        @Override
+        public Void visitDropSchema(AnalyzedDropSchema dropSchema, Role user) {
+            for (String schemaName : dropSchema.dropSchema().names()) {
+                Privileges.ensureUserHasPrivilege(
+                    relationVisitor.roles,
+                    user,
+                    Permission.DDL,
+                    Securable.SCHEMA,
+                    schemaName
+                );
+            }
             return null;
         }
 

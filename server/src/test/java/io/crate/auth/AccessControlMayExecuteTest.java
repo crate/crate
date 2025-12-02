@@ -843,6 +843,18 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     }
 
     @Test
+    public void test_create_schema_requires_ddl() throws Exception {
+        analyze("create schema foo");
+        assertAskedForCluster(Permission.DDL);
+    }
+
+    @Test
+    public void assert_drop_schema_requires_ddl() throws Exception {
+        analyze("drop schema foo");
+        assertAskedForSchema(Permission.DDL, "foo");
+    }
+
+    @Test
     public void test_checks_user_existence() {
         var e = SQLExecutor.builder(clusterService)
             // Make sure normalUser won't be found and AC is enabled

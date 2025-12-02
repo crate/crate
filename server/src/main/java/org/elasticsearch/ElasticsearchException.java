@@ -44,8 +44,10 @@ import org.elasticsearch.transport.TcpTransport;
 
 import io.crate.common.CheckedFunction;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.SQLExceptions;
+import io.crate.exceptions.SchemaAlreadyExists;
 import io.crate.fdw.ServerAlreadyExistsException;
 import io.crate.fdw.UserMappingAlreadyExists;
 import io.crate.protocols.postgres.PGErrorStatus;
@@ -741,7 +743,19 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
             org.elasticsearch.snapshots.SnapshotInProgressException.class,
             org.elasticsearch.snapshots.SnapshotInProgressException::new,
             183,
-            UNKNOWN_VERSION_ADDED);
+            UNKNOWN_VERSION_ADDED),
+        SCHEMA_EXISTS(
+            SchemaAlreadyExists.class,
+            SchemaAlreadyExists::new,
+            184,
+            Version.V_6_2_0
+        ),
+        DEPENDENT_OBJECTS_STILL_EXIST(
+            DependentObjectsExists.class,
+            DependentObjectsExists::new,
+            185,
+            Version.V_6_2_0
+        );
 
         final Class<? extends ElasticsearchException> exceptionClass;
         final CheckedFunction<StreamInput, ? extends ElasticsearchException, IOException> constructor;

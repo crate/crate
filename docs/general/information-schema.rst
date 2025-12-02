@@ -784,6 +784,9 @@ Or get an overview of how many routines and routine types are available::
     arguments. As the format might change in the future, it should be only used
     to compare it to other instances of ``specific_name``.
 
+
+.. _schemata:
+
 ``schemata``
 ------------
 
