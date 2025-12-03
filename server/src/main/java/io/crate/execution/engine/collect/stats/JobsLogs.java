@@ -113,6 +113,7 @@ public class JobsLogs {
         if (!isEnabled() || jobContext == null) {
             return;
         }
+        jobContext.finish(affectedRowCount);
         JobContextLog jobContextLog = new JobContextLog(jobContext, affectedRowCount, errorMessage);
         recordMetrics(jobContextLog);
         long stamp = jobsLogLock.readLock();
