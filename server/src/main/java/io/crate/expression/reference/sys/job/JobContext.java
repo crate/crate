@@ -25,6 +25,7 @@ import java.util.UUID;
 
 import org.jspecify.annotations.Nullable;
 
+import io.crate.jfr.StmtEvent;
 import io.crate.planner.operators.StatementClassifier.Classification;
 import io.crate.role.Role;
 
@@ -36,6 +37,7 @@ public class JobContext {
     private final long started;
     @Nullable
     private final Classification classification;
+    private final StmtEvent event;
 
     public JobContext(UUID id, String stmt, long started, Role user, @Nullable Classification classification) {
         this.id = id;
@@ -43,6 +45,20 @@ public class JobContext {
         this.started = started;
         this.username = user.name();
         this.classification = classification;
+        this.event = new StmtEvent();
+        if (event.shouldCommit()) {
+            event.id = id.toString();
+            event.stmt = stmt;
+            event.classification = classification == null ? null : classification.type().toString();
+            event.begin();
+        }
+    }
+
+    public void finish(long affectedRowCount) {
+        if (event.shouldCommit()) {
+            event.affectedRowCount = affectedRowCount;
+            event.commit();
+        }
     }
 
     public UUID id() {
