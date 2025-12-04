@@ -46,4 +46,5 @@ series.
 Fixes
 =====
 
-None
+- Fixed ``EOFException`` and ``unexpected byte`` errors that could be raised
+  when using the :ref:`percentile aggregation <aggregation-percentile>`.

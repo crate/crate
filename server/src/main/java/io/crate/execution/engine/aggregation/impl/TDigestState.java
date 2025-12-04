@@ -22,6 +22,7 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
+import java.util.Collection;
 
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -62,10 +63,11 @@ class TDigestState extends MergingDigest {
     public static void write(TDigestState state, StreamOutput out) throws IOException {
         out.writeDouble(state.compression());
         out.writeDoubleArray(state.fractions);
+        Collection<Centroid> centroids = state.centroids();
         out.writeVInt(state.centroidCount());
-        for (Centroid centroid : state.centroids()) {
+        for (Centroid centroid : centroids) {
             out.writeDouble(centroid.mean());
-            out.writeVLong(centroid.count());
+            out.writeVInt(centroid.count());
         }
     }
 
