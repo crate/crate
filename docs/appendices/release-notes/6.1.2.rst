@@ -57,3 +57,6 @@ Fixes
   Example::
 
     SELECT * FROM t1 LEFT JOIN t2 ON t1.id = t2.id;
+
+- Fixed ``EOFException`` and ``unexpected byte`` errors that could be raised
+  when using the :ref:`percentile aggregation <aggregation-percentile>`.
