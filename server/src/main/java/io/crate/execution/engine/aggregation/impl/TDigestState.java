@@ -22,8 +22,10 @@
 package io.crate.execution.engine.aggregation.impl;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
 
 import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
@@ -71,23 +73,52 @@ class TDigestState extends MergingDigest {
 
 
     public static void write(TDigestState state, StreamOutput out) throws IOException {
-        out.writeDouble(state.compression());
-        out.writeDoubleArray(state.fractions);
-        out.writeVInt(state.centroidCount());
-        for (Centroid centroid : state.centroids()) {
-            out.writeDouble(centroid.mean());
-            out.writeVLong(centroid.count());
+        if (out.getVersion().onOrBefore(Version.V_6_1_1)) {
+            out.writeDouble(state.compression());
+            out.writeDoubleArray(state.fractions);
+            out.writeVInt(state.centroidCount());
+            for (Centroid centroid : state.centroids()) {
+                out.writeDouble(centroid.mean());
+                out.writeVLong(centroid.count());
+            }
+        } else {
+            out.writeDoubleArray(state.fractions);
+
+            byte[] bytes = new byte[state.byteSize()];
+            ByteBuffer buf = ByteBuffer.wrap(bytes);
+            state.asBytes(buf);
+
+            out.writeVInt(bytes.length);
+            out.writeBytes(bytes, 0, bytes.length);
         }
     }
 
     public static TDigestState read(StreamInput in) throws IOException {
-        double compression = in.readDouble();
-        double[] fractions = in.readDoubleArray();
-        TDigestState state = new TDigestState(compression, fractions);
-        int n = in.readVInt();
-        for (int i = 0; i < n; i++) {
-            state.add(in.readDouble(), in.readVInt());
+        if (in.getVersion().onOrBefore(Version.V_6_1_1)) {
+            double compression = in.readDouble();
+            double[] fractions = in.readDoubleArray();
+            TDigestState state = new TDigestState(compression, fractions);
+            int n = in.readVInt();
+            for (int i = 0; i < n; i++) {
+                state.add(in.readDouble(), in.readVInt());
+            }
+            return state;
+        } else {
+            double[] factions = in.readDoubleArray();
+
+            int len = in.readVInt();
+            byte[] bytes = new byte[len];
+            in.readBytes(bytes, 0, len);
+
+            // MergingDigest.fromBytes(...) restores the digest exactly, including its centroids.
+            // Calling tDigestState.add(mergingDigest) re-merges it, which may change the centroids.
+            // This is fine because t-digest instances with different centroids are equivalent
+            // as long as their percentile estimates remain close.
+            MergingDigest mergingDigest = MergingDigest.fromBytes(ByteBuffer.wrap(bytes));
+            TDigestState tDigestState = new TDigestState(mergingDigest.compression(), factions);
+            tDigestState.add(mergingDigest);
+
+            return tDigestState;
         }
-        return state;
     }
 }

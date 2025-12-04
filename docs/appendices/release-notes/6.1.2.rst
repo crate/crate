@@ -54,3 +54,7 @@ Fixes
   Example::
 
     SELECT * FROM t1 LEFT JOIN t2 ON t1.id = t2.id;
+
+- Fixed exceptions thrown in distributed
+  :ref:`percentile aggregations <aggregation-percentile>` caused by incorrect
+  serialization of TDigest state.
