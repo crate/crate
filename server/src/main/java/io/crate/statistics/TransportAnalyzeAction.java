@@ -27,8 +27,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.Executor;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.StreamSupport;
 
@@ -67,47 +66,29 @@ public final class TransportAnalyzeAction {
     private final TransportService transportService;
     private final Schemas schemas;
     private final ClusterService clusterService;
-    private final ConcurrentHashMap<FetchSampleRequest, CompletableFuture<Samples>> analysisByRequest = new ConcurrentHashMap<>();
-    private final Executor executor;
+    private final AtomicReference<CompletableFuture<AcknowledgedResponse>> activeExecution = new AtomicReference<>();
 
     @Inject
     public TransportAnalyzeAction(TransportService transportService,
                                   ReservoirSampler reservoirSampler,
                                   NodeContext nodeContext,
                                   ClusterService clusterService,
-                                  TableStatsService tableStatsService,
-                                  ThreadPool threadPool) {
+                                  TableStatsService tableStatsService) {
         this.transportService = transportService;
         this.schemas = nodeContext.schemas();
         this.clusterService = clusterService;
-        this.executor = threadPool.executor(ThreadPool.Names.SEARCH);
 
         transportService.registerRequestHandler(
             FETCH_SAMPLES,
-            ThreadPool.Names.SAME,
+            ThreadPool.Names.SEARCH,
             FetchSampleRequest::new,
             // Explicit generic is required for eclipse JDT, otherwise it won't compile
             new NodeActionRequestHandler<FetchSampleRequest, FetchSampleResponse>(
-                req -> {
-
-                    CompletableFuture<Samples> newSamples = new CompletableFuture<>();
-                    CompletableFuture<Samples> previous = analysisByRequest.putIfAbsent(
-                        req,
-                        newSamples
-                    );
-
-                    if (previous == null) {
-                        newSamples.completeAsync(
-                            () -> reservoirSampler.getSamples(req.relation(), req.columns()),
-                            executor
-                        );
-                        return newSamples
-                            .thenApply(FetchSampleResponse::new)
-                            .whenComplete((res, err) -> analysisByRequest.remove(req));
-                    } else {
-                        return previous.thenApply(FetchSampleResponse::new);
-                    }
-                }
+                req -> completedFuture(
+                    new FetchSampleResponse(
+                        reservoirSampler.getSamples(req.relation(), req.columns())
+                    )
+                )
             )
         );
 
@@ -127,27 +108,35 @@ public final class TransportAnalyzeAction {
 
     @SuppressWarnings("unchecked")
     public CompletableFuture<AcknowledgedResponse> fetchSamplesThenGenerateAndPublishStats() {
-        LOGGER.info("ANALYZE: Start collecting samples to update table statistics");
-        ArrayList<CompletableFuture<Map.Entry<RelationName, Stats>>> futures = new ArrayList<>();
-        for (SchemaInfo schema : schemas) {
-            if (!(schema instanceof DocSchemaInfo)) {
-                continue;
-            }
-            for (TableInfo table : schema.getTables()) {
-                List<Reference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
-                    .filter(x -> !x.column().isSystemColumn())
-                    .filter(x -> DataTypes.isPrimitive(x.valueType()))
-                    .map(x -> table.getReadReference(x.column()))
-                    .toList();
+        return activeExecution.updateAndGet(current -> {
+            if (current == null) {
+                LOGGER.info("ANALYZE: Start collecting samples to update table statistics");
+                ArrayList<CompletableFuture<Map.Entry<RelationName, Stats>>> futures = new ArrayList<>();
+                for (SchemaInfo schema : schemas) {
+                    if (!(schema instanceof DocSchemaInfo)) {
+                        continue;
+                    }
+                    for (TableInfo table : schema.getTables()) {
+                        List<Reference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
+                            .filter(x -> !x.column().isSystemColumn())
+                            .filter(x -> DataTypes.isPrimitive(x.valueType()))
+                            .map(x -> table.getReadReference(x.column()))
+                            .toList();
 
-                futures.add(fetchSamples(
-                    table.ident(),
-                    primitiveColumns
-                ).thenApply(samples -> Map.entry(table.ident(), samples.createTableStats(primitiveColumns))));
+                        futures.add(fetchSamples(
+                            table.ident(),
+                            primitiveColumns
+                        ).thenApply(samples -> Map.entry(table.ident(), samples.createTableStats(primitiveColumns))));
+                    }
+                }
+                return CompletableFutures.allAsList(futures)
+                    .thenCompose(entries -> publishTableStats(Map.ofEntries(entries.toArray(new Map.Entry[0]))));
+
             }
-        }
-        return CompletableFutures.allAsList(futures)
-            .thenCompose(entries -> publishTableStats(Map.ofEntries(entries.toArray(new Map.Entry[0]))));
+            return current;
+        }).whenComplete((r, t) -> {
+            activeExecution.set(null);
+        });
     }
 
     private CompletableFuture<AcknowledgedResponse> publishTableStats(Map<RelationName, Stats> newTableStats) {
