@@ -128,6 +128,11 @@ public class LongType extends DataType<Long> implements FixedWidthType, Streamer
     }
 
     @Override
+    public boolean valueEq(Long val1, Long val2) {
+        return val1.longValue() == val2.longValue();
+    }
+
+    @Override
     public int compare(Long val1, Long val2) {
         return Long.compare(val1, val2);
     }

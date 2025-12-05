@@ -197,6 +197,11 @@ public class FloatType extends DataType<Float> implements Streamer<Float>, Fixed
     }
 
     @Override
+    public boolean valueEq(Float val1, Float val2) {
+        return val1.equals(val2);
+    }
+
+    @Override
     public int compare(Float val1, Float val2) {
         return Float.compare(val1, val2);
     }
