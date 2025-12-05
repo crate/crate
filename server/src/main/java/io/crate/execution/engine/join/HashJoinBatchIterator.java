@@ -305,7 +305,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private static final class HashGroup implements Iterable<Object[]> {
 
-        private final List<Object[]> rows = new ArrayList<>();
+        private final List<Object[]> rows = new ArrayList<>(1);
         @Nullable
         private final BitSet rowIsJoinedFlags;
 
