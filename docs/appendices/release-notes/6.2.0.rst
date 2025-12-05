@@ -157,6 +157,12 @@ Performance and Resilience Improvements
   remain in ``PARTIAL`` state, with an ``ABORTED`` failure message showing in
   the :ref:`sys.snapshots <sys-snapshots>` system table.
 
+- Improved hash join performance for joins on a simple (single-column) primary
+  key::
+
+    SELECT * FROM t1 JOIN t2 ON t1.pk_col = t2.col
+
+
 Administration and Operations
 -----------------------------
 

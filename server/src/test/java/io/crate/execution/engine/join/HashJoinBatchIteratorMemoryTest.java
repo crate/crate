@@ -83,8 +83,8 @@ public class HashJoinBatchIteratorMemoryTest {
             getHashForLeft(),
             getHashForRight(),
             ignored -> 2,
-            false
-        );
+            false,
+                false);
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(it, null);
         consumer.getResult();
@@ -116,8 +116,8 @@ public class HashJoinBatchIteratorMemoryTest {
             getHashForLeft(),
             getHashForRight(),
             ignored -> 2,
-            true
-        );
+            true,
+                false);
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(it, null);
         consumer.getResult();

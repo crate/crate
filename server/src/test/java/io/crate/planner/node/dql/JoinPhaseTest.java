@@ -151,8 +151,8 @@ public class JoinPhaseTest extends ESTestCase {
             List.of(Literal.of("testRight"), Literal.of(20)),
             List.of(DataTypes.STRING, DataTypes.INTEGER),
             111,
-            JoinType.INNER
-        );
+            JoinType.INNER,
+                false);
 
         BytesStreamOutput output = new BytesStreamOutput();
         node.writeTo(output);

@@ -970,7 +970,8 @@ public class JobSetup {
                 inputFactory,
                 breaker,
                 phase.estimatedRowSizeForLeft(),
-                phase.joinType() == JoinType.LEFT
+                phase.joinType() == JoinType.LEFT,
+                phase.isUniqueHashPerRow()
             );
             DistResultRXTask left = pageDownstreamContextForNestedLoop(
                 phase.phaseId(),

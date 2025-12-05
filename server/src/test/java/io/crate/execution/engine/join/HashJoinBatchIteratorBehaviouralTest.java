@@ -73,8 +73,8 @@ public class HashJoinBatchIteratorBehaviouralTest {
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
             ignored -> 2,
-            false
-        );
+            false,
+                false);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
@@ -105,8 +105,8 @@ public class HashJoinBatchIteratorBehaviouralTest {
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
             ignored -> 500000,
-            false
-        );
+            false,
+                false);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
@@ -131,8 +131,8 @@ public class HashJoinBatchIteratorBehaviouralTest {
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
             ignored -> 2,
-            true
-        );
+            true,
+                false);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);
@@ -167,8 +167,8 @@ public class HashJoinBatchIteratorBehaviouralTest {
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
             ignored -> 500000,
-            true
-        );
+            true,
+                false);
 
         TestingRowConsumer consumer = new TestingRowConsumer();
         consumer.accept(batchIterator, null);

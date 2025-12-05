@@ -47,6 +47,8 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -94,6 +96,14 @@ public class HashJoin extends AbstractJoinPlan {
         var hashSymbols = createHashSymbols(lhs.relationNames(), rhs.relationNames(), joinCondition);
 
         var lhsHashSymbols = hashSymbols.lhsHashSymbols();
+        boolean isUniqueHashPerRow = false;
+        if (lhsHashSymbols.size() == 1 && lhsHashSymbols.getFirst() instanceof Reference reference) {
+            RelationName relationName = reference.relation();
+            if (relationName.schema() != null) {
+                List<ColumnIdent> pkCols = executor.schemas().getTableInfo(relationName).primaryKey();
+                isUniqueHashPerRow = pkCols.size() == 1 && pkCols.getFirst().equals(reference.column());
+            }
+        }
         var rhsHashSymbols = hashSymbols.rhsHashSymbols();
 
         ResultDescription leftResultDesc = leftExecutionPlan.resultDescription();
@@ -159,7 +169,8 @@ public class HashJoin extends AbstractJoinPlan {
             InputColumns.create(rhsHashSymbols, new InputColumns.SourceSymbols(rightOutputs)),
             Symbols.typeView(leftOutputs),
             lhStats.estimateSizeForColumns(leftOutputs),
-            joinType
+            joinType,
+            isUniqueHashPerRow
         );
         return new Join(
             joinPhase,

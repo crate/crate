@@ -119,6 +119,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private final boolean emitUnmatchedRows;
     private Iterator<Object[]> unmatchedRowsIterator;
 
+    private final boolean uniqueHashPerRow;
+
     public HashJoinBatchIterator(CircuitBreaker circuitBreaker,
                                  BatchIterator<Row> left,
                                  BatchIterator<Row> right,
@@ -128,7 +130,8 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
                                  ToIntFunction<Row> hashBuilderForLeft,
                                  ToIntFunction<Row> hashBuilderForRight,
                                  LongToIntFunction calculateBlockSize,
-                                 boolean emitUnmatchedRows) {
+                                 boolean emitUnmatchedRows,
+                                 boolean uniqueHashPerRow) {
         super(left, right, combiner);
         this.circuitBreaker = circuitBreaker;
         this.leftRowAccounting = leftRowAccounting;
@@ -142,6 +145,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
         this.activeIt = left;
         this.emitUnmatchedRows = emitUnmatchedRows;
         this.unmatchedRowsIterator = null;
+        this.uniqueHashPerRow = uniqueHashPerRow;
     }
 
     @Override
@@ -281,7 +285,7 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
     private void addToBuffer(Object[] currentRow, int hash) {
         HashGroup hashGroup = buffer.get(hash);
         if (hashGroup == null) {
-            hashGroup = new HashGroup(emitUnmatchedRows);
+            hashGroup = new HashGroup(emitUnmatchedRows, uniqueHashPerRow);
             buffer.put(hash, hashGroup);
         }
         hashGroup.add(currentRow);
@@ -305,11 +309,12 @@ public class HashJoinBatchIterator extends JoinBatchIterator<Row, Row, Row> {
 
     private static final class HashGroup implements Iterable<Object[]> {
 
-        private final List<Object[]> rows = new ArrayList<>();
+        private final List<Object[]> rows;
         @Nullable
         private final BitSet rowIsJoinedFlags;
 
-        public HashGroup(boolean emitUnmatchedRows) {
+        public HashGroup(boolean emitUnmatchedRows, boolean uniqueHashPerRow) {
+            this.rows = uniqueHashPerRow ? new ArrayList<>(1) : new ArrayList<>();
             this.rowIsJoinedFlags = emitUnmatchedRows ? new BitSet() : null;
         }
 
