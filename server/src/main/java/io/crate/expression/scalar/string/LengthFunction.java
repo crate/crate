@@ -36,8 +36,8 @@ public final class LengthFunction {
     public static void register(Functions.Builder builder) {
         register(builder, "octet_length", x -> x.getBytes(StandardCharsets.UTF_8).length);
         register(builder, "bit_length", x -> x.getBytes(StandardCharsets.UTF_8).length * Byte.SIZE);
-        register(builder, "char_length", String::length);
-        register(builder, "length", String::length);
+        register(builder, "char_length", x -> x.codePointCount(0, x.length()));
+        register(builder, "length", x -> x.codePointCount(0, x.length()));
     }
 
     private static void register(Functions.Builder builder, String name, Function<String, Integer> func) {
