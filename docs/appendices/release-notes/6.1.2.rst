@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- Fixed :ref:`length <scalar-length>` function that incorrectly returned ``2`` for
+  supplementary Unicode characters instead of ``1``.
+
 - Fixed an issue that caused ``SELECT COUNT(NULL) FROM tbl`` to return one
   record per row in the table instead of a single row with value ``0``.
 
