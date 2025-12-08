@@ -82,6 +82,7 @@ public class LengthFunctionTest extends ScalarTestCase {
         assertEvaluate("length('')", 0);
         assertEvaluate("length('cra')", 3);
         assertEvaluate("length('©rate')", 5);
+        assertEvaluate("length('🥝')", 1);
     }
 
     @Test

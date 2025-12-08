@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- Fixed :ref:`length <scalar-length>` function that incorrectly returned ``2`` for
+  supplementary Unicode characters instead of ``1``.
+
 - Added forward compatibility for cast function representation used in CrateDB
   6.2.0+. As a side effect this also improves the performance of implicit casts.
 
