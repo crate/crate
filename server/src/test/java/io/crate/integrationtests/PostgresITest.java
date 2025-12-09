@@ -1175,11 +1175,11 @@ public class PostgresITest extends IntegTestCase {
             Statement stmt = conn.createStatement();
             ResultSet result = stmt.executeQuery("SHOW error_on_unknown_object_key");
             assertThat(result.next()).isTrue();
-            assertThat(result.getBoolean("setting")).isFalse();
+            assertThat(result.getBoolean("error_on_unknown_object_key")).isFalse();
 
             result = stmt.executeQuery("SHOW statement_timeout");
             assertThat(result.next()).isTrue();
-            assertThat(result.getString("setting")).isEqualTo("1m");
+            assertThat(result.getString("statement_timeout")).isEqualTo("1m");
         }
     }
 

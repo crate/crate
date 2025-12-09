@@ -113,6 +113,7 @@ import io.crate.sql.tree.GrantPrivilege;
 import io.crate.sql.tree.Insert;
 import io.crate.sql.tree.KillStatement;
 import io.crate.sql.tree.OptimizeStatement;
+import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Query;
 import io.crate.sql.tree.RefreshStatement;
 import io.crate.sql.tree.ResetStatement;
@@ -653,12 +654,9 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitShowSessionParameter(ShowSessionParameter node, Analysis context) {
-            showStatementAnalyzer.validateSessionSetting(node.parameter());
-            Query query = showStatementAnalyzer.rewriteShowSessionParameter(node);
-            return relationAnalyzer.analyze(
-                query,
-                context.transactionContext(),
-                context.paramTypeHints());
+            QualifiedName parameter = node.parameter();
+            showStatementAnalyzer.validateSessionSetting(parameter);
+            return showStatementAnalyzer.analyzeShowSetting(node);
         }
 
         @Override
