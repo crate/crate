@@ -71,7 +71,7 @@ public interface TableInfo extends RelationInfo {
             return ref;
         } else {
             return new SimpleReference(
-                ref.ident(),
+                ref.column(),
                 ref.granularity(),
                 readType,
                 ref.indexType(),

@@ -70,12 +70,12 @@ public final class Symbols {
     }
 
     @Nullable
-    public static <V> V lookupValueByColumn(RelationName relationName, Map<? extends Symbol, V> valuesBySymbol, ColumnIdent column) {
+    public static <V> V lookupValueByColumn(@Nullable RelationName relationName,
+                                            Map<? extends Symbol, V> valuesBySymbol,
+                                            ColumnIdent column) {
         for (Map.Entry<? extends Symbol, V> entry : valuesBySymbol.entrySet()) {
             Symbol key = entry.getKey();
-            if (key instanceof Reference ref
-                    && ref.column().equals(column)
-                    && ref.ident().tableIdent().equals(relationName)) {
+            if (key instanceof Reference ref && ref.column().equals(column) && relationName == null) {
                 return entry.getValue();
             }
             if (key instanceof ScopedSymbol scopedSymbol
@@ -293,7 +293,6 @@ public final class Symbols {
                         break;
                     } else if (ref instanceof VoidReference
                                && t instanceof ScopedSymbol tScopedSymbol
-                               && tScopedSymbol.relation().equals(ref.ident().tableIdent())
                                && tScopedSymbol.column().equals(root)) {
                         consumer.accept(t);
                         break;

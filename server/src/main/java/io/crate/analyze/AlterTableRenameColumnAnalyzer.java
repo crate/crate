@@ -36,7 +36,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
@@ -129,7 +128,7 @@ public class AlterTableRenameColumnAnalyzer {
             if (reference == null) {
                 reference = table.indexColumn(columnIdent);
                 if (reference == null) {
-                    return new DynamicReference(new ReferenceIdent(table.ident(), columnIdent), RowGranularity.DOC, -1);
+                    return new DynamicReference(columnIdent, RowGranularity.DOC, -1);
                 }
             }
             return reference;

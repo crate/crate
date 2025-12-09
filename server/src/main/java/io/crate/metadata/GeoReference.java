@@ -53,7 +53,7 @@ public class GeoReference extends SimpleReference {
     @Nullable
     private final Double distanceErrorPct;
 
-    public GeoReference(ReferenceIdent ident,
+    public GeoReference(ColumnIdent column,
                         DataType<?> type,
                         IndexType indexType,
                         boolean nullable,
@@ -65,7 +65,7 @@ public class GeoReference extends SimpleReference {
                         String precision,
                         Integer treeLevels,
                         Double distanceErrorPct) {
-        super(ident,
+        super(column,
             RowGranularity.DOC, // Only primitive types columns can be used in PARTITIONED BY clause
             type,
             indexType,
@@ -159,9 +159,9 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Reference withReferenceIdent(ReferenceIdent newIdent) {
+    public Reference withName(ColumnIdent name) {
         return new GeoReference(
-            newIdent,
+            column,
             type,
             indexType,
             nullable,
@@ -184,7 +184,7 @@ public class GeoReference extends SimpleReference {
             return this;
         }
         return new GeoReference(
-            ident,
+            column,
             type,
             indexType,
             nullable,
@@ -202,7 +202,7 @@ public class GeoReference extends SimpleReference {
     @Override
     public GeoReference withValueType(DataType<?> newType) {
         return new GeoReference(
-            ident,
+            column,
             newType,
             indexType,
             nullable,
