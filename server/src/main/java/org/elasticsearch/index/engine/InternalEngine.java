@@ -83,10 +83,13 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver;
 import org.elasticsearch.common.lucene.uid.VersionsAndSeqNoResolver.DocIdAndSeqNo;
 import org.elasticsearch.common.metrics.CounterMetric;
+import org.elasticsearch.common.metrics.MeanMetric;
+import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.common.util.concurrent.KeyedLock;
 import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
+import org.elasticsearch.env.Environment;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.VersionType;
 import org.elasticsearch.index.fieldvisitor.IDVisitor;
@@ -159,6 +162,8 @@ public class InternalEngine extends Engine {
     private final CounterMetric numDocDeletes = new CounterMetric();
     private final CounterMetric numDocAppends = new CounterMetric();
     private final CounterMetric numDocUpdates = new CounterMetric();
+    private final MeanMetric totalFlushTime = new MeanMetric();
+
     private final NumericDocValuesField softDeletesField = Lucene.newSoftDeletesField();
     private final SoftDeletesPolicy softDeletesPolicy;
     private final LastRefreshedCheckpointListener lastRefreshedCheckpointListener;
@@ -188,6 +193,10 @@ public class InternalEngine extends Engine {
     @Nullable
     private volatile String forceMergeUUID;
 
+    private volatile long lastFlushTimestamp;
+
+    private final ByteSizeValue totalDiskSpace;
+
     public InternalEngine(EngineConfig engineConfig) {
         this(engineConfig, IndexWriter.MAX_DOCS, LocalCheckpointTracker::new);
     }
@@ -198,6 +207,7 @@ public class InternalEngine extends Engine {
             final BiFunction<Long, Long, LocalCheckpointTracker> localCheckpointTrackerSupplier) {
         super(engineConfig);
         this.maxDocs = maxDocs;
+        this.lastFlushTimestamp = config().getThreadPool().relativeTimeInMillis();
         final TranslogDeletionPolicy translogDeletionPolicy = new TranslogDeletionPolicy(
                 engineConfig.getIndexSettings().getTranslogRetentionSize().getBytes(),
                 engineConfig.getIndexSettings().getTranslogRetentionAge().millis(),
@@ -237,6 +247,7 @@ public class InternalEngine extends Engine {
                 historyUUID = loadHistoryUUID(commitData);
                 forceMergeUUID = commitData.get(FORCE_MERGE_UUID_KEY);
                 indexWriter = writer;
+                totalDiskSpace = new ByteSizeValue(Environment.getFileStore(translog.location()).getTotalSpace(), ByteSizeUnit.BYTES);
             } catch (IOException | TranslogCorruptedException e) {
                 throw new EngineCreationFailureException(shardId, "failed to create engine", e);
             } catch (AssertionError e) {
@@ -1676,12 +1687,29 @@ public class InternalEngine extends Engine {
     }
 
     @Override
-    public void writeIndexingBuffer() throws EngineException {
-        refresh("write indexing buffer", SearcherScope.INTERNAL, false);
+    public void writeIndexingBuffer() throws IOException {
+        final long flushThresholdSizeInBytes = Math.max(
+            Translog.DEFAULT_HEADER_SIZE_IN_BYTES + 1,
+            config().getIndexSettings().getFlushThresholdSize(totalDiskSpace).getBytes() / 2
+        );
+
+        final long flushThresholdAgeInNanos = config().getIndexSettings().getFlushThresholdAge().millis() / 2;
+
+        if (shouldPeriodicallyFlush(flushThresholdSizeInBytes, flushThresholdAgeInNanos)) {
+            flush(false, false);
+        } else {
+            refresh("write indexing buffer", SearcherScope.INTERNAL, false);
+        }
     }
 
     @Override
     public boolean shouldPeriodicallyFlush() {
+        final long flushThresholdSize = config().getIndexSettings().getFlushThresholdSize().getBytes();
+        final long flushThresholdAge = config().getIndexSettings().getFlushThresholdAge().millis();
+        return shouldPeriodicallyFlush(flushThresholdSize, flushThresholdAge);
+    }
+
+    public boolean shouldPeriodicallyFlush(long flushThresholdInBytes, long flushThresholdAge) {
         ensureOpen();
         if (shouldPeriodicallyFlushAfterBigMerge.get()) {
             return true;
@@ -1690,8 +1718,10 @@ public class InternalEngine extends Engine {
             Long.parseLong(lastCommittedSegmentInfos.userData.get(SequenceNumbers.LOCAL_CHECKPOINT_KEY));
         final long translogGenerationOfLastCommit =
             translog.getMinGenerationForSeqNo(localCheckpointOfLastCommit + 1).translogFileGeneration;
-        final long flushThreshold = config().getIndexSettings().getFlushThresholdSize().getBytes();
-        if (translog.sizeInBytesByMinGen(translogGenerationOfLastCommit) < flushThreshold) {
+
+        long translogSize = translog.sizeInBytesByMinGen(translogGenerationOfLastCommit);
+        if (translog.sizeInBytesByMinGen(translogGenerationOfLastCommit) < flushThresholdInBytes
+            && config().getThreadPool().relativeTimeInMillis() - lastFlushTimestamp < flushThresholdAge) {
             return false;
         }
         /*
@@ -1737,6 +1767,8 @@ public class InternalEngine extends Engine {
             } else {
                 logger.trace("acquired flush lock immediately");
             }
+
+            long startTime = System.nanoTime();
             try {
                 // Only flush if (1) Lucene has uncommitted docs, or (2) forced by caller, or (3) the
                 // newly created commit points to a different translog generation (can free translog),
@@ -1750,11 +1782,13 @@ public class InternalEngine extends Engine {
                     try {
                         translog.rollGeneration();
                         logger.trace("starting commit for flush; commitTranslog=true");
+                        long lastFlushTimestamp = config().getThreadPool().relativeTimeInMillis();
                         commitIndexWriter(indexWriter, translog);
                         logger.trace("finished commit for flush");
                         // we need to refresh in order to clear older version values
                         refresh("version_table_flush", SearcherScope.INTERNAL, true);
                         translog.trimUnreferencedReaders();
+                        this.lastFlushTimestamp = lastFlushTimestamp;
                     } catch (AlreadyClosedException e) {
                         failOnTragicEvent(e);
                         throw e;
@@ -1768,6 +1802,7 @@ public class InternalEngine extends Engine {
                 maybeFailEngine("flush", ex);
                 throw ex;
             } finally {
+                totalFlushTime.inc(System.nanoTime() - startTime);
                 flushLock.unlock();
             }
         }
@@ -2740,4 +2775,8 @@ public class InternalEngine extends Engine {
         refresh("restore_version_map_and_checkpoint_tracker", SearcherScope.INTERNAL, true);
     }
 
+    @Override
+    public long totalFlushTime() {
+        return totalFlushTime.sum();
+    }
 }

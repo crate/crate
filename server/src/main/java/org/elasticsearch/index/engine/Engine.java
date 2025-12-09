@@ -198,6 +198,13 @@ public abstract class Engine implements Closeable {
         }
     }
 
+    /**
+     * Returns the total flush time in nanoseconds, excluding the wait lock time.
+     */
+    public long totalFlushTime() {
+        return 0L;
+    }
+
     public MergeStats mergeStats() {
         return MergeStats.EMPTY;
     }
@@ -827,7 +834,7 @@ public abstract class Engine implements Closeable {
      * Called when our engine is using too much heap and should move buffered indexed/deleted documents to disk.
      */
     // NOTE: do NOT rename this to something containing flush or refresh!
-    public abstract void writeIndexingBuffer() throws EngineException;
+    public abstract void writeIndexingBuffer() throws IOException;
 
     /**
      * Checks if this engine should be flushed periodically.

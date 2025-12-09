@@ -90,7 +90,9 @@ public final class IndexSettings {
         Setting.timeSetting("index.refresh_interval", DEFAULT_REFRESH_INTERVAL, new TimeValue(-1, TimeUnit.MILLISECONDS),
             Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
     public static final Setting<ByteSizeValue> INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING =
-        Setting.byteSizeSetting("index.translog.flush_threshold_size", new ByteSizeValue(512, ByteSizeUnit.MB),
+        Setting.byteSizeSetting("index.translog.flush_threshold_size",
+            // Defaults to 10GB, but actual used value could be less based on the total available disk space.
+            new ByteSizeValue(10, ByteSizeUnit.GB),
             /*
              * An empty translog occupies 55 bytes on disk. If the flush threshold is below this, the flush thread
              * can get stuck in an infinite loop as the shouldPeriodicallyFlush can still be true after flushing.
@@ -100,6 +102,19 @@ public final class IndexSettings {
             new ByteSizeValue(Long.MAX_VALUE, ByteSizeUnit.BYTES),
             Property.Dynamic, Property.IndexScope, Property.ReplicatedIndexScope);
 
+    /**
+     * Maximum time to wait before flushing the translog (and possible indexing buffers). This ensures that even
+     * on idling shards which are not reaching the threshold size, translogs are flushed and not kept for long.
+     * Defaults to 1 minute which reflects average translog recovery times and such accounts for this as well.
+     */
+    public static final Setting<TimeValue> INDEX_TRANSLOG_FLUSH_THRESHOLD_AGE_SETTING = Setting.timeSetting(
+        "index.translog.flush_threshold_age",
+        new TimeValue(1, TimeUnit.MINUTES),
+        new TimeValue(1, TimeUnit.SECONDS),
+        new TimeValue(1, TimeUnit.HOURS),
+        Property.Dynamic,
+        Property.IndexScope
+    );
 
     /**
      * The minimum size of a merge that triggers a flush in order to free resources
@@ -222,6 +237,7 @@ public final class IndexSettings {
     private volatile TimeValue syncInterval;
     private volatile TimeValue refreshInterval;
     private volatile ByteSizeValue flushThresholdSize;
+    private volatile TimeValue flushThresholdAge;
     private volatile TimeValue translogRetentionAge;
     private volatile ByteSizeValue translogRetentionSize;
     private volatile ByteSizeValue flushAfterMergeThresholdSize;
@@ -288,6 +304,7 @@ public final class IndexSettings {
         syncInterval = INDEX_TRANSLOG_SYNC_INTERVAL_SETTING.get(settings);
         refreshInterval = scopedSettings.get(INDEX_REFRESH_INTERVAL_SETTING);
         flushThresholdSize = scopedSettings.get(INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING);
+        flushThresholdAge = scopedSettings.get(INDEX_TRANSLOG_FLUSH_THRESHOLD_AGE_SETTING);
         generationThresholdSize = scopedSettings.get(INDEX_TRANSLOG_GENERATION_THRESHOLD_SIZE_SETTING);
         flushAfterMergeThresholdSize = scopedSettings.get(INDEX_FLUSH_AFTER_MERGE_THRESHOLD_SIZE_SETTING);
         mergeSchedulerConfig = new MergeSchedulerConfig(this);
@@ -319,6 +336,7 @@ public final class IndexSettings {
         scopedSettings.addSettingsUpdateConsumer(MAX_SHINGLE_DIFF_SETTING, this::setMaxShingleDiff);
         scopedSettings.addSettingsUpdateConsumer(INDEX_GC_DELETES_SETTING, this::setGCDeletes);
         scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_FLUSH_THRESHOLD_SIZE_SETTING, this::setTranslogFlushThresholdSize);
+        scopedSettings.addSettingsUpdateConsumer(INDEX_TRANSLOG_FLUSH_THRESHOLD_AGE_SETTING, this::setTranslogFlushThresholdAge);
         scopedSettings.addSettingsUpdateConsumer(
             INDEX_FLUSH_AFTER_MERGE_THRESHOLD_SIZE_SETTING,
             this::setFlushAfterMergeThresholdSize);
@@ -340,6 +358,10 @@ public final class IndexSettings {
 
     private void setTranslogFlushThresholdSize(ByteSizeValue byteSizeValue) {
         this.flushThresholdSize = byteSizeValue;
+    }
+
+    private void setTranslogFlushThresholdAge(TimeValue flushThresholdAge) {
+        this.flushThresholdAge = flushThresholdAge;
     }
 
     private void setFlushAfterMergeThresholdSize(ByteSizeValue byteSizeValue) {
@@ -530,9 +552,33 @@ public final class IndexSettings {
 
     /**
      * Returns the transaction log threshold size when to forcefully flush the index and clear the transaction log.
+     * Depends on the given total available disk space, if 1% is lower than the configured value,
+     * use 1% or at least 10MB.
      */
     public ByteSizeValue getFlushThresholdSize() {
         return flushThresholdSize;
+    }
+
+    public ByteSizeValue getFlushThresholdSize(ByteSizeValue totalDiskSpace) {
+        long onePercentOfTotalDiskSpace = totalDiskSpace.getBytes() / 100;
+
+        // Use 10MB as the lowest value
+        if (onePercentOfTotalDiskSpace <= ByteSizeUnit.MB.toBytes(10)) {
+            onePercentOfTotalDiskSpace = new ByteSizeValue(10, ByteSizeUnit.MB).getBytes();
+        }
+
+        if (onePercentOfTotalDiskSpace < flushThresholdSize.getBytes()) {
+            return new ByteSizeValue(onePercentOfTotalDiskSpace, ByteSizeUnit.BYTES);
+        }
+
+        return flushThresholdSize;
+    }
+
+    /**
+     * Returns the transaction log threshold age when to forcefully flush the index and clear the transaction log.
+     */
+    public TimeValue getFlushThresholdAge() {
+        return flushThresholdAge;
     }
 
     /**
