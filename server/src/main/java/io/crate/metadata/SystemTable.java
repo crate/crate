@@ -296,7 +296,8 @@ public final class SystemTable<T> implements TableInfo {
                 refByColumns.put(
                     column.column,
                     new SimpleReference(
-                        new ReferenceIdent(name, column.column),
+                        name,
+                        column.column,
                         RowGranularity.DOC,
                         column.type,
                         IndexType.PLAIN,
@@ -313,7 +314,8 @@ public final class SystemTable<T> implements TableInfo {
                     final DataType<?> leafType = ((DynamicColumn<?>) column).leafType;
                     dynamicColumns.put(column.column, wanted -> {
                         var ref = new DynamicReference(
-                            new ReferenceIdent(name, wanted),
+                            name,
+                            wanted,
                             RowGranularity.DOC,
                             position
                         );

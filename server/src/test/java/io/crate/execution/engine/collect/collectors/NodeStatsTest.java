@@ -58,7 +58,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
@@ -84,21 +83,24 @@ public class NodeStatsTest extends ESTestCase {
         nodeStatesExecutor = req -> nodeStatsAction.execute(req);
 
         idRef = new SimpleReference(
-            new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
+            SysNodesTableInfo.IDENT,
+            SysNodesTableInfo.Columns.ID,
             RowGranularity.DOC,
             DataTypes.STRING,
             1,
             null
         );
         nameRef = new SimpleReference(
-            new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.ID),
+            SysNodesTableInfo.IDENT,
+            SysNodesTableInfo.Columns.ID,
             RowGranularity.DOC,
             DataTypes.STRING,
             2,
             null
         );
         hostnameRef = new SimpleReference(
-            new ReferenceIdent(SysNodesTableInfo.IDENT, SysNodesTableInfo.Columns.HOSTNAME),
+            SysNodesTableInfo.IDENT,
+            SysNodesTableInfo.Columns.HOSTNAME,
             RowGranularity.DOC,
             DataTypes.STRING,
             3,

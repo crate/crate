@@ -33,7 +33,7 @@ import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.ArrayType;
@@ -43,18 +43,21 @@ import io.crate.types.StorageSupport;
 
 public final class DynamicIndexer implements ValueIndexer<Object> {
 
-    private final ReferenceIdent refIdent;
+    private final RelationName relation;
+    private final ColumnIdent column;
     private final Function<ColumnIdent, Reference> getRef;
     private final int position;
     private final boolean useOids;
     private DataType<?> type = null;
     private ValueIndexer<Object> indexer;
 
-    public DynamicIndexer(ReferenceIdent refIdent,
+    public DynamicIndexer(RelationName relation,
+                          ColumnIdent column,
                           int position,
                           Function<ColumnIdent, Reference> getRef,
                           boolean useOids) {
-        this.refIdent = refIdent;
+        this.relation = relation;
+        this.column = column;
         this.getRef = getRef;
         this.position = position;
         this.useOids = useOids;
@@ -63,7 +66,11 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     /**
      * Create a new Reference based on a dynamically detected type
      */
-    public static Reference buildReference(ReferenceIdent refIdent, DataType<?> type, int position, long oid) {
+    public static Reference buildReference(RelationName relation,
+                                           ColumnIdent column,
+                                           DataType<?> type,
+                                           int position,
+                                           long oid) {
         StorageSupport<?> storageSupport = type.storageSupport();
         if (storageSupport == null) {
             throw new IllegalArgumentException(
@@ -71,7 +78,8 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                     "Storage is not supported for this type");
         }
         return new SimpleReference(
-            refIdent,
+            relation,
+            column,
             RowGranularity.DOC,
             type,
             IndexType.PLAIN,
@@ -91,11 +99,11 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                                      Synthetics synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
-            Reference newColumn = buildReference(refIdent, type, position, COLUMN_OID_UNASSIGNED);
+            Reference newColumn = buildReference(relation, column, type, position, COLUMN_OID_UNASSIGNED);
             StorageSupport<?> storageSupport = type.storageSupport();
             assert storageSupport != null; // will have already thrown in buildReference
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
-                refIdent.tableIdent(),
+                relation,
                 newColumn,
                 getRef
             );
@@ -122,13 +130,13 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 "Cannot create columns of type " + type.getName() + " dynamically. " +
                     "Storage is not supported for this type");
         }
-        Reference newColumn = buildReference(refIdent, type, position, COLUMN_OID_UNASSIGNED);
+        Reference newColumn = buildReference(relation, column, type, position, COLUMN_OID_UNASSIGNED);
         if (indexer == null) {
             // Reuse indexer if phase 1 already created one.
             // Phase 1 mutates indexer.innerTypes on new columns creation.
             // Phase 2 must be aware of all mapping updates.
             // noinspection unchecked
-            indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(refIdent.tableIdent(), newColumn, getRef);
+            indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(relation, newColumn, getRef);
         }
         value = type.sanitizeValue(value);
         indexer.indexValue(value, docBuilder);
@@ -137,8 +145,8 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     @Override
     public String storageIdentLeafName() {
         return useOids
-            ? SourceParser.UNKNOWN_COLUMN_PREFIX + refIdent.columnIdent().leafName()
-            : refIdent.columnIdent().leafName();
+            ? SourceParser.UNKNOWN_COLUMN_PREFIX + column.leafName()
+            : column.leafName();
     }
 
     /**

@@ -25,8 +25,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.Test;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -39,7 +39,8 @@ public class FloatVectorIndexerTest {
         FloatVectorType type = new FloatVectorType(4);
         RelationName tableName = new RelationName("doc", "tbl");
         Reference ref = new SimpleReference(
-            new ReferenceIdent(tableName, "x"),
+            tableName,
+            ColumnIdent.of("x"),
             RowGranularity.DOC,
             type,
             1,
@@ -55,7 +56,8 @@ public class FloatVectorIndexerTest {
         FloatVectorType type = new FloatVectorType(2048);
         RelationName tableName = new RelationName("doc", "tbl");
         Reference ref = new SimpleReference(
-            new ReferenceIdent(tableName, "x"),
+            tableName,
+            ColumnIdent.of("x"),
             RowGranularity.DOC,
             type,
             1,

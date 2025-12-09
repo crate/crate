@@ -36,10 +36,10 @@ import io.crate.expression.scalar.Ignore3vlFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -67,7 +67,8 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
     };
     private static final SimplifyEqualsOperationOnIdenticalReferences RULE = new SimplifyEqualsOperationOnIdenticalReferences();
     private static final Symbol NULLABLE_REF = new SimpleReference(
-        new ReferenceIdent(new RelationName(null, "dummy"), "col"),
+        new RelationName(null, "dummy"),
+        ColumnIdent.of("col"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
         IndexType.PLAIN,
@@ -79,7 +80,8 @@ public class SimplifyEqualsOperationOnIdenticalReferencesTest {
         null
     );
     private static final Symbol NOT_NULLABLE_REF = new SimpleReference(
-        new ReferenceIdent(new RelationName(null, "dummy"), "col"),
+        new RelationName(null, "dummy"),
+        ColumnIdent.of("col"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
         IndexType.PLAIN,

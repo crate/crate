@@ -22,6 +22,7 @@
 package io.crate.analyze;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.HashMap;
@@ -40,7 +41,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -93,7 +93,7 @@ public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testNormalizePrimitiveLiteral() throws Exception {
         SimpleReference ref = new SimpleReference(
-            new ReferenceIdent(TEST_TABLE_IDENT, ColumnIdent.of("bool")), RowGranularity.DOC, DataTypes.BOOLEAN, 0, null
+            TEST_TABLE_IDENT, ColumnIdent.of("bool"), RowGranularity.DOC, DataTypes.BOOLEAN, 0, null
         );
         Literal<Boolean> trueLiteral = Literal.of(true);
 

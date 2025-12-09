@@ -34,7 +34,6 @@ import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -86,6 +85,6 @@ public class ColumnIndexWriterProjectionTest {
     }
 
     private Reference ref(ColumnIdent column, DataType<?> type) {
-        return new SimpleReference(new ReferenceIdent(relationName, column), RowGranularity.DOC, type, 0, null);
+        return new SimpleReference(relationName, column, RowGranularity.DOC, type, 0, null);
     }
 }

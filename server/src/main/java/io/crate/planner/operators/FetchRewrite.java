@@ -67,7 +67,7 @@ public final class FetchRewrite {
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
             if (output instanceof FetchMarker fetchMarker) {
-                RelationName tableName = fetchMarker.fetchId().ident().tableIdent();
+                RelationName tableName = fetchMarker.fetchId().relation();
                 FetchSource fetchSource = fetchSources.get(tableName);
                 if (fetchSource == null) {
                     fetchSource = new FetchSource();

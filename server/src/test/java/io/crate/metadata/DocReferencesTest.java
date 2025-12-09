@@ -38,7 +38,7 @@ public class DocReferencesTest {
 
     private static Reference stringRef(String path) {
         ColumnIdent columnIdent = ColumnIdent.fromPath(path);
-        return new SimpleReference(new ReferenceIdent(RELATION_ID, columnIdent), RowGranularity.DOC, DataTypes.STRING, 0, null);
+        return new SimpleReference(RELATION_ID, columnIdent, RowGranularity.DOC, DataTypes.STRING, 0, null);
     }
 
     @Test
@@ -46,27 +46,27 @@ public class DocReferencesTest {
         // users._doc['name'] -> users.name
         Reference reference = stringRef("_doc.name");
         Reference newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertThat(stringRef("name").ident()).isEqualTo(newRef.ident());
+        assertThat(stringRef("name").column()).isEqualTo(newRef.column());
 
         // users._doc -> users._doc
         reference = stringRef("_doc");
         newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertThat(stringRef("_doc").ident()).isEqualTo(newRef.ident());
+        assertThat(stringRef("_doc").column()).isEqualTo(newRef.column());
     }
 
     @Test
     public void testDontConvertOtherReferences() throws Exception {
         Reference reference = stringRef("_raw");
         Reference newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertThat(reference.ident()).isEqualTo(newRef.ident());
+        assertThat(reference.column()).isEqualTo(newRef.column());
 
         reference = stringRef("_id");
         newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertThat(reference.ident()).isEqualTo(newRef.ident());
+        assertThat(reference.column()).isEqualTo(newRef.column());
 
         reference = stringRef("address.zip_code");
         newRef = (Reference) DocReferences.inverseSourceLookup(reference);
-        assertThat(reference.ident()).isEqualTo(newRef.ident());
+        assertThat(reference.column()).isEqualTo(newRef.column());
     }
 
     @Test
@@ -86,7 +86,7 @@ public class DocReferencesTest {
         var references = List.of(stringRef("name"), stringRef("first_name"));
         var referenceMap = references.stream()
                 .collect(Collectors.toMap(Reference::column, reference -> reference));
-        var indexReference = new IndexReference.Builder(new ReferenceIdent(RELATION_ID, ColumnIdent.of("ft")))
+        var indexReference = new IndexReference.Builder(RELATION_ID, ColumnIdent.of("ft"))
                 .sources(List.of("name", "first_name"))
                 .build(referenceMap);
         long[] oid = new long[1];

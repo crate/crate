@@ -35,8 +35,8 @@ import org.apache.lucene.util.BytesRef;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -45,11 +45,12 @@ import io.crate.types.DataTypes;
 
 public class OptimizeQueryForSearchAfterTest {
 
+    RelationName relationName = new RelationName("doc", "dummy");
+
     @Test
     public void test_string_range_query_can_handle_byte_ref_values() {
-        ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
         OrderBy orderBy = new OrderBy(List.of(
-            new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.STRING, 1, null)
+            new SimpleReference(relationName, ColumnIdent.of("x"), RowGranularity.DOC, DataTypes.STRING, 1, null)
         ));
         var optimize = new OptimizeQueryForSearchAfter(orderBy);
         FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { new BytesRef("foobar") });
@@ -59,9 +60,8 @@ public class OptimizeQueryForSearchAfterTest {
 
     @Test
     public void test_char_range_query_can_handle_byte_ref_values() {
-        ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
         OrderBy orderBy = new OrderBy(List.of(
-            new SimpleReference(referenceIdent, RowGranularity.DOC, CharacterType.of(3), 1, null)
+            new SimpleReference(relationName, ColumnIdent.of("x"), RowGranularity.DOC, CharacterType.of(3), 1, null)
         ));
         var optimize = new OptimizeQueryForSearchAfter(orderBy);
         FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { new BytesRef("foobar") });
@@ -71,10 +71,9 @@ public class OptimizeQueryForSearchAfterTest {
 
     @Test
     public void test_short_range_query_with_and_without_docvalues() {
-        ReferenceIdent referenceIdent = new ReferenceIdent(new RelationName("doc", "dummy"), "x");
         OrderBy orderBy = new OrderBy(List.of(
-                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT,
-                                    IndexType.PLAIN, true, true, 1, COLUMN_OID_UNASSIGNED, false, null)
+            new SimpleReference(relationName, ColumnIdent.of("x"), RowGranularity.DOC, DataTypes.SHORT,
+                    IndexType.PLAIN, true, true, 1, COLUMN_OID_UNASSIGNED, false, null)
         ));
         var optimize = new OptimizeQueryForSearchAfter(orderBy);
         FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { (short) 10 });
@@ -87,7 +86,7 @@ public class OptimizeQueryForSearchAfterTest {
                 x -> assertThat(x.query().getClass().getName()).endsWith("IntPoint$1")); // the query class is anonymous
 
         orderBy = new OrderBy(List.of(
-                new SimpleReference(referenceIdent, RowGranularity.DOC, DataTypes.SHORT,
+                new SimpleReference(relationName, ColumnIdent.of("x"), RowGranularity.DOC, DataTypes.SHORT,
                                     IndexType.PLAIN, true, false, 1, COLUMN_OID_UNASSIGNED, false, null)
         ));
         optimize = new OptimizeQueryForSearchAfter(orderBy);
@@ -108,9 +107,17 @@ public class OptimizeQueryForSearchAfterTest {
                 OrderBy orderBy = new OrderBy(
                     List.of(
                         new SimpleReference(
-                            new ReferenceIdent(new RelationName("doc", "dummy"), "x1"),
-                            RowGranularity.DOC, DataTypes.SHORT, IndexType.NONE, true,
-                            false, 1, COLUMN_OID_UNASSIGNED, false, null)),
+                            relationName,
+                            ColumnIdent.of("x1"),
+                            RowGranularity.DOC,
+                            DataTypes.SHORT,
+                            IndexType.NONE,
+                            true,
+                            false,
+                            1,
+                            COLUMN_OID_UNASSIGNED,
+                            false,
+                            null)),
                     new boolean[]{reverseFlag},
                     new boolean[]{nullsFirst}
                 );

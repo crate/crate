@@ -62,7 +62,7 @@ public interface Reference extends Symbol {
         return -1;
     }
 
-    ReferenceIdent ident();
+    RelationName relation();
 
     ColumnIdent column();
 
@@ -102,7 +102,9 @@ public interface Reference extends Symbol {
 
     boolean isGenerated();
 
-    Reference withReferenceIdent(ReferenceIdent referenceIdent);
+    Reference withColumn(ColumnIdent column);
+
+    Reference withRelation(RelationName relation);
 
     Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition);
 

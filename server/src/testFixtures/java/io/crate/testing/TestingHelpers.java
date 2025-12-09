@@ -64,7 +64,6 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -239,7 +238,8 @@ public class TestingHelpers {
 
     public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType<?> dataType) {
         return new SimpleReference(
-            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, tableName), columnIdent),
+            new RelationName(Schemas.DOC_SCHEMA_NAME, tableName),
+            columnIdent,
             RowGranularity.DOC,
             dataType,
             0,
@@ -271,19 +271,30 @@ public class TestingHelpers {
                                     RowGranularity rowGranularity,
                                     String... nested) {
         String[] parts = fqColumnName.split("\\.");
-        ReferenceIdent refIdent;
-
         List<String> nestedParts = null;
         if (nested.length > 0) {
             nestedParts = Arrays.asList(nested);
         }
-        refIdent = switch (parts.length) {
-            case 2 -> new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, parts[0]), parts[1], nestedParts);
-            case 3 -> new ReferenceIdent(new RelationName(parts[0], parts[1]), parts[2], nestedParts);
+        return switch (parts.length) {
+            case 2 -> new SimpleReference(
+                new RelationName(Schemas.DOC_SCHEMA_NAME, parts[0]),
+                ColumnIdent.of(parts[1], nestedParts),
+                rowGranularity,
+                dataType,
+                0,
+                null
+            );
+            case 3 -> new SimpleReference(
+                new RelationName(parts[0], parts[1]),
+                ColumnIdent.of(parts[2], nestedParts),
+                rowGranularity,
+                dataType,
+                0,
+                null
+            );
             default -> throw new IllegalArgumentException(
                 "fqColumnName must contain <table>.<column> or <schema>.<table>.<column>");
         };
-        return new SimpleReference(refIdent, rowGranularity, dataType, 0, null);
     }
 
     public static DataType<?> randomPrimitiveType() {

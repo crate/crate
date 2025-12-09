@@ -23,6 +23,7 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -55,7 +56,6 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -83,7 +83,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             Map.of(
                 columnIdent,
                 new SimpleReference(
-                    new ReferenceIdent(relationName, columnIdent),
+                    relationName,
+                    columnIdent,
                     RowGranularity.DOC,
                     DataTypes.UNTYPED_OBJECT,
                     1,
@@ -136,9 +137,9 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     public void testGetColumnInfoStrictParent() throws Exception {
         RelationName dummy = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
         ColumnIdent column = ColumnIdent.of("foobar");
-        ReferenceIdent foobarIdent = new ReferenceIdent(dummy, column);
         SimpleReference strictParent = new SimpleReference(
-            foobarIdent,
+            dummy,
+            column,
             RowGranularity.DOC,
             ObjectType.of(ColumnPolicy.STRICT).build(),
             IndexType.PLAIN,
@@ -253,7 +254,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     public void test_lookup_name_by_source_with_columns_with_and_without_oids_added_to_table_created_before_5_5_0() {
         RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
         SimpleReference withoutOid = new SimpleReference(
-            new ReferenceIdent(relationName, ColumnIdent.of("withoutOid", List.of())),
+            relationName,
+            ColumnIdent.of("withoutOid", List.of()),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             IndexType.PLAIN,
@@ -265,7 +267,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         SimpleReference withOid = new SimpleReference(
-            new ReferenceIdent(relationName, ColumnIdent.of("withOid", List.of())),
+            relationName,
+            ColumnIdent.of("withOid", List.of()),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             IndexType.PLAIN,
@@ -310,7 +313,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         ColumnIdent a = ColumnIdent.of("a", List.of());
         ColumnIdent b = ColumnIdent.of("b", List.of());
         SimpleReference refa = new SimpleReference(
-            new ReferenceIdent(relationName, a),
+            relationName,
+            a,
             RowGranularity.DOC,
             DataTypes.INTEGER,
             IndexType.PLAIN,
@@ -322,7 +326,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             null
         );
         SimpleReference refb = new SimpleReference(
-            new ReferenceIdent(relationName, b),
+            relationName,
+            b,
             RowGranularity.DOC,
             DataTypes.INTEGER,
             IndexType.PLAIN,
@@ -401,7 +406,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)");
         DocTableInfo table1 = e.resolveTableInfo("tbl");
         SimpleReference newReference = new SimpleReference(
-            new ReferenceIdent(table1.ident(), "y"),
+            table1.ident(),
+            ColumnIdent.of("y"),
             RowGranularity.DOC,
             DataTypes.LONG,
             -1,
@@ -480,7 +486,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         Reference xref = table1.getReference(ColumnIdent.of("x"));
         Reference pointRef = table1.getReference(ColumnIdent.of("point"));
         SimpleReference newReference = new SimpleReference(
-            new ReferenceIdent(table1.ident(), "y"),
+            table1.ident(),
+            ColumnIdent.of("y"),
             RowGranularity.DOC,
             DataTypes.LONG,
             -1,
@@ -511,7 +518,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
 
         SimpleReference pointY = new SimpleReference(
-            new ReferenceIdent(table1.ident(), ColumnIdent.of("point", "y")),
+            table1.ident(),
+            ColumnIdent.of("point", "y"),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             -1,
@@ -535,7 +543,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         Reference ox = new SimpleReference(
-            new ReferenceIdent(table.ident(), ColumnIdent.of("o", "x")),
+            table.ident(),
+            ColumnIdent.of("o", "x"),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             -1,
@@ -558,21 +567,24 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (o object as (o object as (b1 int), a1 int))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         SimpleReference newReference1 = new SimpleReference(
-            new ReferenceIdent(table.ident(), ColumnIdent.of("o", List.of("o", "o", "c1"))),
+            table.ident(),
+            ColumnIdent.of("o", List.of("o", "o", "c1")),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             -1,
             null
         );
         SimpleReference newReference2 = new SimpleReference(
-            new ReferenceIdent(table.ident(), ColumnIdent.of("o", List.of("o", "o"))),
+            table.ident(),
+            ColumnIdent.of("o", List.of("o", "o")),
             RowGranularity.DOC,
             DataTypes.UNTYPED_OBJECT,
             -1,
             null
         );
         SimpleReference newReference3 = new SimpleReference(
-            new ReferenceIdent(table.ident(), ColumnIdent.of("o", List.of("o", "b2"))),
+            table.ident(),
+            ColumnIdent.of("o", List.of("o", "b2")),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             -1,
@@ -613,7 +625,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int) with (\"mapping.total_fields.limit\" = 3)");
         DocTableInfo table = e.resolveTableInfo("tbl");
         Function<String, Reference> newRef = name -> new SimpleReference(
-            new ReferenceIdent(table.ident(), ColumnIdent.of(name)),
+            table.ident(),
+            ColumnIdent.of(name),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             -1,

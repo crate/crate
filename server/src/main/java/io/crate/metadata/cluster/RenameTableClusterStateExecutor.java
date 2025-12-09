@@ -39,7 +39,6 @@ import io.crate.common.collections.Lists;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.ddl.tables.RenameTableRequest;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewsMetadata;
 
@@ -96,7 +95,7 @@ public class RenameTableClusterStateExecutor {
                 target,
                 Lists.map(
                     table.columns(),
-                    ref -> ref.withReferenceIdent(new ReferenceIdent(target, ref.column()))
+                    ref -> ref.withRelation(target)
                 ),
                 table.settings(),
                 table.routingColumn(),
