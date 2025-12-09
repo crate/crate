@@ -141,7 +141,7 @@ public class IterativeOptimizerTest {
         assertThatThrownBy(() -> optimizer.optimize(plan, planStats, ctx, OptimizerTracer.NOOP, token)
         )
             .isExactlyInstanceOf(JobKilledException.class)
-            .hasMessage("Job killed. statement_timeout (1ms)");
+            .hasMessage("Job killed. statement_timeout (1ms/IterativeOptimizer)");
     }
 
     static class SlowRule implements Rule<MemoTest.TestPlan> {

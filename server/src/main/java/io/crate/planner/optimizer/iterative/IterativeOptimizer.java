@@ -127,7 +127,7 @@ public class IterativeOptimizer {
             if (numIteration % 100 == 0) {
                 // Intermediate check to throw early.
                 // Overall planning time is checked one more time right before execute once plan is created
-                timeoutToken.check();
+                timeoutToken.check("IterativeOptimizer");
             }
             done = true;
             for (Rule<?> rule : rules) {
