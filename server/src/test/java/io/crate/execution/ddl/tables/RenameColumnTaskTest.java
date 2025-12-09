@@ -34,7 +34,6 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -221,7 +220,8 @@ public class RenameColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var renameColumnTask = buildRenameColumnTask(e, tbl.ident());
         SimpleReference refToRename = new SimpleReference(
-            new ReferenceIdent(tbl.ident(), "a"),
+            tbl.ident(),
+            ColumnIdent.of("a"),
             RowGranularity.DOC,
             // since the analysis, the data type of 'a' has changed from int to double
             DataTypes.DOUBLE,

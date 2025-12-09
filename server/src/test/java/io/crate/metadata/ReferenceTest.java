@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -47,45 +48,49 @@ import io.crate.types.StringType;
 
 public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
+    RelationName relationName = new RelationName("doc", "test");
+    ColumnIdent column = ColumnIdent.of("object_column");
+
     @Test
     public void testEquals() {
-        RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         var dataType1 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         var dataType2 = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         Symbol defaultExpression1 = Literal.of(dataType1, List.of(Map.of("f", 10)));
         Symbol defaultExpression2 = Literal.of(dataType2, List.of(Map.of("f", 10)));
-        SimpleReference reference1 = new SimpleReference(referenceIdent,
-                                                         RowGranularity.DOC,
-                                                         dataType1,
-                                                         IndexType.PLAIN,
-                                                         false,
-                                                         true,
-                                                         1,
-                                                         111,
-                                                         true,
-                                                         defaultExpression1);
-        SimpleReference reference2 = new SimpleReference(referenceIdent,
-                                                         RowGranularity.DOC,
-                                                         dataType2,
-                                                         IndexType.PLAIN,
-                                                         false,
-                                                         true,
-                                                         1,
-                                                         111,
-                                                         true,
-                                                         defaultExpression2);
+        SimpleReference reference1 = new SimpleReference(
+            relationName,
+            column,
+            RowGranularity.DOC,
+            dataType1,
+            IndexType.PLAIN,
+            false,
+            true,
+            1,
+            111,
+            true,
+            defaultExpression1);
+        SimpleReference reference2 = new SimpleReference(
+            relationName,
+            column,
+            RowGranularity.DOC,
+            dataType2,
+            IndexType.PLAIN,
+            false,
+            true,
+            1,
+            111,
+            true,
+            defaultExpression2);
         assertThat(reference1).isEqualTo(reference2);
         assertThat(reference2).isNotEqualTo(reference2.withDropped(false));
     }
 
     @Test
     public void testStreaming() throws Exception {
-        RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
-            referenceIdent,
+            relationName,
+            column,
             RowGranularity.DOC,
             dataType,
             IndexType.FULLTEXT,
@@ -109,11 +114,10 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_streaming_of_reference_position_before_4_6_0() throws Exception {
-        RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
-            referenceIdent,
+            relationName,
+            column,
             RowGranularity.DOC,
             dataType,
             IndexType.FULLTEXT,
@@ -197,13 +201,12 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_streaming_column_policy_removed_on_or_after_5_10_0() throws IOException {
-        RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "o");
         var dataType = new ArrayType<>(ObjectType.of(ColumnPolicy.IGNORED)
             .setInnerType("o2", ObjectType.of(ColumnPolicy.STRICT).build())
             .build());
         SimpleReference reference = new SimpleReference(
-            referenceIdent,
+            relationName,
+            column,
             RowGranularity.DOC,
             dataType,
             IndexType.FULLTEXT,
@@ -252,13 +255,12 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_storage_ident_without_oid() {
-        RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "o");
         var dataType = new ArrayType<>(ObjectType.of(ColumnPolicy.IGNORED)
             .setInnerType("o2", ObjectType.of(ColumnPolicy.STRICT).build())
             .build());
         SimpleReference reference = new SimpleReference(
-            referenceIdent,
+            relationName,
+            ColumnIdent.of("o"),
             RowGranularity.DOC,
             dataType,
             IndexType.FULLTEXT,

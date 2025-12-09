@@ -59,7 +59,8 @@ public class SimpleReference implements Reference {
     protected final long oid;
     protected boolean isDropped;
 
-    protected final ReferenceIdent ident;
+    protected final RelationName relation;
+    protected final ColumnIdent column;
     protected final RowGranularity granularity;
     protected final IndexType indexType;
     protected final boolean nullable;
@@ -68,12 +69,14 @@ public class SimpleReference implements Reference {
     @Nullable
     protected final Symbol defaultExpression;
 
-    public SimpleReference(ReferenceIdent ident,
+    public SimpleReference(RelationName relation,
+                           ColumnIdent column,
                            RowGranularity granularity,
                            DataType<?> type,
                            int position,
                            @Nullable Symbol defaultExpression) {
-        this(ident,
+        this(relation,
+             column,
              granularity,
              type,
              IndexType.PLAIN,
@@ -85,7 +88,8 @@ public class SimpleReference implements Reference {
              defaultExpression);
     }
 
-    public SimpleReference(ReferenceIdent ident,
+    public SimpleReference(RelationName relation,
+                           ColumnIdent column,
                            RowGranularity granularity,
                            DataType<?> type,
                            IndexType indexType,
@@ -96,7 +100,8 @@ public class SimpleReference implements Reference {
                            boolean isDropped,
                            @Nullable Symbol defaultExpression) {
         this.position = position;
-        this.ident = ident;
+        this.relation = relation;
+        this.column = column;
         this.type = type;
         this.granularity = granularity;
         this.indexType = indexType;
@@ -109,14 +114,15 @@ public class SimpleReference implements Reference {
         } else {
             if (defaultExpression.hasFunctionType(FunctionType.TABLE)) {
                 throw new UnsupportedOperationException(
-                    "Cannot use table function in default expression of column `" + ident.columnIdent().fqn() + "`");
+                    "Cannot use table function in default expression of column `" + column.fqn() + "`");
             }
             this.defaultExpression = defaultExpression.cast(type, CastMode.IMPLICIT);
         }
     }
 
     public SimpleReference(StreamInput in) throws IOException {
-        ident = new ReferenceIdent(in);
+        column = ColumnIdent.of(in);
+        relation = new RelationName(in);
         position = in.readVInt();
         Version version = in.getVersion();
         if (version.onOrAfter(Version.V_5_5_0)) {
@@ -153,7 +159,8 @@ public class SimpleReference implements Reference {
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
-        ident.writeTo(out);
+        column.writeTo(out);
+        relation.writeTo(out);
         out.writeVInt(position);
         Version version = out.getVersion();
         if (version.onOrAfter(Version.V_5_5_0)) {
@@ -173,13 +180,31 @@ public class SimpleReference implements Reference {
         Symbol.nullableToStream(defaultExpression, out);
     }
 
+    @Override
+    public Reference withColumn(ColumnIdent column) {
+        return new SimpleReference(
+            relation,
+            column,
+            granularity,
+            type,
+            indexType,
+            nullable,
+            hasDocValues,
+            position,
+            oid,
+            isDropped,
+            defaultExpression
+        );
+    }
+
     /**
      * Returns a cloned Reference with the given ident
      */
     @Override
-    public Reference withReferenceIdent(ReferenceIdent newIdent) {
+    public Reference withRelation(RelationName relation) {
         return new SimpleReference(
-            newIdent,
+            relation,
+            column,
             granularity,
             type,
             indexType,
@@ -200,7 +225,8 @@ public class SimpleReference implements Reference {
             return this;
         }
         return new SimpleReference(
-            ident,
+            relation,
+            column,
             granularity,
             type,
             indexType,
@@ -216,7 +242,8 @@ public class SimpleReference implements Reference {
     @Override
     public Reference withDropped(boolean dropped) {
         return new SimpleReference(
-            ident,
+            relation,
+            column,
             granularity,
             type,
             indexType,
@@ -232,7 +259,8 @@ public class SimpleReference implements Reference {
     @Override
     public Reference withValueType(DataType<?> newType) {
         return new SimpleReference(
-            ident,
+            relation,
+            column,
             granularity,
             newType,
             indexType,
@@ -268,19 +296,19 @@ public class SimpleReference implements Reference {
     @Override
     public String toString(Style style) {
         if (style == Style.QUALIFIED) {
-            return ident.tableIdent().sqlFqn() + '.' + column().quotedOutputName();
+            return relation.sqlFqn() + '.' + column().quotedOutputName();
         }
         return column().quotedOutputName();
     }
 
     @Override
-    public ReferenceIdent ident() {
-        return ident;
+    public RelationName relation() {
+        return relation;
     }
 
     @Override
     public ColumnIdent column() {
-        return ident.columnIdent();
+        return column;
     }
 
     @Override
@@ -364,8 +392,9 @@ public class SimpleReference implements Reference {
             o instanceof SimpleReference ref
             && oid == ref.oid
             && position == ref.position
-            && ident.equals(ref.ident)
+            && column.equals(ref.column)
             && type.equals(ref.type)
+            && relation.equals(ref.relation)
             && indexType == ref.indexType
             && nullable == ref.nullable
             && hasDocValues == ref.hasDocValues
@@ -378,7 +407,8 @@ public class SimpleReference implements Reference {
     public int hashCode() {
         int result = type.hashCode();
         result = 31 * result + Integer.hashCode(position);
-        result = 31 * result + ident.hashCode();
+        result = 31 * result + column.hashCode();
+        result = 31 * result + relation.hashCode();
         result = 31 * result + granularity.hashCode();
         result = 31 * result + indexType.hashCode();
         result = 31 * result + (nullable ? 1 : 0);
@@ -393,7 +423,8 @@ public class SimpleReference implements Reference {
     public long ramBytesUsed() {
         return SHALLOW_SIZE
             + type.ramBytesUsed()
-            + ident.ramBytesUsed()
+            + relation.ramBytesUsed()
+            + column.ramBytesUsed()
             + (defaultExpression == null ? 0 : defaultExpression.ramBytesUsed());
     }
 }

@@ -25,7 +25,8 @@ import java.io.IOException;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.DataType;
@@ -37,8 +38,8 @@ public class DynamicReference extends SimpleReference {
         super(in);
     }
 
-    public DynamicReference(ReferenceIdent ident, RowGranularity granularity, int position) {
-        super(ident, granularity, DataTypes.UNDEFINED, position, null);
+    public DynamicReference(RelationName relation, ColumnIdent column, RowGranularity granularity, int position) {
+        super(relation, column, granularity, DataTypes.UNDEFINED, position, null);
     }
 
     @Override

@@ -21,15 +21,15 @@
 
 package io.crate.statistics;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -55,7 +55,8 @@ public class TransportAnalyzeActionTest extends ESTestCase {
         );
         var references = List.<Reference>of(
             new SimpleReference(
-                new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy"), "dummy"),
+                new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy"),
+                ColumnIdent.of("dummy"),
                 RowGranularity.DOC,
                 DataTypes.STRING_ARRAY,
                 0,

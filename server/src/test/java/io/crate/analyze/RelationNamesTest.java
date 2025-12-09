@@ -32,7 +32,7 @@ import org.junit.Test;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -82,7 +82,8 @@ public class RelationNamesTest extends CrateDummyClusterServiceUnitTest {
         assertThat(
         RelationNames.getDeep(
             new AliasSymbol("r", new SimpleReference(
-                new ReferenceIdent(tableIdent, "a"),
+                tableIdent,
+                ColumnIdent.of("a"),
                 RowGranularity.DOC,
                 DataTypes.SHORT,
                 0,

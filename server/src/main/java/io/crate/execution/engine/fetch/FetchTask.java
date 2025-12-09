@@ -273,7 +273,7 @@ public class FetchTask implements Task {
         }
         Set<RelationName> tablesWithFetchRefs = new HashSet<>();
         for (Reference reference : phase.fetchRefs()) {
-            tablesWithFetchRefs.add(reference.ident().tableIdent());
+            tablesWithFetchRefs.add(reference.relation());
         }
         String source = "fetch-task: " + jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
         for (Routing routing : routings) {
@@ -324,7 +324,7 @@ public class FetchTask implements Task {
             }
         }
         for (Reference reference : phase.fetchRefs()) {
-            Collection<Reference> references = toFetch.get(reference.ident().tableIdent());
+            Collection<Reference> references = toFetch.get(reference.relation());
             if (references != null) {
                 references.add(reference);
             }

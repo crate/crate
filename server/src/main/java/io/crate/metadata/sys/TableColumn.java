@@ -25,7 +25,6 @@ import java.util.Map;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 
 /**
@@ -57,6 +56,6 @@ public class TableColumn {
         if (info == null) {
             return null;
         }
-        return info.withReferenceIdent(new ReferenceIdent(relationName, columnIdent));
+        return info.withColumn(columnIdent);
     }
 }

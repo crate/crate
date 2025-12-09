@@ -32,8 +32,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Literal;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -45,10 +45,10 @@ public class DropColumnTest extends ESTestCase {
     @Test
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
-            referenceIdent,
+            relationName,
+            ColumnIdent.of("object_column"),
             RowGranularity.DOC,
             dataType,
             IndexType.FULLTEXT,

@@ -239,7 +239,7 @@ public class InputFactory {
             }
             implementation = referenceResolver.getImplementation(ref);
             if (implementation == null) {
-                String schema = ref.ident().tableIdent().schema();
+                String schema = ref.relation().schema();
                 String msg = Schemas.READ_ONLY_SYSTEM_SCHEMAS.contains(schema)
                     ? "Column implementation not found for: " + ref + ". This can happen in mixed clusters when using " +
                         "`SELECT *`; Declare the column list explicitly instead"

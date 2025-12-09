@@ -38,7 +38,6 @@ import org.elasticsearch.index.Index;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.cluster.DDLClusterStateService;
 
@@ -137,7 +136,7 @@ public class SwapRelationsOperation {
                     target,
                     Lists.map(
                         sourceRelation.columns(),
-                        ref -> ref.withReferenceIdent(new ReferenceIdent(target, ref.column()))
+                        ref -> ref.withRelation(target)
                     ),
                     sourceRelation.settings(),
                     sourceRelation.routingColumn(),
@@ -154,7 +153,7 @@ public class SwapRelationsOperation {
                     source,
                     Lists.map(
                         targetRelation.columns(),
-                        ref -> ref.withReferenceIdent(new ReferenceIdent(source, ref.column()))
+                        ref -> ref.withRelation(source)
                     ),
                     targetRelation.settings(),
                     targetRelation.routingColumn(),

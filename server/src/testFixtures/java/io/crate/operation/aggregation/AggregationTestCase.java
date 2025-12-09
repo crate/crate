@@ -116,12 +116,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -328,10 +328,10 @@ public abstract class AggregationTestCase extends ESTestCase {
         );
         var toCollectRefs = new ArrayList<Symbol>(argumentTypes.size());
         for (int i = 0; i < argumentTypes.size(); i++) {
-            ReferenceIdent ident = new ReferenceIdent(PARTITION_NAME.relationName(), Integer.toString(i));
             toCollectRefs.add(
                 new SimpleReference(
-                    ident,
+                    PARTITION_NAME.relationName(),
+                    ColumnIdent.of(Integer.toString(i)),
                     RowGranularity.DOC,
                     argumentTypes.get(i),
                     IndexType.PLAIN,
@@ -628,7 +628,8 @@ public abstract class AggregationTestCase extends ESTestCase {
             StorageSupport<?> storageSupport = type.storageSupportSafe();
             references.add(
                 new SimpleReference(
-                    new ReferenceIdent(PARTITION_NAME.relationName(), Integer.toString(i)),
+                    PARTITION_NAME.relationName(),
+                    ColumnIdent.of(Integer.toString(i)),
                     RowGranularity.DOC,
                     type,
                     IndexType.PLAIN,

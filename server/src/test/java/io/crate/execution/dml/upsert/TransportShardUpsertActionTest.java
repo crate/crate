@@ -73,7 +73,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -91,7 +90,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
     private static final List<String> PARTITION_VALUES = List.of("1395874800000");
     private static final String PARTITION_INDEX = new PartitionName(TABLE_IDENT, PARTITION_VALUES).asIndexName();
     private static final SimpleReference ID_REF = new SimpleReference(
-        new ReferenceIdent(TABLE_IDENT, "id"),
+        TABLE_IDENT,
+        ColumnIdent.of("id"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
         IndexType.PLAIN,
@@ -315,7 +315,8 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         // The follow-up dynamic insert to replica tries to resolve the DynamicReference to a SimpleReference
         // and there can be a potential ClassCastException.
         DynamicReference longCol = new DynamicReference(
-            new ReferenceIdent(TABLE_IDENT, ColumnIdent.of("dynamic_long_col")),
+            TABLE_IDENT,
+            ColumnIdent.of("dynamic_long_col"),
             RowGranularity.DOC,
             0
         );

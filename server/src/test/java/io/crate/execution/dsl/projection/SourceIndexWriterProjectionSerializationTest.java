@@ -22,7 +22,7 @@
 
 package io.crate.execution.dsl.projection;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.io.IOException;
@@ -40,7 +40,6 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -52,10 +51,10 @@ public class SourceIndexWriterProjectionSerializationTest {
     @Test
     public void testSerializationFailFast() throws IOException {
         RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
-            referenceIdent,
+            relationName,
+            ColumnIdent.of("object_column"),
             RowGranularity.DOC,
             dataType,
             IndexType.FULLTEXT,
@@ -111,10 +110,10 @@ public class SourceIndexWriterProjectionSerializationTest {
     @Test
     public void testSerializationValidationFlag() throws IOException {
         RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "object_column");
         var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
-            referenceIdent,
+            relationName,
+            ColumnIdent.of("object_column"),
             RowGranularity.DOC,
             dataType,
             IndexType.FULLTEXT,

@@ -38,7 +38,6 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -66,7 +65,7 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
         for (int i = 0; i < rowType.numElements(); i++) {
             DataType<?> type = rowType.getFieldType(i);
             String fieldName = rowType.getFieldName(i);
-            var ref = new SimpleReference(new ReferenceIdent(relationName, fieldName), RowGranularity.DOC, type, idx, null);
+            var ref = new SimpleReference(relationName, ColumnIdent.of(fieldName), RowGranularity.DOC, type, idx, null);
             outputs.add(ref);
             idx++;
         }

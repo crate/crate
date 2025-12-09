@@ -156,7 +156,6 @@ public class Indexer {
         }
 
         @Override
-        @SuppressWarnings("unchecked")
         public CollectExpression<IndexItem, Object> getImplementation(Reference ref) {
 
             // Here be dragons: A reference can refer to:
@@ -509,7 +508,7 @@ public class Indexer {
                         table.ident()
                     ));
                 }
-                valueIndexer = new DynamicIndexer(ref.ident(), position, getRef, writeOids);
+                valueIndexer = new DynamicIndexer(ref.relation(), ref.column(), position, getRef, writeOids);
                 position--;
             } else {
                 valueIndexer = ref.valueType().valueIndexer(
@@ -746,7 +745,7 @@ public class Indexer {
                 if (oldRef.equals(newRef) == false) {
                     columns.set(idx, newRef);
                     valueIndexers.set(idx, newRef.valueType().valueIndexer(
-                        newRef.ident().tableIdent(),
+                        newRef.relation(),
                         newRef,
                         getRef
                     ));
@@ -759,7 +758,7 @@ public class Indexer {
                 }
                 if (newRef.valueType().id() == ArrayType.ID) {
                     columns.set(idx, newRef);
-                    valueIndexers.set(idx, newRef.valueType().valueIndexer(newRef.ident().tableIdent(), newRef, getRef));
+                    valueIndexers.set(idx, newRef.valueType().valueIndexer(newRef.relation(), newRef, getRef));
                 }
             } else if (ArrayType.unnest(oldRef.valueType()).id() == ObjectType.ID) {
                 // object types in 'columns' may be outdated - missing newly added child types

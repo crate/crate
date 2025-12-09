@@ -43,8 +43,8 @@ import io.crate.analyze.WhereClause;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.expression.reference.StaticTableReferenceResolver;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
@@ -62,7 +62,8 @@ public class SystemCollectSourceTest extends IntegTestCase {
         SystemCollectSource systemCollectSource = cluster().getDataNodeInstance(SystemCollectSource.class);
 
         SimpleReference shardId = new SimpleReference(
-            new ReferenceIdent(new RelationName("sys", "shards"), "id"),
+            new RelationName("sys", "shards"),
+            ColumnIdent.of("id"),
             RowGranularity.SHARD,
             DataTypes.INTEGER,
             0,

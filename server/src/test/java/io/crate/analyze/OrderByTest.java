@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -31,8 +31,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -43,7 +43,7 @@ public class OrderByTest extends ESTestCase {
     private static final RelationName TI = new RelationName("doc", "people");
 
     private Reference ref(String name) {
-        return new SimpleReference(new ReferenceIdent(TI, name), RowGranularity.DOC, DataTypes.STRING, 0, null);
+        return new SimpleReference(TI, ColumnIdent.of(name), RowGranularity.DOC, DataTypes.STRING, 0, null);
     }
 
     @Test
