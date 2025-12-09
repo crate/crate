@@ -27,10 +27,12 @@ public class DropSchema extends Statement {
 
     private final List<String> names;
     private final boolean ifExists;
+    private final CascadeMode mode;
 
-    public DropSchema(List<String> names, boolean ifExists) {
+    public DropSchema(List<String> names, boolean ifExists, CascadeMode cascadeMode) {
         this.names = names;
         this.ifExists = ifExists;
+        this.mode = cascadeMode;
     }
 
     public List<String> names() {
@@ -41,16 +43,25 @@ public class DropSchema extends Statement {
         return ifExists;
     }
 
+    public CascadeMode mode() {
+        return mode;
+    }
+
     @Override
     public int hashCode() {
-        return 31 * names.hashCode() + (ifExists ? 1231 : 1237);
+        int result = names.hashCode();
+        result = 31 * result + (ifExists ? 1231 : 1237);
+        result = 31 * result + mode.hashCode();
+        return result;
     }
 
     @Override
     public boolean equals(Object obj) {
         return obj instanceof DropSchema other
             && names.equals(other.names)
-            && ifExists == other.ifExists;
+            && ifExists == other.ifExists
+            && mode == other.mode;
+
     }
 
     @Override

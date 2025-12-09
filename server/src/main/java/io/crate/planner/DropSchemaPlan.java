@@ -50,7 +50,7 @@ public class DropSchemaPlan implements Plan {
                               Row params,
                               SubQueryResults subQueryResults) throws Exception {
         DropSchema schema = dropSchema.dropSchema();
-        DropSchemaRequest request = new DropSchemaRequest(schema.names(), schema.ifExists());
+        DropSchemaRequest request = new DropSchemaRequest(schema.names(), schema.ifExists(), schema.mode());
         dependencies.client()
             .execute(TransportDropSchema.ACTION, request)
             .whenComplete(OneRowActionListener.oneIfAcknowledged(consumer));
