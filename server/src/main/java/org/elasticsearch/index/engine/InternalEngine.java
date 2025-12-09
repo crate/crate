@@ -1676,8 +1676,20 @@ public class InternalEngine extends Engine {
     }
 
     @Override
-    public void writeIndexingBuffer() throws EngineException {
-        refresh("write indexing buffer", SearcherScope.INTERNAL, false);
+    public void writeIndexingBuffer() throws IOException {
+        long versionMapReclaimableBytes = versionMap.reclaimableRefreshRamBytes();
+        long indexWriterBytesUsed = indexWriter.ramBytesUsed() - indexWriter.getFlushingBytes();
+
+        if (versionMapReclaimableBytes < indexWriterBytesUsed) {
+            // Write the largest pending segment (due to concurrency, multiple pending segments can exist).
+            indexWriter.flushNextBuffer();
+        } else {
+            if (shouldPeriodicallyFlush()) {
+                flush(false, false);
+            } else {
+                refresh("write indexing buffer", SearcherScope.INTERNAL, false);
+            }
+        }
     }
 
     @Override

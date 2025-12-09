@@ -354,7 +354,7 @@ public class ReadOnlyEngine extends Engine {
     }
 
     @Override
-    public void writeIndexingBuffer() throws EngineException {
+    public void writeIndexingBuffer() throws IOException {
     }
 
     @Override

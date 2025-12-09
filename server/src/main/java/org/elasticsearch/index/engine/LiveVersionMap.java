@@ -184,6 +184,10 @@ final class LiveVersionMap implements ReferenceManager.RefreshListener, Accounta
         long getMinDeleteTimestamp() {
             return Math.min(current.minDeleteTimestamp.get(), old.minDeleteTimestamp.get());
         }
+
+        long ramBytesUsed() {
+            return current.ramBytesUsed.get() + old.ramBytesUsed.get();
+        }
     }
 
     // All deletes also go here, and delete "tombstones" are retained after refresh:
@@ -420,14 +424,25 @@ final class LiveVersionMap implements ReferenceManager.RefreshListener, Accounta
 
     @Override
     public long ramBytesUsed() {
-        return maps.current.ramBytesUsed.get() + ramBytesUsedTombstones.get();
+        return maps.ramBytesUsed() + ramBytesUsedTombstones.get();
     }
 
     /**
-     * Returns how much RAM would be freed up by refreshing. This is {@link #ramBytesUsed} except does not include tombstones because they
-     * don't clear on refresh.
+     * Returns how much RAM would be freed up by refreshing. This is {@link #ramBytesUsed} except does not include
+     * tombstones because they won't be cleared on refresh.
+     * It includes the RAM used by the old map even that this is already in the process of being freed up.
+     * But the {@link org.elasticsearch.indices.IndexingMemoryController} will subtract the currently writing bytes
+     * using {@link #getRefreshingBytes()} from this value so it should be included.
      */
     long ramBytesUsedForRefresh() {
+        return maps.ramBytesUsed();
+    }
+
+    /**
+     * Same as {@link #ramBytesUsedForRefresh()} but only includes the current map (which is actually the only one
+     * being reclaimed on a refresh).
+     */
+    long reclaimableRefreshRamBytes() {
         return maps.current.ramBytesUsed.get();
     }
 
