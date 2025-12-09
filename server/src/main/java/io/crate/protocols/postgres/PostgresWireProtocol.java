@@ -821,7 +821,7 @@ public class PostgresWireProtocol {
             sendReadyForQuery(channel, TransactionState.IDLE);
             return;
         }
-        timeoutToken.check();
+        timeoutToken.check("handleSimpleQuery");
         CompletableFuture<?> composedFuture = CompletableFuture.completedFuture(null);
         for (var statement : statements) {
             composedFuture = composedFuture.thenCompose(_ -> handleSingleQuery(statement, queryString, channel, timeoutToken));

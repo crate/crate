@@ -464,7 +464,7 @@ public class SessionTest extends CrateDummyClusterServiceUnitTest {
             );
             assertThatThrownBy(() -> spy.parse(UNNAMED, "SELECT 1", List.of()))
                 .isExactlyInstanceOf(JobKilledException.class)
-                .hasMessage("Job killed. statement_timeout (10ms)");
+                .hasMessage("Job killed. statement_timeout (10ms/parse)");
         }
     }
 

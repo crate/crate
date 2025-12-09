@@ -486,7 +486,7 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
             token).matches()
         )
             .isExactlyInstanceOf(JobKilledException.class)
-            .hasMessage("Job killed. statement_timeout (10ms)");
+            .hasMessage("Job killed. statement_timeout (10ms/EqualityExtractor)");
     }
 
     @Test

@@ -318,7 +318,7 @@ public class Session implements AutoCloseable {
         );
         Plan plan = planner.plan(stmt, plannerContext);
         if (timeoutToken != null) {
-            timeoutToken.check();
+            timeoutToken.check("retry:plan");
         }
         Plan.execute(plan, executor, plannerContext, consumer, params, SubQueryResults.EMPTY);
     }
@@ -354,7 +354,7 @@ public class Session implements AutoCloseable {
                 throw t;
             }
         }
-        timeoutToken.check();
+        timeoutToken.check("parse");
 
         analyze(statementName, statement, paramTypes, query, timeoutToken);
     }
@@ -388,7 +388,7 @@ public class Session implements AutoCloseable {
             );
 
             parameterTypes = ParameterTypes.extract(analyzedStatement).toArray(new DataType[0]);
-            timeoutToken.check();
+            timeoutToken.check("analyze");
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
                 UUIDs.dirtyUUID(),
@@ -671,7 +671,7 @@ public class Session implements AutoCloseable {
                 List.of(),
                 List.of(jobId),
                 sessionSettings.userName(),
-                "statement_timeout (" + timeout.toString() + ")"
+                "statement_timeout (" + timeout.toString() + "/exec)"
             );
             executor.client().execute(KillJobsNodeAction.INSTANCE, request);
         };
@@ -751,7 +751,7 @@ public class Session implements AutoCloseable {
         Plan plan;
         try {
             plan = planner.plan(analyzedStatement, plannerContext);
-            timeoutToken.check();
+            timeoutToken.check("bulkExec:plan");
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(
                 jobId,
@@ -857,7 +857,7 @@ public class Session implements AutoCloseable {
         Plan plan;
         try {
             plan = planner.plan(analyzedStmt, plannerContext);
-            timeoutToken.check();
+            timeoutToken.check("singleExec:plan");
         } catch (Throwable t) {
             jobsLogs.logPreExecutionFailure(jobId, rawStatement, SQLExceptions.messageOf(t), sessionSettings.sessionUser());
             throw t;
@@ -1059,11 +1059,11 @@ public class Session implements AutoCloseable {
             this.enabled = false;
         }
 
-        public void check() {
+        public void check(String context) {
             if (enabled && statementTimeout.nanos() > 0) {
                 long durationNs = System.nanoTime() - startNanos;
                 if (durationNs > statementTimeout.nanos()) {
-                    throw JobKilledException.of("statement_timeout (" + statementTimeout + ")");
+                    throw JobKilledException.of("statement_timeout (" + statementTimeout + "/" + context + ")");
                 }
             }
         }
