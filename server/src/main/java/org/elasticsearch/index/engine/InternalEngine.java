@@ -1688,17 +1688,24 @@ public class InternalEngine extends Engine {
 
     @Override
     public void writeIndexingBuffer() throws IOException {
-        final long flushThresholdSizeInBytes = Math.max(
-            Translog.DEFAULT_HEADER_SIZE_IN_BYTES + 1,
-            config().getIndexSettings().getFlushThresholdSize(totalDiskSpace).getBytes() / 2
-        );
+        long versionMapReclaimableBytes = versionMap.reclaimableRefreshRamBytes();
+        long indexWriterBytesUsed = indexWriter.ramBytesUsed() - indexWriter.getFlushingBytes();
 
-        final long flushThresholdAgeInNanos = config().getIndexSettings().getFlushThresholdAge().millis() / 2;
-
-        if (shouldPeriodicallyFlush(flushThresholdSizeInBytes, flushThresholdAgeInNanos)) {
-            flush(false, false);
+        if (versionMapReclaimableBytes < indexWriterBytesUsed) {
+            // Write the largest pending segment (due to concurrency, multiple pending segments can exist).
+            indexWriter.flushNextBuffer();
         } else {
-            refresh("write indexing buffer", SearcherScope.INTERNAL, false);
+            final long flushThresholdSizeInBytes = Math.max(
+                Translog.DEFAULT_HEADER_SIZE_IN_BYTES + 1,
+                config().getIndexSettings().getFlushThresholdSize(totalDiskSpace).getBytes() / 2
+            );
+            final long flushThresholdAgeInNanos = config().getIndexSettings().getFlushThresholdAge().millis() / 2;
+
+            if (shouldPeriodicallyFlush(flushThresholdSizeInBytes, flushThresholdAgeInNanos)) {
+                flush(false, false);
+            } else {
+                refresh("write indexing buffer", SearcherScope.INTERNAL, false);
+            }
         }
     }
 
