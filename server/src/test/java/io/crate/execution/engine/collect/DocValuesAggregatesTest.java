@@ -184,7 +184,8 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
             mock(LuceneReferenceResolver.class),
             List.of(longSumAggregation()),
             List.of(new SimpleReference(
-                xRef.ident(),
+                xRef.relation(),
+                xRef.column(),
                 xRef.granularity(),
                 xRef.valueType(),
                 xRef.indexType(),

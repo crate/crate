@@ -45,7 +45,6 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.tree.ColumnPolicy;
@@ -274,7 +273,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             }
             var type = DynamicIndexer.guessType(innerValue);
             Reference newColumn = DynamicIndexer.buildReference(
-                new ReferenceIdent(table, column.getChild(innerName)),
+                table,
+                column.getChild(innerName),
                 type,
                 position,
                 COLUMN_OID_UNASSIGNED

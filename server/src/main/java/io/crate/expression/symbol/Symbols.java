@@ -75,7 +75,7 @@ public final class Symbols {
             Symbol key = entry.getKey();
             if (key instanceof Reference ref
                     && ref.column().equals(column)
-                    && ref.ident().tableIdent().equals(relationName)) {
+                    && ref.relation().equals(relationName)) {
                 return entry.getValue();
             }
             if (key instanceof ScopedSymbol scopedSymbol
@@ -293,7 +293,7 @@ public final class Symbols {
                         break;
                     } else if (ref instanceof VoidReference
                                && t instanceof ScopedSymbol tScopedSymbol
-                               && tScopedSymbol.relation().equals(ref.ident().tableIdent())
+                               && tScopedSymbol.relation().equals(ref.relation())
                                && tScopedSymbol.column().equals(root)) {
                         consumer.accept(t);
                         break;

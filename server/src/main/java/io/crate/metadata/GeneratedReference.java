@@ -104,7 +104,8 @@ public final class GeneratedReference implements Reference {
                 simpleRef.writeTo(out);
             } else {
                 SimpleReference simpleReference = new SimpleReference(
-                    ref.ident(),
+                    ref.relation(),
+                    ref.column(),
                     ref.granularity(),
                     ref.valueType(),
                     ref.indexType(),
@@ -189,8 +190,8 @@ public final class GeneratedReference implements Reference {
     }
 
     @Override
-    public ReferenceIdent ident() {
-        return ref.ident();
+    public RelationName relation() {
+        return ref.relation();
     }
 
     @Override
@@ -265,9 +266,18 @@ public final class GeneratedReference implements Reference {
     }
 
     @Override
-    public Reference withReferenceIdent(ReferenceIdent referenceIdent) {
+    public Reference withColumn(ColumnIdent column) {
         return new GeneratedReference(
-            ref.withReferenceIdent(referenceIdent),
+            ref.withColumn(column),
+            formattedGeneratedExpression,
+            generatedExpression
+        );
+    }
+
+    @Override
+    public Reference withRelation(RelationName relation) {
+        return new GeneratedReference(
+            ref.withRelation(relation),
             formattedGeneratedExpression,
             generatedExpression
         );

@@ -77,9 +77,9 @@ import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.OnHeapMemoryManager;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -215,7 +215,8 @@ public class GroupByOptimizedIteratorTest extends CrateDummyClusterServiceUnitTe
             RowGranularity.SHARD
         );
         var reference = new SimpleReference(
-            new ReferenceIdent(new RelationName("doc", "test"), "x"),
+            new RelationName("doc", "test"),
+            ColumnIdent.of("x"),
             RowGranularity.DOC,
             DataTypes.STRING,
             IndexType.PLAIN,

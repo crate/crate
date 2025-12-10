@@ -56,7 +56,6 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
@@ -118,7 +117,8 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         SimpleReference clusterNameRef = new SimpleReference(
-            new ReferenceIdent(SysClusterTableInfo.IDENT, ColumnIdent.of("name")),
+            SysClusterTableInfo.IDENT,
+            ColumnIdent.of("name"),
             RowGranularity.CLUSTER,
             DataTypes.STRING,
             1,

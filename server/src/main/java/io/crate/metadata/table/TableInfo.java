@@ -37,7 +37,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
-import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -70,18 +69,7 @@ public interface TableInfo extends RelationInfo {
         if (readType.equals(ref.valueType())) {
             return ref;
         } else {
-            return new SimpleReference(
-                ref.ident(),
-                ref.granularity(),
-                readType,
-                ref.indexType(),
-                ref.isNullable(),
-                ref.hasDocValues(),
-                ref.position(),
-                ref.oid(),
-                ref.isDropped(),
-                ref.defaultExpression()
-            );
+            return ref.withValueType(readType);
         }
     }
 

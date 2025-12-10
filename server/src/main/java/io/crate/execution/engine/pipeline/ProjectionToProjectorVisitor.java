@@ -651,8 +651,8 @@ public class ProjectionToProjectorVisitor
         for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
             Reference ref = e.getKey();
             assert
-                relationName == null || relationName.equals(ref.ident().tableIdent()) : "mixed table assignments found";
-            relationName = ref.ident().tableIdent();
+                relationName == null || relationName.equals(ref.relation()) : "mixed table assignments found";
+            relationName = ref.relation();
             if (readCtx == null) {
                 StaticTableDefinition<?> tableDefinition = staticTableDefinitionGetter.apply(relationName);
                 readCtx = inputFactory.ctxForRefs(context.txnCtx, tableDefinition.getReferenceResolver());

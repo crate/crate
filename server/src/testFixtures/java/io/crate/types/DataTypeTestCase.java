@@ -60,7 +60,6 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -260,7 +259,8 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             }
             case SORT_FIELD -> {
                 var ref = new SimpleReference(
-                    new ReferenceIdent(new RelationName("doc", "tbl"), ColumnIdent.of("x")),
+                    new RelationName("doc", "tbl"),
+                    ColumnIdent.of("x"),
                     RowGranularity.DOC,
                     type,
                     1,

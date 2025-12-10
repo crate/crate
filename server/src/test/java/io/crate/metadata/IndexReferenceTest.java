@@ -22,6 +22,7 @@
 package io.crate.metadata;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -41,15 +42,15 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "string_col");
-        SimpleReference reference = new SimpleReference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
+        SimpleReference reference = new SimpleReference(
+            relationName, ColumnIdent.of("string_col"), RowGranularity.DOC, StringType.INSTANCE, 1, null);
 
-        ReferenceIdent indexReferenceIdent = new ReferenceIdent(relationName, "index_column");
         IndexReference indexReferenceInfo = new IndexReference(
             2,
             123,
             true,
-            indexReferenceIdent,
+            relationName,
+            ColumnIdent.of("index_column"),
             IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();

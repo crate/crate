@@ -251,7 +251,7 @@ public final class InputColumns extends SymbolVisitor<InputColumns.SourceSymbols
         }
         InputColumn inputColumn = sourceSymbols.inputs.get(ref);
         if (inputColumn == null) {
-            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref.ident().tableIdent(), ref, ref.column(), sourceSymbols.inputs);
+            Symbol subscriptOnRoot = tryCreateSubscriptOnRoot(ref.relation(), ref, ref.column(), sourceSymbols.inputs);
             if (subscriptOnRoot != null) {
                 return subscriptOnRoot;
             }

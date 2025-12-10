@@ -68,12 +68,12 @@ import io.crate.expression.reference.doc.lucene.StringColumnReference;
 import io.crate.expression.symbol.AggregateMode;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.lucene.LuceneQueryBuilder;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -126,7 +126,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
             mock(LuceneReferenceResolver.class),
             List.of(new SimpleReference(
-                new ReferenceIdent(RelationName.fromIndexName("test"), "z"),
+                RelationName.fromIndexName("test"),
+                ColumnIdent.of("z"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
                 IndexType.PLAIN,
@@ -146,7 +147,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             List.of(sumDocValuesAggregator),
             indexSearcher,
             new SimpleReference(
-                new ReferenceIdent(RelationName.fromIndexName("test"), "y"),
+                RelationName.fromIndexName("test"),
+                ColumnIdent.of("y"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
                 IndexType.PLAIN,
@@ -185,9 +187,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         var sumDocValuesAggregator = sumAggregation.getDocValueAggregator(
             mock(LuceneReferenceResolver.class),
             List.of(new SimpleReference(
-                new ReferenceIdent(
-                    RelationName.fromIndexName("test"),
-                    "z"),
+                RelationName.fromIndexName("test"),
+                ColumnIdent.of("z"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
                 IndexType.PLAIN,
@@ -205,7 +206,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         var keyExpressions = List.of(new StringColumnReference("x"), new LongColumnReference("y"));
         var keyRefs = List.<Reference>of(
             new SimpleReference(
-                new ReferenceIdent(RelationName.fromIndexName("test"), "x"),
+                RelationName.fromIndexName("test"),
+                ColumnIdent.of("x"),
                 RowGranularity.DOC,
                 DataTypes.STRING,
                 IndexType.PLAIN,
@@ -217,7 +219,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 null
             ),
             new SimpleReference(
-                new ReferenceIdent(RelationName.fromIndexName("test"), "y"),
+                RelationName.fromIndexName("test"),
+                ColumnIdent.of("y"),
                 RowGranularity.DOC,
                 DataTypes.LONG,
                 IndexType.PLAIN,
@@ -258,7 +261,8 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
         );
         PartitionName partitionName = new PartitionName(new RelationName("doc", "test"), List.of());
         var reference = new SimpleReference(
-            new ReferenceIdent(partitionName.relationName(), "x"),
+            partitionName.relationName(),
+            ColumnIdent.of("x"),
             RowGranularity.DOC,
             DataTypes.STRING,
             IndexType.PLAIN,

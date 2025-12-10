@@ -79,7 +79,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.doc.DocTableInfo;
@@ -858,7 +857,8 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
                 e.nodeCtx,
                 List.<Reference>of(
                     new DynamicReference(
-                        new ReferenceIdent(table.ident(), "y"),
+                        table.ident(),
+                        ColumnIdent.of("y"),
                         RowGranularity.DOC,
                         -1
                     )
@@ -1237,7 +1237,7 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int) with (column_policy = 'dynamic')");
         DocTableInfo table = executor.resolveTableInfo("tbl");
         Reference x = table.getReference(ColumnIdent.of("x"));
-        Reference y = new DynamicReference(new ReferenceIdent(table.ident(), "y"), RowGranularity.DOC, 2);
+        Reference y = new DynamicReference(table.ident(), ColumnIdent.of("y"), RowGranularity.DOC, 2);
         Indexer indexer = new Indexer(
             List.of(),
             table,

@@ -84,7 +84,6 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.ReferenceTree;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
@@ -705,14 +704,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Nullable
-    public DynamicReference getDynamic(ColumnIdent ident,
+    public DynamicReference getDynamic(ColumnIdent column,
                                        boolean forWrite,
                                        boolean errorOnUnknownObjectKey) {
         boolean parentIsIgnored = false;
         ColumnPolicy parentPolicy = columnPolicy();
         int position = 0;
 
-        for (var parent : getParents(ident)) {
+        for (var parent : getParents(column)) {
             if (parent != null) {
                 parentPolicy = parent.valueType().columnPolicy();
                 position = parent.position();
@@ -723,14 +722,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             case DYNAMIC:
                 if (!forWrite) {
                     if (!errorOnUnknownObjectKey) {
-                        return new VoidReference(new ReferenceIdent(ident(), ident), position);
+                        return new VoidReference(ident(), column, position);
                     }
                     return null;
                 }
                 break;
             case STRICT:
                 if (forWrite) {
-                    throw new ColumnUnknownException(ident, ident());
+                    throw new ColumnUnknownException(column, ident());
                 }
                 return null;
             case IGNORED:
@@ -741,12 +740,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
         if (parentIsIgnored) {
             return new DynamicReference(
-                new ReferenceIdent(ident(), ident),
+                ident(),
+                column,
                 rowGranularity(),
                 position
             );
         }
-        return new DynamicReference(new ReferenceIdent(ident(), ident), rowGranularity(), position);
+        return new DynamicReference(ident(), column, rowGranularity(), position);
     }
 
     @NotNull
@@ -1009,8 +1009,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         for (var ref : allColumns.values()) {
             ColumnIdent column = ref.column();
             if (toBeRenamed.test(column)) {
-                var renamedRef = ref.withReferenceIdent(
-                    new ReferenceIdent(ident, ref.column().replacePrefix(newName)));
+                var renamedRef = ref.withColumn(ref.column().replacePrefix(newName));
                 oldNameToRenamedRefs.put(column, renamedRef);
             } else {
                 oldNameToRenamedRefs.put(column, ref);
@@ -1036,8 +1035,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             var updatedRef = idxRef.withColumns(
                 Lists.map(idxRef.columns(), r -> oldNameToRenamedRefs.getOrDefault(r.column(), r)));
             if (toBeRenamed.test(idxRef.column())) {
-                return (IndexReference) updatedRef.withReferenceIdent(
-                    new ReferenceIdent(idxRef.ident().tableIdent(), idxRef.column().replacePrefix(newName)));
+                return (IndexReference) updatedRef.withColumn(idxRef.column().replacePrefix(newName));
             }
             return updatedRef;
         };

@@ -36,7 +36,6 @@ import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -156,16 +155,18 @@ public class SysColumns {
      * Don't use this for user table columns, it's not safe (e.g. Reference has no oid)
      */
     private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
-        return new SimpleReference(new ReferenceIdent(table, column),
-                             RowGranularity.DOC,
-                             dataType,
-                             IndexType.PLAIN,
-                             false,
-                             false,
-                             position,
-                             COLUMN_OID_UNASSIGNED,
-                             false,
-                             null
+        return new SimpleReference(
+            table,
+            column,
+            RowGranularity.DOC,
+            dataType,
+            IndexType.PLAIN,
+            false,
+            false,
+            position,
+            COLUMN_OID_UNASSIGNED,
+            false,
+            null
         );
     }
 

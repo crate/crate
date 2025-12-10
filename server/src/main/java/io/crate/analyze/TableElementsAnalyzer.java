@@ -60,7 +60,6 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -241,7 +240,6 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 ? storageSupport.getComputedDocValuesDefault(indexType)
                 : DataTypes.BOOLEAN.implicitCast(toValue.apply(columnStoreSymbol));
             Reference ref;
-            ReferenceIdent refIdent = new ReferenceIdent(tableName, name);
             int position = -1;
 
 
@@ -275,7 +273,8 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 }
                 String analyzer = DataTypes.STRING.sanitizeValue(indexProperties.map(toValue).get("analyzer"));
                 ref = new IndexReference(
-                    refIdent,
+                    tableName,
+                    name,
                     rowGranularity,
                     type,
                     indexType,
@@ -293,7 +292,8 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 GeoSettingsApplier.applySettings(geoMap, indexProperties.map(toValue), indexMethod);
                 Double distError = (Double) geoMap.get("distance_error_pct");
                 ref = new GeoReference(
-                    refIdent,
+                    tableName,
+                    name,
                     type,
                     indexType,
                     nullable,
@@ -308,7 +308,8 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                 );
             } else {
                 ref = new SimpleReference(
-                    refIdent,
+                    tableName,
+                    name,
                     rowGranularity,
                     type,
                     indexType,
@@ -367,7 +368,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             }
         }
         var columnBuilder = columns.get(columnIdent);
-        var dynamicReference = new DynamicReference(new ReferenceIdent(tableName, columnIdent), RowGranularity.DOC, -1);
+        var dynamicReference = new DynamicReference(tableName, columnIdent, RowGranularity.DOC, -1);
         if (columnBuilder == null) {
             if (resolveMissing) {
                 return dynamicReference;

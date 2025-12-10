@@ -102,7 +102,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public static <T> ValueIndexer<T> of(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
         DataType<?> innerMostType = ArrayType.unnest(arrayRef.valueType());
         StorageSupport<?> innerMostStorageSupport = innerMostType.storageSupportSafe();
-        ValueIndexer<?> childIndexer = innerMostStorageSupport.valueIndexer(arrayRef.ident().tableIdent(), arrayRef, getRef);
+        ValueIndexer<?> childIndexer = innerMostStorageSupport.valueIndexer(arrayRef.relation(), arrayRef, getRef);
         for (int i = 0; i < ArrayType.dimensions(arrayRef.valueType()) - 1; i++) {
             childIndexer = new ArrayIndexer<>(childIndexer, getRef, arrayRef);
         }
@@ -195,7 +195,8 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
             return;
         }
         Reference ref = DynamicIndexer.buildReference(
-            this.reference.ident(),
+            this.reference.relation(),
+            this.reference.column(),
             type,
             this.reference.position(),
             this.reference.oid()
@@ -207,7 +208,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
         // The reference resolver passed in to the new type must return `NULL` as the (child) columns are not present
         // yet. They will be added later in the schema update process.
         ValueIndexer<Object> indexer
-            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.ident().tableIdent(), ref, _ -> null);
+            = (ValueIndexer<Object>) storageSupport.valueIndexer(ref.relation(), ref, _ -> null);
         indexer.collectSchemaUpdates(values, onDynamicColumn, synthetics);
     }
 
