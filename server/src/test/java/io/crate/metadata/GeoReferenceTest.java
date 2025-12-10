@@ -38,9 +38,10 @@ public class GeoReferenceTest extends ESTestCase {
     @Test
     public void testStreaming() throws Exception {
         RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "geo_column");
+        ColumnIdent geoCol = ColumnIdent.of("geo_column");
         GeoReference geoReferenceInfo = new GeoReference(
-            referenceIdent,
+            relationName,
+            geoCol,
             DataTypes.GEO_SHAPE,
             IndexType.PLAIN,
             true,
@@ -62,7 +63,8 @@ public class GeoReferenceTest extends ESTestCase {
         assertThat(geoReferenceInfo2).isEqualTo(geoReferenceInfo);
 
         GeoReference geoReferenceInfo3 = new GeoReference(
-            referenceIdent,
+            relationName,
+            geoCol,
             DataTypes.GEO_SHAPE,
             IndexType.PLAIN,
             false,
@@ -101,9 +103,9 @@ public class GeoReferenceTest extends ESTestCase {
                                                                   Integer treeLevels,
                                                                   Double distanceErrorPct) {
         RelationName relationName = new RelationName("doc", "test");
-        ReferenceIdent referenceIdent = new ReferenceIdent(relationName, "geo_column");
         return new GeoReference(
-            referenceIdent,
+            relationName,
+            ColumnIdent.of("geo_column"),
             DataTypes.GEO_SHAPE,
             IndexType.PLAIN,
             false,

@@ -85,7 +85,7 @@ public final class RelationNames {
         LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
         symbol.any(node -> {
             switch (node) {
-                case Reference ref -> relationNames.add(ref.ident().tableIdent());
+                case Reference ref -> relationNames.add(ref.relation());
                 case ScopedSymbol scoped -> relationNames.add(scoped.relation());
                 case SelectSymbol selectSymbol -> {
                     if (deep) {

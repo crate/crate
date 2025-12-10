@@ -26,7 +26,8 @@ import java.io.IOException;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 
 /**
@@ -38,9 +39,10 @@ public class VoidReference extends DynamicReference {
         super(in);
     }
 
-    public VoidReference(ReferenceIdent ident,
+    public VoidReference(RelationName relation,
+                         ColumnIdent column,
                          int position) {
-        super(ident, RowGranularity.DOC, position);
+        super(relation, column, RowGranularity.DOC, position);
     }
 
     @Override

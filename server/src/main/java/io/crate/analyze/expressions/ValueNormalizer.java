@@ -181,7 +181,7 @@ public final class ValueNormalizer {
         } catch (Exception e) {
             throw new ColumnValidationException(
                 info.column().sqlFqn(),
-                info.ident().tableIdent(),
+                info.relation(),
                 String.format(Locale.ENGLISH, "Invalid %s", info.valueType().getName())
             );
         }

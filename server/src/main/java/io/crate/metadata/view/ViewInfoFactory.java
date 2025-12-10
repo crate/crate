@@ -34,7 +34,6 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -80,7 +79,8 @@ public class ViewInfoFactory {
                 ColumnIdent columnIdent = field.toColumn();
                 collectedColumns.add(
                     new SimpleReference(
-                        new ReferenceIdent(ident, columnIdent.sqlFqn()),
+                        ident,
+                        ColumnIdent.of(columnIdent.sqlFqn()),
                         RowGranularity.DOC,
                         field.valueType(),
                         position++,
@@ -120,7 +120,8 @@ public class ViewInfoFactory {
                 DataType<?> childType = entry.getValue();
                 subColumns.add(
                     new SimpleReference(
-                        new ReferenceIdent(ident, childColumn.sqlFqn()),
+                        ident,
+                        ColumnIdent.of(childColumn.sqlFqn()),
                         RowGranularity.DOC,
                         childType,
                         position++,

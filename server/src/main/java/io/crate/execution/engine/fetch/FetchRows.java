@@ -109,7 +109,7 @@ public final class FetchRows {
             public Input<?> visitFetchReference(final FetchReference fetchReference, final Void context) {
                 var ref = fetchReference.ref();
                 UnsafeArrayRow row = fetchedRows.get(fetchReference.fetchId().index());
-                int posInFetchedRow = fetchSourceByTable.get(ref.ident().tableIdent()).references().indexOf(ref);
+                int posInFetchedRow = fetchSourceByTable.get(ref.relation()).references().indexOf(ref);
                 return () -> row.get(posInFetchedRow);
             }
         };

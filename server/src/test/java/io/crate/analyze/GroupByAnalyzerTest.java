@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.isField;
 import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -42,7 +43,6 @@ import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -171,9 +171,9 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select 58 as age from foo.users group by age;");
         assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
-        ReferenceIdent groupByIdent = ((Reference) groupBySymbols.getFirst()).ident();
-        assertThat(groupByIdent.columnIdent().fqn()).isEqualTo("age");
-        assertThat(groupByIdent.tableIdent().fqn()).isEqualTo("foo.users");
+        Reference groupByRef = (Reference) groupBySymbols.getFirst();
+        assertThat(groupByRef.column().fqn()).isEqualTo("age");
+        assertThat(groupByRef.relation().fqn()).isEqualTo("foo.users");
     }
 
     @Test
@@ -181,9 +181,9 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select age age, - age age from foo.users group by age;");
         assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
-        ReferenceIdent groupByIdent = ((Reference) groupBySymbols.getFirst()).ident();
-        assertThat(groupByIdent.columnIdent().fqn()).isEqualTo("age");
-        assertThat(groupByIdent.tableIdent().fqn()).isEqualTo("foo.users");
+        Reference groupByRef = (Reference) groupBySymbols.getFirst();
+        assertThat(groupByRef.column().fqn()).isEqualTo("age");
+        assertThat(groupByRef.relation().fqn()).isEqualTo("foo.users");
     }
 
     @Test

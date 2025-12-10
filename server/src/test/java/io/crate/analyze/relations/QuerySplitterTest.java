@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.Map;
@@ -34,7 +35,6 @@ import io.crate.expression.operator.AndOperator;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -129,14 +129,16 @@ public class QuerySplitterTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_can_split_query_consist_of_multiple_types() {
         Symbol bool_a = new SimpleReference(
-            new ReferenceIdent(tr1, "a"),
+            tr1,
+            ColumnIdent.of("a"),
             RowGranularity.DOC,
             DataTypes.BOOLEAN,
             0,
             null
         );
         Symbol bool_b = new SimpleReference(
-            new ReferenceIdent(tr1, "b"),
+            tr1,
+            ColumnIdent.of("b"),
             RowGranularity.DOC,
             DataTypes.BOOLEAN,
             1,

@@ -42,12 +42,12 @@ import org.junit.Test;
 import io.crate.expression.udf.UdfUnitTest;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionsMetadata;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
@@ -201,7 +201,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
         RelationMetadata.Table relation = newMetadata.getRelation(relationName);
         assertThat(relation).isNotNull();
         SimpleReference expectedRef = new SimpleReference(
-            new ReferenceIdent(relationName, "name"),
+            relationName,
+            ColumnIdent.of("name"),
             RowGranularity.DOC,
             DataTypes.STRING,
             IndexType.PLAIN,

@@ -33,7 +33,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -47,7 +47,8 @@ public class TableStatsTest extends ESTestCase {
 
     private final RelationName testRelation = new RelationName(Schemas.DOC_SCHEMA_NAME, "test");
     private final SimpleReference idRef = new SimpleReference(
-        new ReferenceIdent(testRelation, "id"),
+        testRelation,
+        ColumnIdent.of("id"),
         RowGranularity.DOC,
         DataTypes.INTEGER,
         1,

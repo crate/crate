@@ -38,7 +38,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.GenericFunctionQuery;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -75,7 +75,8 @@ public class IsNullPredicateTest extends ScalarTestCase {
                 () -> {}
             );
             SimpleReference ref = new SimpleReference(
-                new ReferenceIdent(table.ident(), "obj"),
+                table.ident(),
+                ColumnIdent.of("obj"),
                 RowGranularity.DOC,
                 type,
                 1,

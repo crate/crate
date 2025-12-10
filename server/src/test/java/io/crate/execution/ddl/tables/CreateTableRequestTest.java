@@ -38,7 +38,6 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -54,28 +53,32 @@ public class CreateTableRequestTest {
         RelationName rel = RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME);
 
         Reference ref1 = new SimpleReference(
-            new ReferenceIdent(rel, "part_col_1"),
+            rel,
+            ColumnIdent.of("part_col_1"),
             RowGranularity.DOC,
             DataTypes.STRING,
             1,
             null
         );
         Reference ref2 = new SimpleReference(
-            new ReferenceIdent(rel, "part_col_2"),
+            rel,
+            ColumnIdent.of("part_col_2"),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             2,
             null
         );
         Reference ref3 = new SimpleReference(
-            new ReferenceIdent(rel, "just_col"),
+            rel,
+            ColumnIdent.of("just_col"),
             RowGranularity.DOC,
             DataTypes.BYTE,
             3,
             null
         );
         Reference ref4 = new SimpleReference(
-            new ReferenceIdent(rel, "some_routing_col"),
+            rel,
+            ColumnIdent.of("some_routing_col"),
             RowGranularity.DOC,
             DataTypes.LONG,
             4,

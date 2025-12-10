@@ -374,7 +374,9 @@ public class ShowIntegrationTest extends IntegTestCase {
     @Test
     public void testShowSearchPath() {
         execute("show search_path");
-        assertThat(response).hasRows("doc");
+        assertThat(response)
+            .hasColumns("search_path")
+            .hasRows("doc");
     }
 
     @UseHashJoins(1)
