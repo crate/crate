@@ -35,7 +35,7 @@ import org.junit.Test;
 
 import io.crate.execution.dsl.phases.ExecutionPhases;
 import io.crate.execution.dsl.phases.FetchPhase;
-import io.crate.metadata.ReferenceIdent;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -57,8 +57,14 @@ public class FetchPhaseTest {
         tableIndices.put(t1, List.of(t1.name()));
         tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i2"), List.of("i2_s1", "i2_s2"));
 
-        ReferenceIdent nameIdent = new ReferenceIdent(t1, "name");
-        SimpleReference name = new SimpleReference(nameIdent, RowGranularity.DOC, DataTypes.STRING, 0, null);
+        SimpleReference name = new SimpleReference(
+            t1,
+            ColumnIdent.of("name"),
+            RowGranularity.DOC,
+            DataTypes.STRING,
+            0,
+            null
+        );
 
         FetchPhase orig = new FetchPhase(
             1,

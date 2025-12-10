@@ -63,7 +63,6 @@ import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.sql.Identifiers;
@@ -261,7 +260,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             ColumnIdent column = ref.column();
             StringBuilder sb = new StringBuilder();
             if (style == Style.QUALIFIED) {
-                RelationName tableIdent = ref.ident().tableIdent();
+                RelationName tableIdent = ref.relation();
                 String schema = tableIdent.schema();
                 if (schema != null) {
                     sb.append(quoteString);
@@ -291,8 +290,9 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             ref.writeTo(out);
         }
 
-        public ReferenceIdent ident() {
-            return ref.ident();
+        @Override
+        public RelationName relation() {
+            return ref.relation();
         }
 
         public ColumnIdent column() {
@@ -351,8 +351,13 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
             return ref.isGenerated();
         }
 
-        public Reference withReferenceIdent(ReferenceIdent referenceIdent) {
-            return ref.withReferenceIdent(referenceIdent);
+        @Override
+        public Reference withColumn(ColumnIdent column) {
+            return ref.withColumn(column);
+        }
+
+        public Reference withRelation(RelationName relation) {
+            return ref.withRelation(relation);
         }
 
         public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {

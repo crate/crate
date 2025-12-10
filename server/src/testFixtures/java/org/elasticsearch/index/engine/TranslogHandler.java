@@ -38,7 +38,6 @@ import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -59,7 +58,8 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
     private static TranslogIndexer translogIndexer(String indexName, IndexSettings indexSettings) {
         RelationName relation = RelationName.fromIndexName(indexName);
         Reference column = new SimpleReference(
-            new ReferenceIdent(relation, "value"),
+            relation,
+            ColumnIdent.of("value"),
             RowGranularity.DOC,
             StringType.INSTANCE,
             IndexType.PLAIN,

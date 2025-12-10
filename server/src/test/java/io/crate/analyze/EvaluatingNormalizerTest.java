@@ -25,6 +25,7 @@ import static io.crate.execution.engine.collect.NestableCollectExpression.consta
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static io.crate.testing.TestingHelpers.createReference;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.Collections;
 import java.util.HashMap;
@@ -51,7 +52,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -71,10 +71,11 @@ public class EvaluatingNormalizerTest extends ESTestCase {
     public void prepare() throws Exception {
         Map<ColumnIdent, NestableInput<?>> referenceImplementationMap = new HashMap<>(1, 1);
 
-        ReferenceIdent dummyLoadIdent = new ReferenceIdent(new RelationName("test", "dummy"), "load");
-        dummyLoadInfo = new SimpleReference(dummyLoadIdent, RowGranularity.NODE, DataTypes.DOUBLE, 0, null);
+        RelationName relation = new RelationName("test", "dummy");
+        ColumnIdent load = ColumnIdent.of("load");
+        dummyLoadInfo = new SimpleReference(relation, load, RowGranularity.NODE, DataTypes.DOUBLE, 0, null);
 
-        referenceImplementationMap.put(dummyLoadIdent.columnIdent(), constant(0.08d));
+        referenceImplementationMap.put(load, constant(0.08d));
         nodeCtx = createNodeContext();
         referenceResolver = new MapBackedRefResolver(referenceImplementationMap);
     }
@@ -98,7 +99,8 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         );
 
         Symbol name_ref = new SimpleReference(
-            new ReferenceIdent(new RelationName(Schemas.DOC_SCHEMA_NAME, "foo"), "name"),
+            new RelationName(Schemas.DOC_SCHEMA_NAME, "foo"),
+            ColumnIdent.of("name"),
             RowGranularity.DOC,
             DataTypes.STRING,
             0,

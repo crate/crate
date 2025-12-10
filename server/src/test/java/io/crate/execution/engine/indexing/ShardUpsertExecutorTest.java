@@ -60,7 +60,6 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -91,7 +90,9 @@ public class ShardUpsertExecutorTest extends IntegTestCase {
         TransactionContext txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         NodeContext nodeCtx = createNodeContext();
 
-        SimpleReference rawSourceReference = new SimpleReference(new ReferenceIdent(bulkImportIdent, SysColumns.RAW),
+        SimpleReference rawSourceReference = new SimpleReference(
+            bulkImportIdent,
+            SysColumns.RAW,
             RowGranularity.DOC,
             DataTypes.STRING,
             0,

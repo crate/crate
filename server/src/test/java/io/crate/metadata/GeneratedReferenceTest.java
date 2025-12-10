@@ -61,9 +61,9 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testStreaming() throws Exception {
-        ReferenceIdent referenceIdent = new ReferenceIdent(t1Info.ident(), "generated_column");
         String formattedGeneratedExpression = "concat(a, 'bar')";
-        SimpleReference simpleRef = new SimpleReference(referenceIdent, RowGranularity.DOC, StringType.INSTANCE, 1, null);
+        SimpleReference simpleRef = new SimpleReference(
+            t1Info.ident(), ColumnIdent.of("generated_column"), RowGranularity.DOC, StringType.INSTANCE, 1, null);
         Symbol generatedExpression = expressions.normalize(executor.asSymbol(formattedGeneratedExpression));
         GeneratedReference generatedReferenceInfo = new GeneratedReference(simpleRef, generatedExpression);
 
@@ -79,9 +79,9 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_generated_reference_cast_keeps_generated_reference() throws Exception {
         var relationName = new RelationName("doc", "tbl");
-        var referenceIdent = new ReferenceIdent(relationName, "year");
         var simpleRef = new SimpleReference(
-            referenceIdent,
+            relationName,
+            ColumnIdent.of("year"),
             RowGranularity.DOC,
             DataTypes.TIMESTAMPZ,
             1,

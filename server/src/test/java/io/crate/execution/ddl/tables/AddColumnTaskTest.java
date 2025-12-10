@@ -22,6 +22,7 @@
 package io.crate.execution.ddl.tables;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -36,10 +37,10 @@ import org.junit.Test;
 
 import com.carrotsearch.hppc.IntArrayList;
 
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -63,9 +64,9 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int, o object)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var addColumnTask = buildAddColumnTask(e, tbl.ident());
-        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("x"));
         SimpleReference newColumn = new SimpleReference(
-            refIdent,
+            tbl.ident(),
+            ColumnIdent.of("o", "x"),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             IndexType.PLAIN,
@@ -89,7 +90,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         Reference addedColumn = newTable.getReference(newColumn.column());
         // Need to create a clone of request column to imitate the expected OID.
         Reference newColumnWithOid = new SimpleReference(
-            newColumn.ident(),
+            newColumn.relation(),
+            newColumn.column(),
             newColumn.granularity(),
             newColumn.valueType(),
             newColumn.indexType(),
@@ -111,10 +113,11 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int)");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var addColumnTask = buildAddColumnTask(e, tbl.ident());
-        ReferenceIdent shapesIdent = new ReferenceIdent(tbl.ident(), "shapes");
 
+        ColumnIdent shapes = ColumnIdent.of("shapes");
         Reference geoShapeArrayRef = new GeoReference(
-            shapesIdent,
+            tbl.ident(),
+            shapes,
             new ArrayType<>(DataTypes.GEO_SHAPE),
             IndexType.PLAIN,
             true,
@@ -128,9 +131,10 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             null
         );
 
-        ReferenceIdent pointsIdent = new ReferenceIdent(tbl.ident(), "points");
+        ColumnIdent points = ColumnIdent.of("points");
         Reference geoPointArrayRef = new GeoReference(
-            pointsIdent,
+            tbl.ident(),
+            points,
             new ArrayType<>(DataTypes.GEO_POINT),
             IndexType.PLAIN,
             true,
@@ -153,10 +157,10 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState newState = addColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
-        Reference addedShapesColumn = newTable.getReference(shapesIdent.columnIdent());
+        Reference addedShapesColumn = newTable.getReference(shapes);
         assertThat(addedShapesColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
 
-        Reference addedPointsColumn = newTable.getReference(pointsIdent.columnIdent());
+        Reference addedPointsColumn = newTable.getReference(points);
         assertThat(addedPointsColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_POINT));
     }
 
@@ -172,9 +176,9 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         var addColumnTask = buildAddColumnTask(e, tbl.ident());
-        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "x");
         SimpleReference newColumn = new SimpleReference(
-            refIdent,
+            tbl.ident(),
+            ColumnIdent.of("x"),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             3,
@@ -198,17 +202,17 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         var addColumnTask = buildAddColumnTask(e, tbl.ident());
-        ReferenceIdent refIdent1 = new ReferenceIdent(tbl.ident(), "y");
-        ReferenceIdent refIdent2 = new ReferenceIdent(tbl.ident(), "x");
         SimpleReference newColumn1 = new SimpleReference(
-            refIdent1,
+            tbl.ident(),
+            ColumnIdent.of("y"),
             RowGranularity.DOC,
             DataTypes.STRING,
             3,
             null
         );
         SimpleReference newColumn2 = new SimpleReference(
-            refIdent2,
+            tbl.ident(),
+            ColumnIdent.of("x"),
             RowGranularity.DOC,
             DataTypes.STRING,
             4,
@@ -234,7 +238,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState state = clusterService.state();
         var addColumnTask = buildAddColumnTask(e, tbl.ident());
         SimpleReference newColumn1 = new SimpleReference(
-            new ReferenceIdent(tbl.ident(), "y"),
+            tbl.ident(),
+            ColumnIdent.of("y"),
             RowGranularity.DOC,
             new ArrayType<>(new ArrayType<>(DataTypes.LONG)),
             2,
@@ -265,7 +270,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var addColumnTask = buildAddColumnTask(e, tbl.ident());
 
         SimpleReference colToAdd = new SimpleReference(
-            new ReferenceIdent(tbl.ident(), "y"),
+            tbl.ident(),
+            ColumnIdent.of("y"),
             RowGranularity.DOC,
             DataTypes.STRING,
             2,
@@ -294,7 +300,8 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var addColumnTask = buildAddColumnTask(e, tbl.ident());
         SimpleReference colToAdd = new SimpleReference(
-            new ReferenceIdent(tbl.ident(), "i"),
+            tbl.ident(),
+            ColumnIdent.of("i"),
             RowGranularity.DOC,
             DataTypes.STRING,
             2,

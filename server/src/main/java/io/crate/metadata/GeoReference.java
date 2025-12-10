@@ -53,7 +53,8 @@ public class GeoReference extends SimpleReference {
     @Nullable
     private final Double distanceErrorPct;
 
-    public GeoReference(ReferenceIdent ident,
+    public GeoReference(RelationName relation,
+                        ColumnIdent column,
                         DataType<?> type,
                         IndexType indexType,
                         boolean nullable,
@@ -65,7 +66,9 @@ public class GeoReference extends SimpleReference {
                         String precision,
                         Integer treeLevels,
                         Double distanceErrorPct) {
-        super(ident,
+        super(
+            relation,
+            column,
             RowGranularity.DOC, // Only primitive types columns can be used in PARTITIONED BY clause
             type,
             indexType,
@@ -159,9 +162,29 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Reference withReferenceIdent(ReferenceIdent newIdent) {
+    public Reference withColumn(ColumnIdent column) {
         return new GeoReference(
-            newIdent,
+            relation,
+            column,
+            type,
+            indexType,
+            nullable,
+            position,
+            oid,
+            isDropped,
+            defaultExpression,
+            geoTree,
+            precision,
+            treeLevels,
+            distanceErrorPct
+        );
+    }
+
+    @Override
+    public Reference withRelation(RelationName relation) {
+        return new GeoReference(
+            relation,
+            column,
             type,
             indexType,
             nullable,
@@ -184,7 +207,8 @@ public class GeoReference extends SimpleReference {
             return this;
         }
         return new GeoReference(
-            ident,
+            relation,
+            column,
             type,
             indexType,
             nullable,
@@ -202,7 +226,8 @@ public class GeoReference extends SimpleReference {
     @Override
     public GeoReference withValueType(DataType<?> newType) {
         return new GeoReference(
-            ident,
+            relation,
+            column,
             newType,
             indexType,
             nullable,

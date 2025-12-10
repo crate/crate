@@ -48,6 +48,10 @@ Version 6.2.0 - Unreleased
 Breaking Changes
 ================
 
+- Changed ``SHOW <parameter_name>`` to use the ``parameter_name`` as column name
+  in the result set instead of using a fixed ``setting`` column name to match
+  the behavior of PostgreSQL.
+
 - Changed the detailed :ref:`http error code <http-error-codes>` for the
   ``Duplicate Object`` error from ``4100`` to ``40910`` as it is a conflict.
 

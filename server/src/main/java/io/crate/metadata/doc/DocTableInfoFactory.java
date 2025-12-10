@@ -65,7 +65,6 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -393,7 +392,6 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             Map<String, Object> columnProperties = (Map<String, Object>) entry.getValue();
             final DataType<?> type = getColumnDataType(columnProperties);
             ColumnIdent column = parent == null ? ColumnIdent.of(columnName) : parent.getChild(columnName);
-            ReferenceIdent refIdent = new ReferenceIdent(relationName, column);
             columnProperties = innerProperties(columnProperties);
 
             String analyzer = (String) columnProperties.get("analyzer");
@@ -434,7 +432,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 Integer treeLevels = (Integer) columnProperties.get("tree_levels");
                 Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
                 Reference ref = new GeoReference(
-                    refIdent,
+                    relationName,
+                    column,
                     type,
                     IndexType.PLAIN,
                     nullable,
@@ -454,7 +453,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 }
             } else if (elementType.id() == ObjectType.ID) {
                 Reference ref = new SimpleReference(
-                    refIdent,
+                    relationName,
+                    column,
                     granularity,
                     type,
                     indexType,
@@ -494,7 +494,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                     if (sources != null) {
                         IndexReference.Builder builder = indexColumns.computeIfAbsent(
                             column,
-                            k -> new IndexReference.Builder(refIdent)
+                            k -> new IndexReference.Builder(relationName, column)
                         );
                         builder.indexType(indexType)
                             .position(position)
@@ -506,7 +506,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                     Reference ref;
                     if (analyzer == null) {
                         ref = new SimpleReference(
-                            refIdent,
+                            relationName,
+                            column,
                             granularity,
                             type,
                             indexType,
@@ -519,7 +520,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                         );
                     } else {
                         ref = new IndexReference(
-                            refIdent,
+                            relationName,
+                            column,
                             granularity,
                             type,
                             indexType,

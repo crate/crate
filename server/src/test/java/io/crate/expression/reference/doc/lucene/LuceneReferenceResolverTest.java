@@ -34,7 +34,6 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -57,7 +56,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testGetImplementationWithColumnsOfTypeCollection() {
         SimpleReference arrayRef = new SimpleReference(
-            new ReferenceIdent(RELATION_NAME, "a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, 0, null
+            RELATION_NAME, ColumnIdent.of("a"), RowGranularity.DOC, DataTypes.DOUBLE_ARRAY, 0, null
         );
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(arrayRef))
             .isExactlyInstanceOf(DocCollectorExpression.ChildDocCollectorExpression.class);
@@ -66,7 +65,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testGetImplementationForSequenceNumber() {
         SimpleReference seqNumberRef = new SimpleReference(
-            new ReferenceIdent(RELATION_NAME, "_seq_no"), RowGranularity.DOC, DataTypes.LONG, 0, null
+            RELATION_NAME, ColumnIdent.of("_seq_no"), RowGranularity.DOC, DataTypes.LONG, 0, null
         );
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(seqNumberRef))
             .isExactlyInstanceOf(SeqNoCollectorExpression.class);
@@ -75,7 +74,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testGetImplementationForPrimaryTerm() {
         SimpleReference primaryTerm = new SimpleReference(
-            new ReferenceIdent(RELATION_NAME, "_primary_term"), RowGranularity.DOC, DataTypes.LONG, 0, null
+            RELATION_NAME, ColumnIdent.of("_primary_term"), RowGranularity.DOC, DataTypes.LONG, 0, null
         );
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(primaryTerm))
             .isExactlyInstanceOf(PrimaryTermCollectorExpression.class);
@@ -84,7 +83,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testGetPrimaryKey() {
         SimpleReference primaryKey = new SimpleReference(
-            new ReferenceIdent(RELATION_NAME, "key"), RowGranularity.DOC, DataTypes.STRING, 0, null
+            RELATION_NAME, ColumnIdent.of("key"), RowGranularity.DOC, DataTypes.STRING, 0, null
         );
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(primaryKey).getClass().toString())
             .contains("BinaryIdCollectorExpression");
@@ -93,7 +92,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void testGetPrimaryKeyIn5x() {
         SimpleReference primaryKey = new SimpleReference(
-            new ReferenceIdent(RELATION_NAME, "key"), RowGranularity.DOC, DataTypes.STRING, 0, null
+            RELATION_NAME, ColumnIdent.of("key"), RowGranularity.DOC, DataTypes.STRING, 0, null
         );
         LuceneReferenceResolver resolver = new LuceneReferenceResolver(
             List.of(),
@@ -109,7 +108,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
         Reference ignored = new DynamicReference(
-            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), RowGranularity.DOC, 0);
+            RELATION_NAME, ColumnIdent.of("a", List.of("b")), RowGranularity.DOC, 0);
 
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(ignored))
             .isExactlyInstanceOf(DocCollectorExpression.ChildDocCollectorExpression.class);
@@ -118,7 +117,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
     @Test
     public void test_void_references_are_resolved_as_null_literals() {
         Reference voidRef = new VoidReference(
-            new ReferenceIdent(RELATION_NAME, "a", List.of("b")), 0);
+            RELATION_NAME, ColumnIdent.of("a", List.of("b")), 0);
 
         LuceneCollectorExpression<?> exp = LUCENE_REFERENCE_RESOLVER.getImplementation(voidRef);
         assertThat(exp).isExactlyInstanceOf(LuceneReferenceResolver.LiteralValueExpression.class);
@@ -158,7 +157,8 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
         assertThat(impl2.value()).isEqualTo(2023L);
 
         SimpleReference yearSimpleRef = new SimpleReference(
-            year.ident(),
+            year.relation(),
+            year.column(),
             RowGranularity.PARTITION,
             year.valueType(),
             year.position(),

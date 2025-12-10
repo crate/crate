@@ -76,8 +76,7 @@ public final class EqOperator extends Operator<Object> {
     public static final String NAME = "op_=";
 
     public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(TypeSignature.E,
-            TypeSignature.E)
+        .argumentTypes(TypeSignature.E, TypeSignature.E)
         .returnType(Operator.RETURN_TYPE.getTypeSignature())
         .features(Feature.DETERMINISTIC, Feature.STRICTNULL)
         .typeVariableConstraints(TypeVariableConstraint.E)

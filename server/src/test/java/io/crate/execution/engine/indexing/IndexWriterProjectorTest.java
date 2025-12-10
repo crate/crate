@@ -55,7 +55,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -95,11 +94,13 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             NumberOfReplicas.effectiveNumReplicas(table.parameters(), state.nodes()),
             cluster().client(),
             PartitionName.createResolver(bulkImportIdent, null, null),
-            new SimpleReference(new ReferenceIdent(bulkImportIdent, SysColumns.RAW),
-                          RowGranularity.DOC,
-                          DataTypes.STRING,
-                          0,
-                          null),
+            new SimpleReference(
+                bulkImportIdent,
+                SysColumns.RAW,
+                RowGranularity.DOC,
+                DataTypes.STRING,
+                0,
+                null),
             Collections.singletonList(ID_IDENT),
             Collections.<Symbol>singletonList(new InputColumn(0)),
             null,

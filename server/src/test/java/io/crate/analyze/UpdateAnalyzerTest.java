@@ -195,7 +195,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(((DocTableRelation) update.table()).tableInfo().ident()).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "users"));
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
-        assertThat(ref.ident().tableIdent().name()).isEqualTo("users");
+        assertThat(ref.relation().name()).isEqualTo("users");
         assertThat(ref.column().name()).isEqualTo("name");
         assertThat(update.assignmentByTargetCol().containsKey(ref)).isTrue();
 

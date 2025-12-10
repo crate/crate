@@ -21,13 +21,22 @@
 
 package io.crate.analyze;
 
+import java.util.List;
 import java.util.Locale;
 import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 
+import io.crate.analyze.relations.TableRelation;
+import io.crate.expression.operator.EqOperator;
+import io.crate.expression.symbol.Function;
+import io.crate.expression.symbol.Literal;
+import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.ColumnIdent;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.pgcatalog.PgSettingsTable;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.metadata.table.Operation;
@@ -42,6 +51,7 @@ import io.crate.sql.tree.ShowSchemas;
 import io.crate.sql.tree.ShowSessionParameter;
 import io.crate.sql.tree.ShowTables;
 import io.crate.sql.tree.Table;
+import io.crate.types.DataTypes;
 
 /**
  * Rewrites the SHOW statements into Select queries.
@@ -103,32 +113,72 @@ class ShowStatementAnalyzer {
         return new AnalyzedShowCreateTable(tableInfo);
     }
 
-    Query rewriteShowSessionParameter(ShowSessionParameter node) {
-        /*
-         * Rewrite
-         * <code>
-         *     SHOW { parameter_name | ALL }
-         * </code>
-         * To
-         * <code>
-         *     SELECT [ name, ] setting
-         *     FROM pg_catalog.pg_settings
-         *     [ WHERE name = parameter_name ]
-         * </code>
-         */
-        StringBuilder sb = new StringBuilder("SELECT ");
-        QualifiedName sessionSetting = node.parameter();
-        if (sessionSetting != null) {
-            sb.append("setting ");
+    /// Return QueriedSelectRelation for `SHOW { parameter_name | ALL }`
+    ///
+    /// The returned statement is equal to either:
+    ///
+    /// ```
+    /// SELECT
+    ///     setting as <parameter_name>
+    /// FROM
+    ///     pg_catalog.pg_settings
+    /// WHERE
+    ///     name = parameter_name
+    /// ```
+    ///
+    /// or
+    ///
+    /// ```
+    /// SELECT
+    ///     name,
+    ///     setting,
+    ///     short_desc as description
+    /// FROM
+    ///     pg_catalog.pg_settings
+    /// ```
+    QueriedSelectRelation analyzeShowSetting(ShowSessionParameter node) {
+        QualifiedName parameter = node.parameter();
+        TableInfo tableInfo = schemas.getTableInfo(PgSettingsTable.IDENT);
+        TableRelation tableRelation = new TableRelation(tableInfo);
+        List<Symbol> outputs;
+        List<String> outputNames;
+        Symbol whereClause;
+        Reference setting = tableRelation.getField(ColumnIdent.of("setting"));
+        Reference name = tableRelation.getField(ColumnIdent.of("name"));
+        assert setting != null : "`setting` reference must exist in pg_catalog.pg_settings";
+        assert name != null : "`name` reference must exist in pg_catalog.pg_settings";
+        if (parameter == null) {
+            // SHOW ALL
+            outputs = List.of(
+                name,
+                setting,
+                tableRelation.getField(ColumnIdent.of("short_desc"))
+            );
+            outputNames = List.of("name", "setting", "description");
+            whereClause = Literal.BOOLEAN_TRUE;
         } else {
-            sb.append("name, setting, short_desc as description ");
+            // SHOW parameter_name
+            outputs = List.of(setting);
+            String parameterName = parameter.toString();
+            outputNames = List.of(parameterName);
+            whereClause = new Function(
+                EqOperator.SIGNATURE,
+                List.of(name, Literal.of(parameterName)),
+                DataTypes.BOOLEAN
+            );
         }
-        sb.append("FROM pg_catalog.pg_settings ");
-        if (sessionSetting != null) {
-            sb.append("WHERE name = ");
-            singleQuote(sb, sessionSetting.toString());
-        }
-        return (Query) SqlParser.createStatement(sb.toString());
+        return new QueriedSelectRelation(
+            false,
+            List.of(tableRelation),
+            outputs,
+            outputNames,
+            whereClause,
+            List.of(),
+            null,
+            null,
+            null,
+            null
+        );
     }
 
     void validateSessionSetting(@Nullable QualifiedName settingParameter) {

@@ -62,7 +62,7 @@ public class ReferenceAssert extends AbstractObjectAssert<ReferenceAssert, Refer
     }
 
     public ReferenceAssert hasTableIdent(RelationName expectedTableIdent) {
-        assertThat(actual.ident().tableIdent())
+        assertThat(actual.relation())
             .as("tableIdent")
             .isEqualTo(expectedTableIdent);
         return this;

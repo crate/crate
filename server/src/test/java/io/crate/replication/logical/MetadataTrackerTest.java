@@ -58,7 +58,6 @@ import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -327,7 +326,8 @@ public class MetadataTrackerTest extends ESTestCase {
         private List<Reference> buildReferences(RelationName relationName, Map<String, Object> mapping) {
             return mapping.entrySet().stream()
                 .map(entry -> new SimpleReference(
-                    new ReferenceIdent(relationName, entry.getKey()),
+                    relationName,
+                    ColumnIdent.of(entry.getKey()),
                     RowGranularity.DOC,
                     DataTypes.guessType(entry.getValue()),
                     0,
@@ -358,7 +358,7 @@ public class MetadataTrackerTest extends ESTestCase {
     @Before
     public void setUpStates() throws Exception {
         RelationName relationName = new RelationName(null, "test");
-        SimpleReference reference = new SimpleReference(new ReferenceIdent(relationName, "one"), RowGranularity.DOC, DataTypes.STRING, 1, null);
+        SimpleReference reference = new SimpleReference(relationName, ColumnIdent.of("one"), RowGranularity.DOC, DataTypes.STRING, 1, null);
         PUBLISHER_CLUSTER_STATE = new Builder("publisher")
             .addTable("test", List.of(reference), Settings.EMPTY)
             .addPublication("pub1", List.of("test"))
@@ -393,7 +393,7 @@ public class MetadataTrackerTest extends ESTestCase {
         assertThat(SUBSCRIBER_CLUSTER_STATE).isEqualTo(syncedSubscriberClusterState);
 
         // Let's change the mapping on the publisher publisherClusterState
-        SimpleReference newColumn = new SimpleReference(new ReferenceIdent(relationName, "two"), RowGranularity.DOC, DataTypes.STRING, 1, null);
+        SimpleReference newColumn = new SimpleReference(relationName, ColumnIdent.of("two"), RowGranularity.DOC, DataTypes.STRING, 1, null);
         var updatedPublisherClusterState = new Builder(PUBLISHER_CLUSTER_STATE)
             .addColumn("test", newColumn)
             .build();

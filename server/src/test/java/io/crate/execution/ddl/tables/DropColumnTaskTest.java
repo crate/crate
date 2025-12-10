@@ -36,7 +36,6 @@ import org.junit.Test;
 import io.crate.analyze.DropColumn;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -171,9 +170,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "z");
         SimpleReference colToDrop = new SimpleReference(
-            refIdent,
+            tbl.ident(),
+            ColumnIdent.of("z"),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             333, // irrelevant
@@ -190,9 +189,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int check (x > 0), y int check (y > 0))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
         SimpleReference colToDrop = new SimpleReference(
-            refIdent,
+            tbl.ident(),
+            ColumnIdent.of("y"),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             333, // irrelevant
@@ -230,9 +229,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                       "a int check (o['oo']['a'] > 0), b int)))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("oo", "a"));
         SimpleReference colToDrop = new SimpleReference(
-            refIdent,
+            tbl.ident(),
+            ColumnIdent.of("o", List.of("oo", "a")),
             RowGranularity.DOC,
             DataTypes.SHORT, // irrelevant
             333, // irrelevant
@@ -252,9 +251,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (x int, y int, check (x > 0), check (y > 0))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
         SimpleReference colToDrop = new SimpleReference(
-            refIdent,
+            tbl.ident(),
+            ColumnIdent.of("y"),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             333, // irrelevant
@@ -280,9 +279,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             );
         DocTableInfo tbl = e.resolveTableInfo("doc.parted");
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "y");
         SimpleReference colToDrop = new SimpleReference(
-            refIdent,
+            tbl.ident(),
+            ColumnIdent.of("y"),
             RowGranularity.DOC,
             DataTypes.INTEGER,
             333, // irrelevant
@@ -304,9 +303,9 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
                 "a int, ooo object AS (a int))), check (o['oo']['a'] + o['oo']['ooo']['a']> 0))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        ReferenceIdent refIdent = new ReferenceIdent(tbl.ident(), "o", List.of("oo"));
         SimpleReference colToDrop = new SimpleReference(
-            refIdent,
+            tbl.ident(),
+            ColumnIdent.of("o", List.of("oo")),
             RowGranularity.DOC,
             DataTypes.SHORT, // irrelevant
             333, // irrelevant

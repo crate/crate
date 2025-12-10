@@ -37,7 +37,6 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
-import io.crate.metadata.ReferenceIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
@@ -60,7 +59,8 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         RelationName relationName = new RelationName("secret", "documents");
         Reference nameRef = new SimpleReference(
-            new ReferenceIdent(relationName, "name"),
+            relationName,
+            ColumnIdent.of("name"),
             RowGranularity.DOC,
             DataTypes.STRING,
             1,
@@ -84,7 +84,8 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         RelationName relationName = new RelationName("secret", "documents");
         Reference nameRef = new SimpleReference(
-            new ReferenceIdent(relationName, "name"),
+            relationName,
+            ColumnIdent.of("name"),
             RowGranularity.DOC,
             DataTypes.STRING,
             1,
