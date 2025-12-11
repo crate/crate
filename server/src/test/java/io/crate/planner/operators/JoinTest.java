@@ -45,6 +45,7 @@ import io.crate.analyze.JoinRelation;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.data.Row;
 import io.crate.execution.dsl.phases.HashJoinPhase;
+import io.crate.execution.dsl.phases.JoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.fdw.ForeignDataWrappers;
@@ -105,7 +106,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private Join buildJoin(LogicalPlan operator, PlannerContext plannerCtx) {
-        return (Join) operator.build(mock(DependencyCarrier.class), plannerCtx, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
+
+        return (Join) operator.build(e.dependencyMock, plannerCtx, Set.of(), projectionBuilder, -1, 0, null, null, Row.EMPTY, SubQueryResults.EMPTY);
     }
 
     private Join plan(QueriedSelectRelation mss, PlannerContext plannerCtx) {
@@ -1241,5 +1243,39 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
             "  │    └ Collect[doc.t5 | [e] | true]",
             "  └ Collect[doc.t6 | [f] | true]"
         );
+    }
+
+    @Test
+    public void test_hash_join_on_simple_pk_column_generate_hash_join_phase_with_isUniqueHashPerRow_set() throws IOException {
+        e = SQLExecutor.of(clusterService)
+            .addTable("create table t1 (a int primary key)")
+            .addTable("create table t2 (a int primary key, b int primary key)")
+            .addTable("create table t3 (a int, b int)")
+            .addTable("create table t4 (a int primary key, b int)");
+
+        QueriedSelectRelation analyzed = e.analyze("select * from t1 join t3 on t1.a = t3.a");
+        JoinPhase joinPhase = buildJoin(buildLogicalPlan(analyzed)).joinPhase();
+        assertThat(joinPhase).isExactlyInstanceOf(HashJoinPhase.class);
+        assertThat(((HashJoinPhase) joinPhase).isUniqueHashPerRow()).isTrue();
+
+        // column 't2.a' alone cannot uniquely identify each row
+        analyzed = e.analyze("select * from t2 join t3 on t2.a = t3.a");
+        joinPhase = buildJoin(buildLogicalPlan(analyzed)).joinPhase();
+        assertThat(joinPhase).isExactlyInstanceOf(HashJoinPhase.class);
+        assertThat(((HashJoinPhase) joinPhase).isUniqueHashPerRow()).isFalse();
+
+        // columns 't2.a' and 't3.a' together uniquely identify each row, but this does not guarantee
+        // that their combined hash value is unique; hence hash collisions are possible
+        analyzed = e.analyze("select * from t2 join t3 on t2.a = t3.a and t2.b = t3.b");
+        joinPhase = buildJoin(buildLogicalPlan(analyzed)).joinPhase();
+        assertThat(joinPhase).isExactlyInstanceOf(HashJoinPhase.class);
+        assertThat(((HashJoinPhase) joinPhase).isUniqueHashPerRow()).isFalse();
+
+        // column 't4.a' uniquely identify each row, but the combined hash value with 't4.b' cannot be unique anymore
+        // (hash collisions are possible with the combined hash)
+        analyzed = e.analyze("select * from t4 join t3 on t4.a = t3.a and t4.b = t3.b");
+        joinPhase = buildJoin(buildLogicalPlan(analyzed)).joinPhase();
+        assertThat(joinPhase).isExactlyInstanceOf(HashJoinPhase.class);
+        assertThat(((HashJoinPhase) joinPhase).isUniqueHashPerRow()).isFalse();
     }
 }

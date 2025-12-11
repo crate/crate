@@ -167,8 +167,8 @@ public class RowsBatchIteratorBenchmark {
             row -> Objects.hash(row.get(0)),
             row -> Objects.hash(row.get(0)),
             ignored -> 1000,
-            false
-        );
+            false,
+                false);
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
         }
@@ -191,8 +191,8 @@ public class RowsBatchIteratorBenchmark {
             },
             row -> (Integer) row.get(0) % 500,
             ignored -> 1000,
-            false
-        );
+            false,
+                false);
         while (leftJoin.moveNext()) {
             blackhole.consume(leftJoin.currentElement().get(0));
         }

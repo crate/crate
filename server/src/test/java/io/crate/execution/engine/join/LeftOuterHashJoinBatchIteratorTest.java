@@ -125,8 +125,8 @@ public class LeftOuterHashJoinBatchIteratorTest {
             getHashForLeft(),
             getHashForRight(),
             ignored -> 5,
-            true
-        );
+            true,
+                false);
         var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.ANY);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
@@ -143,8 +143,8 @@ public class LeftOuterHashJoinBatchIteratorTest {
             getHashForLeft(),
             getHashForRight(),
             ignored -> 1,
-            true
-        );
+            true,
+                false);
         var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.ANY);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
@@ -161,8 +161,8 @@ public class LeftOuterHashJoinBatchIteratorTest {
             getHashForLeft(),
             getHashForRight(),
             ignored -> 3,
-            true
-        );
+            true,
+                false);
         var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.ANY);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }
@@ -179,8 +179,8 @@ public class LeftOuterHashJoinBatchIteratorTest {
             getHashWithCollisions(),
             getHashWithCollisions(),
             ignored -> 3,
-            true
-        );
+            true,
+                false);
         var tester = BatchIteratorTester.forRows(batchIteratorSupplier, ResultOrder.ANY);
         tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
     }

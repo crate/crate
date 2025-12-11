@@ -46,6 +46,8 @@ public class HashJoinPhase extends JoinPhase {
     private final List<DataType<?>> leftOutputTypes;
     private final long estimatedRowSizeForLeft;
 
+    private final boolean uniqueHashPerRow;
+
     public HashJoinPhase(UUID jobId,
                          int executionNodeId,
                          String name,
@@ -60,7 +62,8 @@ public class HashJoinPhase extends JoinPhase {
                          List<Symbol> rightJoinConditionInputs,
                          List<DataType<?>> leftOutputTypes,
                          long estimatedRowSizeForLeft,
-                         JoinType joinType) {
+                         JoinType joinType,
+                         boolean uniqueHashPerRow) {
         super(
             jobId,
             executionNodeId,
@@ -78,6 +81,7 @@ public class HashJoinPhase extends JoinPhase {
         this.rightJoinConditionInputs = rightJoinConditionInputs;
         this.leftOutputTypes = leftOutputTypes;
         this.estimatedRowSizeForLeft = estimatedRowSizeForLeft;
+        this.uniqueHashPerRow = uniqueHashPerRow;
     }
 
     public HashJoinPhase(StreamInput in) throws IOException {
@@ -91,6 +95,12 @@ public class HashJoinPhase extends JoinPhase {
         if (in.getVersion().before(Version.V_5_6_0)) {
             // Version before 5.6.0 used to send numberOfRowsForLeft
             in.readZLong();
+        }
+
+        if (in.getVersion().onOrAfter(Version.V_6_2_0)) {
+            uniqueHashPerRow = in.readBoolean();
+        } else {
+            uniqueHashPerRow = false;
         }
     }
 
@@ -107,6 +117,10 @@ public class HashJoinPhase extends JoinPhase {
             // Version before 5.6.0 used to send numberOfRowsForLeft,
             // sending neutral value, indicating that this stat is unavailable.
             out.writeZLong(-1);
+        }
+
+        if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
+            out.writeBoolean(uniqueHashPerRow);
         }
     }
 
@@ -134,5 +148,9 @@ public class HashJoinPhase extends JoinPhase {
 
     public long estimatedRowSizeForLeft() {
         return estimatedRowSizeForLeft;
+    }
+
+    public boolean isUniqueHashPerRow() {
+        return uniqueHashPerRow;
     }
 }

@@ -57,7 +57,8 @@ public class HashJoinOperation implements CompletionListenable {
                              InputFactory inputFactory,
                              CircuitBreaker circuitBreaker,
                              long estimatedRowSizeForLeft,
-                             boolean emitNullValues) {
+                             boolean emitNullValues,
+                             boolean uniqueHashPerRow) {
 
         this.resultConsumer = nlResultConsumer;
         this.leftConsumer = new CapturingRowConsumer(nlResultConsumer.requiresScroll(), nlResultConsumer.completionFuture());
@@ -87,8 +88,8 @@ public class HashJoinOperation implements CompletionListenable {
                         circuitBreaker,
                         estimatedRowSizeForLeft
                     ),
-                    emitNullValues
-                );
+                    emitNullValues,
+                    uniqueHashPerRow);
                 nlResultConsumer.accept(joinIterator, null);
             } catch (Exception e) {
                 nlResultConsumer.accept(null, e);
