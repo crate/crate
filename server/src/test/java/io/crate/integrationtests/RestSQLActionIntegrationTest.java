@@ -32,6 +32,7 @@ import java.net.http.HttpRequest.BodyPublishers;
 import java.net.http.HttpResponse.BodyHandlers;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.logging.log4j.Level;
@@ -47,6 +48,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.protocols.http.MainAndStaticFileHandler;
 import io.crate.session.Sessions;
 
+//@Seed("4EA583D51E5D8AD3")
 public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
 
     @Test
@@ -218,6 +220,24 @@ public class RestSQLActionIntegrationTest extends SQLHttpIntegrationTest {
         assertThat(resp.statusCode()).isEqualTo(200);
         execute("refresh table doc.t1");
         assertThat(execute("select x from doc.t1")).hasRows("[0.0, 1.0, 1.42]");
+    }
+
+    @Test
+    public void experiment() throws Exception {
+        execute("create table doc.t1 (a int, b text)");
+
+        String[][] args = new String[4000][2];
+        for (int i = 0; i < args.length; i++) {
+            args[i][0] = Integer.toString(i);
+            args[i][1] = "\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\"";
+        }
+        var body = " { \"stmt\": \"INSERT INTO doc.t1(a, b) VALUES(?, ?)\", \"bulk_args\": " + Arrays.deepToString(args) + "}";
+        var response = post(body);
+        assertThat(response.statusCode()).isEqualTo(200);
+        execute("refresh table doc.t1");
+
+        var resp = post("{\"stmt\": \"select t1.a + t2.a, concat(t1.b, t2.b) from doc.t1 as t1, doc.t1 as t2\"}");
+        assertThat(resp.body()).contains("CircuitBreakingException");
     }
 
     @Test
