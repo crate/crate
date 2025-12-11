@@ -1,0 +1,44 @@
+.. _version_6.0.5:
+
+=============
+Version 6.0.5
+=============
+
+Released on 2025-12-11.
+
+.. NOTE::
+
+    If you are upgrading a cluster, you must be running CrateDB 5.0.0 or higher
+    before you upgrade to 6.0.5.
+
+    We recommend that you upgrade to the latest 5.10 release before moving to
+    6.0.5.
+
+    A rolling upgrade from >= 5.10.1 to 6.0.5 is supported.
+    Before upgrading, you should `back up your data`_.
+
+.. WARNING::
+
+    Tables that were created before CrateDB 5.x will not function with 6.x
+    and must be recreated before moving to 6.x.x.
+
+    You can recreate tables using ``COPY TO`` and ``COPY FROM`` or by
+    `inserting the data into a new table`_.
+
+.. _back up your data: https://crate.io/docs/crate/reference/en/latest/admin/snapshots.html
+.. _inserting the data into a new table: https://crate.io/docs/crate/reference/en/latest/admin/system-information.html#tables-need-to-be-recreated
+
+.. rubric:: Table of contents
+
+.. contents::
+   :local:
+
+
+See the :ref:`version_6.0.0` release notes for a full list of changes in the 6.0
+series.
+
+Fixes
+=====
+
+- Fixed ``EOFException`` and ``unexpected byte`` errors that could be raised
+  when using the :ref:`percentile aggregation <aggregation-percentile>`.
