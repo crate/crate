@@ -74,10 +74,8 @@ import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 import com.carrotsearch.hppc.procedures.ObjectProcedure;
 
 import io.crate.common.collections.Lists;
-import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
-import io.crate.exceptions.SchemaUnknownException;
 import io.crate.execution.ddl.Templates;
 import io.crate.expression.symbol.RefReplacer;
 import io.crate.fdw.ForeignTablesMetadata;
@@ -1216,18 +1214,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        /// @throws [SchemaUnknownException]
-        /// @throws [DependentObjectsExists]
         public Builder dropSchema(String schema) {
-            SchemaMetadata schemaMetadata = schemas.get(schema);
-            if (schemaMetadata == null) {
-                throw new SchemaUnknownException(schema);
-            }
-            if (schemaMetadata.relations().isEmpty()) {
-                schemas.remove(schema);
-            } else {
-                throw new DependentObjectsExists("schema", schema);
-            }
+            schemas.remove(schema);
             return this;
         }
     }

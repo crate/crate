@@ -26,9 +26,13 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
 
+import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
+import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
+import io.crate.metadata.view.ViewsMetadata;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseRandomizedSchema;
@@ -172,10 +176,23 @@ public class CustomSchemaIntegrationTest extends IntegTestCase {
             "sys"
         );
         assertSQLError(() -> execute("drop schema foobar"))
+            .hasMessageContaining("Schema 'foobar' unknown")
             .hasHTTPError(HttpResponseStatus.NOT_FOUND, 4045)
-            .hasPGError(PGErrorStatus.INVALID_SCHEMA_NAME)
-            .hasMessageContaining("Schema 'foobar' unknown");
+            .hasPGError(PGErrorStatus.INVALID_SCHEMA_NAME);
         execute("drop schema if exists foobar");
     }
 
+    @Test
+    public void test_drop_schema_with_cascade_deletes_tables() throws Exception {
+        execute("create schema foo");
+        execute("create table foo.tbl (x int)");
+        execute("create view foo.v1 as (select * from foo.tbl)");
+        execute("drop schema foo cascade");
+        ClusterState state = cluster().getInstance(ClusterService.class).state();
+        Metadata metadata = state.metadata();
+        assertThat(metadata.indices()).isEmpty();
+        assertThat(metadata.schemas()).isEmpty();
+        ViewsMetadata viewsMetadata = metadata.custom(ViewsMetadata.TYPE);
+        assertThat(viewsMetadata.names()).isEmpty();
+    }
 }

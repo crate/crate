@@ -28,25 +28,31 @@ import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
+import io.crate.sql.tree.CascadeMode;
+
 public class DropSchemaRequest extends AcknowledgedRequest<DropSchemaRequest> {
 
     private final List<String> names;
     private final boolean ifExists;
+    private final CascadeMode mode;
 
-    public DropSchemaRequest(List<String> names, boolean ifExists) {
+    public DropSchemaRequest(List<String> names, boolean ifExists, CascadeMode mode) {
         this.names = names;
         this.ifExists = ifExists;
+        this.mode = mode;
     }
 
     public DropSchemaRequest(StreamInput in) throws IOException {
         this.names = in.readStringList();
         this.ifExists = in.readBoolean();
+        this.mode = in.readEnum(CascadeMode.class);
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         out.writeStringCollection(names);
         out.writeBoolean(ifExists);
+        out.writeEnum(mode);
     }
 
     public List<String> names() {
@@ -55,5 +61,9 @@ public class DropSchemaRequest extends AcknowledgedRequest<DropSchemaRequest> {
 
     public boolean ifExists() {
         return ifExists;
+    }
+
+    public CascadeMode cascadeMode() {
+        return mode;
     }
 }
