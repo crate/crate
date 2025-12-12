@@ -34,6 +34,7 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.role.Permission;
@@ -47,7 +48,13 @@ public class HasDatabasePrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_database_privilege");
 
-    public static boolean checkByDbName(Roles roles, Role user, Object db, Collection<Permission> permissions, Schemas schemas) {
+    public static boolean checkByDbName(Roles roles,
+                                        Role user,
+                                        Object db,
+                                        Collection<Permission> permissions,
+                                        Schemas schemas,
+                                        Functions functions,
+                                        SearchPath searchPath) {
         if (Constants.DB_NAME.equals(db) == false) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "database \"%s\" does not exist",
@@ -56,7 +63,13 @@ public class HasDatabasePrivilegeFunction {
         return checkPrivileges(user, permissions);
     }
 
-    public static boolean checkByDbOid(Roles roles, Role user, Object db, Collection<Permission> permissions, Schemas schemas) {
+    public static boolean checkByDbOid(Roles roles,
+                                       Role user,
+                                       Object db,
+                                       Collection<Permission> permissions,
+                                       Schemas schemas,
+                                       Functions functions,
+                                       SearchPath searchPath) {
         if (Constants.DB_OID != (Integer) db) {
             throw new IllegalArgumentException(String.format(Locale.ENGLISH,
                 "database with OID \"%s\" does not exist",

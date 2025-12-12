@@ -69,6 +69,9 @@ SQL Standard and PostgreSQL Compatibility
 
 - Added the :ref:`pg_sleep <scalar-pg_sleep>` function, which pauses a session.
 
+- Added the :ref:`has_function_privileges <scalar-has-function-priv>` function,
+  which checks whether a user has privileges to execute a function.
+
 Data Types
 ----------
 
