@@ -4263,6 +4263,56 @@ Example::
 
     - Returns ``FALSE`` otherwise.
 
+.. _scalar-has-function-priv:
+
+``pg_catalog.has_function_privilege([user,] function, privilege text)``
+-----------------------------------------------------------------------
+
+Checks if a user has privileges to execute a function or not.
+
+Returns ``boolean`` or ``NULL`` if at least one argument is ``NULL``.
+
+First argument is ``TEXT`` user name or ``INTEGER`` user OID. If user is not
+specified current user is used as an argument.
+
+Second argument is ``TEXT``, denoting the function to check or the function's
+OID as ``INTEGER``.
+
+Third argument is privilege(s) to check. Allowed privilege type to check for is
+only ``EXECUTE``, which corresponds to CrateDB's ``DQL`` on the schema under
+which the function is created. Privilege string is case insensitive and extra
+whitespace is allowed between privilege names. Duplicate entries in privilege
+string are allowed.
+
+Example::
+
+    cr> select has_function_privilege('pg_catalog.pg_backend_pid()', 'execute')
+    ... as has_priv;
+    +----------+
+    | has_priv |
+    +----------+
+    | TRUE     |
+    +----------+
+    SELECT 1 row in set (... sec)
+
+.. NOTE::
+
+    - If no schema prefix is provided for the function, the function is resolved
+      based on user's current :ref:`search path <conf-session-search-path>`.
+
+    - All users have privilege to execute builtin functions and functions
+      defined in ``pg_catalog`` schema.
+
+    - Unlike PostgreSQL, the function is checked based only on it's name,
+      regardless of the arguments provided. For example all of the following
+      calls will return ``TRUE``:
+
+        - ``has_function_privilege('abs()', 'execute')``
+        - ``has_function_privilege('abs(integer)', 'execute')``
+        - ``has_function_privilege('abs(10)', 'execute')``
+        - ``has_function_privilege('abs(text)', 'execute')``
+        - ``has_function_privilege('abs(integer, float)', 'execute')``
+
 .. _scalar-pg_backend_pid:
 
 ``pg_catalog.pg_backend_pid()``

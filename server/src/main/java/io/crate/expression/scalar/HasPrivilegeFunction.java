@@ -32,9 +32,11 @@ import io.crate.data.Input;
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.expression.symbol.Symbol;
+import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -155,7 +157,14 @@ public class HasPrivilegeFunction extends Scalar<Boolean, Object> {
         if (schemaNameOrOid == null || privileges == null) {
             return null;
         }
-        return checkPrivilege.check(roles, user, schemaNameOrOid, parsePermissions.parse((String) privileges), nodeCtx.schemas());
+        return checkPrivilege.check(
+            roles,
+            user,
+            schemaNameOrOid,
+            parsePermissions.parse((String) privileges),
+            nodeCtx.schemas(),
+            nodeCtx.functions(),
+            txnCtx.sessionSettings().searchPath());
     }
 
     private class CompiledHasPrivilege extends Scalar<Boolean, Object> {
@@ -202,7 +211,14 @@ public class HasPrivilegeFunction extends Scalar<Boolean, Object> {
             if (schema == null || privilege == null) {
                 return null;
             }
-            return checkPrivilege.check(roles, user, schema, getPermissions.apply(privilege), nodeContext.schemas());
+            return checkPrivilege.check(
+                roles,
+                user,
+                schema,
+                getPermissions.apply(privilege),
+                nodeContext.schemas(),
+                nodeContext.functions(),
+                txnCtx.sessionSettings().searchPath());
         }
     }
 
@@ -216,7 +232,13 @@ public class HasPrivilegeFunction extends Scalar<Boolean, Object> {
     }
 
     public interface CheckPrivilege {
-        Boolean check(Roles roles, Role user, Object object, Collection<Permission> permissions, Schemas schemas);
+        Boolean check(Roles roles,
+                      Role user,
+                      Object object,
+                      Collection<Permission> permissions,
+                      Schemas schemas,
+                      Functions functions,
+                      SearchPath searchPath);
     }
 
     public interface ParsePermissions {

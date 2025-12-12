@@ -97,7 +97,9 @@ public class PgTableIsVisibleFunction extends Scalar<Boolean, Integer> {
                 user,
                 new RelationName(searchPathIdx, relationName.name()).fqn(),
                 READ_WRITE_DEFINE,
-                schemas)) {
+                schemas,
+                nodeContext.functions(),
+                txnCtx.sessionSettings().searchPath())) {
                 // return true if the found relation is from the correct schema or return false.
                 return foundMatchingSchemaName;
             }

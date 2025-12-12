@@ -33,6 +33,7 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogTableDefinitions;
@@ -46,7 +47,13 @@ public class HasSchemaPrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_schema_privilege");
 
-    public static boolean checkBySchemaName(Roles roles, Role user, Object schema, Collection<Permission> permissions, Schemas schemas) {
+    public static boolean checkBySchemaName(Roles roles,
+                                            Role user,
+                                            Object schema,
+                                            Collection<Permission> permissions,
+                                            Schemas schemas,
+                                            Functions functions,
+                                            SearchPath searchPath) {
         String schemaName = (String) schema;
         boolean result = false;
         for (Permission permission : permissions) {
@@ -60,7 +67,13 @@ public class HasSchemaPrivilegeFunction {
         return result;
     }
 
-    public static boolean checkBySchemaOid(Roles roles, Role user, Object schema, Collection<Permission> permissions, Schemas schemas) {
+    public static boolean checkBySchemaOid(Roles roles,
+                                           Role user,
+                                           Object schema,
+                                           Collection<Permission> permissions,
+                                           Schemas schemas,
+                                           Functions functions,
+                                           SearchPath searchPath) {
         Integer schemaOid = (Integer) schema;
         boolean result = false;
         for (Permission permission : permissions) {

@@ -29,7 +29,6 @@ import static io.crate.testing.TestingHelpers.printedTable;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static io.netty.handler.codec.http.HttpResponseStatus.UNAUTHORIZED;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
@@ -754,5 +753,37 @@ public class PrivilegesIntegrationTest extends BaseRolesIntegrationTest {
         executeAsSuperuser("GRANT AL TO al_role");
         executeAs("CREATE ROLE test", "trillian");
         assertRoleIsCreated("test");
+    }
+
+    @Test
+    public void test_has_function_privilege() throws Exception {
+        executeAsSuperuser("CREATE USER trillian");
+        assertUserIsCreated("trillian");
+
+        executeAs("select has_function_privilege('avg()', 'EXECUTE')", "trillian");
+        assertThat(response.rows()[0][0]).isEqualTo(true);
+        execute("select has_function_privilege('trillian', 'avg()', 'EXECUTE')");
+        assertThat(response.rows()[0][0]).isEqualTo(true);
+
+        execute("select has_function_privilege('pg_sleep()', 'EXECUTE')", "trillian");
+        assertThat(response.rows()[0][0]).isEqualTo(true);
+        execute("select has_function_privilege('trillian', 'pg_sleep()', 'EXECUTE')");
+        assertThat(response.rows()[0][0]).isEqualTo(true);
+
+        execute("create function my_schema.foo(long)" +
+            " returns string language dummy_lang as 'function foo(x) { return \"1\"; }'");
+        execute("ALTER USER trillian SET (search_path='my_schema')");
+
+        executeAs("select has_function_privilege('my_schema.foo()', 'EXECUTE')", "trillian");
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+        executeAs("select has_function_privilege('foo()', 'EXECUTE')", "trillian");
+        assertThat(response.rows()[0][0]).isEqualTo(false);
+
+        executeAsSuperuser("GRANT DQL ON SCHEMA my_schema TO trillian");
+        executeAs("select has_function_privilege('\"my_schema\".foo()', 'EXECUTE')", "trillian");
+        assertThat(response.rows()[0][0]).isEqualTo(true);
+        executeAsSuperuser("GRANT DQL ON SCHEMA my_schema TO trillian");
+        executeAs("select has_function_privilege('foo()', 'EXECUTE')", "trillian");
+        assertThat(response.rows()[0][0]).isEqualTo(true);
     }
 }
