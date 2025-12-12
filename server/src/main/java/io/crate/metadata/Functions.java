@@ -69,7 +69,7 @@ public class Functions {
 
     public static class Builder {
 
-        private HashMap<FunctionName, ArrayList<FunctionProvider>> providersByName = new HashMap<>();
+        private final HashMap<FunctionName, ArrayList<FunctionProvider>> providersByName = new HashMap<>();
 
         public void add(Signature signature, FunctionFactory factory) {
             List<FunctionProvider> functionProviders = providersByName.computeIfAbsent(
@@ -128,6 +128,37 @@ public class Functions {
             if (oid == OidHash.functionOid(signature)) {
                 return signature;
             }
+        }
+        return null;
+    }
+
+    /**
+     * Check if function exists with a simple lookup (not based on args) and if it does return the {@link FunctionName}.
+     * If the {@param schema} is not null, try to resolve the function based on the provided {@link SearchPath}.
+     */
+    public FunctionName resolveFunction(@Nullable String schema, String function, SearchPath searchPath) {
+        FunctionName functionName = resolveFunction(schema, function);
+        if (functionName != null) {
+            return functionName;
+        }
+        if (schema == null) {
+            for (String path : searchPath) {
+                functionName = resolveFunction(path, function);
+                if (functionName != null) {
+                    return functionName;
+                }
+            }
+        }
+        return null;
+    }
+
+    private FunctionName resolveFunction(String schema, String function) {
+        FunctionName functionName = new FunctionName(schema, function);
+        List<FunctionProvider> functionProviders = functionImplementations.get(functionName);
+        if (functionProviders != null) {
+            return functionName;
+        } else if (udfFunctionImplementations.containsKey(functionName)) {
+            return functionName;
         }
         return null;
     }
@@ -509,7 +540,7 @@ public class Functions {
         return cnt;
     }
 
-    private static record ApplicableFunction(
+    private record ApplicableFunction(
             Signature signature,
             BoundSignature boundSignature,
             FunctionFactory factory) implements Supplier<FunctionImplementation> {

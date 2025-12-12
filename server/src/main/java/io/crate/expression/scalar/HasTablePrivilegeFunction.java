@@ -34,6 +34,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 import io.crate.role.Permission;
@@ -46,12 +47,24 @@ public class HasTablePrivilegeFunction {
 
     public static final FunctionName NAME = new FunctionName(PgCatalogSchemaInfo.NAME, "has_table_privilege");
 
-    public static boolean checkByTableName(Roles roles, Role user, Object table, Collection<Permission> permissions, Schemas schemas) {
+    public static boolean checkByTableName(Roles roles,
+                                           Role user,
+                                           Object table,
+                                           Collection<Permission> permissions,
+                                           Schemas schemas,
+                                           Functions functions,
+                                           SearchPath searchPath) {
         String tableFqn = RelationName.fqnFromIndexName((String) table);
         return checkPrivileges(roles, user, tableFqn, permissions);
     }
 
-    public static boolean checkByTableOid(Roles roles, Role user, Object table, Collection<Permission> permissions, Schemas schemas) {
+    public static boolean checkByTableOid(Roles roles,
+                                          Role user,
+                                          Object table,
+                                          Collection<Permission> permissions,
+                                          Schemas schemas,
+                                          Functions functions,
+                                          SearchPath searchPath) {
         int tableOid = (int) table;
         RelationName relationName = schemas.getRelation(tableOid);
         String tableFqn;
