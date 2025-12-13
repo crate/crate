@@ -47,10 +47,12 @@ import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.index.shard.ShardId;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.common.unit.TimeValue;
@@ -321,7 +323,7 @@ public class ShardingUpsertExecutor
         return rtt;
     }
 
-    private class ShardResponseActionListener implements ActionListener<ShardResponse> {
+    static class ShardResponseActionListener implements ActionListener<ShardResponse> {
         private final UpsertResultCollector.Accumulator resultAccumulator;
         private final List<RowSourceInfo> rowSourceInfos;
         private final UpsertResults upsertResults;
@@ -331,6 +333,7 @@ public class ShardingUpsertExecutor
         private final ConcurrencyLimit nodeLimit;
         private final long startTime;
 
+        @VisibleForTesting
         ShardResponseActionListener(AtomicInteger numRequests,
                                     AtomicReference<Exception> interrupt,
                                     UpsertResults upsertResults,
@@ -364,6 +367,9 @@ public class ShardingUpsertExecutor
         @Override
         public void onFailure(Exception e) {
             nodeLimit.onSample(startTime);
+            if (e instanceof CircuitBreakingException) {
+                interrupt.set(e);
+            }
             countdown();
         }
 

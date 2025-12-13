@@ -24,14 +24,21 @@ package io.crate.execution.engine.indexing;
 import static io.crate.data.SentinelRow.SENTINEL;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static org.mockito.Mockito.mock;
 
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -42,6 +49,7 @@ import org.elasticsearch.threadpool.ThreadPool;
 import org.junit.Test;
 
 import io.crate.breaker.ConcurrentRamAccounting;
+import io.crate.common.concurrent.ConcurrencyLimit;
 import io.crate.data.BatchIterator;
 import io.crate.data.Bucket;
 import io.crate.data.CollectingBatchIterator;
@@ -160,5 +168,24 @@ public class ShardUpsertExecutorTest extends IntegTestCase {
         Bucket objects = consumer.getBucket();
 
         assertThat(objects).containsExactly(new Row1(10_000L));
+    }
+
+    @Test
+    public void test_ShardResponseActionListener_completes_upsert_results_exceptionally_when_cbe_occurs() {
+        var upsertResults = new CompletableFuture<UpsertResults>();
+        var actionListener = new ShardingUpsertExecutor.ShardResponseActionListener(
+            new AtomicInteger(1),
+            new AtomicReference<>(),
+            null,
+            null,
+            List.of(),
+            mock(ConcurrencyLimit.class),
+            upsertResults);
+        actionListener.onFailure(new CircuitBreakingException("test"));
+
+        assertThatThrownBy(upsertResults::get)
+            .isExactlyInstanceOf(ExecutionException.class)
+            .hasCauseInstanceOf(CircuitBreakingException.class)
+            .hasRootCauseMessage("test");
     }
 }
