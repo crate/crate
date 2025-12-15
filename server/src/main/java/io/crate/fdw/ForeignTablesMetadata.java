@@ -178,4 +178,13 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
             .flatMap(table -> table.getOptions())
             .iterator();
     }
+
+    public boolean contains(String schema) {
+        for (var relationName : tables.keySet()) {
+            if (relationName.schema().contains(schema)) {
+                return true;
+            }
+        }
+        return false;
+    }
 }

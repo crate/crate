@@ -46,6 +46,8 @@ import io.crate.metadata.SearchPath;
 public class ViewsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
     public static final String TYPE = "views";
+    public static final ViewsMetadata EMPTY = new ViewsMetadata(Map.of());
+
     private final Map<String, ViewMetadata> viewByName;
 
     ViewsMetadata(Map<String, ViewMetadata> viewByName) {
