@@ -21,131 +21,22 @@
 
 package io.crate.metadata;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
-
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
-import java.util.Map;
-import java.util.function.IntSupplier;
-import java.util.function.LongSupplier;
 
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.Nullable;
 
-import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.metadata.doc.SysColumns;
-import io.crate.sql.tree.ColumnDefinition;
-import io.crate.sql.tree.Expression;
-import io.crate.types.DataType;
 
-public interface ScopedRef extends Symbol {
-
-    public static final Comparator<ScopedRef> CMP_BY_POSITION_THEN_NAME = Comparator
-        .comparingInt(ScopedRef::position)
-        .thenComparing(r -> r.column().fqn());
-
-    public static int indexOf(Iterable<? extends ScopedRef> refs, ColumnIdent column) {
-        int i = 0;
-        for (ScopedRef ref : refs) {
-            if (ref.column().equals(column)) {
-                return i;
-            }
-            i++;
-        }
-        return -1;
-    }
+public interface ScopedRef extends UnscopedRef {
 
     RelationName relation();
 
-    ColumnIdent column();
-
-    @Override
-    default ColumnIdent toColumn() {
-        return column();
-    }
-
-    @Override
-    default ColumnDefinition<Expression> toColumnDefinition() {
-        return new ColumnDefinition<>(
-            toColumn().sqlFqn(), // allow ObjectTypes to return col name in subscript notation
-            valueType().toColumnType(null),
-            List.of()
-        );
-    }
-
-    IndexType indexType();
-
-    boolean isNullable();
-
-    RowGranularity granularity();
-
-    int position();
-
-    /**
-     * This is used as a column name in the source
-     */
-    long oid();
-
-    boolean isDropped();
-
-    boolean hasDocValues();
-
-    @Nullable
-    Symbol defaultExpression();
-
-    boolean isGenerated();
-
-    ScopedRef withColumn(ColumnIdent column);
-
     ScopedRef withRelation(RelationName relation);
-
-    ScopedRef withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition);
-
-    ScopedRef withDropped(boolean dropped);
-
-    ScopedRef withValueType(DataType<?> type);
-
-    /**
-     * Return the identifier of this column used inside the storage engine
-     */
-    default String storageIdent() {
-        long oid = oid();
-        if (oid == COLUMN_OID_UNASSIGNED) {
-            ColumnIdent column = column();
-            if (column.isRoot() == false && column.name().equals(SysColumns.Names.DOC)) {
-                column = column.shiftRight();
-            }
-            return column.fqn();
-        } else {
-            return Long.toString(oid);
-        }
-    }
-
-    /**
-     * Return the identifier of this column used inside the storage engine.
-     * Compared to {@link #storageIdent()}, this will return the columns leaf name instead of the FQN
-     * if no OID is assigned.
-     */
-    default String storageIdentLeafName() {
-        return oid() == COLUMN_OID_UNASSIGNED ? column().leafName() : Long.toString(oid());
-    }
-
-    /**
-     * Creates the {@link IndexMetadata} mapping representation of the Column.
-     * <p>
-     * Note that for object types it does _NOT_ include the inner columns.
-     * </p>
-     *
-     * @param position position to use in the mapping
-     */
-    Map<String, Object> toMapping(int position);
 
     static void toStream(StreamOutput out, ScopedRef ref) throws IOException {
         out.writeVInt(ref.symbolType().ordinal());

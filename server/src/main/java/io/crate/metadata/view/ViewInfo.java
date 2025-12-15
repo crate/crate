@@ -39,6 +39,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.table.Operation;
 
 public class ViewInfo implements RelationInfo {
@@ -62,7 +63,7 @@ public class ViewInfo implements RelationInfo {
         this.definition = definition;
         this.references = references
             .stream()
-            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME)
+            .sorted(UnscopedRef.CMP_BY_POSITION_THEN_NAME)
             .toList();
         this.columns = this.references.stream()
             .filter(r -> r.column().isRoot())

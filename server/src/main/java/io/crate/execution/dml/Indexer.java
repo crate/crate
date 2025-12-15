@@ -71,6 +71,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.operators.SubQueryResults;
@@ -1079,7 +1080,7 @@ public class Indexer {
                 }
             } else {
                 var rootIdent = synthetic.ref.column().getRoot();
-                int rootIndex = ScopedRef.indexOf(newColumns, rootIdent);
+                int rootIndex = UnscopedRef.indexOf(newColumns, rootIdent);
                 if (rootIndex == -1) {
                     // Synthetic is a generated/default sub-column with root not listed in the insert/upsert targets.
                     // We need to add the root to replica targets
@@ -1126,16 +1127,16 @@ public class Indexer {
             ColumnIdent column = synthetic.ref.column();
             Object value = synthetic.value();
             if (column.isRoot()) {
-                int idx = ScopedRef.indexOf(insertColumns, column);
+                int idx = UnscopedRef.indexOf(insertColumns, column);
                 assert idx >= 0 && idx < extendedValues.size() : "We know how many values are to be streamed: insertColumns()";
                 extendedValues.set(idx, value);
             } else {
-                int valueIdx = ScopedRef.indexOf(insertColumns, column.getRoot());
+                int valueIdx = UnscopedRef.indexOf(insertColumns, column.getRoot());
                 Map<String, Object> root;
                 assert valueIdx >= 0 && valueIdx < extendedValues.size() : "We know how many values are to be streamed: insertColumns()";
                 root = castMapUnchecked(extendedValues.get(valueIdx));
                 if (root == null) {
-                    if (ScopedRef.indexOf(this.columns, column.getRoot()) >= 0) {
+                    if (UnscopedRef.indexOf(this.columns, column.getRoot()) >= 0) {
                         // When a null is assigned to a parent object, do not generate nondeterministic children
                         continue;
                     } else {

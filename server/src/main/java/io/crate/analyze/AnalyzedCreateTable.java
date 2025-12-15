@@ -49,6 +49,7 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
@@ -178,7 +179,7 @@ public record AnalyzedCreateTable(
             .flatMap(ClusteredBy::column)
             .map(Symbol::toColumn);
         optClusteredBy.ifPresent(c -> {
-            if (!primaryKeys.isEmpty() && ScopedRef.indexOf(primaryKeys, c) < 0) {
+            if (!primaryKeys.isEmpty() && UnscopedRef.indexOf(primaryKeys, c) < 0) {
                 throw new IllegalArgumentException(
                     "Clustered by column `" + c + "` must be part of primary keys: " + Lists.map(primaryKeys, ScopedRef::column));
             }

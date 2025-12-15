@@ -34,6 +34,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.ScopedRef;
+import io.crate.metadata.UnscopedRef;
 
 public record BoundCreateTable(
         RelationName tableName,
@@ -79,7 +80,7 @@ public record BoundCreateTable(
     public IntArrayList primaryKeysIndices() {
         IntArrayList pkKeyIndices = new IntArrayList(primaryKeys.size());
         for (ScopedRef pk : primaryKeys) {
-            int idx = ScopedRef.indexOf(columns.values(), pk.column());
+            int idx = UnscopedRef.indexOf(columns.values(), pk.column());
             pkKeyIndices.add(idx);
         }
         return pkKeyIndices;

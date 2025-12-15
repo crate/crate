@@ -38,6 +38,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.ScopedRef;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
@@ -144,7 +145,7 @@ public final class MappingUtil {
         }
         if (partitionedBy.isEmpty() == false) {
             List<List<String>> pColumns = Lists.map(partitionedBy, pColumn -> {
-                int refIdx = ScopedRef.indexOf(columns, pColumn);
+                int refIdx = UnscopedRef.indexOf(columns, pColumn);
                 ScopedRef pRef = columns.get(refIdx);
                 return toPartitionMapping(pRef);
             });

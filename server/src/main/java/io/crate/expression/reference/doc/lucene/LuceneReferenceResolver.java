@@ -33,6 +33,7 @@ import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.ScopedRef;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
@@ -118,7 +119,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             }
 
             default: {
-                int partitionPos = ScopedRef.indexOf(partitionColumns, column);
+                int partitionPos = UnscopedRef.indexOf(partitionColumns, column);
                 if (partitionPos >= 0) {
                     return new LiteralValueExpression(
                         ref.valueType().implicitCast(partitionValues.get(partitionPos))

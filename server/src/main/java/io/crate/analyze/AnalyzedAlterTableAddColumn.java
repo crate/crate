@@ -39,6 +39,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.ScopedRef;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
@@ -89,7 +90,7 @@ public record AnalyzedAlterTableAddColumn(
         }
         IntArrayList pkIndices = new IntArrayList(primaryKeys.size());
         for (ScopedRef pk : primaryKeys) {
-            int idx = ScopedRef.indexOf(newColumns, pk.column());
+            int idx = UnscopedRef.indexOf(newColumns, pk.column());
             pkIndices.add(idx);
         }
         return new AddColumnRequest(

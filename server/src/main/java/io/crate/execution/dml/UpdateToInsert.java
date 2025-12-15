@@ -47,6 +47,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.ObjectType;
 
@@ -288,7 +289,7 @@ public final class UpdateToInsert {
                 continue;
             }
             ColumnIdent root = column.getRoot();
-            int idx = ScopedRef.indexOf(columns, root);
+            int idx = UnscopedRef.indexOf(columns, root);
             assert idx > -1 : "Root of updateColumns must exist in table columns";
             Symbol assignment = updateAssignments[i];
             Object value = assignment.accept(eval, values).value();

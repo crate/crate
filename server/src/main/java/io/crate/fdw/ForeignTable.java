@@ -59,6 +59,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RoutingProvider.ShardSelection;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.ScopedRef;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
@@ -156,7 +157,7 @@ public record ForeignTable(RelationName name,
     @Override
     public Stream<ScopedRef> allColumnsSorted() {
         return references.values().stream()
-            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME);
+            .sorted(UnscopedRef.CMP_BY_POSITION_THEN_NAME);
     }
 
     @Override

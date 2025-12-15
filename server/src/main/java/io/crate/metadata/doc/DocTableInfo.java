@@ -89,6 +89,7 @@ import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.ScopedRef;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.TableColumn;
@@ -224,7 +225,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> !primaryKeys.contains(r.column()))
             .filter(r -> !r.isNullable())
-            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME)
+            .sorted(UnscopedRef.CMP_BY_POSITION_THEN_NAME)
             .map(ScopedRef::column)
             .toList();
         this.droppedColumns = droppedColumns;
@@ -234,7 +235,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.rootColumns = this.allColumns.values().stream()
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> r.column().isRoot())
-            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME)
+            .sorted(UnscopedRef.CMP_BY_POSITION_THEN_NAME)
             .toList();
         SysColumns.forTable(ident, this.allColumns::put);
         this.partitionedByColumns = Lists.map(partitionedBy, x -> {
@@ -643,7 +644,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     @Override
     public Stream<ScopedRef> allColumnsSorted() {
         return allColumns.values().stream()
-            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME);
+            .sorted(UnscopedRef.CMP_BY_POSITION_THEN_NAME);
     }
 
     /**
@@ -1115,7 +1116,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 this.allColumns.values().stream()
             )
             .filter(ref -> !ref.column().isSystemColumn())
-            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME)
+            .sorted(UnscopedRef.CMP_BY_POSITION_THEN_NAME)
             .toList();
         LinkedHashMap<String, String> checkConstraintMap = LinkedHashMap.newLinkedHashMap(checkConstraints.size());
         for (var check : checkConstraints) {

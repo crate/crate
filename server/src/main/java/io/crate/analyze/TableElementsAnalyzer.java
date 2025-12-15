@@ -63,6 +63,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.UnscopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.EnsureNoMatchPredicate;
@@ -266,7 +267,7 @@ public class TableElementsAnalyzer implements FieldProvider<ScopedRef> {
                         }
                         return x;
                     });
-                    if (ScopedRef.indexOf(sources, source.column()) > -1) {
+                    if (UnscopedRef.indexOf(sources, source.column()) > -1) {
                         throw new IllegalArgumentException("Index " + name + " contains duplicate columns: " + sources);
                     }
                     sources.add(source);
