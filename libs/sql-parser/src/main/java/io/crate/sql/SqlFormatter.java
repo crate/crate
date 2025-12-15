@@ -262,6 +262,9 @@ public final class SqlFormatter {
                     append(indent, ", ");
                 }
             }
+            if (dropSchema.mode() == CascadeMode.CASCADE) {
+                append(indent, " CASCADE");
+            }
             return null;
         }
 
