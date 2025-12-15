@@ -322,7 +322,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public Reference getReference(ColumnIdent columnIdent) {
         Reference reference = allColumns.get(columnIdent);
         if (reference == null) {
-            return docColumn.getReference(ident(), columnIdent);
+            return docColumn.getReference(columnIdent);
         }
         return reference;
     }
