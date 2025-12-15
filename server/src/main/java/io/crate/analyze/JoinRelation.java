@@ -25,8 +25,7 @@ import java.util.List;
 import java.util.function.Consumer;
 
 import org.elasticsearch.common.UUIDs;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -117,7 +116,6 @@ public class JoinRelation implements AnalyzedRelation {
         return name;
     }
 
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return outputs;

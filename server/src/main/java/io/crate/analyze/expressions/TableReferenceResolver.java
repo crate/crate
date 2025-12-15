@@ -24,7 +24,7 @@ package io.crate.analyze.expressions;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.ColumnUnknownException;

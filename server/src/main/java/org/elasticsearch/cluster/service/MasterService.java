@@ -60,7 +60,7 @@ import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 import org.elasticsearch.node.Node;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;

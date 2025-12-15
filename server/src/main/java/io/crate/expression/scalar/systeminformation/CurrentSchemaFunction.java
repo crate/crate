@@ -23,7 +23,7 @@ package io.crate.expression.scalar.systeminformation;
 
 import java.util.EnumSet;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;

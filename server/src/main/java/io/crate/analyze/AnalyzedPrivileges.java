@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.role.Privilege;

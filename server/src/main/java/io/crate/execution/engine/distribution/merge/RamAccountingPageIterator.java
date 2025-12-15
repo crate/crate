@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.breaker.RowAccounting;
 

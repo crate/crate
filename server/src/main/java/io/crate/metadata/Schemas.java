@@ -44,10 +44,9 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.component.AbstractLifecycleComponent;
 import org.elasticsearch.index.Index;
 import org.elasticsearch.index.IndexNotFoundException;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Sets;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -358,7 +357,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         return schemaInfo;
     }
 
-    @NotNull
     public Iterator<SchemaInfo> iterator() {
         return schemas.values().iterator();
     }

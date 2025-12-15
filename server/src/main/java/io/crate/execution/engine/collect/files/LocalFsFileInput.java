@@ -22,10 +22,9 @@
 package io.crate.execution.engine.collect.files;
 
 
-import org.jetbrains.annotations.VisibleForTesting;
+import static io.crate.execution.engine.collect.files.FileReadingIterator.toURI;
+import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
@@ -46,20 +45,19 @@ import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import static io.crate.execution.engine.collect.files.FileReadingIterator.toURI;
+import org.jspecify.annotations.Nullable;
+
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.execution.engine.collect.files.Globs.GlobPredicate;
-import static java.nio.file.FileVisitOption.FOLLOW_LINKS;
 
 public class LocalFsFileInput implements FileInput {
 
     private static final Pattern HAS_GLOBS_PATTERN = Pattern.compile("^((file://|/)[^\\*]*/)[^\\*]*\\*.*");
 
-    @NotNull
     private final URI uri;
     @Nullable
     @VisibleForTesting
     final URI preGlobUri;
-    @NotNull
     private final Predicate<String> uriPredicate;
 
     public LocalFsFileInput(URI uri) throws IOException {

@@ -26,8 +26,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.IndexName;
 
@@ -147,7 +146,6 @@ public class RolePrivileges implements Iterable<Privilege> {
         return foundPrivilege.policy();
     }
 
-    @NotNull
     @Override
     public Iterator<Privilege> iterator() {
         return privilegeByIdent.values().iterator();

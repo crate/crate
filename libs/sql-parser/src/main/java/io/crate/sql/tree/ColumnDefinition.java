@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class ColumnDefinition<T> extends TableElement<T> {
 

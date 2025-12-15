@@ -104,7 +104,7 @@ import org.elasticsearch.index.translog.TranslogCorruptedException;
 import org.elasticsearch.index.translog.TranslogDeletionPolicy;
 import org.elasticsearch.index.translog.TranslogStats;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.exceptions.Exceptions;

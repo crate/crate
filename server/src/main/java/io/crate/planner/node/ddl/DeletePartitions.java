@@ -25,7 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Lists;

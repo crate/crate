@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import io.crate.exceptions.TableScopeException;
 import io.crate.metadata.RelationName;
 import io.crate.rest.action.HttpErrorStatus;

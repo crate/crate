@@ -26,8 +26,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionType;
@@ -107,7 +106,7 @@ public class StringToArrayFunction extends Scalar<List<String>, String> {
      *                  if they match. May be {@code null}.
      * @return An array of {@code String}.
      */
-    private static List<String> split(@NotNull String str, @Nullable String separator, @Nullable String nullStr) {
+    private static List<String> split(String str, @Nullable String separator, @Nullable String nullStr) {
 
         if (separator == null) {
             ArrayList<String> subStrings = new ArrayList<>(str.length());

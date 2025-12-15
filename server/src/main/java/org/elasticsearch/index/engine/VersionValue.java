@@ -19,13 +19,13 @@
 
 package org.elasticsearch.index.engine;
 
-import org.apache.lucene.util.Accountable;
-import org.apache.lucene.util.RamUsageEstimator;
-import org.jetbrains.annotations.Nullable;
-import org.elasticsearch.index.translog.Translog;
-
 import java.util.Collection;
 import java.util.Collections;
+
+import org.apache.lucene.util.Accountable;
+import org.apache.lucene.util.RamUsageEstimator;
+import org.elasticsearch.index.translog.Translog;
+import org.jspecify.annotations.Nullable;
 
 abstract class VersionValue implements Accountable {
 
@@ -91,8 +91,7 @@ abstract class VersionValue implements Accountable {
     /**
      * Returns the translog location for this version value or null. This is optional and might not be tracked all the time.
      */
-    @Nullable
-    public Translog.Location getLocation() {
+    public Translog.@Nullable Location getLocation() {
         return null;
     }
 }

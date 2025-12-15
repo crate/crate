@@ -21,7 +21,7 @@
 
 package io.crate.role.metadata;
 
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.security.GeneralSecurityException;
 import java.util.Collections;
@@ -33,8 +33,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.settings.SecureString;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.role.GrantedRole;
 import io.crate.role.JwtProperties;
@@ -203,7 +202,6 @@ public final class RolesHelper {
         return new Role(name, false, Set.of(), buildGrantedRoles(grantedRoles), null, null, Map.of());
     }
 
-    @NotNull
     private static Set<GrantedRole> buildGrantedRoles(List<String> grantedRoles) {
         Set<GrantedRole> parents = new LinkedHashSet<>(grantedRoles.size());
         for (var grantedRole : grantedRoles) {

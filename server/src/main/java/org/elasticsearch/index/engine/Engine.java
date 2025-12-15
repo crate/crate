@@ -81,9 +81,9 @@ import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.translog.Translog;
 import org.elasticsearch.index.translog.TranslogStats;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.SQLExceptions;
@@ -379,8 +379,7 @@ public abstract class Engine implements Closeable {
         }
 
         /** get the translog location after executing the operation */
-        @Nullable
-        public Translog.Location getTranslogLocation() {
+        public Translog.@Nullable Location getTranslogLocation() {
             return translogLocation;
         }
 

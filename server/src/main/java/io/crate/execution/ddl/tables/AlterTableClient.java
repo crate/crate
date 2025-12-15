@@ -48,8 +48,8 @@ import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.common.settings.IndexScopedSettings;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.BoundAlterTable;
 import io.crate.common.exceptions.Exceptions;

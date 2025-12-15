@@ -29,7 +29,7 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 public final class AlterServerTask extends AckedClusterStateUpdateTask<AcknowledgedResponse> {
 

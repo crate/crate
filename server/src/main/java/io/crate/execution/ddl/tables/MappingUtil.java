@@ -31,7 +31,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.function.ToIntFunction;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;

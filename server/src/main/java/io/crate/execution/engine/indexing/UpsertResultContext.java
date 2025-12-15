@@ -27,7 +27,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Predicate;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Input;

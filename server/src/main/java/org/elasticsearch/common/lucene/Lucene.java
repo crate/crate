@@ -58,7 +58,7 @@ import org.apache.lucene.util.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.index.analysis.AnalyzerScope;
 import org.elasticsearch.index.analysis.NamedAnalyzer;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.Iterables;

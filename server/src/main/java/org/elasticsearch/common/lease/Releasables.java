@@ -21,7 +21,7 @@ package org.elasticsearch.common.lease;
 
 import io.crate.common.io.IOUtils;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.util.Arrays;

@@ -32,7 +32,7 @@ import java.util.function.Predicate;
 import java.util.function.ToIntFunction;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Iterables;
 import io.crate.data.BatchIterator;

@@ -38,7 +38,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.transport.RemoteCluster;
 import org.elasticsearch.transport.RemoteCluster.ConnectionStrategy;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.replication.logical.exceptions.CreateSubscriptionException;
 import io.crate.role.Role;

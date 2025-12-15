@@ -28,7 +28,7 @@ import java.util.Map;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.common.util.concurrent.EsExecutors;
 import org.elasticsearch.index.seqno.LocalCheckpointTracker;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.concurrent.FutureActionListener;
 

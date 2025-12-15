@@ -42,8 +42,8 @@ import org.elasticsearch.cluster.metadata.RelationMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.RelationUnknown;

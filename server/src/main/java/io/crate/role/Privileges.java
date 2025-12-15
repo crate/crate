@@ -21,8 +21,8 @@
 
 package io.crate.role;
 
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RelationUnknown;

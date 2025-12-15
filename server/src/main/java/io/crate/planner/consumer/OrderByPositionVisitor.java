@@ -25,7 +25,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.elasticsearch.common.inject.Singleton;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 

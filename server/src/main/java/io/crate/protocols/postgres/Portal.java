@@ -23,7 +23,7 @@ package io.crate.protocols.postgres;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.session.PreparedStmt;
@@ -35,15 +35,14 @@ public final class Portal {
     private final PreparedStmt preparedStmt;
     private final List<Object> params;
 
-    @Nullable
-    private final FormatCodes.FormatCode[] resultFormatCodes;
+    private final FormatCodes.FormatCode @Nullable [] resultFormatCodes;
 
     private RowConsumerToResultReceiver consumer;
 
     public Portal(String portalName,
                   PreparedStmt preparedStmt,
                   List<Object> params,
-                  @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
+                  FormatCodes.FormatCode @Nullable [] resultFormatCodes) {
         this.portalName = portalName;
         this.preparedStmt = preparedStmt;
         this.params = params;
@@ -62,8 +61,7 @@ public final class Portal {
         return params;
     }
 
-    @Nullable
-    public FormatCodes.FormatCode[] resultFormatCodes() {
+    public FormatCodes.FormatCode @Nullable [] resultFormatCodes() {
         return resultFormatCodes;
     }
 

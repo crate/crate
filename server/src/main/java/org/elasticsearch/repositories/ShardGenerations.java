@@ -31,7 +31,7 @@ import java.util.Set;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import org.elasticsearch.index.snapshots.IndexShardSnapshotStatus;
 

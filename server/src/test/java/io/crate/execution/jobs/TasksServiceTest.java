@@ -39,7 +39,6 @@ import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.NotNull;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -109,7 +108,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         Task dummyContext = new DummyTask() {
 
             @Override
-            public void innerKill(@NotNull Throwable throwable) {
+            public void innerKill(Throwable throwable) {
                 killCalled.set(true);
             }
         };
@@ -136,7 +135,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         Task dummyContext = new DummyTask() {
 
             @Override
-            public void innerKill(@NotNull Throwable throwable) {
+            public void innerKill(Throwable throwable) {
                 killCalled.set(true);
             }
         };
@@ -149,7 +148,7 @@ public class TasksServiceTest extends CrateDummyClusterServiceUnitTest {
         builder = tasksService.newBuilder(UUID.randomUUID());
         builder.addTask(new DummyTask() {
             @Override
-            public void innerKill(@NotNull Throwable throwable) {
+            public void innerKill(Throwable throwable) {
                 kill2Called.set(true);
             }
         });

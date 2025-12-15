@@ -42,7 +42,7 @@ import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.indices.breaker.CircuitBreakerService;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;

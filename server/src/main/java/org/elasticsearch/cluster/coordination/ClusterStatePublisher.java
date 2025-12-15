@@ -22,7 +22,7 @@ package org.elasticsearch.cluster.coordination;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import io.crate.common.unit.TimeValue;
 
 public interface ClusterStatePublisher {

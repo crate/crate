@@ -28,8 +28,6 @@ import static io.crate.types.TimeTZType.TYPE_SIZE;
 import java.nio.charset.StandardCharsets;
 import java.util.Locale;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.types.Regproc;
 import io.crate.types.TimeTZ;
 import io.netty.buffer.ByteBuf;
@@ -73,7 +71,7 @@ final class TimeTZType extends PGType<TimeTZ> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull TimeTZ value) {
+    public int writeAsBinary(ByteBuf buffer, TimeTZ value) {
         buffer.writeInt(TYPE_SIZE);
         buffer.writeLong(value.getMicrosFromMidnight());
         buffer.writeInt(value.getSecondsFromUTC());
@@ -90,7 +88,7 @@ final class TimeTZType extends PGType<TimeTZ> {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@NotNull TimeTZ time) {
+    byte[] encodeAsUTF8Text(TimeTZ time) {
         return formatTime(time).getBytes(StandardCharsets.UTF_8);
     }
 

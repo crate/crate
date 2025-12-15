@@ -37,8 +37,8 @@ import org.elasticsearch.common.inject.CreationException;
 import org.elasticsearch.common.inject.Singleton;
 import org.elasticsearch.repositories.RepositoryException;
 import org.elasticsearch.repositories.RepositoryMissingException;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;

@@ -27,7 +27,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.elasticsearch.common.UUIDs;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
@@ -105,7 +104,6 @@ public class UnionSelect implements AnalyzedRelation {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return (List) outputs;

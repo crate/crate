@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.settings.CoordinatorSessionSettings;

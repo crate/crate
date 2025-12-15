@@ -37,8 +37,7 @@ import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -176,7 +175,6 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         }
     }
 
-    @NotNull
     public Settings settings() {
         return settings;
     }
@@ -186,27 +184,22 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         return routingColumn;
     }
 
-    @NotNull
     public ColumnPolicy tableColumnPolicy() {
         return tableColumnPolicy;
     }
 
-    @NotNull
     public List<ColumnIdent> partitionedBy() {
         return partitionedBy;
     }
 
-    @NotNull
     public Map<String, String> checkConstraints() {
         return this.checkConstraints;
     }
 
-    @NotNull
     public List<Reference> references() {
         return this.columns;
     }
 
-    @NotNull
     public IntArrayList pKeyIndices() {
         return this.pKeyIndices;
     }

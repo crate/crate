@@ -52,7 +52,7 @@ import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.search.MatchQuery;
 import org.elasticsearch.index.search.MultiMatchQuery;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.analyze.MatchOptionsAnalysis;

@@ -21,7 +21,11 @@
 
 package io.crate.types;
 
-import org.jetbrains.annotations.NotNull;
+import static java.time.temporal.ChronoField.HOUR_OF_DAY;
+import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
+import static java.time.temporal.ChronoField.NANO_OF_SECOND;
+import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
+
 import java.time.DateTimeException;
 import java.time.Instant;
 import java.time.LocalTime;
@@ -34,11 +38,6 @@ import java.time.temporal.ChronoField;
 import java.time.temporal.TemporalAccessor;
 import java.time.temporal.TemporalQueries;
 import java.util.Locale;
-
-import static java.time.temporal.ChronoField.HOUR_OF_DAY;
-import static java.time.temporal.ChronoField.MINUTE_OF_HOUR;
-import static java.time.temporal.ChronoField.NANO_OF_SECOND;
-import static java.time.temporal.ChronoField.SECOND_OF_MINUTE;
 
 /**
  * Represents time with time zone as microseconds from midnight,
@@ -95,7 +94,7 @@ public final class TimeTZParser {
         return new TimeTZ(checkRange(source, value, MAX_MICROS), 0);
     }
 
-    public static TimeTZ parse(@NotNull String format) {
+    public static TimeTZ parse(String format) {
         TemporalAccessor dt;
         try {
             dt = TIMETZ_PARSER.parse(format.replaceAll("\\s+", ""));
@@ -129,7 +128,7 @@ public final class TimeTZParser {
         return time.isSupported(field) ? time.get(field) : 0;
     }
 
-    public static String formatTime(@NotNull TimeTZ time) {
+    public static String formatTime(TimeTZ time) {
         String localTime = LocalTime
             .ofNanoOfDay(time.getMicrosFromMidnight() * 1000L)
             .format(DateTimeFormatter.ISO_TIME);

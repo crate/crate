@@ -39,7 +39,7 @@ package io.crate.common.collections;
 import java.util.Comparator;
 import java.util.Iterator;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 
 public final class LexicographicalOrdering<T> implements Comparator<Iterable<T>> {

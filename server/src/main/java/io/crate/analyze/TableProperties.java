@@ -28,7 +28,7 @@ import java.util.Map;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.sql.tree.ColumnPolicy;

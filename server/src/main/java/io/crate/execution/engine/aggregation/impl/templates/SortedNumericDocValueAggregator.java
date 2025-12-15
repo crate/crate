@@ -28,7 +28,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedNumericDocValues;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.TriFunction;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.CheckedTriConsumer;
 import io.crate.data.breaker.RamAccounting;

@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 
 import io.netty.buffer.ByteBuf;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class FormatCodes {
 

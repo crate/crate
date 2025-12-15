@@ -28,7 +28,7 @@ import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.client.node.NodeClient;
 import org.elasticsearch.common.inject.Singleton;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.auth.AccessControlImpl;

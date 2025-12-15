@@ -37,10 +37,9 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.BiConsumer;
 
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.exceptions.JobKilledException;
 import io.crate.exceptions.SQLExceptions;
@@ -378,7 +377,7 @@ public class RootTask implements CompletionListenable<Void> {
             finishIfNeeded();
         }
 
-        private void onFailure(@NotNull Throwable t) {
+        private void onFailure(Throwable t) {
             t = SQLExceptions.unwrap(t);
             failure = t;
             jobsLogs.operationFinished(jobId, startedTimestamp, task, SQLExceptions.messageOf(t));

@@ -21,18 +21,29 @@
 
 package io.crate.metadata;
 
-import org.jetbrains.annotations.Nullable;
-
-import org.jetbrains.annotations.NotNull;
+import org.jspecify.annotations.Nullable;
 
 public class RoutineInfo {
+
+    @Nullable
     private final String specificName;
+
+    @Nullable
     private final String schema;
+
     private final String name;
+
     private final String type;
+
+    @Nullable
     private final String body;
+
+    @Nullable
     private final String dataType;
+
     private final boolean isDeterministic;
+
+    @Nullable
     private final String definition;
 
     public RoutineInfo(String name,
@@ -63,12 +74,10 @@ public class RoutineInfo {
         this(name, type, null, null, definition, null, null, false);
     }
 
-    @NotNull
     public String name() {
         return name;
     }
 
-    @NotNull
     public String type() {
         return type;
     }
@@ -85,6 +94,7 @@ public class RoutineInfo {
         return specificName;
     }
 
+    @Nullable
     public String definition() {
         return definition;
     }

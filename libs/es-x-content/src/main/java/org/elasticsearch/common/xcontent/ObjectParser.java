@@ -21,7 +21,7 @@
 
 package org.elasticsearch.common.xcontent;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import java.io.IOException;
 import java.util.ArrayList;

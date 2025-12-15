@@ -33,8 +33,6 @@ import java.time.format.DateTimeFormatterBuilder;
 import java.time.format.ResolverStyle;
 import java.util.Locale;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.types.Regproc;
 
 final class TimestampType extends BaseTimestampType {
@@ -89,7 +87,7 @@ final class TimestampType extends BaseTimestampType {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@NotNull Long value) {
+    byte[] encodeAsUTF8Text(Long value) {
         long millis = (long) value;
         LocalDateTime ts =
             LocalDateTime.ofInstant(Instant.ofEpochMilli(millis), ZoneOffset.UTC);

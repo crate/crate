@@ -22,7 +22,7 @@ package org.elasticsearch.action;
 import java.util.Objects;
 
 import org.elasticsearch.common.io.stream.Writeable;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An exception indicating that a failure occurred performing an operation on the shard.

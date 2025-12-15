@@ -135,7 +135,7 @@ import org.elasticsearch.test.disruption.ServiceDisruptionScheme;
 import org.elasticsearch.test.transport.MockTransportService;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.TransportSettings;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.ObjectLongMap;
 import com.carrotsearch.hppc.cursors.IntObjectCursor;

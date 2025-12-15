@@ -41,7 +41,7 @@ import org.elasticsearch.action.admin.indices.retention.SyncRetentionLeasesReque
 import org.elasticsearch.action.support.broadcast.BroadcastResponse;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedOptimizeTable;
 import io.crate.analyze.SymbolEvaluator;

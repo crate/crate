@@ -26,7 +26,6 @@ import java.util.List;
 import java.util.function.Function;
 
 import org.elasticsearch.common.bytes.BytesReference;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
@@ -46,7 +45,7 @@ public class ArrayOfObjectIndexer<T> extends ArrayIndexer<T> {
     }
 
     @Override
-    public void indexValue(@NotNull List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
         docBuilder = docBuilder.wrapTranslog(w -> new SidecarTranslogWriter(w, reference.storageIdentLeafName()));
         super.indexValue(values, docBuilder);
     }

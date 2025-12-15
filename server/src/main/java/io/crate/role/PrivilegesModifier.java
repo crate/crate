@@ -29,7 +29,7 @@ import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.RelationName;
 import io.crate.role.metadata.RolesMetadata;

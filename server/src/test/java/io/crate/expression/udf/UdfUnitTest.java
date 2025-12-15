@@ -23,7 +23,7 @@ package io.crate.expression.udf;
 
 import javax.script.ScriptException;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.Before;
 
 import io.crate.analyze.TableDefinitions;

@@ -25,9 +25,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.VisibleForTesting;
-
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.FunctionType;
@@ -103,7 +101,7 @@ public class SubstrFunction extends Scalar<String, Object> {
         return evaluate(val, (beginIdx).intValue());
     }
 
-    private static String evaluate(@NotNull String inputStr, int beginIdx) {
+    private static String evaluate(String inputStr, int beginIdx) {
         final int startPos = Math.max(0, beginIdx - 1);
         if (startPos > inputStr.length() - 1) {
             return "";
@@ -113,7 +111,7 @@ public class SubstrFunction extends Scalar<String, Object> {
     }
 
     @VisibleForTesting
-    static String evaluate(@NotNull String inputStr, int beginIdx, int len) {
+    static String evaluate(String inputStr, int beginIdx, int len) {
         final int startPos = Math.max(0, beginIdx - 1);
         if (startPos > inputStr.length() - 1) {
             return "";

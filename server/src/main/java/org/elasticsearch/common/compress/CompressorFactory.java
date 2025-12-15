@@ -24,7 +24,7 @@ import java.util.Objects;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.fasterxml.jackson.dataformat.smile.SmileConstants;
 

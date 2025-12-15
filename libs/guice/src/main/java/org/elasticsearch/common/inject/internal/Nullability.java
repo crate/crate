@@ -27,7 +27,7 @@ import java.lang.annotation.Annotation;
  * <a href="http://groups.google.com/group/jsr-305/web/proposed-annotations">
  * javax.annotation.meta.Nullable</a> annotation and IntelliJ IDEA's
  * <a href="http://www.jetbrains.com/idea/documentation/howto.html">
- * org.jetbrains.annotations.Nullable</a>.
+ * org.jspecify.annotations.Nullable</a>.
  *
  * @author jessewilson@google.com (Jesse Wilson)
  */

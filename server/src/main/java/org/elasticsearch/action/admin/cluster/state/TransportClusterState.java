@@ -45,7 +45,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 

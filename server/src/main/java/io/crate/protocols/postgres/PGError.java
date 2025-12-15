@@ -24,7 +24,7 @@ package io.crate.protocols.postgres;
 import java.nio.charset.StandardCharsets;
 
 import org.elasticsearch.ElasticsearchException;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.exceptions.AmbiguousColumnAliasException;
 import io.crate.exceptions.AmbiguousColumnException;

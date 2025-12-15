@@ -21,6 +21,11 @@
 
 package io.crate.analyze.relations;
 
+import java.util.List;
+import java.util.function.Consumer;
+
+import org.jspecify.annotations.Nullable;
+
 import io.crate.analyze.AnalyzedStatement;
 import io.crate.analyze.AnalyzedStatementVisitor;
 import io.crate.exceptions.AmbiguousColumnException;
@@ -29,11 +34,6 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.Operation;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.function.Consumer;
 
 /**
  * Represents a relation
@@ -86,7 +86,6 @@ public interface AnalyzedRelation extends AnalyzedStatement {
      * Either the outputs that would be included by `SELECT *` or the list of
      * symbols the user explicitly selected
      */
-    @NotNull
     @Override
     List<Symbol> outputs();
 

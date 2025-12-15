@@ -24,8 +24,6 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
-import org.jetbrains.annotations.NotNull;
-
 import ch.randelshofer.fastdoubleparser.JavaFloatParser;
 import io.netty.buffer.ByteBuf;
 
@@ -57,14 +55,14 @@ class RealType extends PGType<Float> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Float value) {
+    public int writeAsBinary(ByteBuf buffer, Float value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeFloat(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@NotNull Float value) {
+    protected byte[] encodeAsUTF8Text(Float value) {
         return Float.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 

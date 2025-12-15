@@ -24,7 +24,7 @@ package io.crate.analyze;
 import io.crate.expression.symbol.Symbol;
 import io.crate.sql.tree.SetSessionAuthorizationStatement;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.function.Consumer;
 
 public class AnalyzedSetSessionAuthorizationStatement implements AnalyzedStatement {

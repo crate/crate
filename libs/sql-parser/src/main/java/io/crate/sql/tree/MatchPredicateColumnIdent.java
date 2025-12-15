@@ -21,7 +21,7 @@
 
 package io.crate.sql.tree;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 
 public class MatchPredicateColumnIdent extends Expression {

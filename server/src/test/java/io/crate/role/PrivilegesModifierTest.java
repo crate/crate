@@ -35,7 +35,6 @@ import java.util.Set;
 import java.util.function.Predicate;
 
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -269,12 +268,10 @@ public class PrivilegesModifierTest {
         assertThat(privilege.isPresent()).isTrue();
     }
 
-    @NotNull
     private static Predicate<Privilege> hasPrivilegeOn(String object) {
         return p -> object.equals(p.subject().ident());
     }
 
-    @NotNull
     private static Predicate<Privilege> hasAlPrivilege() {
         return p -> p.subject().securable() == Securable.CLUSTER &&
             p.subject().permission() == Permission.AL &&

@@ -21,7 +21,7 @@ package org.elasticsearch.action.admin.indices.stats;
 
 import java.io.IOException;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.routing.ShardRouting;

@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.file;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.metadata.ColumnIdent;

@@ -21,7 +21,7 @@
 
 package io.crate.expression.reference.doc.lucene;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.execution.engine.sort.NullValueOrder;

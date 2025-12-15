@@ -46,9 +46,9 @@ import org.antlr.v4.runtime.misc.ParseCancellationException;
 import org.antlr.v4.runtime.tree.TerminalNodeImpl;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.sql.parser.antlr.SqlBaseLexer;
 import io.crate.sql.parser.antlr.SqlBaseParser;
 import io.crate.sql.parser.antlr.SqlBaseParserBaseListener;

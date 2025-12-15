@@ -23,8 +23,7 @@ package io.crate.analyze.relations;
 
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
@@ -49,7 +48,6 @@ public abstract class AbstractTableRelation<T extends TableInfo> implements Anal
         return tableInfo;
     }
 
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return outputs;

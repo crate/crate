@@ -28,7 +28,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.ScalarsAndRefsToTrue;
 import io.crate.analyze.WhereClause;

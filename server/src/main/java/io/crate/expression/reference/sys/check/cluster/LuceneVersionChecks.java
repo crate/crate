@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys.check.cluster;
 
 import org.apache.lucene.util.Version;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.text.ParseException;
 
 final class LuceneVersionChecks {

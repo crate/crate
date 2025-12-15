@@ -46,7 +46,7 @@ import org.elasticsearch.common.transport.TransportAddress;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.Transport.Connection;
 import org.elasticsearch.transport.TransportService.HandshakeResponse;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;

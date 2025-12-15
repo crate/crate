@@ -49,8 +49,7 @@ import org.apache.lucene.search.TopFieldDocs;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.lucene.MinimumScoreCollector;
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
@@ -149,7 +148,7 @@ public class LuceneOrderedDocCollector extends OrderedDocCollector {
     }
 
     @Override
-    public void kill(@NotNull Throwable t) {
+    public void kill(Throwable t) {
         killed.set(t);
     }
 

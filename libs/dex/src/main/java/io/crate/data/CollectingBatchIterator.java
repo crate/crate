@@ -31,8 +31,6 @@ import java.util.function.Supplier;
 import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.common.exceptions.Exceptions;
 
 /**
@@ -164,7 +162,7 @@ public final class CollectingBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public void kill(@NotNull Throwable throwable) {
+    public void kill(Throwable throwable) {
         onKill.accept(throwable);
         killed = throwable;
     }

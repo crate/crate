@@ -28,7 +28,7 @@ import java.util.function.Function;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateBlobTable;
 import io.crate.analyze.NumberOfShards;

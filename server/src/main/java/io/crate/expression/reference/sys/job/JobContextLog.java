@@ -21,16 +21,14 @@
 
 package io.crate.expression.reference.sys.job;
 
-import org.jetbrains.annotations.VisibleForTesting;
-
-import io.crate.planner.operators.StatementClassifier;
-
-import org.jetbrains.annotations.Nullable;
+import java.util.UUID;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
+import org.jspecify.annotations.Nullable;
 
-import java.util.UUID;
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.planner.operators.StatementClassifier;
 
 public class JobContextLog implements ContextLog, Accountable {
 
@@ -75,8 +73,7 @@ public class JobContextLog implements ContextLog, Accountable {
         return jobContext.started();
     }
 
-    @Nullable
-    public StatementClassifier.Classification classification() {
+    public StatementClassifier.@Nullable Classification classification() {
         return jobContext.classification();
     }
 

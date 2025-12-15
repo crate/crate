@@ -26,8 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
@@ -138,7 +137,6 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         return alias;
     }
 
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return outputs;

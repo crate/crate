@@ -61,8 +61,8 @@ import org.elasticsearch.index.Index;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.concurrent.CountdownFuture;
 import io.crate.exceptions.SQLExceptions;

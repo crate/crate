@@ -32,7 +32,7 @@ import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.UnaryOperator;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.relations.FieldResolver;

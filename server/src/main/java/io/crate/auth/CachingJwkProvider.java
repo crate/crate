@@ -36,8 +36,8 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.common.Strings;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;

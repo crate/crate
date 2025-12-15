@@ -47,9 +47,9 @@
       <version>${versions.antlr}</version>
     </dependency>
     <dependency>
-      <groupId>org.jetbrains</groupId>
-      <artifactId>annotations</artifactId>
-      <version>${versions.annotations}</version>
+      <groupId>org.jspecify</groupId>
+      <artifactId>jspecify</artifactId>
+      <version>${versions.jspecify}</version>
     </dependency>
     <dependency>
       <groupId>net.jqwik</groupId>

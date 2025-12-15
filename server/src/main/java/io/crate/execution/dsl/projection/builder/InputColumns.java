@@ -31,7 +31,7 @@ import java.util.IdentityHashMap;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.scalar.SubscriptObjectFunction;
 import io.crate.expression.symbol.Aggregation;

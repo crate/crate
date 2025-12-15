@@ -42,8 +42,7 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.Randomness;
 import org.elasticsearch.common.UUIDs;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedBegin;
 import io.crate.analyze.AnalyzedClose;
@@ -59,6 +58,7 @@ import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.auth.Protocol;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Lists;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
@@ -405,7 +405,7 @@ public class Session implements AutoCloseable {
     public void bind(String portalName,
                      String statementName,
                      List<Object> params,
-                     @Nullable FormatCodes.FormatCode[] resultFormatCodes) {
+                     FormatCodes.@Nullable FormatCode[] resultFormatCodes) {
         if (LOGGER.isDebugEnabled()) {
             LOGGER.debug("method=bind portalName={} statementName={} params={}", portalName, statementName, params);
         }
@@ -925,8 +925,7 @@ public class Session implements AutoCloseable {
         return preparedStmt;
     }
 
-    @Nullable
-    public FormatCodes.FormatCode[] getResultFormatCodes(String portal) {
+    public FormatCodes.@Nullable FormatCode[] getResultFormatCodes(String portal) {
         return getSafePortal(portal).resultFormatCodes();
     }
 
@@ -1013,7 +1012,7 @@ public class Session implements AutoCloseable {
     }
 
     @Nullable
-    public java.util.UUID getMostRecentJobID() {
+    public UUID getMostRecentJobID() {
         return mostRecentJobID;
     }
 

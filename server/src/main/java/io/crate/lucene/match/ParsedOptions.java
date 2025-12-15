@@ -25,7 +25,7 @@ import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.MultiTermQuery;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.search.MatchQuery;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public record ParsedOptions(@Nullable Float boost,
                             @Nullable String analyzer,
@@ -39,5 +39,5 @@ public record ParsedOptions(@Nullable Float boost,
                             @Nullable String minimumShouldMatch,
                             int phraseSlop,
                             @Nullable Float tieBreaker,
-                            @Nullable MultiTermQuery.RewriteMethod rewriteMethod) {
+                            MultiTermQuery.@Nullable RewriteMethod rewriteMethod) {
 }

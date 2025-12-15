@@ -28,7 +28,7 @@ import java.util.function.Supplier;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.Version;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.metadata.CoordinatorTxnCtx;

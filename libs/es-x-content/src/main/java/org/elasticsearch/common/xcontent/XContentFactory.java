@@ -27,7 +27,7 @@ import java.io.OutputStream;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.common.xcontent.smile.SmileXContent;
 import org.elasticsearch.common.xcontent.yaml.YamlXContent;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A one stop to use {@link org.elasticsearch.common.xcontent.XContent} and {@link XContentBuilder}.

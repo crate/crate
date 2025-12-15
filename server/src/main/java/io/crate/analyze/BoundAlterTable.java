@@ -22,7 +22,7 @@
 package io.crate.analyze;
 
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.table.TableInfo;

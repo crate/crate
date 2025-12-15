@@ -27,7 +27,6 @@ import java.util.List;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.analyze.DropColumn;
 import io.crate.metadata.RelationName;
@@ -37,8 +36,8 @@ public class DropColumnRequest extends AcknowledgedRequest<DropColumnRequest> {
     private final RelationName relationName;
     private final List<DropColumn> colsToDrop;
 
-    public DropColumnRequest(@NotNull RelationName relationName,
-                             @NotNull List<DropColumn> colsToDrop) {
+    public DropColumnRequest(RelationName relationName,
+                             List<DropColumn> colsToDrop) {
         this.relationName = relationName;
         this.colsToDrop = colsToDrop;
     }
@@ -56,12 +55,10 @@ public class DropColumnRequest extends AcknowledgedRequest<DropColumnRequest> {
         out.writeCollection(colsToDrop);
     }
 
-    @NotNull
     public RelationName relationName() {
         return this.relationName;
     }
 
-    @NotNull
     public List<DropColumn> colsToDrop() {
         return this.colsToDrop;
     }

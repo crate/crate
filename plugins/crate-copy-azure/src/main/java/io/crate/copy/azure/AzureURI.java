@@ -25,7 +25,7 @@ import static io.crate.copy.azure.AzureCopyPlugin.USER_FACING_SCHEME;
 
 import java.net.URI;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.engine.collect.files.Globs;
 

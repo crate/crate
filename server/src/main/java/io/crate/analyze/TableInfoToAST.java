@@ -36,7 +36,7 @@ import java.util.Set;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.expression.symbol.Symbol;

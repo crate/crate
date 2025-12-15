@@ -65,7 +65,7 @@ import org.elasticsearch.common.xcontent.NamedXContentRegistry;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import ch.randelshofer.fastdoubleparser.JavaDoubleParser;
 import ch.randelshofer.fastdoubleparser.JavaFloatParser;

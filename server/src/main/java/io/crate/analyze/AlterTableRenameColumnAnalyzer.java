@@ -25,8 +25,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Objects;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
@@ -118,7 +117,6 @@ public class AlterTableRenameColumnAnalyzer {
         }
 
         @Override
-        @NotNull
         public Reference resolveField(QualifiedName qualifiedName,
                                       @Nullable List<String> path,
                                       Operation operation,

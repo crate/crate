@@ -19,16 +19,16 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.table;
+package io.crate.common.annotations;
 
+import java.lang.annotation.Documented;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import org.elasticsearch.Version;
-import org.jspecify.annotations.Nullable;
-
-public interface StoredTable {
-
-    Version versionCreated();
-
-    @Nullable
-    Version versionUpgraded();
+@Documented
+@Target({ElementType.METHOD, ElementType.FIELD, ElementType.CONSTRUCTOR, ElementType.TYPE})
+@Retention(RetentionPolicy.SOURCE)
+public @interface VisibleForTesting {
 }

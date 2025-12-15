@@ -41,7 +41,7 @@ import org.elasticsearch.repositories.RepositoryOperation;
 import org.elasticsearch.snapshots.InFlightShardSnapshotStates;
 import org.elasticsearch.snapshots.Snapshot;
 import org.elasticsearch.snapshots.SnapshotsService;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.ObjectContainer;
 import com.carrotsearch.hppc.cursors.ObjectCursor;

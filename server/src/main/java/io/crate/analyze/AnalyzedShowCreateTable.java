@@ -24,8 +24,6 @@ package io.crate.analyze;
 import java.util.Collections;
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.AmbiguousColumnException;
@@ -75,7 +73,6 @@ public class AnalyzedShowCreateTable implements AnalyzedRelation {
         return relationName;
     }
 
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return List.copyOf(fields);

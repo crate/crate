@@ -61,7 +61,7 @@ import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
 import com.carrotsearch.randomizedtesting.RandomizedTest;

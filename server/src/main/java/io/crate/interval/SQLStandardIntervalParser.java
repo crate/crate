@@ -21,14 +21,13 @@
 
 package io.crate.interval;
 
-import org.joda.time.Period;
-
-import org.jetbrains.annotations.Nullable;
+import static io.crate.interval.IntervalParser.nullSafeIntGet;
+import static io.crate.interval.IntervalParser.roundToPrecision;
 
 import java.util.regex.Pattern;
 
-import static io.crate.interval.IntervalParser.nullSafeIntGet;
-import static io.crate.interval.IntervalParser.roundToPrecision;
+import org.joda.time.Period;
+import org.jspecify.annotations.Nullable;
 
 final class SQLStandardIntervalParser {
 
@@ -41,8 +40,8 @@ final class SQLStandardIntervalParser {
     }
 
     static Period apply(String value,
-                        @Nullable IntervalParser.Precision start,
-                        @Nullable IntervalParser.Precision end) {
+                        IntervalParser.@Nullable Precision start,
+                        IntervalParser.@Nullable Precision end) {
         return roundToPrecision(apply(value), start, end);
     }
 

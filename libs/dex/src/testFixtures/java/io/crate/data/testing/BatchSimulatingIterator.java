@@ -29,8 +29,7 @@ import java.util.concurrent.Executor;
 import java.util.concurrent.ForkJoinPool;
 import java.util.concurrent.atomic.AtomicBoolean;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
 
@@ -143,7 +142,7 @@ public class BatchSimulatingIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public void kill(@NotNull Throwable throwable) {
+    public void kill(Throwable throwable) {
         delegate.kill(throwable);
     }
 

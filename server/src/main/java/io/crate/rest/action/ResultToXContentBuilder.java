@@ -27,7 +27,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;

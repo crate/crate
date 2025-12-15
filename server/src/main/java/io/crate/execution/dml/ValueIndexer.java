@@ -25,8 +25,7 @@ import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
@@ -78,7 +77,7 @@ public interface ValueIndexer<T> {
     /**
      * Writes a value into an indexable document
      */
-    void indexValue(@NotNull T value, IndexDocumentBuilder docBuilder) throws IOException;
+    void indexValue(T value, IndexDocumentBuilder docBuilder) throws IOException;
 
     String storageIdentLeafName();
 

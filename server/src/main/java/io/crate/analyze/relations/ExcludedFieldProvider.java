@@ -26,7 +26,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.List;
 
 /**

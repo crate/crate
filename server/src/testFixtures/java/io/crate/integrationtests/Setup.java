@@ -27,7 +27,7 @@ import java.util.Arrays;
 import java.util.Locale;
 import java.util.Map;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.testing.SQLResponse;
 import io.crate.testing.SQLTransportExecutor;

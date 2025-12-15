@@ -21,7 +21,6 @@
 
 package io.crate.common.concurrent;
 
-import org.jetbrains.annotations.NotNull;
 
 public interface Killable {
 
@@ -43,5 +42,5 @@ public interface Killable {
      *
      * @param throwable the reason for the interruption or null if there is none.
      */
-    void kill(@NotNull Throwable throwable);
+    void kill(Throwable throwable);
 }

@@ -30,7 +30,7 @@ import java.util.SortedSet;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
@@ -327,7 +327,7 @@ public final class Messages {
      * The value of the column, in the format indicated by the associated format code. n is the above length.
      */
     @SuppressWarnings({"unchecked","rawtypes"})
-    static ChannelFuture sendDataRow(Channel channel, Row row, List<PGType<?>> columnTypes, @Nullable FormatCodes.FormatCode[] formatCodes) {
+    static ChannelFuture sendDataRow(Channel channel, Row row, List<PGType<?>> columnTypes, FormatCodes.FormatCode @Nullable [] formatCodes) {
         int length = 4 + 2;
         assert columnTypes.size() == row.numColumns()
             : "Number of columns in the row must match number of columnTypes. Row: " + row + " types: " + columnTypes;
@@ -432,7 +432,7 @@ public final class Messages {
     static void sendRowDescription(Channel channel,
                                    Collection<Symbol> columns,
                                    List<String> columnNames,
-                                   @Nullable FormatCodes.FormatCode[] formatCodes,
+                                   FormatCodes.FormatCode @Nullable [] formatCodes,
                                    @Nullable RelationInfo relation) {
         assert columns.size() == columnNames.size()
             : "Size of columns must match size of columnNames";

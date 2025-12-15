@@ -30,7 +30,7 @@ import org.elasticsearch.ElasticsearchParseException;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.compress.NotXContentException;
 import org.elasticsearch.common.xcontent.XContentType;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.engine.collect.files.FileReadingIterator.LineCursor;
 import io.crate.metadata.ColumnIdent;

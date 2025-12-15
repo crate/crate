@@ -30,7 +30,6 @@ import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.util.BytesRef;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -57,7 +56,7 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
     }
 
     @Override
-    public void indexValue(@NotNull BitString value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(BitString value, IndexDocumentBuilder docBuilder) throws IOException {
         BitSet bitSet = value.bitSet();
         byte[] bytes = bitSet.toByteArray();
 

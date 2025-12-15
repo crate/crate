@@ -25,13 +25,10 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.util.Objects;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.execution.engine.aggregation.impl.util.NumericValueHolder;
 
 public class NumericAverageState<T extends NumericValueHolder> implements Comparable<NumericAverageState<T>> {
 
-    @NotNull
     T sum;
 
     long count;

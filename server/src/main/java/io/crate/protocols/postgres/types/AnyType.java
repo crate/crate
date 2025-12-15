@@ -23,11 +23,10 @@ package io.crate.protocols.postgres.types;
 
 import static io.crate.types.Regproc.REGPROC_ZERO;
 
+import java.nio.charset.StandardCharsets;
+
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
-
-import org.jetbrains.annotations.NotNull;
-import java.nio.charset.StandardCharsets;
 
 public class AnyType extends PGType<Integer> {
     // we represent the any data type as integer,
@@ -57,7 +56,7 @@ public class AnyType extends PGType<Integer> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Integer value) {
+    public int writeAsBinary(ByteBuf buffer, Integer value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeInt(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
@@ -74,7 +73,7 @@ public class AnyType extends PGType<Integer> {
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@NotNull Integer value) {
+    protected byte[] encodeAsUTF8Text(Integer value) {
         return Integer.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 

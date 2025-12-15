@@ -69,7 +69,7 @@ import org.elasticsearch.transport.TransportRequestDeduplicator;
 import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;

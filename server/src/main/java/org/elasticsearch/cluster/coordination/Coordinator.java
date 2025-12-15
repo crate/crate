@@ -90,7 +90,7 @@ import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool.Names;
 import org.elasticsearch.transport.TransportResponse.Empty;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 
@@ -1254,8 +1254,8 @@ public class Coordinator extends AbstractLifecycleComponent implements ClusterSt
         private final ActionListener<Void> publishListener;
         private final PublicationTransportHandler.PublicationContext publicationContext;
 
-        @Nullable // if using single-node discovery
-        private final Scheduler.ScheduledCancellable timeoutHandler;
+        // if using single-node discovery
+        private final Scheduler.@Nullable ScheduledCancellable timeoutHandler;
         private final Scheduler.Cancellable infoTimeoutHandler;
 
         // We may not have accepted our own state before receiving a join from another node, causing its join to be rejected (we cannot

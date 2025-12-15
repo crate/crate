@@ -29,7 +29,6 @@ import org.apache.lucene.document.FloatPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.util.NumericUtils;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -46,7 +45,7 @@ public class FloatIndexer implements ValueIndexer<Float> {
     }
 
     @Override
-    public void indexValue(@NotNull Float value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(Float value, IndexDocumentBuilder docBuilder) throws IOException {
         float floatValue = value.floatValue();
         if (ref.hasDocValues() && ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new FloatField(name, floatValue, Field.Store.NO));

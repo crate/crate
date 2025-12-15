@@ -20,7 +20,7 @@
 package org.elasticsearch.action.admin.indices.stats;
 
 import org.apache.lucene.store.AlreadyClosedException;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;

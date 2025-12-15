@@ -27,8 +27,6 @@ import java.io.IOException;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
@@ -118,7 +116,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     }
 
     @Override
-    public void indexValue(@NotNull Object value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(Object value, IndexDocumentBuilder docBuilder) throws IOException {
         if (type == null) {
             // At the second phase of indexing type is not null in almost all cases
             // except the case with array of nulls

@@ -32,7 +32,7 @@ import java.util.stream.Collectors;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCreateForeignTable;
 import io.crate.analyze.SymbolEvaluator;

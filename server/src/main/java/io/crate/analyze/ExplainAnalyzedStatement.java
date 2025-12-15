@@ -25,8 +25,7 @@ import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -113,7 +112,6 @@ public class ExplainAnalyzedStatement implements AnalyzedRelation {
         return relationName;
     }
 
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return outputs;

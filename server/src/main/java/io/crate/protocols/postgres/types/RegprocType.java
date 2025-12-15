@@ -21,11 +21,10 @@
 
 package io.crate.protocols.postgres.types;
 
+import java.nio.charset.StandardCharsets;
+
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
-
-import org.jetbrains.annotations.NotNull;
-import java.nio.charset.StandardCharsets;
 
 class RegprocType extends PGType<Regproc> {
 
@@ -56,7 +55,7 @@ class RegprocType extends PGType<Regproc> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Regproc value) {
+    public int writeAsBinary(ByteBuf buffer, Regproc value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeInt(value.oid());
         return INT32_BYTE_SIZE + TYPE_LEN;
@@ -69,7 +68,7 @@ class RegprocType extends PGType<Regproc> {
     }
 
     @Override
-    public int writeAsText(ByteBuf buffer, @NotNull Regproc value) {
+    public int writeAsText(ByteBuf buffer, Regproc value) {
         byte[] bytes = value.name().getBytes(StandardCharsets.UTF_8);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
@@ -84,7 +83,7 @@ class RegprocType extends PGType<Regproc> {
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@NotNull Regproc value) {
+    protected byte[] encodeAsUTF8Text(Regproc value) {
         return value.name().getBytes(StandardCharsets.UTF_8);
     }
 

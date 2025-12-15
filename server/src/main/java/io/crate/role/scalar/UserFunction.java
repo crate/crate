@@ -21,7 +21,7 @@
 
 package io.crate.role.scalar;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;

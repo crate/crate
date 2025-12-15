@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys.job;
 
 import java.util.UUID;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.planner.operators.StatementClassifier.Classification;
 import io.crate.role.Role;

@@ -29,7 +29,7 @@ import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.RestoreInProgress;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.reference.sys.snapshot.SysSnapshotRestoreInProgress;
 import io.crate.metadata.ColumnIdent;

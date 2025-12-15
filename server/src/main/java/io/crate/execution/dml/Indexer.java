@@ -45,8 +45,8 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.document.Field;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.SymbolEvaluator;
 import io.crate.common.collections.Maps;

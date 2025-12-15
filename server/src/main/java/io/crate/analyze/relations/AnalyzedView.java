@@ -25,8 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
@@ -64,7 +63,6 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         this.outputSymbols = List.copyOf(outputs);
     }
 
-    @NotNull
     public Role owner() {
         return owner;
     }
@@ -106,7 +104,6 @@ public final class AnalyzedView implements AnalyzedRelation, FieldResolver {
         return name;
     }
 
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return outputSymbols;

@@ -29,8 +29,7 @@ import java.util.UUID;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
@@ -54,7 +53,7 @@ public class ForeignCollectPhase extends AbstractProjectionsPhase implements Col
                                RelationName relationName,
                                List<Symbol> toCollect,
                                Symbol query,
-                               @NotNull String executeAs) {
+                               String executeAs) {
         super(jobId, phaseId, relationName.fqn(), null);
         this.handlerNode = handlerNode;
         this.relationName = relationName;

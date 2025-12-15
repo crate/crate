@@ -25,11 +25,11 @@ import java.io.Closeable;
 
 import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.settings.SecureString;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.auth.AuthenticationMethod;
 import io.crate.auth.Credentials;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.role.Role;
 
 class AuthenticationContext implements Closeable {

@@ -37,7 +37,6 @@ import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.NumericUtils;
 import org.elasticsearch.Version;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.execution.dml.IndexDocumentBuilder;
 import io.crate.execution.dml.ValueIndexer;
@@ -133,7 +132,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         }
 
         @Override
-        public void indexValue(@NotNull BigDecimal value, IndexDocumentBuilder docBuilder) throws IOException {
+        public void indexValue(BigDecimal value, IndexDocumentBuilder docBuilder) throws IOException {
             BigInteger unscaled = value.unscaledValue();
             long longValue = unscaled.longValueExact();
 
@@ -170,7 +169,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         }
 
         @Override
-        public void indexValue(@NotNull BigDecimal value, IndexDocumentBuilder docBuilder) throws IOException {
+        public void indexValue(BigDecimal value, IndexDocumentBuilder docBuilder) throws IOException {
             BigInteger unscaled = value.unscaledValue();
             byte[] bytes = new byte[maxBytes];
             NumericUtils.bigIntToSortableBytes(unscaled, maxBytes, bytes, 0);

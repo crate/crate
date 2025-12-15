@@ -52,8 +52,7 @@ import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -660,7 +659,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return columnPolicy;
     }
 
-    @NotNull
     @Override
     public Version versionCreated() {
         return versionCreated;
@@ -749,7 +747,6 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return new DynamicReference(ident(), column, rowGranularity(), position);
     }
 
-    @NotNull
     public Reference resolveColumn(String targetColumnName,
                                    boolean forWrite,
                                    boolean errorOnUnknownObjectKey) throws ColumnUnknownException {

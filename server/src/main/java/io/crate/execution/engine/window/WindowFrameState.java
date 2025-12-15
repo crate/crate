@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.window;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.List;
 
 /**

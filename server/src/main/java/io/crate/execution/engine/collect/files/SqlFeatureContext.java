@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.collect.files;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class SqlFeatureContext {
 

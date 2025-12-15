@@ -41,11 +41,11 @@ import java.util.stream.Collector;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
 import com.fasterxml.jackson.core.JsonGenerator;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.Row1;
@@ -77,7 +77,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
 
     FileWriterCountCollector(Executor executor,
                              String uriStr,
-                             @Nullable WriterProjection.CompressionType compressionType,
+                             WriterProjection.@Nullable CompressionType compressionType,
                              @Nullable List<Input<?>> inputs,
                              Iterable<CollectExpression<Row, ?>> collectExpressions,
                              @Nullable List<String> outputNames,

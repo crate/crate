@@ -41,7 +41,6 @@ import java.util.stream.StreamSupport;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.Constants;
 import io.crate.common.collections.Iterators;
@@ -494,7 +493,6 @@ public class InformationSchemaIterables {
         }
 
         @Override
-        @NotNull
         public Iterator<ConstraintInfo> iterator() {
             return new NotNullConstraintIterator(info);
         }
@@ -558,7 +556,6 @@ public class InformationSchemaIterables {
         }
 
         @Override
-        @NotNull
         public Iterator<ColumnContext> iterator() {
             return new ColumnsIterator(relationInfo);
         }

@@ -26,7 +26,7 @@ import java.util.Collections;
 import java.util.Map;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.SystemTable;
 import io.crate.metadata.table.SchemaInfo;

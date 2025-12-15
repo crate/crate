@@ -28,7 +28,7 @@ import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntContainer;

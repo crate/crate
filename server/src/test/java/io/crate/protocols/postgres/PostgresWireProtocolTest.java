@@ -53,7 +53,7 @@ import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.client.Client;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;

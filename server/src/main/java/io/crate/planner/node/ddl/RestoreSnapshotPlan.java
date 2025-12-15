@@ -32,7 +32,7 @@ import org.elasticsearch.action.admin.cluster.snapshots.restore.TableOrPartition
 import org.elasticsearch.action.admin.cluster.snapshots.restore.TransportRestoreSnapshot;
 import org.elasticsearch.action.support.IndicesOptions;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedRestoreSnapshot;
 import io.crate.analyze.BoundRestoreSnapshot;

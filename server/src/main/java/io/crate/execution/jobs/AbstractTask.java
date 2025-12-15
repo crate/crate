@@ -21,7 +21,6 @@
 
 package io.crate.execution.jobs;
 
-import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.BiConsumer;
@@ -81,11 +80,11 @@ public abstract class AbstractTask implements Task {
         }
     }
 
-    protected void innerKill(@NotNull Throwable t) {
+    protected void innerKill(Throwable t) {
     }
 
     @Override
-    public final void kill(@NotNull Throwable t) {
+    public final void kill(Throwable t) {
         if (firstClose.compareAndSet(false, true)) {
             try {
                 innerKill(t);

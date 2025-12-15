@@ -39,8 +39,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.data.Input;
@@ -134,12 +133,12 @@ public class PartitionName implements Writeable {
     private String ident;
 
 
-    public PartitionName(RelationName relationName, @NotNull List<String> values) {
+    public PartitionName(RelationName relationName, List<String> values) {
         this.relationName = relationName;
         this.values = Objects.requireNonNull(values);
     }
 
-    public PartitionName(RelationName relationName, @NotNull String partitionIdent) {
+    public PartitionName(RelationName relationName, String partitionIdent) {
         this.relationName = relationName;
         this.ident = Objects.requireNonNull(partitionIdent);
     }

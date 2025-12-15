@@ -27,7 +27,7 @@ import java.util.regex.Pattern;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.WildcardQuery;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.operator.all.AllLikeOperator;
 import io.crate.expression.operator.all.AllNotLikeOperator;

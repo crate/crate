@@ -75,13 +75,13 @@ import org.elasticsearch.common.unit.ByteSizeUnit;
 import org.elasticsearch.common.unit.ByteSizeValue;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
 import com.github.benmanes.caffeine.cache.Caffeine;
 import com.github.benmanes.caffeine.cache.LoadingCache;
 
 import io.crate.Streamer;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
 import io.crate.data.Row;
@@ -256,8 +256,7 @@ public class TableStatsService extends AbstractLifecycleComponent implements Run
         }
     }
 
-    @Nullable
-    private Scheduler.ScheduledCancellable scheduleNextRefresh(TimeValue refreshInterval) {
+    private Scheduler.@Nullable ScheduledCancellable scheduleNextRefresh(TimeValue refreshInterval) {
         if (refreshInterval.millis() > 0) {
             return threadPool.schedule(
                 this,

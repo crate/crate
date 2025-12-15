@@ -21,10 +21,11 @@
 
 package io.crate.copy.s3.common;
 
-import org.jetbrains.annotations.VisibleForTesting;
 
 import java.net.URI;
 import java.util.Objects;
+
+import io.crate.common.annotations.VisibleForTesting;
 
 public class S3URI {
     private static final String INVALID_URI_MSG = "Invalid URI. Please make sure that given URI is encoded properly.";

@@ -29,7 +29,6 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.elasticsearch.test.ESTestCase;
-import org.jetbrains.annotations.NotNull;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -106,7 +105,7 @@ public class AbstractTaskTest extends ESTestCase {
         }
 
         @Override
-        protected void innerKill(@NotNull Throwable t) {
+        protected void innerKill(Throwable t) {
             numKill.incrementAndGet();
         }
 

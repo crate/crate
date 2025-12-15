@@ -27,7 +27,7 @@ import java.util.List;
 import java.util.function.LongConsumer;
 
 import org.elasticsearch.Version;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.ArrayRow;
 import io.crate.data.Input;

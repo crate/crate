@@ -49,7 +49,7 @@ import org.elasticsearch.common.util.concurrent.EsThreadPoolExecutor;
 import org.elasticsearch.common.util.concurrent.ThreadContext;
 import org.elasticsearch.common.util.concurrent.XRejectedExecutionHandler;
 import org.elasticsearch.node.Node;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 
@@ -207,8 +207,7 @@ public class ThreadPool implements Scheduler {
         return new ThreadPoolStats(stats);
     }
 
-    @Nullable
-    public ThreadPoolStats.Stats stats(String name) {
+    public ThreadPoolStats.@Nullable Stats stats(String name) {
         ExecutorHolder holder = executors.get(name);
         if (holder == null) {
             return null;
@@ -229,8 +228,7 @@ public class ThreadPool implements Scheduler {
         return new ThreadPoolStats.Stats(name, -1, -1, -1, -1, -1, -1);
     }
 
-    @Nullable
-    public ThreadPool.Info info(String name) {
+    public ThreadPool.@Nullable Info info(String name) {
         ExecutorHolder holder = executors.get(name);
         if (holder == null) {
             return null;

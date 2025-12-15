@@ -37,7 +37,7 @@ import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.translog.Translog;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.unit.TimeValue;

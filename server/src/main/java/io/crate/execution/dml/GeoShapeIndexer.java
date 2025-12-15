@@ -44,7 +44,6 @@ import org.elasticsearch.common.geo.GeoUtils;
 import org.elasticsearch.common.geo.builders.ShapeBuilder;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.unit.DistanceUnit;
-import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Shape;
 
 import io.crate.geo.GeoJSONUtils;
@@ -88,7 +87,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    public void indexValue(@NotNull Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
         indexableFieldsFactory.create(value, docBuilder::addField);
 
         var storageSupport = ref.valueType().storageSupport();

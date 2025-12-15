@@ -41,8 +41,7 @@ import java.util.stream.Stream;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.execution.engine.collect.NestableCollectExpression;
@@ -163,7 +162,6 @@ public final class SystemTable<T> implements TableInfo {
     }
 
     @Override
-    @NotNull
     public Iterator<Reference> iterator() {
         return columns.values().iterator();
     }

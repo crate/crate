@@ -29,8 +29,6 @@ import java.util.function.BiConsumer;
 import java.util.function.Function;
 import java.util.stream.Collector;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.Streamer;
 import io.crate.data.Bucket;
 import io.crate.data.InMemoryBatchIterator;
@@ -142,7 +140,7 @@ public class IncrementalPageBucketReceiver<T> implements PageBucketReceiver {
     }
 
     @Override
-    public void kill(@NotNull Throwable t) {
+    public void kill(Throwable t) {
         killed = true;
         processingFuture.completeExceptionally(t);
     }

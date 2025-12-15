@@ -24,7 +24,7 @@ package io.crate.types;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.signatures.antlr.TypeSignaturesBaseVisitor;
 import io.crate.signatures.antlr.TypeSignaturesParser;
@@ -85,7 +85,7 @@ class TypeSignaturesASTVisitor extends TypeSignaturesBaseVisitor<TypeSignature> 
     }
 
     @Nullable
-    private String getIdentifier(@Nullable TypeSignaturesParser.IdentifierContext context) {
+    private String getIdentifier(TypeSignaturesParser.@Nullable IdentifierContext context) {
         if (context != null) {
             if (context.QUOTED_INDENTIFIER() != null) {
                 var token = context.QUOTED_INDENTIFIER().getText();
@@ -100,14 +100,14 @@ class TypeSignaturesASTVisitor extends TypeSignaturesBaseVisitor<TypeSignature> 
     }
 
     @Nullable
-    private TypeSignature visitOptionalContext(@Nullable TypeSignaturesParser.TypeContext context) {
+    private TypeSignature visitOptionalContext(TypeSignaturesParser.@Nullable TypeContext context) {
         if (context != null) {
             return visit(context);
         }
         return null;
     }
 
-    private List<TypeSignature> getParameters(@Nullable TypeSignaturesParser.ParametersContext context) {
+    private List<TypeSignature> getParameters(TypeSignaturesParser.@Nullable ParametersContext context) {
         if (context == null || context.parameter().isEmpty()) {
             return List.of();
         }

@@ -24,8 +24,7 @@ package io.crate.protocols.postgres;
 import java.util.List;
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.data.Row;
@@ -44,8 +43,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     private final Channel directChannel;
     private final DelayedWrites delayedWrites;
 
-    @Nullable
-    private final FormatCodes.FormatCode[] formatCodes;
+    private final FormatCodes.FormatCode @Nullable [] formatCodes;
 
     private long rowCount = 0;
 
@@ -54,7 +52,7 @@ class ResultSetReceiver extends BaseResultReceiver {
                       DelayedWrites delayedWrites,
                       AccessControl accessControl,
                       List<PGType<?>> columnTypes,
-                      @Nullable FormatCodes.FormatCode[] formatCodes) {
+                      FormatCodes.FormatCode @Nullable [] formatCodes) {
         this.query = query;
         this.channel = channel;
         this.delayedWrites = delayedWrites;
@@ -124,7 +122,7 @@ class ResultSetReceiver extends BaseResultReceiver {
     }
 
     @Override
-    public void fail(@NotNull Throwable throwable) {
+    public void fail(Throwable throwable) {
         ChannelFuture sendErrorResponse = Messages.sendErrorResponse(directChannel, accessControl, throwable);
         sendErrorResponse.addListener(_ -> {
             channel.writePendingMessages(delayedWrites);

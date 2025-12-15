@@ -31,7 +31,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.service.ClusterApplierService;
 import org.elasticsearch.cluster.service.MasterService;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class PlainFuture<V> implements Future<V>, ActionListener<V> {
 

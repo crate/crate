@@ -31,8 +31,8 @@ import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.Version;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.WhereClause;

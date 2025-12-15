@@ -28,7 +28,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -53,7 +52,7 @@ public class FulltextIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public void indexValue(@NotNull String value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(String value, IndexDocumentBuilder docBuilder) throws IOException {
         String name = ref.storageIdent();
         if (ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new Field(name, value, FIELD_TYPE));

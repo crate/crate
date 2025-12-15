@@ -20,7 +20,7 @@
 package org.elasticsearch.snapshots;
 
 import org.elasticsearch.ElasticsearchException;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 

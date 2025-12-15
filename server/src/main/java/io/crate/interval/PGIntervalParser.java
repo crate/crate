@@ -29,16 +29,16 @@ import java.math.BigDecimal;
 import java.util.Locale;
 import java.util.StringTokenizer;
 
-import org.jetbrains.annotations.Nullable;
 import org.joda.time.Period;
+import org.jspecify.annotations.Nullable;
 
 final class PGIntervalParser {
 
     private PGIntervalParser() {}
 
     static Period apply(String value,
-                        @Nullable IntervalParser.Precision start,
-                        @Nullable IntervalParser.Precision end) {
+                        IntervalParser.@Nullable Precision start,
+                        IntervalParser.@Nullable Precision end) {
         return roundToPrecision(apply(value), start, end);
     }
 

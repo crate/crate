@@ -23,7 +23,7 @@ package io.crate.testing;
 
 import java.util.Arrays;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.types.DataType;
 

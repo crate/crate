@@ -21,7 +21,7 @@
 
 package io.crate.execution.engine.indexing;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 class RowSourceInfo {
 

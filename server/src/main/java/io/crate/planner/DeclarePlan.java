@@ -24,7 +24,7 @@ package io.crate.planner;
 import java.util.concurrent.CompletableFuture;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedDeclare;
 import io.crate.data.BatchIterator;

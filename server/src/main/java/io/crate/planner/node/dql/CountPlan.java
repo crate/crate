@@ -32,7 +32,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.Collection;
 import java.util.List;
 import java.util.Objects;

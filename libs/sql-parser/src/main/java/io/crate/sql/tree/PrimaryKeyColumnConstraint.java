@@ -25,7 +25,7 @@ import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public final class PrimaryKeyColumnConstraint<T> extends ColumnConstraint<T> {
     private static final String NAME = "PRIMARY_KEY";

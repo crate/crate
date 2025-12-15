@@ -25,7 +25,6 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.NotNull;
 
 /// Task that wraps a single async operation and includes kill handling
 public class AsyncFnTask<T> extends AbstractTask {
@@ -71,7 +70,7 @@ public class AsyncFnTask<T> extends AbstractTask {
     }
 
     @Override
-    protected void innerKill(@NotNull Throwable t) {
+    protected void innerKill(Throwable t) {
         // `kill.accept(t)` ought to result in the completion of the `result` future
         kill.accept(t);
     }

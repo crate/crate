@@ -32,8 +32,6 @@ import java.util.concurrent.CompletionStage;
 import java.util.concurrent.Executor;
 import java.util.function.IntSupplier;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.common.concurrent.CompletableFutures;
 import io.crate.common.exceptions.Exceptions;
 
@@ -121,7 +119,7 @@ public final class CompositeBatchIterator {
         }
 
         @Override
-        public void kill(@NotNull Throwable throwable) {
+        public void kill(Throwable throwable) {
             for (BatchIterator<T> iterator : iterators) {
                 iterator.kill(throwable);
             }

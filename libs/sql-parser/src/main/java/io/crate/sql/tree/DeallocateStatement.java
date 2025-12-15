@@ -23,7 +23,7 @@ package io.crate.sql.tree;
 
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class DeallocateStatement extends Statement {
 

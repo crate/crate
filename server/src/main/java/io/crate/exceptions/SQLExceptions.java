@@ -57,7 +57,7 @@ import org.elasticsearch.transport.NoSeedNodeLeftException;
 import org.elasticsearch.transport.NodeDisconnectedException;
 import org.elasticsearch.transport.NodeNotConnectedException;
 import org.elasticsearch.transport.RemoteTransportException;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.auth.AccessControl;
 import io.crate.common.exceptions.Exceptions;

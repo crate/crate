@@ -29,7 +29,7 @@ import java.util.NoSuchElementException;
 import java.util.function.Predicate;
 
 import org.elasticsearch.cluster.ClusterState;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;

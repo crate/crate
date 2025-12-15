@@ -21,8 +21,6 @@
 
 package io.crate.protocols.postgres.types;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.netty.buffer.ByteBuf;
 
 abstract class BaseTimestampType extends PGType<Long> {
@@ -37,12 +35,12 @@ abstract class BaseTimestampType extends PGType<Long> {
     private static final long EPOCH_DIFF_IN_MS = 946_684_800_000L;
 
 
-    BaseTimestampType(int oid, int typeLen, int typeMod, @NotNull String typeName) {
+    BaseTimestampType(int oid, int typeLen, int typeMod, String typeName) {
         super(oid, typeLen, typeMod, typeName);
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Long value) {
+    public int writeAsBinary(ByteBuf buffer, Long value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeLong(toPgTimestamp((long) value));
         return INT32_BYTE_SIZE + TYPE_LEN;

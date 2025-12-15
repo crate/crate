@@ -21,21 +21,6 @@
 
 package io.crate.copy.s3;
 
-import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.model.ObjectListing;
-import com.amazonaws.services.s3.model.S3Object;
-import com.amazonaws.services.s3.model.S3ObjectSummary;
-import org.jetbrains.annotations.VisibleForTesting;
-import io.crate.copy.s3.common.S3ClientHelper;
-import io.crate.copy.s3.common.S3URI;
-import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.execution.engine.collect.files.Globs.GlobPredicate;
-
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.URI;
@@ -44,6 +29,21 @@ import java.util.List;
 import java.util.function.Predicate;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+import org.jspecify.annotations.Nullable;
+
+import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.model.ObjectListing;
+import com.amazonaws.services.s3.model.S3Object;
+import com.amazonaws.services.s3.model.S3ObjectSummary;
+
+import io.crate.common.annotations.VisibleForTesting;
+import io.crate.copy.s3.common.S3ClientHelper;
+import io.crate.copy.s3.common.S3URI;
+import io.crate.execution.engine.collect.files.FileInput;
+import io.crate.execution.engine.collect.files.Globs.GlobPredicate;
 
 public class S3FileInput implements FileInput {
 
@@ -54,12 +54,13 @@ public class S3FileInput implements FileInput {
 
     private final S3ClientHelper clientBuilder;
 
-    @NotNull
     private final S3URI normalizedS3URI;
+
     @Nullable
     private final S3URI preGlobUri;
-    @NotNull
+
     private final Predicate<String> uriPredicate;
+
     @Nullable
     private final String protocolSetting;
 

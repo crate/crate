@@ -23,7 +23,7 @@ package io.crate.data;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public final class CapturingRowConsumer implements RowConsumer {
 

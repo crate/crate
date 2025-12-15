@@ -20,7 +20,7 @@
 package org.elasticsearch.index.engine;
 
 import org.apache.lucene.search.Sort;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.elasticsearch.common.unit.ByteSizeValue;
 
 import java.util.Map;

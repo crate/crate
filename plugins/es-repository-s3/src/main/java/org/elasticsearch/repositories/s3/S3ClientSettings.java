@@ -35,7 +35,7 @@ import static org.elasticsearch.repositories.s3.S3RepositorySettings.USE_PATH_ST
 
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import org.elasticsearch.common.settings.SecureString;
 import org.elasticsearch.common.settings.Setting;

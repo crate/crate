@@ -28,7 +28,7 @@ import java.util.TimeZone;
 import java.util.stream.Stream;
 
 import org.elasticsearch.common.TriFunction;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.joda.time.Period;
 
 import io.crate.data.Input;

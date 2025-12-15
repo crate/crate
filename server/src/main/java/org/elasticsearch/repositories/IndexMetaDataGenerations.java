@@ -28,7 +28,7 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.snapshots.SnapshotId;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Tracks the blob uuids of blobs containing {@link IndexMetadata} for snapshots as well an identifier for each of these blobs.

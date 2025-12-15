@@ -23,7 +23,7 @@ package io.crate.session;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.concurrent.CompletionListenable;
 import io.crate.data.Row;

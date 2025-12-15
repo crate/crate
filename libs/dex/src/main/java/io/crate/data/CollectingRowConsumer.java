@@ -21,7 +21,7 @@
 
 package io.crate.data;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.concurrent.CompletableFuture;
 import java.util.stream.Collector;
 

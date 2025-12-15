@@ -30,7 +30,7 @@ import java.util.function.Function;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.AnalyzedAlterTable;
 import io.crate.analyze.BoundAlterTable;

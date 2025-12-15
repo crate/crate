@@ -23,7 +23,7 @@ package io.crate.analyze;
 
 import io.crate.expression.symbol.Symbol;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.function.Consumer;
 
 public class AnalyzedKill implements AnalyzedStatement {

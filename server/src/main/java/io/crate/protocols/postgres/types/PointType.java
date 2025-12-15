@@ -24,7 +24,6 @@ package io.crate.protocols.postgres.types;
 import java.nio.charset.StandardCharsets;
 import java.util.StringTokenizer;
 
-import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.context.jts.JtsSpatialContext;
 import org.locationtech.spatial4j.shape.Point;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
@@ -71,7 +70,7 @@ public final class PointType extends PGType<Point> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Point point) {
+    public int writeAsBinary(ByteBuf buffer, Point point) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeDouble(point.getX());
         buffer.writeDouble(point.getY());
@@ -86,7 +85,7 @@ public final class PointType extends PGType<Point> {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@NotNull Point point) {
+    byte[] encodeAsUTF8Text(Point point) {
         return ('(' + String.valueOf(point.getX()) + ',' + point.getY() + ')').getBytes(StandardCharsets.UTF_8);
     }
 

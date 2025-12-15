@@ -27,7 +27,6 @@ import java.nio.ByteBuffer;
 import org.apache.lucene.document.LatLonDocValuesField;
 import org.apache.lucene.document.LatLonPoint;
 import org.apache.lucene.document.StoredField;
-import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.metadata.IndexType;
@@ -44,7 +43,7 @@ public class GeoPointIndexer implements ValueIndexer<Point> {
     }
 
     @Override
-    public void indexValue(@NotNull Point point, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(Point point, IndexDocumentBuilder docBuilder) throws IOException {
 
         if (ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new LatLonPoint(name, point.getLat(), point.getLon()));

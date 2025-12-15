@@ -29,7 +29,7 @@ import java.util.UUID;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;

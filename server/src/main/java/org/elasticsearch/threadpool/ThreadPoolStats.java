@@ -28,7 +28,6 @@ import java.util.List;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.jetbrains.annotations.NotNull;
 
 public class ThreadPoolStats extends AbstractList<ThreadPoolStats.Stats> implements Writeable {
 
@@ -102,7 +101,6 @@ public class ThreadPoolStats extends AbstractList<ThreadPoolStats.Stats> impleme
     }
 
     @Override
-    @NotNull
     public Iterator<Stats> iterator() {
         return stats.iterator();
     }

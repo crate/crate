@@ -34,8 +34,8 @@ import java.util.function.Function;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.UUIDs;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;

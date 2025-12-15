@@ -20,7 +20,7 @@
 package org.elasticsearch.cluster;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import io.crate.common.unit.TimeValue;
 
 public interface AckedClusterStateTaskListener extends ClusterStateTaskListener {

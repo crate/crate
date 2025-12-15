@@ -21,16 +21,17 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+
+import org.elasticsearch.common.settings.Settings;
+import org.jspecify.annotations.Nullable;
+
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.doc.DocTableInfo;
-import org.elasticsearch.common.settings.Settings;
-
-import org.jetbrains.annotations.Nullable;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 public class BoundCopyTo {
 
@@ -39,10 +40,8 @@ public class BoundCopyTo {
     private final WhereClause whereClause;
     private final Symbol uri;
     private final boolean columnsDefined;
-    @Nullable
-    private final WriterProjection.CompressionType compressionType;
-    @Nullable
-    private final WriterProjection.OutputFormat outputFormat;
+    private final WriterProjection.@Nullable CompressionType compressionType;
+    private final WriterProjection.@Nullable OutputFormat outputFormat;
     @Nullable
     private final List<String> outputNames;
     /*
@@ -57,8 +56,8 @@ public class BoundCopyTo {
                        DocTableInfo table,
                        WhereClause whereClause,
                        Symbol uri,
-                       @Nullable WriterProjection.CompressionType compressionType,
-                       @Nullable WriterProjection.OutputFormat outputFormat,
+                       WriterProjection.@Nullable CompressionType compressionType,
+                       WriterProjection.@Nullable OutputFormat outputFormat,
                        @Nullable List<String> outputNames,
                        boolean columnsDefined,
                        @Nullable Map<ColumnIdent, Symbol> overwrites,
@@ -95,13 +94,11 @@ public class BoundCopyTo {
         return columnsDefined;
     }
 
-    @Nullable
-    public WriterProjection.CompressionType compressionType() {
+    public WriterProjection.@Nullable CompressionType compressionType() {
         return compressionType;
     }
 
-    @Nullable
-    public WriterProjection.OutputFormat outputFormat() {
+    public WriterProjection.@Nullable OutputFormat outputFormat() {
         return outputFormat;
     }
 

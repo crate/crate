@@ -26,8 +26,6 @@ import static io.crate.data.SentinelRow.SENTINEL;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.carrotsearch.hppc.IntIndexedContainer;
 
 import io.crate.data.InMemoryBatchIterator;
@@ -83,7 +81,7 @@ public class CountTask extends AbstractTask {
     }
 
     @Override
-    public synchronized void innerKill(@NotNull Throwable throwable) {
+    public synchronized void innerKill(Throwable throwable) {
         if (countFuture == null) {
             consumer.accept(null, throwable);
         } else {

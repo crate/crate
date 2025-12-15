@@ -23,7 +23,7 @@ package io.crate.analyze.validator;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;

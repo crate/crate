@@ -24,8 +24,6 @@ package io.crate.protocols.postgres.types;
 import java.nio.charset.StandardCharsets;
 import java.util.UUID;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.netty.buffer.ByteBuf;
 
 public class PgUUIDType extends PGType<UUID> {
@@ -53,7 +51,7 @@ public class PgUUIDType extends PGType<UUID> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull UUID value) {
+    public int writeAsBinary(ByteBuf buffer, UUID value) {
         long mostSignificantBits = value.getMostSignificantBits();
         long leastSignificantBits = value.getLeastSignificantBits();
 
@@ -72,7 +70,7 @@ public class PgUUIDType extends PGType<UUID> {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@NotNull UUID value) {
+    byte[] encodeAsUTF8Text(UUID value) {
         return value.toString().getBytes(StandardCharsets.UTF_8);
     }
 

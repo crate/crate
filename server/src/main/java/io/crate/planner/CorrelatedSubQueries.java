@@ -24,7 +24,7 @@ package io.crate.planner;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.relations.QuerySplitter;
 import io.crate.expression.symbol.SelectSymbol;
