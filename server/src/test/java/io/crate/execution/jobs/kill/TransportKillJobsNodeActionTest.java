@@ -58,7 +58,7 @@ public class TransportKillJobsNodeActionTest extends CrateDummyClusterServiceUni
 
     @Test
     public void testKillIsCalledOnJobContextService() throws Exception {
-        TasksService tasksService = mock(TasksService.class, Answers.RETURNS_MOCKS);
+        TasksService tasksService = mock(TasksService.class, Answers.RETURNS_DEEP_STUBS);
         TransportKillJobsNodeAction transportKillJobsNodeAction = new TransportKillJobsNodeAction(
             tasksService,
             clusterService,
