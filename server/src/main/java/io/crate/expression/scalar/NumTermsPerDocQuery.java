@@ -42,7 +42,7 @@ import org.apache.lucene.search.ScorerSupplier;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -67,7 +67,7 @@ public class NumTermsPerDocQuery extends Query {
     private final java.util.function.Function<LeafReaderContext, IntUnaryOperator> numTermsPerDocFactory;
     private final IntPredicate matches;
 
-    public static NumTermsPerDocQuery forRef(Reference ref, IntPredicate valueCountIsMatch) {
+    public static NumTermsPerDocQuery forRef(ScopedRef ref, IntPredicate valueCountIsMatch) {
         return new NumTermsPerDocQuery(
             ref.storageIdent(),
             leafReaderContext -> getNumTermsPerDocFunction(leafReaderContext.reader(), ref.storageIdent(), ref.valueType()),

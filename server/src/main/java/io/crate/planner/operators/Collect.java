@@ -59,10 +59,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.ShardedTable;
@@ -204,7 +204,7 @@ public class Collect implements LogicalPlan {
     private static boolean isPartitionColOrAnalyzed(Symbol s) {
         // 1) partition columns are normalized on shard to literal, but lucene sort doesn't support literals
         // 2) no docValues or field data for analyzed columns -> can't sort on lucene level
-        return s instanceof Reference ref &&
+        return s instanceof ScopedRef ref &&
                (ref.granularity() == RowGranularity.PARTITION
                 || ref.indexType() == IndexType.FULLTEXT);
     }
@@ -367,7 +367,7 @@ public class Collect implements LogicalPlan {
         }
         ArrayList<Symbol> newOutputs = new ArrayList<>();
         LinkedHashMap<Symbol, Symbol> replacedOutputs = new LinkedHashMap<>();
-        ArrayList<Reference> refsToFetch = new ArrayList<>();
+        ArrayList<ScopedRef> refsToFetch = new ArrayList<>();
         FetchMarker fetchMarker = new FetchMarker(relation.relationName(), refsToFetch);
         for (int i = 0; i < outputs.size(); i++) {
             Symbol output = outputs.get(i);
@@ -382,7 +382,7 @@ public class Collect implements LogicalPlan {
                 replacedOutputs.put(output, output);
             } else {
                 Symbol outputWithFetchStub = RefReplacer.replaceRefs(output, ref -> {
-                    Reference sourceLookup = DocReferences.toDocLookup(ref);
+                    ScopedRef sourceLookup = DocReferences.toDocLookup(ref);
                     refsToFetch.add(sourceLookup);
                     return new FetchStub(fetchMarker, sourceLookup);
                 });

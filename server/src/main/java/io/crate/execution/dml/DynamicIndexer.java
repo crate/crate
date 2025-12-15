@@ -32,9 +32,9 @@ import org.jetbrains.annotations.NotNull;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -45,7 +45,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
 
     private final RelationName relation;
     private final ColumnIdent column;
-    private final Function<ColumnIdent, Reference> getRef;
+    private final Function<ColumnIdent, ScopedRef> getRef;
     private final int position;
     private final boolean useOids;
     private DataType<?> type = null;
@@ -54,7 +54,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     public DynamicIndexer(RelationName relation,
                           ColumnIdent column,
                           int position,
-                          Function<ColumnIdent, Reference> getRef,
+                          Function<ColumnIdent, ScopedRef> getRef,
                           boolean useOids) {
         this.relation = relation;
         this.column = column;
@@ -66,7 +66,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     /**
      * Create a new Reference based on a dynamically detected type
      */
-    public static Reference buildReference(RelationName relation,
+    public static ScopedRef buildReference(RelationName relation,
                                            ColumnIdent column,
                                            DataType<?> type,
                                            int position,
@@ -95,11 +95,11 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
     @Override
     @SuppressWarnings("unchecked")
     public void collectSchemaUpdates(Object value,
-                                     Consumer<? super Reference> onDynamicColumn,
+                                     Consumer<? super ScopedRef> onDynamicColumn,
                                      Synthetics synthetics) throws IOException {
         if (type == null) {
             type = guessType(value);
-            Reference newColumn = buildReference(relation, column, type, position, COLUMN_OID_UNASSIGNED);
+            ScopedRef newColumn = buildReference(relation, column, type, position, COLUMN_OID_UNASSIGNED);
             StorageSupport<?> storageSupport = type.storageSupport();
             assert storageSupport != null; // will have already thrown in buildReference
             indexer = (ValueIndexer<Object>) storageSupport.valueIndexer(
@@ -130,7 +130,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
                 "Cannot create columns of type " + type.getName() + " dynamically. " +
                     "Storage is not supported for this type");
         }
-        Reference newColumn = buildReference(relation, column, type, position, COLUMN_OID_UNASSIGNED);
+        ScopedRef newColumn = buildReference(relation, column, type, position, COLUMN_OID_UNASSIGNED);
         if (indexer == null) {
             // Reuse indexer if phase 1 already created one.
             // Phase 1 mutates indexer.innerTypes on new columns creation.

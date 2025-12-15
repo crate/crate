@@ -45,8 +45,8 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.geo.GeoJSONUtils;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public class GeoShapeType extends DataType<Map<String, Object>> implements Streamer<Map<String, Object>> {
 
@@ -66,8 +66,8 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
-                                                              Reference ref,
-                                                              Function<ColumnIdent, Reference> getRef) {
+                                                              ScopedRef ref,
+                                                              Function<ColumnIdent, ScopedRef> getRef) {
             return new GeoShapeIndexer(ref);
         }
 

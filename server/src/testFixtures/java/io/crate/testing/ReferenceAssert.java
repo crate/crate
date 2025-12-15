@@ -30,13 +30,13 @@ import org.assertj.core.api.AbstractObjectAssert;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexReference;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.DataType;
 
-public class ReferenceAssert extends AbstractObjectAssert<ReferenceAssert, Reference> {
+public class ReferenceAssert extends AbstractObjectAssert<ReferenceAssert, ScopedRef> {
 
-    public ReferenceAssert(Reference reference) {
+    public ReferenceAssert(ScopedRef reference) {
         super(reference, ReferenceAssert.class);
     }
 
@@ -96,7 +96,7 @@ public class ReferenceAssert extends AbstractObjectAssert<ReferenceAssert, Refer
     }
 
     @SafeVarargs
-    public final ReferenceAssert hasSourceColumnsSatisfying(Consumer<? super Reference> ... assertions) {
+    public final ReferenceAssert hasSourceColumnsSatisfying(Consumer<? super ScopedRef> ... assertions) {
         isExactlyInstanceOf(IndexReference.class);
         assertThat(((IndexReference) actual).columns()).satisfiesExactly(assertions);
         return this;

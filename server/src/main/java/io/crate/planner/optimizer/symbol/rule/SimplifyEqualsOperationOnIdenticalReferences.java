@@ -34,7 +34,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
 import io.crate.planner.optimizer.symbol.FunctionLookup;
@@ -48,8 +48,8 @@ public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Functi
         this.pattern = typeOf(Function.class)
             .with(f -> EqOperator.NAME.equals(f.name()))
             .with(f -> f.arguments(), typeOf(List.class)
-                .with(list -> list.get(0) instanceof Reference left &&
-                              list.get(1) instanceof Reference right &&
+                .with(list -> list.get(0) instanceof ScopedRef left &&
+                              list.get(1) instanceof ScopedRef right &&
                               left.equals(right))
             );
     }
@@ -61,7 +61,7 @@ public class SimplifyEqualsOperationOnIdenticalReferences implements Rule<Functi
 
     @Override
     public Symbol apply(Function operator, Captures captures, NodeContext nodeCtx, FunctionLookup functionLookup, Symbol parentNode) {
-        Reference ref = (Reference) operator.arguments().get(0);
+        ScopedRef ref = (ScopedRef) operator.arguments().get(0);
         // if ref is not null or the parent node is ignore3vl
         if (ref.isNullable() == false || (parentNode != null && Ignore3vlFunction.NAME.equals(((Function) parentNode).name()))) {
             // WHERE COL = COL  =>  WHERE TRUE

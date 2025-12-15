@@ -62,10 +62,10 @@ import io.crate.types.ObjectType;
 public final class SystemTable<T> implements TableInfo {
 
     private final RelationName name;
-    private final SequencedMap<ColumnIdent, Reference> columns;
+    private final SequencedMap<ColumnIdent, ScopedRef> columns;
     private final Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions;
     private final List<ColumnIdent> primaryKeys;
-    private final List<Reference> rootColumns;
+    private final List<ScopedRef> rootColumns;
     private final GetRouting getRouting;
     private final Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns;
     private final Set<Operation> supportedOperations;
@@ -73,7 +73,7 @@ public final class SystemTable<T> implements TableInfo {
 
     /// @param columns top level and child columns ordered by position and name
     public SystemTable(RelationName name,
-                       SequencedMap<ColumnIdent, Reference> columns,
+                       SequencedMap<ColumnIdent, ScopedRef> columns,
                        Map<ColumnIdent, RowCollectExpressionFactory<T>> expressions,
                        List<ColumnIdent> primaryKeys,
                        Map<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns,
@@ -97,13 +97,13 @@ public final class SystemTable<T> implements TableInfo {
 
     @Nullable
     @Override
-    public Reference getReference(ColumnIdent column) {
+    public ScopedRef getReference(ColumnIdent column) {
         return getReadReference(column);
     }
 
     @Nullable
     @Override
-    public Reference getReadReference(ColumnIdent column) {
+    public ScopedRef getReadReference(ColumnIdent column) {
         var ref = columns.get(column);
         if (ref != null) {
             return ref;
@@ -128,7 +128,7 @@ public final class SystemTable<T> implements TableInfo {
     }
 
     @Override
-    public Collection<Reference> rootColumns() {
+    public Collection<ScopedRef> rootColumns() {
         return rootColumns;
     }
 
@@ -164,12 +164,12 @@ public final class SystemTable<T> implements TableInfo {
 
     @Override
     @NotNull
-    public Iterator<Reference> iterator() {
+    public Iterator<ScopedRef> iterator() {
         return columns.values().iterator();
     }
 
     @Override
-    public Stream<Reference> allColumnsSorted() {
+    public Stream<ScopedRef> allColumnsSorted() {
         // Columns are ordered already
         return columns.values().stream();
     }
@@ -287,7 +287,7 @@ public final class SystemTable<T> implements TableInfo {
 
         public SystemTable<T> build() {
             HashMap<ColumnIdent, Function<ColumnIdent, DynamicReference>> dynamicColumns = new HashMap<>();
-            LinkedHashMap<ColumnIdent, Reference> refByColumns = LinkedHashMap.newLinkedHashMap(columns.size());
+            LinkedHashMap<ColumnIdent, ScopedRef> refByColumns = LinkedHashMap.newLinkedHashMap(columns.size());
             HashMap<ColumnIdent, RowCollectExpressionFactory<T>> expressions = HashMap.newHashMap(columns.size());
             columns.sort(Comparator.comparing(x -> x.column));
             for (int i = 0; i < columns.size(); i++) {

@@ -32,7 +32,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 
 public class HavingSymbolValidator {
@@ -76,7 +76,7 @@ public class HavingSymbolValidator {
         }
 
         @Override
-        public Void visitReference(Reference ref, HavingContext context) {
+        public Void visitReference(ScopedRef ref, HavingContext context) {
             ensurePresentInGroupBY(ref, context);
             return null;
         }

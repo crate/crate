@@ -55,12 +55,12 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
@@ -148,7 +148,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         List<Symbol> toCollect = new ArrayList<>();
-        for (Reference reference : tablesTableInfo.rootColumns()) {
+        for (ScopedRef reference : tablesTableInfo.rootColumns()) {
             toCollect.add(reference);
         }
         Symbol tableNameRef = toCollect.get(12);
@@ -173,7 +173,7 @@ public class HandlerSideLevelCollectTest extends IntegTestCase {
             routingProvider,
             WhereClause.MATCH_ALL, RoutingProvider.ShardSelection.ANY, CoordinatorSessionSettings.systemDefaults());
         List<Symbol> toCollect = new ArrayList<>();
-        for (Reference ref : tableInfo.rootColumns()) {
+        for (ScopedRef ref : tableInfo.rootColumns()) {
             if (Set.of("column_name", "data_type", "table_name").contains(ref.column().name())) {
                 toCollect.add(ref);
             }

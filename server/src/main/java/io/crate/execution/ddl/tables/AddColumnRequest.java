@@ -33,13 +33,13 @@ import org.jetbrains.annotations.NotNull;
 
 import com.carrotsearch.hppc.IntArrayList;
 
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
 
     private final RelationName relationName;
-    private final List<Reference> colsToAdd;
+    private final List<ScopedRef> colsToAdd;
     private final IntArrayList pKeyIndices;
     private final Map<String, String> checkConstraints;
 
@@ -47,7 +47,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
      * @param checkConstraints must be accumulated map of all columns' constraints in case of adding multiple columns.
      */
     public AddColumnRequest(@NotNull RelationName relationName,
-                            @NotNull List<Reference> colsToAdd,
+                            @NotNull List<ScopedRef> colsToAdd,
                             @NotNull Map<String, String> checkConstraints,
                             @NotNull IntArrayList pKeyIndices) {
         this.relationName = relationName;
@@ -62,7 +62,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         this.relationName = new RelationName(in);
         this.checkConstraints = in.readMap(
             LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
-        this.colsToAdd = in.readList(Reference::fromStream);
+        this.colsToAdd = in.readList(ScopedRef::fromStream);
         int numPKIndices = in.readVInt();
         this.pKeyIndices = new IntArrayList(numPKIndices);
         for (int i = 0; i < numPKIndices; i++) {
@@ -75,7 +75,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         super.writeTo(out);
         relationName.writeTo(out);
         out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
-        out.writeCollection(colsToAdd, Reference::toStream);
+        out.writeCollection(colsToAdd, ScopedRef::toStream);
         out.writeVInt(pKeyIndices.size());
         for (int i = 0; i < pKeyIndices.size(); i++) {
             out.writeVInt(pKeyIndices.get(i));
@@ -93,7 +93,7 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     }
 
     @NotNull
-    public List<Reference> references() {
+    public List<ScopedRef> references() {
         return this.colsToAdd;
     }
 

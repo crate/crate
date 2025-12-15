@@ -26,7 +26,7 @@ import java.util.List;
 import io.crate.analyze.WhereClause;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 
 public final class GroupByConsumer {
@@ -52,7 +52,7 @@ public final class GroupByConsumer {
         // this also handles the case if there is only one primary key.
         // as clustered by column == pk column  in that case
         Symbol groupByKey = groupBySymbols.get(0);
-        return groupByKey instanceof Reference ref && ref.column().equals(tableInfo.clusteredBy());
+        return groupByKey instanceof ScopedRef ref && ref.column().equals(tableInfo.clusteredBy());
     }
 
     private static boolean groupedByPrimaryKeys(List<ColumnIdent> primaryKeys, List<Symbol> groupBy) {
@@ -61,7 +61,7 @@ public final class GroupByConsumer {
         }
         for (int i = 0, groupBySize = groupBy.size(); i < groupBySize; i++) {
             Symbol groupBySymbol = groupBy.get(i);
-            if (groupBySymbol instanceof Reference ref) {
+            if (groupBySymbol instanceof ScopedRef ref) {
                 ColumnIdent columnIdent = ref.column();
                 ColumnIdent pkIdent = primaryKeys.get(i);
                 if (!pkIdent.equals(columnIdent)) {

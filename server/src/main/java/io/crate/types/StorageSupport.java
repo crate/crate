@@ -31,8 +31,8 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public abstract class StorageSupport<T> {
 
@@ -64,8 +64,8 @@ public abstract class StorageSupport<T> {
      */
     public abstract ValueIndexer<? super T> valueIndexer(
         RelationName table,
-        Reference ref,
-        Function<ColumnIdent, Reference> getRef);
+        ScopedRef ref,
+        Function<ColumnIdent, ScopedRef> getRef);
 
     /**
      * Decode a value from bytes in a stored field

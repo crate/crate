@@ -31,7 +31,7 @@ import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.Operation;
 
 public class ForeignTableRelation extends AbstractTableRelation<ForeignTable> {
@@ -55,7 +55,7 @@ public class ForeignTableRelation extends AbstractTableRelation<ForeignTable> {
         if (operation != Operation.READ) {
             throw new UnsupportedOperationException("Cannot write or delete on foreign tables");
         }
-        Reference reference = tableInfo.getReadReference(column);
+        ScopedRef reference = tableInfo.getReadReference(column);
         if (reference == null) {
             throw new ColumnUnknownException(column, tableInfo.name());
         }

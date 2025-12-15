@@ -31,7 +31,7 @@ import io.crate.expression.scalar.cast.CastMode;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -53,7 +53,7 @@ public class SwapCastsInLikeOperators implements Rule<Function> {
             .with(f -> f.arguments().get(1).symbolType().isValueOrParameterSymbol())
             .with(f -> f.arguments().get(0), typeOf(Function.class).capturedAs(castCapture)
                 .with(f -> f.isCast())
-                .with(f -> f.arguments().get(0) instanceof Reference ref && ref.valueType().id() == StringType.ID)
+                .with(f -> f.arguments().get(0) instanceof ScopedRef ref && ref.valueType().id() == StringType.ID)
             );
     }
 

@@ -85,8 +85,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.view.ViewsMetadata;
 import io.crate.rest.action.HttpErrorStatus;
@@ -1103,7 +1103,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         @VisibleForTesting
         public Builder setTable(LongSupplier oidSupplier,
                                 RelationName relationName,
-                                List<Reference> columns,
+                                List<ScopedRef> columns,
                                 Settings settings,
                                 @Nullable ColumnIdent routingColumn,
                                 ColumnPolicy columnPolicy,
@@ -1115,23 +1115,23 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                                 List<String> indexUUIDs,
                                 long tableVersion) {
             AtomicInteger positions = new AtomicInteger(0);
-            Map<ColumnIdent, Reference> columnMap = columns.stream()
+            Map<ColumnIdent, ScopedRef> columnMap = columns.stream()
                 .filter(ref -> !ref.isDropped())
                 .map(ref -> ref.withOidAndPosition(oidSupplier, positions::incrementAndGet))
                 .collect(Collectors.toMap(ref -> ref.column(), ref -> ref));
 
-            ArrayList<Reference> finalColumns = new ArrayList<>(columns.size());
+            ArrayList<ScopedRef> finalColumns = new ArrayList<>(columns.size());
             // Need to update linked columns for generated and index refs to ensure these have oid+position
             // Otherwise .contains/.equals on those refs is broken.
             for (var column : columnMap.values()) {
-                Reference newRef;
+                ScopedRef newRef;
                 if (column instanceof GeneratedReference genRef) {
                     newRef = new GeneratedReference(
                         genRef.reference(),
                         RefReplacer.replaceRefs(genRef.generatedExpression(), ref -> columnMap.get(ref.column()))
                     );
                 } else if (column instanceof IndexReference indexRef) {
-                    List<Reference> newColumns = Lists.map(indexRef.columns(), x -> Objects.requireNonNull(columnMap.get(x.column())));
+                    List<ScopedRef> newColumns = Lists.map(indexRef.columns(), x -> Objects.requireNonNull(columnMap.get(x.column())));
                     newRef = indexRef.withColumns(newColumns);
                 } else {
                     newRef = column;
@@ -1139,7 +1139,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 finalColumns.add(newRef);
             }
             columns.stream()
-                .filter(Reference::isDropped)
+                .filter(ScopedRef::isDropped)
                 .forEach(ref -> finalColumns.add(ref));
             RelationMetadata.Table table = new RelationMetadata.Table(
                 relationName,
@@ -1163,7 +1163,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
          * Adds the table, overriding it if a table with the same schema and name exists.
          **/
         public Builder setTable(RelationName relationName,
-                                List<Reference> columns,
+                                List<ScopedRef> columns,
                                 Settings settings,
                                 @Nullable ColumnIdent routingColumn,
                                 ColumnPolicy columnPolicy,

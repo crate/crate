@@ -33,9 +33,9 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.pgcatalog.PgSettingsTable;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -143,8 +143,8 @@ class ShowStatementAnalyzer {
         List<Symbol> outputs;
         List<String> outputNames;
         Symbol whereClause;
-        Reference setting = tableRelation.getField(ColumnIdent.of("setting"));
-        Reference name = tableRelation.getField(ColumnIdent.of("name"));
+        ScopedRef setting = tableRelation.getField(ColumnIdent.of("setting"));
+        ScopedRef name = tableRelation.getField(ColumnIdent.of("name"));
         assert setting != null : "`setting` reference must exist in pg_catalog.pg_settings";
         assert name != null : "`name` reference must exist in pg_catalog.pg_settings";
         if (parameter == null) {

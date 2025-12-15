@@ -51,14 +51,14 @@ import io.crate.geo.GeoJSONUtils;
 import io.crate.geo.LatLonShapeUtils;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.GeoShapeType;
 
 public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
 
     private final IndexableFieldsFactory indexableFieldsFactory;
-    private final Reference ref;
+    private final ScopedRef ref;
     private final String name;
 
     public static final class Defaults {
@@ -72,7 +72,7 @@ public class GeoShapeIndexer implements ValueIndexer<Map<String, Object>> {
         public static final double DISTANCE_ERROR_PCT = 0.0;
     }
 
-    public GeoShapeIndexer(Reference ref) {
+    public GeoShapeIndexer(ScopedRef ref) {
         if (ref instanceof GeneratedReference generatedRef) {
             ref = generatedRef.reference();
         }

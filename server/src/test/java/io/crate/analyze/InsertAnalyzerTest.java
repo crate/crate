@@ -51,7 +51,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.tablefunctions.ValuesFunction;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.parser.ParsingException;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -296,7 +296,7 @@ public class InsertAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateOnConflictDoNothingProducesEmptyUpdateAssignments() {
         AnalyzedInsertStatement statement =
             e.analyze("insert into users (id, name) (select 1, 'Jon') on conflict DO NOTHING");
-        Map<Reference, Symbol> duplicateKeyAssignments = statement.onDuplicateKeyAssignments();
+        Map<ScopedRef, Symbol> duplicateKeyAssignments = statement.onDuplicateKeyAssignments();
         assertThat(statement.isIgnoreDuplicateKeys()).isTrue();
         assertThat(duplicateKeyAssignments).isNotNull();
         assertThat(duplicateKeyAssignments).isEmpty();

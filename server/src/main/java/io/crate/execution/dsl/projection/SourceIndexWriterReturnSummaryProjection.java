@@ -34,8 +34,8 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterProjection {
 
@@ -46,7 +46,7 @@ public class SourceIndexWriterReturnSummaryProjection extends SourceIndexWriterP
 
     public SourceIndexWriterReturnSummaryProjection(RelationName relationName,
                                                     @Nullable String partitionIdent,
-                                                    Reference rawSourceReference,
+                                                    ScopedRef rawSourceReference,
                                                     InputColumn rawSourcePtr,
                                                     List<ColumnIdent> primaryKeys,
                                                     List<Symbol> partitionedBySymbols,

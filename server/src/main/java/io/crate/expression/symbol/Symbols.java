@@ -40,8 +40,8 @@ import io.crate.analyze.WindowDefinition;
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.DataType;
 
 public final class Symbols {
@@ -73,7 +73,7 @@ public final class Symbols {
     public static <V> V lookupValueByColumn(RelationName relationName, Map<? extends Symbol, V> valuesBySymbol, ColumnIdent column) {
         for (Map.Entry<? extends Symbol, V> entry : valuesBySymbol.entrySet()) {
             Symbol key = entry.getKey();
-            if (key instanceof Reference ref
+            if (key instanceof ScopedRef ref
                     && ref.column().equals(column)
                     && ref.relation().equals(relationName)) {
                 return entry.getValue();
@@ -281,14 +281,14 @@ public final class Symbols {
         }
 
         @Override
-        public Void visitReference(Reference ref, Void context) {
+        public Void visitReference(ScopedRef ref, Void context) {
             if (haystack.contains(ref)) {
                 consumer.accept((T) ref);
             } else if (!ref.column().isRoot()) {
                 // needle: `obj[x]`, haystack: [`obj`] -> `obj` is an intersection
                 ColumnIdent root = ref.column().getRoot();
                 for (T t : haystack) {
-                    if (t instanceof Reference tRef && tRef.column().equals(root)) {
+                    if (t instanceof ScopedRef tRef && tRef.column().equals(root)) {
                         consumer.accept(t);
                         break;
                     } else if (ref instanceof VoidReference

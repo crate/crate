@@ -46,8 +46,8 @@ import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.planner.operators.SubQueryAndParamBinder;
@@ -68,7 +68,7 @@ public record AnalyzedCreateTable(
          **/
         Map<String, AnalyzedCheck> checks,
         GenericProperties<Symbol> properties,
-        Optional<PartitionedBy<Reference>> partitionedBy,
+        Optional<PartitionedBy<ScopedRef>> partitionedBy,
         Optional<ClusteredBy<Symbol>> clusteredBy) implements DDLStatement {
 
     @Override
@@ -112,13 +112,13 @@ public record AnalyzedCreateTable(
             .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, numShards)
             .put(NumberOfReplicas.SETTING.getDefault(Settings.EMPTY));
 
-        Map<ColumnIdent, Reference> references = new LinkedHashMap<>();
-        LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
+        Map<ColumnIdent, ScopedRef> references = new LinkedHashMap<>();
+        LinkedHashSet<ScopedRef> primaryKeys = new LinkedHashSet<>();
         Set<String> pkConstraintNames = new HashSet<>();
         for (var entry : columns.entrySet()) {
             ColumnIdent columnIdent = entry.getKey();
             RefBuilder column = entry.getValue();
-            Reference reference = column.build(columns, relationName, paramBinder, toValue);
+            ScopedRef reference = column.build(columns, relationName, paramBinder, toValue);
             if (reference instanceof GeneratedReference generatedReference) {
                 // generated references cannot be a child of an object array or reference a child of an object array
                 Iterable<ColumnIdent> parents = columnIdent.parents();
@@ -128,7 +128,7 @@ public record AnalyzedCreateTable(
                         throw new UnsupportedOperationException(String.format(Locale.ENGLISH, "Generated reference \"%s\" cannot be a child of an object array", columnIdent));
                     }
                 }
-                for (Reference referencedRef : generatedReference.referencedReferences()) {
+                for (ScopedRef referencedRef : generatedReference.referencedReferences()) {
                     parents = referencedRef.column().parents();
                     for (ColumnIdent parent : parents) {
                         RefBuilder parentRef = columns.get(parent);
@@ -178,14 +178,14 @@ public record AnalyzedCreateTable(
             .flatMap(ClusteredBy::column)
             .map(Symbol::toColumn);
         optClusteredBy.ifPresent(c -> {
-            if (!primaryKeys.isEmpty() && Reference.indexOf(primaryKeys, c) < 0) {
+            if (!primaryKeys.isEmpty() && ScopedRef.indexOf(primaryKeys, c) < 0) {
                 throw new IllegalArgumentException(
-                    "Clustered by column `" + c + "` must be part of primary keys: " + Lists.map(primaryKeys, Reference::column));
+                    "Clustered by column `" + c + "` must be part of primary keys: " + Lists.map(primaryKeys, ScopedRef::column));
             }
         });
         ColumnIdent routingColumn = optClusteredBy.orElse(null);
 
-        List<Reference> partitionedByColumns = partitionedBy
+        List<ScopedRef> partitionedByColumns = partitionedBy
             .map(PartitionedBy::columns)
             .orElse(List.of());
 

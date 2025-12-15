@@ -23,9 +23,9 @@ package io.crate.expression.reference.file;
 
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.DataTypes;
 
@@ -34,7 +34,7 @@ public class SourceLineNumberExpression extends LineCollectorExpression<Long> {
     public static final String COLUMN_NAME = "_line_number";
     private static final ColumnIdent COLUMN_IDENT = ColumnIdent.of(COLUMN_NAME);
 
-    public static Reference getReferenceForRelation(RelationName relationName) {
+    public static ScopedRef getReferenceForRelation(RelationName relationName) {
         return new SimpleReference(
             relationName, COLUMN_IDENT, RowGranularity.DOC, DataTypes.LONG, 0, null
         );

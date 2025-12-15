@@ -31,14 +31,14 @@ import org.jetbrains.annotations.NotNull;
 import org.locationtech.spatial4j.shape.Point;
 
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public class GeoPointIndexer implements ValueIndexer<Point> {
 
-    private final Reference ref;
+    private final ScopedRef ref;
     private final String name;
 
-    public GeoPointIndexer(Reference ref) {
+    public GeoPointIndexer(ScopedRef ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
     }

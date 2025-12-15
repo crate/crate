@@ -47,8 +47,8 @@ import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.fdw.TransportCreateForeignTable;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
 
@@ -110,7 +110,7 @@ public class CreateForeignTablePlan implements Plan {
         }
 
         Map<ColumnIdent, RefBuilder> columns = createTable.columns();
-        List<Reference> references = new ArrayList<>();
+        List<ScopedRef> references = new ArrayList<>();
         RelationName tableName = createTable.tableName();
         for (var entry : columns.entrySet()) {
             var refBuilder = entry.getValue();

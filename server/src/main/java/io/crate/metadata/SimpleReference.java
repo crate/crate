@@ -49,7 +49,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 
-public class SimpleReference implements Reference {
+public class SimpleReference implements ScopedRef {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(SimpleReference.class);
 
@@ -181,7 +181,7 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Reference withColumn(ColumnIdent column) {
+    public ScopedRef withColumn(ColumnIdent column) {
         return new SimpleReference(
             relation,
             column,
@@ -201,7 +201,7 @@ public class SimpleReference implements Reference {
      * Returns a cloned Reference with the given ident
      */
     @Override
-    public Reference withRelation(RelationName relation) {
+    public ScopedRef withRelation(RelationName relation) {
         return new SimpleReference(
             relation,
             column,
@@ -218,7 +218,7 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
+    public ScopedRef withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
         long newOid = oid == COLUMN_OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
         int newPosition = position < 0 ? acquirePosition.getAsInt() : position;
         if (newOid == oid && newPosition == position) {
@@ -240,7 +240,7 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Reference withDropped(boolean dropped) {
+    public ScopedRef withDropped(boolean dropped) {
         return new SimpleReference(
             relation,
             column,
@@ -257,7 +257,7 @@ public class SimpleReference implements Reference {
     }
 
     @Override
-    public Reference withValueType(DataType<?> newType) {
+    public ScopedRef withValueType(DataType<?> newType) {
         return new SimpleReference(
             relation,
             column,

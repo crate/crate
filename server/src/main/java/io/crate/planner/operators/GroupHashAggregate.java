@@ -49,8 +49,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
@@ -76,7 +76,7 @@ public class GroupHashAggregate extends ForwardingLogicalPlan {
         int numKeysWithStats = 0;
         for (Symbol groupKey : groupKeys) {
             ColumnStats<?> columnStats = null;
-            if (groupKey instanceof Reference ref) {
+            if (groupKey instanceof ScopedRef ref) {
                 columnStats = stats.statsByColumn().get(ref.column());
                 numKeysWithStats++;
             } else if (groupKey instanceof ScopedSymbol scopedSymbol) {

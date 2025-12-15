@@ -44,9 +44,9 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -168,7 +168,7 @@ public class DocValuesAggregatesTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_create_aggregators_for_reference_and_without_doc_value_field_returns_null() {
-        Reference xRef = (Reference) e.asSymbol("tbl.x");
+        ScopedRef xRef = (ScopedRef) e.asSymbol("tbl.x");
         var aggregators = DocValuesAggregates.createAggregators(
             functions,
             mock(LuceneReferenceResolver.class),

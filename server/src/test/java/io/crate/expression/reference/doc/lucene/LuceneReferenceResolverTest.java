@@ -33,9 +33,9 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -107,7 +107,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_ignored_dynamic_references_are_resolved_using_sourcelookup() {
-        Reference ignored = new DynamicReference(
+        ScopedRef ignored = new DynamicReference(
             RELATION_NAME, ColumnIdent.of("a", List.of("b")), RowGranularity.DOC, 0);
 
         assertThat(LUCENE_REFERENCE_RESOLVER.getImplementation(ignored))
@@ -116,7 +116,7 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
 
     @Test
     public void test_void_references_are_resolved_as_null_literals() {
-        Reference voidRef = new VoidReference(
+        ScopedRef voidRef = new VoidReference(
             RELATION_NAME, ColumnIdent.of("a", List.of("b")), 0);
 
         LuceneCollectorExpression<?> exp = LUCENE_REFERENCE_RESOLVER.getImplementation(voidRef);
@@ -145,13 +145,13 @@ public class LuceneReferenceResolverTest extends CrateDummyClusterServiceUnitTes
             Version.CURRENT,
             table.isParentReferenceIgnored()
         );
-        Reference year = table.getReference(ColumnIdent.of("year"));
+        ScopedRef year = table.getReference(ColumnIdent.of("year"));
         LuceneCollectorExpression<?> impl1 = refResolver.getImplementation(year);
         assertThat(impl1).isExactlyInstanceOf(LuceneReferenceResolver.LiteralValueExpression.class);
         assertThat(impl1.value()).isEqualTo(2023L);
 
         Function cast = (Function) year.cast(DataTypes.STRING, CastMode.EXPLICIT);
-        Reference castYearRef = (Reference) cast.arguments().get(0);
+        ScopedRef castYearRef = (ScopedRef) cast.arguments().get(0);
         LuceneCollectorExpression<?> impl2 = refResolver.getImplementation(castYearRef);
         assertThat(impl2).isExactlyInstanceOf(LuceneReferenceResolver.LiteralValueExpression.class);
         assertThat(impl2.value()).isEqualTo(2023L);

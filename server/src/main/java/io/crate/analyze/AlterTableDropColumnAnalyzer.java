@@ -35,8 +35,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
@@ -80,7 +80,7 @@ public class AlterTableDropColumnAnalyzer {
         for (var dropColumnDefinition : alterTable.tableElements()) {
             Expression name = dropColumnDefinition.name();
             try {
-                var colRefToDrop = (Reference) expressionAnalyzer.convert(name, expressionContext);
+                var colRefToDrop = (ScopedRef) expressionAnalyzer.convert(name, expressionContext);
                 dropColumns.add(new DropColumn(colRefToDrop, dropColumnDefinition.ifExists()));
             } catch (ColumnUnknownException e) {
                 if (dropColumnDefinition.ifExists() == false) {

@@ -29,7 +29,7 @@ import java.util.Locale;
 import org.junit.Before;
 import org.junit.Test;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
@@ -53,10 +53,10 @@ public class SystemTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(tableInfo)
             .as(String.format(Locale.ENGLISH,
                 "columns from iterator of table %s not in alphabetical order", tableInfo.ident().fqn()))
-            .isSortedBy(Reference::column);
+            .isSortedBy(ScopedRef::column);
         assertThat(tableInfo)
             .as(String.format(Locale.ENGLISH,
                 "columns of table %s not in alphabetical order", tableInfo.ident().fqn()))
-            .hasColsSortedBy(Reference::column);
+            .hasColsSortedBy(ScopedRef::column);
     }
 }

@@ -27,7 +27,7 @@ import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
@@ -55,12 +55,12 @@ public final class AllLikeOperator extends AllOperator<String> {
     }
 
     @Override
-    protected Query refMatchesAllArrayLiteral(Function all, Reference probe, Literal<?> literal, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAllArrayLiteral(Function all, ScopedRef probe, Literal<?> literal, LuceneQueryBuilder.Context context) {
         return null;
     }
 
     @Override
-    protected Query literalMatchesAllArrayRef(Function all, Literal<?> probe, Reference candidates, LuceneQueryBuilder.Context context) {
+    protected Query literalMatchesAllArrayRef(Function all, Literal<?> probe, ScopedRef candidates, LuceneQueryBuilder.Context context) {
         return null;
     }
 

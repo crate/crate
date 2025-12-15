@@ -39,14 +39,14 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private final boolean ignoreDuplicateKeys;
-    private final Map<Reference, Symbol> onDuplicateKeyAssignments;
-    private final List<Reference> allTargetColumns;
+    private final Map<ScopedRef, Symbol> onDuplicateKeyAssignments;
+    private final List<ScopedRef> allTargetColumns;
     /**
      * List of columns used for the result set
      */
@@ -69,9 +69,9 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     public ColumnIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
                                        List<ColumnIdent> primaryKeys,
-                                       List<Reference> allTargetColumns,
+                                       List<ScopedRef> allTargetColumns,
                                        boolean ignoreDuplicateKeys,
-                                       Map<Reference, Symbol> onDuplicateKeyAssignments,
+                                       Map<ScopedRef, Symbol> onDuplicateKeyAssignments,
                                        List<Symbol> primaryKeySymbols,
                                        List<Symbol> partitionedBySymbols,
                                        @Nullable ColumnIdent clusteredByColumn,
@@ -109,7 +109,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                 // Ignore targetColsExclPartitionCols
                 int length = in.readVInt();
                 for (int i = 0; i < length; i++) {
-                    Reference.fromStream(in);
+                    ScopedRef.fromStream(in);
                 }
             }
         }
@@ -119,7 +119,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             int mapSize = in.readVInt();
             onDuplicateKeyAssignments = new HashMap<>(mapSize);
             for (int i = 0; i < mapSize; i++) {
-                onDuplicateKeyAssignments.put(Reference.fromStream(in), Symbol.fromStream(in));
+                onDuplicateKeyAssignments.put(ScopedRef.fromStream(in), Symbol.fromStream(in));
             }
         } else {
             onDuplicateKeyAssignments = Collections.emptyMap();
@@ -129,7 +129,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             int mapSize = in.readVInt();
             allTargetColumns = new ArrayList<>();
             for (int i = 0; i < mapSize; i++) {
-                allTargetColumns.add(Reference.fromStream(in));
+                allTargetColumns.add(ScopedRef.fromStream(in));
             }
 
             int outputSize = in.readVInt();
@@ -176,7 +176,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return returnValues;
     }
 
-    public List<Reference> allTargetColumns() {
+    public List<ScopedRef> allTargetColumns() {
         return allTargetColumns;
     }
 
@@ -186,7 +186,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         return ignoreDuplicateKeys;
     }
 
-    public Map<Reference, Symbol> onDuplicateKeyAssignments() {
+    public Map<ScopedRef, Symbol> onDuplicateKeyAssignments() {
         return onDuplicateKeyAssignments;
     }
 
@@ -241,8 +241,8 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
         } else {
             out.writeBoolean(true);
             out.writeVInt(onDuplicateKeyAssignments.size());
-            for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
-                Reference.toStream(out, entry.getKey());
+            for (Map.Entry<ScopedRef, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
+                ScopedRef.toStream(out, entry.getKey());
                 Symbol.toStream(entry.getValue(), out);
             }
         }
@@ -271,7 +271,7 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
     }
 
     public ColumnIndexWriterProjection bind(Function<? super Symbol, Symbol> binder) {
-        HashMap<Reference, Symbol> boundOnDuplicateKeyAssignments =
+        HashMap<ScopedRef, Symbol> boundOnDuplicateKeyAssignments =
             new HashMap<>(onDuplicateKeyAssignments.size());
         for (var assignment : onDuplicateKeyAssignments.entrySet()) {
             boundOnDuplicateKeyAssignments.put(

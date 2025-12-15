@@ -26,9 +26,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.FloatVectorType;
 
@@ -38,7 +38,7 @@ public class FloatVectorIndexerTest {
     public void test_indexer_has_default_fieldtype() throws Exception {
         FloatVectorType type = new FloatVectorType(4);
         RelationName tableName = new RelationName("doc", "tbl");
-        Reference ref = new SimpleReference(
+        ScopedRef ref = new SimpleReference(
             tableName,
             ColumnIdent.of("x"),
             RowGranularity.DOC,
@@ -55,7 +55,7 @@ public class FloatVectorIndexerTest {
     public void test_indexer_with_2048_dimensions() throws Exception {
         FloatVectorType type = new FloatVectorType(2048);
         RelationName tableName = new RelationName("doc", "tbl");
-        Reference ref = new SimpleReference(
+        ScopedRef ref = new SimpleReference(
             tableName,
             ColumnIdent.of("x"),
             RowGranularity.DOC,

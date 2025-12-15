@@ -45,10 +45,10 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -180,7 +180,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDynamicReference() {
-        Reference r = new DynamicReference(
+        ScopedRef r = new DynamicReference(
             new RelationName("schema", "table"),
             ColumnIdent.of("column", Arrays.asList("path", "nested")),
             RowGranularity.DOC,
@@ -190,7 +190,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testVoidReference() {
-        Reference r = new VoidReference(
+        ScopedRef r = new VoidReference(
             new RelationName("schema", "table"),
             ColumnIdent.of("column", Arrays.asList("path", "nested")),
             0);
@@ -343,7 +343,7 @@ public class SymbolPrinterTest extends CrateDummyClusterServiceUnitTest {
     public void testPrintFetchRefs() {
         Symbol field = sqlExpressions.asSymbol("bar");
         assertThat(field).isReference().hasName("bar");
-        Reference ref = (Reference) field;
+        ScopedRef ref = (ScopedRef) field;
         FetchReference fetchRef = new FetchReference(new InputColumn(0, field.valueType()), ref);
         assertPrint(fetchRef, "FETCH(INPUT(0), doc.formatter.bar)");
     }

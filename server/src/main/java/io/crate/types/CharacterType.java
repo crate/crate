@@ -39,8 +39,8 @@ import io.crate.execution.dml.FulltextIndexer;
 import io.crate.execution.dml.StringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnType;
@@ -71,8 +71,8 @@ public class CharacterType extends StringType {
             @Override
             @SuppressWarnings({"rawtypes"})
             public ValueIndexer<Object> valueIndexer(RelationName table,
-                                                     Reference ref,
-                                                     Function<ColumnIdent, Reference> getRef) {
+                                                     ScopedRef ref,
+                                                     Function<ColumnIdent, ScopedRef> getRef) {
                 return switch (ref.indexType()) {
                     case FULLTEXT -> (ValueIndexer) new FulltextIndexer(ref);
                     case NONE, PLAIN -> (ValueIndexer) new StringIndexer(ref);

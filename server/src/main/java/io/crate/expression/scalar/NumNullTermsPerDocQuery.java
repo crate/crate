@@ -33,7 +33,7 @@ import org.apache.lucene.index.SortedNumericDocValues;
 
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
 import io.crate.types.BooleanType;
@@ -54,8 +54,8 @@ import io.crate.types.TimestampType;
 
 public class NumNullTermsPerDocQuery extends NumTermsPerDocQuery {
 
-    public static NumNullTermsPerDocQuery of(Reference ref,
-                                             Function<ColumnIdent, Reference> getRef,
+    public static NumNullTermsPerDocQuery of(ScopedRef ref,
+                                             Function<ColumnIdent, ScopedRef> getRef,
                                              IntPredicate matches) {
         if (!hasArrayLengthIndexAndSortedNumericDocValues(ref.valueType(), ref.hasDocValues())) {
             return null;
@@ -103,11 +103,11 @@ public class NumNullTermsPerDocQuery extends NumTermsPerDocQuery {
         }
     }
 
-    private static IntUnaryOperator getNumNullTermsPerDocFunction(LeafReader reader, Reference ref, Function<ColumnIdent, Reference> getRef) {
+    private static IntUnaryOperator getNumNullTermsPerDocFunction(LeafReader reader, ScopedRef ref, Function<ColumnIdent, ScopedRef> getRef) {
         return numValuesPerDocForSortedNumeric(reader, ref, getRef);
     }
 
-    private static IntUnaryOperator numValuesPerDocForSortedNumeric(LeafReader reader, Reference ref, Function<ColumnIdent, Reference> getRef) {
+    private static IntUnaryOperator numValuesPerDocForSortedNumeric(LeafReader reader, ScopedRef ref, Function<ColumnIdent, ScopedRef> getRef) {
         final SortedNumericDocValues numNonNullTerms;
         final SortedNumericDocValues numAllTerms;
         try {
@@ -126,8 +126,8 @@ public class NumNullTermsPerDocQuery extends NumTermsPerDocQuery {
         };
     }
 
-    private NumNullTermsPerDocQuery(Reference ref,
-                                    Function<ColumnIdent, Reference> getRef,
+    private NumNullTermsPerDocQuery(ScopedRef ref,
+                                    Function<ColumnIdent, ScopedRef> getRef,
                                     IntPredicate matches) {
         super(
             ref.storageIdent(),

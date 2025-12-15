@@ -34,7 +34,7 @@ import io.crate.expression.reference.doc.lucene.NullSentinelValues;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
 
@@ -57,7 +57,7 @@ public class OptimizeQueryForSearchAfter implements Function<FieldDoc, Query> {
         for (int i = 0; i < orderBy.orderBySymbols().size(); i++) {
             Symbol order = orderBy.orderBySymbols().get(i);
             Object value = lastCollected.fields[i];
-            if (order instanceof Reference ref) {
+            if (order instanceof ScopedRef ref) {
                 final ColumnIdent columnIdent = ref.column();
                 if (columnIdent.isSystemColumn()) {
                     // We can't optimize the initial query because the BooleanQuery

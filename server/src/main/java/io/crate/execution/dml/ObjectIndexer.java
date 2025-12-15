@@ -44,9 +44,9 @@ import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -56,12 +56,12 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     private final ColumnIdent column;
     private final Map<String, Child> children = new HashMap<>();
-    private final Function<ColumnIdent, Reference> getRef;
+    private final Function<ColumnIdent, ScopedRef> getRef;
     private final RelationName table;
-    private final Reference ref;
+    private final ScopedRef ref;
     private final String unknownColumnPrefix;
 
-    private record Child(Reference reference, ValueIndexer<Object> indexer) {
+    private record Child(ScopedRef reference, ValueIndexer<Object> indexer) {
         ColumnIdent ident() {
             return reference.column();
         }
@@ -69,8 +69,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     @SuppressWarnings("unchecked")
     public ObjectIndexer(RelationName table,
-                         Reference ref,
-                         Function<ColumnIdent, Reference> getRef) {
+                         ScopedRef ref,
+                         Function<ColumnIdent, ScopedRef> getRef) {
         this.table = table;
         this.ref = ref;
         this.getRef = getRef;
@@ -81,7 +81,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             String innerName = entry.getKey();
             DataType<?> value = entry.getValue();
             ColumnIdent child = column.getChild(innerName);
-            Reference childRef = getRef.apply(child);
+            ScopedRef childRef = getRef.apply(child);
             if (childRef == null) {
                 // Race, either column got deleted or stale DocTableInfo?
                 // Treat it as dynamic column if a value for the nested column is found
@@ -173,7 +173,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     @Override
     public void collectSchemaUpdates(@Nullable Map<String, Object> value,
-                                     Consumer<? super Reference> onDynamicColumn,
+                                     Consumer<? super ScopedRef> onDynamicColumn,
                                      Synthetics synthetics) throws IOException {
         for (var entry : children.entrySet()) {
             String innerName = entry.getKey();
@@ -211,9 +211,9 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+    public void updateTargets(Function<ColumnIdent, ScopedRef> getRef) {
         ColumnIdent objectColumn = ref.column();
-        Reference updatedSelf = getRef.apply(objectColumn);
+        ScopedRef updatedSelf = getRef.apply(objectColumn);
         ObjectType objectType = (ObjectType) ArrayType.unnest(updatedSelf.valueType());
         for (var entry : children.entrySet()) {
             Child child = entry.getValue();
@@ -230,7 +230,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         }
         for (String innerColumn : objectType.innerTypes().keySet()) {
             if (!children.containsKey(innerColumn)) {
-                Reference childRef = getRef.apply(objectColumn.getChild(innerColumn));
+                ScopedRef childRef = getRef.apply(objectColumn.getChild(innerColumn));
                 @SuppressWarnings("unchecked")
                 ValueIndexer<Object> childIndexer = (ValueIndexer<Object>) childRef.valueType().valueIndexer(
                     table,
@@ -249,7 +249,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
     @SuppressWarnings("unchecked")
     private void addNewColumns(Map<String, Object> value,
-                               Consumer<? super Reference> onDynamicColumn,
+                               Consumer<? super ScopedRef> onDynamicColumn,
                                Synthetics synthetics) throws IOException {
         ColumnPolicy columnPolicy = ref.valueType().columnPolicy();
         if (columnPolicy == ColumnPolicy.IGNORED) {
@@ -272,7 +272,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                 ));
             }
             var type = DynamicIndexer.guessType(innerValue);
-            Reference newColumn = DynamicIndexer.buildReference(
+            ScopedRef newColumn = DynamicIndexer.buildReference(
                 table,
                 column.getChild(innerName),
                 type,

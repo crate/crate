@@ -104,10 +104,10 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(out, reference);
+        ScopedRef.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
-        Reference reference2 = Reference.fromStream(in);
+        ScopedRef reference2 = ScopedRef.fromStream(in);
 
         assertThat(reference2).isEqualTo(reference);
     }
@@ -132,11 +132,11 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_4_5_0);
-        Reference.toStream(out, reference);
+        ScopedRef.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_4_5_0);
-        Reference reference2 = Reference.fromStream(in);
+        ScopedRef reference2 = ScopedRef.fromStream(in);
 
         assertThat(reference2).isEqualTo(reference);
     }
@@ -146,7 +146,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs varchar(40))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(ColumnIdent.of("xs"));
+        ScopedRef reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("length_limit", 40)
@@ -165,7 +165,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs string storage with (columnstore = false))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(ColumnIdent.of("xs"));
+        ScopedRef reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
@@ -184,7 +184,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
                 .addTable("create table tbl (xs float storage with (columnstore = false))");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(ColumnIdent.of("xs"));
+        ScopedRef reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)
@@ -225,11 +225,11 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
 
         BytesStreamOutput out = new BytesStreamOutput();
         out.setVersion(Version.V_5_9_0);
-        Reference.toStream(out, reference);
+        ScopedRef.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
         in.setVersion(Version.V_5_9_0);
-        Reference reference2 = Reference.fromStream(in);
+        ScopedRef reference2 = ScopedRef.fromStream(in);
 
         assertThat(reference2).isEqualTo(expectedRef);
     }
@@ -239,7 +239,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (xs string default 'foo')");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference reference = table.getReference(ColumnIdent.of("xs"));
+        ScopedRef reference = table.getReference(ColumnIdent.of("xs"));
         Map<String, Object> mapping = reference.toMapping(reference.position());
         assertThat(mapping)
             .containsEntry("position", 1)

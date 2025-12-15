@@ -52,8 +52,8 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public class NodeFetchOperation {
 
@@ -66,10 +66,10 @@ public class NodeFetchOperation {
     private static class TableFetchInfo {
 
         private final Streamer<?>[] streamers;
-        private final Collection<Reference> refs;
+        private final Collection<ScopedRef> refs;
         private final FetchTask fetchTask;
 
-        TableFetchInfo(Collection<Reference> refs, FetchTask fetchTask) {
+        TableFetchInfo(Collection<ScopedRef> refs, FetchTask fetchTask) {
             this.refs = refs;
             this.fetchTask = fetchTask;
             this.streamers = Symbols.streamerArray(refs);
@@ -86,7 +86,7 @@ public class NodeFetchOperation {
                 table.isParentReferenceIgnored()
             );
             ArrayList<LuceneCollectorExpression<?>> exprs = new ArrayList<>(refs.size());
-            for (Reference reference : refs) {
+            for (ScopedRef reference : refs) {
                 exprs.add(resolver.getImplementation(reference));
             }
             return new FetchCollector(
@@ -154,7 +154,7 @@ public class NodeFetchOperation {
 
     private static HashMap<RelationName, TableFetchInfo> getTableFetchInfos(FetchTask fetchTask) {
         HashMap<RelationName, TableFetchInfo> result = new HashMap<>(fetchTask.toFetch().size());
-        for (Map.Entry<RelationName, Collection<Reference>> entry : fetchTask.toFetch().entrySet()) {
+        for (Map.Entry<RelationName, Collection<ScopedRef>> entry : fetchTask.toFetch().entrySet()) {
             TableFetchInfo tableFetchInfo = new TableFetchInfo(entry.getValue(), fetchTask);
             result.put(entry.getKey(), tableFetchInfo);
         }

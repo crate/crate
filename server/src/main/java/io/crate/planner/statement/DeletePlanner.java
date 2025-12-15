@@ -52,9 +52,9 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
@@ -94,7 +94,7 @@ public final class DeletePlanner {
         Symbol query = detailedQuery.query();
         if (!detailedQuery.partitions().isEmpty()) {
             // deleting whole partitions is only valid if the query only contains filters based on partition-by cols
-            var hasNonPartitionReferences = query.any(s -> s instanceof Reference && table.partitionedByColumns().contains(s) == false);
+            var hasNonPartitionReferences = query.any(s -> s instanceof ScopedRef && table.partitionedByColumns().contains(s) == false);
             if (hasNonPartitionReferences == false) {
                 return new DeletePartitions(table.ident(), detailedQuery.partitions());
             }
@@ -184,7 +184,7 @@ public final class DeletePlanner {
 
         private static ExecutionPlan deleteByQuery(DocTableRelation table, PlannerContext context, WhereClause where) {
             DocTableInfo tableInfo = table.tableInfo();
-            Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table has to have a _id reference");
+            ScopedRef idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table has to have a _id reference");
             DeleteProjection deleteProjection = new DeleteProjection(new InputColumn(0, idReference.valueType()));
             var sessionSettings = context.transactionContext().sessionSettings();
             Routing routing = context.allocateRouting(

@@ -91,8 +91,8 @@ import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.blob.BlobTableInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -165,7 +165,7 @@ public class IndexService extends AbstractIndexComponent implements Iterable<Ind
                 @Override
                 protected Analyzer getWrappedAnalyzer(String storageIdent) {
                     if (getTableInfo.get() instanceof DocTableInfo docTable) {
-                        Reference reference = docTable.getReference(storageIdent);
+                        ScopedRef reference = docTable.getReference(storageIdent);
                         if (reference instanceof IndexReference indexRef) {
                             NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());
                             return namedAnalyzer == null

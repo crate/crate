@@ -53,8 +53,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
@@ -70,7 +70,7 @@ import io.crate.types.ObjectType;
  */
 public final class UpdateAnalyzer {
 
-    private static final Predicate<Reference> IS_OBJECT_ARRAY = input ->
+    private static final Predicate<ScopedRef> IS_OBJECT_ARRAY = input ->
         input != null &&
         input.valueType() instanceof ArrayType<?> arrayType &&
         arrayType.innerType().id() == ObjectType.ID;
@@ -126,7 +126,7 @@ public final class UpdateAnalyzer {
         );
         ExpressionAnalysisContext exprCtx = new ExpressionAnalysisContext(txnCtx.sessionSettings());
 
-        LinkedHashMap<Reference, Symbol> assignmentByTargetCol = getAssignments(
+        LinkedHashMap<ScopedRef, Symbol> assignmentByTargetCol = getAssignments(
             update.assignments(), typeHints, txnCtx, table, normalizer, subqueryAnalyzer, sourceExprAnalyzer, exprCtx);
 
         Symbol query = Objects.requireNonNullElse(
@@ -151,7 +151,7 @@ public final class UpdateAnalyzer {
         );
     }
 
-    private LinkedHashMap<Reference, Symbol> getAssignments(List<Assignment<Expression>> assignments,
+    private LinkedHashMap<ScopedRef, Symbol> getAssignments(List<Assignment<Expression>> assignments,
                                                             ParamTypeHints typeHints,
                                                             CoordinatorTxnCtx txnCtx,
                                                             AbstractTableRelation<?> table,
@@ -159,7 +159,7 @@ public final class UpdateAnalyzer {
                                                             SubqueryAnalyzer subqueryAnalyzer,
                                                             ExpressionAnalyzer sourceExprAnalyzer,
                                                             ExpressionAnalysisContext exprCtx) {
-        LinkedHashMap<Reference, Symbol> assignmentByTargetCol = new LinkedHashMap<>();
+        LinkedHashMap<ScopedRef, Symbol> assignmentByTargetCol = new LinkedHashMap<>();
         ExpressionAnalyzer targetExprAnalyzer = new ExpressionAnalyzer(
             txnCtx,
             nodeCtx,
@@ -176,7 +176,7 @@ public final class UpdateAnalyzer {
         for (int i = 0; i < assignments.size(); i++) {
             Assignment<Expression> assignment = assignments.get(i);
             Symbol target = normalizer.normalize(targetExprAnalyzer.convert(assignment.columnName(), exprCtx), txnCtx);
-            if (target instanceof Reference targetCol) {
+            if (target instanceof ScopedRef targetCol) {
                 rejectUpdatesToFieldsOfObjectArrays(tableInfo, targetCol, IS_OBJECT_ARRAY);
 
                 Symbol source = ValueNormalizer.normalizeInputForReference(
@@ -195,7 +195,7 @@ public final class UpdateAnalyzer {
                 Symbol baseCol = args.get(0);
                 Symbol indexToUpdate = args.get(1);
 
-                if (baseCol instanceof Reference targetCol) {
+                if (baseCol instanceof ScopedRef targetCol) {
                     rejectUpdatesToFieldsOfObjectArrays(tableInfo, targetCol, IS_OBJECT_ARRAY);
                     assert targetCol.valueType() instanceof ArrayType<?> : "targetCol should be an array type.";
                     assert indexToUpdate.valueType() instanceof IntegerType : "indexToUpdate should be an integer type.";
@@ -223,7 +223,7 @@ public final class UpdateAnalyzer {
 
                     arraySetFunctionAllocator.put(targetCol, indexToUpdate, targetValue);
                     continue;
-                } else if (baseCol.uncast() instanceof Reference targetCol) {
+                } else if (baseCol.uncast() instanceof ScopedRef targetCol) {
                     rejectUpdatesToFieldsOfObjectArrays(tableInfo, targetCol, IS_OBJECT_ARRAY);
                 }
             }
@@ -241,7 +241,7 @@ public final class UpdateAnalyzer {
         return assignmentByTargetCol;
     }
 
-    private static void rejectUpdatesToFieldsOfObjectArrays(TableInfo tableInfo, Reference info, Predicate<Reference> parentMatchPredicate) {
+    private static void rejectUpdatesToFieldsOfObjectArrays(TableInfo tableInfo, ScopedRef info, Predicate<ScopedRef> parentMatchPredicate) {
         for (var parent : tableInfo.getParents(info.column())) {
             if (parentMatchPredicate.test(parent)) {
                 throw new IllegalArgumentException("Updating fields of object arrays is not supported");
@@ -250,7 +250,7 @@ public final class UpdateAnalyzer {
     }
 
     private static class ArraySetFunctionAllocator {
-        private final Map<Reference, LinkedHashMap<Symbol, Symbol>> mappings;
+        private final Map<ScopedRef, LinkedHashMap<Symbol, Symbol>> mappings;
         private final BiFunction<String, List<Symbol>, Symbol> allocateFunction;
 
         public ArraySetFunctionAllocator(BiFunction<String, List<Symbol>, Symbol> allocateFunction) {
@@ -258,7 +258,7 @@ public final class UpdateAnalyzer {
             this.mappings = new HashMap<>();
         }
 
-        public void put(Reference reference, Symbol index, Symbol value) {
+        public void put(ScopedRef reference, Symbol index, Symbol value) {
             var mapping = mappings.get(reference);
             if (mapping != null) {
                 mapping.put(index, value);
@@ -269,10 +269,10 @@ public final class UpdateAnalyzer {
             }
         }
 
-        public Map<Reference, Symbol> allocate() {
-            Map<Reference, Symbol> refToArraySetMap = new HashMap<>(mappings.size());
+        public Map<ScopedRef, Symbol> allocate() {
+            Map<ScopedRef, Symbol> refToArraySetMap = new HashMap<>(mappings.size());
             for (var e : mappings.entrySet()) {
-                Reference targetCol = e.getKey();
+                ScopedRef targetCol = e.getKey();
                 LinkedHashMap<Symbol, Symbol> mapping = e.getValue();
                 refToArraySetMap.put(
                     targetCol,

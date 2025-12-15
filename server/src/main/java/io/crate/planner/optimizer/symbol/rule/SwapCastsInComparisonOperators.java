@@ -34,7 +34,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.optimizer.matcher.Capture;
 import io.crate.planner.optimizer.matcher.Captures;
 import io.crate.planner.optimizer.matcher.Pattern;
@@ -57,7 +57,7 @@ public class SwapCastsInComparisonOperators implements Rule<Function> {
     private static boolean isSwappable(Function cmpOp) {
         if (cmpOp.arguments().get(1) instanceof Literal<?> literal) {
             Function cast = (Function) cmpOp.arguments().getFirst();
-            Reference ref = (Reference) cast.arguments().getFirst();
+            ScopedRef ref = (ScopedRef) cast.arguments().getFirst();
             DataType<?> refInnerType = ArrayType.unnest(ref.valueType());
             DataType<?> literalInnerType = ArrayType.unnest(literal.valueType());
             var value = literal.value();

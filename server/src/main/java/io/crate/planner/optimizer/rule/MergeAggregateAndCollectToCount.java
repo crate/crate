@@ -29,7 +29,7 @@ import java.util.List;
 import io.crate.common.collections.Lists;
 import io.crate.execution.engine.aggregation.impl.CountAggregation;
 import io.crate.expression.symbol.Function;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.planner.operators.Collect;
@@ -63,7 +63,7 @@ public final class MergeAggregateAndCollectToCount implements Rule<HashAggregate
             return true;
         }
         return signature.getName().equals(CountAggregation.SIGNATURE.getName())
-            && aggregate.arguments().get(0) instanceof Reference ref
+            && aggregate.arguments().get(0) instanceof ScopedRef ref
             && !ref.isNullable();
     }
 

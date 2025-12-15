@@ -63,10 +63,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.optimizer.LoadedRules;
@@ -228,15 +228,15 @@ public class TestingHelpers {
         );
     }
 
-    public static Reference createReference(String columnName, DataType<?> dataType) {
+    public static ScopedRef createReference(String columnName, DataType<?> dataType) {
         return createReference("dummyTable", ColumnIdent.of(columnName), dataType);
     }
 
-    public static Reference createReference(ColumnIdent columnIdent, DataType<?> dataType) {
+    public static ScopedRef createReference(ColumnIdent columnIdent, DataType<?> dataType) {
         return createReference("dummyTable", columnIdent, dataType);
     }
 
-    public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType<?> dataType) {
+    public static ScopedRef createReference(String tableName, ColumnIdent columnIdent, DataType<?> dataType) {
         return new SimpleReference(
             new RelationName(Schemas.DOC_SCHEMA_NAME, tableName),
             columnIdent,
@@ -266,7 +266,7 @@ public class TestingHelpers {
         return column;
     }
 
-    public static Reference refInfo(String fqColumnName,
+    public static ScopedRef refInfo(String fqColumnName,
                                     DataType<?> dataType,
                                     RowGranularity rowGranularity,
                                     String... nested) {
@@ -368,7 +368,7 @@ public class TestingHelpers {
     public static Map<String, Object> toMapping(LongSupplier columnOidSupplier, BoundCreateTable boundCreateTable) {
 
         var tableColumnPolicy = TableParameters.COLUMN_POLICY.get(boundCreateTable.settings());
-        List<Reference> references;
+        List<ScopedRef> references;
         if (columnOidSupplier != null) {
             references = DocReferences.applyOid(
                     boundCreateTable.columns().values(),
@@ -382,9 +382,9 @@ public class TestingHelpers {
             MappingUtil.AllocPosition.forNewTable(),
             boundCreateTable.pkConstraintName(),
             references,
-            Lists.map(boundCreateTable.primaryKeys(), Reference::column),
+            Lists.map(boundCreateTable.primaryKeys(), ScopedRef::column),
             boundCreateTable.getCheckConstraints(),
-            Lists.map(boundCreateTable.partitionedBy(), Reference::column),
+            Lists.map(boundCreateTable.partitionedBy(), ScopedRef::column),
             tableColumnPolicy,
             boundCreateTable.routingColumn()
         );

@@ -36,8 +36,8 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ForeignTableRelation;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public final class RelationNames {
 
@@ -85,7 +85,7 @@ public final class RelationNames {
         LinkedHashSet<RelationName> relationNames = new LinkedHashSet<>();
         symbol.any(node -> {
             switch (node) {
-                case Reference ref -> relationNames.add(ref.relation());
+                case ScopedRef ref -> relationNames.add(ref.relation());
                 case ScopedSymbol scoped -> relationNames.add(scoped.relation());
                 case SelectSymbol selectSymbol -> {
                     if (deep) {

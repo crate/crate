@@ -44,8 +44,8 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.IndexReference;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.DataType;
 
 public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
@@ -114,26 +114,26 @@ public final class SymbolAssert extends AbstractAssert<SymbolAssert, Symbol> {
 
     public ReferenceAssert isReference() {
         isNotNull();
-        isInstanceOf(Reference.class);
-        return new ReferenceAssert((Reference) actual);
+        isInstanceOf(ScopedRef.class);
+        return new ReferenceAssert((ScopedRef) actual);
     }
 
     public ReferenceAssert isIndexReference() {
         isNotNull();
         isExactlyInstanceOf(IndexReference.class);
-        return new ReferenceAssert((Reference) actual);
+        return new ReferenceAssert((ScopedRef) actual);
     }
 
     public ReferenceAssert isVoidReference() {
         isNotNull();
         isExactlyInstanceOf(VoidReference.class);
-        return new ReferenceAssert((Reference) actual);
+        return new ReferenceAssert((ScopedRef) actual);
     }
 
     public ReferenceAssert isDynamicReference() {
         isNotNull();
         isExactlyInstanceOf(DynamicReference.class);
-        return new ReferenceAssert((Reference) actual);
+        return new ReferenceAssert((ScopedRef) actual);
     }
 
     public SymbolAssert isFetchStub(String expectedColumnName) {

@@ -37,7 +37,7 @@ import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.FloatVectorType;
 
@@ -53,9 +53,9 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
 
     final FieldType fieldType;
     private final String name;
-    private final Reference ref;
+    private final ScopedRef ref;
 
-    public FloatVectorIndexer(Reference ref) {
+    public FloatVectorIndexer(ScopedRef ref) {
         this.fieldType = new FieldType(FIELD_TYPE);
         this.fieldType.setVectorAttributes(
             ref.valueType().characterMaximumLength(),

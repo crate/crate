@@ -31,7 +31,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public class FulltextIndexer implements ValueIndexer<String> {
 
@@ -46,9 +46,9 @@ public class FulltextIndexer implements ValueIndexer<String> {
         FIELD_TYPE.freeze();
     }
 
-    private final Reference ref;
+    private final ScopedRef ref;
 
-    public FulltextIndexer(Reference ref) {
+    public FulltextIndexer(ScopedRef ref) {
         this.ref = ref;
     }
 

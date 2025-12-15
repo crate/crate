@@ -56,7 +56,7 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.BoundSignature;
@@ -112,7 +112,7 @@ public final class EqOperator extends Operator<Object> {
     @Override
     public Query toQuery(Function function, Context context) {
         List<Symbol> args = function.arguments();
-        if (!(args.get(0) instanceof Reference ref && args.get(1) instanceof Literal<?> literal)) {
+        if (!(args.get(0) instanceof ScopedRef ref && args.get(1) instanceof Literal<?> literal)) {
             return null;
         }
         String fqn = ref.column().fqn();

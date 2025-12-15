@@ -42,7 +42,7 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -127,7 +127,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
             analyze("select 1/age as age from foo.users group by age order by age");
         assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
-        assertThat(((Reference) groupBySymbols.getFirst()).column().fqn()).isEqualTo("age");
+        assertThat(((ScopedRef) groupBySymbols.getFirst()).column().fqn()).isEqualTo("age");
     }
 
     @Test
@@ -146,7 +146,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select 1/age as height from foo.users group by age");
         assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
-        assertThat(((Reference) groupBySymbols.getFirst()).column().fqn()).isEqualTo("age");
+        assertThat(((ScopedRef) groupBySymbols.getFirst()).column().fqn()).isEqualTo("age");
     }
 
     @Test
@@ -171,7 +171,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select 58 as age from foo.users group by age;");
         assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
-        Reference groupByRef = (Reference) groupBySymbols.getFirst();
+        ScopedRef groupByRef = (ScopedRef) groupBySymbols.getFirst();
         assertThat(groupByRef.column().fqn()).isEqualTo("age");
         assertThat(groupByRef.relation().fqn()).isEqualTo("foo.users");
     }
@@ -181,7 +181,7 @@ public class GroupByAnalyzerTest extends CrateDummyClusterServiceUnitTest {
         QueriedSelectRelation relation = analyze("select age age, - age age from foo.users group by age;");
         assertThat(relation.groupBy()).isNotEmpty();
         List<Symbol> groupBySymbols = relation.groupBy();
-        Reference groupByRef = (Reference) groupBySymbols.getFirst();
+        ScopedRef groupByRef = (ScopedRef) groupBySymbols.getFirst();
         assertThat(groupByRef.column().fqn()).isEqualTo("age");
         assertThat(groupByRef.relation().fqn()).isEqualTo("foo.users");
     }

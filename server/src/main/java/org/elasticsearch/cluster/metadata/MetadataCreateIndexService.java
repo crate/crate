@@ -92,8 +92,8 @@ import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.SchemaInfo;
@@ -704,7 +704,7 @@ public class MetadataCreateIndexService {
         return allocationService.reroute(newState, "index [" + indexUUID + "] created");
     }
 
-    private static void ensureUsedAnalyzersExist(IndexAnalyzers indexAnalyzers, List<Reference> references) {
+    private static void ensureUsedAnalyzersExist(IndexAnalyzers indexAnalyzers, List<ScopedRef> references) {
         for (var ref : references) {
             if (ref instanceof IndexReference indexRef) {
                 NamedAnalyzer namedAnalyzer = indexAnalyzers.get(indexRef.analyzer());

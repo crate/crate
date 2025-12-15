@@ -36,7 +36,7 @@ import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.FixedWidthType;
 
 public record Stats(long numDocs,
@@ -126,7 +126,7 @@ public record Stats(long numDocs,
             while (symbol instanceof AliasSymbol alias) {
                 symbol = alias.symbol();
             }
-            if (symbol instanceof Reference ref) {
+            if (symbol instanceof ScopedRef ref) {
                 columnStats = statsByColumn.get(ref.column());
             } else if (symbol instanceof ScopedSymbol scopedSymbol) {
                 columnStats = statsByColumn.get(scopedSymbol.column());

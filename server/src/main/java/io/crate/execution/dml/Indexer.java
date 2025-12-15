@@ -68,8 +68,8 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
@@ -105,7 +105,7 @@ import io.crate.types.ObjectType;
  * </ol>
  *
  * Schema update and creation of ParsedDocument is split into two steps to be
- * able to use information from the persisted {@link Reference} from the cluster
+ * able to use information from the persisted {@link ScopedRef} from the cluster
  * state. (Mostly for the OID information)
  **/
 public class Indexer {
@@ -114,7 +114,7 @@ public class Indexer {
     /**
      * target columns for INSERT and target columns for UPDATE converted to INSERT
      */
-    private final List<Reference> columns;
+    private final List<ScopedRef> columns;
     private final Map<ColumnIdent, Synthetic> synthetics;
     private final List<CollectExpression<IndexItem, Object>> expressions;
     private final Map<ColumnIdent, ColumnConstraint> columnConstraints = new HashMap<>();
@@ -122,7 +122,7 @@ public class Indexer {
     private final List<IndexColumn<Input<?>>> indexColumns;
     private final List<Input<?>> returnValueInputs;
     private final List<Synthetic> undeterministic = new ArrayList<>();
-    private final Function<ColumnIdent, Reference> getRef;
+    private final Function<ColumnIdent, ScopedRef> getRef;
     private final boolean writeOids;
     private final Version tableVersionCreated;
     @Nullable
@@ -132,22 +132,22 @@ public class Indexer {
     /// Indexing order for the columns;
     /// Starts out as [rootColumns][DocTableInfo#rootColumns()] but is updated
     /// after dynamic column additions;
-    private List<Reference> indexOrder;
+    private List<ScopedRef> indexOrder;
 
 
-    public record IndexColumn<I>(Reference reference, List<? extends I> inputs) {
+    public record IndexColumn<I>(ScopedRef reference, List<? extends I> inputs) {
     }
 
     static class RefResolver implements ReferenceResolver<CollectExpression<IndexItem, Object>> {
 
         private final List<String> partitionValues;
-        private final List<Reference> targetColumns;
+        private final List<ScopedRef> targetColumns;
         private final DocTableInfo table;
         private final SymbolEvaluator symbolEval;
 
         private RefResolver(SymbolEvaluator symbolEval,
                             List<String> partitionValues,
-                            List<Reference> targetColumns,
+                            List<ScopedRef> targetColumns,
                             DocTableInfo table) {
             this.symbolEval = symbolEval;
             this.partitionValues = partitionValues;
@@ -156,7 +156,7 @@ public class Indexer {
         }
 
         @Override
-        public CollectExpression<IndexItem, Object> getImplementation(Reference ref) {
+        public CollectExpression<IndexItem, Object> getImplementation(ScopedRef ref) {
 
             // Here be dragons: A reference can refer to:
             //
@@ -281,13 +281,13 @@ public class Indexer {
      **/
     private static class Synthetic implements Input<Object> {
 
-        private final Reference ref;
+        private final ScopedRef ref;
         private final Input<?> input;
         private final ValueIndexer<Object> indexer;
         private boolean computed;
         private Object computedValue;
 
-        public Synthetic(Reference ref,
+        public Synthetic(ScopedRef ref,
                          Input<?> input,
                          ValueIndexer<Object> indexer) {
             this.ref = ref;
@@ -423,7 +423,7 @@ public class Indexer {
                    Version shardVersionCreated,
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
-                   List<Reference> targetColumns,
+                   List<ScopedRef> targetColumns,
                    @Nullable String[] updateColumns,
                    @Nullable Symbol[] returnValues) {
         this(
@@ -445,12 +445,12 @@ public class Indexer {
                    Version shardVersionCreated,
                    TransactionContext txnCtx,
                    NodeContext nodeCtx,
-                   List<Reference> targetColumns,
+                   List<ScopedRef> targetColumns,
                    @Nullable String[] updateColumns,
                    @Nullable Symbol[] returnValues,
                    boolean isOnConflictIndexer) {
         // assignedColumns are columns explicitly assigned by users; updateColumns for UPDATE and targetColumns for INSERT
-        List<Reference> assignedColumns;
+        List<ScopedRef> assignedColumns;
         // insert-on-conflict: an indexer (used to index un-conflicted rows) with a child onConflictIndexer(used to index conflicted rows)
         if (updateColumns != null && updateColumns.length > 0 && !targetColumns.isEmpty() && !isOnConflictIndexer) {
             this.onConflictIndexer = new Indexer(
@@ -618,14 +618,14 @@ public class Indexer {
     }
 
     public static <I> List<IndexColumn<I>> buildIndexColumns(Collection<IndexReference> indexReferences,
-                                                             Function<ColumnIdent, Reference> getRef,
-                                                             Function<Reference, ? extends I> createInput) {
+                                                             Function<ColumnIdent, ScopedRef> getRef,
+                                                             Function<ScopedRef, ? extends I> createInput) {
         List<IndexColumn<I>> indexColumns = new ArrayList<>(indexReferences.size());
         for (var ref : indexReferences) {
             ArrayList<I> indexInputs = new ArrayList<>(ref.columns().size());
 
             for (var sourceRef : ref.columns()) {
-                Reference reference = getRef.apply(sourceRef.column());
+                ScopedRef reference = getRef.apply(sourceRef.column());
                 assert reference.equals(sourceRef) : "refs must match";
 
                 I input = createInput.apply(sourceRef);
@@ -650,7 +650,7 @@ public class Indexer {
      * They are held separately in {@link IndexItem#insertValues} and {@link Indexer#synthetics} to save the cost
      * of streaming to replicas.
      */
-    private Object mergeSyntheticChildren(Reference parentRef, Input<?> input) {
+    private Object mergeSyntheticChildren(ScopedRef parentRef, Input<?> input) {
         Object value = input.value();
         if (value instanceof Map<?, ?>) {
             @SuppressWarnings("unchecked")
@@ -693,14 +693,14 @@ public class Indexer {
      */
     @SuppressWarnings("unchecked")
     private void createParentSynthetics(DocTableInfo table,
-                                        List<Reference> targetColumns,
+                                        List<ScopedRef> targetColumns,
                                         ColumnIdent column,
-                                        Function<ColumnIdent, Reference> getRef) {
+                                        Function<ColumnIdent, ScopedRef> getRef) {
         for (ColumnIdent parent : column.parents()) {
             if (synthetics.containsKey(parent) || Symbols.hasColumn(targetColumns, parent)) {
                 continue;
             }
-            Reference parentRef = table.getReference(parent);
+            ScopedRef parentRef = table.getReference(parent);
             assert parentRef != null
                 : "Must be able to retrieve Reference for parent of a `defaultExpressionColumn`";
 
@@ -727,7 +727,7 @@ public class Indexer {
      * @param getRef A function that returns a reference for a given column ident based on the current cluster state
      */
     public void updateTargets(DocTableInfo newTable) {
-        Function<ColumnIdent, Reference> getRef = newTable::getReference;
+        Function<ColumnIdent, ScopedRef> getRef = newTable::getReference;
         var it = columns.iterator();
         var idx = 0;
         while (it.hasNext()) {
@@ -735,7 +735,7 @@ public class Indexer {
             if (oldRef.oid() == COLUMN_OID_UNASSIGNED) {
                 // try to resolve the column again, new reference may have been added to or dropped of the table or
                 // the reference may be invalid
-                Reference newRef = getRef.apply(oldRef.column());
+                ScopedRef newRef = getRef.apply(oldRef.column());
                 if (newRef == null) {
                     // column can be of an undetermined type, e.g. `[]` (array with undefined inner type)
                     valueIndexers.get(idx).updateTargets(getRef);
@@ -752,7 +752,7 @@ public class Indexer {
                 }
             } else if (DataTypes.isArrayOfNulls(oldRef.valueType())) {
                 // null arrays may be upgraded to arrays of a defined type
-                Reference newRef = getRef.apply(oldRef.column());
+                ScopedRef newRef = getRef.apply(oldRef.column());
                 if (newRef == null) {
                     continue;
                 }
@@ -762,7 +762,7 @@ public class Indexer {
                 }
             } else if (ArrayType.unnest(oldRef.valueType()).id() == ObjectType.ID) {
                 // object types in 'columns' may be outdated - missing newly added child types
-                Reference newRef = getRef.apply(oldRef.column());
+                ScopedRef newRef = getRef.apply(oldRef.column());
                 if (!newRef.equals(oldRef)) {
                     columns.set(idx, newRef);
                     valueIndexers.get(idx).updateTargets(getRef);
@@ -786,8 +786,8 @@ public class Indexer {
         if (onConflictIndexer == null) {
             indexOrder = newTable.rootColumns();
         } else {
-            Map<ColumnIdent, Reference> indexOrderForInsertOnConflict = newTable.rootColumns().stream()
-                .collect(Collectors.toMap(Reference::column, Function.identity(), (a, _) -> a, LinkedHashMap::new));
+            Map<ColumnIdent, ScopedRef> indexOrderForInsertOnConflict = newTable.rootColumns().stream()
+                .collect(Collectors.toMap(ScopedRef::column, Function.identity(), (a, _) -> a, LinkedHashMap::new));
 
             // extend indexOrder with dynamically added columns from conflicted rows
             onConflictIndexer.columns.forEach(r -> {
@@ -801,10 +801,10 @@ public class Indexer {
     private static void addNotNullConstraints(List<TableConstraint> tableConstraints,
                                               Map<ColumnIdent, ColumnConstraint> columnConstraints,
                                               DocTableInfo table,
-                                              List<Reference> targetColumns,
+                                              List<ScopedRef> targetColumns,
                                               Context<CollectExpression<IndexItem, Object>> ctxForRefs) {
         for (var column : table.notNullColumns()) {
-            Reference ref = table.getReference(column);
+            ScopedRef ref = table.getReference(column);
             assert ref != null : "Column in #notNullColumns must be available via table.getReference";
             if (targetColumns.contains(ref)) {
                 columnConstraints.merge(ref.column(), new NotNull(column), MultiCheck::merge);
@@ -821,7 +821,7 @@ public class Indexer {
     private static void addGeneratedToVerify(Map<ColumnIdent, ColumnConstraint> columnConstraints,
                                              DocTableInfo table,
                                              Context<?> ctxForRefs,
-                                             Reference ref) {
+                                             ScopedRef ref) {
         if (ref instanceof GeneratedReference generated && generated.isDeterministic()) {
             Input<?> input = ctxForRefs.add(generated.generatedExpression());
             columnConstraints.put(ref.column(), new CheckGeneratedValue(input, generated));
@@ -830,7 +830,7 @@ public class Indexer {
             for (var entry : objectType.innerTypes().entrySet()) {
                 String innerName = entry.getKey();
                 ColumnIdent innerColumn = ref.column().getChild(innerName);
-                Reference reference = table.getReference(innerColumn);
+                ScopedRef reference = table.getReference(innerColumn);
                 if (reference == null) {
                     continue;
                 }
@@ -844,9 +844,9 @@ public class Indexer {
      * Looks for new columns in the values of the given IndexItem and returns them.
      */
     @SuppressWarnings("unchecked")
-    public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
-        LinkedHashSet<Reference> newColumns = new LinkedHashSet<>();
-        Consumer<? super Reference> onDynamicColumn = ref -> {
+    public List<ScopedRef> collectSchemaUpdates(IndexItem item) throws IOException {
+        LinkedHashSet<ScopedRef> newColumns = new LinkedHashSet<>();
+        Consumer<? super ScopedRef> onDynamicColumn = ref -> {
             ref.column().validForCreate();
             newColumns.add(ref);
         };
@@ -857,7 +857,7 @@ public class Indexer {
 
         Object[] values = item.insertValues();
         for (int i = 0; i < values.length; i++) {
-            Reference reference = columns.get(i);
+            ScopedRef reference = columns.get(i);
             Object value = values[i];
             // No granularity check since PARTITIONED BY columns cannot be added dynamically.
             if (value == null) {
@@ -896,7 +896,7 @@ public class Indexer {
      */
     @VisibleForTesting
     @SuppressWarnings("unchecked")
-    ParsedDocument index(IndexItem item, List<Reference> indexOrder) throws IOException {
+    ParsedDocument index(IndexItem item, List<ScopedRef> indexOrder) throws IOException {
         assert item.insertValues().length <= valueIndexers.size()
             : "Number of values must be less than or equal the number of targetColumns/valueIndexers";
 
@@ -916,7 +916,7 @@ public class Indexer {
         );
         Object[] values = item.insertValues();
 
-        for (Reference ref : indexOrder) {
+        for (ScopedRef ref : indexOrder) {
             int idx = columns.indexOf(ref);
             // for insert-on-conflict columns.size() > values.length is possible to be able to process both INSERT and UPDATE rows
             if (idx >= 0 && idx < values.length) {
@@ -1017,7 +1017,7 @@ public class Indexer {
                                                             List<String> partitionValues,
                                                             TransactionContext txnCtx,
                                                             NodeContext nodeCtx,
-                                                            List<Reference> targetColumns) {
+                                                            List<ScopedRef> targetColumns) {
         var symbolEval = new SymbolEvaluator(txnCtx, nodeCtx, SubQueryResults.EMPTY);
         InputFactory inputFactory = new InputFactory(nodeCtx);
         var referenceResolver = new RefResolver(symbolEval, partitionValues, targetColumns, table);
@@ -1044,7 +1044,7 @@ public class Indexer {
             }
             Object[] values = indexItem.insertValues();
             for (int i = 0; i < values.length; i++) {
-                Reference reference = targetColumns.get(i);
+                ScopedRef reference = targetColumns.get(i);
                 Object value = valueForInsert(reference.valueType(), values[i]);
                 ColumnConstraint check = columnConstraints.get(reference.column());
                 if (check != null) {
@@ -1063,15 +1063,15 @@ public class Indexer {
         };
     }
 
-    public List<Reference> columns() {
+    public List<ScopedRef> columns() {
         return columns;
     }
 
-    public List<Reference> insertColumns() {
+    public List<ScopedRef> insertColumns() {
         if (undeterministic.isEmpty()) {
             return columns;
         }
-        List<Reference> newColumns = new ArrayList<>(columns);
+        List<ScopedRef> newColumns = new ArrayList<>(columns);
         for (var synthetic : undeterministic) {
             if (synthetic.ref.column().isRoot()) {
                 if (newColumns.contains(synthetic.ref) == false) {
@@ -1079,12 +1079,12 @@ public class Indexer {
                 }
             } else {
                 var rootIdent = synthetic.ref.column().getRoot();
-                int rootIndex = Reference.indexOf(newColumns, rootIdent);
+                int rootIndex = ScopedRef.indexOf(newColumns, rootIdent);
                 if (rootIndex == -1) {
                     // Synthetic is a generated/default sub-column with root not listed in the insert/upsert targets.
                     // We need to add the root to replica targets
                     // since we will generate object value in addGeneratedValues().
-                    Reference rootRef = getRef.apply(rootIdent);
+                    ScopedRef rootRef = getRef.apply(rootIdent);
                     assert rootRef != null : "Root must exist in the table";
                     newColumns.add(rootRef);
                 }
@@ -1098,9 +1098,9 @@ public class Indexer {
         if (onConflictIndexer() == null && undeterministic.isEmpty()) {
             return insertValues;
         }
-        assert onConflictIndexer() == null || new HashSet<>(onConflictIndexer().insertColumns().stream().map(Reference::column).toList())
-            .containsAll(insertColumns().stream().map(Reference::column).toList()) : "onConflictIndexer().insertColumns() is a superset of this.insertColumns()";
-        List<Reference> insertColumns = onConflictIndexer() == null ? insertColumns() : onConflictIndexer().insertColumns();
+        assert onConflictIndexer() == null || new HashSet<>(onConflictIndexer().insertColumns().stream().map(ScopedRef::column).toList())
+            .containsAll(insertColumns().stream().map(ScopedRef::column).toList()) : "onConflictIndexer().insertColumns() is a superset of this.insertColumns()";
+        List<ScopedRef> insertColumns = onConflictIndexer() == null ? insertColumns() : onConflictIndexer().insertColumns();
         List<Object> extendedValues = new ArrayList<>(insertValues.length);
         Collections.addAll(extendedValues, insertValues);
         for (int i = insertValues.length; i < insertColumns.size(); i++) {
@@ -1110,7 +1110,7 @@ public class Indexer {
         // insert-on-conflict: insert path may need to insert a value so the column must be streamed then update path must stream the correct value
         if (onConflictIndexer() != null) {
             for (var synthetic : synthetics.values()) {
-                Reference ref = synthetic.ref;
+                ScopedRef ref = synthetic.ref;
                 if (ref.column().isRoot() && ref.defaultExpression() != null && ref.defaultExpression().isDeterministic() && synthetic.isComputed()) {
                     int idx = insertColumns.indexOf(ref);
                     assert idx >= 0 && idx < extendedValues.size() : "We know how many values are to be streamed: insertColumns()";
@@ -1126,16 +1126,16 @@ public class Indexer {
             ColumnIdent column = synthetic.ref.column();
             Object value = synthetic.value();
             if (column.isRoot()) {
-                int idx = Reference.indexOf(insertColumns, column);
+                int idx = ScopedRef.indexOf(insertColumns, column);
                 assert idx >= 0 && idx < extendedValues.size() : "We know how many values are to be streamed: insertColumns()";
                 extendedValues.set(idx, value);
             } else {
-                int valueIdx = Reference.indexOf(insertColumns, column.getRoot());
+                int valueIdx = ScopedRef.indexOf(insertColumns, column.getRoot());
                 Map<String, Object> root;
                 assert valueIdx >= 0 && valueIdx < extendedValues.size() : "We know how many values are to be streamed: insertColumns()";
                 root = castMapUnchecked(extendedValues.get(valueIdx));
                 if (root == null) {
-                    if (Reference.indexOf(this.columns, column.getRoot()) >= 0) {
+                    if (ScopedRef.indexOf(this.columns, column.getRoot()) >= 0) {
                         // When a null is assigned to a parent object, do not generate nondeterministic children
                         continue;
                     } else {

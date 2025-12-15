@@ -21,6 +21,12 @@
 
 package io.crate.expression.scalar.string;
 
+import java.util.List;
+
+import org.apache.lucene.index.Term;
+import org.apache.lucene.search.PrefixQuery;
+import org.apache.lucene.search.Query;
+
 import io.crate.data.Input;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -30,19 +36,14 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataTypes;
 import io.crate.types.EqQuery;
 import io.crate.types.StorageSupport;
-import org.apache.lucene.index.Term;
-import org.apache.lucene.search.PrefixQuery;
-import org.apache.lucene.search.Query;
-
-import java.util.List;
 
 public final class StartsWithFunction extends Scalar<Boolean, String> {
 
@@ -76,7 +77,7 @@ public final class StartsWithFunction extends Scalar<Boolean, String> {
     @Override
     public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
         List<Symbol> args = function.arguments();
-        if (args.get(0) instanceof Reference ref
+        if (args.get(0) instanceof ScopedRef ref
             && args.get(1) instanceof Literal<?> prefixLiteral
             && ref.indexType() != IndexType.NONE
         ) {

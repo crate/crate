@@ -23,6 +23,7 @@ package io.crate.planner.optimizer.rule;
 
 import static io.crate.common.collections.Iterables.getOnlyElement;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 import java.util.function.UnaryOperator;
@@ -37,8 +38,8 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.Lists;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.Collect;
@@ -57,10 +58,10 @@ import io.crate.testing.SQLExecutor;
 public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private Reference x;
-    private Reference y;
-    private Reference z;
-    private Reference w;
+    private ScopedRef x;
+    private ScopedRef y;
+    private ScopedRef z;
+    private ScopedRef w;
     private Collect a;
     private Collect b;
     private Collect c;
@@ -83,10 +84,10 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
         cDoc = e.resolveTableInfo("c");
         dDoc = e.resolveTableInfo("d");
 
-        x = (Reference) e.asSymbol("x");
-        y = (Reference) e.asSymbol("y");
-        z = (Reference) e.asSymbol("z");
-        w = (Reference) e.asSymbol("w");
+        x = (ScopedRef) e.asSymbol("x");
+        y = (ScopedRef) e.asSymbol("y");
+        z = (ScopedRef) e.asSymbol("z");
+        w = (ScopedRef) e.asSymbol("w");
 
         a = new Collect(new DocTableRelation(aDoc), List.of(x), WhereClause.MATCH_ALL);
         b = new Collect(new DocTableRelation(bDoc), List.of(y), WhereClause.MATCH_ALL);

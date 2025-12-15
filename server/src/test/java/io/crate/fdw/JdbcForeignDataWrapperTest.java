@@ -36,9 +36,9 @@ import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
@@ -58,7 +58,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         Server server = new ServersMetadata.Server("self", "jdbc", "crate", Map.of(), options);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         RelationName relationName = new RelationName("secret", "documents");
-        Reference nameRef = new SimpleReference(
+        ScopedRef nameRef = new SimpleReference(
             relationName,
             ColumnIdent.of("name"),
             RowGranularity.DOC,
@@ -66,7 +66,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
             1,
             null
         );
-        Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
+        Map<ColumnIdent, ScopedRef> references = Map.of(nameRef.column(), nameRef);
         ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
         assertThatThrownBy(() -> fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE))
             .hasMessage("Only a super user can connect to localhost unless `fdw.allow_local` is set to true");
@@ -83,7 +83,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
         Server server = new ServersMetadata.Server("self", "jdbc", "crate", Map.of(), options);
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         RelationName relationName = new RelationName("secret", "documents");
-        Reference nameRef = new SimpleReference(
+        ScopedRef nameRef = new SimpleReference(
             relationName,
             ColumnIdent.of("name"),
             RowGranularity.DOC,
@@ -91,7 +91,7 @@ public class JdbcForeignDataWrapperTest extends CrateDummyClusterServiceUnitTest
             1,
             null
         );
-        Map<ColumnIdent, Reference> references = Map.of(nameRef.column(), nameRef);
+        Map<ColumnIdent, ScopedRef> references = Map.of(nameRef.column(), nameRef);
         ForeignTable foreignTable = new ForeignTable(relationName, references, server.name(), Settings.EMPTY);
         // validates that no exception is thrown
         fdw.getIterator(arthur, server, foreignTable, txnCtx, List.of(nameRef), Literal.BOOLEAN_TRUE);

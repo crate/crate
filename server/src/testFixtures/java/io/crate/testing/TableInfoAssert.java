@@ -30,7 +30,7 @@ import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.TableInfo;
 
 public class TableInfoAssert extends AbstractAssert<TableInfoAssert, TableInfo> {
@@ -45,16 +45,16 @@ public class TableInfoAssert extends AbstractAssert<TableInfoAssert, TableInfo> 
         return this;
     }
 
-    public <K extends Comparable<K>> TableInfoAssert isSortedBy(final Function<Reference, K> extractSortingKeyFunction) {
+    public <K extends Comparable<K>> TableInfoAssert isSortedBy(final Function<ScopedRef, K> extractSortingKeyFunction) {
         return isSortedBy(extractSortingKeyFunction, false, null);
     }
 
-    public <K extends Comparable<K>> TableInfoAssert hasColsSortedBy(final Function<Reference, K> extractSortingKeyFunction) {
+    public <K extends Comparable<K>> TableInfoAssert hasColsSortedBy(final Function<ScopedRef, K> extractSortingKeyFunction) {
         refsSortedBy(actual.rootColumns(), extractSortingKeyFunction, false, null);
         return this;
     }
 
-    public <K extends Comparable<K>> TableInfoAssert isSortedBy(final Function<Reference, K> extractSortingKeyFunction,
+    public <K extends Comparable<K>> TableInfoAssert isSortedBy(final Function<ScopedRef, K> extractSortingKeyFunction,
                                                                 final boolean descending,
                                                                 @Nullable final Boolean nullsFirst) {
         describedAs("expected iterable to be sorted " +
@@ -63,8 +63,8 @@ public class TableInfoAssert extends AbstractAssert<TableInfoAssert, TableInfo> 
         return this;
     }
 
-    private static <K extends Comparable<K>> void refsSortedBy(Iterable<Reference> refs,
-                                                               final Function<Reference, K> extractSortingKeyFunction,
+    private static <K extends Comparable<K>> void refsSortedBy(Iterable<ScopedRef> refs,
+                                                               final Function<ScopedRef, K> extractSortingKeyFunction,
                                                                final boolean descending,
                                                                @Nullable final Boolean nullsFirst) {
 
@@ -80,7 +80,7 @@ public class TableInfoAssert extends AbstractAssert<TableInfoAssert, TableInfo> 
 
         K previous = null;
         int i = 0;
-        for (Reference elem : refs) {
+        for (ScopedRef elem : refs) {
             K current = extractSortingKeyFunction.apply(elem);
             if (previous != null) {
                 assertThat(comparator.compare(previous, current))

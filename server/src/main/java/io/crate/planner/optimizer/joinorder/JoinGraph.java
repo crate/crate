@@ -35,7 +35,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
 import io.crate.planner.operators.LogicalPlan;
@@ -211,7 +211,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
             }
 
             @Override
-            public Void visitReference(Reference ref, Map<Symbol, LogicalPlan> context) {
+            public Void visitReference(ScopedRef ref, Map<Symbol, LogicalPlan> context) {
                 sources.add(context.get(ref));
                 return null;
             }

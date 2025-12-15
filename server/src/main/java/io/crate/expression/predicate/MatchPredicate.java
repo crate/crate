@@ -72,8 +72,8 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.DataType;
@@ -215,7 +215,7 @@ public class MatchPredicate implements FunctionImplementation, FunctionToQuery {
         Map<String, Object> fields = (Map<String, Object>) ((Literal<?>) arguments.get(0)).value();
         String fieldName = fields.keySet().iterator().next();
 
-        Reference ref = context.getRef(fieldName);
+        ScopedRef ref = context.getRef(fieldName);
         while (ref instanceof GeneratedReference genRef) {
             ref = genRef.reference();
         }

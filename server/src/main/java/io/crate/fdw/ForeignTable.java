@@ -53,12 +53,12 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RoutingProvider.ShardSelection;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
@@ -66,14 +66,14 @@ import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataTypes;
 
 public record ForeignTable(RelationName name,
-                           Map<ColumnIdent, Reference> references,
+                           Map<ColumnIdent, ScopedRef> references,
                            String server,
                            Settings options) implements Writeable, TableInfo {
 
     ForeignTable(StreamInput in) throws IOException {
         this(
             new RelationName(in),
-            in.readMap(LinkedHashMap::new, ColumnIdent::of, Reference::fromStream),
+            in.readMap(LinkedHashMap::new, ColumnIdent::of, ScopedRef::fromStream),
             in.readString(),
             Settings.readSettingsFromStream(in)
         );
@@ -82,13 +82,13 @@ public record ForeignTable(RelationName name,
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         name.writeTo(out);
-        out.writeMap(references, (o, v) -> v.writeTo(o), Reference::toStream);
+        out.writeMap(references, (o, v) -> v.writeTo(o), ScopedRef::toStream);
         out.writeString(server);
         Settings.writeSettingsToStream(out, options);
     }
 
     public static ForeignTable fromXContent(NodeContext nodeCtx, RelationName name, XContentParser parser) throws IOException {
-        Map<ColumnIdent, Reference> references = null;
+        Map<ColumnIdent, ScopedRef> references = null;
         String server = null;
         Settings options = null;
 
@@ -116,7 +116,7 @@ public record ForeignTable(RelationName name,
                     case "references":
                         references = new HashMap<>();
                         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
-                        Set<Reference> droppedColumns = new HashSet<>();
+                        Set<ScopedRef> droppedColumns = new HashSet<>();
 
                         Map<String, Object> properties = parser.map();
                         DocTableInfoFactory.parseColumns(
@@ -149,18 +149,18 @@ public record ForeignTable(RelationName name,
     }
 
     @Override
-    public Collection<Reference> rootColumns() {
+    public Collection<ScopedRef> rootColumns() {
         return references.values();
     }
 
     @Override
-    public Stream<Reference> allColumnsSorted() {
+    public Stream<ScopedRef> allColumnsSorted() {
         return references.values().stream()
-            .sorted(Reference.CMP_BY_POSITION_THEN_NAME);
+            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME);
     }
 
     @Override
-    public Iterator<Reference> iterator() {
+    public Iterator<ScopedRef> iterator() {
         return references.values().iterator();
     }
 
@@ -196,7 +196,7 @@ public record ForeignTable(RelationName name,
 
     @Nullable
     @Override
-    public Reference getReference(ColumnIdent columnIdent) {
+    public ScopedRef getReference(ColumnIdent columnIdent) {
         return references.get(columnIdent);
     }
 

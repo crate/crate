@@ -50,7 +50,7 @@ public class IndexReference extends SimpleReference {
         private IndexType indexType = IndexType.FULLTEXT;
 
         @Deprecated
-        private List<Reference> columns = new ArrayList<>();
+        private List<ScopedRef> columns = new ArrayList<>();
 
         private String analyzer = null;
         private int position = 0;
@@ -71,7 +71,7 @@ public class IndexReference extends SimpleReference {
         }
 
         @Deprecated
-        public Builder addColumn(Reference info) {
+        public Builder addColumn(ScopedRef info) {
             this.columns.add(info);
             return this;
         }
@@ -101,7 +101,7 @@ public class IndexReference extends SimpleReference {
             return this;
         }
 
-        public IndexReference build(Map<ColumnIdent, Reference> references) {
+        public IndexReference build(Map<ColumnIdent, ScopedRef> references) {
             assert (columns.isEmpty() ^ sourceNames.isEmpty()) : "Only one of columns/sourceNames can be set.";
             if (columns.isEmpty() == false) {
                 // columns is derived from copy_to which has been deprecated in 5.4.
@@ -109,9 +109,9 @@ public class IndexReference extends SimpleReference {
                 // This code handles outdated shards case.
                 return new IndexReference(position, oid, isDropped, relation, column, indexType, columns, analyzer);
             }
-            List<Reference> sources = new ArrayList<>(sourceNames.size());
+            List<ScopedRef> sources = new ArrayList<>(sourceNames.size());
             for (String sourceName : sourceNames) {
-                Reference ref = references.values().stream()
+                ScopedRef ref = references.values().stream()
                     .filter(r -> r.storageIdent().equals(sourceName))
                     .findAny()
                     .orElseThrow();
@@ -124,7 +124,7 @@ public class IndexReference extends SimpleReference {
     @Nullable
     private final String analyzer;
     @NotNull
-    private final List<Reference> columns;
+    private final List<ScopedRef> columns;
 
     public IndexReference(StreamInput in) throws IOException {
         super(in);
@@ -132,7 +132,7 @@ public class IndexReference extends SimpleReference {
         int size = in.readVInt();
         columns = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            columns.add(Reference.fromStream(in));
+            columns.add(ScopedRef.fromStream(in));
         }
     }
 
@@ -142,7 +142,7 @@ public class IndexReference extends SimpleReference {
                           RelationName relation,
                           ColumnIdent column,
                           IndexType indexType,
-                          List<Reference> columns,
+                          List<ScopedRef> columns,
                           @Nullable String analyzer) {
         super(
             relation,
@@ -171,7 +171,7 @@ public class IndexReference extends SimpleReference {
                           long oid,
                           boolean isDropped,
                           Symbol defaultExpression,
-                          List<Reference> columns,
+                          List<ScopedRef> columns,
                           String analyzer) {
         super(relation,
               column,
@@ -189,7 +189,7 @@ public class IndexReference extends SimpleReference {
         this.analyzer = analyzer;
     }
 
-    public List<Reference> columns() {
+    public List<ScopedRef> columns() {
         return columns;
     }
 
@@ -229,13 +229,13 @@ public class IndexReference extends SimpleReference {
         super.writeTo(out);
         out.writeOptionalString(analyzer);
         out.writeVInt(columns.size());
-        for (Reference reference : columns) {
-            Reference.toStream(out, reference);
+        for (ScopedRef reference : columns) {
+            ScopedRef.toStream(out, reference);
         }
     }
 
     @Override
-    public Reference withColumn(ColumnIdent column) {
+    public ScopedRef withColumn(ColumnIdent column) {
         return new IndexReference(
             relation,
             column,
@@ -254,7 +254,7 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Reference withRelation(RelationName relation) {
+    public ScopedRef withRelation(RelationName relation) {
         return new IndexReference(
             relation,
             column,
@@ -273,7 +273,7 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
+    public ScopedRef withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
         long newOid = oid == COLUMN_OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
         int newPosition = position < 0 ? acquirePosition.getAsInt() : position;
         if (newOid == oid && newPosition == position) {
@@ -297,7 +297,7 @@ public class IndexReference extends SimpleReference {
     }
 
     @Override
-    public Reference withDropped(boolean dropped) {
+    public ScopedRef withDropped(boolean dropped) {
         return new IndexReference(
             relation,
             column,
@@ -343,13 +343,13 @@ public class IndexReference extends SimpleReference {
         mapping.put("type", "text");
 
         if (columns.isEmpty() == false) {
-            mapping.put("sources", columns.stream().map(Reference::storageIdent).toList());
+            mapping.put("sources", columns.stream().map(ScopedRef::storageIdent).toList());
         }
 
         return mapping;
     }
 
-    public IndexReference withColumns(List<Reference> newColumns) {
+    public IndexReference withColumns(List<ScopedRef> newColumns) {
         return new IndexReference(
                 relation,
                 column,

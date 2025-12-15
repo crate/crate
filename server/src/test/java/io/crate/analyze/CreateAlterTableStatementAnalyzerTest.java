@@ -69,9 +69,9 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.AlterTablePlan;
@@ -768,7 +768,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testCreateTableWithObjectAndUnderscoreColumnPrefix() {
         BoundCreateTable analysis = analyze("create table test (o object as (_id integer), name string)");
-        Map<ColumnIdent, Reference> columns = analysis.columns();
+        Map<ColumnIdent, ScopedRef> columns = analysis.columns();
         assertThat(columns).containsOnlyKeys(
             ColumnIdent.of("o"),
             ColumnIdent.of("o", "_id"),
@@ -931,10 +931,10 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "title string," +
             "name string" +
             ")");
-        Map<ColumnIdent, Reference> columns = analysis.columns();
+        Map<ColumnIdent, ScopedRef> columns = analysis.columns();
         ColumnIdent ft = ColumnIdent.of("ft");
         assertThat(columns).containsKey(ft);
-        Reference ftRef = columns.get(ft);
+        ScopedRef ftRef = columns.get(ft);
         assertThat(ftRef).isExactlyInstanceOf(IndexReference.class);
         assertThat(((IndexReference) ftRef).columns()).satisfiesExactly(
             x -> assertThat(x).hasName("title"),
@@ -1559,7 +1559,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
             "create table t (i int, o1 object as (o2 object as (b int check (o1['o2']['b'] > 100))))");
 
         ColumnIdent o2b = ColumnIdent.of("o1", List.of("o2", "b"));
-        Map<ColumnIdent, Reference> columns = createTable.columns();
+        Map<ColumnIdent, ScopedRef> columns = createTable.columns();
         assertThat(columns).containsKey(o2b);
         assertThat(columns.get(o2b)).hasName("o1['o2']['b']").hasType(DataTypes.INTEGER);
         assertThat(createTable.checks()).hasSize(1);
@@ -1602,7 +1602,7 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     @Test
     public void testGeneratedColumnInsideObjectIsProcessed() {
         BoundCreateTable stmt = analyze("create table t (obj object as (c as 1 + 1))");
-        Reference reference = stmt.columns().get(ColumnIdent.of("obj", "c"));
+        ScopedRef reference = stmt.columns().get(ColumnIdent.of("obj", "c"));
 
         assertThat(reference.valueType()).isEqualTo(DataTypes.INTEGER);
         assertThat(((GeneratedReference) reference).formattedGeneratedExpression()).isEqualTo("2");
@@ -1896,9 +1896,9 @@ public class CreateAlterTableStatementAnalyzerTest extends CrateDummyClusterServ
     public void test_create_nested_array_column() throws Exception {
         BoundCreateTable createTable = analyze("create table tbl (x int[][])");
         ColumnIdent x = ColumnIdent.of("x");
-        Map<ColumnIdent, Reference> columns = createTable.columns();
+        Map<ColumnIdent, ScopedRef> columns = createTable.columns();
         assertThat(columns).containsKeys(x);
-        Reference xRef = columns.get(x);
+        ScopedRef xRef = columns.get(x);
         assertThat(xRef).hasName("x").hasType(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
     }
 

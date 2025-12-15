@@ -47,8 +47,8 @@ import io.crate.expression.reference.doc.lucene.NumericColumnReference;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 
 /**
@@ -79,8 +79,8 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
 
     @Override
     public ValueIndexer<? super BigDecimal> valueIndexer(RelationName table,
-                                                         Reference ref,
-                                                         Function<ColumnIdent, Reference> getRef) {
+                                                         ScopedRef ref,
+                                                         Function<ColumnIdent, ScopedRef> getRef) {
         DataType<?> type = ArrayType.unnest(ref.valueType());
         assert type instanceof NumericType
             : "ValueIndexer on NumericStorage can only be used for numeric types";
@@ -112,10 +112,10 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
 
     private abstract static class BaseNumericIndexer implements ValueIndexer<BigDecimal> {
 
-        protected final Reference ref;
+        protected final ScopedRef ref;
         protected final String name;
 
-        protected BaseNumericIndexer(Reference ref) {
+        protected BaseNumericIndexer(ScopedRef ref) {
             this.ref = ref;
             this.name = ref.storageIdent();
         }
@@ -128,7 +128,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
 
     private static class CompactNumericIndexer extends BaseNumericIndexer {
 
-        private CompactNumericIndexer(Reference ref) {
+        private CompactNumericIndexer(ScopedRef ref) {
             super(ref);
         }
 
@@ -161,7 +161,7 @@ public final class NumericStorage extends StorageSupport<BigDecimal> {
         private final FieldType fieldType;
         private final int maxBytes;
 
-        private LargeNumericIndexer(Reference ref, NumericType type) {
+        private LargeNumericIndexer(ScopedRef ref, NumericType type) {
             super(ref);
             this.maxBytes = type.maxBytes();
             this.fieldType = new FieldType();

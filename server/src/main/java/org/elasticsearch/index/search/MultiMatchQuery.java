@@ -41,7 +41,7 @@ import org.elasticsearch.index.query.MultiMatchQueryType;
 import io.crate.lucene.BlendedTermQuery;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.match.ParsedOptions;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public class MultiMatchQuery extends MatchQuery {
 
@@ -122,15 +122,15 @@ public class MultiMatchQuery extends MatchQuery {
             return new DisjunctionMaxQuery(queries, tieBreaker);
         }
 
-        public Query blendTerm(Term term, Reference ref) {
+        public Query blendTerm(Term term, ScopedRef ref) {
             return MultiMatchQuery.super.blendTermQuery(term, ref);
         }
 
-        public Query blendTerms(Term[] terms, Reference ref) {
+        public Query blendTerms(Term[] terms, ScopedRef ref) {
             return MultiMatchQuery.super.blendTermsQuery(terms, ref);
         }
 
-        public Query blendPhrase(PhraseQuery query, Reference ref) {
+        public Query blendPhrase(PhraseQuery query, ScopedRef ref) {
             return MultiMatchQuery.super.blendPhraseQuery(query, ref);
         }
     }
@@ -148,7 +148,7 @@ public class MultiMatchQuery extends MatchQuery {
             List<Query> queries = new ArrayList<>();
             for (Map.Entry<String, Float> entry : fieldNames.entrySet()) {
                 String name = entry.getKey();
-                Reference reference = context.getRef(name);
+                ScopedRef reference = context.getRef(name);
                 if (reference != null) {
                     Analyzer analyzer = getSafeAnalyzer(reference);
                     if (!groups.containsKey(analyzer)) {
@@ -187,7 +187,7 @@ public class MultiMatchQuery extends MatchQuery {
         }
 
         @Override
-        public Query blendTerms(Term[] terms, Reference ref) {
+        public Query blendTerms(Term[] terms, ScopedRef ref) {
             if (blendedFields == null || blendedFields.length == 1) {
                 return super.blendTerms(terms, ref);
             }
@@ -200,7 +200,7 @@ public class MultiMatchQuery extends MatchQuery {
         }
 
         @Override
-        public Query blendTerm(Term term, Reference ref) {
+        public Query blendTerm(Term term, ScopedRef ref) {
             if (blendedFields == null) {
                 return super.blendTerm(term, ref);
             }
@@ -209,7 +209,7 @@ public class MultiMatchQuery extends MatchQuery {
         }
 
         @Override
-        public Query blendPhrase(PhraseQuery query, Reference ref) {
+        public Query blendPhrase(PhraseQuery query, ScopedRef ref) {
             if (blendedFields == null) {
                 return super.blendPhrase(query, ref);
             }
@@ -316,23 +316,23 @@ public class MultiMatchQuery extends MatchQuery {
     }
 
     @Override
-    protected Query blendTermQuery(Term term, Reference ref) {
+    protected Query blendTermQuery(Term term, ScopedRef ref) {
         assert queryBuilder != null : "Must have called parse";
         return queryBuilder.blendTerm(term, ref);
     }
 
     @Override
-    protected Query blendTermsQuery(Term[] terms, Reference ref) {
+    protected Query blendTermsQuery(Term[] terms, ScopedRef ref) {
         assert queryBuilder != null : "Must have called parse";
         return queryBuilder.blendTerms(terms, ref);
     }
 
     @Override
-    protected Query blendPhraseQuery(PhraseQuery query, Reference ref) {
+    protected Query blendPhraseQuery(PhraseQuery query, ScopedRef ref) {
         assert queryBuilder != null : "Must have called parse";
         return queryBuilder.blendPhrase(query, ref);
     }
 
-    static final record RefAndBoost(Reference ref, float boost) {
+    static final record RefAndBoost(ScopedRef ref, float boost) {
     }
 }

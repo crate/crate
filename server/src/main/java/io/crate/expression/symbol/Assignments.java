@@ -32,7 +32,7 @@ import io.crate.data.Row;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
@@ -40,7 +40,7 @@ import io.crate.planner.operators.SubQueryResults;
 public final class Assignments {
 
     private final String[] targetNames;
-    private final Reference[] targetColumns;
+    private final ScopedRef[] targetColumns;
     private final Symbol[] sources;
     private final EvaluatingNormalizer normalizer;
 
@@ -61,13 +61,13 @@ public final class Assignments {
      *
      * @return a tuple or null if the input is null.
      */
-    public static Assignments convert(@NotNull Map<Reference, ? extends Symbol> assignments, NodeContext nodeCtx) {
+    public static Assignments convert(@NotNull Map<ScopedRef, ? extends Symbol> assignments, NodeContext nodeCtx) {
         String[] targetNames = new String[assignments.size()];
-        Reference[] targetColumns = new Reference[assignments.size()];
+        ScopedRef[] targetColumns = new ScopedRef[assignments.size()];
         Symbol[] assignmentSymbols = new Symbol[assignments.size()];
         int i = 0;
-        for (Map.Entry<Reference, ? extends Symbol> entry : assignments.entrySet()) {
-            Reference key = entry.getKey();
+        for (Map.Entry<ScopedRef, ? extends Symbol> entry : assignments.entrySet()) {
+            ScopedRef key = entry.getKey();
             targetNames[i] = key.column().fqn();
             assignmentSymbols[i] = entry.getValue();
             targetColumns[i] = key;
@@ -76,7 +76,7 @@ public final class Assignments {
         return new Assignments(targetNames, targetColumns, assignmentSymbols, nodeCtx);
     }
 
-    private Assignments(String[] targetNames, Reference[] targetColumns, Symbol[] sources, NodeContext nodeCtx) {
+    private Assignments(String[] targetNames, ScopedRef[] targetColumns, Symbol[] sources, NodeContext nodeCtx) {
         this.targetNames = targetNames;
         this.targetColumns = targetColumns;
         this.sources = sources;

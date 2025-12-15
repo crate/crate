@@ -138,11 +138,11 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexParts;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -793,8 +793,8 @@ public class SQLExecutor {
             TableParameters.COLUMN_POLICY.get(boundCreateTable.settings()),
             boundCreateTable.pkConstraintName(),
             boundCreateTable.getCheckConstraints(),
-            Lists.map(boundCreateTable.primaryKeys(), Reference::column),
-            Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
+            Lists.map(boundCreateTable.primaryKeys(), ScopedRef::column),
+            Lists.map(boundCreateTable.partitionedBy(), ScopedRef::toColumn),
             State.OPEN,
             indexUUIDs,
             0

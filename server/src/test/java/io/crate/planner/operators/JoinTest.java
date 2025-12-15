@@ -48,9 +48,9 @@ import io.crate.execution.dsl.phases.HashJoinPhase;
 import io.crate.execution.dsl.phases.NestedLoopPhase;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.fdw.ForeignDataWrappers;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -118,7 +118,7 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private static String tableName(ExecutionPlan plan) {
-        return ((Reference) ((Collect) plan).collectPhase().toCollect().getFirst()).relation().name();
+        return ((ScopedRef) ((Collect) plan).collectPhase().toCollect().getFirst()).relation().name();
     }
 
     @Test

@@ -42,7 +42,7 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.Streamer;
 import io.crate.expression.scalar.NumNullTermsPerDocQuery;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -54,23 +54,23 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     public static final Version ARRAY_LENGTH_FIELD_SUPPORTED_VERSION = Version.V_5_9_0;
 
-    public static Query arrayLengthTermQuery(Reference arrayRef, int length, Function<ColumnIdent, Reference> getRef) {
+    public static Query arrayLengthTermQuery(ScopedRef arrayRef, int length, Function<ColumnIdent, ScopedRef> getRef) {
         return IntPoint.newExactQuery(toArrayLengthFieldName(arrayRef, getRef), length);
     }
 
-    public static Query arrayLengthRangeQuery(Reference arrayRef, int includeLower, int includeUpper, Function<ColumnIdent, Reference> getRef) {
+    public static Query arrayLengthRangeQuery(ScopedRef arrayRef, int includeLower, int includeUpper, Function<ColumnIdent, ScopedRef> getRef) {
         return IntPoint.newRangeQuery(toArrayLengthFieldName(arrayRef, getRef), includeLower, includeUpper);
     }
 
-    public static Query arrayLengthExistsQuery(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+    public static Query arrayLengthExistsQuery(ScopedRef arrayRef, Function<ColumnIdent, ScopedRef> getRef) {
         return new FieldExistsQuery(toArrayLengthFieldName(arrayRef, getRef));
     }
 
-    public static Query arraysWithoutNullElementsQuery(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+    public static Query arraysWithoutNullElementsQuery(ScopedRef arrayRef, Function<ColumnIdent, ScopedRef> getRef) {
         return NumNullTermsPerDocQuery.of(arrayRef, getRef, nullElementCount -> nullElementCount == 0);
     }
 
-    public static String toArrayLengthFieldName(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+    public static String toArrayLengthFieldName(ScopedRef arrayRef, Function<ColumnIdent, ScopedRef> getRef) {
         // If the arrayRef is a descendant of an object array its type can be a readType. i.e. the type of
         // obj_array['int_col'] is 'int' BUT its readType is 'array(int)'. If so, there is no '_array_length_' indexed
         // for obj_array['int_col']. Imagine indexing obj_array = [{int_col = 1}, {int_col = 2}], '_array_length_obj_array'
@@ -99,7 +99,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     public static final String ARRAY_VALUES_FIELD_PREFIX = "_array_values_";
 
     @SuppressWarnings("unchecked")
-    public static <T> ValueIndexer<T> of(Reference arrayRef, Function<ColumnIdent, Reference> getRef) {
+    public static <T> ValueIndexer<T> of(ScopedRef arrayRef, Function<ColumnIdent, ScopedRef> getRef) {
         DataType<?> innerMostType = ArrayType.unnest(arrayRef.valueType());
         StorageSupport<?> innerMostStorageSupport = innerMostType.storageSupportSafe();
         ValueIndexer<?> childIndexer = innerMostStorageSupport.valueIndexer(arrayRef.relation(), arrayRef, getRef);
@@ -124,10 +124,10 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     protected final ValueIndexer<T> innerIndexer;
     protected final Streamer<List<T>> bytesConverter;
     protected final String arrayLengthFieldName;
-    protected final Reference reference;
+    protected final ScopedRef reference;
 
     @SuppressWarnings("unchecked")
-    protected ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+    protected ArrayIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, ScopedRef> getRef, ScopedRef reference) {
         this.innerIndexer = innerIndexer;
         this.bytesConverter = (Streamer<List<T>>) reference.valueType().streamer();
         this.reference = reference;
@@ -171,7 +171,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     @Override
     public void collectSchemaUpdates(@Nullable List<T> values,
-                                     Consumer<? super Reference> onDynamicColumn,
+                                     Consumer<? super ScopedRef> onDynamicColumn,
                                      Synthetics synthetics) throws IOException {
         if (values != null) {
             if (DataTypes.isArrayOfNulls(this.reference.valueType())) {
@@ -188,13 +188,13 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
 
     @SuppressWarnings("unchecked")
     private void handleNullArrayUpcast(List<?> values,
-                                       Consumer<? super Reference> onDynamicColumn,
+                                       Consumer<? super ScopedRef> onDynamicColumn,
                                        Synthetics synthetics) throws IOException {
         DataType<?> type = DataTypes.typeFromList(values, true);
         if (DataTypes.isArrayOfNulls(type)) {
             return;
         }
-        Reference ref = DynamicIndexer.buildReference(
+        ScopedRef ref = DynamicIndexer.buildReference(
             this.reference.relation(),
             this.reference.column(),
             type,
@@ -213,7 +213,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     }
 
     @Override
-    public void updateTargets(Function<ColumnIdent, Reference> getRef) {
+    public void updateTargets(Function<ColumnIdent, ScopedRef> getRef) {
         innerIndexer.updateTargets(getRef);
     }
 

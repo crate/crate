@@ -26,7 +26,7 @@ import java.util.function.Supplier;
 
 import io.crate.execution.engine.collect.files.LineCollectorExpression;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public final class FileLineReferenceResolver {
 
@@ -44,7 +44,7 @@ public final class FileLineReferenceResolver {
     private FileLineReferenceResolver() {
     }
 
-    public static LineCollectorExpression<?> getImplementation(Reference ref) {
+    public static LineCollectorExpression<?> getImplementation(ScopedRef ref) {
         ColumnIdent columnIdent = ref.column();
         Supplier<LineCollectorExpression<?>> supplier = EXPRESSION_BUILDER.get(columnIdent.name());
         if (supplier == null) {

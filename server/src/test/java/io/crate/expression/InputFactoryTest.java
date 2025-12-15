@@ -49,11 +49,11 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.Scalar.Feature;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -215,12 +215,12 @@ public class InputFactoryTest extends CrateDummyClusterServiceUnitTest {
     public void test_missing_reference() throws Exception {
         InputFactory.Context<Input<?>> ctx = factory.ctxForRefs(txnCtx, _ -> null);
 
-        Reference refInfo = refInfo("doc.tbl.id", DataTypes.INTEGER, RowGranularity.SHARD);
+        ScopedRef refInfo = refInfo("doc.tbl.id", DataTypes.INTEGER, RowGranularity.SHARD);
         assertThatThrownBy(() -> ctx.add(refInfo))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Column implementation not found for: id");
 
-        Reference sysRefInfo = refInfo("sys.shards.id", DataTypes.INTEGER, RowGranularity.SHARD);
+        ScopedRef sysRefInfo = refInfo("sys.shards.id", DataTypes.INTEGER, RowGranularity.SHARD);
         assertThatThrownBy(() -> ctx.add(sysRefInfo))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Column implementation not found for: id. This can happen in mixed clusters when using `SELECT *`; Declare the column list explicitly instead");

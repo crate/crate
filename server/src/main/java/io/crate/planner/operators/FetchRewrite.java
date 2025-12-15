@@ -30,8 +30,8 @@ import java.util.function.UnaryOperator;
 import io.crate.expression.symbol.FetchMarker;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.node.fetch.FetchSource;
 
 public final class FetchRewrite {
@@ -51,8 +51,8 @@ public final class FetchRewrite {
         return plan;
     }
 
-    public List<Reference> extractFetchRefs() {
-        ArrayList<Reference> allFetchReferences = new ArrayList<>();
+    public List<ScopedRef> extractFetchRefs() {
+        ArrayList<ScopedRef> allFetchReferences = new ArrayList<>();
         for (Symbol output : plan.outputs()) {
             if (output instanceof FetchMarker fetchMarker) {
                 allFetchReferences.addAll(fetchMarker.fetchRefs());
@@ -74,7 +74,7 @@ public final class FetchRewrite {
                     fetchSources.put(tableName, fetchSource);
                 }
                 fetchSource.addFetchIdColumn(new InputColumn(i, fetchMarker.valueType()));
-                for (Reference fetchRef : fetchMarker.fetchRefs()) {
+                for (ScopedRef fetchRef : fetchMarker.fetchRefs()) {
                     fetchSource.addRefToFetch(fetchRef);
                 }
             }

@@ -43,8 +43,8 @@ import io.crate.common.collections.Lists;
 import io.crate.execution.dml.BooleanIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.statistics.ColumnStatsSupport;
 
 public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>, FixedWidthType {
@@ -152,8 +152,8 @@ public class BooleanType extends DataType<Boolean> implements Streamer<Boolean>,
 
         @Override
         public ValueIndexer<Boolean> valueIndexer(RelationName table,
-                                                  Reference ref,
-                                                  Function<ColumnIdent, Reference> getRef) {
+                                                  ScopedRef ref,
+                                                  Function<ColumnIdent, ScopedRef> getRef) {
             return new BooleanIndexer(ref);
         }
     };

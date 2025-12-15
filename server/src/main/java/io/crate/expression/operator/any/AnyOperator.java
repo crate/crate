@@ -40,7 +40,7 @@ import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -112,9 +112,9 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
 
     abstract boolean matches(T probe, T candidate);
 
-    protected abstract Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context);
+    protected abstract Query refMatchesAnyArrayLiteral(Function any, ScopedRef probe, Literal<?> candidates, Context context);
 
-    protected abstract Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context);
+    protected abstract Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, ScopedRef candidates, Context context);
 
     protected void validateRightArg(T arg) {}
 
@@ -153,9 +153,9 @@ public abstract sealed class AnyOperator<T> extends Operator<T>
         while (candidates instanceof Function fn && fn.signature().equals(ArrayUnnestFunction.SIGNATURE)) {
             candidates = fn.arguments().get(0);
         }
-        if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
+        if (probe instanceof Literal<?> literal && candidates instanceof ScopedRef ref) {
             return literalMatchesAnyArrayRef(function, literal, ref, context);
-        } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {
+        } else if (probe instanceof ScopedRef ref && candidates instanceof Literal<?> literal) {
             return refMatchesAnyArrayLiteral(function, ref, literal, context);
         } else {
             return null;

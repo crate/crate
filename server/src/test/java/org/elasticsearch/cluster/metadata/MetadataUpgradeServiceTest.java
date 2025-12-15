@@ -47,9 +47,9 @@ import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.SysColumns;
@@ -213,7 +213,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             false,
             null
         );
-        Optional<Reference> match = relation.columns().stream().filter(x -> x.column().name().equals("name")).findAny();
+        Optional<ScopedRef> match = relation.columns().stream().filter(x -> x.column().name().equals("name")).findAny();
         assertThat(match).hasValue(expectedRef);
     }
 

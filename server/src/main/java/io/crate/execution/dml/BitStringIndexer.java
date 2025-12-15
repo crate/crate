@@ -33,7 +33,7 @@ import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.tree.BitString;
 
 public class BitStringIndexer implements ValueIndexer<BitString> {
@@ -48,10 +48,10 @@ public class BitStringIndexer implements ValueIndexer<BitString> {
         FIELD_TYPE.freeze();
     }
 
-    private final Reference ref;
+    private final ScopedRef ref;
     private final String name;
 
-    public BitStringIndexer(Reference ref) {
+    public BitStringIndexer(ScopedRef ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
     }

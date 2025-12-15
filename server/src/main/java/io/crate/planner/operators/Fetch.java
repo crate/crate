@@ -39,8 +39,8 @@ import io.crate.execution.dsl.projection.builder.InputColumns;
 import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -82,12 +82,12 @@ import io.crate.types.DataType;
 public final class Fetch extends ForwardingLogicalPlan {
 
     private final List<Symbol> outputs;
-    private final List<Reference> fetchRefs;
+    private final List<ScopedRef> fetchRefs;
     private final Map<RelationName, FetchSource> fetchSourceByRelation;
     private final Map<Symbol, Symbol> replacedOutputs;
 
     public Fetch(Map<Symbol, Symbol> replacedOutputs,
-                 List<Reference> fetchRefs,
+                 List<ScopedRef> fetchRefs,
                  Map<RelationName, FetchSource> fetchSourceByRelation,
                  LogicalPlan source) {
         super(source);

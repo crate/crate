@@ -62,9 +62,9 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.Identifiers;
 import io.crate.types.DataType;
 
@@ -76,7 +76,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
     private final Properties properties;
     private final Row row;
     private final Object[] cells;
-    private final List<Reference> columns;
+    private final List<ScopedRef> columns;
     private final Symbol query;
     private final RelationName table;
 
@@ -87,7 +87,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
 
     public JdbcBatchIterator(String url,
                              Properties properties,
-                             List<Reference> columns,
+                             List<ScopedRef> columns,
                              Symbol query,
                              RelationName table) {
         this.url = url;
@@ -100,7 +100,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
     }
 
     static String generateStatement(RelationName table,
-                                    List<Reference> columns,
+                                    List<ScopedRef> columns,
                                     Symbol query,
                                     String quoteString) {
         final String qs = quoteString.isBlank() ? "" : quoteString;
@@ -177,7 +177,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
         try {
             if (resultSet.next()) {
                 for (int i = 0; i < columns.size(); i ++) {
-                    Reference ref = columns.get(i);
+                    ScopedRef ref = columns.get(i);
                     ResultSetMetaData resultSetMetaData = resultSet.getMetaData();
                     Object object = getObject(resultSet, i, resultSetMetaData.getColumnTypeName(i + 1));
                     try {
@@ -245,12 +245,12 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
      * Reference with custom toString implementation that quotes all identifiers with custom quoteString
      * Delegates everything else to another reference instance
      */
-    static class QuotedReference implements Reference {
+    static class QuotedReference implements ScopedRef {
 
-        private final Reference ref;
+        private final ScopedRef ref;
         private final String quoteString;
 
-        private QuotedReference(Reference ref, String quoteString) {
+        private QuotedReference(ScopedRef ref, String quoteString) {
             this.ref = ref;
             this.quoteString = quoteString;
         }
@@ -352,23 +352,23 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
         }
 
         @Override
-        public Reference withColumn(ColumnIdent column) {
+        public ScopedRef withColumn(ColumnIdent column) {
             return ref.withColumn(column);
         }
 
-        public Reference withRelation(RelationName relation) {
+        public ScopedRef withRelation(RelationName relation) {
             return ref.withRelation(relation);
         }
 
-        public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
+        public ScopedRef withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
             return ref.withOidAndPosition(acquireOid, acquirePosition);
         }
 
-        public Reference withDropped(boolean dropped) {
+        public ScopedRef withDropped(boolean dropped) {
             return ref.withDropped(dropped);
         }
 
-        public Reference withValueType(DataType<?> type) {
+        public ScopedRef withValueType(DataType<?> type) {
             return ref.withValueType(type);
         }
 

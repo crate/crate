@@ -33,10 +33,10 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
@@ -53,15 +53,15 @@ public interface TableInfo extends RelationInfo {
      * returns null if this table contains no such column.
      */
     @Nullable
-    Reference getReference(ColumnIdent columnIdent);
+    ScopedRef getReference(ColumnIdent columnIdent);
 
     /**
      * This is like {@link #getReference(ColumnIdent)},
      * except that the type is adjusted via {@link #getReadType(ColumnIdent)}
      */
     @Nullable
-    default Reference getReadReference(ColumnIdent columnIdent) {
-        Reference ref = getReference(columnIdent);
+    default ScopedRef getReadReference(ColumnIdent columnIdent) {
+        ScopedRef ref = getReference(columnIdent);
         if (ref == null) {
             return null;
         }
@@ -77,11 +77,11 @@ public interface TableInfo extends RelationInfo {
      * Get a Iterable over the parents of a column.
      * Elements can be null if the column itself is unknown.
      **/
-    default Iterable<Reference> getParents(ColumnIdent column) {
+    default Iterable<ScopedRef> getParents(ColumnIdent column) {
         if (column.isRoot()) {
             return Collections.emptyList();
         }
-        return () -> new Iterator<Reference>() {
+        return () -> new Iterator<ScopedRef>() {
 
             ColumnIdent current = column;
 
@@ -91,7 +91,7 @@ public interface TableInfo extends RelationInfo {
             }
 
             @Override
-            public Reference next() {
+            public ScopedRef next() {
                 if (!hasNext()) {
                     throw new NoSuchElementException("Column has no more parent");
                 }
@@ -124,7 +124,7 @@ public interface TableInfo extends RelationInfo {
      *         UNDEFINED if the column does not exist.
      */
     default DataType<?> getReadType(ColumnIdent column) {
-        Reference ref = getReference(column);
+        ScopedRef ref = getReference(column);
         if (ref == null) {
             return DataTypes.UNDEFINED;
         }

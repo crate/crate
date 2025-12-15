@@ -33,8 +33,8 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -78,10 +78,10 @@ public class SymbolsTest extends CrateDummyClusterServiceUnitTest {
     public void test_contains_considers_subscripts() throws Exception {
         var e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (y int, o object as (o1 object as (x int)))");
-        Reference y = (Reference) e.asSymbol("y");
-        Reference o = (Reference) e.asSymbol("o");
-        Reference o1 = (Reference) e.asSymbol("o['o1']");
-        Reference ox = (Reference) e.asSymbol("o['o1']['x']");
+        ScopedRef y = (ScopedRef) e.asSymbol("y");
+        ScopedRef o = (ScopedRef) e.asSymbol("o");
+        ScopedRef o1 = (ScopedRef) e.asSymbol("o['o1']");
+        ScopedRef ox = (ScopedRef) e.asSymbol("o['o1']['x']");
 
         assertThat(Symbols.contains(List.of(o), o)).isEqualTo(true);
         assertThat(Symbols.contains(List.of(o), ox)).isEqualTo(true);

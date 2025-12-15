@@ -33,8 +33,8 @@ import io.crate.Streamer;
 import io.crate.execution.dml.IntIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.statistics.ColumnStatsSupport;
 
 public class ShortType extends DataType<Short> implements Streamer<Short>, FixedWidthType {
@@ -48,8 +48,8 @@ public class ShortType extends DataType<Short> implements Streamer<Short>, Fixed
 
         @Override
         public ValueIndexer<Number> valueIndexer(RelationName table,
-                                                 Reference ref,
-                                                 Function<ColumnIdent, Reference> getRef) {
+                                                 ScopedRef ref,
+                                                 Function<ColumnIdent, ScopedRef> getRef) {
             return new IntIndexer(ref);
         }
 

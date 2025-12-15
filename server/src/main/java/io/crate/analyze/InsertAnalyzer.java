@@ -55,10 +55,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.Operation;
@@ -78,15 +78,15 @@ class InsertAnalyzer {
 
     private static class ValuesResolver implements io.crate.analyze.ValuesResolver {
 
-        private final List<Reference> targetColumns;
+        private final List<ScopedRef> targetColumns;
 
-        ValuesResolver(List<Reference> targetColumns) {
+        ValuesResolver(List<ScopedRef> targetColumns) {
             this.targetColumns = targetColumns;
         }
 
         @Override
         public Symbol allocateAndResolve(Symbol argumentColumn) {
-            int i = argumentColumn instanceof Reference
+            int i = argumentColumn instanceof ScopedRef
                 ? targetColumns.indexOf(argumentColumn)
                 : -1;
             if (i < 0) {
@@ -117,7 +117,7 @@ class InsertAnalyzer {
             txnCtx.sessionSettings().sessionUser(),
             txnCtx.sessionSettings().searchPath()
         );
-        List<Reference> targetColumns;
+        List<ScopedRef> targetColumns;
         if (insert.columns().isEmpty()) {
             targetColumns = new ArrayList<>(tableInfo.rootColumns());
         } else {
@@ -143,7 +143,7 @@ class InsertAnalyzer {
             Operation.READ
         );
         verifyOnConflictTargets(txnCtx, expressionAnalyzer, tableInfo, insert.duplicateKeyContext());
-        Map<Reference, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
+        Map<ScopedRef, Symbol> onDuplicateKeyAssignments = processUpdateAssignments(
             tableRelation,
             targetColumns,
             typeHints,
@@ -233,12 +233,12 @@ class InsertAnalyzer {
         }
     }
 
-    private static void ensureClusteredByPresentOrNotRequired(List<Reference> targetColumnRefs, DocTableInfo tableInfo) {
+    private static void ensureClusteredByPresentOrNotRequired(List<ScopedRef> targetColumnRefs, DocTableInfo tableInfo) {
         ColumnIdent clusteredBy = tableInfo.clusteredBy();
         if (clusteredBy == null || clusteredBy.equals(SysColumns.ID.COLUMN)) {
             return;
         }
-        Reference clusteredByRef = tableInfo.getReference(clusteredBy);
+        ScopedRef clusteredByRef = tableInfo.getReference(clusteredBy);
         if (clusteredByRef.defaultExpression() != null) {
             return;
         }
@@ -249,7 +249,7 @@ class InsertAnalyzer {
         // and need to rely on later runtime failures
         ColumnIdent clusteredByRoot = clusteredBy.getRoot();
 
-        List<ColumnIdent> targetColumns = Lists.mapLazy(targetColumnRefs, Reference::column);
+        List<ColumnIdent> targetColumns = Lists.mapLazy(targetColumnRefs, ScopedRef::column);
         if (targetColumns.contains(clusteredByRoot)) {
             return;
         }
@@ -264,7 +264,7 @@ class InsertAnalyzer {
             "Column `" + clusteredBy + "` is required but is missing from the insert statement");
     }
 
-    private static void checkSourceAndTargetColsForLengthAndTypesCompatibility(List<Reference> targetColumns,
+    private static void checkSourceAndTargetColsForLengthAndTypesCompatibility(List<ScopedRef> targetColumns,
                                                                                List<Symbol> sources) {
         if (targetColumns.size() != sources.size()) {
             Collector<CharSequence, ?, String> commaJoiner = Collectors.joining(", ");
@@ -275,7 +275,7 @@ class InsertAnalyzer {
         }
 
         for (int i = 0; i < targetColumns.size(); i++) {
-            Reference targetCol = targetColumns.get(i);
+            ScopedRef targetCol = targetColumns.get(i);
             Symbol source = sources.get(i);
             DataType<?> targetType = targetCol.valueType();
             if (targetType.id() == DataTypes.UNDEFINED.id() || source.valueType().isConvertableTo(targetType, false)) {
@@ -291,8 +291,8 @@ class InsertAnalyzer {
         }
     }
 
-    private static Map<Reference, Symbol> getUpdateAssignments(DocTableRelation targetTable,
-                                                               List<Reference> targetCols,
+    private static Map<ScopedRef, Symbol> getUpdateAssignments(DocTableRelation targetTable,
+                                                               List<ScopedRef> targetCols,
                                                                ExpressionAnalyzer exprAnalyzer,
                                                                CoordinatorTxnCtx txnCtx,
                                                                NodeContext nodeCtx,
@@ -317,9 +317,9 @@ class InsertAnalyzer {
             null,
             targetTable,
             f -> f.signature().isDeterministic());
-        Map<Reference, Symbol> updateAssignments = HashMap.newHashMap(duplicateKeyContext.getAssignments().size());
+        Map<ScopedRef, Symbol> updateAssignments = HashMap.newHashMap(duplicateKeyContext.getAssignments().size());
         for (Assignment<Expression> assignment : duplicateKeyContext.getAssignments()) {
-            Reference targetCol = (Reference) exprAnalyzer.convert(assignment.columnName(), exprCtx);
+            ScopedRef targetCol = (ScopedRef) exprAnalyzer.convert(assignment.columnName(), exprCtx);
             Symbol valueSymbol = ValueNormalizer.normalizeInputForReference(
                 normalizer.normalize(expressionAnalyzer.convert(assignment.expression(), exprCtx), txnCtx),
                 targetCol,
@@ -331,8 +331,8 @@ class InsertAnalyzer {
         return updateAssignments;
     }
 
-    private Map<Reference, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
-                                                            List<Reference> targetColumns,
+    private Map<ScopedRef, Symbol> processUpdateAssignments(DocTableRelation tableRelation,
+                                                            List<ScopedRef> targetColumns,
                                                             ParamTypeHints paramTypeHints,
                                                             CoordinatorTxnCtx coordinatorTxnCtx,
                                                             NodeContext nodeCtx,

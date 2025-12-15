@@ -28,15 +28,15 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.DataType;
 
 public class FetchReference implements Symbol {
 
     private final InputColumn fetchId;
-    private final Reference ref;
+    private final ScopedRef ref;
 
-    public FetchReference(InputColumn fetchId, Reference ref) {
+    public FetchReference(InputColumn fetchId, ScopedRef ref) {
         this.fetchId = fetchId;
         this.ref = ref;
     }
@@ -60,7 +60,7 @@ public class FetchReference implements Symbol {
         return fetchId;
     }
 
-    public Reference ref() {
+    public ScopedRef ref() {
         return ref;
     }
 

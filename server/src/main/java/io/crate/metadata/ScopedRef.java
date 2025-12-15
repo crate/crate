@@ -45,15 +45,15 @@ import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.Expression;
 import io.crate.types.DataType;
 
-public interface Reference extends Symbol {
+public interface ScopedRef extends Symbol {
 
-    public static final Comparator<Reference> CMP_BY_POSITION_THEN_NAME = Comparator
-        .comparingInt(Reference::position)
+    public static final Comparator<ScopedRef> CMP_BY_POSITION_THEN_NAME = Comparator
+        .comparingInt(ScopedRef::position)
         .thenComparing(r -> r.column().fqn());
 
-    public static int indexOf(Iterable<? extends Reference> refs, ColumnIdent column) {
+    public static int indexOf(Iterable<? extends ScopedRef> refs, ColumnIdent column) {
         int i = 0;
-        for (Reference ref : refs) {
+        for (ScopedRef ref : refs) {
             if (ref.column().equals(column)) {
                 return i;
             }
@@ -102,15 +102,15 @@ public interface Reference extends Symbol {
 
     boolean isGenerated();
 
-    Reference withColumn(ColumnIdent column);
+    ScopedRef withColumn(ColumnIdent column);
 
-    Reference withRelation(RelationName relation);
+    ScopedRef withRelation(RelationName relation);
 
-    Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition);
+    ScopedRef withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition);
 
-    Reference withDropped(boolean dropped);
+    ScopedRef withDropped(boolean dropped);
 
-    Reference withValueType(DataType<?> type);
+    ScopedRef withValueType(DataType<?> type);
 
     /**
      * Return the identifier of this column used inside the storage engine
@@ -147,13 +147,13 @@ public interface Reference extends Symbol {
      */
     Map<String, Object> toMapping(int position);
 
-    static void toStream(StreamOutput out, Reference ref) throws IOException {
+    static void toStream(StreamOutput out, ScopedRef ref) throws IOException {
         out.writeVInt(ref.symbolType().ordinal());
         ref.writeTo(out);
     }
 
     @SuppressWarnings("unchecked")
-    static <T extends Reference> T fromStream(StreamInput in) throws IOException {
+    static <T extends ScopedRef> T fromStream(StreamInput in) throws IOException {
         return (T) SymbolType.VALUES.get(in.readVInt()).newInstance(in);
     }
 
@@ -167,14 +167,14 @@ public interface Reference extends Symbol {
      * We identify references by FQN and store tree as a map(ident -> list(reference)).
      * NULL node is a root which is an entry point for any traversing method utilizing the tree.
      */
-    static HashMap<ColumnIdent, List<Reference>> buildTree(Iterable<Reference> references) {
-        HashMap<ColumnIdent, List<Reference>> tree = new LinkedHashMap<>();
-        for (Reference treeNode: references) {
+    static HashMap<ColumnIdent, List<ScopedRef>> buildTree(Iterable<ScopedRef> references) {
+        HashMap<ColumnIdent, List<ScopedRef>> tree = new LinkedHashMap<>();
+        for (ScopedRef treeNode: references) {
             // To build an "adjacency list" we add each edge only once, thus we add only direct neighbor node (parent).
             // I.e if a leaf node C has path A-B we add only (B,C) edge when handling node C.
             // Edge (A,B) will be added later when processing node B:
             // we have a requirement to contain all path nodes in the flat list, so it's guaranteed that we will process B at some point and add (B,A).
-            List<Reference> siblings = tree.computeIfAbsent(treeNode.column().getParent(), k -> new ArrayList<>()); // When parent is null we are adding a root.
+            List<ScopedRef> siblings = tree.computeIfAbsent(treeNode.column().getParent(), k -> new ArrayList<>()); // When parent is null we are adding a root.
             siblings.add(treeNode); // Every node is added only once, no duplicates in the list.
         }
         return tree;

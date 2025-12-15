@@ -23,15 +23,14 @@ package io.crate.lucene;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
-
 import org.apache.lucene.search.Query;
+import org.jetbrains.annotations.Nullable;
 
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public interface FunctionToQuery {
 
@@ -49,7 +48,7 @@ public interface FunctionToQuery {
      * </p>
      *
      * <p>
-     * Default implementation calls {@link #toQuery(Reference, Literal)},
+     * Default implementation calls {@link #toQuery(ScopedRef, Literal)},
      * which is there to make it more convenient to implement the functionality.
      * It unwraps the arguments for the common `col <op> literal` case.
      * </p>
@@ -58,7 +57,7 @@ public interface FunctionToQuery {
     default Query toQuery(Function function, LuceneQueryBuilder.Context context) {
         List<Symbol> arguments = function.arguments();
         if (arguments.size() == 2
-                && arguments.get(0) instanceof Reference ref
+                && arguments.get(0) instanceof ScopedRef ref
                 && arguments.get(1) instanceof Literal<?> literal) {
             return toQuery(ref, literal);
         }
@@ -69,7 +68,7 @@ public interface FunctionToQuery {
      * See {@link #toQuery(Function, Context)}
      **/
     @Nullable
-    default Query toQuery(Reference ref, Literal<?> literal) {
+    default Query toQuery(ScopedRef ref, Literal<?> literal) {
         return null;
     }
 

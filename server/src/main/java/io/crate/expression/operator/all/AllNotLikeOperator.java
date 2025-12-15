@@ -28,7 +28,7 @@ import io.crate.expression.operator.LikeOperators.CaseSensitivity;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 
@@ -54,12 +54,12 @@ public final class AllNotLikeOperator extends AllOperator<String> {
     }
 
     @Override
-    protected Query refMatchesAllArrayLiteral(Function all, Reference probe, Literal<?> literal, Context context) {
+    protected Query refMatchesAllArrayLiteral(Function all, ScopedRef probe, Literal<?> literal, Context context) {
         return null;
     }
 
     @Override
-    protected Query literalMatchesAllArrayRef(Function all, Literal<?> probe, Reference candidates, Context context) {
+    protected Query literalMatchesAllArrayRef(Function all, Literal<?> probe, ScopedRef candidates, Context context) {
         return null;
     }
 

@@ -45,8 +45,8 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -72,7 +72,7 @@ public class CountAggregationTest extends AggregationTestCase {
         );
     }
 
-    private void assertHasDocValueAggregator(List<Reference> aggregationReferences,
+    private void assertHasDocValueAggregator(List<ScopedRef> aggregationReferences,
                                              DocTableInfo sourceTable,
                                              Class<?> expectedAggregatorClass) {
         var aggregationFunction = (AggregationFunction<?, ?>) nodeCtx.functions().get(

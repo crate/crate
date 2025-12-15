@@ -42,7 +42,7 @@ import io.crate.expression.scalar.cast.TryCastFunction;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
@@ -52,7 +52,7 @@ import io.crate.types.UndefinedType;
 
 public interface Symbol extends Writeable, Accountable {
 
-    public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof Reference;
+    public static final Predicate<Symbol> IS_COLUMN = s -> s instanceof ScopedSymbol || s instanceof ScopedRef;
     public static final Predicate<Symbol> IS_CORRELATED_SUBQUERY = s -> s instanceof SelectSymbol selectSymbol && selectSymbol.isCorrelated();
 
     public static boolean isLiteral(Symbol symbol, DataType<?> expectedType) {
@@ -108,12 +108,12 @@ public interface Symbol extends Writeable, Accountable {
     }
 
     /**
-     * Returns true if the tree contains a {@link Reference} or {@link ScopedSymbol}
+     * Returns true if the tree contains a {@link ScopedRef} or {@link ScopedSymbol}
      * column matching the argument.
      */
     default boolean hasColumn(ColumnIdent column) {
         return any(s ->
-            s instanceof Reference ref && ref.column().equals(column) ||
+            s instanceof ScopedRef ref && ref.column().equals(column) ||
             s instanceof ScopedSymbol field && field.column().equals(column));
     }
 

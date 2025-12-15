@@ -37,10 +37,10 @@ import org.junit.Test;
 import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.QualifiedName;
@@ -52,7 +52,7 @@ public class CreateTableRequestTest {
     public void test_streaming() throws Exception {
         RelationName rel = RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME);
 
-        Reference ref1 = new SimpleReference(
+        ScopedRef ref1 = new SimpleReference(
             rel,
             ColumnIdent.of("part_col_1"),
             RowGranularity.DOC,
@@ -60,7 +60,7 @@ public class CreateTableRequestTest {
             1,
             null
         );
-        Reference ref2 = new SimpleReference(
+        ScopedRef ref2 = new SimpleReference(
             rel,
             ColumnIdent.of("part_col_2"),
             RowGranularity.DOC,
@@ -68,7 +68,7 @@ public class CreateTableRequestTest {
             2,
             null
         );
-        Reference ref3 = new SimpleReference(
+        ScopedRef ref3 = new SimpleReference(
             rel,
             ColumnIdent.of("just_col"),
             RowGranularity.DOC,
@@ -76,7 +76,7 @@ public class CreateTableRequestTest {
             3,
             null
         );
-        Reference ref4 = new SimpleReference(
+        ScopedRef ref4 = new SimpleReference(
             rel,
             ColumnIdent.of("some_routing_col"),
             RowGranularity.DOC,
@@ -84,7 +84,7 @@ public class CreateTableRequestTest {
             4,
             null
         );
-        List<Reference> refs = List.of(ref1, ref2, ref3, ref4);
+        List<ScopedRef> refs = List.of(ref1, ref2, ref3, ref4);
         CreateTableRequest request = new CreateTableRequest(
             rel,
             null,

@@ -32,15 +32,15 @@ import org.apache.lucene.util.NumericUtils;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 
 public class DoubleIndexer implements ValueIndexer<Number> {
 
-    private final Reference ref;
+    private final ScopedRef ref;
     private final String name;
 
-    public DoubleIndexer(Reference ref) {
+    public DoubleIndexer(ScopedRef ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
     }

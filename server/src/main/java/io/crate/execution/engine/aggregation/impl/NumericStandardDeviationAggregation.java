@@ -39,7 +39,7 @@ import io.crate.execution.engine.aggregation.statistics.NumericVariance;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -157,7 +157,7 @@ public abstract class NumericStandardDeviationAggregation<V extends NumericVaria
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
-                                                       List<Reference> aggregationReferences,
+                                                       List<ScopedRef> aggregationReferences,
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {

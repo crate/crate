@@ -36,8 +36,8 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -74,7 +74,7 @@ public class KnnMatch extends Scalar<Boolean, Object> {
     @Nullable
     public Query toQuery(Function function, Context context) {
         List<Symbol> args = function.arguments();
-        if (args.get(0) instanceof Reference ref
+        if (args.get(0) instanceof ScopedRef ref
                 && args.get(1) instanceof Literal<?> targetLiteral
                 && args.get(2) instanceof Literal<?> kLiteral) {
 

@@ -30,6 +30,7 @@ import static io.crate.testing.Asserts.isFunction;
 import static io.crate.testing.Asserts.isLiteral;
 import static io.crate.testing.Asserts.isReference;
 import static io.crate.testing.Asserts.toCondition;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
@@ -46,9 +47,9 @@ import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
@@ -122,7 +123,7 @@ public class FetchRewriteTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int)");
         DocTableInfo tableInfo = e.resolveTableInfo("tbl");
-        Reference x = (Reference) e.asSymbol("x");
+        ScopedRef x = (ScopedRef) e.asSymbol("x");
         var relation = new DocTableRelation(tableInfo);
         var alias = new AliasedAnalyzedRelation(relation, new RelationName(null, "t1"));
         var collect = new Collect(relation, List.of(x), WhereClause.MATCH_ALL);

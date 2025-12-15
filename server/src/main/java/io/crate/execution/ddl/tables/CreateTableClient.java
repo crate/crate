@@ -42,7 +42,7 @@ import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.RelationAlreadyExists;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class CreateTableClient {
@@ -58,7 +58,7 @@ public class CreateTableClient {
         var relationName = createTable.tableName();
         CreateTableRequest createTableRequest;
 
-        Map<ColumnIdent, Reference> references = createTable.columns();
+        Map<ColumnIdent, ScopedRef> references = createTable.columns();
         IntArrayList pKeysIndices = createTable.primaryKeysIndices();
         ColumnPolicy tableColumnPolicy = TableParameters.COLUMN_POLICY.get(createTable.settings());
         Settings.Builder settingsBuilder = Settings.builder()
@@ -74,7 +74,7 @@ public class CreateTableClient {
                 settingsBuilder.build(),
                 createTable.routingColumn(),
                 tableColumnPolicy,
-                Lists.map(createTable.partitionedBy(), Reference::column)
+                Lists.map(createTable.partitionedBy(), ScopedRef::column)
             );
         } else {
             throw new UnsupportedOperationException("All nodes in the cluster must at least have version 5.4.0");

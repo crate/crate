@@ -73,9 +73,9 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
@@ -204,7 +204,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
             List.of()
         );
         var keyExpressions = List.of(new StringColumnReference("x"), new LongColumnReference("y"));
-        var keyRefs = List.<Reference>of(
+        var keyRefs = List.<ScopedRef>of(
             new SimpleReference(
                 RelationName.fromIndexName("test"),
                 ColumnIdent.of("x"),

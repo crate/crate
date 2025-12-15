@@ -38,8 +38,8 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -94,7 +94,7 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
     public Query toQuery(Function function, Context context) {
         assert function.arguments().size() == 1 : "Function has a single argument";
         Symbol arg = function.arguments().get(0);
-        if (!(arg instanceof Reference ref)) {
+        if (!(arg instanceof ScopedRef ref)) {
             return null;
         }
         DataType<?> valueType = ref.valueType();
@@ -106,7 +106,7 @@ public final class NullOrEmptyFunction extends Scalar<Boolean, Object> {
                 .setMinimumNumberShouldMatch(1);
             for (var entry : objectType.innerTypes().entrySet()) {
                 String childColumn = entry.getKey();
-                Reference childRef = context.getRef(ref.column().getChild(childColumn));
+                ScopedRef childRef = context.getRef(ref.column().getChild(childColumn));
                 if (childRef == null) {
                     return null;
                 }

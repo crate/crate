@@ -40,7 +40,7 @@ import io.crate.lucene.match.CrateRegexQuery;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -91,7 +91,7 @@ public class RegexpMatchOperator extends Operator<String> {
     }
 
     @Override
-    public Query toQuery(Reference ref, Literal<?> literal) {
+    public Query toQuery(ScopedRef ref, Literal<?> literal) {
         String pattern = (String) literal.value();
         Term term = new Term(ref.storageIdent(), pattern);
         if (RegexpFlags.isPcrePattern(pattern)) {

@@ -40,7 +40,7 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
@@ -60,7 +60,7 @@ public final class AllEqOperator extends AllOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAllArrayLiteral(Function all, Reference probe, Literal<?> literal, LuceneQueryBuilder.Context context) {
+    protected Query refMatchesAllArrayLiteral(Function all, ScopedRef probe, Literal<?> literal, LuceneQueryBuilder.Context context) {
         // col = ALL ([1,2,3]) --> col=1 and col=2 and col=3
         var uniqueValues = StreamSupport
             .stream(((Iterable<?>) literal.value()).spliterator(), false)
@@ -99,7 +99,7 @@ public final class AllEqOperator extends AllOperator<Object> {
     }
 
     @Override
-    protected Query literalMatchesAllArrayRef(Function allEq, Literal<?> literal, Reference ref, LuceneQueryBuilder.Context context) {
+    protected Query literalMatchesAllArrayRef(Function allEq, Literal<?> literal, ScopedRef ref, LuceneQueryBuilder.Context context) {
         if (ArrayType.dimensions(ref.valueType()) == 1 &&
             context.tableInfo().versionCreated().onOrAfter(ArrayIndexer.ARRAY_LENGTH_FIELD_SUPPORTED_VERSION)) {
             // 1 = all(array_ref) --> returns true for arrays satisfying the following conditions:

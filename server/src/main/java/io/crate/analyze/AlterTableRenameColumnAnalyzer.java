@@ -35,9 +35,9 @@ import io.crate.expression.symbol.DynamicReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
@@ -82,8 +82,8 @@ public class AlterTableRenameColumnAnalyzer {
         );
         var expressionContext = new ExpressionAnalysisContext(sessionSettings);
 
-        Reference sourceRef = (Reference) expressionAnalyzer.convert(renameColumn.column(), expressionContext);
-        Reference targetRef = (Reference) expressionAnalyzer.convert(renameColumn.newName(), expressionContext);
+        ScopedRef sourceRef = (ScopedRef) expressionAnalyzer.convert(renameColumn.column(), expressionContext);
+        ScopedRef targetRef = (ScopedRef) expressionAnalyzer.convert(renameColumn.newName(), expressionContext);
         ColumnIdent sourceCol = sourceRef.column();
         ColumnIdent targetCol = targetRef.column();
 
@@ -109,7 +109,7 @@ public class AlterTableRenameColumnAnalyzer {
     }
 
     /** Returns DynamicReferences instead of throwing ColumnUnknownExceptions. */
-    public static class FieldProviderResolvesUnknownColumns implements FieldProvider<Reference> {
+    public static class FieldProviderResolvesUnknownColumns implements FieldProvider<ScopedRef> {
 
         private final DocTableInfo table;
 
@@ -119,7 +119,7 @@ public class AlterTableRenameColumnAnalyzer {
 
         @Override
         @NotNull
-        public Reference resolveField(QualifiedName qualifiedName,
+        public ScopedRef resolveField(QualifiedName qualifiedName,
                                       @Nullable List<String> path,
                                       Operation operation,
                                       boolean errorOnUnknownObjectKey) {

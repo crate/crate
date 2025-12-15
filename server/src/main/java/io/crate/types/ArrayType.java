@@ -58,8 +58,8 @@ import io.crate.execution.dml.ValueIndexer;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.protocols.postgres.parser.PgArrayParser;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
@@ -101,8 +101,8 @@ public class ArrayType<T> extends DataType<List<T>> {
             this.storageSupport = new StorageSupport<List<T>>(innerStorage) {
                 @Override
                 public ValueIndexer<List<? super T>> valueIndexer(RelationName table,
-                                                            Reference ref,
-                                                            Function<ColumnIdent, Reference> getRef) {
+                                                            ScopedRef ref,
+                                                            Function<ColumnIdent, ScopedRef> getRef) {
                     int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
                     assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
                         "Must not retrieve value indexer of the child array of a multi dimensional array";
@@ -138,8 +138,8 @@ public class ArrayType<T> extends DataType<List<T>> {
             this.storageSupport = new StorageSupport<List<T>>(innerStorage) {
                 @Override
                 public ValueIndexer<List<T>> valueIndexer(RelationName table,
-                                                    Reference ref,
-                                                    Function<ColumnIdent, Reference> getRef) {
+                                                    ScopedRef ref,
+                                                    Function<ColumnIdent, ScopedRef> getRef) {
                     int topMostArrayDimensions = ArrayType.dimensions(innerType) + 1;
                     assert topMostArrayDimensions == ArrayType.dimensions(ref.valueType()) :
                         "Must not retrieve value indexer of the child array of a multi dimensional array";

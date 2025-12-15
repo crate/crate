@@ -41,8 +41,8 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.Item;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
@@ -55,8 +55,8 @@ public class UpsertReplicaRequestTest extends CrateDummyClusterServiceUnitTest {
     UUID jobId = UUID.randomUUID();
 
     private SQLExecutor e;
-    private Reference idRef;
-    private Reference nameRef;
+    private ScopedRef idRef;
+    private ScopedRef nameRef;
     private ShardId shardId;
 
     @Before
@@ -78,7 +78,7 @@ public class UpsertReplicaRequestTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_can_deserialize_replica_request_sent_from_5_10_10() throws Exception {
-        Reference[] insertColumns = new Reference[] { idRef, nameRef };
+        ScopedRef[] insertColumns = new ScopedRef[] { idRef, nameRef };
         ShardUpsertRequest request = new ShardUpsertRequest(
             shardId,
             jobId,

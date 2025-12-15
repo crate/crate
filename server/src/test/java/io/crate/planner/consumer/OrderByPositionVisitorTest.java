@@ -31,7 +31,7 @@ import org.junit.Test;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
@@ -48,7 +48,7 @@ public class OrderByPositionVisitorTest extends ESTestCase {
 
     @Test
     public void testSymbols() throws Exception {
-        Reference ref = TestingHelpers.createReference("column", DataTypes.STRING);
+        ScopedRef ref = TestingHelpers.createReference("column", DataTypes.STRING);
         int[] orderByPositions = OrderByPositionVisitor.orderByPositions(
             List.of(ref, new InputColumn(1), new InputColumn(0)),
             List.of(ref, Literal.of(1))

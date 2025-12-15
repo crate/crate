@@ -52,7 +52,7 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.planner.consumer.UpdatePlanner;
 import io.crate.planner.node.dml.UpdateById;
@@ -105,8 +105,8 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(collectPhase.projections()).hasSize(1);
         assertThat(collectPhase.projections().getFirst()).isExactlyInstanceOf(UpdateProjection.class);
         assertThat(collectPhase.toCollect()).hasSize(1);
-        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(Reference.class);
-        assertThat(((Reference) collectPhase.toCollect().getFirst()).column().fqn()).isEqualTo("_id");
+        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(ScopedRef.class);
+        assertThat(((ScopedRef) collectPhase.toCollect().getFirst()).column().fqn()).isEqualTo("_id");
 
         UpdateProjection updateProjection = (UpdateProjection) collectPhase.projections().getFirst();
         assertThat(updateProjection.uidSymbol()).isExactlyInstanceOf(InputColumn.class);

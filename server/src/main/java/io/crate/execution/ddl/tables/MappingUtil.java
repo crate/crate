@@ -21,7 +21,7 @@
 
 package io.crate.execution.ddl.tables;
 
-import static io.crate.metadata.Reference.buildTree;
+import static io.crate.metadata.ScopedRef.buildTree;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
 import java.util.ArrayList;
@@ -37,7 +37,7 @@ import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.IndexReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.TableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
@@ -53,7 +53,7 @@ public final class MappingUtil {
 
     public static class AllocPosition {
 
-        private final ToIntFunction<Reference> getExistingPosition;
+        private final ToIntFunction<ScopedRef> getExistingPosition;
         private int nextPosition;
 
         /**
@@ -64,7 +64,7 @@ public final class MappingUtil {
                 ColumnIdent column = ref.column();
                 var reference = table.getReference(column);
                 if (reference == null) {
-                    for (Reference droppedColumn : table.droppedColumns()) {
+                    for (ScopedRef droppedColumn : table.droppedColumns()) {
                         if (droppedColumn.column().equals(column)) {
                             return droppedColumn.position();
                         }
@@ -79,19 +79,19 @@ public final class MappingUtil {
          * Doesn't assign positions, takes them from References.
          */
         public static AllocPosition forExistingRefs() {
-            return new AllocPosition(0, Reference::position);
+            return new AllocPosition(0, ScopedRef::position);
         }
 
         public static AllocPosition forNewTable() {
             return new AllocPosition(0, column -> -1);
         }
 
-        private AllocPosition(int maxPosition, ToIntFunction<Reference> getExistingPosition) {
+        private AllocPosition(int maxPosition, ToIntFunction<ScopedRef> getExistingPosition) {
             this.getExistingPosition = getExistingPosition;
             this.nextPosition = maxPosition + 1;
         }
 
-        public int position(Reference reference) {
+        public int position(ScopedRef reference) {
             int position = getExistingPosition.applyAsInt(reference);
             if (position < 0) {
                 return nextPosition++;
@@ -108,14 +108,14 @@ public final class MappingUtil {
      */
     public static Map<String, Object> createMapping(AllocPosition allocPosition,
                                                     @Nullable String pkConstraintName,
-                                                    List<Reference> columns,
+                                                    List<ScopedRef> columns,
                                                     List<ColumnIdent> primaryKeys,
                                                     Map<String, String> checkConstraints,
                                                     List<ColumnIdent> partitionedBy,
                                                     @Nullable ColumnPolicy tableColumnPolicy,
                                                     @Nullable ColumnIdent routingColumn) {
 
-        HashMap<ColumnIdent, List<Reference>> tree = buildTree(columns);
+        HashMap<ColumnIdent, List<ScopedRef>> tree = buildTree(columns);
         Map<String, Map<String, Object>> propertiesMap = toProperties(allocPosition, null, tree);
         assert propertiesMap != null : "ADD COLUMN mapping can not be null"; // Only intermediate result can be null.
 
@@ -134,7 +134,7 @@ public final class MappingUtil {
         }
 
         Map<String, Object> indices = new HashMap<>();
-        for (Reference column : columns) {
+        for (ScopedRef column : columns) {
             if (column instanceof IndexReference indexRef && !indexRef.columns().isEmpty()) {
                 indices.put(column.storageIdent(), Map.of());
             }
@@ -144,8 +144,8 @@ public final class MappingUtil {
         }
         if (partitionedBy.isEmpty() == false) {
             List<List<String>> pColumns = Lists.map(partitionedBy, pColumn -> {
-                int refIdx = Reference.indexOf(columns, pColumn);
-                Reference pRef = columns.get(refIdx);
+                int refIdx = ScopedRef.indexOf(columns, pColumn);
+                ScopedRef pRef = columns.get(refIdx);
                 return toPartitionMapping(pRef);
             });
             meta.put("partitioned_by", pColumns);
@@ -157,7 +157,7 @@ public final class MappingUtil {
         return mapping;
     }
 
-    private static List<String> toPartitionMapping(Reference ref) {
+    private static List<String> toPartitionMapping(ScopedRef ref) {
         String fqn = ref.column().fqn();
         String typeMappingName = DataTypes.esMappingNameFrom(ref.valueType().id());
         return List.of(fqn, typeMappingName);
@@ -187,19 +187,19 @@ public final class MappingUtil {
     @Nullable
     public static Map<String, Map<String, Object>> toProperties(AllocPosition position,
                                                                 @Nullable ColumnIdent currentNode,
-                                                                HashMap<ColumnIdent, List<Reference>> tree) {
-        List<Reference> children = tree.get(currentNode);
+                                                                HashMap<ColumnIdent, List<ScopedRef>> tree) {
+        List<ScopedRef> children = tree.get(currentNode);
         if (children == null) {
             return null;
         }
         HashMap<String, Map<String, Object>> allColumnsMap = new LinkedHashMap<>();
-        for (Reference child: children) {
+        for (ScopedRef child: children) {
             allColumnsMap.put(mappingKey(child), addColumnProperties(position, child, tree));
         }
         return allColumnsMap;
     }
 
-    private static String mappingKey(Reference reference) {
+    private static String mappingKey(ScopedRef reference) {
         if (reference.isDropped()) {
             assert reference.oid() != COLUMN_OID_UNASSIGNED : "Only columns with assigned OID-s can be dropped";
             return DROPPED_COLUMN_NAME_PREFIX + reference.oid();
@@ -209,8 +209,8 @@ public final class MappingUtil {
     }
 
     private static Map<String, Object> addColumnProperties(AllocPosition allocPosition,
-                                                           Reference reference,
-                                                           HashMap<ColumnIdent, List<Reference>> tree) {
+                                                           ScopedRef reference,
+                                                           HashMap<ColumnIdent, List<ScopedRef>> tree) {
         Map<String, Object> leafProperties = reference.toMapping(allocPosition.position(reference));
         Map<String, Object> properties = leafProperties;
         DataType<?> valueType = reference.valueType();
@@ -231,7 +231,7 @@ public final class MappingUtil {
                                       Map<String, Object> propertiesMap,
                                       ObjectType objectType,
                                       ColumnIdent columnIdent,
-                                      HashMap<ColumnIdent, List<Reference>> tree) {
+                                      HashMap<ColumnIdent, List<ScopedRef>> tree) {
         propertiesMap.put(ColumnPolicy.MAPPING_KEY, (objectType.columnPolicy().toMappingValue()));
         Map<String, Map<String, Object>> nestedObjectMap = toProperties(position, columnIdent, tree);
         if (nestedObjectMap != null) {
@@ -241,7 +241,7 @@ public final class MappingUtil {
 
     @SuppressWarnings("unchecked")
     public static void mergeConstraints(Map<String, Object> meta,
-                                        List<Reference> references,
+                                        List<ScopedRef> references,
                                         List<ColumnIdent> primaryKeys,
                                         Map<String, String> checkConstraints) {
 
@@ -274,7 +274,7 @@ public final class MappingUtil {
         // Not nulls
         ArrayList<String> newNotNulls = new ArrayList<>();
         for (int i = 0; i < references.size(); i++) {
-            Reference ref = references.get(i);
+            ScopedRef ref = references.get(i);
             // primary keys are implicitly null and not explicitly stored within not null constraints
             if (!ref.isNullable() && !primaryKeys.contains(ref.column())) {
                 newNotNulls.add(ref.column().fqn());

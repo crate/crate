@@ -64,9 +64,9 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TableInfoFactory;
 import io.crate.metadata.table.Operation;
@@ -130,10 +130,10 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
     private DocTableInfo tableFromRelationMetadata(RelationMetadata.Table table,
                                                    Metadata metadata) {
         PublicationsMetadata publicationsMetadata = metadata.custom(PublicationsMetadata.TYPE);
-        Map<ColumnIdent, Reference> columns = table.columns().stream()
+        Map<ColumnIdent, ScopedRef> columns = table.columns().stream()
             .filter(ref -> !ref.isDropped())
             .filter(ref -> !(ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty()))
-            .collect(Collectors.toMap(Reference::column, ref -> ref));
+            .collect(Collectors.toMap(ScopedRef::column, ref -> ref));
         Map<ColumnIdent, IndexReference> indexColumns = table.columns().stream()
             .filter(ref -> ref instanceof IndexReference indexRef && !indexRef.columns().isEmpty())
             .map(ref -> (IndexReference) ref)
@@ -167,7 +167,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             columns,
             indexColumns,
             table.columns().stream()
-                .filter(Reference::isDropped)
+                .filter(ScopedRef::isDropped)
                 .collect(Collectors.toSet()),
             table.pkConstraintName(),
             table.primaryKeys(),
@@ -266,8 +266,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
 
         Map<String, Object> indicesMap = Maps.getOrDefault(metaMap, "indices", Map.of());
         Map<String, Object> properties = Maps.getOrDefault(mappingSource, "properties", Map.of());
-        Map<ColumnIdent, Reference> references = new HashMap<>();
-        Set<Reference> droppedColumns = new HashSet<>();
+        Map<ColumnIdent, ScopedRef> references = new HashMap<>();
+        Set<ScopedRef> droppedColumns = new HashSet<>();
         Map<ColumnIdent, IndexReference.Builder> indexColumns = new HashMap<>();
 
         parseColumns(
@@ -295,7 +295,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         for (Entry<String,String> entry : generatedColumns.entrySet()) {
             ColumnIdent column = ColumnIdent.fromPath(entry.getKey());
             String generatedExpressionStr = entry.getValue();
-            Reference reference = references.get(column);
+            ScopedRef reference = references.get(column);
             Symbol generatedExpression = refExpressionAnalyzer.convert(
                 SqlParser.createExpression(generatedExpressionStr),
                 expressionAnalysisContext
@@ -384,8 +384,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                                     List<ColumnIdent> partitionedBy,
                                     Map<String, Object> properties,
                                     Map<ColumnIdent, IndexReference.Builder> indexColumns,
-                                    Map<ColumnIdent, Reference> references,
-                                    Set<Reference> droppedColumns) {
+                                    Map<ColumnIdent, ScopedRef> references,
+                                    Set<ScopedRef> droppedColumns) {
         CoordinatorTxnCtx txnCtx = CoordinatorTxnCtx.systemTransactionContext();
         for (Entry<String,Object> entry : properties.entrySet()) {
             String columnName = entry.getKey();
@@ -431,7 +431,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 String precision = (String) columnProperties.get("precision");
                 Integer treeLevels = (Integer) columnProperties.get("tree_levels");
                 Double distanceErrorPct = (Double) columnProperties.get("distance_error_pct");
-                Reference ref = new GeoReference(
+                ScopedRef ref = new GeoReference(
                     relationName,
                     column,
                     type,
@@ -452,7 +452,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                     references.put(column, ref);
                 }
             } else if (elementType.id() == ObjectType.ID) {
-                Reference ref = new SimpleReference(
+                ScopedRef ref = new SimpleReference(
                     relationName,
                     column,
                     granularity,
@@ -503,7 +503,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                             .sources(sources);
                     }
                 } else {
-                    Reference ref;
+                    ScopedRef ref;
                     if (analyzer == null) {
                         ref = new SimpleReference(
                             relationName,

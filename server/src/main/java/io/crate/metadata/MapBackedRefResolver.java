@@ -35,7 +35,7 @@ public final class MapBackedRefResolver implements ReferenceResolver<NestableInp
     }
 
     @Override
-    public NestableInput<?> getImplementation(Reference ref) {
+    public NestableInput<?> getImplementation(ScopedRef ref) {
         return lookupMapWithChildTraversal(implByColumn, ref.column());
     }
 

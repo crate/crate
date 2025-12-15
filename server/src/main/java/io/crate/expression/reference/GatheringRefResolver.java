@@ -24,7 +24,7 @@ package io.crate.expression.reference;
 import java.util.function.Consumer;
 
 import io.crate.data.Input;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public class GatheringRefResolver<E extends Input<?>> implements ReferenceResolver<E> {
 
@@ -37,7 +37,7 @@ public class GatheringRefResolver<E extends Input<?>> implements ReferenceResolv
     }
 
     @Override
-    public E getImplementation(Reference ref) {
+    public E getImplementation(ScopedRef ref) {
         E implementation = delegate.getImplementation(ref);
         if (implementation == null) {
             return null;

@@ -56,9 +56,9 @@ public class GeoReferenceTest extends ESTestCase {
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(out, geoReferenceInfo);
+        ScopedRef.toStream(out, geoReferenceInfo);
         StreamInput in = out.bytes().streamInput();
-        GeoReference geoReferenceInfo2 = Reference.fromStream(in);
+        GeoReference geoReferenceInfo2 = ScopedRef.fromStream(in);
 
         assertThat(geoReferenceInfo2).isEqualTo(geoReferenceInfo);
 
@@ -78,9 +78,9 @@ public class GeoReferenceTest extends ESTestCase {
             null
         );
         out = new BytesStreamOutput();
-        Reference.toStream(out, geoReferenceInfo3);
+        ScopedRef.toStream(out, geoReferenceInfo3);
         in = out.bytes().streamInput();
-        GeoReference geoReferenceInfo4 = Reference.fromStream(in);
+        GeoReference geoReferenceInfo4 = ScopedRef.fromStream(in);
 
         assertThat(geoReferenceInfo4).isEqualTo(geoReferenceInfo3);
     }

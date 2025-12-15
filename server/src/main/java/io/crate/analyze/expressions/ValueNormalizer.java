@@ -35,8 +35,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.protocols.postgres.parser.PgArrayParsingException;
@@ -51,7 +51,7 @@ public final class ValueNormalizer {
     private ValueNormalizer() {}
 
     /**
-     * normalize and validate given value according to the corresponding {@link io.crate.metadata.Reference}
+     * normalize and validate given value according to the corresponding {@link io.crate.metadata.ScopedRef}
      *
      * @param valueSymbol the value to normalize, might be anything from {@link Scalar} to {@link io.crate.expression.symbol.Literal}
      * @param reference   the reference to which the value has to comply in terms of type-compatibility
@@ -59,7 +59,7 @@ public final class ValueNormalizer {
      * @throws io.crate.exceptions.ColumnValidationException
      */
     public static Symbol normalizeInputForReference(Symbol valueSymbol,
-                                                    Reference reference,
+                                                    ScopedRef reference,
                                                     TableInfo tableInfo,
                                                     UnaryOperator<Symbol> normalizer) {
         assert valueSymbol != null : "valueSymbol must not be null";
@@ -112,7 +112,7 @@ public final class ValueNormalizer {
         return (T) value;
     }
 
-    private static DataType<?> getTargetType(Symbol valueSymbol, Reference reference) {
+    private static DataType<?> getTargetType(Symbol valueSymbol, ScopedRef reference) {
         DataType<?> targetType;
         if (reference instanceof DynamicReference dynamicReference) {
             targetType = valueSymbol.valueType();
@@ -124,10 +124,10 @@ public final class ValueNormalizer {
     }
 
     @SuppressWarnings("unchecked")
-    private static void normalizeObjectValue(Map<String, Object> value, Reference info, TableInfo tableInfo) {
+    private static void normalizeObjectValue(Map<String, Object> value, ScopedRef info, TableInfo tableInfo) {
         for (Map.Entry<String, Object> entry : value.entrySet()) {
             ColumnIdent nestedIdent = ColumnIdent.getChildSafe(info.column(), entry.getKey());
-            Reference nestedInfo = tableInfo.getReference(nestedIdent);
+            ScopedRef nestedInfo = tableInfo.getReference(nestedIdent);
             if (nestedInfo == null) {
                 if (info.valueType().columnPolicy() == ColumnPolicy.IGNORED) {
                     continue;
@@ -165,14 +165,14 @@ public final class ValueNormalizer {
         return type instanceof ArrayType<?> arrayType && arrayType.innerType().id() == ObjectType.ID;
     }
 
-    private static void normalizeObjectArrayValue(List<Map<String, Object>> values, Reference arrayInfo, TableInfo tableInfo) {
+    private static void normalizeObjectArrayValue(List<Map<String, Object>> values, ScopedRef arrayInfo, TableInfo tableInfo) {
         for (Map<String, Object> value : values) {
             // return value not used and replaced in value as arrayItem is a map that is mutated
             normalizeObjectValue(value, arrayInfo, tableInfo);
         }
     }
 
-    private static Object normalizePrimitiveValue(Object primitiveValue, Reference info) {
+    private static Object normalizePrimitiveValue(Object primitiveValue, ScopedRef info) {
         if (info.valueType().equals(DataTypes.STRING) && primitiveValue instanceof String) {
             return primitiveValue;
         }

@@ -47,8 +47,8 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -137,7 +137,7 @@ public class DistanceFunction extends Scalar<Double, Point> {
         //              parent
         //
         List<Symbol> innerArgs = inner.arguments();
-        if (!(innerArgs.get(0) instanceof Reference pointRef && innerArgs.get(1) instanceof Literal<?> pointLiteral)) {
+        if (!(innerArgs.get(0) instanceof ScopedRef pointRef && innerArgs.get(1) instanceof Literal<?> pointLiteral)) {
             // can't use distance filter without literal, fallback to genericFunction
             return null;
         }

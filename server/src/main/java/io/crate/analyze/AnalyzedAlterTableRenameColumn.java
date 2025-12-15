@@ -25,11 +25,11 @@ import java.util.function.Consumer;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public record AnalyzedAlterTableRenameColumn(RelationName table,
-                                             Reference refToRename,
+                                             ScopedRef refToRename,
                                              ColumnIdent newName) implements DDLStatement {
 
     @Override

@@ -30,7 +30,7 @@ import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -69,7 +69,7 @@ public final class CmpOperator extends Operator<Object> {
     }
 
     @SuppressWarnings({"rawtypes", "unchecked"})
-    public static Query toQuery(String functionName, Reference ref, Object value) {
+    public static Query toQuery(String functionName, ScopedRef ref, Object value) {
         StorageSupport<?> storageSupport = ref.valueType().storageSupport();
         if (storageSupport == null) {
             return null;
@@ -117,7 +117,7 @@ public final class CmpOperator extends Operator<Object> {
     }
 
     @Override
-    public Query toQuery(Reference ref, Literal<?> literal) {
+    public Query toQuery(ScopedRef ref, Literal<?> literal) {
         return CmpOperator.toQuery(signature.getName().name(), ref, literal.value());
     }
 }

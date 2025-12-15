@@ -162,7 +162,7 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Reference withColumn(ColumnIdent column) {
+    public ScopedRef withColumn(ColumnIdent column) {
         return new GeoReference(
             relation,
             column,
@@ -181,7 +181,7 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Reference withRelation(RelationName relation) {
+    public ScopedRef withRelation(RelationName relation) {
         return new GeoReference(
             relation,
             column,
@@ -200,7 +200,7 @@ public class GeoReference extends SimpleReference {
     }
 
     @Override
-    public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
+    public ScopedRef withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
         long newOid = oid == COLUMN_OID_UNASSIGNED ? acquireOid.getAsLong() : oid;
         int newPosition = position < 0 ? acquirePosition.getAsInt() : position;
         if (newOid == oid && newPosition == position) {

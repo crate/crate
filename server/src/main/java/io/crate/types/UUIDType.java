@@ -50,8 +50,8 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 
 public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer<UUID> {
@@ -70,8 +70,8 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
 
         @Override
         public ValueIndexer<? super UUID> valueIndexer(RelationName table,
-                                                       Reference ref,
-                                                       Function<ColumnIdent, Reference> getRef) {
+                                                       ScopedRef ref,
+                                                       Function<ColumnIdent, ScopedRef> getRef) {
             return new UUIDIndexer(ref);
         }
 
@@ -259,10 +259,10 @@ public class UUIDType extends DataType<UUID> implements FixedWidthType, Streamer
             FIELD_TYPE.freeze();
         }
 
-        private final Reference ref;
+        private final ScopedRef ref;
         private final String name;
 
-        public UUIDIndexer(Reference ref) {
+        public UUIDIndexer(ScopedRef ref) {
             this.ref = ref;
             this.name = ref.storageIdent();
 

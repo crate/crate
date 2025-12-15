@@ -37,9 +37,9 @@ import org.elasticsearch.index.translog.Translog;
 import io.crate.execution.dml.TranslogIndexer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
@@ -57,7 +57,7 @@ public class TranslogHandler implements Engine.TranslogRecoveryRunner {
 
     private static TranslogIndexer translogIndexer(String indexName, IndexSettings indexSettings) {
         RelationName relation = RelationName.fromIndexName(indexName);
-        Reference column = new SimpleReference(
+        ScopedRef column = new SimpleReference(
             relation,
             ColumnIdent.of("value"),
             RowGranularity.DOC,

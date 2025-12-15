@@ -40,9 +40,9 @@ import io.crate.expression.reference.StaticTableReferenceResolver;
 import io.crate.expression.reference.sys.shard.ShardRowContext;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.MapBackedRefResolver;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysShardsTableInfo;
 
@@ -74,7 +74,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
         HashMap<ColumnIdent, NestableInput<?>> pValues = HashMap.newHashMap(numPartitionedColumns);
         assert partitionValues.size() ==
                 numPartitionedColumns : "invalid number of partitioned columns";
-        for (Reference partitionedInfo : info.partitionedByColumns()) {
+        for (ScopedRef partitionedInfo : info.partitionedByColumns()) {
             pValues.put(
                 partitionedInfo.column(),
                 constant(partitionedInfo.valueType().implicitCast(partitionValues.get(i)))
@@ -102,7 +102,7 @@ public class ShardReferenceResolver implements ReferenceResolver<NestableInput<?
     }
 
     @Override
-    public NestableInput<?> getImplementation(Reference ref) {
+    public NestableInput<?> getImplementation(ScopedRef ref) {
         NestableInput<?> partitionColImpl = partitionColumnResolver.getImplementation(ref);
         if (partitionColImpl != null) {
             return partitionColImpl;

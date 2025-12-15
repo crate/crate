@@ -64,7 +64,7 @@ import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.match.ParsedOptions;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public class MatchQuery {
 
@@ -120,7 +120,7 @@ public class MatchQuery {
      * Returns the analyzer that was used to index the given column, but throws an exception when the search-analyzer
      * specified in parse-options is different(from the index-analyzer).
      */
-    protected Analyzer getSafeAnalyzer(Reference ref) {
+    protected Analyzer getSafeAnalyzer(ScopedRef ref) {
         String searchAnalyzer = parsedOptions.analyzer();
         if (ref instanceof IndexReference indexRef) {
             if (searchAnalyzer == null || searchAnalyzer.equals(indexRef.analyzer())) {
@@ -151,7 +151,7 @@ public class MatchQuery {
     }
 
     public Query parse(Type type, String fieldName, Object value) {
-        Reference ref = context.getRef(fieldName);
+        ScopedRef ref = context.getRef(fieldName);
         if (ref == null) {
             return newUnmappedFieldQuery(fieldName);
         }
@@ -205,7 +205,7 @@ public class MatchQuery {
         }
     }
 
-    protected final Query termQuery(Reference ref, BytesRef value) {
+    protected final Query termQuery(ScopedRef ref, BytesRef value) {
         return new TermQuery(new Term(ref.storageIdent(), value));
     }
 
@@ -225,12 +225,12 @@ public class MatchQuery {
 
     private class MatchQueryBuilder extends QueryBuilder {
 
-        private final Reference reference;
+        private final ScopedRef reference;
 
         /**
          * Creates a new QueryBuilder using the given analyzer.
          */
-        MatchQueryBuilder(Analyzer analyzer, Reference reference) {
+        MatchQueryBuilder(Analyzer analyzer, ScopedRef reference) {
             super(analyzer);
             this.reference = reference;
         }
@@ -398,11 +398,11 @@ public class MatchQuery {
      * Called when a phrase query is built with {@link QueryBuilder#analyzePhrase(String, TokenStream, int)}
      * Subclass can override this function to blend this query to multiple fields.
      */
-    protected Query blendPhraseQuery(PhraseQuery query, Reference reference) {
+    protected Query blendPhraseQuery(PhraseQuery query, ScopedRef reference) {
         return query;
     }
 
-    protected Query blendTermsQuery(Term[] terms, Reference ref) {
+    protected Query blendTermsQuery(Term[] terms, ScopedRef ref) {
         var builder = new SynonymQuery.Builder(ref.storageIdent());
         for (var term : terms) {
             builder.addTerm(term);
@@ -410,7 +410,7 @@ public class MatchQuery {
         return builder.build();
     }
 
-    protected Query blendTermQuery(Term term, Reference ref) {
+    protected Query blendTermQuery(Term term, ScopedRef ref) {
         Fuzziness fuzziness = parsedOptions.fuzziness();
         if (fuzziness == null) {
             return termQuery(ref, term.bytes());

@@ -35,9 +35,9 @@ import org.apache.lucene.index.IndexOptions;
 import io.crate.execution.engine.fetch.FetchId;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -154,7 +154,7 @@ public class SysColumns {
      * Creates a Reference for a system column.
      * Don't use this for user table columns, it's not safe (e.g. Reference has no oid)
      */
-    private static Reference newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
+    private static ScopedRef newInfo(RelationName table, ColumnIdent column, DataType<?> dataType, int position) {
         return new SimpleReference(
             table,
             column,
@@ -173,7 +173,7 @@ public class SysColumns {
     /**
      * Calls {@code consumer} for each sys column with a reference containing {@code relationName}
      */
-    public static void forTable(RelationName relationName, BiConsumer<ColumnIdent, Reference> consumer) {
+    public static void forTable(RelationName relationName, BiConsumer<ColumnIdent, ScopedRef> consumer) {
         int position = 1;
         for (Map.Entry<ColumnIdent, DataType<?>> entry : COLUMN_IDENTS.entrySet()) {
             ColumnIdent columnIdent = entry.getKey();
@@ -181,16 +181,16 @@ public class SysColumns {
         }
     }
 
-    public static List<Reference> forTable(RelationName relationName) {
+    public static List<ScopedRef> forTable(RelationName relationName) {
         int position = 1;
-        var columns = new ArrayList<Reference>();
+        var columns = new ArrayList<ScopedRef>();
         for (Map.Entry<ColumnIdent, DataType<?>> entry : COLUMN_IDENTS.entrySet()) {
             columns.add(newInfo(relationName, entry.getKey(), entry.getValue(), position++));
         }
         return columns;
     }
 
-    public static Reference forTable(RelationName table, ColumnIdent column) {
+    public static ScopedRef forTable(RelationName table, ColumnIdent column) {
         return newInfo(table, column, COLUMN_IDENTS.get(column), 0);
     }
 

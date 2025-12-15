@@ -29,10 +29,10 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.ArrayType;
 import io.crate.types.DataTypes;
@@ -53,7 +53,7 @@ public class TransportAnalyzeActionTest extends ESTestCase {
             2,
             10
         );
-        var references = List.<Reference>of(
+        var references = List.<ScopedRef>of(
             new SimpleReference(
                 new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy"),
                 ColumnIdent.of("dummy"),

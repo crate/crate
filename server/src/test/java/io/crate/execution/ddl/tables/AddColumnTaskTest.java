@@ -40,9 +40,9 @@ import com.carrotsearch.hppc.IntArrayList;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -77,7 +77,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             false,
             null
         );
-        List<Reference> columns = List.of(newColumn);
+        List<ScopedRef> columns = List.of(newColumn);
         var request = new AddColumnRequest(
             tbl.ident(),
             columns,
@@ -87,9 +87,9 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState newState = addColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
-        Reference addedColumn = newTable.getReference(newColumn.column());
+        ScopedRef addedColumn = newTable.getReference(newColumn.column());
         // Need to create a clone of request column to imitate the expected OID.
-        Reference newColumnWithOid = new SimpleReference(
+        ScopedRef newColumnWithOid = new SimpleReference(
             newColumn.relation(),
             newColumn.column(),
             newColumn.granularity(),
@@ -115,7 +115,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         var addColumnTask = buildAddColumnTask(e, tbl.ident());
 
         ColumnIdent shapes = ColumnIdent.of("shapes");
-        Reference geoShapeArrayRef = new GeoReference(
+        ScopedRef geoShapeArrayRef = new GeoReference(
             tbl.ident(),
             shapes,
             new ArrayType<>(DataTypes.GEO_SHAPE),
@@ -132,7 +132,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         );
 
         ColumnIdent points = ColumnIdent.of("points");
-        Reference geoPointArrayRef = new GeoReference(
+        ScopedRef geoPointArrayRef = new GeoReference(
             tbl.ident(),
             points,
             new ArrayType<>(DataTypes.GEO_POINT),
@@ -147,7 +147,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             null,
             null
         );
-        List<Reference> columns = List.of(geoShapeArrayRef, geoPointArrayRef);
+        List<ScopedRef> columns = List.of(geoShapeArrayRef, geoPointArrayRef);
         var request = new AddColumnRequest(
             tbl.ident(),
             columns,
@@ -157,10 +157,10 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState newState = addColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
-        Reference addedShapesColumn = newTable.getReference(shapes);
+        ScopedRef addedShapesColumn = newTable.getReference(shapes);
         assertThat(addedShapesColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
 
-        Reference addedPointsColumn = newTable.getReference(points);
+        ScopedRef addedPointsColumn = newTable.getReference(points);
         assertThat(addedPointsColumn.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_POINT));
     }
 
@@ -184,7 +184,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             3,
             null
         );
-        List<Reference> columns = List.of(newColumn);
+        List<ScopedRef> columns = List.of(newColumn);
         var request = new AddColumnRequest(
             tbl.ident(),
             columns,
@@ -218,7 +218,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             4,
             null
         );
-        List<Reference> columns = List.of(newColumn1, newColumn2);
+        List<ScopedRef> columns = List.of(newColumn1, newColumn2);
         var request = new AddColumnRequest(
             tbl.ident(),
             columns,
@@ -245,7 +245,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             2,
             null
         );
-        List<Reference> columns = List.of(newColumn1);
+        List<ScopedRef> columns = List.of(newColumn1);
         var request = new AddColumnRequest(
             tbl.ident(),
             columns,
@@ -254,7 +254,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         );
         ClusterState newState = addColumnTask.execute(state, request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
-        Reference addedColumn = newTable.getReference(newColumn1.column());
+        ScopedRef addedColumn = newTable.getReference(newColumn1.column());
         assertThat(addedColumn).hasType(new ArrayType<>(new ArrayType<>(DataTypes.LONG)));
     }
 
@@ -278,7 +278,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             null
         );
 
-        List<Reference> columns = List.of(colToAdd);
+        List<ScopedRef> columns = List.of(colToAdd);
         var request = new AddColumnRequest(
             tbl.ident(),
             columns,
@@ -288,7 +288,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         ClusterState newState = addColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
-        Reference addedColumn = newTable.getReference(colToAdd.column());
+        ScopedRef addedColumn = newTable.getReference(colToAdd.column());
         assertThat(addedColumn).hasOid(COLUMN_OID_UNASSIGNED);
     }
 
@@ -307,7 +307,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             2,
             null
         );
-        List<Reference> columns = List.of(colToAdd);
+        List<ScopedRef> columns = List.of(colToAdd);
         var request = new AddColumnRequest(
             tbl.ident(),
             columns,

@@ -32,7 +32,7 @@ import org.apache.lucene.util.BytesRef;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 
 public class StringIndexer implements ValueIndexer<String> {
@@ -46,9 +46,9 @@ public class StringIndexer implements ValueIndexer<String> {
         FIELD_TYPE.freeze();
     }
 
-    private final Reference ref;
+    private final ScopedRef ref;
 
-    public StringIndexer(Reference ref) {
+    public StringIndexer(ScopedRef ref) {
         this.ref = ref;
     }
 

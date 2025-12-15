@@ -27,19 +27,19 @@ import java.util.function.Function;
 import java.util.function.Predicate;
 
 import io.crate.execution.engine.fetch.ReaderContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 
 public abstract class DocCollectorExpression<T> extends LuceneCollectorExpression<T> {
 
-    protected final Reference ref;
+    protected final ScopedRef ref;
 
     private StoredRowLookup storedRowLookup;
     private ReaderContext context;
 
     protected StoredRow source;
 
-    protected DocCollectorExpression(Reference ref) {
+    protected DocCollectorExpression(ScopedRef ref) {
         this.ref = ref;
     }
 
@@ -58,8 +58,8 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
         this.context = context;
     }
 
-    public static LuceneCollectorExpression<?> create(final Reference reference,
-                                                      Predicate<Reference> isParentReferenceIgnored) {
+    public static LuceneCollectorExpression<?> create(final ScopedRef reference,
+                                                      Predicate<ScopedRef> isParentReferenceIgnored) {
         assert reference.column().name().equals(SysColumns.DOC.name()) :
             "column name must be " + SysColumns.DOC.name();
         if (reference.column().isRoot()) {
@@ -80,7 +80,7 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
 
     static final class RootDocCollectorExpression extends DocCollectorExpression<Map<String, Object>> {
 
-        private RootDocCollectorExpression(Reference ref) {
+        private RootDocCollectorExpression(ScopedRef ref) {
             super(ref);
         }
 
@@ -94,7 +94,7 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
 
         private final Function<Object, Object> valueConverter;
 
-        private ChildDocCollectorExpression(Reference ref, Function<Object, Object> valueConverter) {
+        private ChildDocCollectorExpression(ScopedRef ref, Function<Object, Object> valueConverter) {
             super(ref);
             this.valueConverter = valueConverter;
         }

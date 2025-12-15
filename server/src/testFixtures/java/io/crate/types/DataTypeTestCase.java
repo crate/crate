@@ -59,9 +59,9 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -132,7 +132,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             .addTable("create table tbl (id int, x " + definition + ")");
 
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
-        Reference reference = table.getReference(ColumnIdent.of("x"));
+        ScopedRef reference = table.getReference(ColumnIdent.of("x"));
         assertThat(reference).isNotNull();
 
         try (var indexEnv = new IndexEnv(
@@ -207,7 +207,7 @@ public abstract class DataTypeTestCase<T> extends CrateDummyClusterServiceUnitTe
             .addTable("create table tbl (id int, x " + dataDef.definition + ")");
 
         DocTableInfo table = sqlExecutor.resolveTableInfo("tbl");
-        Reference reference = table.getReference(ColumnIdent.of("x"));
+        ScopedRef reference = table.getReference(ColumnIdent.of("x"));
         assertThat(reference).isNotNull();
 
         Indexer indexer = getIndexer(sqlExecutor, table.ident().name(), "x");

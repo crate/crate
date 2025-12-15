@@ -36,8 +36,8 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.expression.reference.Doc;
 import io.crate.expression.reference.DocRefResolver;
 import io.crate.expression.reference.doc.lucene.StoredRow;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 
 public class DocRefResolverTest extends ESTestCase {
@@ -66,7 +66,7 @@ public class DocRefResolverTest extends ESTestCase {
 
     @Test
     public void testSystemColumnsCollectExpressions() throws Exception {
-        List<Reference> references = List.of(
+        List<ScopedRef> references = List.of(
             refInfo("t1._id", SysColumns.COLUMN_IDENTS.get(SysColumns.ID.COLUMN), RowGranularity.DOC),
             refInfo("t1._version", SysColumns.COLUMN_IDENTS.get(SysColumns.VERSION), RowGranularity.DOC),
             refInfo("t1._doc", SysColumns.COLUMN_IDENTS.get(SysColumns.DOC), RowGranularity.DOC),
@@ -77,7 +77,7 @@ public class DocRefResolverTest extends ESTestCase {
         );
 
         List<CollectExpression<Doc, ?>> collectExpressions = new ArrayList<>(4);
-        for (Reference reference : references) {
+        for (ScopedRef reference : references) {
             CollectExpression<Doc, ?> collectExpression = REF_RESOLVER.getImplementation(reference);
             collectExpression.setNextRow(GET_RESULT);
             collectExpressions.add(collectExpression);

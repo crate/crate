@@ -45,9 +45,9 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
@@ -255,7 +255,7 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
         return previousAggState;
     }
 
-    private DocValueAggregator<?> getDocValueAggregator(Reference ref) {
+    private DocValueAggregator<?> getDocValueAggregator(ScopedRef ref) {
         if (!ref.hasDocValues() || ref.granularity() != RowGranularity.DOC) {
             return null;
         }
@@ -285,14 +285,14 @@ public class CountAggregation extends AggregationFunction<MutableLong, Long> {
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
-                                                       List<Reference> aggregationReferences,
+                                                       List<ScopedRef> aggregationReferences,
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         if (aggregationReferences.size() != 1) {
             return null;
         }
-        Reference reference = aggregationReferences.getFirst();
+        ScopedRef reference = aggregationReferences.getFirst();
         if (reference == null) {
             return null;
         }

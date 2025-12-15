@@ -44,7 +44,7 @@ import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
@@ -54,8 +54,8 @@ import io.crate.testing.SQLExecutor;
 public class ShardUpsertRequestTest extends CrateDummyClusterServiceUnitTest {
 
     private SQLExecutor e;
-    private Reference idRef;
-    private Reference nameRef;
+    private ScopedRef idRef;
+    private ScopedRef nameRef;
     private ShardId shardId;
 
     @Before
@@ -78,7 +78,7 @@ public class ShardUpsertRequestTest extends CrateDummyClusterServiceUnitTest {
     public void test_streaming_without_returnvalues() throws Exception {
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
+        ScopedRef[] missingAssignmentColumns = new ScopedRef[]{idRef, nameRef};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
@@ -136,7 +136,7 @@ public class ShardUpsertRequestTest extends CrateDummyClusterServiceUnitTest {
     public void test_streaming_with_returnvalues() throws Exception {
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
+        ScopedRef[] missingAssignmentColumns = new ScopedRef[]{idRef, nameRef};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),
@@ -191,7 +191,7 @@ public class ShardUpsertRequestTest extends CrateDummyClusterServiceUnitTest {
     public void test_streaming_item_without_source_from_older_node() throws Exception {
         String[] assignmentColumns = new String[]{"id", "name"};
         UUID jobId = UUID.randomUUID();
-        Reference[] missingAssignmentColumns = new Reference[]{idRef, nameRef};
+        ScopedRef[] missingAssignmentColumns = new ScopedRef[]{idRef, nameRef};
         ShardUpsertRequest request = new ShardUpsertRequest.Builder(
             new SessionSettings("dummyUser", SearchPath.createSearchPathFrom("dummySchema")),
             TimeValue.timeValueSeconds(30),

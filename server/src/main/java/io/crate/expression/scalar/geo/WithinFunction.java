@@ -49,8 +49,8 @@ import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -127,7 +127,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
         // within(p, pointOrShape) = [ true | false ]
         if (parent.name().equals(EqOperator.NAME)
                 && parent.arguments().get(1) instanceof Literal<?> eqLiteral
-                && inner.arguments().get(0) instanceof Reference ref
+                && inner.arguments().get(0) instanceof ScopedRef ref
                 && inner.arguments().get(1) instanceof Literal<?> pointOrShape) {
 
             Query query = toQuery(ref, pointOrShape);
@@ -146,7 +146,7 @@ public class WithinFunction extends Scalar<Boolean, Object> {
     }
 
     @Override
-    public Query toQuery(Reference ref, Literal<?> literal) {
+    public Query toQuery(ScopedRef ref, Literal<?> literal) {
         if (ref.valueType().equals(DataTypes.GEO_SHAPE)) {
             // Can only optimize on point columns, not on shapes
             return null;

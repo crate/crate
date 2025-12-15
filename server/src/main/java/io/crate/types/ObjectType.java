@@ -60,8 +60,8 @@ import io.crate.execution.dml.ObjectIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.expression.reference.doc.lucene.SourceParser;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.ColumnDefinition;
 import io.crate.sql.tree.ColumnPolicy;
@@ -78,8 +78,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
 
         @Override
         public ValueIndexer<Map<String, Object>> valueIndexer(RelationName table,
-                                                              Reference ref,
-                                                              Function<ColumnIdent, Reference> getRef) {
+                                                              ScopedRef ref,
+                                                              Function<ColumnIdent, ScopedRef> getRef) {
             return new ObjectIndexer(table, ref, getRef);
         }
 

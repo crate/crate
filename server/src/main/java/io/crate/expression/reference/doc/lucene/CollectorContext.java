@@ -23,7 +23,7 @@ package io.crate.expression.reference.doc.lucene;
 
 import java.util.function.Supplier;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public class CollectorContext {
 
@@ -53,7 +53,7 @@ public class CollectorContext {
         return storedRowLookup;
     }
 
-    public StoredRowLookup storedRowLookup(Reference ref) {
+    public StoredRowLookup storedRowLookup(ScopedRef ref) {
         if (storedRowLookup == null) {
             storedRowLookup = storedRowLookupSupplier.get();
         }

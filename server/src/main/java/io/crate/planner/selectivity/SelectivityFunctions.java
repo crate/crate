@@ -41,8 +41,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.statistics.ColumnStats;
 import io.crate.statistics.MostCommonValues;
@@ -235,7 +235,7 @@ public class SelectivityFunctions {
             return eqSelectivityFromValueAndStats(literal.value(), lhsStats);
         }
 
-        if (rightArg instanceof Reference || rightArg instanceof ScopedSymbol) {
+        if (rightArg instanceof ScopedRef || rightArg instanceof ScopedSymbol) {
             ColumnIdent rhsColumn = getColumn(rightArg);
             if (rhsColumn == null) {
                 return 1.0 / lhsStats.approxDistinct();
@@ -366,7 +366,7 @@ public class SelectivityFunctions {
     @Nullable
     private static ColumnIdent getColumn(Symbol symbol) {
         return switch (symbol) {
-            case Reference ref -> ref.column();
+            case ScopedRef ref -> ref.column();
             case ScopedSymbol scopedSymbol -> scopedSymbol.column();
             default -> null;
         };

@@ -35,7 +35,7 @@ import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.functions.TypeVariableConstraint;
@@ -67,7 +67,7 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, ScopedRef probe, Literal<?> candidates, Context context) {
         if (ArrayType.dimensions(candidates.valueType()) > 1) {
             return null;
         }
@@ -98,7 +98,7 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
     }
 
     @SuppressWarnings({"unchecked", "rawtypes"})
-    public static Query literalMatchesAnyArrayRef(Literal<?> probe, Reference candidates) {
+    public static Query literalMatchesAnyArrayRef(Literal<?> probe, ScopedRef candidates) {
         // 1 != any ( col ) -->  gt 1 or lt 1
         if (DataTypes.isArray(probe.valueType())) {
             return null;
@@ -141,7 +141,7 @@ public final class AnyNeqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, ScopedRef candidates, Context context) {
         return literalMatchesAnyArrayRef(probe, candidates);
     }
 }

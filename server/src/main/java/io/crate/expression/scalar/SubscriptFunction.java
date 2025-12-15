@@ -49,8 +49,8 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -241,7 +241,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
     }
 
     private interface PreFilterQueryBuilder {
-        Query buildQuery(Reference field, EqQuery<Object> eqQuery, Object value);
+        Query buildQuery(ScopedRef field, EqQuery<Object> eqQuery, Object value);
     }
 
     private static final Map<String, PreFilterQueryBuilder> PRE_FILTER_QUERY_BUILDER_BY_OP = Map.of(
@@ -267,7 +267,7 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         // `subscript(ref, <keyLiteral>) [ = | > | >= | < | <= ] <cmpLiteral>`
         // ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         //       inner
-        if (!(inner.arguments().get(0) instanceof Reference ref
+        if (!(inner.arguments().get(0) instanceof ScopedRef ref
               && inner.arguments().get(1) instanceof Literal<?>
               && parent.arguments().size() == 2 // parent could for example be `op_isnull`
               && parent.arguments().get(1) instanceof Literal<?> cmpLiteral)) {

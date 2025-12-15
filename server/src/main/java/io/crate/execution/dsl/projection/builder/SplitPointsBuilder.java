@@ -41,7 +41,7 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<SplitPointsBuilder.Context, Void> {
 
@@ -250,7 +250,7 @@ public final class SplitPointsBuilder extends DefaultTraversalSymbolVisitor<Spli
     }
 
     @Override
-    public Void visitReference(Reference symbol, Context context) {
+    public Void visitReference(ScopedRef symbol, Context context) {
         if (context.foundAggregateOrTableFunction
             && context.tableFunctionLevel == 0
             && context.insideAggregate == false

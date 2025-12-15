@@ -49,8 +49,8 @@ import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.functions.BoundSignature;
@@ -106,7 +106,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
     public Query toQuery(Function function, Context context) {
         List<Symbol> arguments = function.arguments();
         assert arguments.size() == 1 : "`<expression> IS NULL` function must have one argument";
-        if (arguments.get(0) instanceof Reference ref) {
+        if (arguments.get(0) instanceof ScopedRef ref) {
             if (!ref.isNullable()) {
                 return new MatchNoDocsQuery("`x IS NULL` on column that is NOT NULL can't match");
             }
@@ -118,7 +118,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
 
     @Nullable
-    public static Query refExistsQuery(Reference ref, Context context) {
+    public static Query refExistsQuery(ScopedRef ref, Context context) {
         String field = ref.storageIdent();
         DataType<?> valueType = ref.valueType();
         boolean canUseFieldsExist = ref.hasDocValues() || ref.indexType() == IndexType.FULLTEXT;
@@ -160,7 +160,7 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
                     .setMinimumNumberShouldMatch(1);
                 for (var entry : objType.innerTypes().entrySet()) {
                     String childColumn = entry.getKey();
-                    Reference childRef = context.getRef(ref.column().getChild(childColumn));
+                    ScopedRef childRef = context.getRef(ref.column().getChild(childColumn));
                     if (childRef == null) {
                         return null;
                     }

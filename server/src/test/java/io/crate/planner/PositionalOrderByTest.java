@@ -30,7 +30,7 @@ import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataTypes;
 
@@ -56,7 +56,7 @@ public class PositionalOrderByTest {
         assertThat(newOrderBy.nullsFirst()).isEqualTo(expected.nullsFirst());
     }
 
-    private static Reference ref(String name) {
+    private static ScopedRef ref(String name) {
         return TestingHelpers.createReference(name, DataTypes.LONG);
     }
 }

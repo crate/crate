@@ -46,8 +46,8 @@ import io.crate.common.collections.Lists;
 import io.crate.execution.dml.BitStringIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.sql.tree.BitString;
 import io.crate.sql.tree.ColumnDefinition;
@@ -103,8 +103,8 @@ public final class BitStringType extends DataType<BitString> implements Streamer
 
         @Override
         public ValueIndexer<BitString> valueIndexer(RelationName table,
-                                                    Reference ref,
-                                                    Function<ColumnIdent, Reference> getRef) {
+                                                    ScopedRef ref,
+                                                    Function<ColumnIdent, ScopedRef> getRef) {
             return new BitStringIndexer(ref);
         }
     };

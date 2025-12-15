@@ -34,7 +34,7 @@ import org.elasticsearch.Version;
 import io.crate.common.collections.Maps;
 import io.crate.execution.dml.ArrayIndexer;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.ArrayType;
@@ -90,7 +90,7 @@ public class ColumnFieldVisitor extends StoredFieldVisitor {
     /**
      * Ensure that the given column is loaded from stored fields
      */
-    public void registerRef(Reference ref) {
+    public void registerRef(ScopedRef ref) {
         var column = ref.column();
         if (column.name().equals(SysColumns.Names.DOC)) {
             column = column.shiftRight();

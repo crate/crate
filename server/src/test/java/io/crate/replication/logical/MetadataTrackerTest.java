@@ -57,9 +57,9 @@ import org.junit.Test;
 import io.crate.common.collections.Lists;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.replication.logical.action.PublicationsStateAction;
@@ -90,7 +90,7 @@ public class MetadataTrackerTest extends ESTestCase {
             this.clusterState = clusterState;
         }
 
-        public Builder addTable(String name, List<Reference> columns, Settings settings) throws IOException {
+        public Builder addTable(String name, List<ScopedRef> columns, Settings settings) throws IOException {
             RelationName relationName = RelationName.fromIndexName(name);
 
             Settings settingsWithDefaults = Settings.builder()
@@ -160,7 +160,7 @@ public class MetadataTrackerTest extends ESTestCase {
 
         public Builder addReplicatingTable(String subscriptionName,
                                            String name,
-                                           List<Reference> columns,
+                                           List<ScopedRef> columns,
                                            Settings settings) throws IOException {
             var newSettings = Settings.builder()
                 .put(settings)
@@ -204,7 +204,7 @@ public class MetadataTrackerTest extends ESTestCase {
             return this;
         }
 
-        public Builder addColumn(String name, Reference newColumn) throws IOException {
+        public Builder addColumn(String name, ScopedRef newColumn) throws IOException {
             RelationName relationName = RelationName.fromIndexName(name);
             RelationMetadata.Table table = clusterState.metadata().getRelation(relationName);
             assert table != null : "Table " + relationName + " not found in metadata";
@@ -323,7 +323,7 @@ public class MetadataTrackerTest extends ESTestCase {
             return clusterState;
         }
 
-        private List<Reference> buildReferences(RelationName relationName, Map<String, Object> mapping) {
+        private List<ScopedRef> buildReferences(RelationName relationName, Map<String, Object> mapping) {
             return mapping.entrySet().stream()
                 .map(entry -> new SimpleReference(
                     relationName,

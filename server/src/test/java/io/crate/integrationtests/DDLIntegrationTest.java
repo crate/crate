@@ -28,6 +28,7 @@ import static io.crate.testing.Asserts.assertThat;
 import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import static io.netty.handler.codec.http.HttpResponseStatus.CONFLICT;
 import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -45,8 +46,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.protocols.postgres.PGErrorStatus;
@@ -166,7 +167,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         DocTableInfo table = getTable("test");
         assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
         assertThat(table.primaryKey()).containsExactly(SysColumns.ID.COLUMN);
-        Reference col1 = table.getReference(ColumnIdent.of("col1"));
+        ScopedRef col1 = table.getReference(ColumnIdent.of("col1"));
         assertThat(col1)
             .isExactlyInstanceOf(GeoReference.class)
             .hasType(DataTypes.GEO_SHAPE)
@@ -208,7 +209,7 @@ public class DDLIntegrationTest extends IntegTestCase {
         DocTableInfo table = getTable("test");
         assertThat(table.columnPolicy()).isEqualTo(ColumnPolicy.STRICT);
         assertThat(table.primaryKey()).containsExactly(SysColumns.ID.COLUMN);
-        Reference col1 = table.getReference(ColumnIdent.of("col1"));
+        ScopedRef col1 = table.getReference(ColumnIdent.of("col1"));
         assertThat(col1)
             .isExactlyInstanceOf(GeoReference.class)
             .hasType(DataTypes.GEO_SHAPE)

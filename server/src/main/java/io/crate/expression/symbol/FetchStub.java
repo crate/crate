@@ -27,7 +27,7 @@ import java.io.UnsupportedEncodingException;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.DataType;
 
 /**
@@ -36,12 +36,12 @@ import io.crate.types.DataType;
 public final class FetchStub implements Symbol {
 
     private final FetchMarker fetchMarker;
-    private final Reference ref;
+    private final ScopedRef ref;
 
     /**
      * @param fetchMarker the _fetchId marker that must be used to fetch the value for the reference
      */
-    public FetchStub(FetchMarker fetchMarker, Reference ref) {
+    public FetchStub(FetchMarker fetchMarker, ScopedRef ref) {
         this.fetchMarker = fetchMarker;
         this.ref = ref;
     }
@@ -50,7 +50,7 @@ public final class FetchStub implements Symbol {
         return fetchMarker;
     }
 
-    public Reference ref() {
+    public ScopedRef ref() {
         return ref;
     }
 

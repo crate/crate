@@ -108,7 +108,7 @@ public class PartitionName implements Writeable {
             ColumnIdent column = ColumnIdent.fromPath(assignment.columnName().toString());
             int idx = partitionedBy.indexOf(column);
             try {
-                Reference reference = table.partitionedByColumns().get(idx);
+                ScopedRef reference = table.partitionedByColumns().get(idx);
                 Object converted = reference.valueType().implicitCast(value);
                 values[idx] = DataTypes.STRING.implicitCast(converted);
             } catch (IndexOutOfBoundsException ex) {

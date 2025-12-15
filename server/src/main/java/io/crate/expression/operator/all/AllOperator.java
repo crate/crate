@@ -38,7 +38,7 @@ import io.crate.metadata.FunctionProvider;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -98,9 +98,9 @@ public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOpe
 
     abstract boolean matches(T probe, T candidate);
 
-    protected abstract Query refMatchesAllArrayLiteral(Function all, Reference probe, Literal<?> literal, LuceneQueryBuilder.Context context);
+    protected abstract Query refMatchesAllArrayLiteral(Function all, ScopedRef probe, Literal<?> literal, LuceneQueryBuilder.Context context);
 
-    protected abstract Query literalMatchesAllArrayRef(Function all, Literal<?> probe, Reference candidates, LuceneQueryBuilder.Context context);
+    protected abstract Query literalMatchesAllArrayRef(Function all, Literal<?> probe, ScopedRef candidates, LuceneQueryBuilder.Context context);
 
     protected void validateRightArg(T arg) {
     }
@@ -142,9 +142,9 @@ public abstract sealed class AllOperator<T> extends Operator<T> permits AllEqOpe
         while (candidates instanceof Function fn && fn.signature().equals(ArrayUnnestFunction.SIGNATURE)) {
             candidates = fn.arguments().getFirst();
         }
-        if (probe instanceof Literal<?> literal && candidates instanceof Reference ref) {
+        if (probe instanceof Literal<?> literal && candidates instanceof ScopedRef ref) {
             return literalMatchesAllArrayRef(function, literal, ref, context);
-        } else if (probe instanceof Reference ref && candidates instanceof Literal<?> literal) {
+        } else if (probe instanceof ScopedRef ref && candidates instanceof Literal<?> literal) {
             return refMatchesAllArrayLiteral(function, ref, literal, context);
         } else {
             return null;

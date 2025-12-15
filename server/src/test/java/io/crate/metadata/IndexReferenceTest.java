@@ -54,10 +54,10 @@ public class IndexReferenceTest extends CrateDummyClusterServiceUnitTest {
             IndexType.FULLTEXT, List.of(reference), "my_analyzer");
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(out, indexReferenceInfo);
+        ScopedRef.toStream(out, indexReferenceInfo);
 
         StreamInput in = out.bytes().streamInput();
-        IndexReference indexReferenceInfo2 = Reference.fromStream(in);
+        IndexReference indexReferenceInfo2 = ScopedRef.fromStream(in);
 
         assertThat(indexReferenceInfo2).isEqualTo(indexReferenceInfo);
     }

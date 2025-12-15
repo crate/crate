@@ -29,12 +29,12 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public final class AnalyzedUpdateStatement implements AnalyzedStatement {
 
     private final AbstractTableRelation<?> table;
-    private final LinkedHashMap<Reference, Symbol> assignmentByTargetCol;
+    private final LinkedHashMap<ScopedRef, Symbol> assignmentByTargetCol;
     private final Symbol query;
 
     /**
@@ -44,7 +44,7 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
     private final List<Symbol> returnValues;
 
     public AnalyzedUpdateStatement(AbstractTableRelation<?> table,
-                                   LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
+                                   LinkedHashMap<ScopedRef, Symbol> assignmentByTargetCol,
                                    Symbol query,
                                    @Nullable List<Symbol> returnValues) {
         this.table = table;
@@ -57,7 +57,7 @@ public final class AnalyzedUpdateStatement implements AnalyzedStatement {
         return table;
     }
 
-    public LinkedHashMap<Reference, Symbol> assignmentByTargetCol() {
+    public LinkedHashMap<ScopedRef, Symbol> assignmentByTargetCol() {
         return assignmentByTargetCol;
     }
 

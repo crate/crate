@@ -48,7 +48,7 @@ import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.table.TableInfo;
@@ -148,10 +148,10 @@ public class TableInfoToAST {
     }
 
     private List<ColumnDefinition<Expression>> extractColumnDefinitions(@Nullable ColumnIdent parent) {
-        Iterator<Reference> referenceIterator = tableInfo.allColumnsSorted().iterator();
+        Iterator<ScopedRef> referenceIterator = tableInfo.allColumnsSorted().iterator();
         List<ColumnDefinition<Expression>> elements = new ArrayList<>();
         while (referenceIterator.hasNext()) {
-            Reference ref = referenceIterator.next();
+            ScopedRef ref = referenceIterator.next();
             ColumnIdent ident = ref.column();
             if (ident.isSystemColumn()) {
                 continue;
@@ -349,9 +349,9 @@ public class TableInfoToAST {
         return Literal.fromObject(result);
     }
 
-    private static List<Expression> expressionsFromReferences(List<Reference> columns) {
+    private static List<Expression> expressionsFromReferences(List<ScopedRef> columns) {
         ArrayList<Expression> expressions = new ArrayList<>(columns.size());
-        for (Reference ident : columns) {
+        for (ScopedRef ident : columns) {
             expressions.add(ident.column().toExpression());
         }
         return expressions;

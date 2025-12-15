@@ -28,7 +28,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public final class FetchSampleResponse extends TransportResponse {
 
@@ -38,7 +38,7 @@ public final class FetchSampleResponse extends TransportResponse {
         this.samples = samples;
     }
 
-    public FetchSampleResponse(List<Reference> references, StreamInput in) throws IOException {
+    public FetchSampleResponse(List<ScopedRef> references, StreamInput in) throws IOException {
         this.samples = new Samples(references, in);
     }
 

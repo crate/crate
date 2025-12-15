@@ -42,7 +42,7 @@ import io.crate.data.breaker.RamAccounting;
 import io.crate.expression.symbol.FetchReference;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -56,13 +56,13 @@ public class FetchRowsTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table t1 (x text)")
             .addTable("create table t2 (y text, z int)");
         var t1 = e.resolveTableInfo("t1");
-        var x = (Reference) e.asSymbol("x");
+        var x = (ScopedRef) e.asSymbol("x");
         var fetchSource1 = new FetchSource();
         fetchSource1.addFetchIdColumn(new InputColumn(0, DataTypes.LONG));
         fetchSource1.addRefToFetch(x);
 
         var t2 = e.resolveTableInfo("t2");
-        var y = (Reference) e.asSymbol("y");
+        var y = (ScopedRef) e.asSymbol("y");
         var fetchSource2 = new FetchSource();
         fetchSource2.addFetchIdColumn(new InputColumn(1, DataTypes.LONG));
         fetchSource2.addRefToFetch(y);

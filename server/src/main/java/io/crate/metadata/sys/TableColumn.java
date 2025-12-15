@@ -24,8 +24,8 @@ package io.crate.metadata.sys;
 import java.util.Map;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 /**
  * A virtual column that is pointing to other columns.
@@ -37,22 +37,22 @@ import io.crate.metadata.RelationName;
 public class TableColumn {
 
     private final ColumnIdent column;
-    private final Map<ColumnIdent, Reference> columns;
+    private final Map<ColumnIdent, ScopedRef> columns;
 
     /**
      * @param column  the virtual column
      * @param columns the columns this virtual column has underneath
      */
-    public TableColumn(ColumnIdent column, Map<ColumnIdent, Reference> columns) {
+    public TableColumn(ColumnIdent column, Map<ColumnIdent, ScopedRef> columns) {
         this.column = column;
         this.columns = columns;
     }
 
-    public Reference getReference(RelationName relationName, ColumnIdent columnIdent) {
+    public ScopedRef getReference(RelationName relationName, ColumnIdent columnIdent) {
         if (!columnIdent.isChildOf(column)) {
             return null;
         }
-        Reference info = columns.get(columnIdent.shiftRight());
+        ScopedRef info = columns.get(columnIdent.shiftRight());
         if (info == null) {
             return null;
         }

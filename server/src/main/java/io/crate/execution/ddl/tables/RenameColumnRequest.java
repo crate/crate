@@ -30,16 +30,16 @@ import org.jetbrains.annotations.NotNull;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public class RenameColumnRequest extends AcknowledgedRequest<RenameColumnRequest> {
 
     private final RelationName relationName;
-    private final Reference refToRename;
+    private final ScopedRef refToRename;
     private final ColumnIdent newName;
 
-    public RenameColumnRequest(@NotNull RelationName relationName, @NotNull Reference refToRename, @NotNull ColumnIdent newName) {
+    public RenameColumnRequest(@NotNull RelationName relationName, @NotNull ScopedRef refToRename, @NotNull ColumnIdent newName) {
         this.relationName = relationName;
         this.refToRename = refToRename;
         this.newName = newName;
@@ -48,7 +48,7 @@ public class RenameColumnRequest extends AcknowledgedRequest<RenameColumnRequest
     public RenameColumnRequest(StreamInput in) throws IOException {
         super(in);
         this.relationName = new RelationName(in);
-        this.refToRename = (Reference) Symbol.fromStream(in);
+        this.refToRename = (ScopedRef) Symbol.fromStream(in);
         this.newName = ColumnIdent.of(in);
     }
 
@@ -64,7 +64,7 @@ public class RenameColumnRequest extends AcknowledgedRequest<RenameColumnRequest
         return relationName;
     }
 
-    public Reference refToRename() {
+    public ScopedRef refToRename() {
         return refToRename;
     }
 

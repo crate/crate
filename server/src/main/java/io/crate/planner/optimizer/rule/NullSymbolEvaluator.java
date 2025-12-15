@@ -29,7 +29,7 @@ import io.crate.expression.symbol.ParameterSymbol;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 
 final class NullSymbolEvaluator extends BaseImplementationSymbolVisitor<Void> {
@@ -44,7 +44,7 @@ final class NullSymbolEvaluator extends BaseImplementationSymbolVisitor<Void> {
     }
 
     @Override
-    public Input<?> visitReference(Reference symbol, Void context) {
+    public Input<?> visitReference(ScopedRef symbol, Void context) {
         return Literal.NULL;
     }
 

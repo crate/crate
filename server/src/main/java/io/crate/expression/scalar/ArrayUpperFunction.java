@@ -50,8 +50,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -161,7 +161,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
             : "If the second argument to a cmp operator is a null literal it should normalize to null";
         List<Symbol> arrayLengthArgs = arrayLength.arguments();
         Symbol arraySymbol = arrayLengthArgs.get(0);
-        if (!(arraySymbol instanceof Reference arrayRef)) {
+        if (!(arraySymbol instanceof ScopedRef arrayRef)) {
             return null;
         }
         Symbol dimensionSymbol = arrayLengthArgs.get(1);
@@ -254,7 +254,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
     private static Query docValueCountOrGeneric(Function parent,
                                                 LuceneQueryBuilder.Context context,
-                                                Reference arrayRef,
+                                                ScopedRef arrayRef,
                                                 IntPredicate valueCountIsMatch) {
         BooleanQuery.Builder query = new BooleanQuery.Builder();
         query.setMinimumNumberShouldMatch(1);
@@ -269,7 +269,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
 
     private static Query genericAndDocValueCount(Function parent,
                                                  LuceneQueryBuilder.Context context,
-                                                 Reference arrayRef,
+                                                 ScopedRef arrayRef,
                                                  IntPredicate valueCountIsMatch) {
         return new BooleanQuery.Builder()
             .add(
@@ -304,7 +304,7 @@ public class ArrayUpperFunction extends Scalar<Integer, Object> {
         }
     }
 
-    private static Query toQueryUsingArrayLengthIndex(String operator, Reference arrayRef, int cmpVal, java.util.function.Function<ColumnIdent, Reference> getRef) {
+    private static Query toQueryUsingArrayLengthIndex(String operator, ScopedRef arrayRef, int cmpVal, java.util.function.Function<ColumnIdent, ScopedRef> getRef) {
         switch (operator) {
             case EqOperator.NAME:
                 if (cmpVal == 0) {

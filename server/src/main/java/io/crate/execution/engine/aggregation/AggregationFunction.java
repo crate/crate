@@ -40,8 +40,8 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionImplementation;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.DataType;
 import io.crate.types.NumericStorage;
@@ -139,18 +139,18 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
      */
     @Nullable
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
-                                                       List<Reference> aggregationReferences,
+                                                       List<ScopedRef> aggregationReferences,
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
         return null;
     }
 
-    protected Reference getAggReference(List<Reference> aggregationReferences) {
+    protected ScopedRef getAggReference(List<ScopedRef> aggregationReferences) {
         if (aggregationReferences.isEmpty()) {
             return null;
         }
-        Reference reference = aggregationReferences.getFirst();
+        ScopedRef reference = aggregationReferences.getFirst();
         if (reference == null) {
             return null;
         }
@@ -161,10 +161,10 @@ public abstract class AggregationFunction<TPartial, TFinal> implements FunctionI
     }
 
     protected DocValueAggregator<?> getNumericDocValueAggregator(
-        List<Reference> aggregationReferences,
+        List<ScopedRef> aggregationReferences,
         TriConsumer<RamAccounting, TPartial, BigDecimal> applyToState) {
 
-        Reference reference = getAggReference(aggregationReferences);
+        ScopedRef reference = getAggReference(aggregationReferences);
         if (reference == null) {
             return null;
         }

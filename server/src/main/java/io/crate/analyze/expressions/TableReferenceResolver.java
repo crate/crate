@@ -29,28 +29,28 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.analyze.relations.FieldProvider;
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.QualifiedName;
 
-public class TableReferenceResolver implements FieldProvider<Reference> {
+public class TableReferenceResolver implements FieldProvider<ScopedRef> {
 
-    private final Map<ColumnIdent, Reference> references;
+    private final Map<ColumnIdent, ScopedRef> references;
     private final RelationName relationName;
 
-    public TableReferenceResolver(Map<ColumnIdent, Reference> references, RelationName relationName) {
+    public TableReferenceResolver(Map<ColumnIdent, ScopedRef> references, RelationName relationName) {
         this.references = references;
         this.relationName = relationName;
     }
 
     @Override
-    public Reference resolveField(QualifiedName qualifiedName,
+    public ScopedRef resolveField(QualifiedName qualifiedName,
                                   @Nullable List<String> path,
                                   Operation operation,
                                   boolean errorOnUnknownObjectKey) {
         ColumnIdent columnIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
-        Reference reference = references.get(columnIdent);
+        ScopedRef reference = references.get(columnIdent);
         if (reference == null) {
             throw new ColumnUnknownException(columnIdent, relationName);
         }

@@ -65,12 +65,12 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
@@ -83,8 +83,8 @@ import io.crate.testing.UseRandomizedSchema;
 public class DocLevelCollectTest extends IntegTestCase {
 
     private static final String TEST_TABLE_NAME = "test_table";
-    private Reference testDocLevelReference;
-    private Reference underscoreIdReference;
+    private ScopedRef testDocLevelReference;
+    private ScopedRef underscoreIdReference;
 
     private static final String PARTITIONED_TABLE_NAME = "parted_table";
 

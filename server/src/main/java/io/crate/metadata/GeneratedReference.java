@@ -40,20 +40,20 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.Style;
 import io.crate.types.DataType;
 
-public final class GeneratedReference implements Reference {
+public final class GeneratedReference implements ScopedRef {
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(GeneratedReference.class);
 
-    private final Reference ref;
+    private final ScopedRef ref;
     private final String formattedGeneratedExpression;
     private final Symbol generatedExpression;
-    private final List<Reference> referencedReferences;
+    private final List<ScopedRef> referencedReferences;
 
-    public GeneratedReference(Reference ref, Symbol generatedExpression) {
+    public GeneratedReference(ScopedRef ref, Symbol generatedExpression) {
         this(ref, generatedExpression.toString(Style.UNQUALIFIED),generatedExpression);
     }
 
-    private GeneratedReference(Reference ref,
+    private GeneratedReference(ScopedRef ref,
                                String formattedGeneratedExpression,
                                Symbol generatedExpression) {
         assert generatedExpression != null : "GeneratedExpression is required";
@@ -71,13 +71,13 @@ public final class GeneratedReference implements Reference {
                 "Cannot use table function in generated expression of column `" + ref.column().fqn() + "`");
         }
         this.referencedReferences = new ArrayList<>();
-        generatedExpression.visit(Reference.class, referencedReferences::add);
+        generatedExpression.visit(ScopedRef.class, referencedReferences::add);
     }
 
     public GeneratedReference(StreamInput in) throws IOException {
         Version version = in.getVersion();
         if (version.onOrAfter(Version.V_5_0_0)) {
-            ref = Reference.fromStream(in);
+            ref = ScopedRef.fromStream(in);
         } else {
             ref = new SimpleReference(in);
         }
@@ -90,7 +90,7 @@ public final class GeneratedReference implements Reference {
         int size = in.readVInt();
         referencedReferences = new ArrayList<>(size);
         for (int i = 0; i < size; i++) {
-            referencedReferences.add(Reference.fromStream(in));
+            referencedReferences.add(ScopedRef.fromStream(in));
         }
     }
 
@@ -98,7 +98,7 @@ public final class GeneratedReference implements Reference {
     public void writeTo(StreamOutput out) throws IOException {
         Version version = out.getVersion();
         if (version.onOrAfter(Version.V_5_0_0)) {
-            Reference.toStream(out, ref);
+            ScopedRef.toStream(out, ref);
         } else {
             if (ref instanceof SimpleReference simpleRef) {
                 simpleRef.writeTo(out);
@@ -127,12 +127,12 @@ public final class GeneratedReference implements Reference {
         }
 
         out.writeVInt(referencedReferences.size());
-        for (Reference reference : referencedReferences) {
-            Reference.toStream(out, reference);
+        for (ScopedRef reference : referencedReferences) {
+            ScopedRef.toStream(out, reference);
         }
     }
 
-    public Reference reference() {
+    public ScopedRef reference() {
         return this.ref;
     }
 
@@ -144,7 +144,7 @@ public final class GeneratedReference implements Reference {
         return generatedExpression;
     }
 
-    public List<Reference> referencedReferences() {
+    public List<ScopedRef> referencedReferences() {
         return referencedReferences;
     }
 
@@ -241,11 +241,11 @@ public final class GeneratedReference implements Reference {
 
     @Override
     public Symbol cast(DataType<?> targetType, CastMode mode) {
-        Symbol result = Reference.super.cast(targetType, mode);
+        Symbol result = ScopedRef.super.cast(targetType, mode);
         if (result == this) {
             return this;
         }
-        if (result instanceof Reference castRef && !(result instanceof GeneratedReference)) {
+        if (result instanceof ScopedRef castRef && !(result instanceof GeneratedReference)) {
             return new GeneratedReference(
                 castRef,
                 formattedGeneratedExpression,
@@ -266,7 +266,7 @@ public final class GeneratedReference implements Reference {
     }
 
     @Override
-    public Reference withColumn(ColumnIdent column) {
+    public ScopedRef withColumn(ColumnIdent column) {
         return new GeneratedReference(
             ref.withColumn(column),
             formattedGeneratedExpression,
@@ -275,7 +275,7 @@ public final class GeneratedReference implements Reference {
     }
 
     @Override
-    public Reference withRelation(RelationName relation) {
+    public ScopedRef withRelation(RelationName relation) {
         return new GeneratedReference(
             ref.withRelation(relation),
             formattedGeneratedExpression,
@@ -284,8 +284,8 @@ public final class GeneratedReference implements Reference {
     }
 
     @Override
-    public Reference withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
-        Reference newRef = ref.withOidAndPosition(acquireOid, acquirePosition);
+    public ScopedRef withOidAndPosition(LongSupplier acquireOid, IntSupplier acquirePosition) {
+        ScopedRef newRef = ref.withOidAndPosition(acquireOid, acquirePosition);
         if (newRef == ref) {
             return this;
         }
@@ -293,7 +293,7 @@ public final class GeneratedReference implements Reference {
     }
 
     @Override
-    public Reference withDropped(boolean dropped) {
+    public ScopedRef withDropped(boolean dropped) {
         return new GeneratedReference(
             ref.withDropped(dropped),
             formattedGeneratedExpression,
@@ -302,7 +302,7 @@ public final class GeneratedReference implements Reference {
     }
 
     @Override
-    public Reference withValueType(DataType<?> type) {
+    public ScopedRef withValueType(DataType<?> type) {
         return new GeneratedReference(
             ref.withValueType(type),
             formattedGeneratedExpression,
@@ -316,7 +316,7 @@ public final class GeneratedReference implements Reference {
             + ref.ramBytesUsed()
             + RamUsageEstimator.sizeOf(formattedGeneratedExpression)
             + (generatedExpression == null ? 0 : generatedExpression.ramBytesUsed())
-            + referencedReferences.stream().mapToLong(Reference::ramBytesUsed).sum();
+            + referencedReferences.stream().mapToLong(ScopedRef::ramBytesUsed).sum();
     }
 
     @Override

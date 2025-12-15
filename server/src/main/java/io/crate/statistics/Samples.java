@@ -33,7 +33,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 class Samples implements Writeable {
 
@@ -49,7 +49,7 @@ class Samples implements Writeable {
         this.numTotalSizeInBytes = numTotalSizeInBytes;
     }
 
-    public Samples(List<Reference> references, StreamInput in) throws IOException {
+    public Samples(List<ScopedRef> references, StreamInput in) throws IOException {
         if (in.getVersion().before(Version.V_5_7_0)) {
             throw new UnsupportedOperationException("Cannot run ANALYZE in a mixed version cluster");
         }
@@ -62,7 +62,7 @@ class Samples implements Writeable {
         }
         this.columnSketches = new ArrayList<>(numRecords);
         for (int i = 0; i < numRecords; i++) {
-            Reference ref = references.get(i);
+            ScopedRef ref = references.get(i);
             this.columnSketches.add(ref.valueType().columnStatsSupport().readSketchFrom(in));
         }
     }
@@ -101,10 +101,10 @@ class Samples implements Writeable {
         );
     }
 
-    public Stats createTableStats(List<Reference> primitiveColumns) {
+    public Stats createTableStats(List<ScopedRef> primitiveColumns) {
         Map<ColumnIdent, ColumnStats<?>> statsByColumn = HashMap.newHashMap(primitiveColumns.size());
         for (int i = 0; i < primitiveColumns.size(); i++) {
-            Reference primitiveColumn = primitiveColumns.get(i);
+            ScopedRef primitiveColumn = primitiveColumns.get(i);
             statsByColumn.put(primitiveColumn.column(), columnSketches.get(i).toStats());
         }
         return new Stats(numTotalDocs, numTotalSizeInBytes, statsByColumn);

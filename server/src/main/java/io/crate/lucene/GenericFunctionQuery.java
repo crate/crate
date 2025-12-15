@@ -46,7 +46,7 @@ import io.crate.execution.engine.fetch.ReaderContext;
 import io.crate.expression.InputCondition;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.symbol.Function;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 /**
  * Query implementation which filters docIds by evaluating {@code condition} on each docId to verify if it matches.
@@ -90,7 +90,7 @@ public class GenericFunctionQuery extends Query {
                     return false;
                 }
                 var fields = new ArrayList<String>();
-                function.visit(Reference.class, ref -> fields.add(ref.storageIdent()));
+                function.visit(ScopedRef.class, ref -> fields.add(ref.storageIdent()));
                 return DocValues.isCacheable(ctx, fields.toArray(new String[0]));
             }
 

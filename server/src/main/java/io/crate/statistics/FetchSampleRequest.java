@@ -21,25 +21,25 @@
 
 package io.crate.statistics;
 
-import io.crate.metadata.Reference;
-import io.crate.metadata.RelationName;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Objects;
+import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public final class FetchSampleRequest extends TransportRequest {
 
     private final RelationName relationName;
-    private final List<Reference> columns;
+    private final List<ScopedRef> columns;
 
-    public FetchSampleRequest(RelationName relationName, List<Reference> columns, Version nodeVersion) {
+    public FetchSampleRequest(RelationName relationName, List<ScopedRef> columns, Version nodeVersion) {
         this.relationName = relationName;
         this.columns = columns;
         if (nodeVersion.before(Version.V_5_7_0)) {
@@ -58,7 +58,7 @@ public final class FetchSampleRequest extends TransportRequest {
         int numColumns = in.readVInt();
         this.columns = new ArrayList<>(numColumns);
         for (int i = 0; i < numColumns; i++) {
-            columns.add(Reference.fromStream(in));
+            columns.add(ScopedRef.fromStream(in));
         }
     }
 
@@ -69,8 +69,8 @@ public final class FetchSampleRequest extends TransportRequest {
             out.writeVInt(30_000);  // Old max samples value
         }
         out.writeVInt(columns.size());
-        for (Reference column : columns) {
-            Reference.toStream(out, column);
+        for (ScopedRef column : columns) {
+            ScopedRef.toStream(out, column);
         }
     }
 
@@ -78,7 +78,7 @@ public final class FetchSampleRequest extends TransportRequest {
         return relationName;
     }
 
-    public List<Reference> columns() {
+    public List<ScopedRef> columns() {
         return columns;
     }
 

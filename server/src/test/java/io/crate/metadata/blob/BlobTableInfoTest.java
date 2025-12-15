@@ -31,8 +31,8 @@ import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.DataTypes;
 
 public class BlobTableInfoTest extends ESTestCase {
@@ -49,7 +49,7 @@ public class BlobTableInfoTest extends ESTestCase {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        Reference foobar = info.getReference(ColumnIdent.of("digest"));
+        ScopedRef foobar = info.getReference(ColumnIdent.of("digest"));
         assertThat(foobar).isNotNull();
         assertThat(foobar.valueType()).isEqualTo(DataTypes.STRING);
     }

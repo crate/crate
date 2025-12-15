@@ -51,10 +51,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.MapBackedRefResolver;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.types.DataTypes;
@@ -63,7 +63,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
 
     private ReferenceResolver<NestableInput<?>> referenceResolver;
     private NodeContext nodeCtx;
-    private Reference dummyLoadInfo;
+    private ScopedRef dummyLoadInfo;
 
     private final CoordinatorTxnCtx coordinatorTxnCtx = new CoordinatorTxnCtx(CoordinatorSessionSettings.systemDefaults());
 
@@ -90,7 +90,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
      */
     private Function prepareFunctionTree() {
 
-        Reference load_1 = dummyLoadInfo;
+        ScopedRef load_1 = dummyLoadInfo;
         Literal<Double> d01 = Literal.of(0.08);
         Function load_eq_01 = new Function(
             EqOperator.SIGNATURE,

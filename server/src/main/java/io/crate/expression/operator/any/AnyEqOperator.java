@@ -35,7 +35,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
@@ -57,7 +57,7 @@ public final class AnyEqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, ScopedRef probe, Literal<?> candidates, Context context) {
         String columnName = probe.storageIdent();
         DataType<?> type = probe.valueType();
         DataType<?> innerType = ArrayType.unnest(type);
@@ -73,7 +73,7 @@ public final class AnyEqOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, ScopedRef candidates, Context context) {
         if (DataTypes.isArray(probe.valueType())) {
             // [1, 2] = any(nested_array_ref)
             return termsAndGenericFilter(any, candidates, probe.value(), context);
@@ -87,7 +87,7 @@ public final class AnyEqOperator extends AnyOperator<Object> {
     }
 
     private static Query termsAndGenericFilter(Function function,
-                                               Reference candidates,
+                                               ScopedRef candidates,
                                                Object candidate,
                                                LuceneQueryBuilder.Context context) {
         ArrayList<Object> terms = new ArrayList<>();

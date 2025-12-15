@@ -44,8 +44,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 
 /**
@@ -223,7 +223,7 @@ public class InputFactory {
     private static class RefVisitor<T extends Input<?>> extends BaseImplementationSymbolVisitor<Void> {
 
         private final ReferenceResolver<T> referenceResolver;
-        private final Map<Reference, T> referenceMap;
+        private final Map<ScopedRef, T> referenceMap;
 
         RefVisitor(TransactionContext txnCtx, NodeContext nodeCtx, ReferenceResolver<T> referenceResolver) {
             super(txnCtx, nodeCtx);
@@ -232,7 +232,7 @@ public class InputFactory {
         }
 
         @Override
-        public Input<?> visitReference(Reference ref, Void context) {
+        public Input<?> visitReference(ScopedRef ref, Void context) {
             T implementation = referenceMap.get(ref);
             if (implementation != null) {
                 return implementation;

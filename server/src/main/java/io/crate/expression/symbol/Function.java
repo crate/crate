@@ -64,7 +64,7 @@ import io.crate.expression.scalar.timestamp.CurrentTimestampFunction;
 import io.crate.expression.symbol.format.MatchPrinter;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.FunctionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.Identifiers;
 import io.crate.sql.SqlFormatter;
@@ -547,7 +547,7 @@ public class Function implements Symbol, Cloneable {
 
     private void printSubscriptFunction(StringBuilder builder, Style style) {
         Symbol base = arguments.get(0);
-        if (base instanceof Reference ref && base.valueType() instanceof ArrayType && !ref.column().path().isEmpty()) {
+        if (base instanceof ScopedRef ref && base.valueType() instanceof ArrayType && !ref.column().path().isEmpty()) {
             builder.append(ref.column().getRoot().quotedOutputName());
             builder.append("[");
             builder.append(arguments.get(1).toString(style));

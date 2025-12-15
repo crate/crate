@@ -58,12 +58,12 @@ import io.crate.metadata.IndexName;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionInfos;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutineInfo;
 import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
 import io.crate.metadata.information.UserMappingOptionsTableInfo;
@@ -505,7 +505,7 @@ public class InformationSchemaIterables {
      */
     static class NotNullConstraintIterator implements Iterator<ConstraintInfo> {
         private final RelationInfo relationInfo;
-        private final Iterator<Reference> notNullableColumns;
+        private final Iterator<ScopedRef> notNullableColumns;
 
         NotNullConstraintIterator(RelationInfo relationInfo) {
             this.relationInfo = relationInfo;
@@ -567,7 +567,7 @@ public class InformationSchemaIterables {
 
     static class ColumnsIterator implements Iterator<ColumnContext> {
 
-        private final Iterator<Reference> columns;
+        private final Iterator<ScopedRef> columns;
         private final RelationInfo tableInfo;
 
         ColumnsIterator(RelationInfo tableInfo) {

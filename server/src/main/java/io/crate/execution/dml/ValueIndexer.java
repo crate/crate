@@ -30,7 +30,7 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 /**
  * Component used to index values. An implementation must:
@@ -63,7 +63,7 @@ public interface ValueIndexer<T> {
      * Only {@link ObjectIndexer}, {@link ArrayIndexer} and {@link DynamicIndexer} can create new columns.
      */
     default void collectSchemaUpdates(@Nullable T value,
-                                      Consumer<? super Reference> onDynamicColumn,
+                                      Consumer<? super ScopedRef> onDynamicColumn,
                                       Synthetics synthetics) throws IOException {}
 
     /**
@@ -73,7 +73,7 @@ public interface ValueIndexer<T> {
      *
      * @param getRef A function that returns a reference for a given column ident based on the current cluster state
      */
-    default void updateTargets(Function<ColumnIdent, Reference> getRef) {}
+    default void updateTargets(Function<ColumnIdent, ScopedRef> getRef) {}
 
     /**
      * Writes a value into an indexable document

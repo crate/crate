@@ -83,12 +83,12 @@ import io.crate.metadata.IndexReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionInfo;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.ReferenceTree;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.NumberOfReplicas;
 import io.crate.metadata.sys.TableColumn;
@@ -171,18 +171,18 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public static final Setting<Long> DEPTH_LIMIT_SETTING =
         Setting.longSetting("index.mapping.depth.limit", 100L, 1, Property.Dynamic, Property.IndexScope);
 
-    private final List<Reference> rootColumns;
-    private final Set<Reference> droppedColumns;
+    private final List<ScopedRef> rootColumns;
+    private final Set<ScopedRef> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
-    private final List<Reference> partitionedByColumns;
-    private final List<Reference> defaultExpressionColumns;
+    private final List<ScopedRef> partitionedByColumns;
+    private final List<ScopedRef> defaultExpressionColumns;
     private final Collection<ColumnIdent> notNullColumns;
     private final Map<ColumnIdent, IndexReference> indexColumns;
     /**
      * Top level and nested columns, including system columns. Excludes dropped columns
      **/
-    private final Map<ColumnIdent, Reference> allColumns;
-    private final Map<String, Reference> leafByOid;
+    private final Map<ColumnIdent, ScopedRef> allColumns;
+    private final Map<String, ScopedRef> leafByOid;
     private final RelationName ident;
     @Nullable
     private final String pkConstraintName;
@@ -205,9 +205,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final long tableVersion;
 
     public DocTableInfo(RelationName ident,
-                        Map<ColumnIdent, Reference> references,
+                        Map<ColumnIdent, ScopedRef> references,
                         Map<ColumnIdent, IndexReference> indexColumns,
-                        Set<Reference> droppedColumns,
+                        Set<ScopedRef> droppedColumns,
                         @Nullable String pkConstraintName,
                         List<ColumnIdent> primaryKeys,
                         List<CheckConstraint<Symbol>> checkConstraints,
@@ -224,8 +224,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> !primaryKeys.contains(r.column()))
             .filter(r -> !r.isNullable())
-            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
-            .map(Reference::column)
+            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME)
+            .map(ScopedRef::column)
             .toList();
         this.droppedColumns = droppedColumns;
         this.allColumns = references.entrySet().stream()
@@ -234,11 +234,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.rootColumns = this.allColumns.values().stream()
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> r.column().isRoot())
-            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
+            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME)
             .toList();
         SysColumns.forTable(ident, this.allColumns::put);
         this.partitionedByColumns = Lists.map(partitionedBy, x -> {
-            Reference ref = this.allColumns.get(x);
+            ScopedRef ref = this.allColumns.get(x);
             assert ref != null : "Column in `partitionedBy` must be present in `references`";
             return ref;
         });
@@ -319,8 +319,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Nullable
-    public Reference getReference(ColumnIdent columnIdent) {
-        Reference reference = allColumns.get(columnIdent);
+    public ScopedRef getReference(ColumnIdent columnIdent) {
+        ScopedRef reference = allColumns.get(columnIdent);
         if (reference == null) {
             return docColumn.getReference(ident(), columnIdent);
         }
@@ -328,7 +328,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Nullable
-    public Reference getReference(long oid) {
+    public ScopedRef getReference(long oid) {
         for (var ref : allColumns.values()) {
             if (ref.oid() == oid) {
                 return ref;
@@ -343,7 +343,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Nullable
-    public Reference getReference(String storageIdent) {
+    public ScopedRef getReference(String storageIdent) {
         long[] out = StringUtils.PARSE_LONG_BUFFER.get();
         if (StringUtils.tryParseLong(storageIdent, out)) {
             long oid = out[0];
@@ -352,30 +352,30 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return getReference(ColumnIdent.fromPath(storageIdent));
     }
 
-    public List<Reference> getChildReferences(Reference parent) {
+    public List<ScopedRef> getChildReferences(ScopedRef parent) {
         return referenceTree().getChildren(parent);
     }
 
-    public List<Reference> getLeafReferences(Reference parent) {
+    public List<ScopedRef> getLeafReferences(ScopedRef parent) {
         return referenceTree().findDescendants(parent);
     }
 
-    public Reference findParentReferenceMatching(Reference child, Predicate<Reference> test) {
+    public ScopedRef findParentReferenceMatching(ScopedRef child, Predicate<ScopedRef> test) {
         return referenceTree().findFirstParentMatching(child, test);
     }
 
-    public Predicate<Reference> isParentReferenceIgnored() {
+    public Predicate<ScopedRef> isParentReferenceIgnored() {
         return ref -> findParentReferenceMatching(ref, r -> r.valueType().columnPolicy() == ColumnPolicy.IGNORED) != null;
     }
 
     /**
      * Checks if the ref is an ignored object type or a non-object type that is a child of ignored object.
      */
-    public boolean isIgnoredOrImmediateChildOfIgnored(Reference ref) {
+    public boolean isIgnoredOrImmediateChildOfIgnored(ScopedRef ref) {
         if (ArrayType.unnest(ref.valueType()) instanceof ObjectType objectType) {
             return objectType.columnPolicy() == ColumnPolicy.IGNORED;
         }
-        for (Reference parent : getParents(ref.column())) {
+        for (ScopedRef parent : getParents(ref.column())) {
             if (parent == null) {
                 continue;
             }
@@ -392,12 +392,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public List<Reference> rootColumns() {
+    public List<ScopedRef> rootColumns() {
         return rootColumns;
     }
 
     @Override
-    public Set<Reference> droppedColumns() {
+    public Set<ScopedRef> droppedColumns() {
         return droppedColumns;
     }
 
@@ -406,7 +406,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return Math.max(
             allColumns.values().stream()
                 .filter(ref -> !ref.column().isSystemColumn())
-                .mapToInt(Reference::position)
+                .mapToInt(ScopedRef::position)
                 .max()
                 .orElse(0),
             indexColumns.values().stream()
@@ -421,7 +421,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         long maxNonDropped = Math.max(
             allColumns.values().stream()
                 .filter(ref -> !ref.column().isSystemColumn())
-                .mapToLong(Reference::oid)
+                .mapToLong(ScopedRef::oid)
                 .max()
                 .orElse(COLUMN_OID_UNASSIGNED),
             indexColumns.values().stream()
@@ -430,13 +430,13 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 .orElse(COLUMN_OID_UNASSIGNED)
         );
         long maxDropped = droppedColumns.stream()
-            .mapToLong(Reference::oid)
+            .mapToLong(ScopedRef::oid)
             .max()
             .orElse(COLUMN_OID_UNASSIGNED);
         return Math.max(maxNonDropped, maxDropped);
     }
 
-    public List<Reference> defaultExpressionColumns() {
+    public List<ScopedRef> defaultExpressionColumns() {
         return defaultExpressionColumns;
     }
 
@@ -555,7 +555,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      *
      * @return always a list, never null
      */
-    public List<Reference> partitionedByColumns() {
+    public List<ScopedRef> partitionedByColumns() {
         return partitionedByColumns;
     }
 
@@ -594,7 +594,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 : "Number of values in partitionIdent must match number of partitionedBy columns";
             for (int i = 0; i < values.size(); i++) {
                 String value = values.get(i);
-                Reference reference = partitionedByColumns.get(i);
+                ScopedRef reference = partitionedByColumns.get(i);
                 valuesMap.put(
                     reference.column().sqlFqn(),
                     reference.valueType().implicitCast(value)
@@ -636,14 +636,14 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Iterator<Reference> iterator() {
+    public Iterator<ScopedRef> iterator() {
         return allColumns.values().iterator();
     }
 
     @Override
-    public Stream<Reference> allColumnsSorted() {
+    public Stream<ScopedRef> allColumnsSorted() {
         return allColumns.values().stream()
-            .sorted(Reference.CMP_BY_POSITION_THEN_NAME);
+            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME);
     }
 
     /**
@@ -693,7 +693,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Nullable
     public String getAnalyzerForColumnIdent(ColumnIdent ident) {
-        Reference reference = allColumns.get(ident);
+        ScopedRef reference = allColumns.get(ident);
         if (reference instanceof GeneratedReference gen) {
             reference = gen.reference();
         }
@@ -750,11 +750,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @NotNull
-    public Reference resolveColumn(String targetColumnName,
+    public ScopedRef resolveColumn(String targetColumnName,
                                    boolean forWrite,
                                    boolean errorOnUnknownObjectKey) throws ColumnUnknownException {
         ColumnIdent columnIdent = ColumnIdent.fromPath(targetColumnName);
-        Reference reference = getReference(columnIdent);
+        ScopedRef reference = getReference(columnIdent);
         if (forWrite && columnIdent.isSystemColumn()) {
             throw new InvalidColumnNameException(targetColumnName, "Cannot write to system column");
         }
@@ -781,7 +781,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public UnaryOperator<String> lookupNameBySourceKey() {
         return oidOrName -> {
-            Reference ref = leafByOid.get(oidOrName);
+            ScopedRef ref = leafByOid.get(oidOrName);
             if (ref == null) {
                 if (oidOrName.startsWith(UNKNOWN_COLUMN_PREFIX)) {
                     // Returns an empty string for an empty key (which is valid JSON)
@@ -797,7 +797,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
 
     private void validateDropColumns(List<DropColumn> dropColumns) {
-        var leftOverCols = rootColumns().stream().map(Reference::column).collect(Collectors.toSet());
+        var leftOverCols = rootColumns().stream().map(ScopedRef::column).collect(Collectors.toSet());
         for (int i = 0 ; i < dropColumns.size(); i++) {
             var refToDrop = dropColumns.get(i).ref();
             var colToDrop = refToDrop.column();
@@ -820,7 +820,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
             for (var checkConstraint : checkConstraints()) {
                 Set<ColumnIdent> columnsInConstraint = new HashSet<>();
-                checkConstraint.expression().visit(Reference.class, r -> columnsInConstraint.add(r.column()));
+                checkConstraint.expression().visit(ScopedRef.class, r -> columnsInConstraint.add(r.column()));
                 if (columnsInConstraint.size() > 1 && columnsInConstraint.contains(colToDrop)) {
                     throw new UnsupportedOperationException("Dropping column: " + colToDrop.sqlFqn() + " which " +
                         "is used in CHECK CONSTRAINT: " + checkConstraint.name() + " is not allowed");
@@ -860,11 +860,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      */
     private void updateParentsInnerTypes(ColumnIdent column,
                                          @Nullable DataType<?> type,
-                                         Map<ColumnIdent, Reference> newReferences) {
+                                         Map<ColumnIdent, ScopedRef> newReferences) {
         ColumnIdent[] child = new ColumnIdent[]{column};
         DataType<?>[] childType = new DataType[]{type};
         for (var parent : column.parents()) {
-            Reference parentRef = newReferences.get(parent);
+            ScopedRef parentRef = newReferences.get(parent);
             if (parentRef == null) {
                 throw new ColumnUnknownException(column, ident);
             }
@@ -874,7 +874,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                     ((ObjectType) leaf).withoutChild(child[0].leafName()) :
                     ((ObjectType) leaf).withChild(child[0].leafName(), childType[0])
             );
-            Reference updatedParent = parentRef.withValueType(newParentType);
+            ScopedRef updatedParent = parentRef.withValueType(newParentType);
             newReferences.replace(parent, updatedParent);
             child[0] = updatedParent.column();
             childType[0] = updatedParent.valueType();
@@ -910,11 +910,11 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo dropColumns(List<DropColumn> columns) {
         validateDropColumns(columns);
-        HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(allColumns);
-        Set<Reference> newDroppedColumns = new HashSet<>();
+        HashMap<ColumnIdent, ScopedRef> newReferences = new HashMap<>(allColumns);
+        Set<ScopedRef> newDroppedColumns = new HashSet<>();
         for (var column : columns) {
             ColumnIdent columnIdent = column.ref().column();
-            Reference reference = allColumns.get(columnIdent);
+            ScopedRef reference = allColumns.get(columnIdent);
             if (newDroppedColumns.contains(reference)) {
                 continue;
             }
@@ -929,7 +929,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 // fixing the inner types of the ancestors will be handled by the parent.
                 updateParentsInnerTypes(columnIdent, null, newReferences);
             }
-            Reference droppedRef = reference.withDropped(true);
+            ScopedRef droppedRef = reference.withDropped(true);
             newDroppedColumns.add(droppedRef);
             newReferences.replace(columnIdent, droppedRef);
             for (var ref : allColumns.values()) {
@@ -980,7 +980,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         );
     }
 
-    private void validateRenameColumn(Reference refToRename, ColumnIdent newName) {
+    private void validateRenameColumn(ScopedRef refToRename, ColumnIdent newName) {
         var oldName = refToRename.column();
         var reference = getReference(oldName);
         if (reference == null) {
@@ -994,7 +994,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
     }
 
-    public DocTableInfo renameColumn(Reference refToRename, ColumnIdent newName) {
+    public DocTableInfo renameColumn(ScopedRef refToRename, ColumnIdent newName) {
         validateRenameColumn(refToRename, newName);
         final ColumnIdent oldName = refToRename.column();
 
@@ -1005,7 +1005,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         //      2) rename dependencies such as GeneratedReferences, IndexReferences, Check Constraints, etc.
         // where 1) is used to perform 2).
 
-        Map<ColumnIdent, Reference> oldNameToRenamedRefs = new HashMap<>();
+        Map<ColumnIdent, ScopedRef> oldNameToRenamedRefs = new HashMap<>();
         for (var ref : allColumns.values()) {
             ColumnIdent column = ref.column();
             if (toBeRenamed.test(column)) {
@@ -1021,7 +1021,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         // add newNames to the inner types of the ancestors
         updateParentsInnerTypes(newName, refToRename.valueType(), oldNameToRenamedRefs);
 
-        UnaryOperator<Reference> renameGeneratedRefs = ref -> {
+        UnaryOperator<ScopedRef> renameGeneratedRefs = ref -> {
             if (ref instanceof GeneratedReference genRef) {
                 return new GeneratedReference(
                     genRef.reference(), // already renamed in step 1)
@@ -1051,10 +1051,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
         var renamedReferences = oldNameToRenamedRefs.values().stream()
             .map(renameGeneratedRefs)
-            .collect(Collectors.toMap(Reference::column, ref -> ref));
+            .collect(Collectors.toMap(ScopedRef::column, ref -> ref));
         var renamedIndexColumns = indexColumns.values().stream()
             .map(renameIndexRefs)
-            .collect(Collectors.toMap(Reference::column, ref -> ref));
+            .collect(Collectors.toMap(ScopedRef::column, ref -> ref));
 
         UnaryOperator<ColumnIdent> renameColumnIfMatch = column -> toBeRenamed.test(column) ? column.replacePrefix(newName) : column;
 
@@ -1084,7 +1084,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public static void checkTotalColumnsLimit(RelationName name,
                                               Settings indexSettings,
-                                              Stream<Reference> columns) {
+                                              Stream<ScopedRef> columns) {
         long numColumns = columns.filter(col -> !col.column().isSystemColumn()).count();
         long allowedTotalColumns = TOTAL_COLUMNS_LIMIT.get(indexSettings);
         if (numColumns > allowedTotalColumns) {
@@ -1094,7 +1094,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public static void checkObjectDepthLimit(RelationName name,
                                              Settings indexSettings,
-                                             List<Reference> columns) {
+                                             List<ScopedRef> columns) {
         int maxDepth = columns.stream()
             .mapToInt(ref -> ref.column().path().size())
             .max()
@@ -1107,7 +1107,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public Metadata.Builder writeTo(Metadata metadata,
                                     Metadata.Builder metadataBuilder) throws IOException {
-        List<Reference> allColumns = Stream.concat(
+        List<ScopedRef> allColumns = Stream.concat(
                 Stream.concat(
                     droppedColumns.stream(),
                     indexColumns.values().stream()
@@ -1115,7 +1115,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 this.allColumns.values().stream()
             )
             .filter(ref -> !ref.column().isSystemColumn())
-            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
+            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME)
             .toList();
         LinkedHashMap<String, String> checkConstraintMap = LinkedHashMap.newLinkedHashMap(checkConstraints.size());
         for (var check : checkConstraints) {
@@ -1128,7 +1128,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             allColumns,
             primaryKeys,
             checkConstraintMap,
-            Lists.map(partitionedByColumns, Reference::column),
+            Lists.map(partitionedByColumns, ScopedRef::column),
             columnPolicy,
             clusteredBy == SysColumns.ID.COLUMN ? null : clusteredBy
         ));
@@ -1192,17 +1192,17 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     private boolean addNewReferences(AtomicInteger positions,
-                                     HashMap<ColumnIdent, Reference> newReferences,
-                                     HashMap<ColumnIdent, List<Reference>> tree,
+                                     HashMap<ColumnIdent, ScopedRef> newReferences,
+                                     HashMap<ColumnIdent, List<ScopedRef>> tree,
                                      @Nullable ColumnIdent node) {
-        List<Reference> children = tree.get(node);
+        List<ScopedRef> children = tree.get(node);
         if (children == null) {
             return false;
         }
         boolean addedColumn = false;
-        for (Reference newRef : children) {
+        for (ScopedRef newRef : children) {
             ColumnIdent newColumn = newRef.column();
-            Reference exists = getReference(newColumn);
+            ScopedRef exists = getReference(newColumn);
             if (exists == null) {
                 if (indexColumns.containsKey(newColumn)) {
                     throw new UnsupportedOperationException(String.format(
@@ -1241,12 +1241,12 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         return addedColumn;
     }
 
-    private List<Reference> addMissingParents(List<Reference> columns) {
-        ArrayList<Reference> result = new ArrayList<>(columns);
-        for (Reference ref : columns) {
+    private List<ScopedRef> addMissingParents(List<ScopedRef> columns) {
+        ArrayList<ScopedRef> result = new ArrayList<>(columns);
+        for (ScopedRef ref : columns) {
             for (ColumnIdent parent : ref.column().parents()) {
                 if (!Symbols.hasColumn(result, parent)) {
-                    Reference parentRef = getReference(parent);
+                    ScopedRef parentRef = getReference(parent);
                     if (parentRef == null) {
                         throw new UnsupportedOperationException(
                             "Cannot create parents of new column implicitly. `" + parent + "` is undefined");
@@ -1260,23 +1260,23 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     public DocTableInfo addColumns(NodeContext nodeCtx,
                                    FulltextAnalyzerResolver fulltextAnalyzerResolver,
-                                   List<Reference> newColumns,
+                                   List<ScopedRef> newColumns,
                                    IntArrayList pKeyIndices,
                                    Map<String, String> newCheckConstraints) {
         newColumns.forEach(ref -> ref.column().validForCreate());
         checkTotalColumnsLimit(ident, tableParameters, Stream.concat(allColumns.values().stream(), newColumns.stream()));
         checkObjectDepthLimit(ident, tableParameters, newColumns);
-        HashMap<ColumnIdent, Reference> newReferences = new HashMap<>(this.allColumns);
+        HashMap<ColumnIdent, ScopedRef> newReferences = new HashMap<>(this.allColumns);
         int maxPosition = maxPosition();
         AtomicInteger positions = new AtomicInteger(maxPosition);
-        List<Reference> newColumnsWithParents = addMissingParents(newColumns);
-        HashMap<ColumnIdent, List<Reference>> tree = Reference.buildTree(newColumnsWithParents);
+        List<ScopedRef> newColumnsWithParents = addMissingParents(newColumns);
+        HashMap<ColumnIdent, List<ScopedRef>> tree = ScopedRef.buildTree(newColumnsWithParents);
         boolean addedColumn = addNewReferences(positions, newReferences, tree, null);
         if (!addedColumn) {
             return this;
         }
         Settings.Builder newSettingsBuilder = Settings.builder().put(tableParameters);
-        for (Reference newRef : newColumns) {
+        for (ScopedRef newRef : newColumns) {
             if (newColumns.stream().noneMatch(r -> r.column().isChildOf(newRef.column()))) {
                 // if a child and its parent is added together,
                 // fixing the inner types of the ancestors will be handled by the child
@@ -1297,7 +1297,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             newPrimaryKeys = new ArrayList<>(primaryKeys);
             for (var cursor : pKeyIndices) {
                 int pkIndex = cursor.value;
-                Reference pkColumn = newColumns.get(pkIndex);
+                ScopedRef pkColumn = newColumns.get(pkIndex);
                 newPrimaryKeys.add(pkColumn.column());
             }
         }
@@ -1346,7 +1346,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     /**
      * All columns, including indexed, nested and dropped columns
      **/
-    public List<Reference> allReferences() {
+    public List<ScopedRef> allReferences() {
         return Lists.concat(Lists.concat(allColumns.values(), droppedColumns), indexColumns.values());
     }
 }

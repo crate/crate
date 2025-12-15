@@ -34,8 +34,8 @@ import io.crate.Streamer;
 import io.crate.execution.dml.IndexDocumentBuilder;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class UndefinedType extends DataType<Object> implements Streamer<Object> {
@@ -124,7 +124,7 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
     public @Nullable StorageSupport<? super Object> storageSupport() {
         return new StorageSupport<>(false, false, EqQuery.nonMatchingEqQuery()) {
             @Override
-            public ValueIndexer<? super Object> valueIndexer(RelationName table, Reference ref, Function<ColumnIdent, Reference> getRef) {
+            public ValueIndexer<? super Object> valueIndexer(RelationName table, ScopedRef ref, Function<ColumnIdent, ScopedRef> getRef) {
                 return new ValueIndexer<>() {
                     @Override
                     public void indexValue(@NotNull Object value, IndexDocumentBuilder docBuilder) {

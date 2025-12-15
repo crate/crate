@@ -31,15 +31,15 @@ import org.apache.lucene.document.StoredField;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 
 public class IntIndexer implements ValueIndexer<Number> {
 
     private final String name;
-    private final Reference ref;
+    private final ScopedRef ref;
 
-    public IntIndexer(Reference ref) {
+    public IntIndexer(ScopedRef ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
     }

@@ -56,8 +56,8 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.format.Style;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.Signature;
 import io.crate.session.Session;
@@ -424,7 +424,7 @@ public class EqualityExtractor {
         }
 
         @Override
-        public Symbol visitReference(Reference ref, Context ctx) {
+        public Symbol visitReference(ScopedRef ref, Context ctx) {
             var comparison = ctx.comparisons.get(ref.column());
             if (comparison != null) {
                 if (ctx.isUnderOrOperator) {
@@ -464,7 +464,7 @@ public class EqualityExtractor {
             ctx.isUnderLogicalOperator = false;
             if (functionName.equals(EqOperator.NAME)) {
                 Symbol firstArg = arguments.get(0).accept(this, ctx);
-                if (firstArg instanceof Reference ref && arguments.get(1).any(Symbol.IS_COLUMN) == false) {
+                if (firstArg instanceof ScopedRef ref && arguments.get(1).any(Symbol.IS_COLUMN) == false) {
                     Comparison comparison = ctx.comparisons.get(ref.column());
                     if (comparison != null) {
                         ctx.proxyBelow = true;
@@ -474,7 +474,7 @@ public class EqualityExtractor {
             } else if (functionName.equals(AnyEqOperator.NAME) && arguments.get(1).symbolType().isValueSymbol()) {
                 Symbol firstArg = arguments.get(0).accept(this, ctx);
                 // ref = any ([1,2,3])
-                if (firstArg instanceof Reference ref) {
+                if (firstArg instanceof ScopedRef ref) {
                     Comparison comparison = ctx.comparisons.get(ref.column());
                     if (comparison != null) {
                         ctx.proxyBelow = true;

@@ -36,8 +36,8 @@ import io.crate.auth.AccessControl;
 import io.crate.data.Row;
 import io.crate.exceptions.SQLExceptions;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.pgcatalog.OidHash;
 import io.crate.protocols.postgres.types.PGType;
 import io.crate.protocols.postgres.types.PGTypes;
@@ -415,7 +415,7 @@ public final class Messages {
     }
 
     private static boolean isRefWithPosition(Symbol symbol) {
-        return symbol instanceof Reference ref && ref.position() != 0;
+        return symbol instanceof ScopedRef ref && ref.position() != 0;
     }
 
     /**
@@ -459,7 +459,7 @@ public final class Messages {
             writeCString(buffer, nameBytes);
             buffer.writeInt(tableOid);
             // attr_num
-            if (column instanceof Reference ref) {
+            if (column instanceof ScopedRef ref) {
                 int position = ref.position();
                 buffer.writeShort(position);
             } else {

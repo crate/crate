@@ -39,7 +39,7 @@ import io.crate.sql.tree.CheckConstraint;
 /**
  * Base interface for tables ({@link io.crate.metadata.table.TableInfo}) and views ({@link io.crate.metadata.view.ViewInfo}).
  */
-public interface RelationInfo extends Iterable<Reference> {
+public interface RelationInfo extends Iterable<ScopedRef> {
 
     String PK_SUFFIX = "_pkey";
 
@@ -60,7 +60,7 @@ public interface RelationInfo extends Iterable<Reference> {
     }
 
     /// A stream over both - top level and child columns - sorted by position and name
-    public Stream<Reference> allColumnsSorted();
+    public Stream<ScopedRef> allColumnsSorted();
 
     /**
      * Returns the root columns of this table with predictable order.
@@ -74,16 +74,16 @@ public interface RelationInfo extends Iterable<Reference> {
      * root, child, system and index columns.
      * </p>
      */
-    Collection<Reference> rootColumns();
+    Collection<ScopedRef> rootColumns();
 
-    default Collection<Reference> droppedColumns() {
+    default Collection<ScopedRef> droppedColumns() {
         return List.of();
     }
 
     default int maxPosition() {
         return rootColumns().stream()
             .filter(ref -> !ref.column().isSystemColumn())
-            .mapToInt(Reference::position)
+            .mapToInt(ScopedRef::position)
             .max()
             .orElse(0);
     }
@@ -91,7 +91,7 @@ public interface RelationInfo extends Iterable<Reference> {
     default long maxOid() {
         return rootColumns().stream()
             .filter(ref -> !ref.column().isSystemColumn())
-            .mapToLong(Reference::oid)
+            .mapToLong(ScopedRef::oid)
             .max()
             .orElse(COLUMN_OID_UNASSIGNED);
     }

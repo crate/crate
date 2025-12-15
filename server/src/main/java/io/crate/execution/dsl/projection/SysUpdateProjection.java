@@ -36,15 +36,15 @@ import org.jetbrains.annotations.Nullable;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.DataTypes;
 
 public class SysUpdateProjection extends Projection {
 
     private final Symbol uidSymbol;
 
-    private Map<Reference, Symbol> assignments;
+    private Map<ScopedRef, Symbol> assignments;
 
     private Symbol[] outputs;
 
@@ -52,7 +52,7 @@ public class SysUpdateProjection extends Projection {
     private Symbol[] returnValues;
 
     public SysUpdateProjection(Symbol uidSymbol,
-                               Map<Reference, Symbol> assignments,
+                               Map<ScopedRef, Symbol> assignments,
                                Symbol[] outputs,
                                @Nullable Symbol[] returnValues
     ) {
@@ -69,7 +69,7 @@ public class SysUpdateProjection extends Projection {
         int numAssignments = in.readVInt();
         assignments = new HashMap<>(numAssignments, 1.0f);
         for (int i = 0; i < numAssignments; i++) {
-            assignments.put(Reference.fromStream(in), Symbol.fromStream(in));
+            assignments.put(ScopedRef.fromStream(in), Symbol.fromStream(in));
         }
         if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
             int outputSize = in.readVInt();
@@ -111,7 +111,7 @@ public class SysUpdateProjection extends Projection {
         return visitor.visitSysUpdateProjection(this, context);
     }
 
-    public Map<Reference, Symbol> assignments() {
+    public Map<ScopedRef, Symbol> assignments() {
         return assignments;
     }
 
@@ -119,8 +119,8 @@ public class SysUpdateProjection extends Projection {
     public void writeTo(StreamOutput out) throws IOException {
         Symbol.toStream(uidSymbol, out);
         out.writeVInt(assignments.size());
-        for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
-            Reference.toStream(out, e.getKey());
+        for (Map.Entry<ScopedRef, Symbol> e : assignments.entrySet()) {
+            ScopedRef.toStream(out, e.getKey());
             Symbol.toStream(e.getValue(), out);
         }
 

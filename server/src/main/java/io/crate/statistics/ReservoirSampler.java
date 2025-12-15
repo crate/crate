@@ -80,9 +80,9 @@ import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.types.DataType;
@@ -132,7 +132,7 @@ public final class ReservoirSampler {
         rateLimiter.setMBPerSec(newReadLimit.getMbFrac()); // mbPerSec is volatile in SimpleRateLimiter, one volatile write
     }
 
-    Samples getSamples(RelationName relationName, List<Reference> columns) {
+    Samples getSamples(RelationName relationName, List<ScopedRef> columns) {
         TableInfo table;
         try {
             table = schemas.getTableInfo(relationName);
@@ -162,7 +162,7 @@ public final class ReservoirSampler {
         }
     }
 
-    private Samples getSamples(List<Reference> columns,
+    private Samples getSamples(List<ScopedRef> columns,
                                DocTableInfo docTable,
                                SketchRamAccounting ramAccounting,
                                Random random,
@@ -248,7 +248,7 @@ public final class ReservoirSampler {
         List<String> partitionValues,
         DocTableInfo docTable,
         Version shardCreatedVersion,
-        List<Reference> columns
+        List<ScopedRef> columns
     ) {
         LuceneReferenceResolver referenceResolver = new LuceneReferenceResolver(
             partitionValues,

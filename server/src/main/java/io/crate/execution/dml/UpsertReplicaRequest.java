@@ -39,8 +39,8 @@ import io.crate.Streamer;
 import io.crate.common.collections.Lists;
 import io.crate.execution.dml.upsert.ShardUpsertRequest;
 import io.crate.execution.dml.upsert.ShardUpsertRequest.DuplicateKeyAction;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
 
@@ -48,13 +48,13 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
 
     private static final long SHALLOW_SIZE = RamUsageEstimator.shallowSizeOfInstance(UpsertReplicaRequest.class);
 
-    private final List<Reference> columns;
+    private final List<ScopedRef> columns;
     private final SessionSettings sessionSettings;
 
     public UpsertReplicaRequest(ShardId shardId,
                                 UUID jobId,
                                 SessionSettings sessionSettings,
-                                List<Reference> columns,
+                                List<ScopedRef> columns,
                                 List<UpsertReplicaRequest.Item> items) {
         super(shardId, jobId);
         this.sessionSettings = sessionSettings;
@@ -86,8 +86,8 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
             this.columns = new ArrayList<>(numColumns);
             for (int i = 0; i < numColumns; i++) {
                 long oid = in.readLong();
-                Reference column = oid == Metadata.COLUMN_OID_UNASSIGNED
-                    ? Reference.fromStream(in)
+                ScopedRef column = oid == Metadata.COLUMN_OID_UNASSIGNED
+                    ? ScopedRef.fromStream(in)
                     : table.getReference(oid);
                 if (column == null) {
                     throw new IllegalStateException("Reference with oid=" + oid + " not found");
@@ -95,7 +95,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
                 columns.add(column);
             }
         } else {
-            this.columns = in.readList(Reference::fromStream);
+            this.columns = in.readList(ScopedRef::fromStream);
         }
         int numItems = in.readVInt();
         this.items = new ArrayList<>(numItems);
@@ -107,7 +107,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         if (out.getVersion().onOrBefore(Version.V_5_10_10)) {
-            Reference[] insertColumns = columns.toArray(Reference[]::new);
+            ScopedRef[] insertColumns = columns.toArray(ScopedRef[]::new);
             ShardUpsertRequest shardUpsertRequest = new ShardUpsertRequest(
                 shardId,
                 jobId(),
@@ -141,14 +141,14 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
         sessionSettings.writeTo(out);
         if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
             out.writeVInt(columns.size());
-            for (Reference column : columns) {
+            for (ScopedRef column : columns) {
                 out.writeLong(column.oid());
                 if (column.oid() == Metadata.COLUMN_OID_UNASSIGNED) {
-                    Reference.toStream(out, column);
+                    ScopedRef.toStream(out, column);
                 }
             }
         } else {
-            out.writeCollection(columns, Reference::toStream);
+            out.writeCollection(columns, ScopedRef::toStream);
         }
         out.writeVInt(items.size());
         for (Item items : items) {
@@ -156,7 +156,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
         }
     }
 
-    public List<Reference> columns() {
+    public List<ScopedRef> columns() {
         return columns;
     }
 
@@ -213,7 +213,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
             );
         }
 
-        public Item(StreamInput in, List<Reference> columns) throws IOException {
+        public Item(StreamInput in, List<ScopedRef> columns) throws IOException {
             super(in);
             int numValues = in.readVInt();
             // numValues can be < columns, due to ON CONFLICT
@@ -226,7 +226,7 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
         }
 
         @SuppressWarnings("unchecked")
-        public void writeTo(StreamOutput out, List<Reference> columns) throws IOException {
+        public void writeTo(StreamOutput out, List<ScopedRef> columns) throws IOException {
             super.writeTo(out);
             out.writeVInt(values.length);
             for (int i = 0; i < values.length; i++) {

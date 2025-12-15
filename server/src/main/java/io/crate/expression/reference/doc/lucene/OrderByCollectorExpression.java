@@ -26,7 +26,7 @@ import java.util.function.UnaryOperator;
 import org.apache.lucene.search.FieldDoc;
 
 import io.crate.analyze.OrderBy;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 /**
  * A {@link LuceneCollectorExpression} is used to collect
@@ -40,7 +40,7 @@ public class OrderByCollectorExpression extends LuceneCollectorExpression<Object
 
     private Object value;
 
-    public OrderByCollectorExpression(Reference ref, OrderBy orderBy, UnaryOperator<Object> valueConversion) {
+    public OrderByCollectorExpression(ScopedRef ref, OrderBy orderBy, UnaryOperator<Object> valueConversion) {
         this.valueConversion = valueConversion;
         assert orderBy.orderBySymbols().contains(ref) : "symbol must be part of orderBy symbols";
         orderIndex = orderBy.orderBySymbols().indexOf(ref);

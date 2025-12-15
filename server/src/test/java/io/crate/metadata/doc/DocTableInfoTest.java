@@ -55,10 +55,10 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
@@ -109,7 +109,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             0
         );
         final ColumnIdent col = ColumnIdent.of("o", List.of("foobar"));
-        Reference foobar = info.getReference(col);
+        ScopedRef foobar = info.getReference(col);
         assertThat(foobar).isNull();
 
         // forWrite: false, errorOnUnknownObjectKey: true, parentPolicy: dynamic
@@ -151,7 +151,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             null
         );
 
-        Map<ColumnIdent, Reference> references = Map.of(column, strictParent);
+        Map<ColumnIdent, ScopedRef> references = Map.of(column, strictParent);
 
         DocTableInfo info = new DocTableInfo(
             dummy,
@@ -212,7 +212,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .isExactlyInstanceOf(ColumnUnknownException.class)
             .hasMessageContaining("Column foobar['foo'] unknown");
 
-        Reference colInfo = info.getReference(column);
+        ScopedRef colInfo = info.getReference(column);
         assertThat(colInfo).isNotNull();
     }
 
@@ -222,7 +222,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (o1 object as (o2 object as (x int)))");
 
         TableInfo table = e.resolveTableInfo("tbl");
-        Iterable<Reference> parents = table.getParents(ColumnIdent.of("o1", List.of("o2", "x")));
+        Iterable<ScopedRef> parents = table.getParents(ColumnIdent.of("o1", List.of("o2", "x")));
         assertThat(parents).containsExactly(
             table.getReference(ColumnIdent.of("o1", "o2")),
             table.getReference(ColumnIdent.of("o1"))
@@ -372,11 +372,11 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (o1 object as (o2 object as (x int)))");
         DocTableInfo table = e.resolveTableInfo("tbl");
         ColumnIdent o1o2 = ColumnIdent.of("o1", "o2");
-        Reference o1o2Ref = table.getReference(o1o2);
+        ScopedRef o1o2Ref = table.getReference(o1o2);
         DropColumn dropColumn = new DropColumn(o1o2Ref, true);
         DocTableInfo updatedTable = table.dropColumns(List.of(dropColumn));
 
-        Reference o1Ref = updatedTable.getReference(ColumnIdent.of("o1"));
+        ScopedRef o1Ref = updatedTable.getReference(ColumnIdent.of("o1"));
         assertThat(o1Ref.valueType()).isExactlyInstanceOf(ObjectType.class);
         ObjectType objectType = ((ObjectType) o1Ref.valueType());
         assertThat(objectType.innerTypes()).isEmpty();
@@ -387,8 +387,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int, z int)");
         DocTableInfo table1 = e.resolveTableInfo("tbl");
-        Reference xref = table1.getReference(ColumnIdent.of("x"));
-        Reference yref = table1.getReference(ColumnIdent.of("y"));
+        ScopedRef xref = table1.getReference(ColumnIdent.of("x"));
+        ScopedRef yref = table1.getReference(ColumnIdent.of("y"));
         DocTableInfo table2 = table1.dropColumns(List.of(new DropColumn(xref, true)));
         assertThat(table2.droppedColumns()).satisfiesExactlyInAnyOrder(
             x -> assertThat(x).hasName("x")
@@ -428,7 +428,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, y int, z int)");
         DocTableInfo table1 = e.resolveTableInfo("tbl");
-        Reference xref = table1.getReference(ColumnIdent.of("x"));
+        ScopedRef xref = table1.getReference(ColumnIdent.of("x"));
         DocTableInfo table2 = table1.dropColumns(List.of(new DropColumn(xref, true)));
         assertThat(table2.tableVersion()).isGreaterThan(table1.tableVersion());
     }
@@ -464,7 +464,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(e.nodeCtx);
         DocTableInfo tbl2 = docTableInfoFactory.create(tbl.ident(), builder.build());
 
-        Reference description = tbl2.getReference(ColumnIdent.of("description"));
+        ScopedRef description = tbl2.getReference(ColumnIdent.of("description"));
         assertThat(description)
             .isExactlyInstanceOf(IndexReference.class)
             .hasName("description")
@@ -483,8 +483,8 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int, point object as (x int))");
         DocTableInfo table1 = e.resolveTableInfo("tbl");
-        Reference xref = table1.getReference(ColumnIdent.of("x"));
-        Reference pointRef = table1.getReference(ColumnIdent.of("point"));
+        ScopedRef xref = table1.getReference(ColumnIdent.of("x"));
+        ScopedRef pointRef = table1.getReference(ColumnIdent.of("point"));
         SimpleReference newReference = new SimpleReference(
             table1.ident(),
             ColumnIdent.of("y"),
@@ -531,7 +531,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             List.of(pointY),
             new IntArrayList(),
             Map.of());
-        Reference newPointRef = table3.getReference(ColumnIdent.of("point"));
+        ScopedRef newPointRef = table3.getReference(ColumnIdent.of("point"));
         assertThat(newPointRef.valueType()).isExactlyInstanceOf(ObjectType.class);
         DataType<?> yInnerType = ((ObjectType) newPointRef.valueType()).innerType("y");
         assertThat(yInnerType).isEqualTo(DataTypes.INTEGER);
@@ -542,7 +542,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int)");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference ox = new SimpleReference(
+        ScopedRef ox = new SimpleReference(
             table.ident(),
             ColumnIdent.of("o", "x"),
             RowGranularity.DOC,
@@ -624,7 +624,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int) with (\"mapping.total_fields.limit\" = 3)");
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Function<String, Reference> newRef = name -> new SimpleReference(
+        Function<String, ScopedRef> newRef = name -> new SimpleReference(
             table.ident(),
             ColumnIdent.of(name),
             RowGranularity.DOC,
@@ -632,9 +632,9 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
             -1,
             null
         );
-        Reference a = newRef.apply("a");
-        Reference b = newRef.apply("b");
-        Reference c = newRef.apply("c");
+        ScopedRef a = newRef.apply("a");
+        ScopedRef b = newRef.apply("b");
+        ScopedRef c = newRef.apply("c");
         assertThatThrownBy(() -> table.addColumns(
             e.nodeCtx,
             e.fulltextAnalyzerResolver(),
@@ -811,18 +811,18 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
                 """);
 
         DocTableInfo table = e.resolveTableInfo("tbl");
-        Reference o = table.getReference(ColumnIdent.of("o"));
-        Reference o2 = table.getReference(ColumnIdent.of("o", List.of("o2")));
-        Reference a = table.getReference(ColumnIdent.of("o", List.of("o2", "a")));
-        Reference b = table.getReference(ColumnIdent.of("o", List.of("b")));
+        ScopedRef o = table.getReference(ColumnIdent.of("o"));
+        ScopedRef o2 = table.getReference(ColumnIdent.of("o", List.of("o2")));
+        ScopedRef a = table.getReference(ColumnIdent.of("o", List.of("o2", "a")));
+        ScopedRef b = table.getReference(ColumnIdent.of("o", List.of("b")));
 
         assertThat(table.isIgnoredOrImmediateChildOfIgnored(o)).isTrue();
         assertThat(table.isIgnoredOrImmediateChildOfIgnored(o2)).isFalse();
         assertThat(table.isIgnoredOrImmediateChildOfIgnored(a)).isFalse();
         assertThat(table.isIgnoredOrImmediateChildOfIgnored(b)).isTrue();
 
-        Reference unknown2 = table.getDynamic(ColumnIdent.of("o", List.of("unknown", "unknown2")), false, false); // o['unknown']['unknown2']
-        Reference unknown3 = table.getDynamic(ColumnIdent.of("o", List.of("o2", "unknown", "unknown3")), false, false); // o['o2']['unknown3']['unknown4']
+        ScopedRef unknown2 = table.getDynamic(ColumnIdent.of("o", List.of("unknown", "unknown2")), false, false); // o['unknown']['unknown2']
+        ScopedRef unknown3 = table.getDynamic(ColumnIdent.of("o", List.of("o2", "unknown", "unknown3")), false, false); // o['o2']['unknown3']['unknown4']
 
         assertThat(table.isIgnoredOrImmediateChildOfIgnored(unknown2)).isTrue(); // child of o
         assertThat(table.isIgnoredOrImmediateChildOfIgnored(unknown3)).isFalse(); // child of o2

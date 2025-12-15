@@ -30,7 +30,7 @@ import java.util.Map;
 
 import org.jetbrains.annotations.Nullable;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 /**
  * Base class which can be used to create a visitor that has to replace functions.
@@ -208,7 +208,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         FetchMarker fetchMarker = fetchStub.fetchMarker();
         Symbol newFetchMarker = fetchMarker.accept(this, context);
 
-        Reference ref = fetchStub.ref();
+        ScopedRef ref = fetchStub.ref();
         Symbol newRefSymbol = ref.accept(this, context);
 
         if (newFetchMarker == fetchMarker && ref == newRefSymbol) {
@@ -216,7 +216,7 @@ public abstract class FunctionCopyVisitor<C> extends SymbolVisitor<C, Symbol> {
         }
         // Some symbol replacements want to replace references (for example, the Rename operator needs to replace References with ScopedSymbols)
         // The FetchStub `reference` part cannot and must not be turned into a ScopedSymbol, so a replacement is silently dropped here
-        Reference newRef = newRefSymbol instanceof Reference ? (Reference) newRefSymbol : ref;
+        ScopedRef newRef = newRefSymbol instanceof ScopedRef ? (ScopedRef) newRefSymbol : ref;
         FetchMarker newMarker = newFetchMarker instanceof FetchMarker ? ((FetchMarker) newFetchMarker) : fetchMarker;
         return new FetchStub(newMarker, newRef);
     }

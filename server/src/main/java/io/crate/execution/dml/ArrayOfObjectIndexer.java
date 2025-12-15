@@ -29,7 +29,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 /**
  * Specialized indexer for an array of objects, which duplicates the translog entry
@@ -41,7 +41,7 @@ import io.crate.metadata.Reference;
  */
 public class ArrayOfObjectIndexer<T> extends ArrayIndexer<T> {
 
-    ArrayOfObjectIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, Reference> getRef, Reference reference) {
+    ArrayOfObjectIndexer(ValueIndexer<T> innerIndexer, Function<ColumnIdent, ScopedRef> getRef, ScopedRef reference) {
         super(innerIndexer, getRef, reference);
     }
 

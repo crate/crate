@@ -30,7 +30,7 @@ import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.reference.doc.lucene.StoredRow;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 
 /**
@@ -46,7 +46,7 @@ public final class DocRefResolver implements ReferenceResolver<CollectExpression
     }
 
     @Override
-    public CollectExpression<Doc, ?> getImplementation(Reference ref) {
+    public CollectExpression<Doc, ?> getImplementation(ScopedRef ref) {
         ColumnIdent columnIdent = ref.column();
         String fqn = columnIdent.fqn();
         switch (fqn) {

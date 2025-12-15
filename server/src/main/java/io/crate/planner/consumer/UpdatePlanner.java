@@ -57,9 +57,9 @@ import io.crate.expression.symbol.Assignments;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.TableInfo;
@@ -123,7 +123,7 @@ public final class UpdatePlanner {
     }
 
     private static Plan plan(DocTableRelation docTable,
-                             LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
+                             LinkedHashMap<ScopedRef, Symbol> assignmentByTargetCol,
                              Symbol query,
                              PlannerContext plannerCtx,
                              @Nullable List<Symbol> returnValues) {
@@ -203,13 +203,13 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan sysUpdate(PlannerContext plannerContext,
                                            TableRelation table,
-                                           Map<Reference, Symbol> assignmentByTargetCol,
+                                           Map<ScopedRef, Symbol> assignmentByTargetCol,
                                            Symbol query,
                                            Row params,
                                            SubQueryResults subQueryResults,
                                            @Nullable List<Symbol> returnValues) {
         TableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table must have a _id column");
+        ScopedRef idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN), "Table must have a _id column");
         Symbol[] outputSymbols;
         if (returnValues == null) {
             outputSymbols = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
@@ -250,13 +250,13 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan updateByQuery(PlannerContext plannerCtx,
                                                DocTableRelation table,
-                                               LinkedHashMap<Reference, Symbol> assignmentByTargetCol,
+                                               LinkedHashMap<ScopedRef, Symbol> assignmentByTargetCol,
                                                WhereClauseOptimizer.DetailedQuery detailedQuery,
                                                Row params,
                                                SubQueryResults subQueryResults,
                                                @Nullable List<Symbol> returnValues) {
         DocTableInfo tableInfo = table.tableInfo();
-        Reference idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN),
+        ScopedRef idReference = requireNonNull(tableInfo.getReference(SysColumns.ID.COLUMN),
                                                "Table must have a _id column");
         Assignments assignments = Assignments.convert(assignmentByTargetCol, plannerCtx.nodeContext());
         Symbol[] assignmentSources = assignments.bindSources(tableInfo, params, subQueryResults);
@@ -312,7 +312,7 @@ public final class UpdatePlanner {
 
     private static ExecutionPlan createCollectAndMerge(PlannerContext plannerCtx,
                                                        TableInfo tableInfo,
-                                                       Reference idReference,
+                                                       ScopedRef idReference,
                                                        Projection updateProjection,
                                                        WhereClause where,
                                                        int numOutPuts,

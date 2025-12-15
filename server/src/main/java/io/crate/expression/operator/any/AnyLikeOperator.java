@@ -32,7 +32,7 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
@@ -61,7 +61,7 @@ public final class AnyLikeOperator extends AnyOperator<String> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, ScopedRef probe, Literal<?> candidates, Context context) {
         if (ArrayType.dimensions(candidates.valueType()) > 1) {
             return null;
         }
@@ -84,7 +84,7 @@ public final class AnyLikeOperator extends AnyOperator<String> {
     }
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, ScopedRef candidates, Context context) {
         return null;
     }
 

@@ -21,6 +21,8 @@
 
 package io.crate.planner.optimizer.rule;
 
+import static io.crate.testing.Asserts.assertThat;
+
 import java.io.IOException;
 import java.util.HashMap;
 import java.util.List;
@@ -32,8 +34,8 @@ import org.junit.Test;
 
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.DocTableRelation;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.EquiJoinDetector;
@@ -45,8 +47,6 @@ import io.crate.sql.tree.JoinType;
 import io.crate.statistics.Stats;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
-
-import static io.crate.testing.Asserts.assertThat;
 
 public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
 
@@ -66,8 +66,8 @@ public class EquiJoinToLookupJoinTest extends CrateDummyClusterServiceUnitTest {
         lhsDocTableInfo = e.resolveTableInfo("lhs");
         rhsDocTableInfo = e.resolveTableInfo("rhs");
 
-        Reference x = (Reference) e.asSymbol("x");
-        Reference y = (Reference) e.asSymbol("y");
+        ScopedRef x = (ScopedRef) e.asSymbol("x");
+        ScopedRef y = (ScopedRef) e.asSymbol("y");
 
         lhs = new Collect(new DocTableRelation(lhsDocTableInfo), List.of(x), WhereClause.MATCH_ALL);
         rhs = new Collect(new DocTableRelation(rhsDocTableInfo), List.of(y), WhereClause.MATCH_ALL);

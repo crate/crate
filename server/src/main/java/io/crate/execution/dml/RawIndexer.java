@@ -37,7 +37,7 @@ import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.server.xcontent.XContentHelper;
@@ -53,8 +53,8 @@ public class RawIndexer {
     private final Version shardVersionCreated;
 
     private final Map<Set<String>, Indexer> indexers = new HashMap<>();
-    private final List<Reference> nonDeterministicSynthetics;
-    private final List<Reference> insertColumns;
+    private final List<ScopedRef> nonDeterministicSynthetics;
+    private final List<ScopedRef> insertColumns;
 
     private Indexer currentRowIndexer;
     private IndexItem.StaticItem currentItem;
@@ -65,8 +65,8 @@ public class RawIndexer {
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
                       Symbol[] returnValues,
-                      @NotNull List<Reference> nonDeterministicSynthetics,
-                      List<Reference> insertColumns) {
+                      @NotNull List<ScopedRef> nonDeterministicSynthetics,
+                      List<ScopedRef> insertColumns) {
         this.partitionValues = partitionValues;
         this.table = table;
         this.txnCtx = txnCtx;
@@ -80,14 +80,14 @@ public class RawIndexer {
     /**
      * Looks for new columns in the values of the given IndexItem and returns them.
      */
-    public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
+    public List<ScopedRef> collectSchemaUpdates(IndexItem item) throws IOException {
         String raw = (String) item.insertValues()[0];
         Map<String, Object> doc = XContentHelper.convertToMap(JsonXContent.JSON_XCONTENT, raw, true);
         currentRowIndexer = indexers.computeIfAbsent(doc.keySet(), keys -> {
-            List<Reference> targetRefs = new ArrayList<>();
+            List<ScopedRef> targetRefs = new ArrayList<>();
             for (String key : keys) {
                 ColumnIdent column = ColumnIdent.of(key);
-                Reference reference = table.getReference(column);
+                ScopedRef reference = table.getReference(column);
                 if (reference == null) {
                     reference = table.getDynamic(column, true, txnCtx.sessionSettings().errorOnUnknownObjectKey());
                 }
@@ -110,7 +110,7 @@ public class RawIndexer {
                 returnValues
             ) {
                 @Override
-                public List<Reference> insertColumns() {
+                public List<ScopedRef> insertColumns() {
                     return insertColumns;
                 }
             };
@@ -120,9 +120,9 @@ public class RawIndexer {
         assert numExtra == nonDeterministicSynthetics.size() : "Insert columns/values expansion must be done in sync";
 
         Object[] insertValues = new Object[doc.size() + numExtra];
-        List<Reference> columns = currentRowIndexer.columns();
+        List<ScopedRef> columns = currentRowIndexer.columns();
         for (int i = 0; i < doc.size(); i++) {
-            Reference reference = columns.get(i);
+            ScopedRef reference = columns.get(i);
             // JSON file can have rows with same keys but in different order.
             // We rely on reused currentRowIndexer's target columns order when fetching values from every row.
             Object value = doc.get(reference.column().name()); // Not using FQN, we are fetching only top-level columns.

@@ -57,8 +57,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.sys.SysNodesTableInfo;
@@ -72,9 +72,9 @@ public class NodeStatsTest extends ESTestCase {
     private TransportNodeStatsAction nodeStatsAction;
     private ActionExecutor<NodeStatsRequest, NodeStatsResponse> nodeStatesExecutor;
 
-    private Reference idRef;
-    private Reference nameRef;
-    private Reference hostnameRef;
+    private ScopedRef idRef;
+    private ScopedRef nameRef;
+    private ScopedRef hostnameRef;
     private NodeContext nodeCtx;
 
     @Before

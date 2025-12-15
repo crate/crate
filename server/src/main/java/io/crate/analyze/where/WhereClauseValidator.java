@@ -40,7 +40,7 @@ import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.WindowFunction;
 import io.crate.metadata.FunctionType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ComparisonExpression;
 
@@ -83,7 +83,7 @@ public final class WhereClauseValidator {
         }
 
         @Override
-        public Symbol visitReference(Reference symbol, Context context) {
+        public Symbol visitReference(ScopedRef symbol, Context context) {
             validateSysReference(context, symbol.column().name());
             return super.visitReference(symbol, context);
         }

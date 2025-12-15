@@ -35,7 +35,7 @@ import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.ColumnValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.table.Operation;
@@ -63,12 +63,12 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
 
     @Nullable
     @Override
-    public Reference getField(ColumnIdent path) {
+    public ScopedRef getField(ColumnIdent path) {
         return getField(path, Operation.READ, true);
     }
 
     @Override
-    public Reference getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey)
+    public ScopedRef getField(ColumnIdent column, Operation operation, boolean errorOnUnknownObjectKey)
             throws AmbiguousColumnException, ColumnUnknownException, UnsupportedOperationException {
         if (column.equals(SysColumns.VERSION)) {
             DEPRECATION_LOGGER.deprecatedAndMaybeLog(
@@ -79,7 +79,7 @@ public class DocTableRelation extends AbstractTableRelation<DocTableInfo> {
         if (operation == Operation.UPDATE) {
             ensureColumnCanBeUpdated(column);
         }
-        Reference reference = tableInfo.getReadReference(column);
+        ScopedRef reference = tableInfo.getReadReference(column);
         if (reference == null) {
             reference = tableInfo.indexColumn(column);
             if (reference == null) {

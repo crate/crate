@@ -49,9 +49,9 @@ import io.crate.concurrent.FutureActionListener;
 import io.crate.concurrent.MultiActionListener;
 import io.crate.execution.support.NodeActionRequestHandler;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.SchemaInfo;
 import io.crate.metadata.table.TableInfo;
@@ -134,7 +134,7 @@ public final class TransportAnalyzeAction {
                 continue;
             }
             for (TableInfo table : schema.getTables()) {
-                List<Reference> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
+                List<ScopedRef> primitiveColumns = StreamSupport.stream(table.spliterator(), false)
                     .filter(x -> !x.column().isSystemColumn())
                     .filter(x -> DataTypes.isPrimitive(x.valueType()))
                     .map(x -> table.getReadReference(x.column()))
@@ -175,7 +175,7 @@ public final class TransportAnalyzeAction {
         return listener;
     }
 
-    private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<Reference> columns) {
+    private CompletableFuture<Samples> fetchSamples(RelationName relationName, List<ScopedRef> columns) {
         FutureActionListener<FetchSampleResponse> listener = new FutureActionListener<>();
         DiscoveryNodes discoveryNodes = clusterService.state().nodes();
         MultiActionListener<FetchSampleResponse, ?, FetchSampleResponse> multiListener = new MultiActionListener<>(

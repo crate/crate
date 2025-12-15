@@ -62,7 +62,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.DocReferences;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
@@ -225,8 +225,8 @@ public final class CopyToPlan implements Plan {
         if (copyTo.columns().isEmpty() == false) {
             // TODO: remove outputNames?
             for (Symbol symbol : copyTo.columns()) {
-                assert symbol instanceof Reference : "Only references are expected here";
-                symbol.visit(Reference.class, r -> outputNames.add(r.column().sqlFqn()));
+                assert symbol instanceof ScopedRef : "Only references are expected here";
+                symbol.visit(ScopedRef.class, r -> outputNames.add(r.column().sqlFqn()));
                 outputs.add(DocReferences.toDocLookup(symbol));
             }
             columnsDefined = true;

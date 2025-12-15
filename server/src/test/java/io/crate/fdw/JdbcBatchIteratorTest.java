@@ -30,7 +30,7 @@ import org.junit.Test;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -46,7 +46,7 @@ public class JdbcBatchIteratorTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table doc.summits (x int)");
         DocTableInfo table = e.resolveTableInfo("doc.summits");
         Symbol query = e.asSymbol("x > 10 and x < 40");
-        List<Reference> columns = List.of(
+        List<ScopedRef> columns = List.of(
             table.getReadReference(ColumnIdent.of("x"))
         );
         String statement = JdbcBatchIterator.generateStatement(

@@ -35,7 +35,7 @@ import io.crate.expression.operator.CmpOperator;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.lucene.LuceneQueryBuilder.Context;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.sql.tree.ComparisonExpression;
@@ -106,7 +106,7 @@ public final class AnyRangeOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query refMatchesAnyArrayLiteral(Function any, Reference probe, Literal<?> candidates, Context context) {
+    protected Query refMatchesAnyArrayLiteral(Function any, ScopedRef probe, Literal<?> candidates, Context context) {
         if (ArrayType.dimensions(candidates.valueType()) > 1) {
             return null;
         }
@@ -128,7 +128,7 @@ public final class AnyRangeOperator extends AnyOperator<Object> {
     }
 
     @Override
-    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, Reference candidates, Context context) {
+    protected Query literalMatchesAnyArrayRef(Function any, Literal<?> probe, ScopedRef candidates, Context context) {
         // 1 < ANY (array_col) --> array_col > 1
         try {
             return CmpOperator.toQuery(comparison.inverseInnerOpName, candidates, probe.value());

@@ -30,8 +30,8 @@ import java.util.Set;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.node.fetch.FetchSource;
 import io.crate.planner.operators.Collect;
@@ -81,7 +81,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
         if (fetchRewrite == null) {
             return null;
         }
-        List<Reference> fetchRefs = fetchRewrite.extractFetchRefs();
+        List<ScopedRef> fetchRefs = fetchRewrite.extractFetchRefs();
         Map<RelationName, FetchSource> fetchSourceByRelation = fetchRewrite.createFetchSources();
         return new Fetch(
             fetchRewrite.replacedOutputs(),
@@ -109,7 +109,7 @@ public final class RewriteToQueryThenFetch implements Rule<Limit> {
         if (fetchRewrite == null) {
             return plan;
         }
-        List<Reference> fetchRefs = fetchRewrite.extractFetchRefs();
+        List<ScopedRef> fetchRefs = fetchRewrite.extractFetchRefs();
         Map<RelationName, FetchSource> fetchSourceByRelation = fetchRewrite.createFetchSources();
         Fetch fetch = new Fetch(
             fetchRewrite.replacedOutputs(),

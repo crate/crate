@@ -121,11 +121,11 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
@@ -214,7 +214,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     aggregationFunction, terminatePartialAggFunction, partialResultWithoutDocValues);
             }
         }
-        List<Reference> targetColumns = toReference(actualArgumentTypes);
+        List<ScopedRef> targetColumns = toReference(actualArgumentTypes);
         var shard = newStartedPrimaryShard(nodeCtx, targetColumns, threadPool);
         var refResolver = new LuceneReferenceResolver(
             PARTITION_NAME.values(),
@@ -377,10 +377,10 @@ public abstract class AggregationTestCase extends ESTestCase {
 
     private void insertDataIntoShard(IndexShard shard,
                                      Object[][] data,
-                                     List<Reference> targetColumns) throws IOException {
+                                     List<ScopedRef> targetColumns) throws IOException {
         DocTableInfo table = new DocTableInfo(
             PARTITION_NAME.relationName(),
-            targetColumns.stream().collect(Collectors.toMap(Reference::column, r -> r)),
+            targetColumns.stream().collect(Collectors.toMap(ScopedRef::column, r -> r)),
             Map.of(),
             Set.of(),
             null,
@@ -441,11 +441,11 @@ public abstract class AggregationTestCase extends ESTestCase {
         }
     }
 
-    private static XContentBuilder buildMapping(List<Reference> targetColumns) throws IOException {
+    private static XContentBuilder buildMapping(List<ScopedRef> targetColumns) throws IOException {
         Map<String, Map<String, Object>> properties = MappingUtil.toProperties(
             AllocPosition.forNewTable(),
             null,
-            Reference.buildTree(targetColumns)
+            ScopedRef.buildTree(targetColumns)
         );
         return JsonXContent.builder()
             .startObject()
@@ -457,7 +457,7 @@ public abstract class AggregationTestCase extends ESTestCase {
      * Creates a new empty primary shard and starts it.
      */
     public static IndexShard newStartedPrimaryShard(NodeContext nodeCtx,
-                                                    List<Reference> targetColumns,
+                                                    List<ScopedRef> targetColumns,
                                                     ThreadPool threadPool) throws Exception {
         var mapping = buildMapping(targetColumns);
         IndexShard shard = newPrimaryShard(nodeCtx, mapping, threadPool);
@@ -621,8 +621,8 @@ public abstract class AggregationTestCase extends ESTestCase {
             .isNotNull();
     }
 
-    public static List<Reference> toReference(List<DataType<?>> dataTypes) {
-        var references = new ArrayList<Reference>(dataTypes.size());
+    public static List<ScopedRef> toReference(List<DataType<?>> dataTypes) {
+        var references = new ArrayList<ScopedRef>(dataTypes.size());
         for (int i = 0; i < dataTypes.size(); i++) {
             DataType<?> type = dataTypes.get(i);
             StorageSupport<?> storageSupport = type.storageSupportSafe();

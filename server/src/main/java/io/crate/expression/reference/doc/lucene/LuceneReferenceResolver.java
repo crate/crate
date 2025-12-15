@@ -32,7 +32,7 @@ import io.crate.expression.reference.ReferenceResolver;
 import io.crate.expression.symbol.VoidReference;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.ArrayType;
 import io.crate.types.BitStringType;
@@ -56,17 +56,17 @@ import io.crate.types.UUIDType;
 
 public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollectorExpression<?>> {
 
-    private final List<Reference> partitionColumns;
+    private final List<ScopedRef> partitionColumns;
     private final List<String> partitionValues;
-    private final Predicate<Reference> isParentRefIgnored;
+    private final Predicate<ScopedRef> isParentRefIgnored;
     private final Predicate<ColumnIdent> isSingletonPrimaryKey;
     private final Version shardVersion;
 
     public LuceneReferenceResolver(final List<String> partitionValues,
-                                   final List<Reference> partitionColumns,
+                                   final List<ScopedRef> partitionColumns,
                                    final List<ColumnIdent> primaryKey,
                                    Version shardVersion,
-                                   Predicate<Reference> isParentRefIgnored) {
+                                   Predicate<ScopedRef> isParentRefIgnored) {
         this.partitionValues = partitionValues;
         this.partitionColumns = partitionColumns;
         this.isParentRefIgnored = isParentRefIgnored;
@@ -79,7 +79,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
     }
 
     @Override
-    public LuceneCollectorExpression<?> getImplementation(final Reference ref) {
+    public LuceneCollectorExpression<?> getImplementation(final ScopedRef ref) {
         final ColumnIdent column = ref.column();
         if (ref.valueType() instanceof StringType && isSingletonPrimaryKey.test(column)) {
             return IdCollectorExpression.forVersion(shardVersion);
@@ -118,7 +118,7 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
             }
 
             default: {
-                int partitionPos = Reference.indexOf(partitionColumns, column);
+                int partitionPos = ScopedRef.indexOf(partitionColumns, column);
                 if (partitionPos >= 0) {
                     return new LiteralValueExpression(
                         ref.valueType().implicitCast(partitionValues.get(partitionPos))
@@ -129,8 +129,8 @@ public class LuceneReferenceResolver implements ReferenceResolver<LuceneCollecto
         }
     }
 
-    public static LuceneCollectorExpression<?> typeSpecializedExpression(final Reference ref,
-                                                                         Predicate<Reference> isParentRefIgnored) {
+    public static LuceneCollectorExpression<?> typeSpecializedExpression(final ScopedRef ref,
+                                                                         Predicate<ScopedRef> isParentRefIgnored) {
         final String fqn = ref.storageIdent();
         // non-ignored dynamic references should have been resolved to void references by this point
         if (ref instanceof VoidReference) {

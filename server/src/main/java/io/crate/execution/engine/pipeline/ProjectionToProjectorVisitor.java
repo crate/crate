@@ -127,9 +127,9 @@ import io.crate.memory.MemoryManager;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.NumberOfReplicas;
@@ -639,7 +639,7 @@ public class ProjectionToProjectorVisitor
 
     @Override
     public Projector visitSysUpdateProjection(SysUpdateProjection projection, Context context) {
-        Map<Reference, Symbol> assignments = projection.assignments();
+        Map<ScopedRef, Symbol> assignments = projection.assignments();
         assert !assignments.isEmpty() : "at least one assignment is required";
 
         List<Input<?>> valueInputs = new ArrayList<>(assignments.size());
@@ -648,8 +648,8 @@ public class ProjectionToProjectorVisitor
         RelationName relationName = null;
         InputFactory.Context<NestableCollectExpression<?, ?>> readCtx = null;
 
-        for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
-            Reference ref = e.getKey();
+        for (Map.Entry<ScopedRef, Symbol> e : assignments.entrySet()) {
+            ScopedRef ref = e.getKey();
             assert
                 relationName == null || relationName.equals(ref.relation()) : "mixed table assignments found";
             relationName = ref.relation();

@@ -71,7 +71,7 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Symbol toDocLookup(Symbol tree, Predicate<Reference> condition) {
+    public static Symbol toDocLookup(Symbol tree, Predicate<ScopedRef> condition) {
         return RefReplacer.replaceRefs(tree, r -> toDocLookup(r, condition));
     }
 
@@ -83,11 +83,11 @@ public final class DocReferences {
      *     x -> _doc['x']
      * </pre>
      */
-    public static Reference toDocLookup(Reference reference) {
+    public static ScopedRef toDocLookup(ScopedRef reference) {
         return toDocLookup(reference, r -> true);
     }
 
-    private static Reference toDocLookup(Reference reference, Predicate<Reference> condition) {
+    private static ScopedRef toDocLookup(ScopedRef reference, Predicate<ScopedRef> condition) {
         ColumnIdent column = reference.column();
         if (column.isSystemColumn()) {
             return reference;
@@ -99,7 +99,7 @@ public final class DocReferences {
         return reference;
     }
 
-    public static Reference docRefToRegularRef(Reference ref) {
+    public static ScopedRef docRefToRegularRef(ScopedRef ref) {
         ColumnIdent column = ref.column();
         if (!column.isRoot() && column.name().equals(SysColumns.Names.DOC)) {
             return ref.withColumn(column.shiftRight());
@@ -107,10 +107,10 @@ public final class DocReferences {
         return ref;
     }
 
-    public static List<Reference> applyOid(Collection<Reference> sourceReferences,
+    public static List<ScopedRef> applyOid(Collection<ScopedRef> sourceReferences,
                                            LongSupplier columnOidSupplier) {
-        List<Reference> references = new ArrayList<>(sourceReferences.size());
-        Map<ColumnIdent, Reference> referencesMap = new HashMap<>(sourceReferences.size());
+        List<ScopedRef> references = new ArrayList<>(sourceReferences.size());
+        Map<ColumnIdent, ScopedRef> referencesMap = new HashMap<>(sourceReferences.size());
         for (var ref : sourceReferences) {
             var newRef = ref.withOidAndPosition(columnOidSupplier, () -> ref.position());
             references.add(newRef);
@@ -120,7 +120,7 @@ public final class DocReferences {
         for (var i = 0; i < references.size(); i++) {
             var ref = references.get(i);
             if (ref instanceof IndexReference indexReference) {
-                List<Reference> newSources = new ArrayList<>(indexReference.columns().size());
+                List<ScopedRef> newSources = new ArrayList<>(indexReference.columns().size());
                 for (var sourceRef : indexReference.columns()) {
                     newSources.add(referencesMap.get(sourceRef.column()));
                 }

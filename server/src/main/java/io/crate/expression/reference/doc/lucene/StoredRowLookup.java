@@ -44,8 +44,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.sql.tree.ColumnPolicy;
@@ -119,17 +119,17 @@ public abstract class StoredRowLookup implements StoredRow {
 
     protected abstract void moveToDoc(boolean reuseReader) throws IOException;
 
-    protected abstract void registerRef(Reference ref);
+    protected abstract void registerRef(ScopedRef ref);
 
     public final void register(List<Symbol> symbols) {
         if (symbols != null && Symbols.hasColumn(symbols, SysColumns.DOC) == false) {
-            Consumer<Reference> register = ref -> {
+            Consumer<ScopedRef> register = ref -> {
                 if (ref.column().isSystemColumn() == false && ref.granularity() == RowGranularity.DOC) {
                     registerRef(DocReferences.toDocLookup(ref));
                 }
             };
             for (Symbol symbol : symbols) {
-                symbol.visit(Reference.class, register);
+                symbol.visit(ScopedRef.class, register);
             }
         } else {
             registerAll();
@@ -137,7 +137,7 @@ public abstract class StoredRowLookup implements StoredRow {
     }
 
     public void registerAll() {
-        for (Reference ref : table.rootColumns()) {
+        for (ScopedRef ref : table.rootColumns()) {
             if (ref.column().isSystemColumn() == false & ref.granularity() == RowGranularity.DOC) {
                 registerRef(DocReferences.toDocLookup(ref));
             }
@@ -156,7 +156,7 @@ public abstract class StoredRowLookup implements StoredRow {
         }
 
         @Override
-        protected void registerRef(Reference ref) {
+        protected void registerRef(ScopedRef ref) {
             sourceParser.register(ref.column(), ref.valueType());
         }
 
@@ -209,11 +209,11 @@ public abstract class StoredRowLookup implements StoredRow {
         }
 
         @Override
-        protected void registerRef(Reference ref) {
+        protected void registerRef(ScopedRef ref) {
             registerRef(ref, false);
         }
 
-        private void registerRef(Reference ref, boolean fromParents) {
+        private void registerRef(ScopedRef ref, boolean fromParents) {
             if (fromParents == false) {
                 // if we are inside an array, or an object type with ignored fields, then we need to load
                 // the relevant parent from stored fields

@@ -35,8 +35,8 @@ import io.crate.expression.symbol.MatchPredicate;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public class QuerySplitter {
 
@@ -128,7 +128,7 @@ public class QuerySplitter {
         }
 
         @Override
-        public Void visitReference(Reference ref, Context ctx) {
+        public Void visitReference(ScopedRef ref, Context ctx) {
             ctx.parts.merge(Set.of(ref.relation()), ref, AndOperator::of);
             return null;
         }
@@ -139,7 +139,7 @@ public class QuerySplitter {
             for (Symbol field : matchPredicate.identBoostMap().keySet()) {
                 if (field instanceof ScopedSymbol scopedSymbol) {
                     relationNames.add(scopedSymbol.relation());
-                } else if (field instanceof Reference ref) {
+                } else if (field instanceof ScopedRef ref) {
                     relationNames.add(ref.relation());
                 }
             }

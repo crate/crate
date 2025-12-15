@@ -56,8 +56,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -178,7 +178,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
-                                                       List<Reference> aggregationReferences,
+                                                       List<ScopedRef> aggregationReferences,
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
@@ -193,7 +193,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
             Literal<?> value = optionalParams.getLast();
             precision = value == null ? HyperLogLogPlusPlus.DEFAULT_PRECISION : (int) value.value();
         }
-        Reference reference = getAggReference(aggregationReferences);
+        ScopedRef reference = getAggReference(aggregationReferences);
         if (reference == null) {
             return null;
         }

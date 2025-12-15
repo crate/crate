@@ -38,7 +38,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryAndParamBinder;
 import io.crate.planner.operators.SubQueryResults;
@@ -69,10 +69,10 @@ public record AnalyzedAlterTableAddColumn(
                                  SubQueryResults subQueryResults) {
         SubQueryAndParamBinder bindParameter = new SubQueryAndParamBinder(params, subQueryResults);
         Function<Symbol, Object> toValue = new SymbolEvaluator(txnCtx, nodeCtx, subQueryResults).bind(params);
-        List<Reference> newColumns = new ArrayList<>(columns.size());
-        LinkedHashSet<Reference> primaryKeys = new LinkedHashSet<>();
+        List<ScopedRef> newColumns = new ArrayList<>(columns.size());
+        LinkedHashSet<ScopedRef> primaryKeys = new LinkedHashSet<>();
         for (var refBuilder : columns.values()) {
-            Reference reference = refBuilder.build(columns, table.ident(), bindParameter, toValue);
+            ScopedRef reference = refBuilder.build(columns, table.ident(), bindParameter, toValue);
             if (refBuilder.isPrimaryKey()) {
                 primaryKeys.add(reference);
                 if (refBuilder.pkConstraintName() != null) {
@@ -88,8 +88,8 @@ public record AnalyzedAlterTableAddColumn(
             checkConstraints.put(constraintName, check.expression());
         }
         IntArrayList pkIndices = new IntArrayList(primaryKeys.size());
-        for (Reference pk : primaryKeys) {
-            int idx = Reference.indexOf(newColumns, pk.column());
+        for (ScopedRef pk : primaryKeys) {
+            int idx = ScopedRef.indexOf(newColumns, pk.column());
             pkIndices.add(idx);
         }
         return new AddColumnRequest(

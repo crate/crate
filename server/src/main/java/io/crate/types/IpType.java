@@ -42,8 +42,8 @@ import io.crate.common.collections.Lists;
 import io.crate.execution.dml.IpIndexer;
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.statistics.ColumnStatsSupport;
 
 public class IpType extends DataType<String> implements Streamer<String> {
@@ -119,8 +119,8 @@ public class IpType extends DataType<String> implements Streamer<String> {
 
         @Override
         public ValueIndexer<String> valueIndexer(RelationName table,
-                                                 Reference ref,
-                                                 Function<ColumnIdent, Reference> getRef) {
+                                                 ScopedRef ref,
+                                                 Function<ColumnIdent, ScopedRef> getRef) {
             return new IpIndexer(ref);
         }
     };

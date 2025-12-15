@@ -79,7 +79,7 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.planner.DependencyCarrier;
@@ -180,7 +180,7 @@ public final class CopyFromPlan implements Plan {
         var header = settings.getAsBoolean("header", true);
         var targetColumns = copyFrom.targetColumns();
         if (!header && copyFrom.targetColumns().isEmpty()) {
-            targetColumns = Lists.map(copyFrom.tableInfo().rootColumns(), Reference::toString);
+            targetColumns = Lists.map(copyFrom.tableInfo().rootColumns(), ScopedRef::toString);
         }
 
         return new BoundCopyFrom(
@@ -221,7 +221,7 @@ public final class CopyFromPlan implements Plan {
         if (SysColumns.ID.COLUMN.equals(clusteredBy)) {
             clusteredBy = null;
         }
-        List<Reference> primaryKeyRefs = table.primaryKey().stream()
+        List<ScopedRef> primaryKeyRefs = table.primaryKey().stream()
             .filter(r -> !r.equals(SysColumns.ID.COLUMN))
             .map(table::getReference)
             .toList();
@@ -231,7 +231,7 @@ public final class CopyFromPlan implements Plan {
             table.partitionedByColumns(),
             clusteredBy == null ? null : table.getReference(clusteredBy)
         );
-        Reference rawOrDoc = rawOrDoc(table, partitionIdent);
+        ScopedRef rawOrDoc = rawOrDoc(table, partitionIdent);
         final int rawOrDocIdx = toCollect.size();
         toCollect.add(rawOrDoc);
 
@@ -340,11 +340,11 @@ public final class CopyFromPlan implements Plan {
         return Merge.ensureOnHandler(collect, context, handlerProjections);
     }
 
-    private static void rewriteToCollectToUsePartitionValues(List<Reference> partitionedByColumns,
+    private static void rewriteToCollectToUsePartitionValues(List<ScopedRef> partitionedByColumns,
                                                              List<String> partitionValues,
                                                              List<Symbol> toCollect) {
         for (int i = 0; i < partitionValues.size(); i++) {
-            Reference partitionedByColumn = partitionedByColumns.get(i);
+            ScopedRef partitionedByColumn = partitionedByColumns.get(i);
             int idx;
             if (partitionedByColumn instanceof GeneratedReference genRef) {
                 idx = toCollect.indexOf(genRef.generatedExpression());
@@ -366,9 +366,9 @@ public final class CopyFromPlan implements Plan {
      *  - primaryKeys + clusteredBy  (+ indexName)
      *      -> to calculate the shardId
      */
-    private static List<Symbol> getSymbolsRequiredForShardIdCalc(List<Reference> primaryKeyRefs,
-                                                                 List<Reference> partitionedByRefs,
-                                                                 @Nullable Reference clusteredBy) {
+    private static List<Symbol> getSymbolsRequiredForShardIdCalc(List<ScopedRef> primaryKeyRefs,
+                                                                 List<ScopedRef> partitionedByRefs,
+                                                                 @Nullable ScopedRef clusteredBy) {
         HashSet<Symbol> toCollectUnique = new HashSet<>();
         primaryKeyRefs.forEach(r -> addWithRefDependencies(toCollectUnique, r));
         partitionedByRefs.forEach(r -> addWithRefDependencies(toCollectUnique, r));
@@ -378,7 +378,7 @@ public final class CopyFromPlan implements Plan {
         return new ArrayList<>(toCollectUnique);
     }
 
-    private static void addWithRefDependencies(HashSet<Symbol> toCollectUnique, Reference ref) {
+    private static void addWithRefDependencies(HashSet<Symbol> toCollectUnique, ScopedRef ref) {
         if (ref instanceof GeneratedReference generatedReference) {
             toCollectUnique.add(generatedReference.generatedExpression());
         } else {
@@ -399,7 +399,7 @@ public final class CopyFromPlan implements Plan {
      *    -> exclude partitioned by columns from document
      *    -> insert into es index (partition determined by partition by value)
      */
-    private static Reference rawOrDoc(DocTableInfo table, String selectedPartitionIdent) {
+    private static ScopedRef rawOrDoc(DocTableInfo table, String selectedPartitionIdent) {
         if (table.isPartitioned() && selectedPartitionIdent == null) {
             return table.getReference(SysColumns.DOC);
         }

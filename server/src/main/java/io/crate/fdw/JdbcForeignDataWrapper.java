@@ -52,8 +52,8 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Symbol;
 import io.crate.fdw.ServersMetadata.Server;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.role.Role;
@@ -135,9 +135,9 @@ final class JdbcForeignDataWrapper implements ForeignDataWrapper {
 
         // It's unknown if/what kind of scalars are supported by the remote.
         // Evaluate them locally and only fetch columns
-        List<Reference> refs = new ArrayList<>(collect.size());
+        List<ScopedRef> refs = new ArrayList<>(collect.size());
         for (var symbol : collect) {
-            symbol.visit(Reference.class, refs::add);
+            symbol.visit(ScopedRef.class, refs::add);
         }
 
         Settings options = server.options();

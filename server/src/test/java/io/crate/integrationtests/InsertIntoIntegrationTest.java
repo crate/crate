@@ -55,8 +55,8 @@ import io.crate.exceptions.VersioningValidationException;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.TableInfo;
 import io.crate.testing.SQLResponse;
 import io.crate.testing.UseJdbc;
@@ -105,7 +105,7 @@ public class InsertIntoIntegrationTest extends IntegTestCase {
         RelationName relationName = new RelationName(sqlExecutor.getCurrentSchema(), "tbl");
         for (var nodeContext : cluster().getInstances(NodeContext.class)) {
             TableInfo tableInfo = nodeContext.schemas().getTableInfo(relationName);
-            Reference reference = tableInfo.getReference(ColumnIdent.of("y"));
+            ScopedRef reference = tableInfo.getReference(ColumnIdent.of("y"));
             assertThat(reference).isNull();
         }
         try {

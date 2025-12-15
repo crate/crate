@@ -34,10 +34,10 @@ import org.jetbrains.annotations.Nullable;
 import org.jetbrains.annotations.VisibleForTesting;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.table.Operation;
 
@@ -45,8 +45,8 @@ public class ViewInfo implements RelationInfo {
 
     private final RelationName ident;
     private final String definition;
-    private final List<Reference> columns;
-    private final List<Reference> references;
+    private final List<ScopedRef> columns;
+    private final List<ScopedRef> references;
     private final String owner;
     private final SearchPath searchPath;
     private final boolean errorOnUnknownObjectKey;
@@ -54,7 +54,7 @@ public class ViewInfo implements RelationInfo {
     @VisibleForTesting
     public ViewInfo(RelationName ident,
                     String definition,
-                    List<Reference> references,
+                    List<ScopedRef> references,
                     @Nullable String owner,
                     SearchPath searchPath,
                     boolean errorOnUnknownObjectKey) {
@@ -62,7 +62,7 @@ public class ViewInfo implements RelationInfo {
         this.definition = definition;
         this.references = references
             .stream()
-            .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
+            .sorted(ScopedRef.CMP_BY_POSITION_THEN_NAME)
             .toList();
         this.columns = this.references.stream()
             .filter(r -> r.column().isRoot())
@@ -73,7 +73,7 @@ public class ViewInfo implements RelationInfo {
     }
 
     @Override
-    public Collection<Reference> rootColumns() {
+    public Collection<ScopedRef> rootColumns() {
         return columns;
     }
 
@@ -108,12 +108,12 @@ public class ViewInfo implements RelationInfo {
     }
 
     @Override
-    public Iterator<Reference> iterator() {
+    public Iterator<ScopedRef> iterator() {
         return references.iterator();
     }
 
     @Override
-    public Stream<Reference> allColumnsSorted() {
+    public Stream<ScopedRef> allColumnsSorted() {
         // references are sorted
         return references.stream();
     }

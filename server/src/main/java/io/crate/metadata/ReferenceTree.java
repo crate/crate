@@ -39,23 +39,23 @@ import io.crate.metadata.doc.SysColumns;
 public class ReferenceTree {
 
     private sealed interface Node permits Composite, Leaf {
-        Reference ref();
+        ScopedRef ref();
     }
 
-    private record Composite(String name, Map<String, Node> children, Reference ref) implements Node {}
+    private record Composite(String name, Map<String, Node> children, ScopedRef ref) implements Node {}
 
-    private record Leaf(Reference ref) implements Node {}
+    private record Leaf(ScopedRef ref) implements Node {}
 
     /**
      * Builds a ReferenceTree from a collection of References
      */
-    public static ReferenceTree of(Collection<Reference> references) {
+    public static ReferenceTree of(Collection<ScopedRef> references) {
         Composite root = new Composite("_doc", new HashMap<>(), null);
-        references.stream().sorted(Comparator.comparing(Reference::column)).forEach(r -> addReference(root, r, r.column()));
+        references.stream().sorted(Comparator.comparing(ScopedRef::column)).forEach(r -> addReference(root, r, r.column()));
         return new ReferenceTree(root);
     }
 
-    private static void addReference(Composite root, Reference ref, ColumnIdent column) {
+    private static void addReference(Composite root, ScopedRef ref, ColumnIdent column) {
         if (column.isRoot()) {
             if (root.children.get(column.name()) == null) {
                 root.children.put(column.name(), new Leaf(ref));
@@ -88,7 +88,7 @@ public class ReferenceTree {
     /**
      * Find the immediate children of a Reference
      */
-    public List<Reference> getChildren(Reference parent) {
+    public List<ScopedRef> getChildren(ScopedRef parent) {
         Node ref = findRef(parent);
         return switch (ref) {
             case null -> List.of();
@@ -100,12 +100,12 @@ public class ReferenceTree {
     /**
      * Find all descendants of a Reference
      */
-    public List<Reference> findDescendants(Reference parent) {
+    public List<ScopedRef> findDescendants(ScopedRef parent) {
         Node ref = findRef(parent);
         if (ref == null) {
             return List.of();
         }
-        List<Reference> children = new ArrayList<>();
+        List<ScopedRef> children = new ArrayList<>();
         visitLeaves(ref, children::add);
         return children;
     }
@@ -113,7 +113,7 @@ public class ReferenceTree {
     /**
      * Find the most distant parent of a Reference that matches a predicate
      */
-    public Reference findFirstParentMatching(Reference child, Predicate<Reference> test) {
+    public ScopedRef findFirstParentMatching(ScopedRef child, Predicate<ScopedRef> test) {
         Node node = root;
         var col = child.column();
         if (col.name().equals(SysColumns.Names.DOC) == false) {
@@ -144,7 +144,7 @@ public class ReferenceTree {
         return null;
     }
 
-    private static void visitLeaves(Node node, Consumer<Reference> visitor) {
+    private static void visitLeaves(Node node, Consumer<ScopedRef> visitor) {
         switch (node) {
             case Composite c -> {
                 c.children.forEach((_, v) -> visitLeaves(v, visitor));
@@ -153,7 +153,7 @@ public class ReferenceTree {
         }
     }
 
-    private Node findRef(Reference ref) {
+    private Node findRef(ScopedRef ref) {
         if (Objects.equals(SysColumns.Names.DOC, ref.column().name())) {
             if (ref.column().isRoot()) {
                 return root;

@@ -28,12 +28,12 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
-public record DropColumn(Reference ref, boolean ifExists) implements Writeable {
+public record DropColumn(ScopedRef ref, boolean ifExists) implements Writeable {
 
     public DropColumn(StreamInput in) throws IOException {
-        this(Reference.fromStream(in), in.readBoolean());
+        this(ScopedRef.fromStream(in), in.readBoolean());
     }
 
     @Override

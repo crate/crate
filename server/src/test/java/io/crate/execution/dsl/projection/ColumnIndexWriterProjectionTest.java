@@ -33,9 +33,9 @@ import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -52,7 +52,7 @@ public class ColumnIndexWriterProjectionTest {
     @Test
     public void test_streaming_with_lot_of_target_columns() throws Exception {
         int numColumns = 200;
-        ArrayList<Reference> targetColumns = new ArrayList<>(numColumns);
+        ArrayList<ScopedRef> targetColumns = new ArrayList<>(numColumns);
         for (int i = 0; i < numColumns; i++) {
             var ident = ColumnIdent.of(String.valueOf(i));
             targetColumns.add(ref(ident, DataTypes.INTEGER));
@@ -84,7 +84,7 @@ public class ColumnIndexWriterProjectionTest {
         assertThat(p2).isEqualTo(projection);
     }
 
-    private Reference ref(ColumnIdent column, DataType<?> type) {
+    private ScopedRef ref(ColumnIdent column, DataType<?> type) {
         return new SimpleReference(relationName, column, RowGranularity.DOC, type, 0, null);
     }
 }

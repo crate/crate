@@ -59,9 +59,9 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
@@ -100,7 +100,7 @@ public class ShardUpsertExecutorTest extends IntegTestCase {
 
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, nodeCtx, List.of(ID_IDENT), List.of(new InputColumn(0)), null, null);
-        Reference[] missingAssignmentsColumns = new Reference[]{rawSourceReference};
+        ScopedRef[] missingAssignmentsColumns = new ScopedRef[]{rawSourceReference};
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(Settings.EMPTY),

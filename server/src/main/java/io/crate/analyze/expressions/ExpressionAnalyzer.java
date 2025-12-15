@@ -98,8 +98,8 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -1185,7 +1185,7 @@ public class ExpressionAnalyzer {
                 if (columnType == null) {
                     columnType = column.valueType();
                 }
-                if (!(column instanceof ScopedSymbol || column instanceof Reference)) {
+                if (!(column instanceof ScopedSymbol || column instanceof ScopedRef)) {
                     throw new IllegalArgumentException(Symbols.format("can only MATCH on columns, not on %s", column));
                 }
                 Symbol boost = ident.boost().accept(this, context);
@@ -1434,8 +1434,8 @@ public class ExpressionAnalyzer {
          * eq(2, name)  becomes  eq(name, 2)
          */
         private void swapIfNecessary() {
-            if ((!(right instanceof Reference || right instanceof ScopedSymbol)
-                || left instanceof Reference || left instanceof ScopedSymbol)
+            if ((!(right instanceof ScopedRef || right instanceof ScopedSymbol)
+                || left instanceof ScopedRef || left instanceof ScopedSymbol)
                 && left.valueType().id() != DataTypes.UNDEFINED.id()) {
                 return;
             }

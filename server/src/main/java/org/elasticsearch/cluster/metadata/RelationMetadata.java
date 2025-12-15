@@ -38,8 +38,8 @@ import org.elasticsearch.common.settings.Settings;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.tree.ColumnPolicy;
 
 public sealed interface RelationMetadata extends Diffable<RelationMetadata> permits
@@ -196,7 +196,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
     }
 
     record Table(RelationName name,
-                 List<Reference> columns,
+                 List<ScopedRef> columns,
                  Settings settings,
                  @Nullable ColumnIdent routingColumn,
                  ColumnPolicy columnPolicy,
@@ -226,7 +226,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
 
         public static Table of(StreamInput in) throws IOException {
             RelationName name = new RelationName(in);
-            List<Reference> columns = in.readList(Reference::fromStream);
+            List<ScopedRef> columns = in.readList(ScopedRef::fromStream);
             Settings settings = Settings.readSettingsFromStream(in);
             ColumnIdent routingColumn = in.readOptionalWriteable(ColumnIdent::of);
             ColumnPolicy columnPolicy = ColumnPolicy.VALUES.get(in.readVInt());
@@ -257,7 +257,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             name.writeTo(out);
-            out.writeCollection(columns, Reference::toStream);
+            out.writeCollection(columns, ScopedRef::toStream);
             Settings.writeSettingsToStream(out, settings);
             out.writeOptionalWriteable(routingColumn);
             out.writeVInt(columnPolicy.ordinal());

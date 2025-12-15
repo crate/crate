@@ -44,8 +44,8 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -57,7 +57,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
 
     // Fields required to add column(s), aligned with AddColumnRequest
     private final RelationName relationName;
-    private final List<Reference> columns;
+    private final List<ScopedRef> columns;
     @Nullable
     private final String pkConstraintName;
     private final IntArrayList pKeyIndices;
@@ -72,7 +72,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
 
     public CreateTableRequest(RelationName relationName,
                               @Nullable String pkConstraintName,
-                              List<Reference> columns,
+                              List<ScopedRef> columns,
                               IntArrayList pKeyIndices,
                               Map<String, String> checkConstraints,
                               Settings settings,
@@ -114,7 +114,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         this.relationName = new RelationName(in);
         this.checkConstraints = in.readMap(
             LinkedHashMap::new, StreamInput::readString, StreamInput::readString);
-        this.columns = in.readList(Reference::fromStream);
+        this.columns = in.readList(ScopedRef::fromStream);
         int numPKIndices = in.readVInt();
         this.pKeyIndices = new IntArrayList(numPKIndices);
         for (int i = 0; i < numPKIndices; i++) {
@@ -149,7 +149,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         }
         relationName.writeTo(out);
         out.writeMap(checkConstraints, StreamOutput::writeString, StreamOutput::writeString);
-        out.writeCollection(columns, Reference::toStream);
+        out.writeCollection(columns, ScopedRef::toStream);
         out.writeVInt(pKeyIndices.size());
         for (int i = 0; i < pKeyIndices.size(); i++) {
             out.writeVInt(pKeyIndices.get(i));
@@ -167,8 +167,8 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         } else {
             out.writeVInt(partitionedBy.size());
             for (ColumnIdent column : partitionedBy) {
-                int refIdx = Reference.indexOf(columns, column);
-                Reference reference = columns.get(refIdx);
+                int refIdx = ScopedRef.indexOf(columns, column);
+                ScopedRef reference = columns.get(refIdx);
                 out.writeVInt(2);
                 out.writeString(column.fqn());
                 out.writeString(DataTypes.esMappingNameFrom(reference.valueType().id()));
@@ -202,7 +202,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
     }
 
     @NotNull
-    public List<Reference> references() {
+    public List<ScopedRef> references() {
         return this.columns;
     }
 
@@ -220,7 +220,7 @@ public class CreateTableRequest extends MasterNodeRequest<CreateTableRequest> im
         }
         ArrayList<ColumnIdent> primaryKeys = new ArrayList<ColumnIdent>(pKeyIndices.size());
         for (var cursor : pKeyIndices) {
-            Reference pkRef = columns.get(cursor.value);
+            ScopedRef pkRef = columns.get(cursor.value);
             primaryKeys.add(pkRef.column());
         }
         return primaryKeys;

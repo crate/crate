@@ -51,7 +51,7 @@ import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.execution.dsl.phases.UpstreamPhase;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.distribution.DistributionInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
@@ -175,7 +175,7 @@ public final class PlanPrinter {
         @Override
         public MapBuilder<String, Object> visitFetchPhase(FetchPhase phase, Function<String, String> context) {
             return createMap(phase, createSubMap(phase)
-                .put("fetchRefs", Lists.joinOn(", ", phase.fetchRefs(), Reference::toString)));
+                .put("fetchRefs", Lists.joinOn(", ", phase.fetchRefs(), ScopedRef::toString)));
         }
 
         @Override

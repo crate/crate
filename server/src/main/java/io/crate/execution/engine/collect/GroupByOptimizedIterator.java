@@ -84,7 +84,7 @@ import io.crate.expression.symbol.Symbols;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataTypes;
@@ -126,11 +126,11 @@ final class GroupByOptimizedIterator {
             return null;
         }
         assert groupProjection.keys().size() == 1 : "Must have 1 key if getSingleStringKeyGroupProjection returned a projection";
-        Reference keyRef = getKeyRef(collectPhase.toCollect(), groupProjection.keys().get(0));
+        ScopedRef keyRef = getKeyRef(collectPhase.toCollect(), groupProjection.keys().get(0));
         if (keyRef == null) {
             return null; // group by on non-reference
         }
-        keyRef = (Reference) DocReferences.inverseSourceLookup(keyRef);
+        keyRef = (ScopedRef) DocReferences.inverseSourceLookup(keyRef);
         if (!keyRef.hasDocValues()) {
             return null;
         }
@@ -433,10 +433,10 @@ final class GroupByOptimizedIterator {
 
 
     @Nullable
-    private static Reference getKeyRef(List<Symbol> toCollect, Symbol key) {
+    private static ScopedRef getKeyRef(List<Symbol> toCollect, Symbol key) {
         if (key instanceof InputColumn inputColumn) {
             Symbol keyRef = toCollect.get(inputColumn.index());
-            if (keyRef instanceof Reference ref) {
+            if (keyRef instanceof ScopedRef ref) {
                 return ref;
             }
         }

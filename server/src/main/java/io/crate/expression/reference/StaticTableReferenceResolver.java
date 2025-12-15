@@ -26,7 +26,7 @@ import java.util.Map;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.NestableInput;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.expressions.RowCollectExpressionFactory;
 
 public class StaticTableReferenceResolver<R> implements ReferenceResolver<NestableCollectExpression<R, ?>> {
@@ -38,13 +38,13 @@ public class StaticTableReferenceResolver<R> implements ReferenceResolver<Nestab
     }
 
     @Override
-    public NestableCollectExpression<R, ?> getImplementation(Reference ref) {
+    public NestableCollectExpression<R, ?> getImplementation(ScopedRef ref) {
         return rowCollectExpressionFromFactoryMap(expressionFactories, ref);
     }
 
     private static <R> NestableCollectExpression<R, ?> rowCollectExpressionFromFactoryMap(
         Map<ColumnIdent, ? extends RowCollectExpressionFactory<R>> factories,
-        Reference ref) {
+        ScopedRef ref) {
 
         ColumnIdent columnIdent = ref.column();
         RowCollectExpressionFactory<R> factory = factories.get(columnIdent);

@@ -49,8 +49,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SearchPath;
 
 public final class GeneratedColumnExpander {
@@ -88,7 +88,7 @@ public final class GeneratedColumnExpander {
      */
     public static Symbol maybeExpand(Symbol symbol,
                                      List<GeneratedReference> generatedCols,
-                                     List<Reference> expansionCandidates,
+                                     List<ScopedRef> expansionCandidates,
                                      NodeContext nodeCtx) {
         return COMPARISON_REPLACE_VISITOR.addComparisons(symbol, generatedCols, expansionCandidates, nodeCtx);
     }
@@ -96,10 +96,10 @@ public final class GeneratedColumnExpander {
     private static class ComparisonReplaceVisitor extends FunctionCopyVisitor<ComparisonReplaceVisitor.Context> {
 
         static class Context {
-            private final Map<Reference, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn;
+            private final Map<ScopedRef, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn;
             private final NodeContext nodeCtx;
 
-            public Context(Map<Reference, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn,
+            public Context(Map<ScopedRef, ArrayList<GeneratedReference>> referencedRefsToGeneratedColumn,
                            NodeContext nodeCtx) {
                 this.referencedRefsToGeneratedColumn = referencedRefsToGeneratedColumn;
                 this.nodeCtx = nodeCtx;
@@ -112,9 +112,9 @@ public final class GeneratedColumnExpander {
 
         Symbol addComparisons(Symbol symbol,
                               List<GeneratedReference> generatedCols,
-                              List<Reference> expansionCandidates,
+                              List<ScopedRef> expansionCandidates,
                               NodeContext nodeCtx) {
-            Map<Reference, ArrayList<GeneratedReference>> referencedSingleReferences =
+            Map<ScopedRef, ArrayList<GeneratedReference>> referencedSingleReferences =
                 extractGeneratedReferences(generatedCols, expansionCandidates);
             if (referencedSingleReferences.isEmpty()) {
                 return symbol;
@@ -127,12 +127,12 @@ public final class GeneratedColumnExpander {
         @Override
         public Symbol visitFunction(Function function, Context context) {
             if (Operators.COMPARISON_OPERATORS.contains(function.name())) {
-                Reference reference = null;
+                ScopedRef reference = null;
                 Symbol otherSide = null;
                 for (int i = 0; i < function.arguments().size(); i++) {
                     Symbol arg = function.arguments().get(i);
                     arg = arg.uncast();
-                    if (arg instanceof Reference ref) {
+                    if (arg instanceof ScopedRef ref) {
                         reference = ref;
                     } else {
                         otherSide = arg;
@@ -148,7 +148,7 @@ public final class GeneratedColumnExpander {
         }
 
 
-        private Symbol addComparison(Function function, Reference reference, Symbol comparedAgainst, Context context) {
+        private Symbol addComparison(Function function, ScopedRef reference, Symbol comparedAgainst, Context context) {
             ArrayList<GeneratedReference> genColInfos = context.referencedRefsToGeneratedColumn
                 .computeIfAbsent(reference, k -> new ArrayList<>());
             List<Function> comparisonsToAdd = new ArrayList<>(genColInfos.size());
@@ -229,10 +229,10 @@ public final class GeneratedColumnExpander {
             );
         }
 
-        private static HashMap<Reference, ArrayList<GeneratedReference>> extractGeneratedReferences(
+        private static HashMap<ScopedRef, ArrayList<GeneratedReference>> extractGeneratedReferences(
             List<GeneratedReference> generatedCols,
-            Collection<Reference> partitionCols) {
-            HashMap<Reference, ArrayList<GeneratedReference>> map = new HashMap<>();
+            Collection<ScopedRef> partitionCols) {
+            HashMap<ScopedRef, ArrayList<GeneratedReference>> map = new HashMap<>();
             for (GeneratedReference generatedColumn : generatedCols) {
                 if (generatedColumn.referencedReferences().size() == 1 && partitionCols.contains(generatedColumn)) {
                     map
@@ -246,18 +246,18 @@ public final class GeneratedColumnExpander {
     }
 
 
-    static class ReplaceIfMatch implements java.util.function.Function<Reference, Symbol> {
+    static class ReplaceIfMatch implements java.util.function.Function<ScopedRef, Symbol> {
 
         private final Symbol replaceWith;
-        private final Reference toReplace;
+        private final ScopedRef toReplace;
 
-        ReplaceIfMatch(Symbol replaceWith, Reference toReplace) {
+        ReplaceIfMatch(Symbol replaceWith, ScopedRef toReplace) {
             this.replaceWith = replaceWith;
             this.toReplace = toReplace;
         }
 
         @Override
-        public Symbol apply(Reference ref) {
+        public Symbol apply(ScopedRef ref) {
             if (ref.equals(toReplace)) {
                 return replaceWith;
             }

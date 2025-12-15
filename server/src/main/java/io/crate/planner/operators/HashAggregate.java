@@ -48,8 +48,8 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -230,7 +230,7 @@ public class HashAggregate extends ForwardingLogicalPlan {
         }
 
         @Override
-        public Void visitReference(Reference symbol, OutputValidatorContext context) {
+        public Void visitReference(ScopedRef symbol, OutputValidatorContext context) {
             if (context.insideAggregation) {
                 IndexType indexType = symbol.indexType();
                 if (indexType == IndexType.FULLTEXT) {

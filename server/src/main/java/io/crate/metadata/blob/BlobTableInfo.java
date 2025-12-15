@@ -39,11 +39,11 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.analyze.WhereClause;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.Operation;
@@ -58,14 +58,14 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     private final RelationName ident;
     private final int numberOfShards;
     private final String numberOfReplicas;
-    private final LinkedHashSet<Reference> columns = new LinkedHashSet<>();
+    private final LinkedHashSet<ScopedRef> columns = new LinkedHashSet<>();
     private final String blobsPath;
     private final Settings tableParameters;
     private final Version versionCreated;
     private final Version versionUpgraded;
     private final boolean closed;
 
-    private final Map<ColumnIdent, Reference> infos = new LinkedHashMap<>();
+    private final Map<ColumnIdent, ScopedRef> infos = new LinkedHashMap<>();
     private static final List<ColumnIdent> PRIMARY_KEY = List.of(ColumnIdent.of("digest"));
 
     public BlobTableInfo(RelationName ident,
@@ -91,17 +91,17 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
 
     @Nullable
     @Override
-    public Reference getReference(ColumnIdent columnIdent) {
+    public ScopedRef getReference(ColumnIdent columnIdent) {
         return infos.get(columnIdent);
     }
 
     @Override
-    public Collection<Reference> rootColumns() {
+    public Collection<ScopedRef> rootColumns() {
         return columns;
     }
 
     @Override
-    public Stream<Reference> allColumnsSorted() {
+    public Stream<ScopedRef> allColumnsSorted() {
         // Columns are ordered already
         return columns.stream();
     }
@@ -148,7 +148,7 @@ public class BlobTableInfo implements TableInfo, ShardedTable, StoredTable {
     }
 
     @Override
-    public Iterator<Reference> iterator() {
+    public Iterator<ScopedRef> iterator() {
         return columns.iterator();
     }
 

@@ -30,20 +30,20 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
 
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeignTableRequest> {
 
     private final RelationName tableName;
     private boolean ifNotExists;
-    private final Collection<Reference> columns;
+    private final Collection<ScopedRef> columns;
     private final String server;
     private final Settings options;
 
     public CreateForeignTableRequest(RelationName tableName,
                                      boolean ifNotExists,
-                                     SequencedCollection<Reference> columns,
+                                     SequencedCollection<ScopedRef> columns,
                                      String server,
                                      Settings options) {
         this.tableName = tableName;
@@ -56,7 +56,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
     public CreateForeignTableRequest(StreamInput in) throws IOException {
         this.tableName = new RelationName(in);
         this.ifNotExists = in.readBoolean();
-        this.columns = in.readList(Reference::fromStream);
+        this.columns = in.readList(ScopedRef::fromStream);
         this.server = in.readString();
         this.options = Settings.readSettingsFromStream(in);
     }
@@ -65,7 +65,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
     public void writeTo(StreamOutput out) throws IOException {
         tableName.writeTo(out);
         out.writeBoolean(ifNotExists);
-        out.writeCollection(columns, Reference::toStream);
+        out.writeCollection(columns, ScopedRef::toStream);
         out.writeString(server);
         Settings.writeSettingsToStream(out, options);
     }
@@ -78,7 +78,7 @@ public class CreateForeignTableRequest extends AcknowledgedRequest<CreateForeign
         return ifNotExists;
     }
 
-    public Collection<Reference> columns() {
+    public Collection<ScopedRef> columns() {
         return columns;
     }
 

@@ -48,8 +48,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
 import io.crate.planner.PositionalOrderBy;
@@ -310,7 +310,7 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
             "select count(*) from sys.cluster group by name");
         // just testing the dispatching here.. making sure it is not a ESSearchNode
         RoutedCollectPhase collectPhase = ((RoutedCollectPhase) collect.collectPhase());
-        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(Reference.class);
+        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(ScopedRef.class);
         assertThat(collectPhase.toCollect()).hasSize(1);
 
         assertThat(collectPhase.projections()).satisfiesExactly(
@@ -331,10 +331,10 @@ public class GroupByPlannerTest extends CrateDummyClusterServiceUnitTest {
         CollectPhase collectPhase = ((Collect) reducerMerge.subPlan()).collectPhase();
 
         // collect
-        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(Reference.class);
+        assertThat(collectPhase.toCollect().getFirst()).isInstanceOf(ScopedRef.class);
         assertThat(collectPhase.toCollect()).hasSize(2);
-        assertThat(((Reference) collectPhase.toCollect().get(0)).column().name()).isEqualTo("id");
-        assertThat(((Reference) collectPhase.toCollect().get(1)).column().name()).isEqualTo("name");
+        assertThat(((ScopedRef) collectPhase.toCollect().get(0)).column().name()).isEqualTo("id");
+        assertThat(((ScopedRef) collectPhase.toCollect().get(1)).column().name()).isEqualTo("name");
         Projection projection = collectPhase.projections().getFirst();
         assertThat(projection).isExactlyInstanceOf(GroupProjection.class);
         GroupProjection groupProjection = (GroupProjection) projection;

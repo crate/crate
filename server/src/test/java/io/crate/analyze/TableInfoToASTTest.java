@@ -27,7 +27,7 @@ import org.junit.Test;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeoReference;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.SqlFormatter;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -384,7 +384,7 @@ public class TableInfoToASTTest extends CrateDummyClusterServiceUnitTest {
                       precision = '1m'
                    )
                 """);
-        Reference reference = table.getReference(ColumnIdent.of("geo_arr"));
+        ScopedRef reference = table.getReference(ColumnIdent.of("geo_arr"));
         assertThat(reference.valueType()).isEqualTo(new ArrayType<>(DataTypes.GEO_SHAPE));
         GeoReference geoRef = (GeoReference) reference;
         assertThat(geoRef.geoTree()).isEqualTo(GeoShapeType.Names.TREE_QUADTREE);

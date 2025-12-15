@@ -59,9 +59,9 @@ import io.crate.metadata.GeoReference;
 import io.crate.metadata.IndexReference;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
@@ -101,7 +101,7 @@ import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 
 @NotThreadSafe
-public class TableElementsAnalyzer implements FieldProvider<Reference> {
+public class TableElementsAnalyzer implements FieldProvider<ScopedRef> {
 
     public static final Set<Integer> UNSUPPORTED_INDEX_TYPE_IDS = Set.of(
         ObjectType.ID,
@@ -203,7 +203,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         /**
          * cached result
          **/
-        private Reference builtReference;
+        private ScopedRef builtReference;
 
         RefBuilder(ColumnIdent name, DataType<?> type) {
             this.name = name;
@@ -223,7 +223,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             return explicitNullable;
         }
 
-        public Reference build(Map<ColumnIdent, RefBuilder> columns,
+        public ScopedRef build(Map<ColumnIdent, RefBuilder> columns,
                                RelationName tableName,
                                UnaryOperator<Symbol> bindParameter,
                                Function<Symbol, Object> toValue) {
@@ -239,7 +239,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             boolean hasDocValues = columnStoreSymbol == null
                 ? storageSupport.getComputedDocValuesDefault(indexType)
                 : DataTypes.BOOLEAN.implicitCast(toValue.apply(columnStoreSymbol));
-            Reference ref;
+            ScopedRef ref;
             int position = -1;
 
 
@@ -248,7 +248,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             }
 
             if (!indexSources.isEmpty() || indexType == IndexType.FULLTEXT || indexProperties.contains("analyzer")) {
-                List<Reference> sources = new ArrayList<>(indexSources.size());
+                List<ScopedRef> sources = new ArrayList<>(indexSources.size());
                 for (Symbol indexSource : indexSources) {
                     if (!ArrayType.unnest(indexSource.valueType()).equals(DataTypes.STRING)) {
                         throw new IllegalArgumentException(String.format(
@@ -259,14 +259,14 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                             name
                             ));
                     }
-                    Reference source = (Reference) RefReplacer.replaceRefs(bindParameter.apply(indexSource), x -> {
+                    ScopedRef source = (ScopedRef) RefReplacer.replaceRefs(bindParameter.apply(indexSource), x -> {
                         if (x instanceof DynamicReference) {
                             RefBuilder column = columns.get(x.column());
                             return column.build(columns, tableName, bindParameter, toValue);
                         }
                         return x;
                     });
-                    if (Reference.indexOf(sources, source.column()) > -1) {
+                    if (ScopedRef.indexOf(sources, source.column()) > -1) {
                         throw new IllegalArgumentException("Index " + name + " contains duplicate columns: " + sources);
                     }
                     sources.add(source);
@@ -356,13 +356,13 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
     }
 
     @Override
-    public Reference resolveField(QualifiedName qualifiedName,
+    public ScopedRef resolveField(QualifiedName qualifiedName,
                                   @Nullable List<String> path,
                                   Operation operation,
                                   boolean errorOnUnknownObjectKey) {
         var columnIdent = ColumnIdent.fromNameSafe(qualifiedName, path);
         if (table != null) {
-            Reference reference = table.getReference(columnIdent);
+            ScopedRef reference = table.getReference(columnIdent);
             if (reference != null) {
                 return reference;
             }
@@ -388,14 +388,14 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         }
         GenericProperties<Symbol> properties = createTable.properties().map(toSymbol);
         Optional<ClusteredBy<Symbol>> clusteredBy = createTable.clusteredBy().map(x -> x.map(toSymbol));
-        Function<Expression, Reference> toRef = x -> {
+        Function<Expression, ScopedRef> toRef = x -> {
             Symbol symbol = toSymbol.apply(x);
-            if (symbol instanceof Reference ref) {
+            if (symbol instanceof ScopedRef ref) {
                 return ref;
             }
             throw new IllegalArgumentException("Expression must be a column: " + x);
         };
-        Optional<PartitionedBy<Reference>> partitionedBy = createTable.partitionedBy().map(x -> x.map(toRef));
+        Optional<PartitionedBy<ScopedRef>> partitionedBy = createTable.partitionedBy().map(x -> x.map(toRef));
         partitionedBy.ifPresent(p -> p.columns().forEach(partitionColumn -> {
             ColumnIdent partitionColumnIdent = partitionColumn.toColumn();
             RefBuilder column = columns.get(partitionColumnIdent);
@@ -539,7 +539,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
             resolveMissing = false;
             ColumnIdent columnName = columnSymbol.toColumn();
             for (ColumnIdent parent : columnName.parents()) {
-                Reference parentRef = table.getReference(parent);
+                ScopedRef parentRef = table.getReference(parent);
                 if (parentRef != null) {
                     RefBuilder parentBuilder = new RefBuilder(parent, parentRef.valueType());
                     parentBuilder.builtReference = parentRef;
@@ -554,7 +554,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     columns.computeIfAbsent(parent, _ -> new RefBuilder(parent, ObjectType.UNTYPED));
                 }
             }
-            Reference reference = table.getReference(columnName);
+            ScopedRef reference = table.getReference(columnName);
             if (reference != null) {
                 throw new IllegalArgumentException("The table " + tableName + " already has a column named " + columnName);
             }
@@ -700,7 +700,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     builder.defaultExpression = defaultSymbol.cast(builder.type, CastMode.IMPLICIT);
                     // only used to validate; result is not used to preserve functions like `current_timestamp`
                     normalizer.normalize(builder.defaultExpression, txnCtx);
-                    builder.defaultExpression.visit(Reference.class, x -> {
+                    builder.defaultExpression.visit(ScopedRef.class, x -> {
                         throw new UnsupportedOperationException(
                             "Cannot reference columns in DEFAULT expression of `" + columnName + "`. " +
                                 "Maybe you wanted to use a string literal with single quotes instead: '" + x.column().name() + "'");
@@ -809,7 +809,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
         }
         var analyzedCheck = new AnalyzedCheck(expression, expressionSymbol, null);
         if (column != null) {
-            expressionSymbol.visit(Reference.class, ref -> {
+            expressionSymbol.visit(ScopedRef.class, ref -> {
                 if (!ref.column().equals(column)) {
                     throw new UnsupportedOperationException(
                         "CHECK constraint on column `" + column + "` cannot refer to column `" + ref.column() +

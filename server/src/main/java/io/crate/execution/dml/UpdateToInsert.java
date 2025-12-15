@@ -45,7 +45,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.types.ObjectType;
@@ -142,8 +142,8 @@ public final class UpdateToInsert {
 
     private final DocTableInfo table;
     private final Evaluator eval;
-    private final List<Reference> updateColumns;
-    private final ArrayList<Reference> columns;
+    private final List<ScopedRef> updateColumns;
+    private final ArrayList<ScopedRef> columns;
 
 
     public record Update(List<String> pkValues, Object[] insertValues, long version) {}
@@ -168,7 +168,7 @@ public final class UpdateToInsert {
         }
 
         @Override
-        public Input<?> visitReference(Reference symbol, Values values) {
+        public Input<?> visitReference(ScopedRef symbol, Values values) {
             CollectExpression<Doc, ?> expr = refResolver.getImplementation(symbol);
             expr.setNextRow(values.doc);
             return expr;
@@ -179,7 +179,7 @@ public final class UpdateToInsert {
                           TransactionContext txnCtx,
                           DocTableInfo table,
                           String[] updateColumns,
-                          @Nullable List<Reference> insertColumns) {
+                          @Nullable List<ScopedRef> insertColumns) {
         var refResolver = new DocRefResolver(table.partitionedBy());
         this.table = table;
         this.eval = new Evaluator(nodeCtx, txnCtx, refResolver);
@@ -209,15 +209,15 @@ public final class UpdateToInsert {
         }
         for (String columnName : updateColumns) {
             ColumnIdent column = ColumnIdent.fromPath(columnName);
-            Reference existingRef = table.getReference(column);
+            ScopedRef existingRef = table.getReference(column);
             if (existingRef == null) {
-                Reference reference = table.getDynamic(column, true, errorOnUnknownObjectKey);
+                ScopedRef reference = table.getDynamic(column, true, errorOnUnknownObjectKey);
                 if (column.isRoot()) {
                     columns.add(reference);
                     this.updateColumns.add(reference);
                 } else {
                     ColumnIdent root = column.getRoot();
-                    Reference rootReference = table.getReference(root);
+                    ScopedRef rootReference = table.getReference(root);
                     if (rootReference == null) {
                         throw new UnsupportedOperationException(String.format(
                             Locale.ENGLISH,
@@ -238,9 +238,9 @@ public final class UpdateToInsert {
     public IndexItem convert(Doc doc, Symbol[] updateAssignments, Object[] excludedValues) {
         Values values = new Values(doc, excludedValues);
         Object[] insertValues = new Object[columns.size()];
-        Iterator<Reference> it = columns.iterator();
+        Iterator<ScopedRef> it = columns.iterator();
         for (int i = 0; it.hasNext(); i++) {
-            Reference ref = it.next();
+            ScopedRef ref = it.next();
             int updateIdx = updateColumns.indexOf(ref);
             if (updateIdx >= 0) {
                 Symbol symbol = updateAssignments[updateIdx];
@@ -281,14 +281,14 @@ public final class UpdateToInsert {
             }
         }
         for (int i = 0; i < updateColumns.size(); i++) {
-            Reference updateColumn = updateColumns.get(i);
+            ScopedRef updateColumn = updateColumns.get(i);
             ColumnIdent column = updateColumn.column();
             if (column.isRoot()) {
                 // Handled in previous loop over the columns
                 continue;
             }
             ColumnIdent root = column.getRoot();
-            int idx = Reference.indexOf(columns, root);
+            int idx = ScopedRef.indexOf(columns, root);
             assert idx > -1 : "Root of updateColumns must exist in table columns";
             Symbol assignment = updateAssignments[i];
             Object value = assignment.accept(eval, values).value();
@@ -309,11 +309,11 @@ public final class UpdateToInsert {
         );
     }
 
-    public List<Reference> columns() {
+    public List<ScopedRef> columns() {
         return columns;
     }
 
-    public List<Reference> updateColumns() {
+    public List<ScopedRef> updateColumns() {
         return updateColumns;
     }
 }

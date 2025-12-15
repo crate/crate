@@ -23,6 +23,7 @@ package io.crate.planner.statement;
 
 import static io.crate.analyze.TableDefinitions.USER_TABLE_DEFINITION;
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
@@ -39,7 +40,7 @@ import io.crate.execution.dsl.phases.FileUriCollectPhase;
 import io.crate.execution.dsl.projection.SourceIndexWriterProjection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.operators.SubQueryResults;
@@ -133,8 +134,8 @@ public class CopyFromPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(projection.clusteredBy()).isNull();
         List<Symbol> toCollectSymbols = collect.collectPhase().toCollect();
         assertThat(toCollectSymbols).hasSize(1);
-        assertThat(toCollectSymbols.get(0)).isInstanceOf(Reference.class);
-        Reference refToCollect = (Reference) toCollectSymbols.get(0);
+        assertThat(toCollectSymbols.get(0)).isInstanceOf(ScopedRef.class);
+        ScopedRef refToCollect = (ScopedRef) toCollectSymbols.get(0);
         assertThat(refToCollect.column().fqn()).isEqualTo("_raw");
     }
 

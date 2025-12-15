@@ -33,9 +33,9 @@ import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Query;
@@ -59,7 +59,7 @@ public class ViewInfoFactory {
         if (view == null) {
             return null;
         }
-        List<Reference> columns;
+        List<ScopedRef> columns;
         boolean analyzeError = false;
         boolean errorOnUnknownObjectKey = view.errorOnUnknownObjectKey();
         try {
@@ -72,8 +72,8 @@ public class ViewInfoFactory {
                 transactionContext,
                 ParamTypeHints.EMPTY
             );
-            final List<Reference> collectedColumns = new ArrayList<>(relation.outputs().size());
-            List<Reference> subColumns = new ArrayList<>();
+            final List<ScopedRef> collectedColumns = new ArrayList<>(relation.outputs().size());
+            List<ScopedRef> subColumns = new ArrayList<>();
             int position = 1;
             for (var field : relation.outputs()) {
                 ColumnIdent columnIdent = field.toColumn();
@@ -93,7 +93,7 @@ public class ViewInfoFactory {
             // Now add all sub-columns.
             // We do it after handling top level columns to ensure that ordinals in the information_schema.columns are stable
             // and sub-columns, added or dropped after view definition don't change ordinals of other columns in the view.
-            for (Reference ref: columns) {
+            for (ScopedRef ref: columns) {
                 position = addSubColumns(subColumns, ident, ref.column(), ref.valueType(), position);
             }
             columns.addAll(subColumns);
@@ -107,7 +107,7 @@ public class ViewInfoFactory {
         return new ViewInfo(ident, viewDefinition, columns, view.owner(), view.searchPath(), errorOnUnknownObjectKey);
     }
 
-    private static int addSubColumns(List<Reference> subColumns,
+    private static int addSubColumns(List<ScopedRef> subColumns,
                                      RelationName ident,
                                      ColumnIdent parent,
                                      DataType<?> parentType,

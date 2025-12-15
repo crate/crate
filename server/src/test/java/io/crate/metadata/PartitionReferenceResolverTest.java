@@ -36,7 +36,7 @@ public class PartitionReferenceResolverTest extends ESTestCase {
 
     @Test
     public void testClusterExpressionsNotAllowed() throws Exception {
-        Reference refInfo = TestingHelpers.refInfo("foo.bar", DataTypes.STRING, RowGranularity.CLUSTER);
+        ScopedRef refInfo = TestingHelpers.refInfo("foo.bar", DataTypes.STRING, RowGranularity.CLUSTER);
         PartitionReferenceResolver referenceResolver = new PartitionReferenceResolver(List.of());
 
         if (assertionsEnabled()) {

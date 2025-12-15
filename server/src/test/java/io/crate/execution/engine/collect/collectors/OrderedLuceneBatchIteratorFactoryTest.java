@@ -71,7 +71,7 @@ import io.crate.execution.engine.sort.OrderingByPosition;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.OrderByCollectorExpression;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.types.DataTypes;
 import io.crate.types.LongType;
 
@@ -83,7 +83,7 @@ public class OrderedLuceneBatchIteratorFactoryTest extends ESTestCase {
     );
 
     private final String columnName = "x";
-    private final Reference reference = createReference(columnName, DataTypes.LONG);
+    private final ScopedRef reference = createReference(columnName, DataTypes.LONG);
     private IndexSearcher searcher1;
     private IndexSearcher searcher2;
     private OrderBy orderBy;

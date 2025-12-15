@@ -29,8 +29,8 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.expression.symbol.format.Style;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.DataType;
 
@@ -41,20 +41,20 @@ import io.crate.types.DataType;
 public final class FetchMarker implements Symbol {
 
     private final RelationName relationName;
-    private final List<Reference> fetchRefs;
-    private final Reference fetchId;
+    private final List<ScopedRef> fetchRefs;
+    private final ScopedRef fetchId;
 
-    public FetchMarker(RelationName relationName, List<Reference> fetchRefs) {
+    public FetchMarker(RelationName relationName, List<ScopedRef> fetchRefs) {
         this(relationName, fetchRefs, SysColumns.forTable(relationName, SysColumns.FETCHID));
     }
 
-    public FetchMarker(RelationName relationName, List<Reference> fetchRefs, Reference fetchId) {
+    public FetchMarker(RelationName relationName, List<ScopedRef> fetchRefs, ScopedRef fetchId) {
         this.relationName = relationName;
         this.fetchRefs = fetchRefs;
         this.fetchId = fetchId;
     }
 
-    public List<Reference> fetchRefs() {
+    public List<ScopedRef> fetchRefs() {
         return fetchRefs;
     }
 
@@ -62,7 +62,7 @@ public final class FetchMarker implements Symbol {
         return relationName;
     }
 
-    public Reference fetchId() {
+    public ScopedRef fetchId() {
         return fetchId;
     }
 

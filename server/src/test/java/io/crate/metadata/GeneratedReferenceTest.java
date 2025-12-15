@@ -68,10 +68,10 @@ public class GeneratedReferenceTest extends CrateDummyClusterServiceUnitTest {
         GeneratedReference generatedReferenceInfo = new GeneratedReference(simpleRef, generatedExpression);
 
         BytesStreamOutput out = new BytesStreamOutput();
-        Reference.toStream(out, generatedReferenceInfo);
+        ScopedRef.toStream(out, generatedReferenceInfo);
 
         StreamInput in = out.bytes().streamInput();
-        GeneratedReference generatedReferenceInfo2 = Reference.fromStream(in);
+        GeneratedReference generatedReferenceInfo2 = ScopedRef.fromStream(in);
 
         assertThat(generatedReferenceInfo2).isEqualTo(generatedReferenceInfo);
     }

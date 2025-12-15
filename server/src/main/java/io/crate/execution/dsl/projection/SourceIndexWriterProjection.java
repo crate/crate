@@ -39,8 +39,8 @@ import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 /**
  * IndexWriterProjector that gets its values from a source input
@@ -49,7 +49,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     private final boolean failFast;
     private final Boolean overwriteDuplicates;
-    private final Reference rawSourceReference;
+    private final ScopedRef rawSourceReference;
     private final InputColumn rawSourceSymbol;
     private final List<? extends Symbol> outputs;
 
@@ -59,7 +59,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
 
     public SourceIndexWriterProjection(RelationName relationName,
                                        @Nullable String partitionIdent,
-                                       Reference rawSourceReference,
+                                       ScopedRef rawSourceReference,
                                        InputColumn rawSourcePtr,
                                        List<ColumnIdent> primaryKeys,
                                        List<Symbol> partitionedBySymbols,
@@ -90,7 +90,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             failFast = false;
         }
         overwriteDuplicates = in.readBoolean();
-        rawSourceReference = Reference.fromStream(in);
+        rawSourceReference = ScopedRef.fromStream(in);
         rawSourceSymbol = (InputColumn) Symbol.fromStream(in);
 
         if (version.before(Version.V_5_3_0)) {
@@ -126,7 +126,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             out.writeBoolean(failFast);
         }
         out.writeBoolean(overwriteDuplicates);
-        Reference.toStream(out, rawSourceReference);
+        ScopedRef.toStream(out, rawSourceReference);
         Symbol.toStream(rawSourceSymbol, out);
 
         if (version.before(Version.V_5_3_0)) {
@@ -157,7 +157,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         return rawSourceSymbol;
     }
 
-    public Reference rawSourceReference() {
+    public ScopedRef rawSourceReference() {
         return rawSourceReference;
     }
 

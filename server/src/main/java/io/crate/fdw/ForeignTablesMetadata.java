@@ -46,8 +46,8 @@ import org.jetbrains.annotations.Nullable;
 
 import io.crate.exceptions.RelationUnknown;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.Custom>
         implements Metadata.Custom, Iterable<ForeignTable> {
@@ -111,13 +111,13 @@ public final class ForeignTablesMetadata extends AbstractNamedDiffable<Metadata.
     }
 
     public ForeignTablesMetadata add(RelationName tableName,
-                                     Collection<Reference> columns,
+                                     Collection<ScopedRef> columns,
                                      String server,
                                      Settings options) {
         HashMap<RelationName, ForeignTable> newTables = new HashMap<>(tables);
         ForeignTable value = new ForeignTable(
             tableName,
-            columns.stream().collect(Collectors.toMap(Reference::column, x -> x)),
+            columns.stream().collect(Collectors.toMap(ScopedRef::column, x -> x)),
             server,
             options
         );

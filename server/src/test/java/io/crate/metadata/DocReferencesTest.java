@@ -36,7 +36,7 @@ public class DocReferencesTest {
 
     private static final RelationName RELATION_ID = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
 
-    private static Reference stringRef(String path) {
+    private static ScopedRef stringRef(String path) {
         ColumnIdent columnIdent = ColumnIdent.fromPath(path);
         return new SimpleReference(RELATION_ID, columnIdent, RowGranularity.DOC, DataTypes.STRING, 0, null);
     }
@@ -44,28 +44,28 @@ public class DocReferencesTest {
     @Test
     public void testConvertDocReference() throws Exception {
         // users._doc['name'] -> users.name
-        Reference reference = stringRef("_doc.name");
-        Reference newRef = (Reference) DocReferences.inverseSourceLookup(reference);
+        ScopedRef reference = stringRef("_doc.name");
+        ScopedRef newRef = (ScopedRef) DocReferences.inverseSourceLookup(reference);
         assertThat(stringRef("name").column()).isEqualTo(newRef.column());
 
         // users._doc -> users._doc
         reference = stringRef("_doc");
-        newRef = (Reference) DocReferences.inverseSourceLookup(reference);
+        newRef = (ScopedRef) DocReferences.inverseSourceLookup(reference);
         assertThat(stringRef("_doc").column()).isEqualTo(newRef.column());
     }
 
     @Test
     public void testDontConvertOtherReferences() throws Exception {
-        Reference reference = stringRef("_raw");
-        Reference newRef = (Reference) DocReferences.inverseSourceLookup(reference);
+        ScopedRef reference = stringRef("_raw");
+        ScopedRef newRef = (ScopedRef) DocReferences.inverseSourceLookup(reference);
         assertThat(reference.column()).isEqualTo(newRef.column());
 
         reference = stringRef("_id");
-        newRef = (Reference) DocReferences.inverseSourceLookup(reference);
+        newRef = (ScopedRef) DocReferences.inverseSourceLookup(reference);
         assertThat(reference.column()).isEqualTo(newRef.column());
 
         reference = stringRef("address.zip_code");
-        newRef = (Reference) DocReferences.inverseSourceLookup(reference);
+        newRef = (ScopedRef) DocReferences.inverseSourceLookup(reference);
         assertThat(reference.column()).isEqualTo(newRef.column());
     }
 
@@ -85,7 +85,7 @@ public class DocReferencesTest {
     public void test_index_source_references_has_oids() {
         var references = List.of(stringRef("name"), stringRef("first_name"));
         var referenceMap = references.stream()
-                .collect(Collectors.toMap(Reference::column, reference -> reference));
+                .collect(Collectors.toMap(ScopedRef::column, reference -> reference));
         var indexReference = new IndexReference.Builder(RELATION_ID, ColumnIdent.of("ft"))
                 .sources(List.of("name", "first_name"))
                 .build(referenceMap);

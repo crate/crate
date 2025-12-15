@@ -53,7 +53,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 
 public class ColumnIndexWriterProjector implements Projector {
@@ -78,11 +78,11 @@ public class ColumnIndexWriterProjector implements Projector {
                                       List<? extends Symbol> primaryKeySymbols,
                                       @Nullable Symbol routingSymbol,
                                       ColumnIdent clusteredByColumn,
-                                      List<Reference> columnReferences,
+                                      List<ScopedRef> columnReferences,
                                       List<Input<?>> insertInputs,
                                       List<? extends CollectExpression<Row, ?>> collectExpressions,
                                       boolean ignoreDuplicateKeys,
-                                      @Nullable Map<Reference, Symbol> onConflictAssignmentsByRef,
+                                      @Nullable Map<ScopedRef, Symbol> onConflictAssignmentsByRef,
                                       int bulkActions,
                                       boolean autoCreateIndices,
                                       List<Symbol> returnValues,
@@ -105,7 +105,7 @@ public class ColumnIndexWriterProjector implements Projector {
             onConflictAssignments = convert.sources();
         }
 
-        Reference[] insertColumns = columnReferences.toArray(new Reference[columnReferences.size()]);
+        ScopedRef[] insertColumns = columnReferences.toArray(new ScopedRef[columnReferences.size()]);
         boolean continueOnError = !txnCtx.sessionSettings().insertSelectFailFast();
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),

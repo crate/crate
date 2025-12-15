@@ -50,7 +50,7 @@ import io.crate.expression.symbol.SymbolVisitor;
 import io.crate.expression.symbol.Symbols;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.DocReferences;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.types.BooleanType;
@@ -126,7 +126,7 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
      * the implementation is similar to how ES 2.4 SortParseElement worked
      */
     @Override
-    public SortField visitReference(Reference ref, final SortSymbolContext context) {
+    public SortField visitReference(ScopedRef ref, final SortSymbolContext context) {
         // can't use the SortField(fieldName, type) constructor
         // because values are saved using docValues and therefore they're indexed in lucene as binary and not
         // with the reference valueType.
@@ -136,7 +136,7 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
         // Always prefer doc-values. Should be faster for sorting and otherwise we'd
         // default to the `NullFieldComparatorSource` - leading to `null` values.
         if (ref.column().isChildOf(SysColumns.DOC)) {
-            ref = (Reference) DocReferences.inverseSourceLookup(ref);
+            ref = (ScopedRef) DocReferences.inverseSourceLookup(ref);
         }
 
         ColumnIdent columnIdent = ref.column();
@@ -177,7 +177,7 @@ public class LuceneSort extends SymbolVisitor<LuceneSort.SortSymbolContext, Sort
     }
 
     @VisibleForTesting
-    public static SortField mappedSortField(Reference symbol,
+    public static SortField mappedSortField(ScopedRef symbol,
                                             boolean reverse,
                                             NullValueOrder nullValueOrder) {
         String fieldName = symbol.storageIdent();

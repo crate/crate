@@ -32,9 +32,9 @@ import org.junit.Test;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.types.DataTypes;
 
@@ -42,7 +42,7 @@ public class OrderByTest extends ESTestCase {
 
     private static final RelationName TI = new RelationName("doc", "people");
 
-    private Reference ref(String name) {
+    private ScopedRef ref(String name) {
         return new SimpleReference(TI, ColumnIdent.of(name), RowGranularity.DOC, DataTypes.STRING, 0, null);
     }
 

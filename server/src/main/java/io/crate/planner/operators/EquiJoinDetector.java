@@ -35,8 +35,8 @@ import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolVisitor;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.sql.tree.JoinType;
 
 /**
@@ -170,7 +170,7 @@ public final class EquiJoinDetector {
         }
 
         @Override
-        public Void visitReference(Reference ref, Context context) {
+        public Void visitReference(ScopedRef ref, Context context) {
             context.relations.add(ref.relation());
             return null;
         }

@@ -21,8 +21,8 @@
 
 package io.crate.expression.reference.information;
 
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
+import io.crate.metadata.ScopedRef;
 
-public record ColumnContext(RelationInfo relation, Reference ref) {
+public record ColumnContext(RelationInfo relation, ScopedRef ref) {
 }

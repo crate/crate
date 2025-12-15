@@ -32,8 +32,8 @@ import com.carrotsearch.hppc.IntArrayList;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 
 public record BoundCreateTable(
         RelationName tableName,
@@ -43,15 +43,15 @@ public record BoundCreateTable(
         /**
          * In order of definition
          */
-        Map<ColumnIdent, Reference> columns,
+        Map<ColumnIdent, ScopedRef> columns,
         Settings settings,
-        List<Reference> primaryKeys,
+        List<ScopedRef> primaryKeys,
         /**
          * By constraint name; In order of definition
          **/
         Map<String, AnalyzedCheck> checks,
         ColumnIdent routingColumn,
-        List<Reference> partitionedBy) {
+        List<ScopedRef> partitionedBy) {
 
     public boolean isPartitioned() {
         return !partitionedBy.isEmpty();
@@ -78,8 +78,8 @@ public record BoundCreateTable(
 
     public IntArrayList primaryKeysIndices() {
         IntArrayList pkKeyIndices = new IntArrayList(primaryKeys.size());
-        for (Reference pk : primaryKeys) {
-            int idx = Reference.indexOf(columns.values(), pk.column());
+        for (ScopedRef pk : primaryKeys) {
+            int idx = ScopedRef.indexOf(columns.values(), pk.column());
             pkKeyIndices.add(idx);
         }
         return pkKeyIndices;

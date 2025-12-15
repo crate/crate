@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import java.io.File;
 import java.io.IOException;
@@ -38,7 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.UseRandomizedSchema;
 
@@ -224,13 +225,13 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             "b['x']| 3");
 
         DocTableInfo table = getTable("t");
-        Iterable<Reference> allUserColumns = () -> StreamSupport.stream(table.spliterator(), false)
+        Iterable<ScopedRef> allUserColumns = () -> StreamSupport.stream(table.spliterator(), false)
             .filter(x -> !x.column().isSystemColumn())
             .iterator();
         assertThat(allUserColumns).hasSize(48);
         assertThat(
             StreamSupport.stream(allUserColumns.spliterator(), false)
-            .mapToLong(Reference::oid)
+            .mapToLong(ScopedRef::oid)
             .max()
         ).hasValue(48);
     }

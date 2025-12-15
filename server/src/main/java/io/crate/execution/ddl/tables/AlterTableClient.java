@@ -61,8 +61,8 @@ import io.crate.exceptions.SQLExceptions;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.GeneratedReference;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.PlannerContext;
 import io.crate.replication.logical.LogicalReplicationService;
@@ -111,7 +111,7 @@ public class AlterTableClient {
         } else if (newReferences.stream().anyMatch(ref -> ref instanceof GeneratedReference)) {
             exceptionSubject = "generated";
         } else {
-            for (Reference newRef : newReferences) {
+            for (ScopedRef newRef : newReferences) {
                 if (newReferences.stream().anyMatch(r -> r.column().isChildOf(newRef.column()))
                     && (newRef.valueType().columnPolicy() == ColumnPolicy.IGNORED)) {
                     warning = "Adding a sub column to an OBJECT(IGNORED) parent may shade existing data of this column as the table isn't empty";

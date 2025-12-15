@@ -35,9 +35,9 @@ import org.junit.Test;
 
 import io.crate.analyze.DropColumn;
 import io.crate.metadata.ColumnIdent;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.DocTableInfoFactory;
@@ -60,7 +60,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState initialState = clusterService.state();
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        Reference colToDrop = tbl.getReference(ColumnIdent.of("y"));
+        ScopedRef colToDrop = tbl.getReference(ColumnIdent.of("y"));
         var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(initialState, request);
 
@@ -94,7 +94,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState initialState = clusterService.state();
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        Reference colToDrop = tbl.getReference(ColumnIdent.of("y"));
+        ScopedRef colToDrop = tbl.getReference(ColumnIdent.of("y"));
         var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(initialState, request);
 
@@ -127,13 +127,13 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             .addTable("create table tbl (id int, o object AS(a int, b int, oo object AS (a int, b int)))");
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        Reference colToDrop = tbl.getReference(ColumnIdent.of("o", "oo"));
+        ScopedRef colToDrop = tbl.getReference(ColumnIdent.of("o", "oo"));
         var request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(colToDrop, false)));
         ClusterState newState = dropColumnTask.execute(clusterService.state(), request);
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
         assertThat(newTable.getReference(colToDrop.column())).isNull();
-        Reference o = newTable.getReference(ColumnIdent.of("o"));
+        ScopedRef o = newTable.getReference(ColumnIdent.of("o"));
         assertThat(o.valueType()).isExactlyInstanceOf(ObjectType.class);
         ObjectType objectType = (ObjectType) o.valueType();
         assertThat(objectType.innerTypes())
@@ -151,8 +151,8 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
         // parent specified first then its child
-        Reference colToDrop1 = tbl.getReference(ColumnIdent.of("o", "o2"));
-        Reference colToDrop2 = tbl.getReference(ColumnIdent.of("o", List.of("o2", "c")));
+        ScopedRef colToDrop1 = tbl.getReference(ColumnIdent.of("o", "o2"));
+        ScopedRef colToDrop2 = tbl.getReference(ColumnIdent.of("o", List.of("o2", "c")));
         var request = new DropColumnRequest(tbl.ident(), List.of(
             new DropColumn(colToDrop1, false),
             new DropColumn(colToDrop2, false)));
@@ -213,7 +213,7 @@ public class DropColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo tbl = e.resolveTableInfo("tbl");
         ClusterState state = clusterService.state();
         var dropColumnTask = buildDropColumnTask(e, tbl.ident());
-        Reference ref = tbl.getReference(ColumnIdent.of("y"));
+        ScopedRef ref = tbl.getReference(ColumnIdent.of("y"));
 
         DropColumnRequest request = new DropColumnRequest(tbl.ident(), List.of(new DropColumn(ref, true)));
         assertThatThrownBy(() -> dropColumnTask.execute(state, request))

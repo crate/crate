@@ -35,8 +35,8 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -125,7 +125,7 @@ public class LikeOperator extends Operator<String> {
     @Nullable
     public Query toQuery(Function function, LuceneQueryBuilder.Context context) {
         List<Symbol> args = function.arguments();
-        if (args.get(0) instanceof Reference ref
+        if (args.get(0) instanceof ScopedRef ref
             && args.get(1) instanceof Literal<?> patternLiteral
         ) {
             Object value = patternLiteral.value();

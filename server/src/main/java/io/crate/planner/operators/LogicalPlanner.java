@@ -81,8 +81,8 @@ import io.crate.fdw.ServersMetadata;
 import io.crate.fdw.ServersMetadata.Server;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.NodeContext;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.planner.CorrelatedSubQueries;
@@ -498,7 +498,7 @@ public class LogicalPlanner {
                 SequencedSet<RelationName> relationNamesFromSymbol = RelationNames.getShallow(node);
                 for (RelationName relationName : relationNamesFromSymbol) {
                     if (relationNamesFromRelation.contains(relationName)) {
-                        if (node instanceof ScopedSymbol || node instanceof Reference) {
+                        if (node instanceof ScopedSymbol || node instanceof ScopedRef) {
                             result.add(node);
                             break;
                         }

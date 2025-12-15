@@ -45,8 +45,8 @@ import io.crate.expression.symbol.Literal;
 import io.crate.memory.MemoryManager;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
-import io.crate.metadata.Reference;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
@@ -156,11 +156,11 @@ public class ArbitraryAggregation extends AggregationFunction<Object, Object> {
     @Nullable
     @Override
     public DocValueAggregator<?> getDocValueAggregator(LuceneReferenceResolver referenceResolver,
-                                                       List<Reference> aggregationReferences,
+                                                       List<ScopedRef> aggregationReferences,
                                                        DocTableInfo table,
                                                        Version shardCreatedVersion,
                                                        List<Literal<?>> optionalParams) {
-        Reference reference = getAggReference(aggregationReferences);
+        ScopedRef reference = getAggReference(aggregationReferences);
         if (reference == null) {
             return null;
         }

@@ -51,9 +51,9 @@ import io.crate.data.Input;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Scalar;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.role.Policy;
@@ -75,7 +75,7 @@ public class Asserts extends Assertions {
         return new SymbolAssert(actual);
     }
 
-    public static ReferenceAssert assertThat(Reference reference) {
+    public static ReferenceAssert assertThat(ScopedRef reference) {
         return new ReferenceAssert(reference);
     }
 

@@ -30,7 +30,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 
 public class BooleanIndexer implements ValueIndexer<Boolean> {
 
@@ -43,10 +43,10 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
         FIELD_TYPE.freeze();
     }
 
-    private final Reference ref;
+    private final ScopedRef ref;
     private final String name;
 
-    public BooleanIndexer(Reference ref) {
+    public BooleanIndexer(ScopedRef ref) {
         this.ref = ref;
         this.name = ref.storageIdent();
     }

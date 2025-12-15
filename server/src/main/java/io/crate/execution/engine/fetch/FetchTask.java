@@ -59,9 +59,9 @@ import io.crate.execution.jobs.SharedShardContext;
 import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.execution.jobs.Task;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.doc.DocTableInfo;
 
 public class FetchTask implements Task {
@@ -75,7 +75,7 @@ public class FetchTask implements Task {
     private final TreeMap<Integer, PartitionName> tableIdents = new TreeMap<>();
     private final Metadata metadata;
     private final List<? extends Routing> routings;
-    private final Map<RelationName, Collection<Reference>> toFetch;
+    private final Map<RelationName, Collection<ScopedRef>> toFetch;
     private final UUID jobId;
     private final Function<RelationName, DocTableInfo> getTableInfo;
     private final CompletableFuture<Void> result = new CompletableFuture<>();
@@ -121,7 +121,7 @@ public class FetchTask implements Task {
         return memoryLimitInBytes;
     }
 
-    public Map<RelationName, Collection<Reference>> toFetch() {
+    public Map<RelationName, Collection<ScopedRef>> toFetch() {
         return toFetch;
     }
 
@@ -272,7 +272,7 @@ public class FetchTask implements Task {
             }
         }
         Set<RelationName> tablesWithFetchRefs = new HashSet<>();
-        for (Reference reference : phase.fetchRefs()) {
+        for (ScopedRef reference : phase.fetchRefs()) {
             tablesWithFetchRefs.add(reference.relation());
         }
         String source = "fetch-task: " + jobId.toString() + '-' + phase.phaseId() + '-' + phase.name();
@@ -323,8 +323,8 @@ public class FetchTask implements Task {
                 }
             }
         }
-        for (Reference reference : phase.fetchRefs()) {
-            Collection<Reference> references = toFetch.get(reference.relation());
+        for (ScopedRef reference : phase.fetchRefs()) {
+            Collection<ScopedRef> references = toFetch.get(reference.relation());
             if (references != null) {
                 references.add(reference);
             }

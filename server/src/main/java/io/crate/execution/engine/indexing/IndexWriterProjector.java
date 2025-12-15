@@ -62,7 +62,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
-import io.crate.metadata.Reference;
+import io.crate.metadata.ScopedRef;
 import io.crate.metadata.TransactionContext;
 
 public class IndexWriterProjector implements Projector {
@@ -82,7 +82,7 @@ public class IndexWriterProjector implements Projector {
                                 int targetTableNumReplicas,
                                 Client elasticsearchClient,
                                 Supplier<PartitionName> partitionResolver,
-                                Reference rawSourceReference,
+                                ScopedRef rawSourceReference,
                                 List<ColumnIdent> primaryKeyIdents,
                                 List<? extends Symbol> primaryKeySymbols,
                                 @Nullable Symbol routingSymbol,
@@ -106,7 +106,7 @@ public class IndexWriterProjector implements Projector {
         }
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
-        Reference[] missingAssignmentsColumns = new Reference[]{rawSourceReference};
+        ScopedRef[] missingAssignmentsColumns = new ScopedRef[]{rawSourceReference};
         ShardUpsertRequest.Builder builder = new ShardUpsertRequest.Builder(
             txnCtx.sessionSettings(),
             ShardingUpsertExecutor.BULK_REQUEST_TIMEOUT_SETTING.get(settings),
