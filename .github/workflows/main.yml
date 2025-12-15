@@ -14,6 +14,11 @@ concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
   cancel-in-progress: true
 
+permissions:
+  contents: read
+  checks: write
+  statuses: write
+
 jobs:
   test:
     name: Test CrateDB SQL on ${{ matrix.os }}
@@ -23,10 +28,13 @@ jobs:
         os: [ubuntu-latest]
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: "24"
+          java-version: "24.0.2"
           distribution: "temurin"
           cache: maven
 
@@ -52,10 +60,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: "24"
+          java-version: "24.0.2"
           distribution: "temurin"
           cache: maven
       - name: Run forbiddenapis:check
@@ -67,10 +77,12 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: 17
+          java-version: "24.0.2"
           distribution: "temurin"
       - name: Run checkstyle
         run: mvn compile checkstyle:checkstyle
