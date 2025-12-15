@@ -80,6 +80,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.execution.ddl.Templates;
 import io.crate.expression.symbol.RefReplacer;
+import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.GeneratedReference;
@@ -1223,11 +1224,35 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             if (schemaMetadata == null) {
                 throw new SchemaUnknownException(schema);
             }
-            if (schemaMetadata.relations().isEmpty()) {
-                schemas.remove(schema);
-            } else {
+            if (!schemaMetadata.relations().isEmpty()) {
                 throw new DependentObjectsExists("schema", schema);
             }
+
+            ViewsMetadata views = (ViewsMetadata) customs.getOrDefault(ViewsMetadata.TYPE, ViewsMetadata.EMPTY);
+            for (String viewName : views.names()) {
+                RelationName relationName = RelationName.fromIndexName(viewName);
+                if (relationName.schema().equals(schema)) {
+                    throw new DependentObjectsExists("schema", schema);
+                }
+            }
+
+            UserDefinedFunctionsMetadata udfs = (UserDefinedFunctionsMetadata) customs.getOrDefault(
+                UserDefinedFunctionsMetadata.TYPE,
+                UserDefinedFunctionsMetadata.EMPTY
+            );
+            if (udfs.contains(schema)) {
+                throw new DependentObjectsExists("schema", schema);
+            }
+
+            ForeignTablesMetadata foreignTables = (ForeignTablesMetadata) customs.getOrDefault(
+                ForeignTablesMetadata.TYPE,
+                ForeignTablesMetadata.EMPTY
+            );
+            if (foreignTables.contains(schema)) {
+                throw new DependentObjectsExists("schema", schema);
+            }
+
+            schemas.remove(schema);
             return this;
         }
     }

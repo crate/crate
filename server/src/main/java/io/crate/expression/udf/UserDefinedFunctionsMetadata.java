@@ -42,6 +42,7 @@ import io.crate.types.DataType;
 public class UserDefinedFunctionsMetadata extends AbstractNamedDiffable<Metadata.Custom> implements Metadata.Custom {
 
     public static final String TYPE = "user_defined_functions";
+    public static final UserDefinedFunctionsMetadata EMPTY = new UserDefinedFunctionsMetadata(List.of());
 
     private final List<UserDefinedFunctionMetadata> functionsMetadata;
 
@@ -68,6 +69,15 @@ public class UserDefinedFunctionsMetadata extends AbstractNamedDiffable<Metadata
                 functionsMetadata.set(i, function);
             }
         }
+    }
+
+    public boolean contains(String schema) {
+        for (var udf : functionsMetadata) {
+            if (udf.schema().equals(schema)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public boolean contains(String schema, String name, List<DataType<?>> types) {
