@@ -24,7 +24,6 @@ package io.crate.session;
 import java.net.InetAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.LinkedHashMap;
@@ -800,10 +799,15 @@ public class Session implements AutoCloseable {
                                                        BulkResponse bulkResponse) {
         Object[] cells = new Object[2];
         RowN row = new RowN(cells);
+        long affectedRows = 0;
         for (int i = 0; i < bulkResponse.size(); i++) {
+            long rowCount = bulkResponse.rowCount(i);
             ResultReceiver<?> resultReceiver = executions.get(i).resultReceiver();
+            if (rowCount >= 0) {
+                affectedRows += rowCount;
+            }
             try {
-                cells[0] = bulkResponse.rowCount(i);
+                cells[0] = rowCount;
                 cells[1] = bulkResponse.failure(i);
             } catch (Throwable t) {
                 cells[0] = Row1.ERROR;
@@ -817,7 +821,7 @@ public class Session implements AutoCloseable {
                 resultReceiver.allFinished();
             }
         }
-        jobsLogs.logExecutionEnd(jobId, Arrays.stream(bulkResponse.rowCounts()).filter(rc -> rc >= 0).sum(), null);
+        jobsLogs.logExecutionEnd(jobId, affectedRows, null);
     }
 
     @VisibleForTesting
