@@ -1629,6 +1629,8 @@ public class InternalEngine extends Engine {
         // pass the new reader reference to the external reader manager.
         final long localCheckpointBeforeRefresh = localCheckpointTracker.getProcessedCheckpoint();
 
+        logger.info("refresh triggered by [{}], scope [{}], block [{}], local_checkpoint [{}]", source, scope, block, localCheckpointBeforeRefresh);
+
         boolean refreshed;
         try {
             // refresh does not need to hold readLock as ReferenceManager can handle correctly if the engine is closed in mid-way.
@@ -1682,11 +1684,18 @@ public class InternalEngine extends Engine {
 
         if (versionMapReclaimableBytes < indexWriterBytesUsed) {
             // Write the largest pending segment (due to concurrency, multiple pending segments can exist).
+            logger.info("writeIndexingBuffer: flushing largest indexing buffer to reclaim [{}] bytes from index writer "
+                    + "to reduce memory pressure (index writer is using [{}] bytes, version map can reclaim [{}] bytes)",
+                indexWriterBytesUsed, indexWriterBytesUsed, versionMapReclaimableBytes);
             indexWriter.flushNextBuffer();
         } else {
             if (shouldPeriodicallyFlush()) {
+                logger.info("writeIndexingBuffer: shouldPeriodicallyFlush is true, flushing entire indexing buffer." +
+                        "Index writer is using [{}] bytes",
+                    indexWriterBytesUsed);
                 flush(false, false);
             } else {
+                logger.info("writeIndexingBuffer: refreshing to reclaim [{}] bytes from version map", versionMapReclaimableBytes);
                 refresh("write indexing buffer", SearcherScope.INTERNAL, false);
             }
         }
@@ -1761,9 +1770,9 @@ public class InternalEngine extends Engine {
                     ensureCanFlush();
                     try {
                         translog.rollGeneration();
-                        logger.trace("starting commit for flush; commitTranslog=true");
+                        logger.info("starting commit for flush; commitTranslog=true");
                         commitIndexWriter(indexWriter, translog);
-                        logger.trace("finished commit for flush");
+                        logger.info("finished commit for flush");
                         // we need to refresh in order to clear older version values
                         refresh("version_table_flush", SearcherScope.INTERNAL, true);
                         translog.trimUnreferencedReaders();
