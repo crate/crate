@@ -61,11 +61,12 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         aliasToColumnMapping = HashMap.newHashMap(columnAliases.size());
         this.outputs = new ArrayList<>(relation.outputs().size());
         this.scopedSymbols = new ArrayList<>(relation.outputs().size());
+        List<String> outputNames = relation.outputNames();
         for (int i = 0; i < relation.outputs().size(); i++) {
             Symbol childOutput = relation.outputs().get(i);
             ColumnIdent childColumn = childOutput.toColumn();
-            ColumnIdent columnAlias = relation.outputNames() != null
-                ? ColumnIdent.of(relation.outputNames().get(i))
+            ColumnIdent columnAlias = outputNames != null
+                ? ColumnIdent.of(outputNames.get(i))
                 : childColumn;
             if (i < columnAliases.size()) {
                 columnAlias = ColumnIdent.of(columnAliases.get(i));

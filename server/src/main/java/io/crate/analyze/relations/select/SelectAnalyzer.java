@@ -120,10 +120,11 @@ public final class SelectAnalyzer {
 
         private static void addAllFieldsFromRelation(SelectAnalysis context, AnalyzedRelation relation) {
             int i = 0;
+            List<String> outputNames = relation.outputNames();
             for (Symbol field : relation.outputs()) {
                 var columnIdent = field.toColumn();
                 if (!columnIdent.isSystemColumn()) {
-                    context.add(field.toColumn(), field, relation.outputNames() != null ? relation.outputNames().get(i) : null);
+                    context.add(field.toColumn(), field, outputNames != null ? outputNames.get(i) : null);
                 }
                 i++;
             }
