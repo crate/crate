@@ -74,6 +74,10 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final ObjectType UNTYPED = new ObjectType(Map.of(), ColumnPolicy.DYNAMIC);
     public static final int ID = 12;
     public static final String NAME = "object";
+
+    private static final long LINKED_HASHMAP_SIZE = RamUsageEstimator.shallowSizeOfInstance(LinkedHashMap.class);
+    private static final long HASHMAP_SIZE = RamUsageEstimator.shallowSizeOfInstance(HashMap.class);
+
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
 
         @Override
@@ -476,7 +480,9 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         if (map == null) {
             return 0;
         }
-        long size = RamUsageEstimator.shallowSizeOf(map);
+        long size = map instanceof LinkedHashMap
+            ? LINKED_HASHMAP_SIZE
+            : HASHMAP_SIZE;
         long sizeOfEntry = -1;
         for (Map.Entry<?, ?> entry : map.entrySet()) {
             if (sizeOfEntry == -1) {
