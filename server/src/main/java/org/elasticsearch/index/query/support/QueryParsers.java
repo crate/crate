@@ -22,7 +22,7 @@ package org.elasticsearch.index.query.support;
 import org.apache.lucene.search.MultiTermQuery;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.ParseField;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public final class QueryParsers {
 
@@ -42,7 +42,7 @@ public final class QueryParsers {
     }
 
     public static MultiTermQuery.RewriteMethod parseRewriteMethod(@Nullable String rewriteMethod,
-                                                                  @Nullable MultiTermQuery.RewriteMethod defaultRewriteMethod,
+                                                                  MultiTermQuery.@Nullable RewriteMethod defaultRewriteMethod,
                                                                   DeprecationHandler deprecationHandler) {
         if (rewriteMethod == null) {
             return defaultRewriteMethod;

@@ -37,8 +37,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.exceptions.ConversionException;
@@ -94,7 +93,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
     }
 
     @Override
-    public void indexValue(@NotNull Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(Map<String, Object> value, IndexDocumentBuilder docBuilder) throws IOException {
         TranslogWriter translogWriter = docBuilder.translogWriter();
         translogWriter.startObject();
         for (var entry : children.entrySet()) {

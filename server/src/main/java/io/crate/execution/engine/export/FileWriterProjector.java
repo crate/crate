@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.concurrent.Executor;
 
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.BatchIterator;
 import io.crate.data.CollectingBatchIterator;
@@ -59,7 +59,7 @@ public class FileWriterProjector implements Projector {
      */
     public FileWriterProjector(Executor executor,
                                String uri,
-                               @Nullable WriterProjection.CompressionType compressionType,
+                               WriterProjection.@Nullable CompressionType compressionType,
                                @Nullable List<Input<?>> inputs,
                                Iterable<CollectExpression<Row, ?>> collectExpressions,
                                @Nullable List<String> outputNames,

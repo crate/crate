@@ -27,7 +27,7 @@ import java.util.function.Predicate;
 import java.util.regex.Pattern;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class NodeFilters implements Predicate<DiscoveryNode> {
 

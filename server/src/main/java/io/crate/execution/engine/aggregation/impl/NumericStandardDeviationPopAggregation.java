@@ -25,7 +25,7 @@ import java.io.IOException;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.statistics.NumericStandardDeviationPop;

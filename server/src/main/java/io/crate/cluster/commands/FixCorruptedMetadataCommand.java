@@ -41,11 +41,10 @@ import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
 import org.elasticsearch.gateway.PersistedClusterStateService;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
 import io.crate.common.collections.Tuple;
 import io.crate.execution.ddl.Templates;
@@ -291,7 +290,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
     }
 
     @VisibleForTesting
-    static RelationName fixTemplateName(@NotNull String templateName) {
+    static RelationName fixTemplateName(String templateName) {
         if (templateName.startsWith(".partitioned")) {
             String[] parts = templateName.split("\\.");
             if (parts.length == 4 && parts[0].isEmpty() && parts[1].equals("partitioned")) {
@@ -316,7 +315,7 @@ public class FixCorruptedMetadataCommand extends ElasticsearchNodeCommand {
     }
 
     @VisibleForTesting
-    static String fixIndexName(@NotNull String indexName) {
+    static String fixIndexName(String indexName) {
         if (indexName.startsWith(".partitioned")) {
             try {
                 IndexName.decode(indexName);

@@ -32,7 +32,7 @@ import java.util.concurrent.TimeUnit;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;

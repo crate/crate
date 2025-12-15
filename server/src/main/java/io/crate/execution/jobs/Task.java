@@ -23,7 +23,7 @@ package io.crate.execution.jobs;
 
 import java.util.concurrent.CompletableFuture;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.concurrent.Killable;
 import io.crate.concurrent.CompletionListenable;

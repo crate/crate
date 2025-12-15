@@ -30,7 +30,7 @@ import org.elasticsearch.action.support.master.MasterNodeRequest;
 import org.elasticsearch.cluster.ack.AckedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.RelationName;

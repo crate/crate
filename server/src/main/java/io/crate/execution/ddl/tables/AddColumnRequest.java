@@ -29,7 +29,6 @@ import java.util.Map;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
 
 import com.carrotsearch.hppc.IntArrayList;
 
@@ -46,10 +45,10 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
     /**
      * @param checkConstraints must be accumulated map of all columns' constraints in case of adding multiple columns.
      */
-    public AddColumnRequest(@NotNull RelationName relationName,
-                            @NotNull List<Reference> colsToAdd,
-                            @NotNull Map<String, String> checkConstraints,
-                            @NotNull IntArrayList pKeyIndices) {
+    public AddColumnRequest(RelationName relationName,
+                            List<Reference> colsToAdd,
+                            Map<String, String> checkConstraints,
+                            IntArrayList pKeyIndices) {
         this.relationName = relationName;
         this.colsToAdd = colsToAdd;
         this.checkConstraints = checkConstraints;
@@ -82,22 +81,18 @@ public class AddColumnRequest extends AcknowledgedRequest<AddColumnRequest> {
         }
     }
 
-    @NotNull
     public RelationName relationName() {
         return this.relationName;
     }
 
-    @NotNull
     public Map<String, String> checkConstraints() {
         return this.checkConstraints;
     }
 
-    @NotNull
     public List<Reference> references() {
         return this.colsToAdd;
     }
 
-    @NotNull
     public IntArrayList pKeyIndices() {
         return this.pKeyIndices;
     }

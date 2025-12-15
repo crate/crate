@@ -37,7 +37,7 @@ import java.util.function.Function;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.UUIDs;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.ddl.GeoSettingsApplier;
 import io.crate.analyze.expressions.ExpressionAnalysisContext;

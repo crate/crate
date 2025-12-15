@@ -36,8 +36,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.StringUtils;
 import io.crate.common.collections.LexicographicalOrdering;
@@ -346,8 +345,7 @@ public abstract sealed class ColumnIdent
      * This method also renames self e.g.::
      *   'a'.replacePrefix('b') -> 'b'
      */
-    @NotNull
-    public ColumnIdent replacePrefix(@NotNull ColumnIdent newName) {
+    public ColumnIdent replacePrefix(ColumnIdent newName) {
         assert newName.path().isEmpty() || this.isChildOf(newName.getParent());
         List<String> replaced = new ArrayList<>(newName.path());
         replaced.addAll(this.path().subList(newName.path().size(), this.path().size()));

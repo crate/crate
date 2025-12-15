@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;

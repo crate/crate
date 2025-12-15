@@ -28,7 +28,7 @@ import java.util.Map;
 import java.util.function.UnaryOperator;
 
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.execution.dsl.projection.AggregationProjection;
@@ -186,7 +186,7 @@ public class ProjectionBuilder {
 
     public static WriterProjection writerProjection(Collection<? extends Symbol> inputs,
                                                     Symbol uri,
-                                                    @Nullable WriterProjection.CompressionType compressionType,
+                                                    WriterProjection.@Nullable CompressionType compressionType,
                                                     Map<ColumnIdent, Symbol> overwrites,
                                                     @Nullable List<String> outputNames,
                                                     WriterProjection.OutputFormat outputFormat,

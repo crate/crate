@@ -29,7 +29,7 @@ import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.snapshots.InvalidSnapshotNameException;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.AmbiguousColumnAliasException;

@@ -26,7 +26,7 @@ import java.util.List;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.data.breaker.RamAccounting;

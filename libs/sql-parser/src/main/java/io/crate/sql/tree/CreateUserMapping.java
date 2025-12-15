@@ -24,7 +24,7 @@ package io.crate.sql.tree;
 import java.util.Map;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class CreateUserMapping extends Statement {
 

@@ -33,7 +33,7 @@ import java.util.function.IntSupplier;
 import java.util.function.Supplier;
 
 import org.elasticsearch.Version;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.WindowDefinition;

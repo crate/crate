@@ -31,7 +31,6 @@ import java.util.Set;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.index.mapper.ParsedDocument;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.exceptions.ConversionException;
 import io.crate.expression.symbol.Symbol;
@@ -65,7 +64,7 @@ public class RawIndexer {
                       TransactionContext txnCtx,
                       NodeContext nodeCtx,
                       Symbol[] returnValues,
-                      @NotNull List<Reference> nonDeterministicSynthetics,
+                      List<Reference> nonDeterministicSynthetics,
                       List<Reference> insertColumns) {
         this.partitionValues = partitionValues;
         this.table = table;

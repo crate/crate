@@ -28,7 +28,6 @@ import java.util.function.Function;
 
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.master.AcknowledgedResponse;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.data.InMemoryBatchIterator;
 import io.crate.data.Row;
@@ -62,7 +61,7 @@ public class OneRowActionListener<Response> implements ActionListener<Response>,
     }
 
     @Override
-    public void onFailure(@NotNull Exception e) {
+    public void onFailure(Exception e) {
         consumer.accept(null, e);
     }
 

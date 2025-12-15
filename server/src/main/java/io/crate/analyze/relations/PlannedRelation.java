@@ -23,8 +23,7 @@ package io.crate.analyze.relations;
 
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
@@ -61,7 +60,7 @@ public class PlannedRelation implements AnalyzedRelation {
     }
 
     @Override
-    public @NotNull List<Symbol> outputs() {
+    public List<Symbol> outputs() {
         return source.outputs();
     }
 

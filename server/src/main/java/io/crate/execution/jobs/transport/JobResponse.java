@@ -21,22 +21,22 @@
 
 package io.crate.execution.jobs.transport;
 
-import io.crate.Streamer;
-import io.crate.execution.engine.distribution.StreamBucket;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportResponse;
 
-import org.jetbrains.annotations.NotNull;
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
+import io.crate.Streamer;
+import io.crate.execution.engine.distribution.StreamBucket;
 
 public class JobResponse extends TransportResponse {
 
     private final List<StreamBucket> directResponse;
 
-    public JobResponse(@NotNull List<StreamBucket> directResponse) {
+    public JobResponse(List<StreamBucket> directResponse) {
         this.directResponse = directResponse;
     }
 

@@ -23,7 +23,7 @@ package io.crate.lucene;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import org.apache.lucene.search.Query;
 

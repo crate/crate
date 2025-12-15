@@ -25,7 +25,7 @@ import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.CountPlan;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class ExecutionPlanVisitor<C, R> {
 

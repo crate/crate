@@ -23,7 +23,7 @@ package io.crate.metadata.table;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.RelationName;
 import io.crate.metadata.view.ViewInfo;

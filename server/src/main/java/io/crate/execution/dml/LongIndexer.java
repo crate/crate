@@ -28,7 +28,6 @@ import org.apache.lucene.document.LongField;
 import org.apache.lucene.document.LongPoint;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.document.StoredField;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -45,7 +44,7 @@ public class LongIndexer implements ValueIndexer<Long> {
     }
 
     @Override
-    public void indexValue(@NotNull Long value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(Long value, IndexDocumentBuilder docBuilder) throws IOException {
         long longValue = value;
         if (longValue == Long.MAX_VALUE || longValue == Long.MIN_VALUE) {
             throw new IllegalArgumentException(

@@ -24,8 +24,6 @@ package io.crate.protocols.postgres.types;
 import java.util.Arrays;
 import java.util.List;
 
-import org.jetbrains.annotations.NotNull;
-
 import com.carrotsearch.hppc.ByteArrayList;
 
 import io.crate.protocols.postgres.parser.PgArrayParser;
@@ -67,7 +65,7 @@ public class PGFloatVectorType extends PGType<float[]> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull float[] value) {
+    public int writeAsBinary(ByteBuf buffer, float[] value) {
         int arrayLength = value.length;
 
         final int lenIndex = buffer.writerIndex();
@@ -125,7 +123,7 @@ public class PGFloatVectorType extends PGType<float[]> {
         return vector;
     }
 
-    private int writeArrayAsBinary(ByteBuf buffer, @NotNull float[] array) {
+    private int writeArrayAsBinary(ByteBuf buffer, float[] array) {
         int bytesWritten = 0;
         for (float f : array) {
             bytesWritten += RealType.INSTANCE.writeAsBinary(buffer, f);

@@ -21,7 +21,7 @@
 
 package io.crate.auth;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;

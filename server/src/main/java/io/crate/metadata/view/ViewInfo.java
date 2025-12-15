@@ -30,8 +30,8 @@ import java.util.Set;
 import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;

@@ -23,7 +23,7 @@ package io.crate.expression;
 
 import io.crate.data.Input;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.List;
 
 public interface NestableInput<T> extends Input<T> {

@@ -34,7 +34,7 @@ import io.crate.copy.s3.common.S3URI;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.export.FileOutput;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import io.crate.common.annotations.NotThreadSafe;
 import io.crate.common.concurrent.CompletableFutures;
 

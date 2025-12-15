@@ -25,7 +25,7 @@ import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.joda.time.format.ISOPeriodFormat;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.math.BigDecimal;
 
 public final class IntervalParser {

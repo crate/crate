@@ -21,14 +21,14 @@
 
 package io.crate.execution.engine.collect.stats;
 
-import io.crate.expression.ExpressionsInput;
+import java.util.Iterator;
+import java.util.function.Function;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.Message;
 
-import org.jetbrains.annotations.NotNull;
-import java.util.Iterator;
-import java.util.function.Function;
+import io.crate.expression.ExpressionsInput;
 
 public final class FilteredLogSink<T> implements LogSink<T> {
 
@@ -75,7 +75,6 @@ public final class FilteredLogSink<T> implements LogSink<T> {
     }
 
     @Override
-    @NotNull
     public Iterator<T> iterator() {
         return delegate.iterator();
     }

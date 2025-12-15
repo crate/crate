@@ -32,7 +32,7 @@ import java.util.function.BiConsumer;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntArrayList;
 import com.carrotsearch.hppc.IntObjectHashMap;

@@ -28,7 +28,7 @@ import java.util.function.Function;
 
 import org.assertj.core.api.AbstractAssert;
 import org.assertj.core.api.Assertions;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.Reference;
 import io.crate.metadata.table.TableInfo;

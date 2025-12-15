@@ -24,8 +24,6 @@ package io.crate.exceptions;
 import java.util.Collections;
 import java.util.Locale;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
@@ -90,7 +88,6 @@ public class ColumnUnknownException extends RuntimeException implements Resource
         return exceptionVisitor.visitColumnUnknownException(this, context);
     }
 
-    @NotNull
     public RelationType relationType() {
         return relationType;
     }

@@ -21,11 +21,10 @@
 
 package io.crate.protocols.postgres.types;
 
+import java.nio.charset.StandardCharsets;
+
 import io.crate.types.DataTypes;
 import io.netty.buffer.ByteBuf;
-
-import org.jetbrains.annotations.NotNull;
-import java.nio.charset.StandardCharsets;
 
 class VarCharType extends PGType<Object> {
 
@@ -64,7 +63,7 @@ class VarCharType extends PGType<Object> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Object value) {
+    public int writeAsBinary(ByteBuf buffer, Object value) {
         String string = DataTypes.STRING.implicitCast(value);
         int writerIndex = buffer.writerIndex();
         buffer.writeInt(0);
@@ -74,12 +73,12 @@ class VarCharType extends PGType<Object> {
     }
 
     @Override
-    public int writeAsText(ByteBuf buffer, @NotNull Object value) {
+    public int writeAsText(ByteBuf buffer, Object value) {
         return writeAsBinary(buffer, value);
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@NotNull Object value) {
+    protected byte[] encodeAsUTF8Text(Object value) {
         return DataTypes.STRING.implicitCast(value).getBytes(StandardCharsets.UTF_8);
     }
 

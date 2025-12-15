@@ -21,8 +21,8 @@
 
 package io.crate.execution.dml;
 
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntCollection;
 import com.carrotsearch.hppc.cursors.IntCursor;

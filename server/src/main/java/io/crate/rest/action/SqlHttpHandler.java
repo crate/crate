@@ -46,8 +46,8 @@ import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
 import org.elasticsearch.http.netty4.Netty4HttpServerTransport;
 import org.elasticsearch.transport.netty4.Netty4Utils;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.auth.AccessControl;
 import io.crate.auth.AuthSettings;

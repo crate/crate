@@ -21,8 +21,7 @@
 
 package io.crate.planner.node.management;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.planner.optimizer.Rule;
 
@@ -32,7 +31,7 @@ public record OptimizerStep(@Nullable Rule<?> rule, String planAsString) {
         return new OptimizerStep(null, planAsString);
     }
 
-    static OptimizerStep ruleApplied(@NotNull Rule<?> rule, String planAsString) {
+    static OptimizerStep ruleApplied(Rule<?> rule, String planAsString) {
         return new OptimizerStep(rule, planAsString);
     }
 

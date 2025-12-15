@@ -21,14 +21,13 @@
 
 package io.crate.interval;
 
-import org.joda.time.Period;
-
-import org.jetbrains.annotations.Nullable;
+import static io.crate.interval.IntervalParser.parseMilliSeconds;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import static io.crate.interval.IntervalParser.parseMilliSeconds;
+import org.joda.time.Period;
+import org.jspecify.annotations.Nullable;
 
 
 final class NumericalIntervalParser {
@@ -37,8 +36,8 @@ final class NumericalIntervalParser {
     }
 
     static Period apply(String value,
-                        @Nullable IntervalParser.Precision start,
-                        @Nullable IntervalParser.Precision end) {
+                        IntervalParser.@Nullable Precision start,
+                        IntervalParser.@Nullable Precision end) {
         try {
             return roundToPrecision(parseInteger(value), parseMilliSeconds(value), start, end);
         } catch (NumberFormatException e) {
@@ -48,8 +47,8 @@ final class NumericalIntervalParser {
 
     private static Period roundToPrecision(int value,
                                            int millis,
-                                           @Nullable IntervalParser.Precision start,
-                                           @Nullable IntervalParser.Precision end) {
+                                           IntervalParser.@Nullable Precision start,
+                                           IntervalParser.@Nullable Precision end) {
         if (start == null && end == null) {
             return buildSecondsWithMillisPeriod(value, millis);
         }

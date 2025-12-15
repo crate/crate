@@ -21,7 +21,7 @@
 
 package io.crate.exceptions;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class CrateExceptionVisitor<C, R> {
 

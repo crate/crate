@@ -44,7 +44,6 @@ import org.elasticsearch.index.IndexService;
 import org.elasticsearch.index.shard.IllegalIndexShardStateException;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.NotNull;
 
 import com.carrotsearch.hppc.IntIndexedContainer;
 import com.carrotsearch.hppc.IntObjectHashMap;
@@ -135,7 +134,6 @@ public class FetchTask implements Task {
         return -1;
     }
 
-    @NotNull
     public PartitionName tableIdent(int readerId) {
         var entry = tableIdents.floorEntry(readerId);
         if (entry == null) {
@@ -144,7 +142,6 @@ public class FetchTask implements Task {
         return entry.getValue();
     }
 
-    @NotNull
     public DocTableInfo table(int readerId) {
         var partitionName = tableIdent(readerId);
         var relationName = partitionName.relationName();
@@ -155,7 +152,6 @@ public class FetchTask implements Task {
         return table;
     }
 
-    @NotNull
     public BorrowedItem<IndexSearcher> searcher(int readerId) {
         synchronized (jobId) {
             if (killed != null) {
@@ -177,7 +173,6 @@ public class FetchTask implements Task {
         }
     }
 
-    @NotNull
     public IndexService indexService(int readerId) {
         SharedShardContext sharedShardContext = shardContexts.get(readerId);
         if (sharedShardContext == null) {

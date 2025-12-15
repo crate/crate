@@ -54,7 +54,7 @@ import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.ESTestCase;
 import org.elasticsearch.transport.TransportException;
 import org.elasticsearch.transport.TransportResponse;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Sets;
 import io.crate.common.collections.Tuple;

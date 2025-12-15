@@ -48,7 +48,7 @@ import org.elasticsearch.index.translog.Translog.Operation;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.Scheduler.Cancellable;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.concurrent.FutureActionListener;
 import io.crate.exceptions.SQLExceptions;

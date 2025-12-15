@@ -38,7 +38,7 @@ import java.beans.ConstructorProperties;
 
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.threadpool.ThreadPoolStats;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class ThreadPools implements ThreadPoolsMXBean {
 

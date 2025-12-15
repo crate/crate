@@ -27,7 +27,7 @@ import java.util.Map;
 import java.util.SequencedCollection;
 import java.util.Set;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.SymbolEvaluator;

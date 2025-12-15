@@ -154,7 +154,7 @@ import org.elasticsearch.transport.RemoteClusters;
 import org.elasticsearch.transport.Transport;
 import org.elasticsearch.transport.TransportService;
 import org.elasticsearch.transport.netty4.Netty4Transport;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.Analyzer;
 import io.crate.analyze.NumberOfShards;

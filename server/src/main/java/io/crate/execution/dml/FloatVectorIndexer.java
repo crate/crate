@@ -34,7 +34,6 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexableField;
 import org.apache.lucene.index.VectorEncoding;
 import org.apache.lucene.util.BytesRef;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -67,7 +66,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
     }
 
     @Override
-    public void indexValue(float @NotNull [] values, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(float[] values, IndexDocumentBuilder docBuilder) throws IOException {
         createFields(
             name,
             fieldType,
@@ -88,7 +87,7 @@ public class FloatVectorIndexer implements ValueIndexer<float[]> {
                                     boolean indexed,
                                     boolean hasDocValues,
                                     boolean hasStoredField,
-                                    float @NotNull [] values,
+                                    float[] values,
                                     Consumer<? super IndexableField> addField) {
         if (indexed) {
             addField.accept(new KnnFloatVectorField(fqn, values, fieldType));

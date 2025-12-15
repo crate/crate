@@ -95,7 +95,7 @@ import org.elasticsearch.transport.StatsTracker;
 import org.elasticsearch.transport.netty4.Netty4InboundStatsHandler;
 import org.elasticsearch.transport.netty4.Netty4OutboundStatsHandler;
 import org.elasticsearch.transport.netty4.Netty4Utils;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.hppc.IntHashSet;
 import com.carrotsearch.hppc.IntSet;

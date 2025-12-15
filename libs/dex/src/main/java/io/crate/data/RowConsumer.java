@@ -24,7 +24,7 @@ package io.crate.data;
 import java.util.concurrent.CompletableFuture;
 import java.util.function.BiConsumer;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.concurrent.Killable;
 

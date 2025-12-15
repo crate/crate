@@ -25,8 +25,7 @@ import java.util.List;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
@@ -149,7 +148,6 @@ public class QueriedSelectRelation implements AnalyzedRelation {
             "QueriedSelectRelation has no name. It must be beneath an aliased-relation to be addressable by name");
     }
 
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return outputs;

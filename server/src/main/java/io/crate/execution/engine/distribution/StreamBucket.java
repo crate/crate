@@ -34,8 +34,7 @@ import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.data.Bucket;
@@ -172,7 +171,6 @@ public class StreamBucket implements Bucket, Writeable {
     }
 
     @Override
-    @NotNull
     public Iterator<Row> iterator() {
         if (size < 1) {
             return Collections.emptyIterator();

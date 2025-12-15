@@ -38,7 +38,6 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.lucene.uid.Versions;
 import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.NotNull;
 
 public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends ShardRequest.Item>
     extends ReplicationRequest<T>
@@ -62,7 +61,6 @@ public abstract class ShardRequest<T extends ShardRequest<T, I>, I extends Shard
         return items;
     }
 
-    @NotNull
     @Override
     public Iterator<I> iterator() {
         return Collections.unmodifiableCollection(items).iterator();

@@ -23,7 +23,7 @@ package io.crate.expression.scalar;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.Function;

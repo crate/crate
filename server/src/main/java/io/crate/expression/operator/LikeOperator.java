@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.regex.Pattern;
 
 import org.apache.lucene.search.Query;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.operator.LikeOperators.CaseSensitivity;

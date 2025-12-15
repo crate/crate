@@ -37,8 +37,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.sql.tree.ColumnDefinition;
@@ -205,14 +204,14 @@ public class NumericType extends DataType<BigDecimal> implements Streamer<BigDec
     /**
      * Returns the size of {@link BigDecimal} in bytes
      */
-    public static long size(@NotNull BigDecimal value) {
+    public static long size(BigDecimal value) {
         // BigInteger overhead 20 bytes
         // BigDecimal overhead 16 bytes
         // size of unscaled value
         return 36 + value.unscaledValue().bitLength() / 8L + 1;
     }
 
-    public static long sizeDiff(@NotNull BigDecimal first, @NotNull BigDecimal second) {
+    public static long sizeDiff(BigDecimal first, BigDecimal second) {
         return NumericType.size(first) - NumericType.size(second);
     }
 

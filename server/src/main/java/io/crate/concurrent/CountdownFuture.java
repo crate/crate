@@ -27,8 +27,6 @@ import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.BiConsumer;
 import java.util.function.UnaryOperator;
 
-import org.jetbrains.annotations.NotNull;
-
 /**
  * A future acting as a FutureCallback. It is set when once numCalls have been made to the callback.
  * If a failure occurs the last failure will be used as exception. The result is always null.
@@ -46,7 +44,7 @@ public class CountdownFuture extends CompletableFuture<Void> implements BiConsum
         countdown();
     }
 
-    public void onFailure(@NotNull Throwable t) {
+    public void onFailure(Throwable t) {
         Throwable previousFailure = lastFailure.getAndSet(t);
         if (previousFailure != null) {
             t.addSuppressed(previousFailure);

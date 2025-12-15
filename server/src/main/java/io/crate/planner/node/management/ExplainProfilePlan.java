@@ -37,7 +37,7 @@ import java.util.stream.Collectors;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.breaker.ConcurrentRamAccounting;
 import io.crate.common.collections.MapBuilder;

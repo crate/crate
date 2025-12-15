@@ -24,7 +24,7 @@ package io.crate.testing;
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
 
 import org.assertj.core.api.AbstractAssert;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.planner.operators.LogicalPlan;
 import io.crate.planner.operators.PrintContext;

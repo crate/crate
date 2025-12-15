@@ -28,8 +28,6 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Set;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.common.collections.Lists;
 import io.crate.exceptions.OperationOnInaccessibleRelationException;
 import io.crate.exceptions.RelationUnknown;
@@ -65,7 +63,6 @@ class PrivilegesAnalyzer {
         this.schemas = schemas;
     }
 
-    @NotNull
     public AnalyzedPrivileges analyze(PrivilegeStatement node, Role grantor, SearchPath searchPath) {
         Policy policy = switch (node) {
             case GrantPrivilege _ -> Policy.GRANT;

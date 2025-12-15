@@ -304,7 +304,7 @@
     <versions.jdk>25.0.1</versions.jdk>
     <versions.jdkbuild>25.0.1+8</versions.jdkbuild>
 
-    <versions.annotations>26.0.2-1</versions.annotations>
+    <versions.jspecify>1.0.0</versions.jspecify>
     <versions.log4j>2.25.2</versions.log4j>
     <versions.assertj>3.27.6</versions.assertj>
     <versions.junit5>5.13.4</versions.junit5>

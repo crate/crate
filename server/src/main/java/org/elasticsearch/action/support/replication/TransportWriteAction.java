@@ -39,7 +39,7 @@ import org.elasticsearch.index.translog.Translog.Location;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.exceptions.SQLExceptions;
 
@@ -180,8 +180,8 @@ public abstract class TransportWriteAction<
         private final IndexShard indexShard;
 
         AsyncAfterWriteAction(final IndexShard indexShard,
-                             @Nullable final Translog.Location location,
-                             ActionListener<Void> listener) {
+                              final Translog.@Nullable Location location,
+                              ActionListener<Void> listener) {
             this.indexShard = indexShard;
             this.location = location;
             this.listener = listener;

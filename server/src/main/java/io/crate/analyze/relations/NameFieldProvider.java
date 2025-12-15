@@ -24,7 +24,7 @@ package io.crate.analyze.relations;
 import java.util.List;
 import java.util.Locale;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.exceptions.ColumnUnknownException;
 import io.crate.expression.symbol.Symbol;

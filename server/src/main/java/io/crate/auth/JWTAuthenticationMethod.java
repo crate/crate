@@ -32,9 +32,7 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
 import com.auth0.jwk.Jwk;
 import com.auth0.jwk.JwkException;
@@ -45,6 +43,7 @@ import com.auth0.jwt.algorithms.Algorithm;
 import com.auth0.jwt.interfaces.DecodedJWT;
 import com.auth0.jwt.interfaces.Verification;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.protocols.postgres.ConnectionProperties;
 import io.crate.role.Role;
 import io.crate.role.Roles;
@@ -143,7 +142,7 @@ public class JWTAuthenticationMethod implements AuthenticationMethod {
      * If JWK info doesn't have "alg" (it's optional for endpoint response as well), we fall back to RSA256.
      */
     private static Algorithm resolveAlgorithm(JwkProvider jwkProvider,
-                                              @NotNull DecodedJWT decodedJWT) throws JwkException {
+                                              DecodedJWT decodedJWT) throws JwkException {
         Jwk jwk = jwkProvider.get(decodedJWT.getKeyId());
         PublicKey publicKey = jwk.getPublicKey();
         if (publicKey instanceof RSAPublicKey == false) {

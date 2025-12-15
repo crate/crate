@@ -27,7 +27,7 @@ import java.math.MathContext;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.expression.scalar.array.ArraySummationFunctions;

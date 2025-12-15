@@ -45,8 +45,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.Accountable;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.common.exceptions.Exceptions;
@@ -137,7 +136,7 @@ public class JdbcBatchIterator implements BatchIterator<Row> {
     }
 
     @Override
-    public void kill(@NotNull Throwable throwable) {
+    public void kill(Throwable throwable) {
         try {
             if (statement != null) {
                 statement.close();

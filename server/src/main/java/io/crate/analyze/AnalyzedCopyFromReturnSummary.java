@@ -21,6 +21,8 @@
 
 package io.crate.analyze;
 
+import java.util.List;
+
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedRelationVisitor;
 import io.crate.exceptions.AmbiguousColumnException;
@@ -36,9 +38,6 @@ import io.crate.sql.tree.GenericProperties;
 import io.crate.sql.tree.Table;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
-
-import org.jetbrains.annotations.NotNull;
-import java.util.List;
 
 public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements AnalyzedRelation {
 
@@ -78,7 +77,6 @@ public class AnalyzedCopyFromReturnSummary extends AnalyzedCopyFrom implements A
         return tableInfo().ident();
     }
 
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return List.copyOf(fields);

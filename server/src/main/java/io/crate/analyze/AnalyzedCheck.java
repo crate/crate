@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;

@@ -29,7 +29,7 @@ import io.crate.data.Row;
 import io.crate.data.RowConsumer;
 import io.crate.data.breaker.RamAccounting;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.concurrent.CompletableFuture;
 
 

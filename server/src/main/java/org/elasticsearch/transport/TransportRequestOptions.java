@@ -20,7 +20,7 @@
 package org.elasticsearch.transport;
 
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.unit.TimeValue;
 

@@ -27,7 +27,7 @@ import java.util.function.BiFunction;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.UUIDs;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.session.Cursors;
 import io.crate.analyze.WhereClause;

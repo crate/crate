@@ -54,8 +54,8 @@ import org.elasticsearch.common.util.concurrent.RejectableRunnable;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.Scheduler;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;

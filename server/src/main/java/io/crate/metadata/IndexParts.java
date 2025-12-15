@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Parts of an encoded index: Schema, table and partitionIdent.

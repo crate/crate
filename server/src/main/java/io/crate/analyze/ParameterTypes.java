@@ -27,7 +27,7 @@ import java.util.Set;
 import java.util.TreeSet;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.common.collections.Lists;
 import io.crate.expression.symbol.DefaultTraversalSymbolVisitor;

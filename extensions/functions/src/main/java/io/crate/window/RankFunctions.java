@@ -25,7 +25,7 @@ import java.util.List;
 import java.util.function.IntBinaryOperator;
 import java.util.function.LongConsumer;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.Row;

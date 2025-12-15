@@ -24,7 +24,7 @@ package io.crate.execution.jobs;
 import io.crate.concurrent.CompletionListenable;
 import io.crate.execution.dsl.phases.JoinPhase;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 class JoinTask extends AbstractTask implements DownstreamRXTask {
 

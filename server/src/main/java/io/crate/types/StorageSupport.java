@@ -25,7 +25,7 @@ package io.crate.types;
 import java.util.function.Function;
 
 import org.elasticsearch.Version;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.dml.ValueIndexer;
 import io.crate.expression.reference.doc.lucene.SourceParser;

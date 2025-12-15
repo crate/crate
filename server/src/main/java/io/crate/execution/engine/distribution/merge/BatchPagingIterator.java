@@ -29,8 +29,6 @@ import java.util.function.BooleanSupplier;
 import java.util.function.Consumer;
 import java.util.function.Function;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.BatchIterator;
 import io.crate.data.Row;
@@ -158,7 +156,7 @@ public class BatchPagingIterator<Key> implements BatchIterator<Row> {
     }
 
     @Override
-    public void kill(@NotNull Throwable throwable) {
+    public void kill(Throwable throwable) {
         killed = throwable;
         close();
     }

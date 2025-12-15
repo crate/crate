@@ -25,7 +25,7 @@ import java.io.IOException;
 
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.common.io.stream.StreamInput;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.rest.action.HttpErrorStatus;
 

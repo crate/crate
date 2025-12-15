@@ -26,8 +26,7 @@ import java.util.function.Predicate;
 
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.settings.SecureString;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.interfaces.DecodedJWT;
@@ -68,14 +67,14 @@ public class Credentials implements Closeable {
         this(username, password, null);
     }
 
-    public Credentials(@NotNull String jwtToken) {
+    public Credentials(String jwtToken) {
         this(null, null, jwtToken);
     }
 
     /**
      * Only for PG protocol
      */
-    public void setPassword(@NotNull char[] password) {
+    public void setPassword(char[] password) {
         this.password = new SecureString(password);
     }
 
@@ -83,7 +82,7 @@ public class Credentials implements Closeable {
      * @param username is CrateDB username.
      * Resolved from iss/username of the JWT token.
      */
-    public void setUsername(@NotNull String username) {
+    public void setUsername(String username) {
         this.username = username;
     }
 
@@ -109,7 +108,7 @@ public class Credentials implements Closeable {
         }
     }
 
-    private static void validateToken(@NotNull DecodedJWT decodedToken) {
+    private static void validateToken(DecodedJWT decodedToken) {
         if (Strings.isNullOrEmpty(decodedToken.getKeyId())) {
             // kid is optional: https://datatracker.ietf.org/doc/html/rfc7517#section-4.5
             // but for JWK it's required (JwkProvider uses it to fetch correct public key from JWK endpoint).

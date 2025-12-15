@@ -29,7 +29,7 @@ import java.util.function.BiPredicate;
 import java.util.function.Supplier;
 import java.util.stream.StreamSupport;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.TransactionContext;

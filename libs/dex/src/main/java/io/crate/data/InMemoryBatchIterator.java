@@ -21,14 +21,13 @@
 
 package io.crate.data;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-
-import io.crate.common.exceptions.Exceptions;
-
 import java.util.Collections;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
+
+import org.jspecify.annotations.Nullable;
+
+import io.crate.common.exceptions.Exceptions;
 
 /**
  * BatchIterator implementation that is backed by {@link Iterable}
@@ -107,7 +106,7 @@ public class InMemoryBatchIterator<T> implements BatchIterator<T> {
     }
 
     @Override
-    public void kill(@NotNull Throwable throwable) {
+    public void kill(Throwable throwable) {
         killed = throwable;
     }
 

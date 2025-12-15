@@ -23,7 +23,7 @@ package io.crate.expression.reference.sys.node;
 
 import org.elasticsearch.common.transport.TransportAddress;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class Ports {
 

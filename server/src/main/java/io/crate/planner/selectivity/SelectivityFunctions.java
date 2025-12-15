@@ -24,7 +24,7 @@ package io.crate.planner.selectivity;
 import java.util.List;
 import java.util.Objects;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Row;
 import io.crate.expression.operator.AndOperator;

@@ -30,7 +30,7 @@ import java.util.Collection;
 import java.util.List;
 
 import org.elasticsearch.test.ESTestCase;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.Before;
 import org.junit.Test;
 

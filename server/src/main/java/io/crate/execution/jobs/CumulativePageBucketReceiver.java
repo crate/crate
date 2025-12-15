@@ -38,7 +38,6 @@ import org.apache.logging.log4j.Logger;
 import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 import org.elasticsearch.common.util.concurrent.PriorityRunnable;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.Streamer;
 import io.crate.common.annotations.GuardedBy;
@@ -300,7 +299,7 @@ public class CumulativePageBucketReceiver implements PageBucketReceiver {
     }
 
     @Override
-    public void kill(@NotNull Throwable t) {
+    public void kill(Throwable t) {
         boolean shouldTriggerConsumer = false;
         synchronized (lock) {
             lastThrowable = t;

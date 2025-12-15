@@ -35,7 +35,7 @@ import java.util.Optional;
 
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.inject.Singleton;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.JoinRelation;
 import io.crate.analyze.OrderBy;

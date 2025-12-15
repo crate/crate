@@ -22,10 +22,9 @@
 package io.crate.protocols.postgres.types;
 
 
-import io.netty.buffer.ByteBuf;
-
-import org.jetbrains.annotations.NotNull;
 import java.nio.charset.StandardCharsets;
+
+import io.netty.buffer.ByteBuf;
 
 class BigIntType extends PGType<Long> {
 
@@ -46,7 +45,7 @@ class BigIntType extends PGType<Long> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Long value) {
+    public int writeAsBinary(ByteBuf buffer, Long value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeLong(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
@@ -63,7 +62,7 @@ class BigIntType extends PGType<Long> {
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@NotNull Long value) {
+    protected byte[] encodeAsUTF8Text(Long value) {
         return Long.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 

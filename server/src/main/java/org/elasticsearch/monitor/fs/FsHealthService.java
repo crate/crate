@@ -46,7 +46,7 @@ import java.util.stream.Collectors;
 import static org.elasticsearch.monitor.StatusInfo.Status.HEALTHY;
 import static org.elasticsearch.monitor.StatusInfo.Status.UNHEALTHY;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;

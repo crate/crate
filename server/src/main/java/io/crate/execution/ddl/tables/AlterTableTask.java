@@ -25,7 +25,7 @@ import java.io.IOException;
 
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.metadata.FulltextAnalyzerResolver;
 import io.crate.metadata.NodeContext;

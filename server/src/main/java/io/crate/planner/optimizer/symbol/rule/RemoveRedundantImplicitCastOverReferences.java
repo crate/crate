@@ -23,7 +23,7 @@ package io.crate.planner.optimizer.symbol.rule;
 
 import static io.crate.planner.optimizer.matcher.Pattern.typeOf;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.scalar.cast.ImplicitCastFunction;
 import io.crate.expression.symbol.Function;

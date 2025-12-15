@@ -40,7 +40,7 @@ import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.TerminalNode;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.common.collections.Lists;
 import io.crate.sql.ExpressionFormatter;
@@ -1721,7 +1721,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
     }
 
     @Nullable
-    private String getIdentText(@Nullable SqlBaseParser.IdentContext ident) {
+    private String getIdentText(SqlBaseParser.@Nullable IdentContext ident) {
         if (ident != null) {
             StringLiteral literal = (StringLiteral) ident.accept(this);
             return literal.getValue();
@@ -1729,7 +1729,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return null;
     }
 
-    public Map<String, Expression> getOptions(@Nullable SqlBaseParser.KvOptionsContext ctx) {
+    public Map<String, Expression> getOptions(SqlBaseParser.@Nullable KvOptionsContext ctx) {
         if (ctx == null) {
             return Map.of();
         }
@@ -2546,7 +2546,7 @@ class AstBuilder extends SqlBaseParserBaseVisitor<Node> {
         return value.substring(2, value.length() - 1);
     }
 
-    private List<SelectItem> getReturningItems(@Nullable SqlBaseParser.ReturningContext context) {
+    private List<SelectItem> getReturningItems(SqlBaseParser.@Nullable ReturningContext context) {
         return context == null ? List.of() : visitCollection(context.selectItem(),
             SelectItem.class);
     }

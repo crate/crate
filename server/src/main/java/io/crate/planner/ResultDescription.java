@@ -25,7 +25,7 @@ import io.crate.execution.engine.pipeline.LimitAndOffset;
 import io.crate.execution.dsl.projection.Projection;
 import io.crate.types.DataType;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.Collection;
 import java.util.List;
 

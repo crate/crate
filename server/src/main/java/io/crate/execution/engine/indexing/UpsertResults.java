@@ -28,8 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Stream;
 
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.data.Row;
 import io.crate.data.RowN;

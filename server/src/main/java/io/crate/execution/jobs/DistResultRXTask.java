@@ -21,12 +21,12 @@
 
 package io.crate.execution.jobs;
 
+import java.util.concurrent.CompletableFuture;
+
+import org.jspecify.annotations.Nullable;
+
 import io.crate.common.exceptions.Exceptions;
 import io.crate.data.breaker.RamAccounting;
-
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import java.util.concurrent.CompletableFuture;
 
 /**
  * A {@link DownstreamRXTask} which receives paged buckets from upstreams
@@ -67,7 +67,7 @@ public class DistResultRXTask implements Task, DownstreamRXTask {
     }
 
     @Override
-    public void kill(@NotNull Throwable t) {
+    public void kill(Throwable t) {
         pageBucketReceiver.kill(t);
     }
 

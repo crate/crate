@@ -21,7 +21,7 @@
 
 package io.crate.execution.jobs;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * An Task which receives data from an upstream.

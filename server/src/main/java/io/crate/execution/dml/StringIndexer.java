@@ -29,7 +29,6 @@ import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.document.StoredField;
 import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.util.BytesRef;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -53,7 +52,7 @@ public class StringIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public void indexValue(@NotNull String value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(String value, IndexDocumentBuilder docBuilder) throws IOException {
         String name = ref.storageIdent();
         BytesRef binaryValue = new BytesRef(value);
         if (ref.indexType() != IndexType.NONE) {

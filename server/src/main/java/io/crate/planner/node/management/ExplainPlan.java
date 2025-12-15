@@ -30,7 +30,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import org.elasticsearch.cluster.metadata.RelationMetadata;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.BoundCopyFrom;
 import io.crate.data.InMemoryBatchIterator;

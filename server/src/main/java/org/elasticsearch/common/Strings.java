@@ -31,7 +31,7 @@ import java.util.TreeSet;
 
 import org.elasticsearch.common.io.stream.BytesStream;
 import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.netty.buffer.ByteBufOutputStream;
 

@@ -29,7 +29,7 @@ import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.gateway.CorruptStateException;
 import org.elasticsearch.gateway.MetadataStateFormat;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public final class ShardStateMetadata implements Writeable {
 

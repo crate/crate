@@ -21,7 +21,6 @@
 
 package io.crate.execution.engine.distribution.merge;
 
-import org.jetbrains.annotations.NotNull;
 import java.util.Iterator;
 
 public final class KeyIterable<TKey, TRow> implements Iterable<TRow> {
@@ -35,7 +34,6 @@ public final class KeyIterable<TKey, TRow> implements Iterable<TRow> {
     }
 
     @Override
-    @NotNull
     public Iterator<TRow> iterator() {
         return iterable.iterator();
     }

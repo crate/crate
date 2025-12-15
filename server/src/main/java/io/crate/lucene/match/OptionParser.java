@@ -32,13 +32,14 @@ import java.util.Set;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.FuzzyQuery;
 import org.apache.lucene.search.MultiTermQuery;
+import org.apache.lucene.search.MultiTermQuery.RewriteMethod;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.lucene.BytesRefs;
 import org.elasticsearch.common.unit.Fuzziness;
 import org.elasticsearch.index.query.MultiMatchQueryType;
 import org.elasticsearch.index.query.support.QueryParsers;
 import org.elasticsearch.index.search.MatchQuery;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 import io.crate.types.BooleanType;
@@ -174,7 +175,7 @@ public class OptionParser {
     }
 
     @Nullable
-    private static org.apache.lucene.search.MultiTermQuery.RewriteMethod rewrite(@Nullable Object fuzzyRewrite) {
+    private static RewriteMethod rewrite(@Nullable Object fuzzyRewrite) {
         if (fuzzyRewrite == null) {
             return null;
         }

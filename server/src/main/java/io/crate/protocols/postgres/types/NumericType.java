@@ -25,8 +25,6 @@ import java.math.BigDecimal;
 import java.math.MathContext;
 import java.nio.charset.StandardCharsets;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.crate.types.Regproc;
 import io.netty.buffer.ByteBuf;
 
@@ -73,7 +71,7 @@ class NumericType extends PGType<BigDecimal> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull BigDecimal value) {
+    public int writeAsBinary(ByteBuf buffer, BigDecimal value) {
         // Taken from https://github.com/cockroachdb/cockroach/blob/master/pkg/sql/pgwire/types.go#L336
         // and https://github.com/postgres/postgres/blob/master/src/backend/utils/adt/numeric.c#L6760.
         // The number is split into chunks of DEC_DIGITS short values while leading and trailing 0's are omitted.
@@ -175,7 +173,7 @@ class NumericType extends PGType<BigDecimal> {
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@NotNull BigDecimal value) {
+    protected byte[] encodeAsUTF8Text(BigDecimal value) {
         return value.toString().getBytes(StandardCharsets.UTF_8);
     }
 

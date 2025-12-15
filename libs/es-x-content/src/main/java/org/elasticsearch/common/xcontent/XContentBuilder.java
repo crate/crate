@@ -42,7 +42,7 @@ import java.util.ServiceLoader;
 import java.util.UUID;
 import java.util.function.UnaryOperator;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * A utility to build XContent (ie json).

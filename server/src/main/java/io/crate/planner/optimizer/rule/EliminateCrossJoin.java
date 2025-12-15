@@ -30,7 +30,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.PriorityQueue;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.exceptions.InvalidArgumentException;
 import io.crate.expression.operator.AndOperator;

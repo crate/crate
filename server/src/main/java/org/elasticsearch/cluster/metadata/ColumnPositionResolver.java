@@ -21,8 +21,6 @@
 
 package org.elasticsearch.cluster.metadata;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
@@ -30,6 +28,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
 import java.util.function.BiConsumer;
+
+import org.jspecify.annotations.Nullable;
 
 public class ColumnPositionResolver<T> {
     // Depths of the columns are used as keys such that deeper columns take higher column positions. (parent's position < children's positions)
@@ -68,7 +68,7 @@ public class ColumnPositionResolver<T> {
         }
 
         @Override
-        public int compareTo(@NotNull Column<T> o) {
+        public int compareTo(Column<T> o) {
             // column position calculation : by depth (ascending) first, columnOrdering (descending) second then by name third
             if (this.columnOrdering == null && o.columnOrdering == null) {
                 return this.name.compareTo(o.name);

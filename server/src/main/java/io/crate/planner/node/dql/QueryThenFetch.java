@@ -29,7 +29,7 @@ import io.crate.planner.distribution.DistributionInfo;
 import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.execution.dsl.projection.Projection;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import java.util.Objects;
 
 public class QueryThenFetch implements ExecutionPlan {

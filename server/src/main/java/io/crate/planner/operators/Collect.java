@@ -34,7 +34,7 @@ import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.Predicate;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.GeneratedColumnExpander;
 import io.crate.analyze.OrderBy;

@@ -24,8 +24,6 @@ package io.crate.protocols.postgres.types;
 
 import java.nio.charset.StandardCharsets;
 
-import org.jetbrains.annotations.NotNull;
-
 import io.netty.buffer.ByteBuf;
 
 class CharType extends PGType<Byte> {
@@ -54,7 +52,7 @@ class CharType extends PGType<Byte> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Byte value) {
+    public int writeAsBinary(ByteBuf buffer, Byte value) {
         buffer.writeInt(1);
         buffer.writeByte(value);
         return 5;
@@ -67,7 +65,7 @@ class CharType extends PGType<Byte> {
     }
 
     @Override
-    byte[] encodeAsUTF8Text(@NotNull Byte value) {
+    byte[] encodeAsUTF8Text(Byte value) {
         return Byte.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 

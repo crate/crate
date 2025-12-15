@@ -23,7 +23,7 @@ package io.crate.planner;
 
 import java.util.Map;
 
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;

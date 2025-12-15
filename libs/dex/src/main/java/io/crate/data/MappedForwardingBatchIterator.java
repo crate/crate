@@ -21,7 +21,6 @@
 
 package io.crate.data;
 
-import org.jetbrains.annotations.NotNull;
 import java.util.concurrent.CompletionStage;
 
 /**
@@ -57,7 +56,7 @@ public abstract class MappedForwardingBatchIterator<I, O> implements BatchIterat
     }
 
     @Override
-    public void kill(@NotNull Throwable throwable) {
+    public void kill(Throwable throwable) {
         delegate().kill(throwable);
     }
 

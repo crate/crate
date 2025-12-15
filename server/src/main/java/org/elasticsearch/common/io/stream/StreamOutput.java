@@ -63,7 +63,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.Writeable.Writer;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 import org.joda.time.ReadableInstant;

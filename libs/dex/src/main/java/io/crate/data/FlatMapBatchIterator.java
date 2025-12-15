@@ -21,7 +21,6 @@
 
 package io.crate.data;
 
-import org.jetbrains.annotations.NotNull;
 import java.util.Iterator;
 import java.util.concurrent.CompletionStage;
 import java.util.function.Function;
@@ -93,7 +92,7 @@ public final class FlatMapBatchIterator<TIn, TOut> implements BatchIterator<TOut
     }
 
     @Override
-    public void kill(@NotNull Throwable throwable) {
+    public void kill(Throwable throwable) {
         source.kill(throwable);
     }
 

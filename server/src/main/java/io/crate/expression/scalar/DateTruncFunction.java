@@ -27,7 +27,7 @@ import java.util.Map;
 
 import org.elasticsearch.common.rounding.DateTimeUnit;
 import org.elasticsearch.common.rounding.Rounding;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.joda.time.DateTimeZone;
 
 import io.crate.common.collections.MapBuilder;

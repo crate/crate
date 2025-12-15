@@ -25,7 +25,7 @@ import java.util.List;
 
 import org.apache.lucene.search.MatchNoDocsQuery;
 import org.apache.lucene.search.Query;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * For types which can be stored in Lucene and support optimized equality related queries

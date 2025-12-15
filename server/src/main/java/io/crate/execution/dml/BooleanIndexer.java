@@ -27,7 +27,6 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.FieldType;
 import org.apache.lucene.document.SortedNumericDocValuesField;
 import org.apache.lucene.index.IndexOptions;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -52,7 +51,7 @@ public class BooleanIndexer implements ValueIndexer<Boolean> {
     }
 
     @Override
-    public void indexValue(@NotNull Boolean value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(Boolean value, IndexDocumentBuilder docBuilder) throws IOException {
         if (ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new Field(name, value ? "T" : "F", FIELD_TYPE));
         }

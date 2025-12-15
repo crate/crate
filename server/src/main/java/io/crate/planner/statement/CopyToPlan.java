@@ -36,7 +36,7 @@ import java.util.function.UnaryOperator;
 
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedCopyTo;
 import io.crate.analyze.BoundCopyTo;

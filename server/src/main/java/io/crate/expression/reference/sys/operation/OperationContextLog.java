@@ -25,7 +25,7 @@ import java.util.UUID;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.reference.sys.job.ContextLog;
 

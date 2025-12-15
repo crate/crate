@@ -22,7 +22,7 @@
 package io.crate.execution.dsl.projection;
 
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 public class ProjectionVisitor<C, R> {
 

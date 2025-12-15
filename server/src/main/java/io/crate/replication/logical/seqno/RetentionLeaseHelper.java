@@ -28,7 +28,7 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.index.seqno.RetentionLeaseActions;
 import org.elasticsearch.index.seqno.RetentionLeaseAlreadyExistsException;
 import org.elasticsearch.index.shard.ShardId;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.SQLExceptions;

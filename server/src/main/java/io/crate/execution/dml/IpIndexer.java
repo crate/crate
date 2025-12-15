@@ -28,7 +28,6 @@ import org.apache.lucene.document.InetAddressPoint;
 import org.apache.lucene.document.SortedSetDocValuesField;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.network.InetAddresses;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
@@ -44,7 +43,7 @@ public class IpIndexer implements ValueIndexer<String> {
     }
 
     @Override
-    public void indexValue(@NotNull String value, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(String value, IndexDocumentBuilder docBuilder) throws IOException {
         InetAddress address = InetAddresses.forString(value);
         if (ref.indexType() != IndexType.NONE) {
             docBuilder.addField(new InetAddressPoint(name, address));

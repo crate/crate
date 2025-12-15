@@ -37,7 +37,7 @@ import org.elasticsearch.common.logging.Loggers;
 import org.elasticsearch.index.IndexSettings;
 import org.elasticsearch.index.shard.IndexShard;
 import org.elasticsearch.index.shard.ShardPath;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.blob.BlobContainer;
 

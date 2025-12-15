@@ -25,7 +25,7 @@ import static io.crate.expression.scalar.array.ArrayArgumentValidators.ensureInn
 
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.metadata.FunctionType;

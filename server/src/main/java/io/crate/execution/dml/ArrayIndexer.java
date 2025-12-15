@@ -36,8 +36,7 @@ import org.apache.lucene.search.Query;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.expression.scalar.NumNullTermsPerDocQuery;
@@ -135,7 +134,7 @@ public class ArrayIndexer<T> implements ValueIndexer<List<T>> {
     }
 
     @Override
-    public void indexValue(@NotNull List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
+    public void indexValue(List<T> values, IndexDocumentBuilder docBuilder) throws IOException {
         docBuilder.translogWriter().startArray();
         var nestedDocBuilder = docBuilder.noStoredField().noArrayLengthField();
         for (T value : values) {

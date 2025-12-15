@@ -22,10 +22,9 @@
 package io.crate.protocols.postgres.types;
 
 
-import io.netty.buffer.ByteBuf;
-
-import org.jetbrains.annotations.NotNull;
 import java.nio.charset.StandardCharsets;
+
+import io.netty.buffer.ByteBuf;
 
 class IntegerType extends PGType<Integer> {
 
@@ -56,14 +55,14 @@ class IntegerType extends PGType<Integer> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Integer value) {
+    public int writeAsBinary(ByteBuf buffer, Integer value) {
         buffer.writeInt(TYPE_LEN);
         buffer.writeInt(value);
         return INT32_BYTE_SIZE + TYPE_LEN;
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@NotNull Integer value) {
+    protected byte[] encodeAsUTF8Text(Integer value) {
         return Integer.toString(value).getBytes(StandardCharsets.UTF_8);
     }
 

@@ -29,7 +29,7 @@ import static io.crate.metadata.FulltextAnalyzerResolver.CustomType.TOKEN_FILTER
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsAction;
 import org.elasticsearch.action.admin.cluster.settings.ClusterUpdateSettingsRequest;
 import org.elasticsearch.common.settings.Settings;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedDropAnalyzer;
 import io.crate.data.Row;

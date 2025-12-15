@@ -47,7 +47,7 @@ import org.elasticsearch.cluster.block.ClusterBlocks;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
 import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.json.JsonXContent;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.rest.action.HttpErrorStatus;
 import io.netty.buffer.ByteBuf;

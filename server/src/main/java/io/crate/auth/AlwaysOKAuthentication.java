@@ -24,7 +24,7 @@ package io.crate.auth;
 import io.crate.role.Roles;
 import io.crate.protocols.postgres.ConnectionProperties;
 import org.elasticsearch.common.inject.Inject;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 /**
  * Fallback if host-based authentication is disabled

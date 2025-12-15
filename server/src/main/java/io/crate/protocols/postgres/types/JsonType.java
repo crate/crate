@@ -26,8 +26,6 @@ import java.nio.charset.StandardCharsets;
 import java.util.List;
 import java.util.Map;
 
-import org.jetbrains.annotations.NotNull;
-
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.DeprecationHandler;
 import org.elasticsearch.common.xcontent.NamedXContentRegistry;
@@ -76,7 +74,7 @@ class JsonType extends PGType<Object> {
     }
 
     @Override
-    public int writeAsBinary(ByteBuf buffer, @NotNull Object value) {
+    public int writeAsBinary(ByteBuf buffer, Object value) {
         byte[] bytes = encodeAsUTF8Text(value);
         buffer.writeInt(bytes.length);
         buffer.writeBytes(bytes);
@@ -84,7 +82,7 @@ class JsonType extends PGType<Object> {
     }
 
     @Override
-    protected byte[] encodeAsUTF8Text(@NotNull Object value) {
+    protected byte[] encodeAsUTF8Text(Object value) {
         if (value instanceof String str) {
             return str.getBytes(StandardCharsets.UTF_8);
         }

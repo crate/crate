@@ -30,7 +30,7 @@ import java.net.InetAddress;
 import java.util.function.Supplier;
 
 import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.session.Session;
 import io.crate.metadata.ColumnIdent;

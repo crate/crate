@@ -33,7 +33,7 @@ import java.util.List;
 import java.util.Map;
 
 import org.elasticsearch.test.ESTestCase;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.execution.engine.aggregation.impl.MaximumAggregation;

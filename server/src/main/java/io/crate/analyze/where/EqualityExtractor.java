@@ -34,10 +34,9 @@ import java.util.Map;
 import java.util.Set;
 
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.CartesianList;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.AndOperator;
@@ -235,7 +234,6 @@ public class EqualityExtractor {
         }
 
         @Override
-        @NotNull
         public Iterator<EqProxy> iterator() {
             return proxies.values().iterator();
         }

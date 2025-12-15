@@ -30,8 +30,7 @@ import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists;
@@ -117,7 +116,7 @@ public class AverageAggregation extends AggregationFunction<AverageAggregation.A
             this.count--;
         }
 
-        public void reduce(@NotNull AverageState other, boolean isIntegral) {
+        public void reduce(AverageState other, boolean isIntegral) {
             this.count += other.count;
             this.sum = isIntegral ? this.sum + other.sum : kahanSummationForDouble.sum(this.sum, other.sum);
         }

@@ -25,7 +25,7 @@ package io.crate.expression.scalar.array;
 import java.math.BigDecimal;
 import java.util.List;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForDouble;
 import io.crate.execution.engine.aggregation.impl.util.KahanSummationForFloat;

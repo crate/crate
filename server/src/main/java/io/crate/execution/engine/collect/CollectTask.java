@@ -34,7 +34,7 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.util.concurrent.PrioritizedRunnable;
 import org.elasticsearch.common.util.concurrent.PriorityRunnable;
 import org.elasticsearch.threadpool.ThreadPool;
-import org.jetbrains.annotations.VisibleForTesting;
+import io.crate.common.annotations.VisibleForTesting;
 
 import com.carrotsearch.hppc.IntObjectHashMap;
 

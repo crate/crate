@@ -21,7 +21,7 @@
 
 package io.crate.planner.optimizer.symbol;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.NodeContext;

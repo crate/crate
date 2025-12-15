@@ -31,7 +31,7 @@ import java.util.SequencedCollection;
 import java.util.Set;
 import java.util.function.IntSupplier;
 
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;

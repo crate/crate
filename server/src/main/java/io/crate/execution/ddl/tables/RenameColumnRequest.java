@@ -26,7 +26,6 @@ import java.io.IOException;
 import org.elasticsearch.action.support.master.AcknowledgedRequest;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
 
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
@@ -39,7 +38,7 @@ public class RenameColumnRequest extends AcknowledgedRequest<RenameColumnRequest
     private final Reference refToRename;
     private final ColumnIdent newName;
 
-    public RenameColumnRequest(@NotNull RelationName relationName, @NotNull Reference refToRename, @NotNull ColumnIdent newName) {
+    public RenameColumnRequest(RelationName relationName, Reference refToRename, ColumnIdent newName) {
         this.relationName = relationName;
         this.refToRename = refToRename;
         this.newName = newName;

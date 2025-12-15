@@ -56,14 +56,13 @@ import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.health.Health;
 import org.elasticsearch.common.util.concurrent.FutureUtils;
 import org.elasticsearch.test.ESTestCase;
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
-import org.jetbrains.annotations.VisibleForTesting;
+import org.jspecify.annotations.Nullable;
 
 import com.carrotsearch.randomizedtesting.RandomizedContext;
 
 import io.crate.auth.AccessControl;
 import io.crate.auth.Protocol;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.common.unit.TimeValue;
 import io.crate.concurrent.FutureActionListener;
@@ -664,7 +663,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void fail(@NotNull Throwable t) {
+        public void fail(Throwable t) {
             listener.onFailure(Exceptions.toException(t));
             super.fail(t);
         }
@@ -727,7 +726,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void fail(@NotNull Throwable t) {
+        public void fail(Throwable t) {
             listener.onFailure(Exceptions.toException(t));
             super.fail(t);
         }
@@ -771,7 +770,7 @@ public class SQLTransportExecutor {
         }
 
         @Override
-        public void fail(@NotNull Throwable t) {
+        public void fail(Throwable t) {
             super.fail(t);
         }
 

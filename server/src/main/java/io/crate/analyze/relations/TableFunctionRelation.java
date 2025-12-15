@@ -25,8 +25,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Consumer;
 
-import org.jetbrains.annotations.NotNull;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.exceptions.AmbiguousColumnException;
 import io.crate.exceptions.ColumnUnknownException;
@@ -107,7 +106,6 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
         return relationName;
     }
 
-    @NotNull
     @Override
     public List<Symbol> outputs() {
         return List.copyOf(outputs);

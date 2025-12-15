@@ -27,7 +27,7 @@ import static io.netty.handler.codec.http.HttpResponseStatus.BAD_REQUEST;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.test.IntegTestCase;
-import org.jetbrains.annotations.Nullable;
+import org.jspecify.annotations.Nullable;
 import org.junit.Test;
 
 import io.crate.exceptions.VersioningValidationException;
