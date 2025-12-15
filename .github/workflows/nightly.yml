@@ -6,6 +6,12 @@ on:
   schedule:
     - cron: '0 2 * * *'
 
+
+permissions:
+  contents: read
+  checks: write
+  statuses: write
+
 jobs:
   test:
     name: Test CrateDB SQL on ${{ matrix.os }}
@@ -15,10 +21,13 @@ jobs:
         os: [windows-latest]
     steps:
       - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
       - name: Setup Maven Java
         uses: actions/setup-java@v5
         with:
-          java-version: "24"
+          java-version: "24.0.2"
           distribution: "temurin"
           cache: maven
 
