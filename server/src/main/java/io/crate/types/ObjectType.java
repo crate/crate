@@ -75,8 +75,8 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final int ID = 12;
     public static final String NAME = "object";
 
-    private static final long LINKED_HASHMAP_SIZE = RamUsageEstimator.shallowSizeOfInstance(LinkedHashMap.class);
-    private static final long HASHMAP_SIZE = RamUsageEstimator.shallowSizeOfInstance(HashMap.class);
+    public static final long LINKED_HASHMAP_SIZE = RamUsageEstimator.shallowSizeOfInstance(LinkedHashMap.class);
+    public static final long HASHMAP_SIZE = RamUsageEstimator.shallowSizeOfInstance(HashMap.class);
 
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
 
