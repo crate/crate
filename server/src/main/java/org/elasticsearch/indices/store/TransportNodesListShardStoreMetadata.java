@@ -30,7 +30,6 @@ import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.FailedNodeException;
-import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.BaseNodeResponse;
 import org.elasticsearch.action.support.nodes.BaseNodesRequest;
 import org.elasticsearch.action.support.nodes.BaseNodesResponse;
@@ -56,6 +55,7 @@ import org.elasticsearch.index.store.Store;
 import org.elasticsearch.index.store.StoreFileMetadata;
 import org.elasticsearch.indices.IndicesService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportService;
 import org.jspecify.annotations.Nullable;
 
@@ -310,7 +310,7 @@ public class TransportNodesListShardStoreMetadata extends TransportNodesAction<T
     }
 
 
-    public static class NodeRequest extends BaseNodeRequest {
+    public static class NodeRequest extends TransportRequest {
 
         private final ShardId shardId;
         @Nullable
