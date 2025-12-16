@@ -154,11 +154,11 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         super.channelUnregistered(ctx);
     }
 
-    private void sendResponse(ChannelHandlerContext ctx,
-                              FullHttpRequest request,
-                              Map<String, List<String>> parameters,
-                              ByteBuf result,
-                              @Nullable Throwable t) {
+    void sendResponse(ChannelHandlerContext ctx,
+                      FullHttpRequest request,
+                      Map<String, List<String>> parameters,
+                      ByteBuf result,
+                      @Nullable Throwable t) {
         final HttpVersion httpVersion = request.protocolVersion();
         final DefaultFullHttpResponse resp;
         final ByteBuf content;
@@ -167,6 +167,9 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             resp = new DefaultFullHttpResponse(httpVersion, HttpResponseStatus.OK, content);
             resp.headers().add(HttpHeaderNames.CONTENT_TYPE, XContentType.JSON.mediaType());
         } else {
+            // In case of partial success buffer can contain some data
+            // Clearing buffer to ensure that error is not mixed with partial result.
+            result.clear();
             var sessionSettings = session.sessionSettings();
             AccessControl accessControl = roles.getAccessControl(sessionSettings.authenticatedUser(), sessionSettings.sessionUser());
             var throwable = SQLExceptions.prepareForClientTransmission(accessControl, t);
