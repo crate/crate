@@ -24,11 +24,9 @@ package io.crate.planner.consumer;
 
 import java.util.List;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.settings.Settings;
 
 import io.crate.analyze.AnalyzedInsertStatement;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.ColumnIndexWriterProjection;
 import io.crate.execution.dsl.projection.EvalProjection;
 import io.crate.expression.symbol.InputColumn;
@@ -43,23 +41,12 @@ import io.crate.types.DataTypes;
 
 public final class InsertFromSubQueryPlanner {
 
-    public static final String RETURNING_VERSION_ERROR_MSG =
-        "Returning clause for Insert is only supported when all nodes in the cluster running at least version 4.2.0";
-
     private InsertFromSubQueryPlanner() {}
 
     public static LogicalPlan plan(AnalyzedInsertStatement statement,
                                    PlannerContext plannerContext,
                                    LogicalPlanner logicalPlanner,
                                    SubqueryPlanner subqueryPlanner) {
-
-        if (statement.outputs() != null &&
-            !plannerContext.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
-            throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
-        }
-
-
-
         // if fields are null default to number of rows imported
         var outputs = statement.outputs() == null ? List.of(new InputColumn(0, DataTypes.LONG)) : statement.outputs();
 

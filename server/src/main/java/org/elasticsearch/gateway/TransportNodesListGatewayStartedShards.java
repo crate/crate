@@ -25,7 +25,6 @@ import java.util.Objects;
 
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.FailedNodeException;
 import org.elasticsearch.action.support.nodes.BaseNodeRequest;
@@ -181,20 +180,23 @@ public class TransportNodesListGatewayStartedShards extends
         @Nullable
         private final String customDataPath;
 
-        public Request(StreamInput in) throws IOException {
-            super(in);
-            shardId = new ShardId(in);
-            if (in.getVersion().onOrAfter(Version.V_4_5_0)) {
-                customDataPath = in.readString();
-            } else {
-                customDataPath = null;
-            }
-        }
-
         public Request(ShardId shardId, String customDataPath, DiscoveryNode[] nodes) {
             super(nodes);
             this.shardId = Objects.requireNonNull(shardId);
             this.customDataPath = Objects.requireNonNull(customDataPath);
+        }
+
+        public Request(StreamInput in) throws IOException {
+            super(in);
+            shardId = new ShardId(in);
+            customDataPath = in.readString();
+        }
+
+        @Override
+        public void writeTo(StreamOutput out) throws IOException {
+            super.writeTo(out);
+            shardId.writeTo(out);
+            out.writeString(customDataPath);
         }
 
         public ShardId shardId() {
@@ -209,15 +211,6 @@ public class TransportNodesListGatewayStartedShards extends
         @Nullable
         public String getCustomDataPath() {
             return customDataPath;
-        }
-
-        @Override
-        public void writeTo(StreamOutput out) throws IOException {
-            super.writeTo(out);
-            shardId.writeTo(out);
-            if (out.getVersion().onOrAfter(Version.V_4_5_0)) {
-                out.writeString(customDataPath);
-            }
         }
     }
 
@@ -243,29 +236,22 @@ public class TransportNodesListGatewayStartedShards extends
         @Nullable
         private final String customDataPath;
 
-        public NodeRequest(StreamInput in) throws IOException {
-            super(in);
-            shardId = new ShardId(in);
-            if (in.getVersion().onOrAfter(Version.V_4_5_0)) {
-                customDataPath = in.readString();
-            } else {
-                customDataPath = null;
-            }
-        }
-
         public NodeRequest(Request request) {
             this.shardId = Objects.requireNonNull(request.shardId());
             this.customDataPath = Objects.requireNonNull(request.getCustomDataPath());
+        }
+
+        public NodeRequest(StreamInput in) throws IOException {
+            super(in);
+            shardId = new ShardId(in);
+            customDataPath = in.readString();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
             super.writeTo(out);
             shardId.writeTo(out);
-            if (out.getVersion().onOrAfter(Version.V_4_5_0)) {
-                assert customDataPath != null;
-                out.writeString(customDataPath);
-            }
+            out.writeString(customDataPath);
         }
 
         public ShardId getShardId() {

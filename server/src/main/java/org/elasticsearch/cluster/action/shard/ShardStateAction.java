@@ -32,7 +32,6 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.elasticsearch.ElasticsearchException;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.ClusterChangedEvent;
 import org.elasticsearch.cluster.ClusterState;
@@ -55,7 +54,6 @@ import org.elasticsearch.common.Priority;
 import org.elasticsearch.common.inject.Inject;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.node.NodeClosedException;
 import org.elasticsearch.threadpool.ThreadPool;
@@ -623,11 +621,7 @@ public class ShardStateAction {
             super(in);
             shardId = new ShardId(in);
             allocationId = in.readString();
-            if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
-                primaryTerm = in.readVLong();
-            } else {
-                primaryTerm = SequenceNumbers.UNASSIGNED_PRIMARY_TERM;
-            }
+            primaryTerm = in.readVLong();
             this.message = in.readString();
         }
 
@@ -643,9 +637,7 @@ public class ShardStateAction {
             super.writeTo(out);
             shardId.writeTo(out);
             out.writeString(allocationId);
-            if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
-                out.writeVLong(primaryTerm);
-            }
+            out.writeVLong(primaryTerm);
             out.writeString(message);
         }
 

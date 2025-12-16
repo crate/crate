@@ -21,15 +21,15 @@
 
 package io.crate.monitor;
 
-import org.elasticsearch.Version;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.monitor.os.OsStats;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
+import io.crate.common.unit.TimeValue;
 
 public class ExtendedOsStats implements Writeable {
 
@@ -97,28 +97,12 @@ public class ExtendedOsStats implements Writeable {
         }
 
         public Cpu(StreamInput in) throws IOException {
-            if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
-                percent = in.readShort();
-            } else {
-                in.readShort(); // sys
-                in.readShort(); // user
-                in.readShort(); // idle
-                in.readShort(); // stolen
-                percent = in.readShort();
-            }
+            percent = in.readShort();
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
-            if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-                out.writeShort(percent);
-            } else {
-                out.writeShort((short) -1); // sys
-                out.writeShort((short) -1); // user
-                out.writeShort((short) -1); // idle
-                out.writeShort((short) -1); // stolen
-                out.writeShort(percent);
-            }
+            out.writeShort(percent);
         }
     }
 }

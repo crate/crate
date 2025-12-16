@@ -208,26 +208,24 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         if (in.readBoolean()) {
             failure = in.readException();
         }
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            int resultColumnsSize = in.readVInt();
-            if (resultColumnsSize > 0) {
-                resultColumns = new Symbol[resultColumnsSize];
-                for (int i = 0; i < resultColumnsSize; i++) {
-                    Symbol symbol = Symbol.fromStream(in);
-                    resultColumns[i] = symbol;
-                }
-                Streamer<?>[] resultRowStreamers = Symbols.streamerArray(resultColumns);
-                int resultRowsSize = in.readVInt();
-                if (resultRowsSize > 0) {
-                    resultRows = new ArrayList<>(resultRowsSize);
-                    int rowLength = in.readVInt();
-                    for (int i = 0; i < resultRowsSize; i++) {
-                        Object[] row = new Object[rowLength];
-                        for (int j = 0; j < rowLength; j++) {
-                            row[j] = resultRowStreamers[j].readValueFrom(in);
-                        }
-                        resultRows.add(row);
+        int resultColumnsSize = in.readVInt();
+        if (resultColumnsSize > 0) {
+            resultColumns = new Symbol[resultColumnsSize];
+            for (int i = 0; i < resultColumnsSize; i++) {
+                Symbol symbol = Symbol.fromStream(in);
+                resultColumns[i] = symbol;
+            }
+            Streamer<?>[] resultRowStreamers = Symbols.streamerArray(resultColumns);
+            int resultRowsSize = in.readVInt();
+            if (resultRowsSize > 0) {
+                resultRows = new ArrayList<>(resultRowsSize);
+                int rowLength = in.readVInt();
+                for (int i = 0; i < resultRowsSize; i++) {
+                    Object[] row = new Object[rowLength];
+                    for (int j = 0; j < rowLength; j++) {
+                        row[j] = resultRowStreamers[j].readValueFrom(in);
                     }
+                    resultRows.add(row);
                 }
             }
         }
@@ -253,25 +251,23 @@ public class ShardResponse extends ReplicationResponse implements WriteResponse 
         } else {
             out.writeBoolean(false);
         }
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            if (resultRows != null) {
-                assert resultColumns != null : "Result columns are required when writing result rows";
-                Streamer[] resultRowStreamers = Symbols.streamerArray(resultColumns);
-                out.writeVInt(resultColumns.length);
-                for (int i = 0; i < resultColumns.length; i++) {
-                    Symbol.toStream(resultColumns[i], out);
-                }
-                out.writeVInt(resultRows.size());
-                int rowLength = resultRows.get(0).length;
-                out.writeVInt(rowLength);
-                for (Object[] row : resultRows) {
-                    for (int j = 0; j < rowLength; j++) {
-                        resultRowStreamers[j].writeValueTo(out, row[j]);
-                    }
-                }
-            } else {
-                out.writeVInt(0);
+        if (resultRows != null) {
+            assert resultColumns != null : "Result columns are required when writing result rows";
+            Streamer[] resultRowStreamers = Symbols.streamerArray(resultColumns);
+            out.writeVInt(resultColumns.length);
+            for (int i = 0; i < resultColumns.length; i++) {
+                Symbol.toStream(resultColumns[i], out);
             }
+            out.writeVInt(resultRows.size());
+            int rowLength = resultRows.get(0).length;
+            out.writeVInt(rowLength);
+            for (Object[] row : resultRows) {
+                for (int j = 0; j < rowLength; j++) {
+                    resultRowStreamers[j].writeValueTo(out, row[j]);
+                }
+            }
+        } else {
+            out.writeVInt(0);
         }
     }
 

@@ -30,7 +30,6 @@ import java.util.Set;
 
 import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -40,7 +39,6 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.metadata.blob.BlobSchemaInfo;
-import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
@@ -94,15 +92,6 @@ public final class RelationName implements Writeable, Accountable {
         return IndexName.decode(indexName).toFullyQualifiedName();
     }
 
-    public RelationName(StreamInput in) throws IOException {
-        if (in.getVersion().before(Version.V_4_2_0)) {
-            schema = in.readString();
-        } else {
-            schema = in.readOptionalString();
-        }
-        name = in.readString();
-    }
-
     public RelationName(@Nullable String schema, String name) {
         assert name != null : "table name must not be null";
         if (schema != null && (isInvalidSchemaOrRelationName(schema))) {
@@ -114,6 +103,18 @@ public final class RelationName implements Writeable, Accountable {
         this.schema = schema;
         this.name = name;
     }
+
+    public RelationName(StreamInput in) throws IOException {
+        schema = in.readOptionalString();
+        name = in.readString();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeOptionalString(schema);
+        out.writeString(name);
+    }
+
 
     @Nullable
     public String schema() {
@@ -198,16 +199,6 @@ public final class RelationName implements Writeable, Accountable {
     @Override
     public String toString() {
         return fqn();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        if (out.getVersion().before(Version.V_4_2_0)) {
-            out.writeString(schema == null ? DocSchemaInfo.NAME : schema);
-        } else {
-            out.writeOptionalString(schema);
-        }
-        out.writeString(name);
     }
 
     @Override

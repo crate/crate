@@ -22,7 +22,6 @@ package org.elasticsearch.transport;
 import java.io.IOException;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.bytes.BytesArray;
 import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.bytes.CompositeBytesReference;
@@ -120,10 +119,6 @@ abstract class OutboundMessage {
         @Override
         protected void writeVariableHeader(StreamOutput stream) throws IOException {
             super.writeVariableHeader(stream);
-            if (version.before(Version.V_4_3_0)) {
-                // empty features array
-                stream.writeStringArray(Strings.EMPTY_ARRAY);
-            }
             stream.writeString(action);
         }
 

@@ -84,11 +84,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
     SourceIndexWriterProjection(StreamInput in) throws IOException {
         super(in);
         Version version = in.getVersion();
-        if (version.onOrAfter(Version.V_4_7_0)) {
-            failFast = in.readBoolean();
-        } else {
-            failFast = false;
-        }
+        failFast = in.readBoolean();
         overwriteDuplicates = in.readBoolean();
         rawSourceReference = Reference.fromStream(in);
         rawSourceSymbol = (InputColumn) Symbol.fromStream(in);
@@ -112,7 +108,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             excludes = null;
         }
         outputs = Symbols.fromStream(in);
-        if (version.onOrAfter(Version.V_4_8_0) && version.before(Version.V_5_5_0)) {
+        if (version.before(Version.V_5_5_0)) {
             in.readBoolean(); // validation
         }
     }
@@ -122,9 +118,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
         super.writeTo(out);
 
         Version version = out.getVersion();
-        if (version.onOrAfter(Version.V_4_7_0)) {
-            out.writeBoolean(failFast);
-        }
+        out.writeBoolean(failFast);
         out.writeBoolean(overwriteDuplicates);
         Reference.toStream(out, rawSourceReference);
         Symbol.toStream(rawSourceSymbol, out);
@@ -143,7 +137,7 @@ public class SourceIndexWriterProjection extends AbstractIndexWriterProjection {
             }
         }
         Symbols.toStream(outputs, out);
-        if (version.onOrAfter(Version.V_4_8_0) && version.before(Version.V_5_5_0)) {
+        if (version.before(Version.V_5_5_0)) {
             out.writeBoolean(true);
         }
     }

@@ -24,11 +24,8 @@ package io.crate.types;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.IOException;
 import java.util.List;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -98,19 +95,6 @@ public class StringTypeTest extends DataTypeTestCase<String> {
     public void test_implicit_cast_text_with_length_ignores_length_limit() {
         assertThat(StringType.of(1).implicitCast("abcde")).isEqualTo("abcde");
         assertThat(StringType.of(2).implicitCast("a    ")).isEqualTo("a    ");
-    }
-
-    @Test
-    public void test_text_type_with_length_serialization_roundtrip_before_4_2_0() throws IOException {
-        var actualType = StringType.of(1);
-
-        var out = new BytesStreamOutput();
-        out.setVersion(Version.V_4_1_0);
-        DataTypes.toStream(actualType, out);
-
-        var in = out.bytes().streamInput();
-        in.setVersion(Version.V_4_1_0);
-        assertThat(DataTypes.fromStream(in)).isEqualTo(StringType.INSTANCE);
     }
 
     @Test

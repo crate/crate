@@ -93,11 +93,6 @@ public class Header {
         bwcNeedsToReadVariableHeader = false;
 
         if (isRequest()) {
-            if (version.before(Version.V_4_3_0)) {
-                // empty features array
-                input.readStringArray();
-            }
-
             this.actionName = input.readString();
         } else {
             this.actionName = RESPONSE_NAME;

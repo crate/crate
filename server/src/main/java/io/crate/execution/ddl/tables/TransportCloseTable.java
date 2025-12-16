@@ -36,7 +36,6 @@ import java.util.function.Consumer;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionRunnable;
 import org.elasticsearch.action.ActionType;
@@ -141,9 +140,6 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
     protected void masterOperation(CloseTableRequest request,
                                    ClusterState state,
                                    ActionListener<AcknowledgedResponse> listener) throws Exception {
-        assert state.nodes().getMinNodeVersion().onOrAfter(Version.V_4_3_0)
-            : "All nodes must be on 4.3 to use the new dedicated close action";
-
         clusterService.submitStateUpdateTask("add-block-close-table", new AddCloseBlocksTask(listener, request));
     }
 
@@ -156,9 +152,6 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                                           DDLClusterStateService ddlClusterStateService,
                                           Map<Index, ClusterBlock> blockedIndices,
                                           Map<Index, AcknowledgedResponse> results) {
-        // Remove the index routing table of closed indices if the cluster is in a mixed version
-        // that does not support the replication of closed indices
-        final boolean removeRoutingTable = currentState.nodes().getMinNodeVersion().before(Version.V_4_3_0);
 
         ClusterState updatedState = currentState;
 
@@ -227,17 +220,12 @@ public final class TransportCloseTable extends TransportMasterNodeAction<CloseTa
                 blocks.removeIndexBlockWithId(index.getUUID(), INDEX_CLOSED_BLOCK_ID);
                 blocks.addIndexBlock(index.getUUID(), IndexMetadata.INDEX_CLOSED_BLOCK);
                 final IndexMetadata.Builder updatedMetadata = IndexMetadata.builder(indexMetadata).state(IndexMetadata.State.CLOSE);
-                if (removeRoutingTable) {
-                    metadata.put(updatedMetadata);
-                    routingTable.remove(index.getUUID());
-                } else {
-                    metadata.put(updatedMetadata
-                        .settingsVersion(indexMetadata.getSettingsVersion() + 1)
-                        .settings(Settings.builder()
-                            .put(indexMetadata.getSettings())
-                            .put(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), true)));
-                    routingTable.addAsFromOpenToClose(metadata.getSafe(index));
-                }
+                metadata.put(updatedMetadata
+                    .settingsVersion(indexMetadata.getSettingsVersion() + 1)
+                    .settings(Settings.builder()
+                        .put(indexMetadata.getSettings())
+                        .put(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), true)));
+                routingTable.addAsFromOpenToClose(metadata.getSafe(index));
 
                 LOGGER.debug("closing index {} succeeded", index);
                 closedIndices.add(index.getName());

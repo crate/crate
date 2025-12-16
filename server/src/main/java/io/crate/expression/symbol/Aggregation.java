@@ -29,7 +29,6 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
@@ -74,28 +73,20 @@ public final class Aggregation implements Symbol {
     }
 
     public Aggregation(StreamInput in) throws IOException {
-        Signature generatedSignature = null;
-        if (in.getVersion().before(Version.V_5_0_0)) {
-            generatedSignature = Signature.readFromFunctionInfo(in);
-        }
         valueType = DataTypes.fromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
-            filter = Symbol.fromStream(in);
-        } else {
-            filter = Literal.BOOLEAN_TRUE;
-        }
+        filter = Symbol.fromStream(in);
         inputs = Symbols.fromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            if (in.getVersion().before(Version.V_5_0_0)) {
-                in.readBoolean();
-            }
-            signature = new Signature(in);
-            boundSignatureReturnType = DataTypes.fromStream(in);
-        } else {
-            assert generatedSignature != null : "expecting a non-null generated signature";
-            signature = generatedSignature;
-            boundSignatureReturnType = valueType;
-        }
+        signature = new Signature(in);
+        boundSignatureReturnType = DataTypes.fromStream(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        DataTypes.toStream(valueType, out);
+        Symbol.toStream(filter, out);
+        Symbols.toStream(inputs, out);
+        signature.writeTo(out);
+        DataTypes.toStream(boundSignatureReturnType, out);
     }
 
     @Override
@@ -144,25 +135,6 @@ public final class Aggregation implements Symbol {
 
     public Symbol filter() {
         return filter;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        if (out.getVersion().before(Version.V_5_0_0)) {
-            signature.writeAsFunctionInfo(out, Symbols.typeView(inputs));
-        }
-        DataTypes.toStream(valueType, out);
-        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-            Symbol.toStream(filter, out);
-        }
-        Symbols.toStream(inputs, out);
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            if (out.getVersion().before(Version.V_5_0_0)) {
-                out.writeBoolean(true);
-            }
-            signature.writeTo(out);
-            DataTypes.toStream(boundSignatureReturnType, out);
-        }
     }
 
     @Override
