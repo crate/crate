@@ -84,7 +84,6 @@ public class AddVotingConfigExclusionsRequest extends MasterNodeRequest<AddVotin
                 "One and only one of [node_name], [node_names] and [node_ids] has to be set");
         }
 
-        System.out.println("nodeDescs: " + nodeDescriptions);
         if (nodeDescriptions.length > 0) {
             DEPRECATION_LOGGER.deprecatedAndMaybeLog("voting_config_exclusion", DEPRECATION_MESSAGE);
         }
