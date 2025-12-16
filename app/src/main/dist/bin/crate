@@ -152,9 +152,6 @@ JAVA_OPTS="$JAVA_OPTS -Djdk.tls.rejectClientInitiatedRenegotiation=true"
 # Ensure UTF-8 encoding by default (e.g. filenames)
 JAVA_OPTS="$JAVA_OPTS -Dfile.encoding=UTF-8"
 
-# Use our provided JNA always versus the system one
-JAVA_OPTS="$JAVA_OPTS -Djna.nosys=true"
-
 # log4j options
 JAVA_OPTS="$JAVA_OPTS -Dlog4j.shutdownHookEnabled=false -Dlog4j2.disable.jmx=true -Dlog4j.skipJansi=true"
 
