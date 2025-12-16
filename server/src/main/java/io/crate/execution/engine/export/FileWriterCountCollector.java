@@ -43,8 +43,6 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.common.xcontent.XContentFactory;
 import org.jspecify.annotations.Nullable;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -54,6 +52,7 @@ import io.crate.exceptions.UnhandledServerException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.projection.WriterProjection;
 import io.crate.execution.engine.collect.CollectExpression;
+import tools.jackson.core.StreamWriteFeature;
 
 /**
  * Collector implementation which writes the rows to the configured {@link FileOutput}
@@ -170,7 +169,7 @@ public class FileWriterCountCollector implements Collector<Row, long[], Iterable
         // in the beginning of json data lines, when partitioned tables with multiple shards
         // are exported.
         XContentBuilder builder = XContentFactory.json(outputStream, "");
-        builder.generator().configure(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM, false);
+        builder.generator().configure(StreamWriteFeature.FLUSH_PASSED_TO_STREAM, false);
         return builder;
     }
 

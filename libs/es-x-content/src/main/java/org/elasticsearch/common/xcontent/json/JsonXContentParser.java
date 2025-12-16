@@ -28,18 +28,18 @@ import org.elasticsearch.common.xcontent.XContentLocation;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.support.AbstractXContentParser;
 
-import com.fasterxml.jackson.core.JsonLocation;
-import com.fasterxml.jackson.core.JsonParser;
-import com.fasterxml.jackson.core.JsonToken;
-
 import io.crate.common.io.IOUtils;
+import tools.jackson.core.JsonParser;
+import tools.jackson.core.JsonToken;
+import tools.jackson.core.TokenStreamLocation;
 
 public class JsonXContentParser extends AbstractXContentParser {
 
     final JsonParser parser;
 
     public JsonXContentParser(NamedXContentRegistry xContentRegistry,
-            DeprecationHandler deprecationHandler, JsonParser parser) {
+                              DeprecationHandler deprecationHandler,
+                              JsonParser parser) {
         super(xContentRegistry, deprecationHandler);
         this.parser = parser;
     }
@@ -61,7 +61,7 @@ public class JsonXContentParser extends AbstractXContentParser {
 
     @Override
     public Token currentToken() {
-        return convertToken(parser.getCurrentToken());
+        return convertToken(parser.currentToken());
     }
 
     @Override
@@ -82,19 +82,19 @@ public class JsonXContentParser extends AbstractXContentParser {
     @Override
     public String text() throws IOException {
         if (currentToken().isValue()) {
-            return parser.getText();
+            return parser.getString();
         }
         throw new IllegalStateException("Can't get text on a " + currentToken() + " at " + getTokenLocation());
     }
 
     @Override
     public CharBuffer charBuffer() throws IOException {
-        return CharBuffer.wrap(parser.getTextCharacters(), parser.getTextOffset(), parser.getTextLength());
+        return CharBuffer.wrap(parser.getStringCharacters(), parser.getStringOffset(), parser.getStringLength());
     }
 
     @Override
     public Object objectText() throws IOException {
-        JsonToken currentToken = parser.getCurrentToken();
+        JsonToken currentToken = parser.currentToken();
         if (currentToken == JsonToken.VALUE_STRING) {
             return text();
         } else if (currentToken == JsonToken.VALUE_NUMBER_INT || currentToken == JsonToken.VALUE_NUMBER_FLOAT) {
@@ -111,23 +111,23 @@ public class JsonXContentParser extends AbstractXContentParser {
     }
 
     @Override
-    public boolean hasTextCharacters() {
-        return parser.hasTextCharacters();
+    public boolean hasStringCharacters() {
+        return parser.hasStringCharacters();
     }
 
     @Override
-    public char[] textCharacters() throws IOException {
-        return parser.getTextCharacters();
+    public char[] stringCharacters() throws IOException {
+        return parser.getStringCharacters();
     }
 
     @Override
     public int textLength() throws IOException {
-        return parser.getTextLength();
+        return parser.getStringLength();
     }
 
     @Override
     public int textOffset() throws IOException {
-        return parser.getTextOffset();
+        return parser.getStringOffset();
     }
 
     @Override
@@ -167,7 +167,7 @@ public class JsonXContentParser extends AbstractXContentParser {
 
     @Override
     public XContentLocation getTokenLocation() {
-        JsonLocation loc = parser.currentTokenLocation();
+        TokenStreamLocation loc = parser.currentTokenLocation();
         if (loc == null) {
             return null;
         }
@@ -199,7 +199,7 @@ public class JsonXContentParser extends AbstractXContentParser {
             return null;
         }
         switch (token) {
-            case FIELD_NAME:
+            case PROPERTY_NAME:
                 return Token.FIELD_NAME;
             case VALUE_FALSE:
             case VALUE_TRUE:

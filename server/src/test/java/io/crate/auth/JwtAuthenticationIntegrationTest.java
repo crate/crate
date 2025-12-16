@@ -54,7 +54,7 @@ import org.junit.Test;
 
 import com.auth0.jwt.JWT;
 import com.auth0.jwt.algorithms.Algorithm;
-import com.fasterxml.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonGenerator;
 
 import io.crate.http.HttpTestServer;
 import io.crate.testing.UseJdbc;
@@ -92,7 +92,7 @@ public class JwtAuthenticationIntegrationTest extends IntegTestCase {
         AtomicInteger numberOfInvocation = new AtomicInteger(0);
 
         @Override
-        public void accept(io.netty.handler.codec.http.HttpRequest httpRequest, com.fasterxml.jackson.core.JsonGenerator generator) {
+        public void accept(io.netty.handler.codec.http.HttpRequest httpRequest, tools.jackson.core.JsonGenerator generator) {
             try {
                 numberOfInvocation.incrementAndGet();
                 KeyFactory keyFactory = KeyFactory.getInstance("RSA");

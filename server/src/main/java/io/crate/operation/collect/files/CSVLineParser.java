@@ -21,15 +21,6 @@
 
 package io.crate.operation.collect.files;
 
-import com.fasterxml.jackson.databind.MappingIterator;
-import com.fasterxml.jackson.databind.ObjectReader;
-import com.fasterxml.jackson.dataformat.csv.CsvMapper;
-import com.fasterxml.jackson.dataformat.csv.CsvParser;
-import io.crate.analyze.CopyFromParserProperties;
-
-import org.elasticsearch.common.xcontent.XContentBuilder;
-import org.elasticsearch.common.xcontent.json.JsonXContent;
-
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -37,6 +28,15 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
+
+import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.common.xcontent.json.JsonXContent;
+
+import io.crate.analyze.CopyFromParserProperties;
+import tools.jackson.databind.MappingIterator;
+import tools.jackson.databind.ObjectReader;
+import tools.jackson.dataformat.csv.CsvMapper;
+import tools.jackson.dataformat.csv.CsvReadFeature;
 
 public class CSVLineParser {
 
@@ -54,11 +54,12 @@ public class CSVLineParser {
                 columnNamesArray[i] = targetColumns.get(i);
             }
         }
-        var mapper = new CsvMapper()
-            .enable(CsvParser.Feature.TRIM_SPACES);
+        var mapperBuilder = CsvMapper.builder()
+            .enable(CsvReadFeature.TRIM_SPACES);
         if (properties.emptyStringAsNull()) {
-            mapper.enable(CsvParser.Feature.EMPTY_STRING_AS_NULL);
+            mapperBuilder.enable(CsvReadFeature.EMPTY_STRING_AS_NULL);
         }
+        CsvMapper mapper = mapperBuilder.build();
         var csvSchema = mapper
             .typedSchemaFor(String.class)
             .withColumnSeparator(properties.columnSeparator());

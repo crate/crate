@@ -311,7 +311,7 @@
     <versions.junit-platform-commons>1.13.4</versions.junit-platform-commons>
     <versions.junit>4.13.2</versions.junit>
     <versions.randomizedrunner>2.8.3</versions.randomizedrunner>
-    <versions.jackson>2.20.1</versions.jackson>
+    <versions.jackson>3.0.3</versions.jackson>
     <versions.fastdoubleparser>2.0.1</versions.fastdoubleparser>
     <versions.jopt_simple>6.0-alpha-3</versions.jopt_simple>
     <versions.antlr>4.13.2</versions.antlr>

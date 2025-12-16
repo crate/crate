@@ -29,7 +29,7 @@ import java.util.Locale;
 
 import org.elasticsearch.common.settings.Setting;
 
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import tools.jackson.dataformat.csv.CsvSchema;
 
 import io.crate.analyze.copy.NodeFilters;
 import io.crate.metadata.settings.Validators;

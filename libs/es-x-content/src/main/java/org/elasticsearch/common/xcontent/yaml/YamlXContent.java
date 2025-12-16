@@ -33,9 +33,9 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jspecify.annotations.Nullable;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.StreamReadFeature;
-import com.fasterxml.jackson.dataformat.yaml.YAMLFactory;
+import tools.jackson.core.JsonEncoding;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.dataformat.yaml.YAMLFactory;
 
 /**
  * A YAML based content implementation using Jackson.

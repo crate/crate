@@ -227,7 +227,7 @@ public class MainAndStaticFileHandler extends SimpleChannelInboundHandler<FullHt
                                   HttpResponseStatus status,
                                   @Nullable String nodeName) throws IOException {
         var builder = new XContentBuilder(JsonXContent.JSON_XCONTENT, outputStream);
-        builder.prettyPrint().lfAtEnd();
+        builder.lfAtEnd();
         builder.startObject();
         builder.field("ok", status == HttpResponseStatus.OK);
         builder.field("status", status.code());

@@ -35,7 +35,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
+import tools.jackson.dataformat.csv.CsvSchema;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.expression.symbol.Literal;

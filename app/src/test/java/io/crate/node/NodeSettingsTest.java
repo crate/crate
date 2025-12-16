@@ -48,7 +48,6 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
-import org.yaml.snakeyaml.Yaml;
 
 import io.crate.session.Session;
 import io.crate.session.Sessions;

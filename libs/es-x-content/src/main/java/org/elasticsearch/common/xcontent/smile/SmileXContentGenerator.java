@@ -24,7 +24,7 @@ import java.io.OutputStream;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.elasticsearch.common.xcontent.json.JsonXContentGenerator;
 
-import com.fasterxml.jackson.core.JsonGenerator;
+import tools.jackson.core.JsonGenerator;
 
 public class SmileXContentGenerator extends JsonXContentGenerator {
 

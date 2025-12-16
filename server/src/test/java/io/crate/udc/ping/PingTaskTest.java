@@ -34,8 +34,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-
 import io.crate.http.HttpTestServer;
 import io.crate.monitor.ExtendedNetworkInfo;
 import io.crate.monitor.ExtendedNodeInfo;
@@ -43,6 +41,7 @@ import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 import io.netty.handler.codec.http.HttpRequest;
 import io.netty.handler.codec.http.QueryStringDecoder;
+import tools.jackson.core.JsonGenerator;
 
 public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
 
@@ -58,9 +57,9 @@ public class PingTaskTest extends CrateDummyClusterServiceUnitTest {
                 generator.writeStartObject();
                 for (Map.Entry<String, List<String>> entry : decoder.parameters().entrySet()) {
                     if (entry.getValue().size() == 1) {
-                        generator.writeStringField(entry.getKey(), URLDecoder.decode(entry.getValue().get(0), "UTF-8"));
+                        generator.writeStringProperty(entry.getKey(), URLDecoder.decode(entry.getValue().get(0), "UTF-8"));
                     } else {
-                        generator.writeArrayFieldStart(entry.getKey());
+                        generator.writeArrayPropertyStart(entry.getKey());
                         for (String value : entry.getValue()) {
                             generator.writeString(URLDecoder.decode(value, "UTF-8"));
                         }

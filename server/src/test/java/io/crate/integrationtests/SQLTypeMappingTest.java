@@ -116,7 +116,7 @@ public class SQLTypeMappingTest extends IntegTestCase {
     /**
      * Disabled JDBC usage cause of text mode JSON encoding which is not type safe on numeric types.
      * E.g. byte values are always converted to integers,
-     * see {@link com.fasterxml.jackson.core.JsonGenerator#writeNumber(short)}.
+     * see {@link tools.jackson.core.JsonGenerator#writeNumber(short)}.
      */
     @UseJdbc(0)
     @Test

@@ -39,7 +39,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
 
-import com.fasterxml.jackson.core.Base64Variants;
+import tools.jackson.core.Base64Variants;
 
 import io.crate.Streamer;
 import io.crate.common.collections.Lists;

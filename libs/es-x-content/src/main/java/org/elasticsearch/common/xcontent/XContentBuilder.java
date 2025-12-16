@@ -179,11 +179,6 @@ public final class XContentBuilder implements Closeable, Flushable {
         return bos;
     }
 
-    public XContentBuilder prettyPrint() {
-        generator.usePrettyPrint();
-        return this;
-    }
-
     public boolean isPrettyPrint() {
         return generator.isPrettyPrint();
     }

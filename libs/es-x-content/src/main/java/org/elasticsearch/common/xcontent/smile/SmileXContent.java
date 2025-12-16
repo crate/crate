@@ -33,11 +33,11 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jspecify.annotations.Nullable;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.StreamReadFeature;
-import com.fasterxml.jackson.core.StreamWriteFeature;
-import com.fasterxml.jackson.dataformat.smile.SmileFactory;
-import com.fasterxml.jackson.dataformat.smile.SmileGenerator;
+import tools.jackson.core.JsonEncoding;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.core.StreamWriteFeature;
+import tools.jackson.dataformat.smile.SmileFactory;
+import tools.jackson.dataformat.smile.SmileWriteFeature;
 
 /**
  * A Smile based content implementation using Jackson.
@@ -50,9 +50,9 @@ public class SmileXContent implements XContent {
 
     static final SmileFactory SMILE_FACTORY = SmileFactory.builder()
         // for now, this is an overhead, might make sense for web sockets
-        .configure(SmileGenerator.Feature.ENCODE_BINARY_AS_7BIT, false)
+        .configure(SmileWriteFeature.ENCODE_BINARY_AS_7BIT, false)
         .configure(SmileFactory.Feature.FAIL_ON_SYMBOL_HASH_OVERFLOW, false) // this trips on many mappings now...
-        // Do not automatically close unclosed objects/arrays in com.fasterxml.jackson.dataformat.smile.SmileGenerator#close() method
+        // Do not automatically close unclosed objects/arrays in tools.jackson.dataformat.smile.SmileGenerator#close() method
         .configure(StreamWriteFeature.AUTO_CLOSE_CONTENT, false)
         .configure(StreamReadFeature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled())
         .build();

@@ -33,15 +33,15 @@ import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jspecify.annotations.Nullable;
 
-import com.fasterxml.jackson.core.JsonEncoding;
-import com.fasterxml.jackson.core.JsonFactory;
-import com.fasterxml.jackson.core.JsonFactoryBuilder;
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.StreamReadFeature;
-import com.fasterxml.jackson.core.StreamWriteFeature;
-import com.fasterxml.jackson.core.io.SerializedString;
-import com.fasterxml.jackson.core.json.JsonReadFeature;
-import com.fasterxml.jackson.core.json.JsonWriteFeature;
+import tools.jackson.core.JsonEncoding;
+import tools.jackson.core.JsonFactory;
+import tools.jackson.core.JsonFactoryBuilder;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.StreamReadFeature;
+import tools.jackson.core.StreamWriteFeature;
+import tools.jackson.core.io.SerializedString;
+import tools.jackson.core.json.JsonReadFeature;
+import tools.jackson.core.json.JsonWriteFeature;
 
 /**
  * A JSON based content implementation using Jackson.
@@ -53,7 +53,7 @@ public class JsonXContent implements XContent {
         .configure(JsonReadFeature.ALLOW_JAVA_COMMENTS, true)
         // this trips on many mappings now...
         .configure(JsonFactory.Feature.FAIL_ON_SYMBOL_HASH_OVERFLOW, false)
-        // Do not automatically close unclosed objects/arrays in com.fasterxml.jackson.core.json.UTF8JsonGenerator#close() method
+        // Do not automatically close unclosed objects/arrays in tools.jackson.core.json.UTF8JsonGenerator#close() method
         .configure(StreamWriteFeature.AUTO_CLOSE_CONTENT, false)
         .configure(StreamReadFeature.STRICT_DUPLICATE_DETECTION, XContent.isStrictDuplicateDetectionEnabled())
         .build();

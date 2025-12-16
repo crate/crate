@@ -33,7 +33,7 @@ import java.util.function.Function;
 
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 class PgArrayParserTest {
 

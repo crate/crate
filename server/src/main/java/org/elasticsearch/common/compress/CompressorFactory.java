@@ -26,7 +26,7 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.xcontent.XContentType;
 import org.jspecify.annotations.Nullable;
 
-import com.fasterxml.jackson.dataformat.smile.SmileConstants;
+import tools.jackson.dataformat.smile.SmileConstants;
 
 public class CompressorFactory {
 

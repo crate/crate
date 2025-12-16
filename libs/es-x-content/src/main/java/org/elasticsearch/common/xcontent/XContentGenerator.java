@@ -26,15 +26,11 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 
-import com.fasterxml.jackson.core.JsonGenerator;
+import tools.jackson.core.StreamWriteFeature;
 
 public interface XContentGenerator extends Closeable, Flushable {
 
     XContentType contentType();
-
-    void usePrettyPrint();
-
-    boolean isPrettyPrint();
 
     void usePrintLineFeedAtEnd();
 
@@ -121,8 +117,8 @@ public interface XContentGenerator extends Closeable, Flushable {
                 writeFieldName(parser.currentName());
                 break;
             case VALUE_STRING:
-                if (parser.hasTextCharacters()) {
-                    writeString(parser.textCharacters(), parser.textOffset(), parser.textLength());
+                if (parser.hasStringCharacters()) {
+                    writeString(parser.stringCharacters(), parser.textOffset(), parser.textLength());
                 } else {
                     writeString(parser.text());
                 }
@@ -166,7 +162,7 @@ public interface XContentGenerator extends Closeable, Flushable {
      */
     boolean isClosed();
 
-    void configure(JsonGenerator.Feature f, boolean state);
+    void configure(StreamWriteFeature f, boolean state);
 
-    boolean isEnabled(JsonGenerator.Feature f);
+    boolean isEnabled(StreamWriteFeature f);
 }

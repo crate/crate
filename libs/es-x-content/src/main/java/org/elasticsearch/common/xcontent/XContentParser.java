@@ -175,9 +175,9 @@ public interface XContentParser extends Closeable {
      *
      * This method shouldn't be used to check if the token contains text or not.
      */
-    boolean hasTextCharacters();
+    boolean hasStringCharacters();
 
-    char[] textCharacters() throws IOException;
+    char[] stringCharacters() throws IOException;
 
     int textLength() throws IOException;
 
@@ -230,7 +230,7 @@ public interface XContentParser extends Closeable {
      * <ul>
      *     <li>{@link XContentParser#text()} ()}</li>
      *     <li>{@link XContentParser#textOrNull()} ()}</li>
-     *     <li>{@link XContentParser#textCharacters()} ()}}</li>
+     *     <li>{@link XContentParser#stringCharacters()} ()}}</li>
      * </ul>
      *
      */

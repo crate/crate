@@ -32,13 +32,12 @@ import org.elasticsearch.common.xcontent.XContentGenerator;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.common.xcontent.XContentType;
 
-import com.fasterxml.jackson.core.JsonGenerator;
-import com.fasterxml.jackson.core.JsonStreamContext;
-import com.fasterxml.jackson.core.base.GeneratorBase;
-import com.fasterxml.jackson.core.io.SerializedString;
-import com.fasterxml.jackson.core.json.JsonWriteContext;
-import com.fasterxml.jackson.core.util.DefaultIndenter;
-import com.fasterxml.jackson.core.util.DefaultPrettyPrinter;
+import tools.jackson.core.JsonGenerator;
+import tools.jackson.core.StreamWriteFeature;
+import tools.jackson.core.TokenStreamContext;
+import tools.jackson.core.base.GeneratorBase;
+import tools.jackson.core.io.SerializedString;
+import tools.jackson.core.json.JsonWriteContext;
 
 public class JsonXContentGenerator implements XContentGenerator {
 
@@ -55,8 +54,6 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     private boolean writeLineFeedAtEnd;
     private static final SerializedString LF = new SerializedString("\n");
-    private static final DefaultPrettyPrinter.Indenter INDENTER = new DefaultIndenter("  ", LF.getValue());
-    private boolean prettyPrint = false;
 
     public JsonXContentGenerator(JsonGenerator jsonGenerator, OutputStream os) {
         this.os = os;
@@ -72,17 +69,6 @@ public class JsonXContentGenerator implements XContentGenerator {
     @Override
     public XContentType contentType() {
         return XContentType.JSON;
-    }
-
-    @Override
-    public final void usePrettyPrint() {
-        generator.setPrettyPrinter(new DefaultPrettyPrinter().withObjectIndenter(INDENTER).withArrayIndenter(INDENTER));
-        prettyPrint = true;
-    }
-
-    @Override
-    public boolean isPrettyPrint() {
-        return this.prettyPrint;
     }
 
     @Override
@@ -117,7 +103,7 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     @Override
     public void writeFieldName(String name) throws IOException {
-        generator.writeFieldName(name);
+        generator.writeName(name);
     }
 
     @Override
@@ -127,12 +113,12 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     @Override
     public void writeNullField(String name) throws IOException {
-        generator.writeNullField(name);
+        generator.writeNullProperty(name);
     }
 
     @Override
     public void writeBooleanField(String name, boolean value) throws IOException {
-        generator.writeBooleanField(name, value);
+        generator.writeBooleanProperty(name, value);
     }
 
     @Override
@@ -142,7 +128,7 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     @Override
     public void writeNumberField(String name, double value) throws IOException {
-        generator.writeNumberField(name, value);
+        generator.writeNumberProperty(name, value);
     }
 
     @Override
@@ -152,7 +138,7 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     @Override
     public void writeNumberField(String name, float value) throws IOException {
-        generator.writeNumberField(name, value);
+        generator.writeNumberProperty(name, value);
     }
 
     @Override
@@ -162,20 +148,19 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     @Override
     public void writeNumberField(String name, int value) throws IOException {
-        generator.writeNumberField(name, value);
+        generator.writeNumberProperty(name, value);
     }
 
     @Override
     public void writeNumberField(String name, BigInteger value) throws IOException {
         // as jackson's JsonGenerator doesn't have this method for BigInteger
         // we have to implement it ourselves
-        generator.writeFieldName(name);
-        generator.writeNumber(value);
+        generator.writeNumberProperty(name, value);
     }
 
     @Override
     public void writeNumberField(String name, BigDecimal value) throws IOException {
-        generator.writeNumberField(name, value);
+        generator.writeNumberProperty(name, value);
     }
 
     @Override
@@ -185,7 +170,7 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     @Override
     public void writeNumberField(String name, long value) throws IOException {
-        generator.writeNumberField(name, value);
+        generator.writeNumberProperty(name, value);
     }
 
     @Override
@@ -210,7 +195,7 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     @Override
     public void writeStringField(String name, String value) throws IOException {
-        generator.writeStringField(name, value);
+        generator.writeStringProperty(name, value);
     }
 
     @Override
@@ -230,7 +215,7 @@ public class JsonXContentGenerator implements XContentGenerator {
 
     @Override
     public void writeBinaryField(String name, byte[] value) throws IOException {
-        generator.writeBinaryField(name, value);
+        generator.writeBinaryProperty(name, value);
     }
 
     @Override
@@ -246,7 +231,7 @@ public class JsonXContentGenerator implements XContentGenerator {
     public void writeEndRaw() {
         assert base != null : "JsonGenerator should be of instance GeneratorBase but was: " + generator.getClass();
         if (base != null) {
-            JsonStreamContext context = base.getOutputContext();
+            TokenStreamContext context = base.streamWriteContext();
             assert (context instanceof JsonWriteContext) : "Expected an instance of JsonWriteContext but was: " + context.getClass();
             ((JsonWriteContext) context).writeValue();
         }
@@ -257,7 +242,7 @@ public class JsonXContentGenerator implements XContentGenerator {
         if (mayWriteRawData(xContentType) == false) {
             copyRawValue(stream, xContentType.xContent());
         } else {
-            if (generator.getOutputContext().getCurrentName() != null) {
+            if (generator.streamWriteContext().currentName() != null) {
                 // If we've just started a field we'll need to add the separator
                 generator.writeRaw(':');
             }
@@ -272,8 +257,7 @@ public class JsonXContentGenerator implements XContentGenerator {
         // we need to copy the whole structure so that it will be correctly
         // converted
         return supportsRawWrites()
-                && contentType == contentType()
-                && prettyPrint == false;
+                && contentType == contentType();
     }
 
     /** Whether this generator supports writing raw data directly */
@@ -347,7 +331,7 @@ public class JsonXContentGenerator implements XContentGenerator {
         if (generator.isClosed()) {
             return;
         }
-        JsonStreamContext context = generator.getOutputContext();
+        TokenStreamContext context = generator.streamWriteContext();
         if ((context != null) && (context.inRoot() == false)) {
             throw new IOException("Unclosed object or array found");
         }
@@ -365,12 +349,12 @@ public class JsonXContentGenerator implements XContentGenerator {
     }
 
     @Override
-    public void configure(JsonGenerator.Feature f, boolean state) {
+    public void configure(StreamWriteFeature f, boolean state) {
         generator.configure(f, state);
     }
 
     @Override
-    public boolean isEnabled(JsonGenerator.Feature f) {
+    public boolean isEnabled(StreamWriteFeature f) {
         return generator.isEnabled(f);
     }
 }

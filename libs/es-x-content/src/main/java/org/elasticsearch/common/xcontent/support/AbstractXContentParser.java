@@ -66,7 +66,7 @@ public abstract class AbstractXContentParser implements XContentParser {
     }
 
     // The 3rd party parsers we rely on are known to silently truncate fractions: see
-    //   http://fasterxml.github.io/jackson-core/javadoc/2.3.0/com/fasterxml/jackson/core/JsonParser.html#getShortValue()
+    //   http://fasterxml.github.io/jackson-core/javadoc/2.3.0/tools.jackson/core/JsonParser.html#getShortValue()
     // If this behaviour is flagged as undesirable and any truncation occurs
     // then this method is called to trigger the"malformed" handling logic
     void ensureNumberConversion(boolean coerce, long result, Class<? extends Number> clazz) throws IOException {
@@ -87,7 +87,7 @@ public abstract class AbstractXContentParser implements XContentParser {
             case VALUE_BOOLEAN:
                 return true;
             case VALUE_STRING:
-                return Booleans.isBoolean(textCharacters(), textOffset(), textLength());
+                return Booleans.isBoolean(stringCharacters(), textOffset(), textLength());
             default:
                 return false;
         }
@@ -97,7 +97,7 @@ public abstract class AbstractXContentParser implements XContentParser {
     public boolean booleanValue() throws IOException {
         Token token = currentToken();
         if (token == Token.VALUE_STRING) {
-            return Booleans.parseBoolean(textCharacters(), textOffset(), textLength(), false /* irrelevant */);
+            return Booleans.parseBoolean(stringCharacters(), textOffset(), textLength(), false /* irrelevant */);
         }
         return doBooleanValue();
     }

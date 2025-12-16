@@ -31,7 +31,7 @@ import org.elasticsearch.common.xcontent.XContentBuilder;
 import org.elasticsearch.test.ESTestCase;
 import org.junit.Test;
 
-import com.fasterxml.jackson.core.JsonGenerator;
+import tools.jackson.core.StreamWriteFeature;
 
 public class FileWriterCountCollectorTest extends ESTestCase {
 
@@ -40,7 +40,7 @@ public class FileWriterCountCollectorTest extends ESTestCase {
         Path file = createTempFile("out", "json");
         try (OutputStream os = new FileOutputStream(file.toFile())) {
             XContentBuilder xContentBuilder = FileWriterCountCollector.createJsonBuilder(os);
-            assertThat(xContentBuilder.generator().isEnabled(JsonGenerator.Feature.FLUSH_PASSED_TO_STREAM)).isFalse();
+            assertThat(xContentBuilder.generator().isEnabled(StreamWriteFeature.FLUSH_PASSED_TO_STREAM)).isFalse();
         }
     }
 }
