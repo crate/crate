@@ -22,7 +22,6 @@ package org.elasticsearch.action.admin.cluster.state;
 import java.io.IOException;
 import java.util.Objects;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterName;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -70,23 +69,15 @@ public class ClusterStateResponse extends TransportResponse {
 
     public ClusterStateResponse(StreamInput in) throws IOException {
         clusterName = new ClusterName(in);
-        if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
-            clusterState = in.readOptionalWriteable(innerIn -> ClusterState.readFrom(innerIn, null));
-            waitForTimedOut = in.readBoolean();
-        } else {
-            clusterState = ClusterState.readFrom(in, null);
-        }
+        clusterState = in.readOptionalWriteable(innerIn -> ClusterState.readFrom(innerIn, null));
+        waitForTimedOut = in.readBoolean();
     }
 
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         clusterName.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
-            out.writeOptionalWriteable(clusterState);
-            out.writeBoolean(waitForTimedOut);
-        } else {
-            clusterState.writeTo(out);
-        }
+        out.writeOptionalWriteable(clusterState);
+        out.writeBoolean(waitForTimedOut);
     }
 
     @Override

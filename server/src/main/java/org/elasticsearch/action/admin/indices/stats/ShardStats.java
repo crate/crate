@@ -21,9 +21,6 @@ package org.elasticsearch.action.admin.indices.stats;
 
 import java.io.IOException;
 
-import org.jspecify.annotations.Nullable;
-
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.routing.ShardRouting;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -32,6 +29,7 @@ import org.elasticsearch.index.engine.CommitStats;
 import org.elasticsearch.index.seqno.RetentionLeaseStats;
 import org.elasticsearch.index.seqno.SeqNoStats;
 import org.elasticsearch.index.shard.ShardPath;
+import org.jspecify.annotations.Nullable;
 
 public class ShardStats implements Writeable {
 
@@ -116,9 +114,7 @@ public class ShardStats implements Writeable {
         dataPath = in.readString();
         isCustomDataPath = in.readBoolean();
         seqNoStats = in.readOptionalWriteable(SeqNoStats::new);
-        if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
-            retentionLeaseStats = in.readOptionalWriteable(RetentionLeaseStats::new);
-        }
+        retentionLeaseStats = in.readOptionalWriteable(RetentionLeaseStats::new);
     }
 
     @Override
@@ -130,8 +126,6 @@ public class ShardStats implements Writeable {
         out.writeString(dataPath);
         out.writeBoolean(isCustomDataPath);
         out.writeOptionalWriteable(seqNoStats);
-        if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-            out.writeOptionalWriteable(retentionLeaseStats);
-        }
+        out.writeOptionalWriteable(retentionLeaseStats);
     }
 }

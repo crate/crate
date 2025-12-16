@@ -23,8 +23,6 @@ package io.crate.execution.dsl.projection;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.util.List;
-
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -97,15 +95,15 @@ public class UpdateProjectionTest {
             new Symbol[]{},
             new Symbol[]{Literal.of(1)},
             null,
-            0
+            20
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.V_4_0_0);
+        out.setVersion(Version.V_5_9_13);
         expected.writeTo(out);
 
         StreamInput in = out.bytes().streamInput();
-        in.setVersion(Version.V_4_0_0);
+        in.setVersion(Version.V_5_9_13);
         UpdateProjection result = new UpdateProjection(in);
 
         assertThat(result.uidSymbol).isEqualTo(expected.uidSymbol);
@@ -113,9 +111,7 @@ public class UpdateProjectionTest {
         assertThat(result.assignmentsColumns()).isEqualTo(expected.assignmentsColumns());
         assertThat(result.requiredVersion()).isEqualTo(expected.requiredVersion());
 
-        //Pre 4.1 versions of UpdateProjection have default output fields set to a long representing
-        //a count which need to set when reading from an pre 4.1 node.
-        assertThat(result.outputs()).isEqualTo(List.of(new InputColumn(0, DataTypes.LONG)));
-        assertThat(result.returnValues()).isEqualTo(null);
+        // Pre 5.9 has no fullDocSizeEstimate
+        assertThat(result.fullDocSizeEstimate()).isEqualTo(0);
     }
 }

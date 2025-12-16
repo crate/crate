@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -111,11 +110,30 @@ public class WriterProjection extends Projection {
         int compressionTypeOrdinal = in.readInt();
         compressionType = compressionTypeOrdinal >= 0 ? CompressionType.values()[compressionTypeOrdinal] : null;
         outputFormat = OutputFormat.values()[in.readInt()];
-        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
-            withClauseOptions = Settings.readSettingsFromStream(in);
+        withClauseOptions = Settings.readSettingsFromStream(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        Symbol.toStream(uri, out);
+        if (outputNames != null) {
+            out.writeVInt(outputNames.size());
+            for (String name : outputNames) {
+                out.writeString(name);
+            }
         } else {
-            withClauseOptions = Settings.EMPTY;
+            out.writeVInt(0);
         }
+        Symbols.toStream(inputs, out);
+
+        out.writeVInt(overwrites.size());
+        for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {
+            entry.getKey().writeTo(out);
+            Symbol.toStream(entry.getValue(), out);
+        }
+        out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
+        out.writeInt(outputFormat.ordinal());
+        Settings.writeSettingsToStream(out, withClauseOptions);
     }
 
     @Override
@@ -164,31 +182,6 @@ public class WriterProjection extends Projection {
 
     public Settings withClauseOptions() {
         return withClauseOptions;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        Symbol.toStream(uri, out);
-        if (outputNames != null) {
-            out.writeVInt(outputNames.size());
-            for (String name : outputNames) {
-                out.writeString(name);
-            }
-        } else {
-            out.writeVInt(0);
-        }
-        Symbols.toStream(inputs, out);
-
-        out.writeVInt(overwrites.size());
-        for (Map.Entry<ColumnIdent, Symbol> entry : overwrites.entrySet()) {
-            entry.getKey().writeTo(out);
-            Symbol.toStream(entry.getValue(), out);
-        }
-        out.writeInt(compressionType != null ? compressionType.ordinal() : -1);
-        out.writeInt(outputFormat.ordinal());
-        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            Settings.writeSettingsToStream(out, withClauseOptions);
-        }
     }
 
     @Override

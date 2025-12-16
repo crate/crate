@@ -72,11 +72,7 @@ public class SessionSettings implements Writeable {
         this.searchPath = SearchPath.createSearchPathFrom(in);
         this.hashJoinsEnabled = in.readBoolean();
         Version version = in.getVersion();
-        if (version.onOrAfter(Version.V_4_7_0)) {
-            this.errorOnUnknownObjectKey = in.readBoolean();
-        } else {
-            this.errorOnUnknownObjectKey = true;
-        }
+        this.errorOnUnknownObjectKey = in.readBoolean();
         if (version.onOrAfter(Version.V_5_5_0)) {
             this.memoryLimit = in.readVInt();
         } else {
@@ -95,9 +91,7 @@ public class SessionSettings implements Writeable {
         searchPath.writeTo(out);
         out.writeBoolean(hashJoinsEnabled);
         Version version = out.getVersion();
-        if (version.onOrAfter(Version.V_4_7_0)) {
-            out.writeBoolean(errorOnUnknownObjectKey);
-        }
+        out.writeBoolean(errorOnUnknownObjectKey);
         if (version.onOrAfter(Version.V_5_5_0)) {
             out.writeVInt(memoryLimit);
         }

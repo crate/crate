@@ -63,10 +63,10 @@ import org.elasticsearch.common.bytes.BytesReference;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.common.io.stream.Writeable.Writer;
 import org.elasticsearch.common.util.concurrent.EsRejectedExecutionException;
-import org.jspecify.annotations.Nullable;
 import org.joda.time.DateTimeZone;
 import org.joda.time.Period;
 import org.joda.time.ReadableInstant;
+import org.jspecify.annotations.Nullable;
 import org.locationtech.spatial4j.shape.impl.PointImpl;
 
 import com.carrotsearch.hppc.cursors.ObjectObjectCursor;
@@ -977,12 +977,7 @@ public abstract class StreamOutput extends OutputStream {
                 writeBoolean(((EsRejectedExecutionException) throwable).isExecutorShutdown());
                 writeCause = false;
             } else if (throwable instanceof UncheckedIOException) {
-                if (version.onOrAfter(Version.V_4_7_0)) {
-                    writeVInt(19);
-                } else {
-                    // Fallback to implicit IOException, it should have the same semantics
-                    writeVInt(17);
-                }
+                writeVInt(19);
             } else {
                 final ElasticsearchException ex;
                 if (throwable instanceof ElasticsearchException && ElasticsearchException.isRegistered(throwable.getClass(), version)) {

@@ -41,7 +41,6 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.TypeSignature;
 
 public final class Signature implements Writeable, Accountable {
@@ -184,35 +183,6 @@ public final class Signature implements Writeable, Accountable {
         }
     }
 
-    /**
-     * Create a signature out of the read values of the old FunctionInfo format for BWC compatibility with
-     * nodes < 4.2.0.
-     */
-    public static Signature readFromFunctionInfo(StreamInput in) throws IOException {
-        // read old FunctionIdent
-        var functionName = new FunctionName(in);
-        int numTypes = in.readVInt();
-        ArrayList<TypeSignature> argumentTypeSignatures = new ArrayList<>(numTypes);
-        for (int i = 0; i < numTypes; i++) {
-            argumentTypeSignatures.add(DataTypes.fromStream(in).getTypeSignature());
-        }
-        // FunctionIdent end
-
-        var returnType = DataTypes.fromStream(in);
-        var type = FunctionType.values()[in.readVInt()];
-
-        int enumElements = in.readVInt();
-        var features = Collections.unmodifiableSet(EnumSets.unpackFromInt(enumElements, Scalar.Feature.class));
-
-        return Signature.builder(functionName, type)
-            .argumentTypes(argumentTypeSignatures)
-            .returnType(returnType.getTypeSignature())
-            .features(features)
-            .build();
-    }
-
-
-
     private final FunctionName name;
     private final FunctionType type;
     private final List<TypeSignature> argumentTypes;
@@ -343,27 +313,5 @@ public final class Signature implements Writeable, Accountable {
 
         return name + (allConstraints.isEmpty() ? "" : "<" + String.join(",", allConstraints) + ">") +
                "(" + Lists.joinOn(",", argumentTypes, TypeSignature::toString) + "):" + returnType;
-    }
-
-
-    /**
-     * Write the given {@link Signature} to the stream in the format of the old FunctionInfo class for BWC compatibility
-     * with nodes < 4.2.0
-     * @param argumentDataTypes is list of concrete types when getArgumentDataTypes() cannot be used as it's contains type variable constraints.
-     */
-    public void writeAsFunctionInfo(StreamOutput out, List<DataType<?>> argumentDataTypes) throws IOException {
-
-        // old FunctionIdent
-        name.writeTo(out);
-
-        out.writeVInt(argumentDataTypes.size());
-        for (DataType<?> argumentType : argumentDataTypes) {
-            DataTypes.toStream(argumentType, out);
-        }
-        // FunctionIdent end
-
-        DataTypes.toStream(returnType.createType(), out);
-        out.writeVInt(type.ordinal());
-        out.writeVInt(EnumSets.packToInt(features));
     }
 }

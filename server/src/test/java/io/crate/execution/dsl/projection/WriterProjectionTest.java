@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
@@ -60,41 +59,5 @@ public class WriterProjectionTest extends ESTestCase {
         WriterProjection p2 = (WriterProjection) Projection.fromStream(in);
 
         assertThat(p2).isEqualTo(p);
-    }
-
-
-    @Test
-    public void testStreamingBefore4_8_0() throws Exception {
-        WriterProjection actualInput = new WriterProjection(
-            List.of(new InputColumn(1)),
-            Literal.of("/foo.json"),
-            WriterProjection.CompressionType.GZIP,
-            MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
-                ColumnIdent.of("partitionColumn"), Literal.of(1)).map(),
-            List.of("foo"),
-            WriterProjection.OutputFormat.JSON_OBJECT,
-            Settings.builder().put("protocol", "dummyHTTPS").build()
-        );
-
-        WriterProjection expected = new WriterProjection(
-            List.of(new InputColumn(1)),
-            Literal.of("/foo.json"),
-            WriterProjection.CompressionType.GZIP,
-            MapBuilder.<ColumnIdent, Symbol>newMapBuilder().put(
-                ColumnIdent.of("partitionColumn"), Literal.of(1)).map(),
-            List.of("foo"),
-            WriterProjection.OutputFormat.JSON_OBJECT,
-            Settings.EMPTY
-        );
-
-        BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.V_4_7_0);
-        Projection.toStream(actualInput, out);
-
-        StreamInput in = out.bytes().streamInput();
-        in.setVersion(Version.V_4_7_0);
-        WriterProjection actual = (WriterProjection) Projection.fromStream(in);
-
-        assertThat(actual).isEqualTo(expected);
     }
 }

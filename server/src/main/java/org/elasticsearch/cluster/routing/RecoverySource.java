@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.util.Objects;
 
 import org.elasticsearch.Version;
-import org.elasticsearch.cluster.RestoreInProgress;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -204,17 +203,25 @@ public abstract class RecoverySource implements Writeable {
         }
 
         SnapshotRecoverySource(StreamInput in) throws IOException {
-            if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
-                restoreUUID = in.readString();
-            } else {
-                restoreUUID = RestoreInProgress.BWC_UUID;
-            }
+            restoreUUID = in.readString();
             snapshot = new Snapshot(in);
             version = Version.readVersion(in);
             if (in.getVersion().onOrAfter(Version.V_5_1_0)) {
                 index = new IndexId(in);
             } else {
                 index = new IndexId(in.readString(), IndexMetadata.INDEX_UUID_NA_VALUE);
+            }
+        }
+
+        @Override
+        protected void writeAdditionalFields(StreamOutput out) throws IOException {
+            out.writeString(restoreUUID);
+            snapshot.writeTo(out);
+            Version.writeVersion(version, out);
+            if (out.getVersion().onOrAfter(Version.V_5_1_0)) {
+                index.writeTo(out);
+            } else {
+                out.writeString(index.getName());
             }
         }
 
@@ -238,20 +245,6 @@ public abstract class RecoverySource implements Writeable {
 
         public Version version() {
             return version;
-        }
-
-        @Override
-        protected void writeAdditionalFields(StreamOutput out) throws IOException {
-            if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-                out.writeString(restoreUUID);
-            }
-            snapshot.writeTo(out);
-            Version.writeVersion(version, out);
-            if (out.getVersion().onOrAfter(Version.V_5_1_0)) {
-                index.writeTo(out);
-            } else {
-                out.writeString(index.getName());
-            }
         }
 
         @Override

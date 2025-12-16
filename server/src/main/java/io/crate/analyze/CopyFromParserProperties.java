@@ -21,7 +21,13 @@
 
 package io.crate.analyze;
 
-import io.crate.common.annotations.VisibleForTesting;
+import static io.crate.analyze.CopyStatementSettings.CSV_COLUMN_SEPARATOR;
+import static io.crate.analyze.CopyStatementSettings.EMPTY_STRING_AS_NULL;
+import static io.crate.analyze.CopyStatementSettings.INPUT_HEADER_SETTINGS;
+import static io.crate.analyze.CopyStatementSettings.SKIP_NUM_LINES;
+
+import java.io.IOException;
+import java.util.Objects;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -29,13 +35,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
 
-import java.io.IOException;
-import java.util.Objects;
-
-import static io.crate.analyze.CopyStatementSettings.CSV_COLUMN_SEPARATOR;
-import static io.crate.analyze.CopyStatementSettings.SKIP_NUM_LINES;
-import static io.crate.analyze.CopyStatementSettings.EMPTY_STRING_AS_NULL;
-import static io.crate.analyze.CopyStatementSettings.INPUT_HEADER_SETTINGS;
+import io.crate.common.annotations.VisibleForTesting;
 
 
 public class CopyFromParserProperties implements Writeable {
@@ -70,16 +70,22 @@ public class CopyFromParserProperties implements Writeable {
 
     public CopyFromParserProperties(StreamInput in) throws IOException {
         emptyStringAsNull = in.readBoolean();
-        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
-            fileHeader = in.readBoolean();
-        } else {
-            fileHeader = true;
-        }
+        fileHeader = in.readBoolean();
         columnSeparator = (char) in.readByte();
         if (in.getVersion().onOrAfter(Version.V_5_2_0)) {
             skipNumLines = in.readLong();
         } else {
             skipNumLines = 0L;
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeBoolean(emptyStringAsNull);
+        out.writeBoolean(fileHeader);
+        out.writeByte((byte) columnSeparator);
+        if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
+            out.writeLong(skipNumLines);
         }
     }
 
@@ -97,18 +103,6 @@ public class CopyFromParserProperties implements Writeable {
 
     public long skipNumLines() {
         return skipNumLines;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        out.writeBoolean(emptyStringAsNull);
-        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            out.writeBoolean(fileHeader);
-        }
-        out.writeByte((byte) columnSeparator);
-        if (out.getVersion().onOrAfter(Version.V_5_2_0)) {
-            out.writeLong(skipNumLines);
-        }
     }
 
     @Override

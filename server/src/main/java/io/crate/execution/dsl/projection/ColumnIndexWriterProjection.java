@@ -125,42 +125,80 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
             onDuplicateKeyAssignments = Collections.emptyMap();
         }
 
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            int mapSize = in.readVInt();
-            allTargetColumns = new ArrayList<>();
-            for (int i = 0; i < mapSize; i++) {
-                allTargetColumns.add(Reference.fromStream(in));
-            }
+        int mapSize = in.readVInt();
+        allTargetColumns = new ArrayList<>();
+        for (int i = 0; i < mapSize; i++) {
+            allTargetColumns.add(Reference.fromStream(in));
+        }
 
-            int outputSize = in.readVInt();
-            if (outputSize > 0) {
-                var result = new ArrayList<Symbol>(outputSize);
-                for (int i = 0; i < outputSize; i++) {
-                    result.add(Symbol.fromStream(in));
-                }
-                outputs = result;
-            } else {
-                outputs = List.of();
+        int outputSize = in.readVInt();
+        if (outputSize > 0) {
+            var result = new ArrayList<Symbol>(outputSize);
+            for (int i = 0; i < outputSize; i++) {
+                result.add(Symbol.fromStream(in));
             }
+            outputs = result;
+        } else {
+            outputs = List.of();
+        }
 
-            int returnValueSize = in.readVInt();
-            if (returnValueSize > 0) {
-                returnValues = new ArrayList<>(returnValueSize);
-                for (int i = 0; i < returnValueSize; i++) {
-                    returnValues.add(Symbol.fromStream(in));
-                }
-            } else {
-                returnValues = List.of();
+        int returnValueSize = in.readVInt();
+        if (returnValueSize > 0) {
+            returnValues = new ArrayList<>(returnValueSize);
+            for (int i = 0; i < returnValueSize; i++) {
+                returnValues.add(Symbol.fromStream(in));
             }
         } else {
             returnValues = List.of();
-            outputs = List.of();
-            allTargetColumns = List.of();
         }
         if (in.getVersion().onOrAfter(Version.V_5_10_5)) {
             fullDocSizeEstimate = in.readLong();
         } else {
             fullDocSizeEstimate = 0;
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+
+        if (out.getVersion().before(Version.V_5_5_0)) {
+            // We used to stream targetColsSymbolsExclPartition and targetColsExclPartitionCols.
+            // Imitating null for both of them.
+            out.writeBoolean(false);
+            out.writeBoolean(false);
+        }
+
+        out.writeBoolean(ignoreDuplicateKeys);
+        if (onDuplicateKeyAssignments == null) {
+            out.writeBoolean(false);
+        } else {
+            out.writeBoolean(true);
+            out.writeVInt(onDuplicateKeyAssignments.size());
+            for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
+                Reference.toStream(out, entry.getKey());
+                Symbol.toStream(entry.getValue(), out);
+            }
+        }
+
+        out.writeVInt(allTargetColumns.size());
+        for (var ref : allTargetColumns) {
+            Symbol.toStream(ref, out);
+        }
+        if (outputs != null) {
+            out.writeVInt(outputs.size());
+            for (var output : outputs) {
+                Symbol.toStream(output, out);
+            }
+        } else {
+            out.writeVInt(0);
+        }
+        out.writeVInt(returnValues.size());
+        for (var returnValue : returnValues) {
+            Symbol.toStream(returnValue, out);
+        }
+        if (out.getVersion().onOrAfter(Version.V_5_10_5)) {
+            out.writeLong(fullDocSizeEstimate);
         }
     }
 
@@ -224,51 +262,6 @@ public class ColumnIndexWriterProjection extends AbstractIndexWriterProjection {
                             fullDocSizeEstimate);
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-
-        if (out.getVersion().before(Version.V_5_5_0)) {
-            // We used to stream targetColsSymbolsExclPartition and targetColsExclPartitionCols.
-            // Imitating null for both of them.
-            out.writeBoolean(false);
-            out.writeBoolean(false);
-        }
-
-        out.writeBoolean(ignoreDuplicateKeys);
-        if (onDuplicateKeyAssignments == null) {
-            out.writeBoolean(false);
-        } else {
-            out.writeBoolean(true);
-            out.writeVInt(onDuplicateKeyAssignments.size());
-            for (Map.Entry<Reference, Symbol> entry : onDuplicateKeyAssignments.entrySet()) {
-                Reference.toStream(out, entry.getKey());
-                Symbol.toStream(entry.getValue(), out);
-            }
-        }
-
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeVInt(allTargetColumns.size());
-            for (var ref : allTargetColumns) {
-                Symbol.toStream(ref, out);
-            }
-            if (outputs != null) {
-                out.writeVInt(outputs.size());
-                for (var output : outputs) {
-                    Symbol.toStream(output, out);
-                }
-            } else {
-                out.writeVInt(0);
-            }
-            out.writeVInt(returnValues.size());
-            for (var returnValue : returnValues) {
-                Symbol.toStream(returnValue, out);
-            }
-        }
-        if (out.getVersion().onOrAfter(Version.V_5_10_5)) {
-            out.writeLong(fullDocSizeEstimate);
-        }
-    }
 
     public ColumnIndexWriterProjection bind(Function<? super Symbol, Symbol> binder) {
         HashMap<Reference, Symbol> boundOnDuplicateKeyAssignments =
