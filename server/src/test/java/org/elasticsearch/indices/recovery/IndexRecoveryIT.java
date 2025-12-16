@@ -24,6 +24,7 @@ package org.elasticsearch.indices.recovery;
 import static com.carrotsearch.randomizedtesting.RandomizedTest.biasedDoubleBetween;
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonMap;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.elasticsearch.node.RecoverySettingsChunkSizePlugin.CHUNK_SIZE_SETTING;
 
 import java.io.IOException;
@@ -1291,8 +1292,10 @@ public class IndexRecoveryIT extends IntegTestCase {
 
         ensureGreen();
 
-        execute("select recovery['files']['used'] from sys.shards where table_name='test' and primary=false");
-        assertThat((int)response.rows()[0][0]).isGreaterThan(0);
+        execute("select recovery['stage'], recovery['type'] from sys.shards where table_name='test' and primary=false");
+        assertThat(response).hasRows(
+            "DONE| PEER"
+        );
     }
 
     @Test

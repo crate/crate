@@ -45,7 +45,6 @@ import java.util.stream.StreamSupport;
 import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
-import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.routing.AllocationId;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -67,7 +66,6 @@ import com.carrotsearch.hppc.ObjectLongMap;
 
 import io.crate.common.SuppressForbidden;
 import io.crate.common.collections.Tuple;
-import io.crate.concurrent.MultiActionListener;
 
 /**
  * This class is responsible for tracking the replication group with its progress and safety markers (local and global checkpoints).
@@ -207,14 +205,6 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
      * leases.
      */
     private long persistedRetentionLeasesVersion;
-
-    /**
-     * Whether there should be a peer recovery retention lease (PRRL) for every tracked shard copy. Always true on indices created from
-     * {@link Version#V_4_3_0} onwards, because these versions create PRRLs properly. May be false on indices created in an earlier version
-     * if we recently did a rolling upgrade and {@link ReplicationTracker#createMissingPeerRecoveryRetentionLeases(ActionListener)} has not
-     * yet completed. Is only permitted to change from false to true; can be removed once support for pre-PRRL indices is no longer needed.
-     */
-    private boolean hasAllPeerRecoveryRetentionLeases;
 
     /**
      * Supplies information about the current safe commit which may be used to expire peer-recovery retention leases.
@@ -581,8 +571,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
                      * If this shard copy is tracked then we got here here via a rolling upgrade from an older version that doesn't
                      * create peer recovery retention leases for every shard copy.
                      */
-                    assert checkpoints.get(shardRouting.allocationId().getId()).tracked == false
-                        || hasAllPeerRecoveryRetentionLeases == false;
+                    assert checkpoints.get(shardRouting.allocationId().getId()).tracked == false;
                     return false;
                 }
                 return retentionLease.timestamp() <= renewalTimeMillis
@@ -831,7 +820,7 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
             assert checkpoints.get(aId) != null : "aId [" + aId + "] is pending in sync but isn't tracked";
         }
 
-        if (primaryMode && hasAllPeerRecoveryRetentionLeases) {
+        if (primaryMode) {
             // all tracked shard copies have a corresponding peer-recovery retention lease
             for (final ShardRouting shardRouting : routingTable.assignedShards()) {
                 if (checkpoints.get(shardRouting.allocationId().getId()).tracked) {
@@ -915,11 +904,6 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         this.pendingInSync = new HashSet<>();
         this.routingTable = null;
         this.replicationGroup = null;
-        this.hasAllPeerRecoveryRetentionLeases = indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_5_0)
-            || ((indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_4_0) ||
-               (indexSettings.getIndexVersionCreated().onOrAfter(Version.V_4_3_0) &&
-                indexSettings.getIndexMetadata().getState() == IndexMetadata.State.OPEN)));
-
         this.fileBasedRecoveryThreshold = IndexSettings.FILE_BASED_RECOVERY_THRESHOLD_SETTING.get(indexSettings.getSettings());
         this.safeCommitInfoSupplier = safeCommitInfoSupplier;
         this.onReplicationGroupUpdated = onReplicationGroupUpdated;
@@ -1064,21 +1048,14 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
                 logger.trace("addPeerRecoveryRetentionLeaseForSolePrimary: adding lease [{}]", leaseId);
                 innerAddRetentionLease(leaseId, Math.max(0L, checkpoints.get(shardAllocationId).globalCheckpoint + 1),
                     PEER_RECOVERY_RETENTION_LEASE_SOURCE);
-                hasAllPeerRecoveryRetentionLeases = true;
             } else {
                 /*
                  * We got here here via a rolling upgrade from an older version that doesn't create peer recovery retention
                  * leases for every shard copy, but in this case we do not expect any leases to exist.
                  */
-                assert hasAllPeerRecoveryRetentionLeases == false : routingTable + " vs " + retentionLeases;
+                assert false : routingTable + " vs " + retentionLeases;
                 logger.debug("{} becoming primary of {} with missing lease: {}", primaryShard, routingTable, retentionLeases);
             }
-        } else if (hasAllPeerRecoveryRetentionLeases == false && routingTable.assignedShards().stream().allMatch(shardRouting ->
-            retentionLeases.contains(getPeerRecoveryRetentionLeaseId(shardRouting))
-                || checkpoints.get(shardRouting.allocationId().getId()).tracked == false)) {
-            // Although this index is old enough not to have all the expected peer recovery retention leases, in fact it does, so we
-            // don't need to do any more work.
-            hasAllPeerRecoveryRetentionLeases = true;
         }
     }
 
@@ -1386,53 +1363,6 @@ public class ReplicationTracker extends AbstractIndexShardComponent implements L
         runAfter.run();
         addPeerRecoveryRetentionLeaseForSolePrimary();
         assert invariant();
-    }
-
-    private synchronized void setHasAllPeerRecoveryRetentionLeases() {
-        hasAllPeerRecoveryRetentionLeases = true;
-        assert invariant();
-    }
-
-    public synchronized boolean hasAllPeerRecoveryRetentionLeases() {
-        return hasAllPeerRecoveryRetentionLeases;
-    }
-
-    /**
-     * Create any required peer-recovery retention leases that do not currently exist because we just did a rolling upgrade from a version
-     * prior to {@link Version#V_4_3_0} that does not create peer-recovery retention leases.
-     */
-    public synchronized void createMissingPeerRecoveryRetentionLeases(ActionListener<Void> listener) {
-        if (hasAllPeerRecoveryRetentionLeases == false) {
-            final List<ShardRouting> shardRoutings = routingTable.assignedShards();
-            final ActionListener<ReplicationResponse> groupedActionListener = MultiActionListener.of(
-                shardRoutings.size(),
-                listener.map(vs -> {
-                    setHasAllPeerRecoveryRetentionLeases();
-                    return null;
-                })
-            );
-            for (ShardRouting shardRouting : shardRoutings) {
-                if (retentionLeases.contains(getPeerRecoveryRetentionLeaseId(shardRouting))) {
-                    groupedActionListener.onResponse(null);
-                } else {
-                    final CheckpointState checkpointState = checkpoints.get(shardRouting.allocationId().getId());
-                    if (checkpointState.tracked == false) {
-                        groupedActionListener.onResponse(null);
-                    } else {
-                        logger.trace("createMissingPeerRecoveryRetentionLeases: adding missing lease for {}", shardRouting);
-                        try {
-                            addPeerRecoveryRetentionLease(shardRouting.currentNodeId(),
-                                Math.max(SequenceNumbers.NO_OPS_PERFORMED, checkpointState.globalCheckpoint), groupedActionListener);
-                        } catch (Exception e) {
-                            groupedActionListener.onFailure(e);
-                        }
-                    }
-                }
-            }
-        } else {
-            logger.trace("createMissingPeerRecoveryRetentionLeases: nothing to do");
-            listener.onResponse(null);
-        }
     }
 
     private Runnable getMasterUpdateOperationFromCurrentState() {

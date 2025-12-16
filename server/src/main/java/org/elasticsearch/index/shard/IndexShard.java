@@ -29,7 +29,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.EnumSet;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -230,7 +229,6 @@ public class IndexShard extends AbstractIndexShardComponent {
     private final AtomicLong lastSearcherAccess = new AtomicLong();
     private final AtomicReference<Translog.Location> pendingRefreshLocation = new AtomicReference<>();
     private final RefreshPendingLocationListener refreshPendingLocationListener;
-    private volatile boolean useRetentionLeasesInPeerRecovery;
 
     private final Analyzer indexAnalyzer;
 
@@ -255,7 +253,6 @@ public class IndexShard extends AbstractIndexShardComponent {
         super(shardRouting.shardId(), indexSettings);
         assert shardRouting.initializing();
         this.shardRouting = shardRouting;
-        final Settings settings = indexSettings.getSettings();
         this.codecService = new CodecService();
         Objects.requireNonNull(store, "Store must be provided to the index shard");
         this.engineFactoryProviders = engineFactoryProviders;
@@ -302,7 +299,6 @@ public class IndexShard extends AbstractIndexShardComponent {
         refreshListeners = buildRefreshListeners();
         lastSearcherAccess.set(threadPool.relativeTimeInMillis());
         persistMetadata(path, indexSettings, shardRouting, null, logger);
-        this.useRetentionLeasesInPeerRecovery = replicationTracker.hasAllPeerRecoveryRetentionLeases();
         this.refreshPendingLocationListener = new RefreshPendingLocationListener();
         this.indexAnalyzer = indexAnalyzer;
     }
@@ -398,7 +394,6 @@ public class IndexShard extends AbstractIndexShardComponent {
                         if (currentRouting.isRelocationTarget() == false) {
                             // the master started a recovering primary, activate primary mode.
                             replicationTracker.activatePrimaryMode(getLocalCheckpoint());
-                            ensurePeerRecoveryRetentionLeasesExist();
                         }
                     }
                 } else {
@@ -442,7 +437,6 @@ public class IndexShard extends AbstractIndexShardComponent {
                             assert getOperationPrimaryTerm() == newPrimaryTerm;
                             try {
                                 replicationTracker.activatePrimaryMode(getLocalCheckpoint());
-                                ensurePeerRecoveryRetentionLeasesExist();
                                 /*
                                  * If this shard was serving as a replica shard when another shard was promoted to primary then
                                  * its Lucene index was reset during the primary term transition. In particular, the Lucene index
@@ -512,17 +506,6 @@ public class IndexShard extends AbstractIndexShardComponent {
         }
         if (newRouting.equals(currentRouting) == false) {
             indexEventListener.shardRoutingChanged(this, currentRouting, newRouting);
-        }
-
-        if (useRetentionLeasesInPeerRecovery == false && state() == IndexShardState.STARTED) {
-            final RetentionLeases retentionLeases = replicationTracker.getRetentionLeases();
-            final Set<ShardRouting> shardRoutings = new HashSet<>(routingTable.getShards());
-            shardRoutings.addAll(routingTable.assignedShards()); // include relocation targets
-            if (shardRoutings.stream().allMatch(
-                shr -> shr.assignedToNode() && retentionLeases.contains(ReplicationTracker.getPeerRecoveryRetentionLeaseId(shr)))) {
-                useRetentionLeasesInPeerRecovery = true;
-                turnOffTranslogRetention();
-            }
         }
     }
 
@@ -1859,33 +1842,12 @@ public class IndexShard extends AbstractIndexShardComponent {
     private void applyEngineSettings() {
         Engine engineOrNull = getEngineOrNull();
         if (engineOrNull != null) {
-            final boolean disableTranslogRetention = useRetentionLeasesInPeerRecovery;
             engineOrNull.onSettingsChanged(
-                disableTranslogRetention ? TimeValue.MINUS_ONE : indexSettings.getTranslogRetentionAge(),
-                disableTranslogRetention ? new ByteSizeValue(-1) : indexSettings.getTranslogRetentionSize(),
+                TimeValue.MINUS_ONE,
+                new ByteSizeValue(-1),
                 indexSettings.getSoftDeleteRetentionOperations()
             );
         }
-    }
-
-    private void turnOffTranslogRetention() {
-        logger.debug("turn off the translog retention for the replication group {} " +
-            "as it starts using retention leases exclusively in peer recoveries", shardId);
-        // Off to the generic threadPool as pruning the delete tombstones can be expensive.
-        threadPool.generic().execute(new RejectableRunnable() {
-            @Override
-            public void onFailure(Exception e) {
-                if (state != IndexShardState.CLOSED) {
-                    logger.warn("failed to turn off translog retention", e);
-                }
-            }
-
-            @Override
-            public void doRun() {
-                applyEngineSettings();
-                trimTranslog();
-            }
-        });
     }
 
     /**
@@ -2375,13 +2337,6 @@ public class IndexShard extends AbstractIndexShardComponent {
         synchronized (mutex) {
             replicationTracker.activateWithPrimaryContext(primaryContext); // make changes to primaryMode flag only under mutex
         }
-        ensurePeerRecoveryRetentionLeasesExist();
-    }
-
-    private void ensurePeerRecoveryRetentionLeasesExist() {
-        threadPool.generic().execute(() -> replicationTracker.createMissingPeerRecoveryRetentionLeases(ActionListener.wrap(
-            r -> logger.trace("created missing peer recovery retention leases"),
-            e -> logger.debug("failed creating missing peer recovery retention leases", e))));
     }
 
     /**
@@ -2543,10 +2498,6 @@ public class IndexShard extends AbstractIndexShardComponent {
      */
     public List<RetentionLease> getPeerRecoveryRetentionLeases() {
         return replicationTracker.getPeerRecoveryRetentionLeases();
-    }
-
-    public boolean useRetentionLeasesInPeerRecovery() {
-        return useRetentionLeasesInPeerRecovery;
     }
 
     private SafeCommitInfo getSafeCommitInfo() {
