@@ -124,7 +124,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
             handleSQLRequest(session, resultBuffer, content, paramContainFlag(parameters, "types"))
                 .whenComplete((_, t) -> {
                     try {
-                        sendResponse(session, ctx, request, parameters, resultBuffer, t);
+                        sendResponse(ctx, request, parameters, resultBuffer, t);
                     } catch (Throwable ex) {
                         resultBuffer.release();
                         LOGGER.error("Error sending response", ex);
@@ -155,8 +155,7 @@ public class SqlHttpHandler extends SimpleChannelInboundHandler<FullHttpRequest>
         super.channelUnregistered(ctx);
     }
 
-    private void sendResponse(Session session,
-                              ChannelHandlerContext ctx,
+    private void sendResponse(ChannelHandlerContext ctx,
                               FullHttpRequest request,
                               Map<String, List<String>> parameters,
                               ByteBuf result,
