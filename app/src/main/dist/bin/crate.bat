@@ -78,9 +78,6 @@ if NOT DEFINED CRATE_DISABLE_GC_LOGGING (
 REM Prevent denial of service attacks via SSL renegotiation
 set JAVA_OPTS=%JAVA_OPTS% -Djdk.tls.rejectClientInitiatedRenegotiation=true
 
-REM Use our provided JNA always versus the system one
-set JAVA_OPTS=%JAVA_OPTS% -Djna.nosys=true
-
 REM Ensure UTF-8 encoding by default (e.g. filenames)
 set JAVA_OPTS=%JAVA_OPTS% -Dfile.encoding=UTF-8
 

@@ -26,7 +26,6 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
@@ -83,12 +82,15 @@ public class EvalProjection extends Projection {
 
     public EvalProjection(StreamInput in) throws IOException {
         this.outputs = Symbols.fromStream(in);
-        if (in.getVersion().onOrAfter(Version.V_4_5_3)) {
-            this.granularity = RowGranularity.fromStream(in) ;
-        } else {
-            this.granularity = RowGranularity.CLUSTER;
-        }
+        this.granularity = RowGranularity.fromStream(in) ;
     }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        Symbols.toStream(outputs, out);
+        RowGranularity.toStream(granularity, out);
+    }
+
 
     @Override
     public RowGranularity requiredGranularity() {
@@ -108,14 +110,6 @@ public class EvalProjection extends Projection {
     @Override
     public List<? extends Symbol> outputs() {
         return outputs;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        Symbols.toStream(outputs, out);
-        if (out.getVersion().onOrAfter(Version.V_4_5_3)) {
-            RowGranularity.toStream(granularity, out);
-        }
     }
 
     @Override

@@ -28,7 +28,6 @@ import java.util.Locale;
 import java.util.Objects;
 import java.util.Set;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
@@ -276,19 +275,11 @@ public final class UnassignedInfo implements Writeable {
         this.failure = in.readException();
         this.failedAllocations = in.readVInt();
         this.lastAllocationStatus = AllocationStatus.readFrom(in);
-        if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
-            this.failedNodeIds = Collections.unmodifiableSet(in.readSet(StreamInput::readString));
-        } else {
-            this.failedNodeIds = Collections.emptySet();
-        }
+        this.failedNodeIds = Collections.unmodifiableSet(in.readSet(StreamInput::readString));
     }
 
     public void writeTo(StreamOutput out) throws IOException {
-        if (out.getVersion().before(Version.V_4_3_0) && reason == Reason.INDEX_CLOSED) {
-            out.writeByte((byte) Reason.REINITIALIZED.ordinal());
-        } else {
-            out.writeByte((byte) reason.ordinal());
-        }
+        out.writeByte((byte) reason.ordinal());
         out.writeLong(unassignedTimeMillis);
         // Do not serialize unassignedTimeNanos as System.nanoTime() cannot be compared across different JVMs
         out.writeBoolean(delayed);
@@ -296,9 +287,7 @@ public final class UnassignedInfo implements Writeable {
         out.writeException(failure);
         out.writeVInt(failedAllocations);
         lastAllocationStatus.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
-            out.writeCollection(failedNodeIds, StreamOutput::writeString);
-        }
+        out.writeCollection(failedNodeIds, StreamOutput::writeString);
     }
 
     /**

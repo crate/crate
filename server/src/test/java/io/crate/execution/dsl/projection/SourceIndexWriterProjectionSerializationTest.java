@@ -49,7 +49,7 @@ import io.crate.types.DataTypes;
 public class SourceIndexWriterProjectionSerializationTest {
 
     @Test
-    public void testSerializationFailFast() throws IOException {
+    public void test_serialization() throws IOException {
         RelationName relationName = new RelationName("doc", "test");
         var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
@@ -88,81 +88,17 @@ public class SourceIndexWriterProjectionSerializationTest {
             AbstractIndexWriterProjection.OUTPUTS,
             false
         );
-        BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.V_4_6_0);
-        expected.writeTo(out);
 
-        StreamInput in = out.bytes().streamInput();
-        in.setVersion(Version.V_4_6_0);
+        for (var version : List.of(Version.V_5_2_0, Version.V_5_4_0, Version.CURRENT)) {
+            BytesStreamOutput out = new BytesStreamOutput();
+            out.setVersion(version);
+            expected.writeTo(out);
 
-        assertThat(new SourceIndexWriterProjection(in).failFast()).isNotEqualTo(expected.failFast());
+            StreamInput in = out.bytes().streamInput();
+            in.setVersion(version);
 
-        BytesStreamOutput out2 = new BytesStreamOutput();
-        out2.setVersion(Version.V_4_7_0);
-        expected.writeTo(out2);
-
-        StreamInput in2 = out2.bytes().streamInput();
-        in2.setVersion(Version.V_4_7_0);
-
-        assertThat(new SourceIndexWriterProjection(in2).failFast()).isEqualTo(expected.failFast());
-    }
-
-    @Test
-    public void testSerializationValidationFlag() throws IOException {
-        RelationName relationName = new RelationName("doc", "test");
-        var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
-        SimpleReference reference = new SimpleReference(
-            relationName,
-            ColumnIdent.of("object_column"),
-            RowGranularity.DOC,
-            dataType,
-            IndexType.FULLTEXT,
-            false,
-            true,
-            0,
-            COLUMN_OID_UNASSIGNED,
-            false,
-            Literal.of(dataType, List.of(Map.of("f", 10))
-            )
-        );
-        String partitionIdent = "pIdent";
-        InputColumn inputColumn = new InputColumn(123);
-        List<ColumnIdent> primaryKeys = List.of(ColumnIdent.of("colIdent"));
-        List<Symbol> partitionedBySymbols = List.of(reference);
-        ColumnIdent clusteredByColumn = ColumnIdent.of("col1");
-        Settings settings = Settings.builder().put("validation", false).build();
-        // validation property set to false
-        SourceIndexWriterProjection validationFlagSetToFalse = new SourceIndexWriterProjection(
-            relationName,
-            partitionIdent,
-            reference,
-            inputColumn,
-            primaryKeys,
-            partitionedBySymbols,
-            clusteredByColumn,
-            settings,
-            null,
-            List.of(),
-            null,
-            AbstractIndexWriterProjection.OUTPUTS,
-            false
-        );
-        BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.V_4_7_0);
-        validationFlagSetToFalse.writeTo(out);
-
-        StreamInput in = out.bytes().streamInput();
-        in.setVersion(Version.V_4_7_0);
-
-        new SourceIndexWriterProjection(in);
-
-        BytesStreamOutput out2 = new BytesStreamOutput();
-        out2.setVersion(Version.V_4_8_0);
-        validationFlagSetToFalse.writeTo(out2);
-
-        StreamInput in2 = out2.bytes().streamInput();
-        in2.setVersion(Version.V_4_8_0);
-
-        new SourceIndexWriterProjection(in2);
+            SourceIndexWriterProjection deserialized = new SourceIndexWriterProjection(in);
+            assertThat(deserialized).isEqualTo(expected);
+        }
     }
 }

@@ -29,7 +29,6 @@ import java.util.EnumSet;
 import java.util.List;
 import java.util.Set;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
@@ -86,26 +85,6 @@ public class FunctionTest extends ESTestCase {
         Function fn2 = (Function) Symbol.fromStream(input);
 
         assertThat(fn2.filter()).isNotNull();
-        assertThat(fn).isEqualTo(fn2);
-    }
-
-    @Test
-    public void test_serialization_before_version_4_1_0() throws Exception {
-        Function fn = new Function(
-            signature,
-            List.of(createReference(randomAsciiLettersOfLength(2), DataTypes.BOOLEAN)),
-            returnType
-        );
-
-        var output = new BytesStreamOutput();
-        output.setVersion(Version.V_4_0_0);
-        Symbol.toStream(fn, output);
-
-        var input = output.bytes().streamInput();
-        input.setVersion(Version.V_4_0_0);
-        Function fn2 = (Function) Symbol.fromStream(input);
-
-        assertThat(fn2.filter()).isNull();
         assertThat(fn).isEqualTo(fn2);
     }
 

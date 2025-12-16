@@ -30,7 +30,6 @@ import java.util.Objects;
 import java.util.function.Predicate;
 
 import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
@@ -93,30 +92,6 @@ public class Function implements Symbol, Cloneable {
     @Nullable
     protected final Symbol filter;
 
-    public Function(StreamInput in) throws IOException {
-        Signature generatedSignature = null;
-        if (in.getVersion().before(Version.V_5_0_0)) {
-            generatedSignature = Signature.readFromFunctionInfo(in);
-        }
-        if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
-            filter = Symbol.nullableFromStream(in);
-        } else {
-            filter = null;
-        }
-        arguments = List.copyOf(Symbols.fromStream(in));
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            if (in.getVersion().before(Version.V_5_0_0)) {
-                in.readBoolean();
-            }
-            signature = new Signature(in);
-            returnType = DataTypes.fromStream(in);
-        } else {
-            assert generatedSignature != null : "expecting a non-null generated signature";
-            signature = generatedSignature;
-            returnType = generatedSignature.getReturnType().createType();
-        }
-    }
-
     public Function(Signature signature, List<Symbol> arguments, DataType<?> returnType) {
         this(signature, arguments, returnType, null);
     }
@@ -126,6 +101,21 @@ public class Function implements Symbol, Cloneable {
         this.arguments = List.copyOf(arguments);
         this.returnType = returnType;
         this.filter = filter;
+    }
+
+    public Function(StreamInput in) throws IOException {
+        filter = Symbol.nullableFromStream(in);
+        arguments = List.copyOf(Symbols.fromStream(in));
+        signature = new Signature(in);
+        returnType = DataTypes.fromStream(in);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        Symbol.nullableToStream(filter, out);
+        Symbols.toStream(arguments, out);
+        signature.writeTo(out);
+        DataTypes.toStream(returnType, out);
     }
 
     public List<Symbol> arguments() {
@@ -251,24 +241,6 @@ public class Function implements Symbol, Cloneable {
     @Override
     public <C, R> R accept(SymbolVisitor<C, R> visitor, C context) {
         return visitor.visitFunction(this, context);
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        if (out.getVersion().before(Version.V_5_0_0)) {
-            signature.writeAsFunctionInfo(out, Symbols.typeView(arguments));
-        }
-        if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-            Symbol.nullableToStream(filter, out);
-        }
-        Symbols.toStream(arguments, out);
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            if (out.getVersion().before(Version.V_5_0_0)) {
-                out.writeBoolean(true);
-            }
-            signature.writeTo(out);
-            DataTypes.toStream(returnType, out);
-        }
     }
 
     @Override

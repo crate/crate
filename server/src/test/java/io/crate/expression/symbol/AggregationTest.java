@@ -25,7 +25,6 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.test.ESTestCase;
@@ -51,26 +50,6 @@ public class AggregationTest extends ESTestCase {
         Aggregation expected = (Aggregation) Symbol.fromStream(input);
 
         assertThat(expected.filter()).isEqualTo(Literal.BOOLEAN_FALSE);
-        assertThat(expected).isEqualTo(actual);
-    }
-
-    @Test
-    public void test_serialization_with_filter_before_version_4_1_0() throws Exception {
-        Aggregation actual = new Aggregation(
-            CountAggregation.COUNT_STAR_SIGNATURE,
-            CountAggregation.COUNT_STAR_SIGNATURE.getReturnType().createType(),
-            List.of()
-        );
-        BytesStreamOutput output = new BytesStreamOutput();
-        output.setVersion(Version.V_4_0_0);
-        Symbol.toStream(actual, output);
-
-        StreamInput input = output.bytes().streamInput();
-        input.setVersion(Version.V_4_0_0);
-
-        Aggregation expected = (Aggregation) Symbol.fromStream(input);
-
-        assertThat(expected.filter()).isEqualTo(Literal.BOOLEAN_TRUE);
         assertThat(expected).isEqualTo(actual);
     }
 }

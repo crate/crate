@@ -21,10 +21,8 @@ package org.elasticsearch.indices.recovery;
 
 import java.io.IOException;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 
 final class RecoveryFinalizeRecoveryRequest extends RecoveryTransportRequest {
@@ -67,11 +65,7 @@ final class RecoveryFinalizeRecoveryRequest extends RecoveryTransportRequest {
         recoveryId = in.readLong();
         shardId = new ShardId(in);
         globalCheckpoint = in.readZLong();
-        if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
-            trimAboveSeqNo = in.readZLong();
-        } else {
-            trimAboveSeqNo = SequenceNumbers.UNASSIGNED_SEQ_NO;
-        }
+        trimAboveSeqNo = in.readZLong();
     }
 
     @Override
@@ -80,8 +74,6 @@ final class RecoveryFinalizeRecoveryRequest extends RecoveryTransportRequest {
         out.writeLong(recoveryId);
         shardId.writeTo(out);
         out.writeZLong(globalCheckpoint);
-        if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-            out.writeZLong(trimAboveSeqNo);
-        }
+        out.writeZLong(trimAboveSeqNo);
     }
 }
