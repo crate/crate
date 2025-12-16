@@ -19,14 +19,14 @@
 
 package org.elasticsearch.action.support.nodes;
 
-import org.elasticsearch.Version;
+import java.io.IOException;
+
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import io.crate.common.unit.TimeValue;
 import org.elasticsearch.transport.TransportRequest;
 
-import java.io.IOException;
+import io.crate.common.unit.TimeValue;
 
 public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>> extends TransportRequest {
 
@@ -54,9 +54,6 @@ public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>
 
     public BaseNodesRequest(StreamInput in) throws IOException {
         super(in);
-        if (in.getVersion().before(Version.V_4_1_0)) {
-            in.readStringArray(); // node-ids
-        }
         concreteNodes = in.readOptionalArray(DiscoveryNode::new, DiscoveryNode[]::new);
         timeout = in.readOptionalTimeValue();
     }
@@ -64,9 +61,6 @@ public abstract class BaseNodesRequest<Request extends BaseNodesRequest<Request>
     @Override
     public void writeTo(StreamOutput out) throws IOException {
         super.writeTo(out);
-        if (out.getVersion().before(Version.V_4_1_0)) {
-            out.writeStringArrayNullable(null);
-        }
         out.writeOptionalArray(concreteNodes);
         out.writeOptionalTimeValue(timeout);
     }

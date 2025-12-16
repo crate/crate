@@ -19,12 +19,15 @@
 
 package org.elasticsearch.repositories;
 
-import com.carrotsearch.hppc.ObjectContainer;
-import com.carrotsearch.hppc.cursors.ObjectCursor;
+import java.io.IOException;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.atomic.AtomicInteger;
+
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
-import org.elasticsearch.Version;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodes;
@@ -40,11 +43,8 @@ import org.elasticsearch.transport.TransportRequestHandler;
 import org.elasticsearch.transport.TransportResponse;
 import org.elasticsearch.transport.TransportService;
 
-import java.io.IOException;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.CopyOnWriteArrayList;
-import java.util.concurrent.atomic.AtomicInteger;
+import com.carrotsearch.hppc.ObjectContainer;
+import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 public class VerifyNodeRepositoryAction {
 
@@ -73,9 +73,6 @@ public class VerifyNodeRepositoryAction {
         final List<DiscoveryNode> nodes = new ArrayList<>();
         for (ObjectCursor<DiscoveryNode> cursor : masterAndDataNodes) {
             DiscoveryNode node = cursor.value;
-            if (readOnly && node.getVersion().before(Version.V_4_2_0)) {
-                continue;
-            }
             if (RepositoriesService.isDedicatedVotingOnlyNode(node.roles()) == false) {
                 nodes.add(node);
             }

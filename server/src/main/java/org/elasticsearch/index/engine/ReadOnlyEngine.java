@@ -37,7 +37,6 @@ import org.apache.lucene.index.SoftDeletesDirectoryReaderWrapper;
 import org.apache.lucene.search.ReferenceManager;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.Lock;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.common.lucene.index.ElasticsearchDirectoryReader;
 import org.elasticsearch.common.util.concurrent.ReleasableLock;
@@ -133,13 +132,10 @@ public class ReadOnlyEngine extends Engine {
         // In addition to that we only execute the check if the index the engine belongs to has been
         // created after the refactoring of the Close Index API and its TransportVerifyShardBeforeCloseAction
         // that guarantee that all operations have been flushed to Lucene.
-        final Version indexVersionCreated = engineConfig.getIndexSettings().getIndexVersionCreated();
-        if (indexVersionCreated.onOrAfter(Version.V_4_3_0)) {
-            assert assertMaxSeqNoEqualsToGlobalCheckpoint(seqNoStats.getMaxSeqNo(), seqNoStats.getGlobalCheckpoint());
-            if (seqNoStats.getMaxSeqNo() != seqNoStats.getGlobalCheckpoint()) {
-                throw new IllegalStateException("Maximum sequence number [" + seqNoStats.getMaxSeqNo()
-                    + "] from last commit does not match global checkpoint [" + seqNoStats.getGlobalCheckpoint() + "]");
-            }
+        assert assertMaxSeqNoEqualsToGlobalCheckpoint(seqNoStats.getMaxSeqNo(), seqNoStats.getGlobalCheckpoint());
+        if (seqNoStats.getMaxSeqNo() != seqNoStats.getGlobalCheckpoint()) {
+            throw new IllegalStateException("Maximum sequence number [" + seqNoStats.getMaxSeqNo()
+                + "] from last commit does not match global checkpoint [" + seqNoStats.getGlobalCheckpoint() + "]");
         }
     }
 

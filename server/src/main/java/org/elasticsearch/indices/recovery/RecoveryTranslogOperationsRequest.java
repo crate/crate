@@ -22,7 +22,6 @@ package org.elasticsearch.indices.recovery;
 import java.io.IOException;
 import java.util.List;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.index.seqno.RetentionLeases;
@@ -105,16 +104,8 @@ public class RecoveryTranslogOperationsRequest extends RecoveryTransportRequest 
         totalTranslogOps = in.readVInt();
         maxSeenAutoIdTimestampOnPrimary = in.readZLong();
         maxSeqNoOfUpdatesOrDeletesOnPrimary = in.readZLong();
-        if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
-            retentionLeases = new RetentionLeases(in);
-        } else {
-            retentionLeases = RetentionLeases.EMPTY;
-        }
-        if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
-            mappingVersionOnPrimary = in.readVLong();
-        } else {
-            mappingVersionOnPrimary = Long.MAX_VALUE;
-        }
+        retentionLeases = new RetentionLeases(in);
+        mappingVersionOnPrimary = in.readVLong();
     }
 
     @Override
@@ -126,11 +117,7 @@ public class RecoveryTranslogOperationsRequest extends RecoveryTransportRequest 
         out.writeVInt(totalTranslogOps);
         out.writeZLong(maxSeenAutoIdTimestampOnPrimary);
         out.writeZLong(maxSeqNoOfUpdatesOrDeletesOnPrimary);
-        if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-            retentionLeases.writeTo(out);
-        }
-        if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-            out.writeVLong(mappingVersionOnPrimary);
-        }
+        retentionLeases.writeTo(out);
+        out.writeVLong(mappingVersionOnPrimary);
     }
 }

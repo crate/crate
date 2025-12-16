@@ -29,13 +29,10 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
-
-import com.fasterxml.jackson.dataformat.csv.CsvSchema;
 
 import io.crate.analyze.CopyFromParserProperties;
 import io.crate.expression.symbol.Literal;
@@ -44,7 +41,7 @@ import io.crate.types.DataTypes;
 public class FileUriCollectPhaseTest {
 
     @Test
-    public void test_streaming_of_file_uri_collect_phase_before_4_4_0() throws IOException {
+    public void test_streaming_of_file_uri_collect_phase() throws IOException {
         var expected = new FileUriCollectPhase(
             UUID.randomUUID(),
             0,
@@ -62,132 +59,13 @@ public class FileUriCollectPhaseTest {
         );
 
         BytesStreamOutput output = new BytesStreamOutput();
-        output.setVersion(Version.V_4_3_0);
         expected.writeTo(output);
 
         StreamInput input = output.bytes().streamInput();
-        input.setVersion(Version.V_4_3_0);
-        var actual = new FileUriCollectPhase(input);
-
-        assertThat(expected.nodeIds()).isEqualTo(actual.nodeIds());
-        assertThat(expected.distributionInfo()).isEqualTo(actual.distributionInfo());
-        assertThat(expected.targetUri()).isEqualTo(actual.targetUri());
-        assertThat(expected.targetColumns()).isEqualTo(actual.targetColumns());
-        assertThat(expected.toCollect()).isEqualTo(actual.toCollect());
-
-        // parser properties option serialization implemented in crate >= 4.4.0
-        assertThat(expected.parserProperties().emptyStringAsNull()).isTrue();
-        assertThat(actual.parserProperties().emptyStringAsNull()).isFalse();
-
-        assertThat(actual.parserProperties().columnSeparator()).isEqualTo(CsvSchema.DEFAULT_COLUMN_SEPARATOR);
-
-        assertThat(expected.inputFormat()).isEqualTo(actual.inputFormat());
-        assertThat(expected.compression()).isEqualTo(actual.compression());
-        assertThat(expected.sharedStorage()).isEqualTo(actual.sharedStorage());
-    }
-
-    @Test
-    public void test_streaming_of_file_uri_collect_phase_after_or_on_4_4_0() throws IOException {
-        var expected = new FileUriCollectPhase(
-            UUID.randomUUID(),
-            0,
-            "test",
-            Collections.singletonList("noop_id"),
-            Literal.of("uri"),
-            List.of(),
-            List.of(createReference("name", DataTypes.STRING)),
-            Collections.emptyList(),
-            null,
-            false,
-            new CopyFromParserProperties(true, true, '|', 0),
-            FileUriCollectPhase.InputFormat.CSV,
-            Settings.EMPTY
-        );
-
-        BytesStreamOutput output = new BytesStreamOutput();
-        output.setVersion(Version.V_4_4_0);
-        expected.writeTo(output);
-
-        StreamInput input = output.bytes().streamInput();
-        input.setVersion(Version.V_4_4_0);
         var actual = new FileUriCollectPhase(input);
 
         assertThat(expected.parserProperties().emptyStringAsNull()).isTrue();
         assertThat(actual.parserProperties().columnSeparator()).isEqualTo('|');
         assertThat(expected).isEqualTo(actual);
-    }
-
-    @Test
-    public void test_streaming_of_file_uri_collect_phase_before_4_8_0() throws IOException {
-        var expected = new FileUriCollectPhase(
-            UUID.randomUUID(),
-            0,
-            "test",
-            Collections.singletonList("noop_id"),
-            Literal.of("uri"),
-            List.of(),
-            List.of(createReference("name", DataTypes.STRING)),
-            Collections.emptyList(),
-            null,
-            false,
-            new CopyFromParserProperties(true, true, '|', 0),
-            FileUriCollectPhase.InputFormat.CSV,
-            Settings.EMPTY
-        );
-
-        var actualInput = new FileUriCollectPhase(
-            UUID.randomUUID(),
-            0,
-            "test",
-            Collections.singletonList("noop_id"),
-            Literal.of("uri"),
-            List.of("a", "b"),
-            List.of(createReference("name", DataTypes.STRING)),
-            Collections.emptyList(),
-            null,
-            false,
-            new CopyFromParserProperties(true, true, '|', 0),
-            FileUriCollectPhase.InputFormat.CSV,
-            Settings.builder().put("protocol", "http").build()
-        );
-
-        BytesStreamOutput output = new BytesStreamOutput();
-        output.setVersion(Version.V_4_7_0);
-        actualInput.writeTo(output);
-
-        StreamInput input = output.bytes().streamInput();
-        input.setVersion(Version.V_4_7_0);
-        var actual = new FileUriCollectPhase(input);
-
-        assertThat(actual).isEqualTo(expected);
-    }
-
-    @Test
-    public void test_streaming_of_file_uri_collect_phase_after_or_on_4_8_0() throws IOException {
-        var expected = new FileUriCollectPhase(
-            UUID.randomUUID(),
-            0,
-            "test",
-            Collections.singletonList("noop_id"),
-            Literal.of("uri"),
-            List.of("a", "b"),
-            List.of(createReference("name", DataTypes.STRING)),
-            Collections.emptyList(),
-            null,
-            false,
-            new CopyFromParserProperties(true, true, '|', 0),
-            FileUriCollectPhase.InputFormat.CSV,
-            Settings.builder().put("protocol", "http").build()
-        );
-
-        BytesStreamOutput output = new BytesStreamOutput();
-        output.setVersion(Version.V_4_8_0);
-        expected.writeTo(output);
-
-        StreamInput input = output.bytes().streamInput();
-        input.setVersion(Version.V_4_8_0);
-        var actual = new FileUriCollectPhase(input);
-
-        assertThat(actual).isEqualTo(expected);
     }
 }

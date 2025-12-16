@@ -28,7 +28,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.UUID;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.settings.Settings;
@@ -135,23 +134,11 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
             nodes.add(in.readString());
         }
         this.executionNodes = nodes;
-        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
-            targetColumns = in.readList(StreamInput::readString);
-        } else {
-            targetColumns = List.of();
-        }
+        targetColumns = in.readList(StreamInput::readString);
         toCollect = Symbols.fromStream(in);
         inputFormat = InputFormat.values()[in.readVInt()];
-        if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
-            parserProperties = new CopyFromParserProperties(in);
-        } else {
-            parserProperties = CopyFromParserProperties.DEFAULT;
-        }
-        if (in.getVersion().onOrAfter(Version.V_4_8_0)) {
-            withClauseOptions = Settings.readSettingsFromStream(in);
-        } else {
-            withClauseOptions = Settings.EMPTY;
-        }
+        parserProperties = new CopyFromParserProperties(in);
+        withClauseOptions = Settings.readSettingsFromStream(in);
     }
 
     @Override
@@ -164,17 +151,11 @@ public class FileUriCollectPhase extends AbstractProjectionsPhase implements Col
         for (String node : executionNodes) {
             out.writeString(node);
         }
-        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            out.writeStringCollection(targetColumns);
-        }
+        out.writeStringCollection(targetColumns);
         Symbols.toStream(toCollect, out);
         out.writeVInt(inputFormat.ordinal());
-        if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
-            parserProperties.writeTo(out);
-        }
-        if (out.getVersion().onOrAfter(Version.V_4_8_0)) {
-            Settings.writeSettingsToStream(out, withClauseOptions);
-        }
+        parserProperties.writeTo(out);
+        Settings.writeSettingsToStream(out, withClauseOptions);
     }
 
     @Nullable

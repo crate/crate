@@ -22,8 +22,6 @@ package org.elasticsearch.cluster.node;
 import java.io.IOException;
 import java.util.Collections;
 import java.util.HashMap;
-import java.util.HashSet;
-import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -219,27 +217,7 @@ public class DiscoveryNode implements Writeable {
             this.attributes.put(in.readString(), in.readString());
         }
 
-        if (in.getVersion().onOrAfter(Version.V_4_5_0)) {
-            this.roles = Collections.unmodifiableSet(in.readSet(DiscoveryNodeRole::fromStream));
-        } else {
-            // an old node will only send us legacy roles since pluggable roles is a new concept
-            int rolesSize = in.readVInt();
-            final Set<DiscoveryNodeRole> rolesFromStream = new HashSet<>(rolesSize);
-            for (int i = 0; i < rolesSize; i++) {
-                final LegacyRole legacyRole = in.readEnum(LegacyRole.class);
-                switch (legacyRole) {
-                    case MASTER:
-                        rolesFromStream.add(DiscoveryNodeRole.MASTER_ROLE);
-                        break;
-                    case DATA:
-                        rolesFromStream.add(DiscoveryNodeRole.DATA_ROLE);
-                        break;
-                    default:
-                        throw new AssertionError(legacyRole.roleName());
-                }
-            }
-            this.roles = Set.copyOf(rolesFromStream);
-        }
+        this.roles = Collections.unmodifiableSet(in.readSet(DiscoveryNodeRole::fromStream));
         this.version = Version.readVersion(in);
     }
 
@@ -256,21 +234,7 @@ public class DiscoveryNode implements Writeable {
             out.writeString(entry.getKey());
             out.writeString(entry.getValue());
         }
-        if (out.getVersion().onOrAfter(Version.V_4_5_0)) {
-            out.writeCollection(roles);
-        } else {
-            // an old node will only understand legacy roles since pluggable roles is a new concept
-            final List<DiscoveryNodeRole> rolesToWrite =
-                    roles.stream().filter(DiscoveryNodeRole.BUILT_IN_ROLES::contains).toList();
-            out.writeVInt(rolesToWrite.size());
-            for (final DiscoveryNodeRole role : rolesToWrite) {
-                if (role == DiscoveryNodeRole.MASTER_ROLE) {
-                    out.writeEnum(LegacyRole.MASTER);
-                } else if (role == DiscoveryNodeRole.DATA_ROLE) {
-                    out.writeEnum(LegacyRole.DATA);
-                }
-            }
-        }
+        out.writeCollection(roles);
         Version.writeVersion(version, out);
     }
 

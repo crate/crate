@@ -30,18 +30,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
 
-import org.elasticsearch.Version;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.AnalyzedUpdateStatement;
 import io.crate.analyze.WhereClause;
 import io.crate.analyze.relations.AbstractTableRelation;
 import io.crate.analyze.relations.DocTableRelation;
 import io.crate.analyze.relations.TableRelation;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.data.Row;
 import io.crate.data.RowConsumer;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dml.BulkResponse;
 import io.crate.execution.dsl.phases.NodeOperationTree;
@@ -82,19 +80,11 @@ import io.crate.types.DataTypes;
 
 public final class UpdatePlanner {
 
-    public static final String RETURNING_VERSION_ERROR_MSG =
-        "Returning clause for Update is only supported when all nodes in the cluster running at least version 4.2.0";
-
     private UpdatePlanner() {}
 
     public static Plan plan(AnalyzedUpdateStatement update,
                             PlannerContext plannerCtx,
                             SubqueryPlanner subqueryPlanner) {
-
-        if (update.outputs() != null &&
-            !plannerCtx.clusterState().nodes().getMinNodeVersion().onOrAfter(Version.V_4_2_0)) {
-            throw new UnsupportedFeatureException(RETURNING_VERSION_ERROR_MSG);
-        }
 
         AbstractTableRelation<?> table = update.table();
 

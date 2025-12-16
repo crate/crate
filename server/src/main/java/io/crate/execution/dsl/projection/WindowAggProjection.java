@@ -27,14 +27,12 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 
 import io.crate.analyze.WindowDefinition;
 import io.crate.common.collections.Lists;
 import io.crate.common.collections.MapBuilder;
-import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.Symbols;
 import io.crate.expression.symbol.WindowFunction;
@@ -65,26 +63,16 @@ public class WindowAggProjection extends Projection {
         windowDefinition = new WindowDefinition(in);
         standaloneWithInputs = Symbols.fromStream(in);
 
-        Version version = in.getVersion();
-        if (version.onOrAfter(Version.V_4_2_1)) {
-            windowFunctions = (List<WindowFunction>) (List)Symbols.fromStream(in);
-        } else {
-            boolean onOrAfter4_1_0 = version.onOrAfter(Version.V_4_1_0);
-            int functionsCount = in.readVInt();
-            windowFunctions = new ArrayList<>();
-            for (int i = 0; i < functionsCount; i++) {
-                WindowFunction function = (WindowFunction) Symbol.fromStream(in);
-                if (onOrAfter4_1_0) {
-                    // used to be the filter
-                    Symbols.fromStream(in);
-                }
-                // used to be the inputs (arguments of the window function)
-                Symbols.fromStream(in);
-                windowFunctions.add(function);
-            }
-        }
+        windowFunctions = (List<WindowFunction>) (List)Symbols.fromStream(in);
         outputs = new ArrayList<>(standaloneWithInputs);
         outputs.addAll(windowFunctions);
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        windowDefinition.writeTo(out);
+        Symbols.toStream(standaloneWithInputs, out);
+        Symbols.toStream(windowFunctions, out);
     }
 
     public WindowDefinition windowDefinition() {
@@ -136,28 +124,6 @@ public class WindowAggProjection extends Projection {
     @Override
     public List<? extends Symbol> outputs() {
         return outputs;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        windowDefinition.writeTo(out);
-        Symbols.toStream(standaloneWithInputs, out);
-
-        Version version = out.getVersion();
-        if (version.onOrAfter(Version.V_4_2_1)) {
-            Symbols.toStream(windowFunctions, out);
-        } else {
-            boolean onOrAfter4_1_0 = version.onOrAfter(Version.V_4_1_0);
-            out.writeVInt(windowFunctions.size());
-            for (var windowFunction : windowFunctions) {
-                Symbol.toStream(windowFunction, out);
-                if (onOrAfter4_1_0) {
-                    Symbol filter = windowFunction.filter();
-                    Symbol.toStream(filter == null ? Literal.BOOLEAN_TRUE : filter, out);
-                }
-                Symbols.toStream(windowFunction.arguments(), out);
-            }
-        }
     }
 
     @Override

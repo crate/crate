@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -59,8 +58,10 @@ public class WindowFunctionSerializationTest {
                 DataTypes.FLOAT
         );
 
-    private WindowFunction windowFunctionWithIgnoreNullsSetToTrue =
-        new WindowFunction(
+
+    @Test
+    public void test_window_function_serialization() throws IOException {
+        var wf = new WindowFunction(
             dummyFunction.signature(),
             singletonList(Literal.of(1L)),
             dummyFunction.boundSignature().returnType(),
@@ -68,40 +69,12 @@ public class WindowFunctionSerializationTest {
             new WindowDefinition(singletonList(Literal.of(1L)), null, null),
             true
         );
-
-    private WindowFunction windowFunctionWithIgnoreNullsSetToNull =
-        new WindowFunction(
-            dummyFunction.signature(),
-            singletonList(Literal.of(1L)),
-            dummyFunction.boundSignature().returnType(),
-            null,
-            new WindowDefinition(singletonList(Literal.of(1L)), null, null),
-            null
-        );
-
-    @Test
-    public void testWindowFunctionIgnoreNullsFlagSerialisationFromV_4_7_0ToV_4_7_0() throws IOException {
         var output = new BytesStreamOutput();
-        output.setVersion(Version.V_4_7_0);
-        windowFunctionWithIgnoreNullsSetToTrue.writeTo(output);
+        wf.writeTo(output);
 
         var in = output.bytes().streamInput();
-        in.setVersion(Version.V_4_7_0);
         var actualWindowFunction = new WindowFunction(in);
 
-        assertThat(actualWindowFunction).isEqualTo(windowFunctionWithIgnoreNullsSetToTrue);
-    }
-
-    @Test
-    public void testWindowFunctionIgnoreNullsFlagSerialisationFromV_4_6_0ToV_4_7_0() throws IOException {
-        var output = new BytesStreamOutput();
-        output.setVersion(Version.V_4_6_0);
-        windowFunctionWithIgnoreNullsSetToTrue.writeTo(output);
-
-        var in = output.bytes().streamInput();
-        in.setVersion(Version.V_4_6_0);
-        var actualWindowFunction = new WindowFunction(in);
-
-        assertThat(actualWindowFunction).isEqualTo(windowFunctionWithIgnoreNullsSetToNull);
+        assertThat(actualWindowFunction).isEqualTo(wf);
     }
 }

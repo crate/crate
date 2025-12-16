@@ -27,7 +27,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.OptionalInt;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.allocation.RoutingAllocation;
 import org.elasticsearch.cluster.routing.allocation.decider.Decision;
@@ -113,18 +112,12 @@ public final class AutoExpandReplicas {
     private OptionalInt getDesiredNumberOfReplicas(IndexMetadata indexMetadata, RoutingAllocation allocation) {
         if (enabled) {
             int numMatchingDataNodes = 0;
-            // Only start using new logic once all nodes are migrated to 4.4.0, avoiding disruption during an upgrade
-            if (allocation.nodes().getMinNodeVersion().onOrAfter(Version.V_4_4_0)) {
-                for (ObjectCursor<DiscoveryNode> cursor : allocation.nodes().getDataNodes().values()) {
-                    Decision decision = allocation.deciders().shouldAutoExpandToNode(indexMetadata, cursor.value, allocation);
-                    if (decision.type() != Decision.Type.NO) {
-                        numMatchingDataNodes ++;
-                    }
+            for (ObjectCursor<DiscoveryNode> cursor : allocation.nodes().getDataNodes().values()) {
+                Decision decision = allocation.deciders().shouldAutoExpandToNode(indexMetadata, cursor.value, allocation);
+                if (decision.type() != Decision.Type.NO) {
+                    numMatchingDataNodes ++;
                 }
-            } else {
-                numMatchingDataNodes = allocation.nodes().getDataNodes().size();
             }
-
             final int min = getMinReplicas();
             final int max = getMaxReplicas(numMatchingDataNodes);
             int numberOfReplicas = numMatchingDataNodes - 1;

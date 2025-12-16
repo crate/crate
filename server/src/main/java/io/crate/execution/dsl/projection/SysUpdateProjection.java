@@ -28,17 +28,14 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RowGranularity;
-import io.crate.types.DataTypes;
 
 public class SysUpdateProjection extends Projection {
 
@@ -71,23 +68,40 @@ public class SysUpdateProjection extends Projection {
         for (int i = 0; i < numAssignments; i++) {
             assignments.put(Reference.fromStream(in), Symbol.fromStream(in));
         }
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            int outputSize = in.readVInt();
-            outputs = new Symbol[outputSize];
-            for (int i = 0; i < outputSize; i++) {
-                outputs[i] = Symbol.fromStream(in);
+        int outputSize = in.readVInt();
+        outputs = new Symbol[outputSize];
+        for (int i = 0; i < outputSize; i++) {
+            outputs[i] = Symbol.fromStream(in);
+        }
+        int returnValuesSize = in.readVInt();
+        if (returnValuesSize > 0) {
+            returnValues = new Symbol[returnValuesSize];
+            for (int i = 0; i < returnValuesSize; i++) {
+                returnValues[i] = Symbol.fromStream(in);
             }
-            int returnValuesSize = in.readVInt();
-            if (returnValuesSize > 0) {
-                returnValues = new Symbol[returnValuesSize];
-                for (int i = 0; i < returnValuesSize; i++) {
-                    returnValues[i] = Symbol.fromStream(in);
-                }
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        Symbol.toStream(uidSymbol, out);
+        out.writeVInt(assignments.size());
+        for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
+            Reference.toStream(out, e.getKey());
+            Symbol.toStream(e.getValue(), out);
+        }
+
+        out.writeVInt(outputs.length);
+        for (int i = 0; i < outputs.length; i++) {
+            Symbol.toStream(outputs[i], out);
+        }
+        if (returnValues != null) {
+            out.writeVInt(returnValues.length);
+            for (int i = 0; i < returnValues.length; i++) {
+                Symbol.toStream(returnValues[i], out);
             }
         } else {
-            //Outputs should never be null and for BwC reasons
-            //the default value in pre 4.1 was a long for a count
-            outputs = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
+            out.writeVInt(0);
         }
     }
 
@@ -113,31 +127,6 @@ public class SysUpdateProjection extends Projection {
 
     public Map<Reference, Symbol> assignments() {
         return assignments;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        Symbol.toStream(uidSymbol, out);
-        out.writeVInt(assignments.size());
-        for (Map.Entry<Reference, Symbol> e : assignments.entrySet()) {
-            Reference.toStream(out, e.getKey());
-            Symbol.toStream(e.getValue(), out);
-        }
-
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeVInt(outputs.length);
-            for (int i = 0; i < outputs.length; i++) {
-                Symbol.toStream(outputs[i], out);
-            }
-            if (returnValues != null) {
-                out.writeVInt(returnValues.length);
-                for (int i = 0; i < returnValues.length; i++) {
-                    Symbol.toStream(returnValues[i], out);
-                }
-            } else {
-                out.writeVInt(0);
-            }
-        }
     }
 
     @Override

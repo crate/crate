@@ -113,7 +113,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
-    public void test_streaming_of_reference_position_before_4_6_0() throws Exception {
+    public void test_streaming_of_reference_position_before_5_5_0() throws Exception {
         var dataType = new ArrayType<>(DataTypes.UNTYPED_OBJECT);
         SimpleReference reference = new SimpleReference(
             relationName,
@@ -131,11 +131,11 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
         );
 
         BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.V_4_5_0);
+        out.setVersion(Version.V_5_5_0);
         Reference.toStream(out, reference);
 
         StreamInput in = out.bytes().streamInput();
-        in.setVersion(Version.V_4_5_0);
+        in.setVersion(Version.V_5_5_0);
         Reference reference2 = Reference.fromStream(in);
 
         assertThat(reference2).isEqualTo(reference);
