@@ -114,7 +114,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         }
 
         @Override
-        public void writeIndexingBufferAsync(IndexShard shard) {
+        public void addPendingWriteIndexingBuffer(IndexShard shard) {
             long bytes = indexBufferRAMBytesUsed.put(shard, 0L);
             writingBytes.put(shard, writingBytes.get(shard) + bytes);
             indexBufferRAMBytesUsed.put(shard, 0L);
@@ -375,7 +375,7 @@ public class IndexingMemoryControllerTests extends IndexShardTestCase {
         AtomicInteger flushes = new AtomicInteger();
         IndexingMemoryController imc = new IndexingMemoryController(settings, threadPool, iterable) {
             @Override
-            protected void writeIndexingBufferAsync(IndexShard shard) {
+            public void addPendingWriteIndexingBuffer(IndexShard shard) {
                 assertThat(shardRef.get()).isEqualTo(shard);
                 flushes.incrementAndGet();
                 shard.writeIndexingBuffer();
