@@ -24,7 +24,6 @@ import java.util.List;
 
 import org.elasticsearch.action.ActionType;
 import org.elasticsearch.action.FailedNodeException;
-import org.elasticsearch.action.support.nodes.BaseNodeRequest;
 import org.elasticsearch.action.support.nodes.TransportNodesAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Inject;
@@ -32,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.node.NodeService;
 import org.elasticsearch.threadpool.ThreadPool;
+import org.elasticsearch.transport.TransportRequest;
 import org.elasticsearch.transport.TransportService;
 
 public class TransportNodesStats extends TransportNodesAction<NodesStatsRequest, NodesStatsResponse, TransportNodesStats.NodeStatsRequest, NodeStats> {
@@ -85,7 +85,7 @@ public class TransportNodesStats extends TransportNodesAction<NodesStatsRequest,
         return nodeService.stats();
     }
 
-    public static class NodeStatsRequest extends BaseNodeRequest {
+    public static class NodeStatsRequest extends TransportRequest {
 
         NodesStatsRequest request;
 
