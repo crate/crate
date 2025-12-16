@@ -46,4 +46,6 @@ series.
 Fixes
 =====
 
-None
+- Fixed a regression introduced in :ref:`version_6.1.0` that could lead to
+  mixing partial success results with error message in the response from the
+  ``HTTP`` endpoint.

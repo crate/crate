@@ -24,17 +24,23 @@ package io.crate.rest.action;
 import static io.crate.role.metadata.RolesHelper.JWT_TOKEN;
 import static io.crate.role.metadata.RolesHelper.JWT_USER;
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.atLeast;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.net.InetAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
+import org.mockito.ArgumentCaptor;
 
 import io.crate.auth.AuthSettings;
 import io.crate.auth.Protocol;
@@ -44,8 +50,17 @@ import io.crate.role.Role;
 import io.crate.role.metadata.RolesHelper;
 import io.crate.session.Session;
 import io.crate.session.Sessions;
+import io.netty.buffer.ByteBuf;
+import io.netty.buffer.Unpooled;
+import io.netty.channel.ChannelHandlerContext;
+import io.netty.channel.ChannelPromise;
+import io.netty.handler.codec.http.DefaultFullHttpRequest;
 import io.netty.handler.codec.http.DefaultHttpHeaders;
 import io.netty.handler.codec.http.FullHttpRequest;
+import io.netty.handler.codec.http.FullHttpResponse;
+import io.netty.handler.codec.http.HttpMethod;
+import io.netty.handler.codec.http.HttpResponseStatus;
+import io.netty.handler.codec.http.HttpVersion;
 
 public class SqlHttpHandlerTest {
 
@@ -142,6 +157,48 @@ public class SqlHttpHandlerTest {
 
         Role resolvedUser = handler.userFromAuthHeader("bearer " + JWT_TOKEN);
         assertThat(resolvedUser.name()).isEqualTo(JWT_USER.name());
+    }
+
+    @Test
+    public void test_partial_result_is_cleared_when_sending_an_error() {
+        Role dummyUser = RolesHelper.userOf("crate");
+        var sessionSettings = new CoordinatorSessionSettings(dummyUser);
+        var mockedSession = mock(Session.class);
+        when(mockedSession.sessionSettings()).thenReturn(sessionSettings);
+
+        var sessions = mock(Sessions.class);
+        when(sessions.newSession(any(), any(), any())).thenReturn(mockedSession);
+
+        SqlHttpHandler handler = new SqlHttpHandler(
+            Settings.EMPTY,
+            sessions,
+            _ -> new NoopCircuitBreaker("dummy"),
+            () -> List.of(Role.CRATE_USER)
+        );
+
+        // Imitate buffer holding results of partial success.
+        // For example, result set construction can be interrupted by CBE.
+        ByteBuf resultBuffer = Unpooled.buffer();
+        resultBuffer.writeBytes("dummy data written before it was interrupted".getBytes(StandardCharsets.UTF_8));
+
+        var request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "http://localhost:4200/sql");
+
+        ChannelHandlerContext ctx = mock(ChannelHandlerContext.class);
+        ChannelPromise promise = mock(ChannelPromise.class);
+        when(ctx.newPromise()).thenReturn(promise);
+        ArgumentCaptor<FullHttpResponse> responseCaptor = ArgumentCaptor.forClass(FullHttpResponse.class);
+        when(ctx.writeAndFlush(responseCaptor.capture(), eq(promise))).thenReturn(promise);
+
+        // Create internal session as it shouldn't be null for the test.
+        handler.ensureSession(null, request);
+        handler.sendResponse(ctx, request, Map.of(), resultBuffer, new CircuitBreakingException("CBE"));
+
+        FullHttpResponse response = responseCaptor.getValue();
+        ByteBuf responseContent = response.content();
+        String responseBody = responseContent.toString(StandardCharsets.UTF_8);
+        assertThat(responseBody).doesNotContain("dummy data written before it was interrupted");
+        assertThat(responseBody).contains("CBE");
+        assertThat(response.status()).isEqualTo(HttpResponseStatus.INTERNAL_SERVER_ERROR);
     }
 }
 
