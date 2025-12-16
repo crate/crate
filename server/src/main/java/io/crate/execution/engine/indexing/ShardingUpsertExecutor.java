@@ -47,7 +47,6 @@ import org.elasticsearch.action.support.RetryableAction;
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
-import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.unit.ByteSizeUnit;
@@ -367,9 +366,7 @@ public class ShardingUpsertExecutor
         @Override
         public void onFailure(Exception e) {
             nodeLimit.onSample(startTime);
-            if (e instanceof CircuitBreakingException) {
-                interrupt.set(e);
-            }
+            interrupt.set(e);
             countdown();
         }
 
