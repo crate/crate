@@ -151,10 +151,8 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
             oldIndices = in.readStringArray();
             IndicesOptions.readIndicesOptions(in);
         }
-        if (in.getVersion().onOrAfter(Version.V_4_4_0)) {
-            waitForTimeout = in.readTimeValue();
-            waitForMetadataVersion = in.readOptionalLong();
-        }
+        waitForTimeout = in.readTimeValue();
+        waitForMetadataVersion = in.readOptionalLong();
         String[] oldTemplates = Strings.EMPTY_ARRAY;
         if (in.getVersion().before(Version.V_6_0_0)) {
             oldTemplates = in.readStringArray();
@@ -186,10 +184,8 @@ public class ClusterStateRequest extends MasterNodeReadRequest<ClusterStateReque
             out.writeStringArray(relationNames.stream().map(RelationName::indexNameOrAlias).toArray(String[]::new));
             IndicesOptions.LENIENT_EXPAND_OPEN.writeIndicesOptions(out);
         }
-        if (out.getVersion().onOrAfter(Version.V_4_4_0)) {
-            out.writeTimeValue(waitForTimeout);
-            out.writeOptionalLong(waitForMetadataVersion);
-        }
+        out.writeTimeValue(waitForTimeout);
+        out.writeOptionalLong(waitForMetadataVersion);
         if (out.getVersion().before(Version.V_6_0_0)) {
             // old templates
             out.writeStringArray(

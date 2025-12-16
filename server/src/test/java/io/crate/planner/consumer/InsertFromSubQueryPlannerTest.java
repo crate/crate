@@ -22,19 +22,15 @@
 package io.crate.planner.consumer;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.io.IOException;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.OrderBy;
 import io.crate.analyze.TableDefinitions;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
 import io.crate.planner.Merge;
 import io.crate.planner.node.dql.Collect;
@@ -57,31 +53,6 @@ public class InsertFromSubQueryPlannerTest extends CrateDummyClusterServiceUnitT
             .build()
             .addTable(TableDefinitions.USER_TABLE_DEFINITION)
             .addTable("create table target (id int, name varchar)");
-    }
-
-    @Test
-    public void test_returning_for_insert_from_values_throw_error_with_4_1_nodes() throws Exception {
-        // Make sure the former initialized cluster service is shutdown
-        cleanup();
-        this.clusterService = createClusterService(
-            additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
-        e = buildExecutor(clusterService);
-        assertThatThrownBy(() -> e.plan("insert into users (id, name) values (1, 'bob') returning id"))
-            .isExactlyInstanceOf(UnsupportedFeatureException.class)
-            .hasMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
-    }
-
-    @Test
-    public void test_returning_for_insert_from_subquery_throw_error_with_4_1_nodes() throws Exception {
-        // Make sure the former initialized cluster service is shutdown
-        cleanup();
-        this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA,
-                Version.V_4_1_0);
-        e = buildExecutor(clusterService);
-        assertThatThrownBy(() ->
-                e.plan("insert into users (id, name) select '1' as id, 'b' as name returning id"))
-            .isExactlyInstanceOf(UnsupportedFeatureException.class)
-            .hasMessage(InsertFromSubQueryPlanner.RETURNING_VERSION_ERROR_MSG);
     }
 
     @Test

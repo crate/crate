@@ -19,34 +19,23 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.jobs.kill;
+package io.crate.jfr;
 
-import java.io.IOException;
+import java.lang.annotation.ElementType;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
+import java.lang.annotation.Target;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+import jdk.jfr.Label;
+import jdk.jfr.MetadataDefinition;
+import jdk.jfr.Name;
+import jdk.jfr.Relational;
 
-public class KillAllRequest extends TransportRequest {
-
-    private final String userName;
-
-    public KillAllRequest(String userName) {
-        this.userName = userName;
-    }
-
-    public KillAllRequest(StreamInput in) throws IOException {
-        super(in);
-        userName = in.readString();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(userName);
-    }
-
-    public String userName() {
-        return userName;
-    }
+@MetadataDefinition
+@Relational
+@Name("io.crate.JobId")
+@Label("Job ID")
+@Retention(RetentionPolicy.RUNTIME)
+@Target(ElementType.FIELD)
+public @interface JobId {
 }

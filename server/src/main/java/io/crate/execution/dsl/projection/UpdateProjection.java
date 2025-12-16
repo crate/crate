@@ -30,11 +30,9 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
 
-import io.crate.expression.symbol.InputColumn;
 import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.RowGranularity;
-import io.crate.types.DataTypes;
 
 public class UpdateProjection extends Projection {
 
@@ -88,28 +86,55 @@ public class UpdateProjection extends Projection {
         if (requiredVersion == 0) {
             requiredVersion = null;
         }
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            int outputSize = in.readVInt();
-            outputs = new Symbol[outputSize];
-            for (int i = 0; i < outputSize; i++) {
-                outputs[i] = Symbol.fromStream(in);
+        int outputSize = in.readVInt();
+        outputs = new Symbol[outputSize];
+        for (int i = 0; i < outputSize; i++) {
+            outputs[i] = Symbol.fromStream(in);
+        }
+        int returnValuesSize = in.readVInt();
+        if (returnValuesSize > 0) {
+            returnValues = new Symbol[returnValuesSize];
+            for (int i = 0; i < returnValuesSize; i++) {
+                returnValues[i] = Symbol.fromStream(in);
             }
-            int returnValuesSize = in.readVInt();
-            if (returnValuesSize > 0) {
-                returnValues = new Symbol[returnValuesSize];
-                for (int i = 0; i < returnValuesSize; i++) {
-                    returnValues[i] = Symbol.fromStream(in);
-                }
-            }
-        } else {
-            //Outputs should never be null and for BwC reasons
-            //the default value in pre 4.1 was a long for a count
-            outputs = new Symbol[]{new InputColumn(0, DataTypes.LONG)};
         }
         if (in.getVersion().onOrAfter(Version.V_5_10_5)) {
             this.fullDocSizeEstimate = in.readLong();
         } else {
             this.fullDocSizeEstimate = 0;
+        }
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        Symbol.toStream(uidSymbol, out);
+        out.writeVInt(assignmentsColumns.length);
+        for (int i = 0; i < assignmentsColumns.length; i++) {
+            out.writeString(assignmentsColumns[i]);
+        }
+        out.writeVInt(assignments.length);
+        for (int i = 0; i < assignments.length; i++) {
+            Symbol.toStream(assignments[i], out);
+        }
+        if (requiredVersion == null) {
+            out.writeVLong(0);
+        } else {
+            out.writeVLong(requiredVersion);
+        }
+        out.writeVInt(outputs.length);
+        for (int i = 0; i < outputs.length; i++) {
+            Symbol.toStream(outputs[i], out);
+        }
+        if (returnValues != null) {
+            out.writeVInt(returnValues.length);
+            for (int i = 0; i < returnValues.length; i++) {
+                Symbol.toStream(returnValues[i], out);
+            }
+        } else {
+            out.writeVInt(0);
+        }
+        if (out.getVersion().onOrAfter(Version.V_5_10_5)) {
+            out.writeLong(fullDocSizeEstimate);
         }
     }
 
@@ -190,38 +215,4 @@ public class UpdateProjection extends Projection {
         return result;
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        Symbol.toStream(uidSymbol, out);
-        out.writeVInt(assignmentsColumns.length);
-        for (int i = 0; i < assignmentsColumns.length; i++) {
-            out.writeString(assignmentsColumns[i]);
-        }
-        out.writeVInt(assignments.length);
-        for (int i = 0; i < assignments.length; i++) {
-            Symbol.toStream(assignments[i], out);
-        }
-        if (requiredVersion == null) {
-            out.writeVLong(0);
-        } else {
-            out.writeVLong(requiredVersion);
-        }
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeVInt(outputs.length);
-            for (int i = 0; i < outputs.length; i++) {
-                Symbol.toStream(outputs[i], out);
-            }
-            if (returnValues != null) {
-                out.writeVInt(returnValues.length);
-                for (int i = 0; i < returnValues.length; i++) {
-                    Symbol.toStream(returnValues[i], out);
-                }
-            } else {
-                out.writeVInt(0);
-            }
-        }
-        if (out.getVersion().onOrAfter(Version.V_5_10_5)) {
-            out.writeLong(fullDocSizeEstimate);
-        }
-    }
 }

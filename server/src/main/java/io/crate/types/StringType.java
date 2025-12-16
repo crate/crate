@@ -42,7 +42,6 @@ import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.TermRangeQuery;
 import org.apache.lucene.util.BytesRef;
 import org.apache.lucene.util.RamUsageEstimator;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -189,11 +188,12 @@ public class StringType extends DataType<String> implements Streamer<String> {
     }
 
     public StringType(StreamInput in) throws IOException {
-        if (in.getVersion().onOrAfter(Version.V_4_2_0)) {
-            lengthLimit = in.readInt();
-        } else {
-            lengthLimit = Integer.MAX_VALUE;
-        }
+        lengthLimit = in.readInt();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        out.writeInt(lengthLimit);
     }
 
     protected StringType() {
@@ -374,12 +374,6 @@ public class StringType extends DataType<String> implements Streamer<String> {
         out.writeOptionalString(v);
     }
 
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-            out.writeInt(lengthLimit);
-        }
-    }
 
     @Override
     public boolean equals(Object o) {

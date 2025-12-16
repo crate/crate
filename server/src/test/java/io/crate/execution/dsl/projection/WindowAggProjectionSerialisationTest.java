@@ -29,7 +29,6 @@ import java.io.IOException;
 import java.util.List;
 import java.util.Set;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
@@ -93,42 +92,6 @@ public class WindowAggProjectionSerialisationTest {
         assertThat(
             (List<Symbol>) actualWindowAggProjection.outputs()).containsExactly(standaloneInput, firstWindowFunction, secondWindowFunction);
         assertThat(actualWindowAggProjection).isEqualTo(expectedWindowAggProjection);
-    }
-
-    @Test
-    @SuppressWarnings("unchecked")
-    public void test_window_agg_projection_serialization_with_filter_before_4_1_0()
-        throws IOException {
-        FunctionImplementation sumFunctionImpl = getSumFunction();
-
-        WindowDefinition partitionByOneWindowDef =
-            new WindowDefinition(singletonList(Literal.of(1L)), null, null);
-
-        WindowFunction windowFunction = new WindowFunction(
-            sumFunctionImpl.signature(),
-            singletonList(Literal.of(2L)),
-            sumFunctionImpl.boundSignature().returnType(),
-            null,
-            partitionByOneWindowDef,
-            null);
-
-        Symbol standaloneInput = Literal.of(42L);
-        var windowAggProjection = new WindowAggProjection(
-            partitionByOneWindowDef,
-            List.of(windowFunction),
-            List.of(standaloneInput));
-
-        var output = new BytesStreamOutput();
-        output.setVersion(Version.V_4_0_0);
-        windowAggProjection.writeTo(output);
-
-        var input = output.bytes().streamInput();
-        input.setVersion(Version.V_4_0_0);
-        var actualWindowAggProjection = new WindowAggProjection(input);
-
-        assertThat(
-            (List<Symbol>) actualWindowAggProjection.outputs()).containsExactly(standaloneInput, windowFunction);
-        assertThat(actualWindowAggProjection.windowFunctions().get(0).filter()).isNull();
     }
 
     private FunctionImplementation getSumFunction() {

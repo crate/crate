@@ -29,7 +29,6 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
@@ -49,16 +48,6 @@ public class WindowFunction extends Function {
     @Nullable
     private final Boolean ignoreNulls;
 
-    public WindowFunction(StreamInput in) throws IOException {
-        super(in);
-        windowDefinition = new WindowDefinition(in);
-        if (in.getVersion().onOrAfter(Version.V_4_7_0)) {
-            ignoreNulls = in.readOptionalBoolean();
-        } else {
-            ignoreNulls = null;
-        }
-    }
-
     public WindowFunction(Signature signature,
                           List<Symbol> arguments,
                           DataType<?> returnType,
@@ -70,6 +59,19 @@ public class WindowFunction extends Function {
             "only window and aggregate functions are allowed to be modelled over a window";
         this.windowDefinition = windowDefinition;
         this.ignoreNulls = ignoreNulls;
+    }
+
+    public WindowFunction(StreamInput in) throws IOException {
+        super(in);
+        windowDefinition = new WindowDefinition(in);
+        ignoreNulls = in.readOptionalBoolean();
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        windowDefinition.writeTo(out);
+        out.writeOptionalBoolean(ignoreNulls);
     }
 
     public WindowDefinition windowDefinition() {
@@ -119,15 +121,6 @@ public class WindowFunction extends Function {
     @Override
     public SymbolType symbolType() {
         return SymbolType.WINDOW_FUNCTION;
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        windowDefinition.writeTo(out);
-        if (out.getVersion().onOrAfter(Version.V_4_7_0)) {
-            out.writeOptionalBoolean(ignoreNulls);
-        }
     }
 
     @Override

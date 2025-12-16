@@ -43,9 +43,6 @@ import java.util.Map;
 import java.util.function.Consumer;
 
 import org.assertj.core.api.Assertions;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.BytesStreamOutput;
-import org.elasticsearch.common.io.stream.StreamInput;
 import org.joda.time.Period;
 import org.joda.time.PeriodType;
 import org.junit.Test;
@@ -63,7 +60,6 @@ import io.crate.exceptions.SchemaUnknownException;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.UnsupportedFunctionException;
 import io.crate.execution.engine.aggregation.impl.average.AverageAggregation;
-import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.operator.EqOperator;
 import io.crate.expression.operator.LikeOperators;
 import io.crate.expression.operator.LteOperator;
@@ -86,11 +82,8 @@ import io.crate.expression.symbol.SelectSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.Symbols;
-import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.RowGranularity;
-import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.sys.SysNodesTableInfo;
 import io.crate.sql.parser.ParsingException;
 import io.crate.sql.tree.BitString;
@@ -2392,39 +2385,6 @@ public class SelectStatementAnalyzerTest extends CrateDummyClusterServiceUnitTes
             .addTable(T3.T1_DEFINITION);
         AnalyzedRelation rel = executor.analyze("SELECT t._score, t._id, t._version, t._score, t._uid, t._doc, t._raw, t._primary_term FROM t1 as t");
         assertThat(rel.outputs()).hasSize(8);
-    }
-
-    @Test
-    public void test_match_with_geo_shape_is_streamed_as_text_type_to_4_1_8_nodes() throws Exception {
-        var executor = SQLExecutor.of(clusterService)
-            .addTable("create table test (shape GEO_SHAPE)");
-
-        String stmt = "SELECT * FROM test WHERE MATCH (shape, 'POINT(1.2 1.3)')";
-        QueriedSelectRelation rel = executor.analyze(stmt);
-        Symbol where = rel.where();
-        assertThat(where).isExactlyInstanceOf(MatchPredicate.class);
-
-        DocTableInfo table = executor.resolveTableInfo("test");
-        EvaluatingNormalizer normalizer = new EvaluatingNormalizer(
-            executor.nodeCtx,
-            RowGranularity.DOC,
-            null,
-            new DocTableRelation(table)
-        );
-        Symbol normalized = normalizer.normalize(where, CoordinatorTxnCtx.systemTransactionContext());
-        assertThat(normalized).isFunction("match");
-        Function match = (Function) normalized;
-        assertThat(match.arguments().get(1).valueType()).isEqualTo(DataTypes.GEO_SHAPE);
-        assertThat(match.signature().getArgumentDataTypes().get(1)).isEqualTo(DataTypes.GEO_SHAPE);
-
-        BytesStreamOutput out = new BytesStreamOutput();
-        out.setVersion(Version.V_4_1_8);
-        match.writeTo(out);
-
-        StreamInput in = out.bytes().streamInput();
-        in.setVersion(Version.V_4_1_8);
-        Function serializedTo41 = new Function(in);
-        assertThat(serializedTo41.signature().getArgumentDataTypes().get(1)).isEqualTo(DataTypes.STRING);
     }
 
     @Test

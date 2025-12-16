@@ -19,22 +19,23 @@
 
 package org.elasticsearch.indices.recovery;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.node.DiscoveryNode;
-import org.elasticsearch.cluster.routing.RecoverySource;
-import org.elasticsearch.cluster.routing.ShardRouting;
-import org.jspecify.annotations.Nullable;
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.common.io.stream.Writeable;
-import io.crate.common.unit.TimeValue;
-import org.elasticsearch.index.shard.IndexShard;
-import org.elasticsearch.index.shard.ShardId;
-
 import java.io.IOException;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.cluster.node.DiscoveryNode;
+import org.elasticsearch.cluster.routing.RecoverySource;
+import org.elasticsearch.cluster.routing.ShardRouting;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.elasticsearch.common.io.stream.Writeable;
+import org.elasticsearch.index.shard.IndexShard;
+import org.elasticsearch.index.shard.ShardId;
+import org.jspecify.annotations.Nullable;
+
+import io.crate.common.unit.TimeValue;
 
 /**
  * Keeps track of state related to shard recovery.
@@ -452,9 +453,7 @@ public class RecoveryState implements Writeable {
             recovered = in.readVInt();
             total = in.readVInt();
             totalOnStart = in.readVInt();
-            if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
-                totalLocal = in.readVInt();
-            }
+            totalLocal = in.readVInt();
         }
 
         @Override
@@ -465,9 +464,7 @@ public class RecoveryState implements Writeable {
                 out.writeVInt(recovered);
                 out.writeVInt(total);
                 out.writeVInt(totalOnStart);
-                if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-                    out.writeVInt(totalLocal);
-                }
+                out.writeVInt(totalLocal);
             }
         }
     }

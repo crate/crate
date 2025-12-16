@@ -21,9 +21,6 @@
 
 package io.crate.expression.eval;
 
-import static io.crate.expression.predicate.MatchPredicate.TEXT_MATCH;
-
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -32,8 +29,6 @@ import java.util.function.Predicate;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.elasticsearch.Version;
-import org.elasticsearch.common.io.stream.StreamOutput;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.analyze.relations.FieldResolver;
@@ -163,31 +158,7 @@ public class EvaluatingNormalizer {
                     arguments,
                     context.sessionSettings().searchPath()
                 );
-                // In 4.1 the match function was registered to (object, text, text, object)
-                //
-                // But now the default constructor for Function creates a FunctionInfo where it uses the types of the arguments
-                // And the arguments here can be (object, geo_shape, text, object) for MATCH on shapes
-                // For mixed cluster compatibility it is necessary to use a "incorrect" FunctionInfo
-                return new Function(implementation.signature(), arguments, DataTypes.BOOLEAN) {
-
-                    @Override
-                    public void writeTo(StreamOutput out) throws IOException {
-                        if (out.getVersion().onOrAfter(Version.V_4_2_4)) {
-                            super.writeTo(out);
-                        } else {
-                            TEXT_MATCH.writeAsFunctionInfo(out, TEXT_MATCH.getArgumentDataTypes());
-                            if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-                                Symbol.nullableToStream(filter, out);
-                            }
-                            Symbols.toStream(arguments, out);
-                            if (out.getVersion().onOrAfter(Version.V_4_2_0)) {
-                                out.writeBoolean(true);
-                                signature.writeTo(out);
-                                DataTypes.toStream(returnType, out);
-                            }
-                        }
-                    }
-                };
+                return new Function(implementation.signature(), arguments, DataTypes.BOOLEAN);
             }
 
             HashMap<Symbol, Symbol> fieldBoostMap = new HashMap<>(matchPredicate.identBoostMap().size());

@@ -23,8 +23,6 @@ import java.io.IOException;
 import java.util.Collections;
 import java.util.EnumSet;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -58,9 +56,6 @@ public class CommonStatsFlags implements Writeable, Cloneable {
                 flags.add(flag);
             }
         }
-        if (in.getVersion().before(Version.V_4_3_0)) {
-            in.readStringArray();
-        }
         groups = in.readStringArray();
         fieldDataFields = in.readStringArray();
         completionDataFields = in.readStringArray();
@@ -75,9 +70,6 @@ public class CommonStatsFlags implements Writeable, Cloneable {
         }
         out.writeLong(longFlags);
 
-        if (out.getVersion().before(Version.V_4_3_0)) {
-            out.writeStringArrayNullable(Strings.EMPTY_ARRAY);
-        }
         out.writeStringArrayNullable(groups);
         out.writeStringArrayNullable(fieldDataFields);
         out.writeStringArrayNullable(completionDataFields);

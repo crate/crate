@@ -34,15 +34,12 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import java.io.IOException;
 import java.util.Map;
 
-import org.elasticsearch.Version;
-import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.analyze.TableDefinitions;
 import io.crate.data.Row;
-import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.dsl.phases.MergePhase;
 import io.crate.execution.dsl.phases.RoutedCollectPhase;
@@ -216,17 +213,6 @@ public class UpdatePlannerTest extends CrateDummyClusterServiceUnitTest {
         SelectSymbol innerSubSelectSymbol = outerSubSelectPlan.dependencies().values().iterator().next();
         assertThat(innerSubSelectSymbol.getResultType()).isEqualTo(SINGLE_COLUMN_MULTIPLE_VALUES);
         assertThat(e.getStats(innerSubSelectPlan).numDocs()).isEqualTo(-1L);
-    }
-
-    @Test
-    public void test_returning_for_update_throw_error_with_4_1_nodes() throws Exception {
-        // Make sure the former initialized cluster service is shutdown
-        cleanup();
-        this.clusterService = createClusterService(additionalClusterSettings(), Metadata.EMPTY_METADATA, Version.V_4_1_0);
-        e = buildExecutor(clusterService);
-        assertThatThrownBy(() -> e.plan("update users set name='test' where id=1 returning id"))
-            .isExactlyInstanceOf(UnsupportedFeatureException.class)
-            .hasMessage(UpdatePlanner.RETURNING_VERSION_ERROR_MSG);
     }
 
     public void test_update_on_query_contains_full_doc_size_estimate() throws Exception {

@@ -19,34 +19,33 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.execution.jobs.kill;
+package io.crate.jfr;
 
-import java.io.IOException;
+import jdk.jfr.Category;
+import jdk.jfr.Contextual;
+import jdk.jfr.Enabled;
+import jdk.jfr.Event;
+import jdk.jfr.Label;
+import jdk.jfr.Name;
+import jdk.jfr.StackTrace;
 
-import org.elasticsearch.common.io.stream.StreamInput;
-import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.transport.TransportRequest;
+@Category("CrateDB")
+@Name("io.crate.Stmt")
+@StackTrace(false)
+@Enabled(false)
+public class StmtEvent extends Event {
 
-public class KillAllRequest extends TransportRequest {
+    @Label("ID")
+    @Contextual
+    @JobId
+    public String id;
 
-    private final String userName;
+    @Label("Statement")
+    public String stmt;
 
-    public KillAllRequest(String userName) {
-        this.userName = userName;
-    }
+    @Label("Affected rows")
+    public long affectedRowCount;
 
-    public KillAllRequest(StreamInput in) throws IOException {
-        super(in);
-        userName = in.readString();
-    }
-
-    @Override
-    public void writeTo(StreamOutput out) throws IOException {
-        super.writeTo(out);
-        out.writeString(userName);
-    }
-
-    public String userName() {
-        return userName;
-    }
+    @Label("Classification")
+    public String classification;
 }

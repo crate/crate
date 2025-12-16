@@ -21,10 +21,8 @@ package org.elasticsearch.indices.recovery;
 
 import java.io.IOException;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.elasticsearch.index.seqno.SequenceNumbers;
 import org.elasticsearch.index.shard.ShardId;
 import org.elasticsearch.index.store.Store;
 
@@ -56,11 +54,7 @@ public class RecoveryCleanFilesRequest extends RecoveryTransportRequest {
         shardId = new ShardId(in);
         snapshotFiles = new Store.MetadataSnapshot(in);
         totalTranslogOps = in.readVInt();
-        if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
-            globalCheckpoint = in.readZLong();
-        } else {
-            globalCheckpoint = SequenceNumbers.UNASSIGNED_SEQ_NO;
-        }
+        globalCheckpoint = in.readZLong();
     }
 
     @Override
@@ -70,9 +64,7 @@ public class RecoveryCleanFilesRequest extends RecoveryTransportRequest {
         shardId.writeTo(out);
         snapshotFiles.writeTo(out);
         out.writeVInt(totalTranslogOps);
-        if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-            out.writeZLong(globalCheckpoint);
-        }
+        out.writeZLong(globalCheckpoint);
     }
 
     public Store.MetadataSnapshot sourceMetaSnapshot() {

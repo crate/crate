@@ -28,7 +28,6 @@ import java.util.function.Consumer;
 import java.util.function.Predicate;
 
 import org.apache.lucene.util.Accountable;
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -81,13 +80,9 @@ public interface Symbol extends Writeable, Accountable {
     }
 
     public static void toStream(Symbol symbol, StreamOutput out) throws IOException {
-        if (out.getVersion().before(Version.V_4_2_0) && symbol instanceof AliasSymbol aliasSymbol) {
-            toStream(aliasSymbol.symbol(), out);
-        } else {
-            int ordinal = symbol.symbolType().ordinal();
-            out.writeVInt(ordinal);
-            symbol.writeTo(out);
-        }
+        int ordinal = symbol.symbolType().ordinal();
+        out.writeVInt(ordinal);
+        symbol.writeTo(out);
     }
 
     public static Symbol fromStream(StreamInput in) throws IOException {

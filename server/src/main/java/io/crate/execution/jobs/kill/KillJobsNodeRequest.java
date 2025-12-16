@@ -27,14 +27,12 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 
-import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.transport.TransportRequest;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.common.annotations.VisibleForTesting;
-import io.crate.role.Role;
 
 public class KillJobsNodeRequest extends TransportRequest {
 
@@ -85,18 +83,8 @@ public class KillJobsNodeRequest extends TransportRequest {
                 UUID job = new UUID(in.readLong(), in.readLong());
                 toKill.add(job);
             }
-            if (in.getVersion().onOrAfter(Version.V_4_1_0)) {
-                reason = in.readOptionalString();
-            } else {
-                reason = null;
-            }
-            if (in.getVersion().onOrAfter(Version.V_4_3_0)) {
-                userName = in.readString();
-            } else {
-                // Before 4.3 the only user who was allowed to invoke KILL was the super-user
-                // So we know it must have been `crate`
-                userName = Role.CRATE_USER.name();
-            }
+            reason = in.readOptionalString();
+            userName = in.readString();
         }
 
         @Override
@@ -108,12 +96,8 @@ public class KillJobsNodeRequest extends TransportRequest {
                 out.writeLong(job.getMostSignificantBits());
                 out.writeLong(job.getLeastSignificantBits());
             }
-            if (out.getVersion().onOrAfter(Version.V_4_1_0)) {
-                out.writeOptionalString(reason);
-            }
-            if (out.getVersion().onOrAfter(Version.V_4_3_0)) {
-                out.writeString(userName);
-            }
+            out.writeOptionalString(reason);
+            out.writeString(userName);
         }
 
         @Override
