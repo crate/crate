@@ -25,7 +25,9 @@ package io.crate.types;
 import java.io.IOException;
 import java.io.UncheckedIOException;
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Function;
 
@@ -52,6 +54,8 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
 
     public static final int ID = 14;
     public static final GeoShapeType INSTANCE = new GeoShapeType();
+
+    private static final long ARRAYLIST_SIZE = RamUsageEstimator.shallowSizeOfInstance(ArrayList.class);
 
 
     public static class Names {
@@ -171,7 +175,9 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
         return switch (object) {
             case Map<?, ?> map -> sizeOf(map);
             case Collection<?> collection -> {
-                long bytes = RamUsageEstimator.shallowSizeOf(collection);
+                long bytes = collection instanceof ArrayList
+                    ? ARRAYLIST_SIZE
+                    : RamUsageEstimator.shallowSizeOf(collection);
                 for (var item : collection) {
                     bytes += sizeOf(item);
                 }
@@ -203,7 +209,9 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     private static long sizeOf(Map<?, ?> map) {
-        long bytes = RamUsageEstimator.shallowSizeOf(map);
+        long bytes = map instanceof LinkedHashMap
+            ? ObjectType.LINKED_HASHMAP_SIZE
+            : ObjectType.HASHMAP_SIZE;
         long entrySize = -1;
         for (var entry : map.entrySet()) {
             if (entrySize == -1) {

@@ -204,14 +204,14 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
         UnaryOperator<Map<String, Object>> normalize = geoJson -> {
             return type.implicitCast(GeoJSONUtils.map2Shape(geoJson));
         };
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(0)))).isEqualTo(264);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(1)))).isEqualTo(320);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(2)))).isEqualTo(424);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(3)))).isEqualTo(600);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(4)))).isEqualTo(824);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(5)))).isEqualTo(424);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(6)))).isEqualTo(1320);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(7)))).isEqualTo(880);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(0)))).isEqualTo(280);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(1)))).isEqualTo(336);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(2)))).isEqualTo(440);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(3)))).isEqualTo(616);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(4)))).isEqualTo(872);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(5)))).isEqualTo(440);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(6)))).isEqualTo(1368);
+        assertThat(type.valueBytes(normalize.apply(geoJson.get(7)))).isEqualTo(928);
     }
 
     @Test
