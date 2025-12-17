@@ -43,6 +43,7 @@ import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.jobs.TasksService;
@@ -133,16 +134,16 @@ public abstract class TransportShardAction<
         return withActiveOperation(replicaRequest, callable);
     }
 
-    private <WrapperResponse> WrapperResponse withActiveOperation(ShardRequest<?, ?> request,
-                                                                  KillableCallable<WrapperResponse> callable) {
+    @VisibleForTesting
+    <WrapperResponse> WrapperResponse withActiveOperation(ShardRequest<?, ?> request,
+                                                          KillableCallable<WrapperResponse> callable) {
         CircuitBreaker breaker = circuitBreakerService.getBreaker(CircuitBreaker.QUERY);
         // Request is already accounted by the transport layer, but we account extra to account for the replica request copy
         long ramBytesUsed = request.ramBytesUsed();
-        breaker.addEstimateBytesAndMaybeBreak(ramBytesUsed, "upsert request");
-
         TaskId id = request.getParentTask();
         activeOperations.put(id, callable);
         try {
+            breaker.addEstimateBytesAndMaybeBreak(ramBytesUsed, "upsert request");
             return callable.call();
         } catch (Throwable t) {
             throw Exceptions.toRuntimeException(t);
