@@ -338,4 +338,49 @@ public class HttpAuthUpstreamHandlerTest extends ESTestCase {
         verify(jwtAuth, times(1)).authenticate(any(Credentials.class), any(ConnectionProperties.class));
     }
 
+    @Test
+    public void test_no_hba_entry_request_released() throws Exception {
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(
+            Settings.EMPTY,
+            // Imitation of no valid HBA entry.
+            (_, _) -> null,
+            new StubRoleManager()
+        );
+
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+        DefaultFullHttpRequest request = new DefaultFullHttpRequest(
+            HttpVersion.HTTP_1_1,
+            HttpMethod.GET,
+            "/_sql",
+            ch.alloc().buffer().writeBytes("test".getBytes(StandardCharsets.UTF_8))
+        );
+
+        int initialRefCount = request.content().refCnt();
+        assertThat(initialRefCount).isGreaterThan(0);
+
+        ch.writeInbound(request);
+        // No need for ch.releaseInbound()
+        // as fireChannelRead was not called in this path,
+        // message didn't reach end of pipeline and was not added to the queue.
+        assertThat(request.content().refCnt()).isEqualTo(0);
+    }
+
+    @Test
+    public void test_auth_failure_request_released() throws Exception {
+        Authentication authServiceNoHBA = new AlwaysOKAuthentication(List::of);
+        HttpAuthUpstreamHandler handler = new HttpAuthUpstreamHandler(Settings.EMPTY, authServiceNoHBA, new StubRoleManager());
+        EmbeddedChannel ch = new EmbeddedChannel(handler);
+
+        DefaultFullHttpRequest request = new DefaultFullHttpRequest(HttpVersion.HTTP_1_1, HttpMethod.POST, "/_sql");
+        request.headers().add(HttpHeaderNames.AUTHORIZATION.toString(), "Basic QWxhZGRpbjpPcGVuU2VzYW1l");
+        int initialRefCount = request.content().refCnt();
+        assertThat(initialRefCount).isGreaterThan(0);
+
+        ch.writeInbound(request);
+        // No need for ch.releaseInbound()
+        // as fireChannelRead was not called in this path,
+        // message didn't reach end of pipeline and was not added to the queue.
+        assertThat(handler.authorized()).isFalse();
+        assertThat(request.content().refCnt()).isEqualTo(0);
+    }
 }
