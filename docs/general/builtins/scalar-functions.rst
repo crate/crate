@@ -4298,6 +4298,18 @@ Example::
 
 Returns the server start time as ``timestamp with time zone``.
 
+.. _scalar-pg_sleep:
+
+``pg_catalog.pg_sleep(duration)``
+---------------------------------
+
+Pause the session for ``duration`` seconds.
+
+Returns: ``null`` of ``undefined`` data type.
+
+``duration`` argument is of type ``double precision`` and expresses the desired
+pause period in seconds.
+
 
 .. _scalar-current_catalog:
 
