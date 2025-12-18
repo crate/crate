@@ -33,6 +33,7 @@ import org.elasticsearch.action.support.replication.TransportWriteAction;
 import org.elasticsearch.cluster.action.shard.ShardStateAction;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.breaker.CircuitBreaker;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.settings.Settings;
@@ -43,7 +44,6 @@ import org.elasticsearch.tasks.TaskId;
 import org.elasticsearch.threadpool.ThreadPool;
 import org.elasticsearch.transport.TransportService;
 
-import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.exceptions.Exceptions;
 import io.crate.exceptions.JobKilledException;
 import io.crate.execution.jobs.TasksService;
@@ -116,7 +116,7 @@ public abstract class TransportShardAction<
                     return processRequestItems(primary, request, killed);
                 }
             };
-            listener.onResponse(withActiveOperation(request, callable));
+            listener.onResponse(withActiveOperation(request, callable, true));
         } catch (Throwable t) {
             listener.onFailure(Exceptions.toRuntimeException(t));
         }
@@ -131,19 +131,26 @@ public abstract class TransportShardAction<
                 return processRequestItemsOnReplica(indexShard, replicaRequest);
             }
         };
-        return withActiveOperation(replicaRequest, callable);
+        return withActiveOperation(replicaRequest, callable, false);
     }
 
-    @VisibleForTesting
     <WrapperResponse> WrapperResponse withActiveOperation(ShardRequest<?, ?> request,
-                                                          KillableCallable<WrapperResponse> callable) {
+                                                          KillableCallable<WrapperResponse> callable,
+                                                          boolean primary) {
         CircuitBreaker breaker = circuitBreakerService.getBreaker(CircuitBreaker.QUERY);
         // Request is already accounted by the transport layer, but we account extra to account for the replica request copy
         long ramBytesUsed = request.ramBytesUsed();
+        if (primary == false) {
+            // Let's throw it before addEstimateBytesAndMaybeBreak, so that we don't falsely add bytes
+            // and don't get false positive "CB not reset" errors.
+            throw new CircuitBreakingException("dummy");
+        }
+        breaker.addEstimateBytesAndMaybeBreak(ramBytesUsed, "upsert request");
+
+
         TaskId id = request.getParentTask();
         activeOperations.put(id, callable);
         try {
-            breaker.addEstimateBytesAndMaybeBreak(ramBytesUsed, "upsert request");
             return callable.call();
         } catch (Throwable t) {
             throw Exceptions.toRuntimeException(t);

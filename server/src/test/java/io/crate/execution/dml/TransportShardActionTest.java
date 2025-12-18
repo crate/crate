@@ -84,7 +84,7 @@ public class TransportShardActionTest extends CrateDummyClusterServiceUnitTest {
                 public Object call() throws Exception {
                     return null;
                 }
-            }))
+            }, true))
             .isExactlyInstanceOf(CircuitBreakingException.class)
             .hasMessage("broken");
         assertThat(circuitBreaker.getUsed()).isEqualTo(oldUsed);
