@@ -18,5 +18,12 @@ dnslib
 crate-docs-theme>=0.35.0
 sphinx-csv-filter==0.4.0
 
+# docutils 0.21 currently has problems with the `sphinx-csv-filter` addon.
+# In crate/crate, appendices/compliance.rst:6, an exception is raised:
+# ERROR: One or more indexes of included_cols are not valid. The CSV data
+# does not contain that many columns. [docutils]
+# https://github.com/crate/sphinx_csv_filter/issues/52
+docutils<0.21
+
 # Documentation: local development
 sphinx-autobuild<2024
