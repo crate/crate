@@ -25,7 +25,7 @@ CrateDB supports, along with implementation notes and any associated caveats.
    :widths: 80,140,15,250,130
    :delim: U+0009
    :file: ../../server/src/main/resources/sql_features.tsv
-   :exclude: {4: '(?i)N\w*'}
+   :exclude: {4: '(?i)N\\w*'}
    :included_cols: 0,1,2,3,6
 
 .. _ISO/IEC 9075: https://www.iso.org/obp/ui/#iso:std:iso-iec:9075:-2:ed-4:v1:en
