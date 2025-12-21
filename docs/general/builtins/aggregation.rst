@@ -697,8 +697,8 @@ If all input values are null, null is returned as a result.
 --------------------------------------------------------------
 
 The ``percentile`` aggregate function computes a `Percentile`_ over numeric
-non-null values in a column. Values of type :ref:`NUMERIC <type-numeric>` are
-not supported.
+or interval non-null values in a column. Values of type
+:ref:`NUMERIC <type-numeric>` are not supported.
 
 Percentiles show the point at which a certain percentage of observed values
 occur. For example, the 98th percentile is the value which is greater than 98%
@@ -707,12 +707,12 @@ weighted average. According to that it allows the median of the input data to
 be defined conveniently as the 50th percentile.
 
 The :ref:`function <gloss-function>` expects a single fraction or an array of
-fractions and a column name. Independent of the input column data type the
-result of ``percentile`` always returns a ``double precision``. If the value at
-the specified column is ``null`` the row is ignored. Fractions must be double
-precision values between 0 and 1. When supplied a single fraction, the function
-will return a single value corresponding to the percentile of the specified
-fraction::
+fractions and a column name. For numeric input types, the result of
+``percentile`` returns a ``double precision``. For ``interval`` input types,
+the result returns an ``interval``. If the value at the specified column is
+``null`` the row is ignored. Fractions must be double precision values between
+0 and 1. When supplied a single fraction, the function will return a single
+value corresponding to the percentile of the specified fraction::
 
     cr> select percentile(position, 0.95), kind from locations
     ... group by kind order by kind;
@@ -738,6 +738,18 @@ values corresponding to the percentile of each fraction specified::
 
 When a query with ``percentile`` function won't match any rows then a null
 result is returned.
+
+When supplied an ``interval`` type column (e.g., from timestamp subtraction),
+the function will return an ``interval``::
+
+    cr> select percentile(now() - date, 0.5) as median_age from locations
+    ... where date is not null;
+    +------------------------+
+    | median_age             |
+    +------------------------+
+    | ... days ...           |
+    +------------------------+
+    SELECT 1 row in set (... sec)
 
 To be able to calculate percentiles over a huge amount of data and to scale out
 CrateDB calculates approximate instead of accurate percentiles. The algorithm
