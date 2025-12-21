@@ -1,0 +1,233 @@
+/*
+ * Licensed to Crate.io GmbH ("Crate") under one or more contributor
+ * license agreements.  See the NOTICE file distributed with this work for
+ * additional information regarding copyright ownership.  Crate licenses
+ * this file to you under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.  You may
+ * obtain a copy of the License at
+ *
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
+ * WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  See the
+ * License for the specific language governing permissions and limitations
+ * under the License.
+ *
+ * However, if you have executed another commercial license agreement
+ * with Crate these terms will supersede the license and you may use the
+ * software solely pursuant to the terms of the relevant commercial agreement.
+ */
+
+package io.crate.execution.engine.aggregation.impl;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import org.elasticsearch.Version;
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.joda.time.Period;
+import org.joda.time.PeriodType;
+import org.jspecify.annotations.Nullable;
+
+import io.crate.data.Input;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.aggregation.AggregationFunction;
+import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionType;
+import io.crate.metadata.Functions;
+import io.crate.metadata.Scalar;
+import io.crate.metadata.functions.BoundSignature;
+import io.crate.metadata.functions.Signature;
+import io.crate.types.ArrayType;
+import io.crate.types.DataType;
+import io.crate.types.DataTypes;
+import io.crate.types.IntervalType;
+
+public class IntervalPercentileAggregation extends AggregationFunction<TDigestState, Object> {
+
+    public static final String NAME = "percentile";
+
+    public static void register(Functions.Builder builder) {
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                )
+                .returnType(DataTypes.INTERVAL.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            IntervalPercentileAggregation::new
+        );
+
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE_ARRAY.getTypeSignature()
+                )
+                .returnType(new ArrayType<>(DataTypes.INTERVAL).getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            IntervalPercentileAggregation::new
+        );
+
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                )
+                .returnType(DataTypes.INTERVAL.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            IntervalPercentileAggregation::new
+        );
+
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                )
+                .returnType(new ArrayType<>(DataTypes.INTERVAL).getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            IntervalPercentileAggregation::new
+        );
+    }
+
+    private final Signature signature;
+    private final BoundSignature boundSignature;
+
+    private IntervalPercentileAggregation(Signature signature, BoundSignature boundSignature) {
+        this.signature = signature;
+        this.boundSignature = boundSignature;
+    }
+
+    @Override
+    public Signature signature() {
+        return signature;
+    }
+
+    @Override
+    public BoundSignature boundSignature() {
+        return boundSignature;
+    }
+
+    @Nullable
+    @Override
+    public TDigestState newState(RamAccounting ramAccounting,
+                                 Version minNodeInCluster,
+                                 MemoryManager memoryManager) {
+        ramAccounting.addBytes(TDigestState.SHALLOW_SIZE);
+        return TDigestState.createEmptyState();
+    }
+
+    @Override
+    public TDigestState iterate(RamAccounting ramAccounting,
+                                MemoryManager memoryManager,
+                                TDigestState state,
+                                Input<?>... args) throws CircuitBreakingException {
+        if (state.isEmpty()) {
+            Object fractionValue = args[1].value();
+            if (args.length > 2) {
+                Double compression = DataTypes.DOUBLE.sanitizeValue(args[2].value());
+                state = new TDigestState(compression, new double[]{});
+            }
+            initState(state, fractionValue, ramAccounting);
+        }
+        Period value = DataTypes.INTERVAL.sanitizeValue(args[0].value());
+        if (value != null) {
+            double millis = IntervalType.toStandardDuration(value).doubleValue();
+            int delta = state.addGetSizeDelta(millis);
+            if (delta > 0) {
+                ramAccounting.addBytes(delta);
+            }
+        }
+        return state;
+    }
+
+    private void initState(TDigestState state, Object argValue, RamAccounting ramAccounting) {
+        if (argValue != null) {
+            if (argValue instanceof List<?> values) {
+                if (values.isEmpty() || containsNull(values)) {
+                    throw new IllegalArgumentException("no fraction value specified");
+                }
+                ramAccounting.addBytes((long) values.size() * Double.BYTES);
+                state.fractions(toDoubleArray(values));
+            } else {
+                ramAccounting.addBytes(Double.BYTES);
+                state.fractions(new double[]{DataTypes.DOUBLE.sanitizeValue(argValue)});
+            }
+        }
+    }
+
+    private static boolean containsNull(List<?> values) {
+        for (Object value : values) {
+            if (value == null) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    private static double[] toDoubleArray(List<?> values) {
+        double[] result = new double[values.size()];
+        for (int i = 0; i < values.size(); i++) {
+            result[i] = DataTypes.DOUBLE.sanitizeValue(values.get(i));
+        }
+        return result;
+    }
+
+    @Override
+    public TDigestState reduce(RamAccounting ramAccounting, TDigestState state1, TDigestState state2) {
+        if (state1.isEmpty()) {
+            return state2;
+        }
+
+        if (!state2.isEmpty()) {
+            state1.add(state2);
+        }
+        return state1;
+    }
+
+    @Override
+    @Nullable
+    public Object terminatePartial(RamAccounting ramAccounting, TDigestState state) {
+        if (state.isEmpty()) {
+            return null;
+        }
+        if (boundSignature.returnType() instanceof ArrayType) {
+            List<Period> percentiles = new ArrayList<>(state.fractions().length);
+            for (int i = 0; i < state.fractions().length; i++) {
+                double percentile = state.quantile(state.fractions()[i]);
+                if (Double.isNaN(percentile)) {
+                    percentiles.add(null);
+                } else {
+                    percentiles.add(millisToPeriod(percentile));
+                }
+            }
+            return percentiles;
+        } else {
+            double percentile = state.quantile(state.fractions()[0]);
+            if (Double.isNaN(percentile)) {
+                return null;
+            } else {
+                return millisToPeriod(percentile);
+            }
+        }
+    }
+
+    private static Period millisToPeriod(double millis) {
+        return new Period((long) millis).normalizedStandard(PeriodType.dayTime());
+    }
+
+    @Override
+    public DataType<?> partialType() {
+        return TDigestStateType.INSTANCE;
+    }
+}
