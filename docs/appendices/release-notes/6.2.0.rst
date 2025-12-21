@@ -122,7 +122,8 @@ Data Types
 Scalar and Aggregation Functions
 --------------------------------
 
-None
+- Added support for ``interval`` type to the :ref:`percentile
+  <aggregation-percentile>` aggregation function.
 
 Performance and Resilience Improvements
 ---------------------------------------
