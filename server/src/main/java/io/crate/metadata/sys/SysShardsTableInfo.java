@@ -127,6 +127,7 @@ public class SysShardsTableInfo {
             entry(Columns.RETENTION_LEASES, NestedNullObjectExpression::new),
             entry(Columns.FLUSH_STATS, NestedNullObjectExpression::new),
             entry(Columns.MERGE_STATS, NestedNullObjectExpression::new),
+            entry(Columns.REFRESH_STATS, NestedNullObjectExpression::new),
             entry(Columns.LAST_WRITE_BEFORE, () -> constant(null))
         );
     }
