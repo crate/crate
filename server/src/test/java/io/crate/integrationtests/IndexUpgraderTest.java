@@ -24,31 +24,11 @@ package io.crate.integrationtests;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import org.apache.lucene.tests.util.TestUtil;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 public class IndexUpgraderTest extends IntegTestCase {
-
-    /**
-     * {@link TablesNeedUpgradeSysCheckTest#startUpNodeWithDataDir(String)}
-     */
-    private void startUpNodeWithDataDir(String dataPath) throws Exception {
-        Path indexDir = createTempDir();
-        try (InputStream stream = Files.newInputStream(getDataPath(dataPath))) {
-            TestUtil.unzip(stream, indexDir);
-        }
-        Settings.Builder builder = Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), indexDir.toAbsolutePath());
-        cluster().startNode(builder.build());
-        ensureGreen();
-    }
 
     @Test
     public void test_index_upgraders_fix_column_positions() throws Exception {

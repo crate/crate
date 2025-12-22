@@ -482,4 +482,31 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             "{obj={foo=NULL}}"
         );
     }
+
+
+    /// Testing a regression introduced with v6.0.0, resulting in an NPE when trying to write new entries into a
+    /// nested dynamic object where null values were inserted before.
+    /// Due to type guessing, stored object types contained the members previously inserted with null values while
+    /// no references were created for them.
+    @Test
+    public void test_insert_into_dynamic_object_with_inner_null_values() {
+        execute("CREATE TABLE t1 (dyn_obj OBJECT(DYNAMIC))");
+        Object[] params = new Object[]{
+            // Must be nested, otherwise the null value would not cause an issue.
+            Map.of("obj", MapBuilder.newMapBuilder().put("foo", null).map())
+        };
+        execute("INSERT INTO t1 (dyn_obj) VALUES (?)", params);
+
+        // The next insert into the same dynamic object failed with an NPE before the fix.
+        params = new Object[]{
+            Map.of("obj", Map.of("bar", 1))
+        };
+        execute("INSERT INTO t1 (dyn_obj) VALUES (?)", params);
+
+        execute("REFRESH TABLE t1");
+        assertThat(execute("SELECT * FROM t1 ORDER BY dyn_obj['obj']['bar'] NULLS FIRST")).hasRows(
+            "{obj={foo=NULL}}",
+            "{obj={bar=1}}"
+        );
+    }
 }

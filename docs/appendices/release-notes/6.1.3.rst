@@ -85,3 +85,13 @@ Fixes
     INSERT INTO t (o) VALUES ({"a": NULL});
     SELECT * FROM t WHERE o['a'] IS NULL;  -- now returns the row
 
+- Fixed a regression introduced in :ref:`version_6.0.0` that caused
+  :ref:`sql-insert` statements with writes into columns of type
+  :ref:`OBJECT(DYNAMIC) <type-object-columns-dynamic>` to fail with an NPE if
+  a nested object value containing elements with ``NULL`` values was inserted
+  before. Example::
+
+    CREATE TABLE t1 (obj OBJECT(DYNAMIC));
+    INSERT INTO t1 (obj) VALUES ({a = {b = NULL}});
+    INSERT INTO t1 (obj) VALUES ({a = {c = 1}});
+
