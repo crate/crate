@@ -23,28 +23,11 @@ package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-
-import org.apache.lucene.tests.util.TestUtil;
-import org.elasticsearch.common.settings.Settings;
-import org.elasticsearch.env.Environment;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
 public class TablesNeedUpgradeSysCheckTest extends IntegTestCase {
-
-    private void startUpNodeWithDataDir(String dataPath) throws Exception {
-        Path indexDir = createTempDir();
-        try (InputStream stream = Files.newInputStream(getDataPath(dataPath))) {
-            TestUtil.unzip(stream, indexDir);
-        }
-        Settings.Builder builder = Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), indexDir.toAbsolutePath());
-        cluster().startNode(builder.build());
-        ensureGreen();
-    }
 
     @Test
     public void test_4x_indices_not_supported() throws Exception {

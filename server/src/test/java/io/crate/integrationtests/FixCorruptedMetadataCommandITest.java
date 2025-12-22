@@ -24,12 +24,9 @@ package io.crate.integrationtests;
 import static io.crate.testing.TestingHelpers.printedTable;
 import static org.assertj.core.api.Assertions.assertThat;
 
-import java.io.InputStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
 import java.util.List;
+import java.util.function.Consumer;
 
-import org.apache.lucene.tests.util.TestUtil;
 import org.elasticsearch.cluster.coordination.ElasticsearchNodeCommand;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.env.Environment;
@@ -427,22 +424,21 @@ public class FixCorruptedMetadataCommandITest extends IntegTestCase {
         }
     }
 
-    private void startUpNodeWithDataDir(String dataPath) throws Exception {
-        Path indexDir = createTempDir();
-        try (InputStream stream = Files.newInputStream(getDataPath(dataPath))) {
-            TestUtil.unzip(stream, indexDir);
-        }
-        Settings settings =
-                Settings.builder().put(Environment.PATH_DATA_SETTING.getKey(), indexDir.toAbsolutePath()).build();
+    @Override
+    public void startUpNodeWithDataDir(String dataPath) throws Exception {
+        Consumer<Settings> runBeforeStartup = settings -> {
+            try {
+                Environment environment = TestEnvironment.newEnvironment(
+                    Settings.builder().put(cluster().getDefaultSettings()).put(settings).build());
+                MockTerminal terminal = executeCommand(environment);
+                assertThat(terminal.getOutput()).contains(FixCorruptedMetadataCommand.CONFIRMATION_MSG);
+                assertThat(terminal.getOutput()).contains(FixCorruptedMetadataCommand.METADATA_FIXED_MSG);
+            } catch (Exception e) {
+                throw new RuntimeException(e);
+            }
+        };
 
-        Environment environment = TestEnvironment.newEnvironment(
-                Settings.builder().put(cluster().getDefaultSettings()).put(settings).build());
-        MockTerminal terminal = executeCommand(environment);
-        assertThat(terminal.getOutput()).contains(FixCorruptedMetadataCommand.CONFIRMATION_MSG);
-        assertThat(terminal.getOutput()).contains(FixCorruptedMetadataCommand.METADATA_FIXED_MSG);
-
-        cluster().startNode(settings);
-        ensureGreen();
+        startUpNodeWithDataDir(dataPath, runBeforeStartup);
     }
 
     private MockTerminal executeCommand(Environment environment) throws Exception {
