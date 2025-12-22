@@ -230,6 +230,10 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (String innerColumn : objectType.innerTypes().keySet()) {
             if (!children.containsKey(innerColumn)) {
                 Reference childRef = getRef.apply(objectColumn.getChild(innerColumn));
+                if (childRef == null) {
+                    // Map element value with NULL values aren't added by addNewColumn(), so no reference may exist.
+                    continue;
+                }
                 @SuppressWarnings("unchecked")
                 ValueIndexer<Object> childIndexer = (ValueIndexer<Object>) childRef.valueType().valueIndexer(
                     table,
