@@ -52,3 +52,12 @@ Fixes
 
 - Fixed an issue causing memory leaks if requests to the ``HTTP`` endpoint
   failed due to a missing :ref:`HBA <admin_hba>` entry or wrong credentials.
+
+- Fixed a regression introduced with :ref:`version_6.0.0` that led to wrong
+  results when mixing ``CROSS JOIN`` and ``INNER JOIN`` on a condition with a
+  :ref:`CASE<scalar-case-when-then-end>` referring to one of the cross joined
+  tables. e.g.::
+
+    SELECT * FROM t1, t0
+    INNER JOIN (SELECT 1 AS col0) AS sub0
+    ON (CASE sub0.col0 WHEN sub0.col0 THEN t0.c0 ELSE false END)

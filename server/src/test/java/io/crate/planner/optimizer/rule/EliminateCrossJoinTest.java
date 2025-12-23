@@ -44,8 +44,10 @@ import io.crate.metadata.table.Operation;
 import io.crate.planner.operators.Collect;
 import io.crate.planner.operators.Filter;
 import io.crate.planner.operators.JoinPlan;
+import io.crate.planner.operators.NestedLoopJoin;
 import io.crate.planner.operators.Order;
 import io.crate.planner.operators.Rename;
+import io.crate.planner.operators.RootRelationBoundary;
 import io.crate.planner.operators.Union;
 import io.crate.planner.optimizer.joinorder.JoinGraph;
 import io.crate.planner.optimizer.matcher.Captures;
@@ -581,5 +583,40 @@ public class EliminateCrossJoinTest extends CrateDummyClusterServiceUnitTest {
             "  │  └ Collect[doc.c | [z] | true]",
             "  └ Collect[doc.d | [w] | true]"
         );
+    }
+
+    @Test
+    public void test_do_not_apply_eliminate_cross_join_for_non_equi_join() throws Exception {
+        // Using a dummy query that generates exactly same Rename as we need to avoid building Rename manually.
+        // This query also generates condition that we can use for join expression.
+        // Smth like e.asSymbol("CASE sub0.col0 WHEN sub0.col0 THEN b.y ELSE false END")
+        // wouldn't work as sub0.col0 is unknown, and we would have to build it manually otherwise.
+
+        // We cannot create a plan for the whole query that is actually being tested
+        // as capturing requires JoinPlan and planner would create NestedLoopJoin.
+        // We manually build JoinPlan out of parts that we got from dummy query (solely to simplify construction).
+        RootRelationBoundary plan = e.logicalPlan("""
+            SELECT * FROM a, b, (SELECT 1 AS col0) AS sub0
+            WHERE (CASE sub0.col0 WHEN sub0.col0 THEN b.y ELSE false END)
+            """
+        );
+        Filter filter = ((Filter) plan.source());
+        Rename rename = (Rename) ((NestedLoopJoin) filter.source()).rhs();
+        Symbol joinCondition = filter.query();
+
+        // Building plan for a query:
+        // SELECT * FROM a, b
+        // INNER JOIN (SELECT 1 AS col0) AS sub0 ON (CASE sub0.col0 WHEN sub0.col0 THEN b.y ELSE false END)
+        var join1 = new JoinPlan(a, b, JoinType.CROSS, null);
+        var join2 = new JoinPlan(join1, rename, JoinType.INNER, joinCondition);
+
+        JoinGraph joinGraph = JoinGraph.create(join2, UnaryOperator.identity());
+        assertThat(joinGraph.edges()).isEmpty(); // No equi join condition, no edges.
+
+        var rule = new EliminateCrossJoin();
+        var match = rule.pattern().accept(join2, Captures.empty());
+        assertThat(match.isPresent()).isTrue();
+        var result = rule.apply(match.value(), match.captures(), e.ruleContext());
+        assertThat(result).isNull();
     }
 }

@@ -1835,4 +1835,21 @@ public class JoinIntegrationTest extends IntegTestCase {
         execute(query);
         assertThat(response.rows()).isEmpty();
     }
+
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void test_do_not_apply_eliminate_cross_join_for_non_equi_join() throws Exception {
+        execute("CREATE TABLE t0(c0 BOOLEAN);");
+        execute("CREATE TABLE t1(c0 VARCHAR);");
+
+        execute("INSERT INTO t1(c0) VALUES ('1');");
+        execute("INSERT INTO t0(c0) VALUES (false);");
+
+        execute("refresh table t0");
+        execute("refresh table t1");
+        execute("SELECT * FROM t1, t0 " +
+            "INNER JOIN (SELECT 1 AS col0) AS sub0 ON (CASE sub0.col0 WHEN sub0.col0 THEN t0.c0 ELSE false END)");
+        assertThat(response.rowCount()).isEqualTo(0);
+    }
 }
