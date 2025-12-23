@@ -84,6 +84,7 @@ public class JvmInfo implements Writeable {
         String useSerialGC = "unknown";
         long configuredInitialHeapSize = -1;
         long configuredMaxHeapSize = -1;
+        long directMemorySize = 0;
         try {
             @SuppressWarnings("unchecked") Class<? extends PlatformManagedObject> clazz =
                     (Class<? extends PlatformManagedObject>)Class.forName("com.sun.management.HotSpotDiagnosticMXBean");
@@ -134,6 +135,20 @@ public class JvmInfo implements Writeable {
             } catch (Exception ignored) {
             }
 
+            try {
+                Object maxDirectMemorySizeVmOptionObject = vmOptionMethod.invoke(hotSpotDiagnosticMXBean, "MaxDirectMemorySize");
+                // Default is 0 when not specified.
+                // When not specified, Runtime.getRuntime().maxMemory() is used,
+                // https://github.com/openjdk/jdk/blob/master/src/java.base/share/classes/jdk/internal/misc/VM.java#L138
+                // Compute final actual value once, so that components that need it can take without default checks.
+                directMemorySize = Long.parseLong((String) valueMethod.invoke(maxDirectMemorySizeVmOptionObject));
+                if (directMemorySize == 0) {
+                    directMemorySize = Runtime.getRuntime().maxMemory();
+                }
+
+            } catch (Exception ignored) {
+            }
+
         } catch (Exception ignored) {
 
         }
@@ -147,6 +162,7 @@ public class JvmInfo implements Writeable {
             runtimeMXBean.getStartTime(),
             configuredInitialHeapSize,
             configuredMaxHeapSize,
+            directMemorySize,
             mem,
             inputArguments,
             bootClassPath,
@@ -174,6 +190,7 @@ public class JvmInfo implements Writeable {
     private final long startTime;
     private final long configuredInitialHeapSize;
     private final long configuredMaxHeapSize;
+    private final long directMemorySize;
     private final Mem mem;
     private final String[] inputArguments;
     private final String bootClassPath;
@@ -188,9 +205,10 @@ public class JvmInfo implements Writeable {
     private final String useSerialGC;
 
     private JvmInfo(long pid, String version, String vmName, String vmVersion, String vmVendor, long startTime,
-                   long configuredInitialHeapSize, long configuredMaxHeapSize, Mem mem, String[] inputArguments, String bootClassPath,
-                   String classPath, Map<String, String> systemProperties, String[] gcCollectors, String[] memoryPools, String onError,
-                   String onOutOfMemoryError, String useCompressedOops, String useG1GC, String useSerialGC) {
+                    long configuredInitialHeapSize, long configuredMaxHeapSize, long directMemorySize,
+                    Mem mem, String[] inputArguments, String bootClassPath,
+                    String classPath, Map<String, String> systemProperties, String[] gcCollectors, String[] memoryPools, String onError,
+                    String onOutOfMemoryError, String useCompressedOops, String useG1GC, String useSerialGC) {
         this.pid = pid;
         this.version = version;
         this.vmName = vmName;
@@ -199,6 +217,7 @@ public class JvmInfo implements Writeable {
         this.startTime = startTime;
         this.configuredInitialHeapSize = configuredInitialHeapSize;
         this.configuredMaxHeapSize = configuredMaxHeapSize;
+        this.directMemorySize = directMemorySize;
         this.mem = mem;
         this.inputArguments = inputArguments;
         this.bootClassPath = bootClassPath;
@@ -234,6 +253,7 @@ public class JvmInfo implements Writeable {
         //the following members are only used locally for bootstrap checks, never serialized nor printed out
         this.configuredMaxHeapSize = -1;
         this.configuredInitialHeapSize = -1;
+        this.directMemorySize = 0;
         this.onError = null;
         this.onOutOfMemoryError = null;
         this.useG1GC = "unknown";
@@ -294,6 +314,10 @@ public class JvmInfo implements Writeable {
 
     public long getConfiguredMaxHeapSize() {
         return configuredMaxHeapSize;
+    }
+
+    public long getDirectMemorySize() {
+        return directMemorySize;
     }
 
     public String onError() {
