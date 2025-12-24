@@ -51,6 +51,7 @@ public class Aggregations implements FunctionsProvider {
         CountAggregation.register(builder);
         CollectSetAggregation.register(builder);
         PercentileAggregation.register(builder);
+        IntervalPercentileAggregation.register(builder);
         StringAgg.register(builder);
         ArrayAgg.register(builder);
 
