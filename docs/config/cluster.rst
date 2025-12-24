@@ -1285,7 +1285,7 @@ Overload Protection
 -------------------
 
 Overload protection settings control how many resources operations like
-``INSERT INTO FROM QUERY`` or ``COPY`` can use.
+``INSERT INTO FROM QUERY``, ``UPDATE``, ``DELETE`` or ``COPY`` can use.
 
 The values here serve as a starting point for an algorithm that dynamically
 adapts the effective concurrency limit based on the round-trip time of

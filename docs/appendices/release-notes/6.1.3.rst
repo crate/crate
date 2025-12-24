@@ -49,3 +49,6 @@ Fixes
 - Fixed a regression introduced in :ref:`version_6.1.0` that could lead to
   mixing partial success results with error message in the response from the
   ``HTTP`` endpoint.
+
+- Fixed an issue causing memory leaks if requests to the ``HTTP`` endpoint
+  failed due to a missing :ref:`HBA <admin_hba>` entry or wrong credentials.
