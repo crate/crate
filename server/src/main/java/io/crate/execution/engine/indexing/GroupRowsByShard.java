@@ -46,6 +46,7 @@ import org.jspecify.annotations.Nullable;
 import io.crate.data.Input;
 import io.crate.data.Row;
 import io.crate.data.UnsafeArrayRow;
+import io.crate.exceptions.RelationUnknown;
 import io.crate.execution.dml.IndexItem;
 import io.crate.execution.dml.ShardRequest;
 import io.crate.execution.engine.collect.CollectExpression;
@@ -241,6 +242,9 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                     true,
                     x -> x
                 );
+                if (indexMetadata == null) {
+                    throw new RelationUnknown(partitionName.relationName());
+                }
                 ShardLocation shardLocation = getShardLocation(
                     state,
                     indexMetadata,
