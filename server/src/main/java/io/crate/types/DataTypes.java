@@ -302,6 +302,13 @@ public final class DataTypes {
     );
 
     public static DataType<?> guessType(Object value) {
+        return guessType(value, false);
+    }
+
+    /// Guesses the data type of given value recursively.
+    ///
+    /// @param ignoreObjectNullElements If true, null values inside maps are ignored when guessing the type.
+    public static DataType<?> guessType(Object value, boolean ignoreObjectNullElements) {
         return switch (value) {
             case null -> UNDEFINED;
             case Map<?, ?> map -> {
@@ -309,7 +316,9 @@ public final class DataTypes {
                 for (var entry : map.entrySet()) {
                     Object key = entry.getKey();
                     Object val = entry.getValue();
-                    builder.setInnerType(key.toString(), guessType(val));
+                    if (!ignoreObjectNullElements || val != null) {
+                        builder.setInnerType(key.toString(), guessType(val));
+                    }
                 }
                 yield builder.build();
             }
