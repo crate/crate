@@ -48,7 +48,7 @@ import io.crate.metadata.RelationName;
 
 public class ShardRowContext {
 
-    private final RelationName relationName;
+    private final Supplier<RelationName> relationNameSupplier;
     private final IndexShard indexShard;
     @Nullable
     private final BlobShard blobShard;
@@ -60,7 +60,7 @@ public class ShardRowContext {
     private final String path;
     @Nullable
     private final String blobPath;
-    private final boolean orphanedPartition;
+    private final Supplier<Boolean> orphanedPartitionSupplier;
     private final MergeStats mergeStats;
 
     public ShardRowContext(IndexShard indexShard, ClusterService clusterService) {
@@ -94,15 +94,13 @@ public class ShardRowContext {
             throw new IllegalArgumentException(
                 String.format(Locale.ENGLISH, "IndexMetadata for shard %s does not exist in the cluster state", shardId));
         }
-        @Nullable
-        RelationMetadata relation = metadata.getRelation(shardId.getIndexUUID());
-        if (relation == null) {
-            orphanedPartition = true;
-            relationName = IndexName.decode(shardId.getIndexName()).toRelationName();
-        } else {
-            orphanedPartition = false;
-            relationName = relation.name();
-        }
+        this.orphanedPartitionSupplier = () -> clusterService.state().metadata().getRelation(shardId.getIndexUUID()) == null;
+        this.relationNameSupplier = () -> {
+            RelationMetadata relation = clusterService.state().metadata().getRelation(shardId.getIndexUUID());
+            return relation == null ?
+                IndexName.decode(shardId.getIndexName()).toRelationName() :
+                relation.name();
+        };
         partitionValues = index.partitionValues();
         partitionIdent = partitionValues.isEmpty() ? "" : PartitionName.encodeIdent(index.partitionValues());
         path = indexShard.shardPath().getDataPath().toString();
@@ -111,7 +109,7 @@ public class ShardRowContext {
     }
 
     public RelationName relationName() {
-        return relationName;
+        return relationNameSupplier.get();
     }
 
     public List<String> partitionValues() {
@@ -166,7 +164,7 @@ public class ShardRowContext {
     }
 
     public boolean isOrphanedPartition() {
-        return orphanedPartition;
+        return orphanedPartitionSupplier.get();
     }
 
     public boolean isClosed() {
