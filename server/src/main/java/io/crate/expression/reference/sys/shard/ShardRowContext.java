@@ -24,6 +24,7 @@ package io.crate.expression.reference.sys.shard;
 import java.util.Collection;
 import java.util.List;
 import java.util.Locale;
+import java.util.Objects;
 import java.util.function.Supplier;
 
 import org.apache.lucene.store.AlreadyClosedException;
@@ -48,7 +49,7 @@ import io.crate.metadata.RelationName;
 
 public class ShardRowContext {
 
-    private final RelationName relationName;
+    private final Supplier<RelationName> relationNameSupplier;
     private final IndexShard indexShard;
     @Nullable
     private final BlobShard blobShard;
@@ -98,10 +99,10 @@ public class ShardRowContext {
         RelationMetadata relation = metadata.getRelation(shardId.getIndexUUID());
         if (relation == null) {
             orphanedPartition = true;
-            relationName = IndexName.decode(shardId.getIndexName()).toRelationName();
+            relationNameSupplier = () -> IndexName.decode(shardId.getIndexName()).toRelationName();
         } else {
             orphanedPartition = false;
-            relationName = relation.name();
+            relationNameSupplier = () -> Objects.requireNonNull(clusterService.state().metadata().getRelation(shardId.getIndexUUID())).name();
         }
         partitionValues = index.partitionValues();
         partitionIdent = partitionValues.isEmpty() ? "" : PartitionName.encodeIdent(index.partitionValues());
@@ -111,7 +112,7 @@ public class ShardRowContext {
     }
 
     public RelationName relationName() {
-        return relationName;
+        return relationNameSupplier.get();
     }
 
     public List<String> partitionValues() {
