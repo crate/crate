@@ -29,6 +29,7 @@ import java.util.List;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import org.elasticsearch.Version;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.jetbrains.annotations.Nullable;
@@ -39,13 +40,17 @@ import com.carrotsearch.randomizedtesting.RandomizedContext;
 import com.carrotsearch.randomizedtesting.generators.RandomPicks;
 
 import io.crate.Streamer;
+import io.crate.data.breaker.RamAccounting;
+import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.execution.engine.aggregation.impl.HyperLogLogPlusPlus;
 import io.crate.expression.symbol.Literal;
+import io.crate.memory.OnHeapMemoryManager;
 import io.crate.metadata.FunctionImplementation;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Scalar;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.functions.Signature;
+import io.crate.operation.aggregation.HyperLogLogDistinctAggregation.HllState;
 import io.crate.testing.TestingHelpers;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
@@ -118,6 +123,19 @@ public class HyperLogLogDistinctAggregationTest extends AggregationTestCase {
             SearchPath.pathWithPGCatalogAndDoc()
         );
         assertThat(func.boundSignature().returnType()).isEqualTo(DataTypes.LONG);
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    public void test_terminate_partial_without_initialization_returns_0() throws Exception {
+        AggregationFunction<HllState, Long> func = (AggregationFunction<HllState, Long>) nodeCtx.functions().get(
+            null,
+            HyperLogLogDistinctAggregation.NAME,
+            List.of(Literal.of(1)),
+            SearchPath.pathWithPGCatalogAndDoc()
+        );
+        var state = func.newState(RamAccounting.NO_ACCOUNTING, Version.CURRENT, new OnHeapMemoryManager(bytes -> {}));
+        assertThat(func.terminatePartial(RamAccounting.NO_ACCOUNTING, state)).isEqualTo(0L);
     }
 
     @Test
