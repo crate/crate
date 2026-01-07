@@ -46,6 +46,10 @@ series.
 Fixes
 =====
 
+- Changed :ref:`hyperloglog_distinct <aggregation-hyperloglog-distinct>` to return
+  ``0`` instead of ``NULL`` if using a ``FILTER`` clause that doesn't match any
+  records - to be consistent with a global ``WHERE`` and ``COUNT``.
+
 - Fixed a regression introduced in :ref:`version_6.1.0` that could lead to
   mixing partial success results with error message in the response from the
   ``HTTP`` endpoint.
