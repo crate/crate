@@ -56,3 +56,7 @@ Fixes
 
 - Fixed an issue causing memory leaks if requests to the ``HTTP`` endpoint
   failed due to a missing :ref:`HBA <admin_hba>` entry or wrong credentials.
+
+- Fixed an issue that caused direct memory under-accounting, potentially leading
+  to an ``OutOfMemoryError`` when a large result set was returned by the
+  ``HTTP`` endpoint.
