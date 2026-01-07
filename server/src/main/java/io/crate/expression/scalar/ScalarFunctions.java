@@ -252,6 +252,7 @@ public class ScalarFunctions implements FunctionsProvider {
         HasSchemaPrivilegeFunction.register(builder);
         HasDatabasePrivilegeFunction.register(builder);
         HasTablePrivilegeFunction.register(builder);
+        HasFunctionPrivilegeFunction.register(builder);
         ParseURIFunction.register(builder);
         ParseURLFunction.register(builder);
 
