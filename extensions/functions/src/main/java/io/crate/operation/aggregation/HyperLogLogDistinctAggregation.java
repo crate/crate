@@ -159,10 +159,7 @@ public class HyperLogLogDistinctAggregation extends AggregationFunction<HyperLog
 
     @Override
     public Long terminatePartial(RamAccounting ramAccounting, HllState state) {
-        if (state.isInitialized()) {
-            return state.value();
-        }
-        return null;
+        return state.isInitialized() ? state.value() : 0L;
     }
 
 
