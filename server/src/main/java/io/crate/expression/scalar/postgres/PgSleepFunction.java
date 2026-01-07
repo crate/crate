@@ -63,9 +63,12 @@ public class PgSleepFunction extends Scalar<Boolean, Double> {
     public final Boolean evaluate(TransactionContext txnCtx, NodeContext nodeCtx, Input<Double>... args) {
         assert args.length == 1 : NAME + " expects exactly 1 argument, got " + args.length;
 
-        double duration = (args.length > 0) ? args[0].value() : 1000L;
+        Double duration = args[0].value();
+        if (duration == null) {
+            return true;
+        }
         try {
-            Thread.sleep((long)(duration * 1000.0));
+            Thread.sleep((long)(duration.doubleValue() * 1000.0));
             return true;
         } catch (InterruptedException e) {
             return false;
