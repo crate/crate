@@ -104,6 +104,7 @@ import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.UndefinedType;
 
 
 /**
@@ -1223,6 +1224,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             } else if (exists.valueType().id() == ArrayType.ID && DataTypes.isArrayOfNulls(newRef.valueType())) {
                 // one shard is trying to create array_of_null while another has already created a typed array
                 // don't do anything
+                continue;
+            } else if (exists.valueType().id() != newRef.valueType().id() && newRef.valueType().id() == UndefinedType.ID) {
+                // once shard is trying to create an untyped column while another has already created a typed column
                 continue;
             } else if (exists.valueType().id() != newRef.valueType().id()) {
                 throw new IllegalArgumentException(String.format(

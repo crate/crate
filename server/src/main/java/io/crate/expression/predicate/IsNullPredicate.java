@@ -62,6 +62,7 @@ import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
 import io.crate.types.StorageSupport;
 import io.crate.types.TypeSignature;
+import io.crate.types.UndefinedType;
 
 public class IsNullPredicate<T> extends Scalar<Boolean, T> {
 
@@ -148,8 +149,8 @@ public class IsNullPredicate<T> extends Scalar<Boolean, T> {
             return new MatchNoDocsQuery("DynamicReference/type without storageSupport does not exist");
         } else if (canUseFieldsExist) {
             return new FieldExistsQuery(field);
-        } else if (context.tableInfo().isIgnoredOrImmediateChildOfIgnored(ref)) {
-            // Not indexed, need to use source lookup
+        } else if (context.tableInfo().isIgnoredOrImmediateChildOfIgnored(ref) || valueType instanceof UndefinedType) {
+            // Not indexed, need to use stored field lookup
             return null;
         } else if (storageSupport != null) {
             if (valueType instanceof ObjectType objType) {

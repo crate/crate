@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -38,6 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.UseRandomizedSchema;
@@ -455,6 +457,29 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
         assertThat(ids).satisfiesAnyOf(
             xs -> assertThat(xs).isEqualTo(List.of(1, 2, 3)),
             xs -> assertThat(xs).isEqualTo(List.of(4))
+        );
+    }
+
+    @Test
+    public void test_insert_null_element_into_dynamic_object_creates_undefined_reference() {
+        execute("CREATE TABLE t1 (dyn_obj OBJECT(DYNAMIC))");
+        Object[] params = new Object[]{
+            // Must be nested, otherwise the null value would not cause an issue.
+            Map.of("obj", MapBuilder.newMapBuilder().put("foo", null).map())
+        };
+        execute("INSERT INTO t1 (dyn_obj) VALUES (?)", params);
+        execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 't1' ORDER BY column_name");
+        assertThat(response).hasRows(
+            "dyn_obj| object",
+            "dyn_obj['obj']| object",
+            "dyn_obj['obj']['foo']| undefined"
+        );
+
+        execute("REFRESH TABLE t1");
+        execute("SELECT * FROM t1 WHERE dyn_obj['obj']['foo'] IS NULL");
+        assertThat(response.rowCount()).isEqualTo(1L);
+        assertThat(response).hasRows(
+            "{obj={foo=NULL}}"
         );
     }
 }

@@ -259,7 +259,7 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
-            if (children.containsKey(innerName) || innerValue == null) {
+            if (children.containsKey(innerName)) {
                 continue;
             }
             if (isStrict) {
