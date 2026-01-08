@@ -4289,6 +4289,13 @@ Example::
 
 Returns the server start time as ``timestamp with time zone``.
 
+.. _scalar-pg_sleep:
+
+``pg_sleep(duration)``
+-------------------------
+
+Pause the session for ``duration`` seconds.
+
 
 .. _scalar-current_catalog:
 
