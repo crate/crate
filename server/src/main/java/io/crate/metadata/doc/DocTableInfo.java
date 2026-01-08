@@ -103,8 +103,8 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.Expression;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
-import io.crate.types.DataTypes;
 import io.crate.types.ObjectType;
+import io.crate.types.UndefinedType;
 
 
 /**
@@ -1203,18 +1203,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 addedColumn = true;
                 // Oid is assigned in setTable
                 newReferences.put(newColumn, newRef.withOidAndPosition(() -> COLUMN_OID_UNASSIGNED, positions::incrementAndGet));
-            } else if (
-                DataTypes.isArrayOfNulls(exists.valueType())
-                    && newRef.valueType().id() == ArrayType.ID
-                    && DataTypes.isArrayOfNulls(newRef.valueType()) == false
-            ) {
-                // upgrade array_of_null to typed array
-                // we do not need a new OID as we are replacing the existing NullArrayType reference
+            } else if (undefinedRefinement(exists.valueType(), newRef.valueType())) {
                 newReferences.put(newColumn, newRef);
                 addedColumn = true;
-            } else if (exists.valueType().id() == ArrayType.ID && DataTypes.isArrayOfNulls(newRef.valueType())) {
-                // one shard is trying to create array_of_null while another has already created a typed array
-                // don't do anything
+            } else if (staleUndefined(exists.valueType(), newRef.valueType())) {
                 continue;
             } else if (exists.valueType().id() != newRef.valueType().id()) {
                 throw new IllegalArgumentException(String.format(
@@ -1228,6 +1220,17 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             addedColumn = addedColumn || addedChildren;
         }
         return addedColumn;
+    }
+
+    private static boolean undefinedRefinement(DataType<?> currentType, DataType<?> newType) {
+        return ArrayType.unnest(currentType).id() == UndefinedType.ID
+            && ArrayType.dimensions(currentType) == ArrayType.dimensions(newType)
+            && ArrayType.unnest(newType).id() != UndefinedType.ID;
+    }
+
+    private static boolean staleUndefined(DataType<?> currentType, DataType<?> newType) {
+        return ArrayType.unnest(newType).id() == UndefinedType.ID
+            && ArrayType.unnest(currentType).id() != UndefinedType.ID;
     }
 
     private List<Reference> addMissingParents(List<Reference> columns) {

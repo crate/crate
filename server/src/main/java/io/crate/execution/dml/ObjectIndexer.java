@@ -52,6 +52,7 @@ import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.ObjectType;
+import io.crate.types.UndefinedType;
 
 public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
 
@@ -261,8 +262,14 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
         for (var entry : value.entrySet()) {
             String innerName = entry.getKey();
             Object innerValue = entry.getValue();
-            if (children.containsKey(innerName) || innerValue == null) {
-                continue;
+            DataType<?> type = DynamicIndexer.guessType(innerValue);
+            ObjectIndexer.Child child = children.get(innerName);
+            if (child != null) {
+                var childType = child.reference.valueType();
+                // We allow overwriting undefined typed children with new typed ones
+                if (!(childType instanceof UndefinedType) || type instanceof UndefinedType) {
+                    continue;
+                }
             }
             if (isStrict) {
                 throw new IllegalArgumentException(String.format(
@@ -272,7 +279,6 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
                     ref.column()
                 ));
             }
-            var type = DynamicIndexer.guessType(innerValue);
             Reference newColumn = DynamicIndexer.buildReference(
                 new ReferenceIdent(table, column.getChild(innerName)),
                 type,
