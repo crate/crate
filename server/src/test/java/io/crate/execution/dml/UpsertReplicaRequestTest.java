@@ -24,6 +24,7 @@ package io.crate.execution.dml;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 import org.elasticsearch.Version;
@@ -46,8 +47,11 @@ import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
+import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class UpsertReplicaRequestTest extends CrateDummyClusterServiceUnitTest {
 
@@ -187,6 +191,49 @@ public class UpsertReplicaRequestTest extends CrateDummyClusterServiceUnitTest {
                     assertThat(request.columns()).isEqualTo(replicaRequest.columns());
                     assertThat(request.items()).isEqualTo(replicaRequest.items());
                 }
+            }
+        }
+    }
+
+    /// Emulating an insert into a non-typed dynamic object column, ensuring that the data type from the stream is
+    /// used instead of the (normally, dynamically) registered column reference type.
+    @Test
+    public void test_streaming_with_dynamic_object_members() throws Exception {
+        // We define the inner type of the dynamic object directly, which would otherwise happen during mapping update
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table doc.t1 (id int, obj object as (a int))");
+        DocTableInfo tableInfo = e.resolveTableInfo("t1");
+        Metadata metadata = clusterService.state().metadata();
+        RelationMetadata relation = metadata.getRelation(tableInfo.ident());
+        assertThat(relation).isNotNull();
+        String indexUUID = relation.indexUUIDs().get(0);
+        IndexMetadata index = metadata.index(indexUUID);
+        assertThat(index).isNotNull();
+        ShardId shardId = new ShardId(index.getIndex().getName(), index.getIndexUUID(), 1);
+
+        Reference idRef = tableInfo.getReference(ColumnIdent.of("id"));
+        Reference objRefOriginal = tableInfo.getReference(ColumnIdent.of("obj"));
+        // Override the inner type of 'a' to UNDEFINED to simulate a dynamic column
+        Reference objRefWithUndefinedChild = objRefOriginal.withValueType(ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.UNDEFINED).build());
+
+        List<UpsertReplicaRequest.Item> items = List.of(
+            new UpsertReplicaRequest.Item("1", new Object[] { 1, Map.of("a", 1L) }, List.of("1"), 4, 5, 6)
+        );
+        UpsertReplicaRequest replicaRequest = new UpsertReplicaRequest(
+            shardId,
+            jobId,
+            sessionSettings,
+            List.of(idRef, objRefWithUndefinedChild),
+            items
+        );
+
+        try (var out = new BytesStreamOutput()) {
+            replicaRequest.writeTo(out);
+            try (var in = out.bytes().streamInput()) {
+                UpsertReplicaRequest request = UpsertReplicaRequest.readFrom(e.schemas(), in);
+                assertThat(request).isEqualTo(replicaRequest);
+                assertThat(request.columns()).isEqualTo(replicaRequest.columns());
+                assertThat(request.items()).isEqualTo(replicaRequest.items());
             }
         }
     }
