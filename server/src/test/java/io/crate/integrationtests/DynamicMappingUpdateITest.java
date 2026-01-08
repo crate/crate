@@ -29,6 +29,7 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
@@ -38,6 +39,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.rules.TemporaryFolder;
 
+import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.Reference;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.testing.UseRandomizedSchema;
@@ -456,5 +458,26 @@ public class DynamicMappingUpdateITest extends IntegTestCase {
             xs -> assertThat(xs).isEqualTo(List.of(1, 2, 3)),
             xs -> assertThat(xs).isEqualTo(List.of(4))
         );
+    }
+
+
+    /// Testing a regression introduced with v6.0.0, resulting in an NPE when trying to write new entries into a
+    /// nested dynamic object where null values were inserted before.
+    /// Due to type guessing, stored object types contained the members previously inserted with null values while
+    /// no references were created for them.
+    @Test
+    public void test_insert_into_dynamic_object_with_inner_null_values() {
+        execute("CREATE TABLE t1 (dyn_obj OBJECT(DYNAMIC))");
+        Object[] params = new Object[]{
+            // Must be nested, otherwise the null value would not cause an issue.
+            Map.of("obj", MapBuilder.newMapBuilder().put("foo", null).map())
+        };
+        execute("INSERT INTO t1 (dyn_obj) VALUES (?)", params);
+
+        // The next insert into the same dynamic object failed with an NPE before the fix.
+        params = new Object[]{
+            Map.of("obj", Map.of("bar", 1))
+        };
+        execute("INSERT INTO t1 (dyn_obj) VALUES (?)", params);
     }
 }
