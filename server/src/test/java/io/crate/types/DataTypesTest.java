@@ -25,7 +25,6 @@ import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.Comparator;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -374,16 +373,5 @@ public class DataTypesTest extends ESTestCase {
         assertThat(DataTypes.innerType(arrayType, List.of("a"))).isEqualTo(new ArrayType<>(DataTypes.STRING));
         assertThat(DataTypes.innerType(arrayType, List.of("obj_array", "i"))).isEqualTo(new ArrayType<>(new ArrayType<>(DataTypes.INTEGER)));
         assertThat(DataTypes.innerType(arrayType, List.of("obj", "b"))).isEqualTo(new ArrayType<>(DataTypes.LONG));
-    }
-
-    @Test
-    public void test_guess_object_type_ignore_null_values() {
-        HashMap<String, Object> map = new HashMap<>();
-        map.put("a", null);
-        map.put("b", 1);
-        ObjectType objectType = (ObjectType) DataTypes.guessType(map, true);
-        assertThat(objectType.innerTypes().size()).isEqualTo(1);
-        assertThat(objectType.innerTypes().get("a")).isNull();
-        assertThat(objectType.innerTypes().get("b")).isEqualTo(DataTypes.INTEGER);
     }
 }

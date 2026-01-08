@@ -151,9 +151,6 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
      * <p>
      * Like {@link DataTypes#guessType(Object)} but prefers types with a higher precision.
      * For example a `Integer` results in a BIGINT type.
-     *
-     * Also, NULL values inside object members are ignored when determining the type, as we do not create references
-     * for NULL values inside objects as well while dynamically mapping them.
      * </p>
      * <p>
      * Users should sanitize the value using {@link DataType#sanitizeValue(Object)}
@@ -161,7 +158,7 @@ public final class DynamicIndexer implements ValueIndexer<Object> {
      * </p>
      */
     static DataType<?> guessType(Object value) {
-        DataType<?> type = DataTypes.guessType(value, true);
+        DataType<?> type = DataTypes.guessType(value);
         if (type instanceof ArrayType<?>) {
             DataType<?> innerType = type;
             int dimensions = 0;
