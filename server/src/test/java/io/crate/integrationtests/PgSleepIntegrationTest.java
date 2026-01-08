@@ -22,6 +22,7 @@
 package io.crate.integrationtests;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
@@ -31,18 +32,14 @@ public class PgSleepIntegrationTest extends IntegTestCase {
     @Test
     public void test_pg_sleep() {
         long before = System.currentTimeMillis();
-        execute("select pg_sleep(1.0);");
+        execute("select pg_sleep(0.1);");
         long after = System.currentTimeMillis();
-        assertThat(after - before >= 1000).isTrue();
+        assertThat(after - before >= 100).isTrue();
     }
 
     @Test
     public void test_pg_sleep_wrong_arguments() {
-        try {
-            execute("select pg_sleep(1, 1);");
-            assertThat(true).isEqualTo(false); // shouldn't reach this line
-        } catch (Exception e) {
-            assertThat(e.getMessage()).contains("Invalid arguments in: pg_sleep(1, 1) with (integer, integer). Valid types: (double precision)");
-        }
+        assertThatThrownBy(() -> execute("select pg_sleep(1, 1);"))
+            .hasMessageContaining("Invalid arguments in: pg_sleep(1, 1) with (integer, integer). Valid types: (double precision)");
     }
 }

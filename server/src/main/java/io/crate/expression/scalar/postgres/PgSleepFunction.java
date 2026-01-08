@@ -38,11 +38,6 @@ public class PgSleepFunction extends Scalar<Boolean, Double> {
 
     public static final String NAME = "pg_sleep";
 
-    public static final Signature SIGNATURE = Signature.builder(NAME, FunctionType.SCALAR)
-        .argumentTypes(DataTypes.DOUBLE.getTypeSignature())
-        .returnType(DataTypes.BOOLEAN.getTypeSignature())
-        .build();
-
     public PgSleepFunction(Signature signature, BoundSignature boundSignature) {
         super(signature, boundSignature);
     }
