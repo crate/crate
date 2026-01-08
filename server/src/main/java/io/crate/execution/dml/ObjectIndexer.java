@@ -231,7 +231,8 @@ public class ObjectIndexer implements ValueIndexer<Map<String, Object>> {
             if (!children.containsKey(innerColumn)) {
                 Reference childRef = getRef.apply(objectColumn.getChild(innerColumn));
                 if (childRef == null) {
-                    // Map element value with NULL values aren't added by addNewColumn(), so no reference may exist.
+                    // Map element value with NULL values weren't added by addNewColumn() on < v6.2, resulting in an NPE.
+                    // To avoid that, we skip missing columns here as well.
                     continue;
                 }
                 @SuppressWarnings("unchecked")

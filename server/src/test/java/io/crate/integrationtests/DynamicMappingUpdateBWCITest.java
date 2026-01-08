@@ -6,7 +6,7 @@
  * you may not use this file except in compliance with the License.  You may
  * obtain a copy of the License at
  *
- *   http://www.apache.org/licenses/LICENSE-2.0
+ *     http://www.apache.org/licenses/LICENSE-2.0
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS, WITHOUT
@@ -21,17 +21,29 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
+import static io.crate.testing.Asserts.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 @IntegTestCase.ClusterScope(numDataNodes = 0, numClientNodes = 0)
-public class TablesNeedUpgradeSysCheckTest extends IntegTestCase {
+public class DynamicMappingUpdateBWCITest extends IntegTestCase {
 
+    /// Ensures that we don't run into an NPE if an object reference is created with an undefined inner type
+    /// and there are no child references created. This could happen on versions prior to 6.1.3.
     @Test
-    public void test_4x_indices_not_supported() throws Exception {
-        assertThatThrownBy(() -> startUpNodeWithDataDir("/indices/data_home/cratedata-4.3.0.zip"))
-            .hasMessageContaining("was created with version [4.3.0] but the minimum compatible version is [5.0.0]");
+    public void test_6_1_object_reference_with_undefined_inner_type_and_no_child_reference() throws Exception {
+        startUpNodeWithDataDir("/indices/data_home/cratedata-6.1.2-dynamic-object-null-element.zip");
+        // cr> CREATE TABLE t1 (obj OBJECT(DYNAMIC));
+        // cr> INSERT INTO t1 (obj) VALUES ({a={b=NULL}});
+
+        execute("SELECT column_name, data_type FROM information_schema.columns WHERE table_name = 't1' ORDER BY column_name");
+        assertThat(response).hasRows(
+            "obj| object",
+            "obj['a']| object"
+        );
+
+        // The following insert should not fail with an NPE
+        execute("INSERT INTO doc.t1 (obj) VALUES ({a={c=1}})");
     }
 }

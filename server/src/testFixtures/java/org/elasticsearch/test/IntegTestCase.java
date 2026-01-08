@@ -31,6 +31,7 @@ import static org.elasticsearch.discovery.SettingsBasedSeedHostsProvider.DISCOVE
 import static org.elasticsearch.test.hamcrest.ElasticsearchAssertions.assertNoTimeout;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.lang.annotation.Annotation;
 import java.lang.annotation.Documented;
 import java.lang.annotation.ElementType;
@@ -61,11 +62,13 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.apache.lucene.tests.util.LuceneTestCase;
+import org.apache.lucene.tests.util.TestUtil;
 import org.assertj.core.api.recursive.comparison.RecursiveComparisonConfiguration;
 import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.admin.cluster.health.ClusterHealthRequest;
@@ -485,6 +488,23 @@ public abstract class IntegTestCase extends ESTestCase {
 
     protected void beforeIndexDeletion() throws Exception {
         cluster().beforeIndexDeletion();
+    }
+
+    public void startUpNodeWithDataDir(String dataPath) throws Exception {
+        startUpNodeWithDataDir(dataPath, _ -> {});
+    }
+
+    public void startUpNodeWithDataDir(String dataPath, Consumer<Settings> runBeforeStartup) throws Exception {
+        Path indexDir = createTempDir();
+        try (InputStream stream = Files.newInputStream(getDataPath(dataPath))) {
+            TestUtil.unzip(stream, indexDir);
+        }
+        Settings settings = Settings.builder()
+            .put(Environment.PATH_DATA_SETTING.getKey(), indexDir.toAbsolutePath())
+            .build();
+        runBeforeStartup.accept(settings);
+        cluster().startNode(settings);
+        ensureGreen();
     }
 
     public static TestCluster cluster() {
