@@ -43,6 +43,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.SessionSettings;
+import io.crate.types.DataTypes;
 
 public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, UpsertReplicaRequest.Item> {
 
@@ -86,11 +87,21 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
             this.columns = new ArrayList<>(numColumns);
             for (int i = 0; i < numColumns; i++) {
                 long oid = in.readLong();
-                Reference column = oid == Metadata.COLUMN_OID_UNASSIGNED
-                    ? Reference.fromStream(in)
-                    : table.getReference(oid);
+                Reference column;
+                boolean readAndAdjustValueType = false;
+                if (oid == Metadata.COLUMN_OID_UNASSIGNED) {
+                    column = Reference.fromStream(in);
+                } else {
+                    column = table.getReference(oid);
+                    // The value type used for streaming must be used instead of the registered type as it may differ
+                    // (e.g. for dynamic references where the type is adjusted in-between).
+                    readAndAdjustValueType = true;
+                }
                 if (column == null) {
                     throw new IllegalStateException("Reference with oid=" + oid + " not found");
+                }
+                if (readAndAdjustValueType) {
+                    column = column.withValueType(DataTypes.fromStream(in));
                 }
                 columns.add(column);
             }
@@ -145,6 +156,10 @@ public class UpsertReplicaRequest extends ShardRequest<UpsertReplicaRequest, Ups
                 out.writeLong(column.oid());
                 if (column.oid() == Metadata.COLUMN_OID_UNASSIGNED) {
                     Reference.toStream(out, column);
+                } else {
+                    // We must write the value type as well, because the reference's registered type may differ from
+                    // the value type used for the streaming of the value (e.g. for dynamic references).
+                    DataTypes.toStream(column.valueType(), out);
                 }
             }
         } else {
