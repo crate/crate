@@ -28,6 +28,7 @@ import org.apache.logging.log4j.Logger;
 import org.apache.logging.log4j.message.ParameterizedMessage;
 import org.apache.lucene.store.AlreadyClosedException;
 import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.ElasticsearchTimeoutException;
 import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.ActionListenerResponseHandler;
 import org.elasticsearch.action.UnavailableShardsException;
@@ -550,9 +551,11 @@ public abstract class TransportReplicationAction<
 
                     @Override
                     public void onTimeout(TimeValue timeout) {
-                        throw new AssertionError("Cannot happen: there is not timeout");
+                        onCompletionListener.onFailure(
+                            new ElasticsearchTimeoutException("Waiting for new cluster state update timed out after '" + timeout + "'", e)
+                        );
                     }
-                });
+                }, _ -> true, replicaRequest.getRequest().timeout);
             } else {
                 responseWithFailure(e);
             }
