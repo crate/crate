@@ -1225,16 +1225,22 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 // one shard is trying to create array_of_null while another has already created a typed array
                 // don't do anything
                 continue;
-            } else if (exists.valueType().id() != newRef.valueType().id() && newRef.valueType().id() == UndefinedType.ID) {
-                // once shard is trying to create an untyped column while another has already created a typed column
-                continue;
             } else if (exists.valueType().id() != newRef.valueType().id()) {
-                throw new IllegalArgumentException(String.format(
-                    Locale.ENGLISH,
-                    "Column `%s` already exists with type `%s`. Cannot add same column with type `%s`",
-                    newColumn,
-                    exists.valueType().getName(),
-                    newRef.valueType().getName()));
+                if (newRef.valueType().id() == UndefinedType.ID) {
+                    // once shard is trying to create an untyped column while another has already created a typed column
+                    continue;
+                } else if (exists.valueType().id() == UndefinedType.ID) {
+                    // replace undefined with the new typed column
+                    newReferences.put(newColumn, exists.withValueType(newRef.valueType()));
+                    addedColumn = true;
+                } else {
+                    throw new IllegalArgumentException(String.format(
+                        Locale.ENGLISH,
+                        "Column `%s` already exists with type `%s`. Cannot add same column with type `%s`",
+                        newColumn,
+                        exists.valueType().getName(),
+                        newRef.valueType().getName()));
+                }
             }
             boolean addedChildren = addNewReferences(positions, newReferences, tree, newColumn);
             addedColumn = addedColumn || addedChildren;
