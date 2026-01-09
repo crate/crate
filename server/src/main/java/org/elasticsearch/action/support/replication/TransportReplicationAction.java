@@ -550,9 +550,11 @@ public abstract class TransportReplicationAction<
 
                     @Override
                     public void onTimeout(TimeValue timeout) {
-                        throw new AssertionError("Cannot happen: there is not timeout");
+                        onCompletionListener.onFailure(
+                            new RuntimeException("Waiting for new cluster state update timed out after '" + timeout + "'", e)
+                        );
                     }
-                });
+                }, _ -> true, replicaRequest.getRequest().timeout);
             } else {
                 responseWithFailure(e);
             }
