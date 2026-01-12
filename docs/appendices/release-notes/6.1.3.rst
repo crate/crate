@@ -46,9 +46,35 @@ series.
 Fixes
 =====
 
+- Changed :ref:`hyperloglog_distinct <aggregation-hyperloglog-distinct>` to return
+  ``0`` instead of ``NULL`` if using a ``FILTER`` clause that doesn't match any
+  records - to be consistent with a global ``WHERE`` and ``COUNT``.
+
 - Fixed a regression introduced in :ref:`version_6.1.0` that could lead to
   mixing partial success results with error message in the response from the
   ``HTTP`` endpoint.
 
 - Fixed an issue causing memory leaks if requests to the ``HTTP`` endpoint
   failed due to a missing :ref:`HBA <admin_hba>` entry or wrong credentials.
+
+- Fixed an issue that caused direct memory under-accounting, potentially leading
+  to an ``OutOfMemoryError`` when a large result set was returned by the
+  ``HTTP`` endpoint.
+
+- Fixed a regression introduced with :ref:`version_6.0.0` that led to wrong
+  results when mixing ``CROSS JOIN`` and ``INNER JOIN`` on a condition with a
+  :ref:`CASE<scalar-case-when-then-end>` referring to one of the cross joined
+  tables. e.g.::
+
+    SELECT * FROM t1, t0
+    INNER JOIN (SELECT 1 AS col0) AS sub0
+    ON (CASE sub0.col0 WHEN sub0.col0 THEN t0.c0 ELSE false END)
+
+- Fixed an issue resulting in a non matching :ref:`sql_dql_is_null` predicate
+  when NULL values are inserted into a new sub-column of a
+  :ref:`type-object` column with dynamic mapping enabled. E.g.::
+
+    CREATE TABLE t (o OBJECT(DYNAMIC));
+    INSERT INTO t (o) VALUES ({"a": NULL});
+    SELECT * FROM t WHERE o['a'] IS NULL;  -- now returns the row
+

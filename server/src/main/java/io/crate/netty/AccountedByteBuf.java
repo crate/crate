@@ -21,34 +21,70 @@
 
 package io.crate.netty;
 
+import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.elasticsearch.monitor.jvm.JvmInfo;
+
 import io.crate.data.breaker.RamAccounting;
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.WrappedByteBuf;
 
-public class AccountedByteBuf extends WrappedByteBuf {
+public class AccountedByteBuf {
 
-    private final ByteBuf delegate;
-    private final RamAccounting ramAccounting;
+    public static final long SINGLE_DIRECT_BUF_LIMIT = (long) (JvmInfo.jvmInfo().getDirectMemorySize() * 0.60);
+
+    private AccountedByteBuf() {}
 
     public static ByteBuf of(ByteBuf delegate, RamAccounting ramAccounting) {
-        return delegate.isDirect()
-            ? delegate
-            : new AccountedByteBuf(delegate, ramAccounting);
+        if (delegate.isDirect()) {
+            return new AccountedDirectByteBuf(delegate);
+        }
+        return new AccountedHeapByteBuf(delegate, ramAccounting);
     }
 
-    private AccountedByteBuf(ByteBuf delegate, RamAccounting ramAccounting) {
-        super(delegate);
-        this.delegate = delegate;
-        this.ramAccounting = ramAccounting;
-        ramAccounting.addBytes(delegate.capacity());
+    static class AccountedHeapByteBuf extends WrappedByteBuf {
+        private final RamAccounting accounting;
+
+        protected AccountedHeapByteBuf(ByteBuf buf, RamAccounting accounting) {
+            super(buf);
+            this.accounting = accounting;
+        }
+
+        @Override
+        public ByteBuf writeBytes(byte[] src, int srcIndex, int length) {
+            int oldCapacity = buf.capacity();
+            ByteBuf result = buf.writeBytes(src, srcIndex, length);
+            int newCapacity = buf.capacity();
+            int delta = newCapacity - oldCapacity;
+            accounting.addBytes(delta);
+            return result;
+        }
     }
 
-    @Override
-    public ByteBuf writeBytes(byte[] src, int srcIndex, int length) {
-        int oldCapacity = delegate.capacity();
-        ByteBuf result = buf.writeBytes(src, srcIndex, length);
-        int newCapacity = delegate.capacity();
-        ramAccounting.addBytes(newCapacity - oldCapacity);
-        return result;
+    /**
+     * Doesn't allow a single buffer to grow more than 60% of total direct memory.
+     * We can't use ByteBufAllocatorMetric.usedDirectMemory() to check total direct memory usage
+     * as it doesn't return precise results for big allocations (big result sets), see https://github.com/netty/netty/issues/16068.
+     */
+    static class AccountedDirectByteBuf extends WrappedByteBuf {
+        private long usedBytes = 0;
+
+        protected AccountedDirectByteBuf(ByteBuf buf) {
+            super(buf);
+        }
+
+        @Override
+        public ByteBuf writeBytes(byte[] src, int srcIndex, int length) {
+            if (usedBytes + length > SINGLE_DIRECT_BUF_LIMIT) {
+                throw new CircuitBreakingException(length, usedBytes + length, SINGLE_DIRECT_BUF_LIMIT, "result-buffer");
+            }
+            try {
+                usedBytes += length;
+                return buf.writeBytes(src, srcIndex, length);
+            } catch (OutOfMemoryError error) {
+                // writeBytes call will not leave a buffer in an inconsistent state (see issue linked above).
+                // It's safe to catch OOM as a last resort and re-throw it as a CBE.
+                throw new CircuitBreakingException(length, usedBytes + length, SINGLE_DIRECT_BUF_LIMIT, "result-buffer");
+            }
+        }
     }
 }

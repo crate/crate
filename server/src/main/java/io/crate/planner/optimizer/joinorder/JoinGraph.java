@@ -21,6 +21,8 @@
 
 package io.crate.planner.optimizer.joinorder;
 
+import static io.crate.planner.operators.EquiJoinDetector.isEquiJoin;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -189,7 +191,7 @@ public record JoinGraph(List<LogicalPlan> nodes,
                     // (a,b) -> (a.x = b.y) and we can ignore any other
                     // filters. Therefore, we only want entries where we have
                     // two keys.
-                    if (entry.getKey().size() == 2) {
+                    if (entry.getKey().size() == 2 && isEquiJoin(entry.getValue())) {
                         entry.getValue().accept(edgeCollector, context);
                     } else {
                         filters.add(entry.getValue());
