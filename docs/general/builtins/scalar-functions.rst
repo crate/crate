@@ -586,8 +586,8 @@ If any of the arguments is ``NULL``, the result is ``NULL``.
 
 .. _scalar-quote_ident:
 
-``quote_ident(text)``
----------------------
+``pg_catalog.quote_ident(text)``
+--------------------------------
 
 Returns: ``text``
 
@@ -1791,8 +1791,8 @@ specified interval added to the timestamp of ``0000/01/01 00:00:00``::
 
 .. _scalar-pg-age:
 
-``age([timestamp,] timestamp)``
----------------------------------------------------
+``pg_catalog.age([timestamp,] timestamp)``
+------------------------------------------
 
 Returns: :ref:`interval <type-interval>` between 2 timestamps. Second argument
 is subtracted from the first one. If at least one argument is ``NULL``, the
@@ -1801,7 +1801,7 @@ interval between current_date (at midnight) and the given timestamp.
 
 Example::
 
-    cr> select pg_catalog.age('2021-10-21'::timestamp, '2021-10-20'::timestamp)
+    cr> select age('2021-10-21'::timestamp, '2021-10-20'::timestamp)
     ... as age;
     +----------------+
     | age            |
@@ -3172,8 +3172,8 @@ Returns: ``array``
 
 .. _scalar-array_to_string:
 
-``array_to_string(anyarray, separator, [ null_string ])``
----------------------------------------------------------
+``pg_catalog.array_to_string(anyarray, separator, [ null_string ])``
+--------------------------------------------------------------------
 
 The ``array_to_string`` function concatenates elements of the given array into
 a single string using the ``separator``.
@@ -3962,7 +3962,8 @@ The default schema can be set when using the `JDBC client
 
     The ``CURRENT_SCHEMA`` function has a special SQL syntax, meaning that it
     must be called without trailing parenthesis (``()``). However, CrateDB also
-    supports the optional parenthesis.
+    supports the optional parenthesis, in that case the function is registered
+    under the ``pg_catalog`` schema.
 
 Synopsis::
 
@@ -3978,11 +3979,19 @@ Example::
     +----------------+
     SELECT 1 row in set (... sec)
 
+    cr> SELECT pg_catalog.current_schema();
+    +----------------+
+    | current_schema |
+    +----------------+
+    |            doc |
+    +----------------+
+    SELECT 1 row in set (... sec)
+
 
 .. _scalar-current_schemas:
 
-``CURRENT_SCHEMAS(boolean)``
-----------------------------
+``pg_catalog.CURRENT_SCHEMAS(boolean)``
+---------------------------------------
 
 The ``CURRENT_SCHEMAS()`` system information function returns the current
 stored schemas inside the :ref:`search_path <conf-session-search-path>` session
@@ -4115,8 +4124,8 @@ Example::
 
 .. _scalar-has-database-priv:
 
-``has_database_privilege([user,] database, privilege text)``
-------------------------------------------------------------
+``pg_catalog.has_database_privilege([user,] database, privilege text)``
+-----------------------------------------------------------------------
 
 Returns ``boolean`` or ``NULL`` if at least one argument is ``NULL``.
 
@@ -4161,8 +4170,8 @@ Example::
 
 .. _scalar-has-schema-priv:
 
-``has_schema_privilege([user,] schema, privilege text)``
---------------------------------------------------------
+``pg_catalog.has_schema_privilege([user,] schema, privilege text)``
+-------------------------------------------------------------------
 
 Returns ``boolean`` or ``NULL`` if at least one argument is ``NULL``.
 
@@ -4205,8 +4214,8 @@ Example::
 
 .. _scalar-has-table-priv:
 
-``has_table_privilege([user,] table, privilege text)``
-------------------------------------------------------
+``pg_catalog.has_table_privilege([user,] table, privilege text)``
+-----------------------------------------------------------------
 
 Returns ``boolean`` or ``NULL`` if at least one argument is ``NULL``.
 
@@ -4256,8 +4265,8 @@ Example::
 
 .. _scalar-pg_backend_pid:
 
-``pg_backend_pid()``
---------------------
+``pg_catalog.pg_backend_pid()``
+-------------------------------
 
 The ``pg_backend_pid()`` system information function is implemented for
 enhanced compatibility with PostgreSQL. CrateDB will always return ``-1`` as
@@ -4284,21 +4293,21 @@ Example::
 
 .. _scalar-pg_postmaster_start_time:
 
-``pg_postmaster_start_time()``
-------------------------------
+``pg_catalog.pg_postmaster_start_time()``
+-----------------------------------------
 
 Returns the server start time as ``timestamp with time zone``.
 
 
 .. _scalar-current_catalog:
 
-``current_catalog``
-----------------------
+``CURRENT_CATALOG``
+-------------------
 
-The ``current_catalog`` function returns the name of the current catalog, which
+The ``CURRENT_CATALOG`` function returns the name of the current catalog, which
 in CrateDB will always be ``crate``::
 
-    cr> select current_catalog AS db;
+    cr> select CURRENT_CATALOG AS db;
     +-------+
     | db    |
     +-------+
@@ -4308,8 +4317,8 @@ in CrateDB will always be ``crate``::
 
 .. _scalar-current_database:
 
-``current_database()``
-----------------------
+``pg_catalog.current_database()``
+---------------------------------
 
 The ``current_database`` function returns the name of the current database,
 which in CrateDB will always be ``crate``::
@@ -4325,8 +4334,8 @@ which in CrateDB will always be ``crate``::
 
 .. _scalar-current_setting:
 
-``current_setting(text [,boolean])``
-------------------------------------
+``pg_catalog.current_setting(text [,boolean])``
+-----------------------------------------------
 
 The ``current_setting`` function returns the current value of a :ref:`session
 setting <conf-session>`.
@@ -4368,8 +4377,8 @@ Examples::
 
 .. _scalar-pg_get_expr:
 
-``pg_get_expr()``
------------------
+``pg_catalog.pg_get_expr()``
+----------------------------
 
 The function ``pg_get_expr`` is implemented to improve compatibility with
 clients that use the PostgreSQL wire protocol. The function always returns
@@ -4391,8 +4400,8 @@ Example::
 
 .. _scalar-pg_get_partkeydef:
 
-``pg_get_partkeydef()``
------------------------
+``pg_catalog.pg_get_partkeydef()``
+----------------------------------
 
 The function ``pg_get_partkeydef`` is implemented to improve compatibility with
 clients that use the PostgreSQL wire protocol. Partitioning in CrateDB is
@@ -4414,8 +4423,8 @@ Example::
 
 .. _scalar-pg_get_serial_sequence:
 
-``pg_get_serial_sequence()``
-----------------------------
+``pg_catalog.pg_get_serial_sequence()``
+---------------------------------------
 
 The function ``pg_get_serial_sequence`` is implemented to improve compatibility
 with clients that use the PostgreSQL wire protocol. The function always returns
@@ -4437,8 +4446,8 @@ Example::
 
 .. _scalar-pg_encoding_to_char:
 
-``pg_encoding_to_char()``
--------------------------
+``pg_catalog.pg_encoding_to_char()``
+------------------------------------
 
 The function ``pg_encoding_to_char`` converts an PostgreSQL encoding's internal
 identifier to a human-readable name.
@@ -4462,8 +4471,8 @@ Example::
 
 .. _scalar-pg_get_userbyid:
 
-``pg_get_userbyid()``
----------------------
+``pg_catalog.pg_get_userbyid()``
+--------------------------------
 
 The function ``pg_get_userbyid`` is implemented to improve compatibility with
 clients that use the PostgreSQL wire protocol. The function always returns the
@@ -4488,8 +4497,8 @@ Example::
 
 .. _scalar-pg_typeof:
 
-``pg_typeof()``
----------------
+``pg_catalog.pg_typeof()``
+--------------------------
 
 The function ``pg_typeof`` returns the text representation of the value's data
 type passed to it.
@@ -4542,8 +4551,8 @@ Example:
 
 .. _scalar-pg_table_is_visible:
 
-``pg_table_is_visible()``
--------------------------
+``pg_catalog.pg_table_is_visible()``
+------------------------------------
 
 The function ``pg_table_is_visible`` accepts an OID as an argument. It returns
 ``true`` if the current user holds at least one of ``DQL``, ``DDL`` or ``DML``
@@ -4568,8 +4577,8 @@ Example:
 
 .. _scalar-pg_get_function_result:
 
-``pg_get_function_result()``
-----------------------------
+``pg_catalog.pg_get_function_result()``
+---------------------------------------
 
 The function ``pg_get_function_result`` returns the text representation of the
 return value's data type of the function referred by the OID.
@@ -4595,8 +4604,8 @@ Example:
 
 .. _scalar-version:
 
-``version()``
--------------
+``pg_catalog.version()``
+------------------------
 
 Returns the CrateDB version information.
 
@@ -4621,8 +4630,8 @@ Example:
 
 .. _scalar-col_description:
 
-``col_description(integer, integer)``
--------------------------------------
+``pg_catalog.col_description(integer, integer)``
+------------------------------------------------
 
 This function exists mainly for compatibility with PostgreSQL. In PostgreSQL,
 the function returns the comment for a table column. CrateDB doesn't support
@@ -4635,7 +4644,7 @@ Example:
 
 ::
 
-    cr> SELECT pg_catalog.col_description(1, 1) AS comment;
+    cr> SELECT col_description(1, 1) AS comment;
     +---------+
     | comment |
     +---------+
@@ -4646,8 +4655,8 @@ Example:
 
 .. _scalar-obj_description:
 
-``obj_description(integer, text)``
-----------------------------------
+``pg_catalog.obj_description(integer, text)``
+---------------------------------------------
 
 This function exists mainly for compatibility with PostgreSQL. In PostgreSQL,
 the function returns the comment for a database object. CrateDB doesn't support
@@ -4671,8 +4680,8 @@ Example:
 
 .. _scalar-format_type:
 
-``format_type(integer, integer)``
----------------------------------
+``pg_catalog.format_type(integer, integer)``
+--------------------------------------------
 
 Returns the type name of a type. The first argument is the ``OID`` of the type.
 The second argument is the type modifier. This function exists for PostgreSQL
