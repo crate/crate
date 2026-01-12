@@ -104,6 +104,10 @@ import io.crate.metadata.TransactionContext;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.table.Operation;
+import io.crate.role.Permission;
+import io.crate.role.Privileges;
+import io.crate.role.Role;
+import io.crate.role.Securable;
 import io.crate.sql.ExpressionFormatter;
 import io.crate.sql.Identifiers;
 import io.crate.sql.parser.ParsingException;
@@ -1310,6 +1314,11 @@ public class ExpressionAnalyzer {
 
         Signature signature = funcImpl.signature();
         BoundSignature boundSignature = funcImpl.boundSignature();
+        String funcSchema = signature.getName().schema();
+        if (funcSchema != null) {
+            Role user = nodeCtx.roles().findUser(txnCtx.sessionSettings().userName());
+            Privileges.ensureUserHasPrivilege(nodeCtx.roles(), user, Permission.DQL, Securable.SCHEMA, funcSchema);
+        }
         List<Symbol> castArguments = cast(arguments, boundSignature.argTypes());
         Function newFunction;
         if (windowDefinition == null) {
