@@ -21,12 +21,13 @@ package org.elasticsearch.indices;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
-import org.apache.lucene.search.LRUQueryCache;
 import org.apache.lucene.search.QueryCache;
 import org.elasticsearch.common.settings.Setting;
 import org.elasticsearch.common.settings.Setting.Property;
 import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.common.unit.ByteSizeValue;
+
+import io.crate.lucene.CustomLRUQueryCache;
 
 public final class IndicesQueryCache {
 
@@ -51,9 +52,9 @@ public final class IndicesQueryCache {
         LOGGER.debug("using [node] query cache with size [{}] max filter count [{}]",
                 size, count);
         if (INDICES_QUERIES_CACHE_ALL_SEGMENTS_SETTING.get(settings)) {
-            return new LRUQueryCache(count, size.getBytes(), context -> true, 1f);
+            return new CustomLRUQueryCache(count, size.getBytes(), context -> true, 1f);
         } else {
-            return new LRUQueryCache(count, size.getBytes());
+            return new CustomLRUQueryCache(count, size.getBytes());
         }
     }
 }
