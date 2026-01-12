@@ -180,7 +180,9 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
         for (LuceneCollectorExpression<?> expression: expressions) {
             try {
                 // Safe to do it because reader is set on actual usage.
-                expression.setNextReader(null);
+                if (expression.canResetReader()) {
+                    expression.setNextReader(null);
+                }
             } catch (IOException e) {
                 LOGGER.warn("Could reset reader in LuceneCollectorExpressions. " +
                         "This can lead to cache taking more memory then it's supposed to.",
@@ -196,8 +198,12 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     }
 
     private Weight createWeight() throws IOException {
-        for (LuceneCollectorExpression<?> expression : expressions) {
-            expression.startCollect(collectorContext);
+        try {
+            for (LuceneCollectorExpression<?> expression : expressions) {
+                expression.startCollect(collectorContext);
+            }
+        } catch (Exception e) {
+            throw new RuntimeException(e);
         }
         ScoreMode scoreMode = doScores ? ScoreMode.COMPLETE : ScoreMode.COMPLETE_NO_SCORES;
         return indexSearcher.createWeight(indexSearcher.rewrite(query), scoreMode, 1f);

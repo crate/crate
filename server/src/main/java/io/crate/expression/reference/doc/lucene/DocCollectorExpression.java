@@ -58,6 +58,11 @@ public abstract class DocCollectorExpression<T> extends LuceneCollectorExpressio
         this.context = context;
     }
 
+    @Override
+    public boolean canResetReader() {
+        return true;
+    }
+
     public static LuceneCollectorExpression<?> create(final Reference reference,
                                                       Predicate<Reference> isParentReferenceIgnored) {
         assert reference.column().name().equals(SysColumns.DOC.name()) :
