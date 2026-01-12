@@ -28,6 +28,7 @@ import static org.mockito.Mockito.when;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicBoolean;
 
@@ -73,6 +74,7 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.PartitionName;
+import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
@@ -80,9 +82,11 @@ import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.netty.NettyBootstrap;
+import io.crate.sql.tree.ColumnPolicy;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 import io.crate.types.DataTypes;
+import io.crate.types.ObjectType;
 
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
 
@@ -150,6 +154,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         }
     }
 
+    private TransportShardUpsertAction transportShardUpsertActionWithVersionConflict;
     private TransportShardUpsertAction transportShardUpsertAction;
     private IndexShard indexShard;
     private NettyBootstrap nettyBootstrap;
@@ -197,13 +202,25 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         when(indexService.getShard(0)).thenReturn(indexShard);
         when(indexShard.shardId()).thenReturn(new ShardId(charactersIndex, 0));
 
-        transportShardUpsertAction = new TestingTransportShardUpsertAction(
+        transportShardUpsertActionWithVersionConflict = new TestingTransportShardUpsertAction(
             mock(ThreadPool.class),
             clusterService,
             MockTransportService.createNewService(Settings.EMPTY, VersionUtils.randomVersion(random()), THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings()),
             mock(TasksService.class),
             indicesService,
             mock(ShardStateAction.class),
+            executor.nodeCtx
+        );
+        transportShardUpsertAction = new TransportShardUpsertAction(
+            Settings.EMPTY,
+            mock(ThreadPool.class),
+            clusterService,
+            MockTransportService.createNewService(Settings.EMPTY, VersionUtils.randomVersion(random()), THREAD_POOL, nettyBootstrap, clusterService.getClusterSettings()),
+            mock(TransportAddColumn.class),
+            mock(TasksService.class),
+            indicesService,
+            mock(ShardStateAction.class),
+            new NoneCircuitBreakerService(),
             executor.nodeCtx
         );
     }
@@ -239,7 +256,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         );
 
         TransportReplicationAction.PrimaryResult<UpsertReplicaRequest, ShardResponse> result =
-            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
+            transportShardUpsertActionWithVersionConflict.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
         assertThat(result.response.failure()).isExactlyInstanceOf(VersionConflictEngineException.class);
     }
@@ -269,7 +286,7 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
         ));
 
         TransportReplicationAction.PrimaryResult<UpsertReplicaRequest, ShardResponse> result =
-            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
+            transportShardUpsertActionWithVersionConflict.processRequestItems(indexShard, request, new AtomicBoolean(false));
 
         ShardResponse response = result.response;
         assertThat(response.failures()).satisfiesExactly(
@@ -356,6 +373,75 @@ public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnit
 
         // verifies that it does not throw a ClassCastException: class java.lang.Integer cannot be cast to class java.lang.Long
         transportShardUpsertAction.processRequestItemsOnReplica(indexShard, request);
+    }
+
+    @Test
+    public void test_dynamic_insert_replica_request_uses_detected_column_and_sanitized_value() throws Exception {
+        executor.addTable(
+            """
+            create table doc.characters (
+                id int,
+                p int,
+                obj object(dynamic)
+            )
+            PARTITIONED BY (p)
+            WITH (column_policy = 'dynamic')
+            """,
+            PARTITION_VALUES
+        );
+
+        SimpleReference objRef = (SimpleReference) executor.schemas().getTableInfo(TABLE_IDENT)
+            .getReference(ColumnIdent.of("obj"));
+
+        ShardId shardId = new ShardId(TABLE_IDENT.indexNameOrAlias(), charactersIndexUUID, 0);
+        SimpleReference[] missingAssignmentsColumns = new SimpleReference[]{ID_REF, objRef};
+        ShardUpsertRequest request = new ShardUpsertRequest.Builder(
+            DUMMY_SESSION_INFO,
+            TimeValue.timeValueSeconds(30),
+            DuplicateKeyAction.UPDATE_OR_FAIL,
+            false,
+            null,
+            missingAssignmentsColumns,
+            null,
+            UUID.randomUUID()
+        ).newRequest(shardId);
+        request.add(2, ShardUpsertRequest.Item.forInsert(
+            "2",
+            List.of(),
+            Translog.UNSET_AUTO_GENERATED_TIMESTAMP,
+            missingAssignmentsColumns,
+            new Object[]{2, Map.of("a", 2)},    // using an INTEGER for 'a' which should be up-casted to LONG
+            null,
+            0
+        ));
+
+        // pretend primary operation updated the schema to a LONG inner type for 'a'
+        executor.addTable(
+            """
+            create table doc.characters (
+                id int,
+                p int,
+                obj object(dynamic) as (a long)
+            )
+            PARTITIONED BY (p)
+            WITH (column_policy = 'dynamic')
+            """,
+            PARTITION_VALUES
+        );
+
+        Reference updatedObjRef = executor.schemas().getTableInfo(TABLE_IDENT)
+            .getReference(ColumnIdent.of("obj"));
+        assertThat(updatedObjRef.valueType())
+            .isEqualTo(ObjectType.of(ColumnPolicy.DYNAMIC).setInnerType("a", DataTypes.LONG).build());
+
+        TransportReplicationAction.PrimaryResult<UpsertReplicaRequest, ShardResponse> result =
+            transportShardUpsertAction.processRequestItems(indexShard, request, new AtomicBoolean(false));
+        UpsertReplicaRequest replicaRequest = result.replicaRequest();
+
+        // verify that the reference type has been updated to the new registered type, added by dynamic mapping on primary
+        assertThat(replicaRequest.columns()).contains(updatedObjRef);
+        // verify that the value has been sanitized to use a LONG instead of INTEGER
+        assertThat(replicaRequest.items().get(0).insertValues()).contains(2, Map.of("a", 2L));
     }
 
     @Test
