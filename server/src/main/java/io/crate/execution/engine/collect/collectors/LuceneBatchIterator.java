@@ -27,6 +27,8 @@ import java.util.Iterator;
 import java.util.List;
 import java.util.concurrent.CompletionStage;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.LeafReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSetIterator;
@@ -54,6 +56,8 @@ import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
  * Row data depends on {@code inputs} and {@code expressions}. The data is unordered.
  */
 public class LuceneBatchIterator implements BatchIterator<Row> {
+
+    private static final Logger LOGGER = LogManager.getLogger(LuceneBatchIterator.class);
 
     private final IndexSearcher indexSearcher;
     private final Query query;
@@ -173,6 +177,17 @@ public class LuceneBatchIterator implements BatchIterator<Row> {
     public void close() {
         clearState();
         killed = BatchIterator.CLOSED;
+        for (LuceneCollectorExpression<?> expression: expressions) {
+            try {
+                // Safe to do it because reader is set on actual usage.
+                expression.setNextReader(null);
+            } catch (IOException e) {
+                LOGGER.warn("Could reset reader in LuceneCollectorExpressions. " +
+                        "This can lead to cache taking more memory then it's supposed to.",
+                    e
+                );
+            }
+        }
     }
 
     @Override

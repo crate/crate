@@ -71,6 +71,10 @@ public class GenericFunctionQuery extends Query {
         this.raiseIfKilled = raiseIfKilled;
     }
 
+    public LuceneCollectorExpression<?>[] expressions() {
+        return expressions;
+    }
+
     @Override
     public boolean equals(Object o) {
         return o instanceof GenericFunctionQuery that && function.equals(that.function);

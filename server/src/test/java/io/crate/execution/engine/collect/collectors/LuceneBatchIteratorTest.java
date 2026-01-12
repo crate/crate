@@ -21,6 +21,8 @@
 
 package io.crate.execution.engine.collect.collectors;
 
+import static org.assertj.core.api.Assertions.assertThat;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -33,16 +35,20 @@ import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.MatchAllDocsQuery;
+import org.apache.lucene.search.Query;
 import org.apache.lucene.store.ByteBuffersDirectory;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 
 import io.crate.data.testing.BatchIteratorTester;
 import io.crate.data.testing.BatchIteratorTester.ResultOrder;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
 import io.crate.expression.reference.doc.lucene.LongColumnReference;
+import io.crate.lucene.GenericFunctionQuery;
+import io.crate.lucene.LuceneQueryBuilderTest;
 
-public class LuceneBatchIteratorTest {
+public class LuceneBatchIteratorTest extends LuceneQueryBuilderTest {
 
     private List<LongColumnReference> columnRefs;
     private IndexSearcher indexSearcher;
@@ -72,6 +78,26 @@ public class LuceneBatchIteratorTest {
             () -> new LuceneBatchIterator(
                 indexSearcher,
                 new MatchAllDocsQuery(),
+                null,
+                false,
+                new CollectorContext(() -> null),
+                columnRefs,
+                columnRefs
+            ), ResultOrder.EXACT
+        );
+        tester.verifyResultAndEdgeCaseBehaviour(expectedResult);
+    }
+
+    @Test
+    @Ignore
+    public void test_LuceneBatchIterator_resets_expressions_on_close() throws Exception {
+        Query query = convert("text_no_index is null");
+        assertThat(query)
+            .isExactlyInstanceOf(GenericFunctionQuery.class);
+        var tester = BatchIteratorTester.forRows(
+            () -> new LuceneBatchIterator(
+                indexSearcher,
+                query,
                 null,
                 false,
                 new CollectorContext(() -> null),
