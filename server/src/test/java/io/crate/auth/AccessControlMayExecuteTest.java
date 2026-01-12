@@ -48,6 +48,7 @@ import org.junit.Test;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.TableDefinitions;
+import io.crate.exceptions.MissingPrivilegeException;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.UnauthorizedException;
 import io.crate.expression.udf.UserDefinedFunctionMetadata;
@@ -77,6 +78,7 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
     private List<List<Object>> validationCallArguments;
     private Role normalUser;
     private Role ddlOnlyUser;
+    private Role noPrivsUser;
     private SQLExecutor e;
     private RoleManager roleManager;
     private final Role superUser = Role.CRATE_USER;
@@ -105,12 +107,23 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
                                             "custom_schema",
                                             "crate")),
                        null);
-        ddlOnlyUser = userOf("ddlOnly");
+        ddlOnlyUser = userOf(
+                        "ddlOnly",
+                        Set.of(new Privilege(Policy.GRANT,
+                                             Permission.DDL,
+                                             Securable.SCHEMA,
+                                             "custom_schema",
+                                             "crate")),
+                        null);
+        noPrivsUser = userOf(
+                        "noPrivsUser",
+                        Set.of(),
+                        null);
 
         Roles roles = new Roles() {
             @Override
             public Collection<Role> roles() {
-                return List.of(superUser, normalUser, ddlOnlyUser);
+                return List.of(superUser, normalUser, ddlOnlyUser, noPrivsUser);
             }
 
             @Override
@@ -870,4 +883,14 @@ public class AccessControlMayExecuteTest extends CrateDummyClusterServiceUnitTes
         ;
     }
 
+    @Test
+    public void assert_privileges_for_function_call() throws Exception {
+        assertThatThrownBy(() -> analyze("select custom_schema.foo(10)", ddlOnlyUser))
+            .isExactlyInstanceOf(MissingPrivilegeException.class)
+            .hasMessage("Missing 'DQL' privilege for user 'ddlOnly'");
+
+        // user with no privilege can execute built-in functions;
+        analyze("select abs(-10)", noPrivsUser);
+        analyze("select pg_typeof('foo')", noPrivsUser);
+    }
 }
