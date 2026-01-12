@@ -487,6 +487,70 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_extra_eval_operator_from_hash_join_reorder_works_with_fetch() throws Exception {
+        // https://github.com/crate/crate/issues/18876
+
+        resetClusterService();
+        e = SQLExecutor.of(clusterService)
+            .addTable(
+                """
+                CREATE TABLE "doc"."user_session" (
+                    "event_time" TIMESTAMP WITH TIME ZONE,
+                    "domain" TEXT,
+                    "user_id" TEXT
+                )
+                """
+            )
+            .addView(
+                new RelationName("doc", "user_session_visitortype"),
+                """
+                WITH first_visit AS (
+                  SELECT
+                  "user_id",
+                  MIN("event_time") AS "first_event_time"
+                  FROM "doc"."user_session"
+                  GROUP BY "user_id"
+                )
+                SELECT
+                  CASE
+                    WHEN "user_session"."event_time" = "first_visit"."first_event_time"
+                    THEN 'new_user'
+                    ELSE 'returning_user'
+                  END AS "user_type",
+                  "user_session"."domain",
+                  "user_session"."event_time",
+                  "user_session"."user_id"
+                FROM "doc"."user_session"
+                JOIN first_visit
+                  ON "user_session"."user_id" = "first_visit"."user_id";
+                """
+            );
+
+        // Forces hash-join re-order
+        e.updateTableStats(Map.of(
+            new RelationName("doc", "user_session"), new Stats(100_000, 64, Map.of())
+        ));
+
+        LogicalPlan plan = e.logicalPlan(
+            "select user_type, domain from doc.user_session_visitortype where domain = 'example.com' limit 1");
+
+        // This used to have an Eval with a `CASE WHEN (event_time = first_event_time)` beneath
+        // the Limit because the ReorderHashJoin rule adds a `Eval` node to retain output order
+        // This resulted in an `Can't handle Symbol [SimpleReference: event_time]` error because `event_time` is not an output of the Join, but is fetched
+        assertThat(plan).hasOperators(
+            "Rename[user_type, domain] AS doc.user_session_visitortype",
+            "  └ Fetch[CASE WHEN (event_time = first_event_time) THEN 'new_user' ELSE 'returning_user' END AS user_type, domain]",
+            "    └ Limit[1::bigint;0]",
+            "      └ HashJoin[INNER | (user_id = user_id)]",
+            "        ├ Rename[first_event_time, user_id] AS first_visit",
+            "        │  └ Eval[min(event_time) AS first_event_time, user_id]",
+            "        │    └ GroupHashAggregate[user_id | min(event_time)]",
+            "        │      └ Collect[doc.user_session | [event_time, user_id] | true]",
+            "        └ Collect[doc.user_session | [_fetchid, user_id] | (domain = 'example.com')]"
+        );
+    }
+
+    @Test
     public void testPlanChainedJoinsWithWindowFunctionInOutput() {
         QueriedSelectRelation mss = e.analyze("SELECT t1.a, t2.b, row_number() OVER(ORDER BY t3.z) " +
                                               "FROM t1 t1 " +

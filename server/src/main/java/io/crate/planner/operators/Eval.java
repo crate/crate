@@ -23,6 +23,7 @@ package io.crate.planner.operators;
 
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.SequencedCollection;
@@ -118,18 +119,25 @@ public final class Eval extends ForwardingLogicalPlan {
         UnaryOperator<Symbol> mapToFetchStubs = fetchRewrite.mapToFetchStubs();
         LinkedHashMap<Symbol, Symbol> newReplacedOutputs = new LinkedHashMap<>();
         ArrayList<Symbol> newOutputs = new ArrayList<>();
-        for (Symbol sourceOutput : newSource.outputs()) {
+        List<Symbol> newSourceOutputs = newSource.outputs();
+        for (Symbol sourceOutput : newSourceOutputs) {
             if (sourceOutput instanceof FetchMarker) {
                 newOutputs.add(sourceOutput);
             }
         }
+        int retainedOutputs = 0;
         for (Symbol output : outputs) {
             newReplacedOutputs.put(output, mapToFetchStubs.apply(output));
-            if (output.any(newSource.outputs()::contains)) {
+            HashSet<Symbol> outputColumns = new HashSet<>();
+            output.visit(Symbol.IS_COLUMN, outputColumns::add);
+            if (newSourceOutputs.containsAll(outputColumns)) {
                 newOutputs.add(output);
+                retainedOutputs++;
             }
         }
-        return new FetchRewrite(newReplacedOutputs, Eval.create(newSource, newOutputs));
+        return new FetchRewrite(
+            newReplacedOutputs,
+            retainedOutputs > 0 ? Eval.create(newSource, newOutputs) : newSource);
     }
 
     private ExecutionPlan addEvalProjection(PlannerContext plannerContext,
