@@ -921,6 +921,8 @@ public class Indexer {
             // for insert-on-conflict columns.size() > values.length is possible to be able to process both INSERT and UPDATE rows
             if (idx >= 0 && idx < values.length) {
                 Object value = valueForInsert(ref.valueType(), values[idx]);
+                // Mutate values to ensure replica request can use the converted/sanitized value
+                values[idx] = value;
                 ColumnConstraint check = columnConstraints.get(ref.column());
                 if (check != null) {
                     check.verify(value);
