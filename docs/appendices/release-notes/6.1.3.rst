@@ -95,3 +95,7 @@ Fixes
     INSERT INTO t1 (obj) VALUES ({a = {b = NULL}});
     INSERT INTO t1 (obj) VALUES ({a = {c = 1}});
 
+- Fixed an issue with users being able to execute
+  :ref:`user defined functions <user-defined-functions>`, even if they lacked
+  privileges on the schema under which a ``UDF`` is defined. Now ``DQL``
+  :ref:`privilege <administration-privileges>` on the schema is required.
