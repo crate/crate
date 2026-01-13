@@ -59,11 +59,12 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
         this.relation = relation;
         this.alias = alias;
         aliasToColumnMapping = HashMap.newHashMap(columnAliases.size());
-        this.outputs = new ArrayList<>(relation.outputs().size());
-        this.scopedSymbols = new ArrayList<>(relation.outputs().size());
+        List<Symbol> relationOutputs = relation.outputs();
+        this.outputs = new ArrayList<>(relationOutputs.size());
+        this.scopedSymbols = new ArrayList<>(relationOutputs.size());
         List<String> outputNames = relation.outputNames();
-        for (int i = 0; i < relation.outputs().size(); i++) {
-            Symbol childOutput = relation.outputs().get(i);
+        for (int i = 0; i < relationOutputs.size(); i++) {
+            Symbol childOutput = relationOutputs.get(i);
             ColumnIdent childColumn = childOutput.toColumn();
             ColumnIdent columnAlias = outputNames != null
                 ? ColumnIdent.of(outputNames.get(i))
@@ -76,11 +77,12 @@ public class AliasedAnalyzedRelation implements AnalyzedRelation, FieldResolver 
             outputs.add(scopedSymbol);
             scopedSymbols.add(scopedSymbol);
         }
-        for (int i = 0; i < relation.hiddenOutputs().size(); i++) {
-            Symbol childOutput = relation.hiddenOutputs().get(i);
+        List<Symbol> hiddenOutputs = relation.hiddenOutputs();
+        for (int i = 0; i < hiddenOutputs.size(); i++) {
+            Symbol childOutput = hiddenOutputs.get(i);
             ColumnIdent childColumn = childOutput.toColumn();
             ColumnIdent columnAlias = childColumn;
-            if (i + relation.outputs().size() < columnAliases.size()) {
+            if (i + relationOutputs.size() < columnAliases.size()) {
                 columnAlias = ColumnIdent.of(columnAliases.get(i));
             }
             aliasToColumnMapping.putIfAbsent(columnAlias, childColumn);

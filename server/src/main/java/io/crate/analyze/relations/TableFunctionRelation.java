@@ -22,6 +22,7 @@
 package io.crate.analyze.relations;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.function.Consumer;
 
@@ -50,14 +51,14 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
 
     private final TableFunctionImplementation<?> functionImplementation;
     private final Function function;
-    private final List<Reference> outputs;
+    private final List<Symbol> outputs;
     private final RelationName relationName;
 
     public TableFunctionRelation(TableFunctionImplementation<?> functionImplementation, Function function) {
         this.functionImplementation = functionImplementation;
         this.function = function;
         RowType rowType = functionImplementation.returnType();
-        this.outputs = new ArrayList<>(rowType.numElements());
+        ArrayList<Reference> outputs = new ArrayList<>(rowType.numElements());
         int idx = 0;
         FunctionName functionName = function.signature().getName();
         this.relationName = new RelationName(functionName.schema(), functionName.name());
@@ -68,6 +69,7 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
             outputs.add(ref);
             idx++;
         }
+        this.outputs = Collections.unmodifiableList(outputs);
     }
 
     public Function function() {
@@ -108,7 +110,7 @@ public class TableFunctionRelation implements AnalyzedRelation, FieldResolver {
 
     @Override
     public List<Symbol> outputs() {
-        return List.copyOf(outputs);
+        return outputs;
     }
 
     @Override
