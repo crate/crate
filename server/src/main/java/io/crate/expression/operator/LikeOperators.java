@@ -35,7 +35,7 @@ import io.crate.expression.operator.all.AllOperator;
 import io.crate.expression.operator.any.AnyLikeOperator;
 import io.crate.expression.operator.any.AnyNotLikeOperator;
 import io.crate.expression.operator.any.AnyOperator;
-import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.lucene.match.RegexQuery;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
@@ -116,7 +116,7 @@ public class LikeOperators {
                 if (isIndexed) {
                     String regex = patternToRegex(pattern, escapeChar);
                     Term term = new Term(fqColumn, regex);
-                    return new CrateRegexQuery(
+                    return new RegexQuery(
                         term,
                         Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.DOTALL
                     );

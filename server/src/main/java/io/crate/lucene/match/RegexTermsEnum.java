@@ -34,11 +34,11 @@ import org.apache.lucene.util.BytesRef;
  * Term enumerations are always ordered by Term.compareTo().  Each term in
  * the enumeration is greater than all that precede it.
  */
-class CrateRegexTermsEnum extends FilteredTermsEnum {
+class RegexTermsEnum extends FilteredTermsEnum {
 
     private CrateRegexCapabilities.JavaUtilRegexMatcher regexImpl;
 
-    CrateRegexTermsEnum(TermsEnum tenum, Term term, int flags) {
+    RegexTermsEnum(TermsEnum tenum, Term term, int flags) {
         super(tenum);
         String text = term.text();
         this.regexImpl = CrateRegexCapabilities.compile(text, flags);
