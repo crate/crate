@@ -225,7 +225,7 @@ F302	INTERSECT table operator	1	INTERSECT DISTINCT table operator	NO
 F302	INTERSECT table operator	2	INTERSECT ALL table operator	NO		
 F304	EXCEPT ALL table operator			NO		
 F311	Schema definition statement			NO		
-F311	Schema definition statement	1	CREATE SCHEMA	NO		will be explicitly defined with table
+F311	Schema definition statement	1	CREATE SCHEMA	YES		
 F311	Schema definition statement	2	CREATE TABLE for persistent base tables	YES		
 F311	Schema definition statement	3	CREATE VIEW	YES		
 F311	Schema definition statement	4	CREATE VIEW: WITH CHECK OPTION	NO		
