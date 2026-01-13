@@ -690,7 +690,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(query).hasToString("(name:bar name:foo)~1");
 
         query = convert("name not ilike any(['bar', null, 'foo'])");
-        assertThat(query).hasToString("+*:* -(+name:^bar$,flags:66 +name:^foo$,flags:66)");
+        assertThat(query).hasToString("+*:* -(+name:^bar$,flags:98 +name:^foo$,flags:98)");
     }
 
     @Test

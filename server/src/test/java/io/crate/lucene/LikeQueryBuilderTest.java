@@ -22,7 +22,7 @@
 package io.crate.lucene;
 
 import static io.crate.expression.operator.LikeOperators.convertSqlLikeToLuceneWildcard;
-import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import java.util.List;
@@ -315,6 +315,24 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
             assertThat(query).hasToString("('aa' LIKE ALL(pattern_arr))");
             assertThat(tester.runQuery("pattern_arr", "'aa' like all(pattern_arr)"))
                 .containsExactly(List.of("a_", "%a"));
+        }
+    }
+
+    @Test
+    public void test_like_matches_on_multiline_content() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table tbl (txt text)");
+        builder.indexValues(List.of("txt"), "x\nhello");
+
+        try (QueryTester tester = builder.build()) {
+            assertThat(tester.runQuery("txt", "txt LIKE '%hello%'"))
+                .containsExactly("x\nhello");
+
+            assertThat(tester.runQuery("txt", "txt ILIKE '%hello%'"))
+                .containsExactly("x\nhello");
         }
     }
 }
