@@ -73,3 +73,12 @@ Fixes
     SELECT * FROM t1, t0
     INNER JOIN (SELECT 1 AS col0) AS sub0
     ON (CASE sub0.col0 WHEN sub0.col0 THEN t0.c0 ELSE false END)
+
+- Fixed an issue resulting in a non matching :ref:`sql_dql_is_null` predicate
+  when NULL values are inserted into a new sub-column of a
+  :ref:`type-object` column with dynamic mapping enabled. E.g.::
+
+    CREATE TABLE t (o OBJECT(DYNAMIC));
+    INSERT INTO t (o) VALUES ({"a": NULL});
+    SELECT * FROM t WHERE o['a'] IS NULL;  -- now returns the row
+
