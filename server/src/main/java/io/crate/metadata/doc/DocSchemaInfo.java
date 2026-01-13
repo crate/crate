@@ -21,7 +21,6 @@
 
 package io.crate.metadata.doc;
 
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -175,11 +174,6 @@ public class DocSchemaInfo implements SchemaInfo {
         return table.tableVersion();
     }
 
-    private Collection<String> tableNames() {
-        List<RelationMetadata.Table> relations = clusterService.state().metadata().relations(schemaName, RelationMetadata.Table.class);
-        return relations.stream().map(r -> r.name().name()).toList();
-    }
-
     @Nullable
     @Override
     public ViewInfo getViewInfo(String name) {
@@ -325,10 +319,12 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public Iterable<TableInfo> getTables() {
-        return tableNames().stream()
-            .map(this::getTableInfo)
+        Metadata metadata = clusterService.state().metadata();
+        List<RelationMetadata.Table> relations = metadata.relations(schemaName, RelationMetadata.Table.class);
+        return () -> relations.stream()
+            .map(tableRel -> getTableInfo(tableRel.name().name()))
             .filter(Objects::nonNull)
-            ::iterator;
+            .iterator();
     }
 
     @Override
