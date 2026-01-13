@@ -37,6 +37,7 @@ import org.elasticsearch.cluster.metadata.AliasMetadata;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
 import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.metadata.RelationMetadata;
+import org.elasticsearch.cluster.metadata.SchemaMetadata;
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
@@ -193,16 +194,22 @@ public class DocSchemaInfo implements SchemaInfo {
         Metadata newMetadata = event.state().metadata();
 
         // search indices with changed relations
-        Iterator<String> currentTablesIt = docTableByName.keySet().iterator();
-        while (currentTablesIt.hasNext()) {
-            String tableName = currentTablesIt.next();
-            RelationMetadata newRelationMetadata = newMetadata.getRelation(new RelationName(schemaName, tableName));
-            if (newRelationMetadata == null) {
-                docTableByName.remove(tableName);
-            } else {
-                RelationMetadata oldRelationMetadata = prevMetadata.getRelation(new RelationName(schemaName, tableName));
-                if (newRelationMetadata.equals(oldRelationMetadata) == false) {
-                    docTableByName.remove(tableName);
+        SchemaMetadata newSchemaMetadata = newMetadata.schemas().get(schemaName);
+        SchemaMetadata prevSchemaMetadata = prevMetadata.schemas().get(schemaName);
+        if (newSchemaMetadata == null || prevSchemaMetadata == null) {
+            docTableByName.clear();
+        } else {
+            Iterator<String> cachedTablesIt = docTableByName.keySet().iterator();
+            while (cachedTablesIt.hasNext()) {
+                String cachedTableName = cachedTablesIt.next();
+                RelationMetadata newRelationMetadata = newSchemaMetadata.get(cachedTableName);
+                if (newRelationMetadata == null) {
+                    docTableByName.remove(cachedTableName);
+                } else {
+                    RelationMetadata oldRelationMetadata = prevSchemaMetadata.get(cachedTableName);
+                    if (newRelationMetadata.equals(oldRelationMetadata) == false) {
+                        docTableByName.remove(cachedTableName);
+                    }
                 }
             }
         }
