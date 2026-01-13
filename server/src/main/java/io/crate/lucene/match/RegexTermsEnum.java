@@ -21,10 +21,14 @@
 
 package io.crate.lucene.match;
 
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+
 import org.apache.lucene.index.FilteredTermsEnum;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.TermsEnum;
 import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.CharsRefBuilder;
 
 /**
  * Subclass of FilteredTermEnum for enumerating all terms that match the
@@ -36,18 +40,19 @@ import org.apache.lucene.util.BytesRef;
  */
 class RegexTermsEnum extends FilteredTermsEnum {
 
-    private CrateRegexCapabilities.JavaUtilRegexMatcher regexImpl;
+    private final Matcher matcher;
+    private final CharsRefBuilder utf16 = new CharsRefBuilder();
 
     RegexTermsEnum(TermsEnum tenum, Term term, int flags) {
         super(tenum);
-        String text = term.text();
-        this.regexImpl = CrateRegexCapabilities.compile(text, flags);
-
+        Pattern pattern = Pattern.compile(term.text(), flags);
+        this.matcher = pattern.matcher(utf16.get());
         setInitialSeekTerm(new BytesRef(""));
     }
 
     @Override
     protected AcceptStatus accept(BytesRef term) {
-        return regexImpl.match(term) ? AcceptStatus.YES : AcceptStatus.NO;
+        utf16.copyUTF8Bytes(term);
+        return matcher.reset().matches() ? AcceptStatus.YES : AcceptStatus.NO;
     }
 }
