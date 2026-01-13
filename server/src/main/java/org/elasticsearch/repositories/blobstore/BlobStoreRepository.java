@@ -1118,18 +1118,11 @@ public abstract class BlobStoreRepository extends AbstractLifecycleComponent imp
         try {
             var result = new ArrayList<IndexMetadata>(indexIds.size());
             for (IndexId index : indexIds) {
-                BlobContainer indexContainer = indexContainer(index);
-                String indexMetaBlobId = repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, index);
-                IndexMetadata indexMetadata = INDEX_METADATA_FORMAT.read(
-                    indexContainer,
-                    indexMetaBlobId,
-                    namedWriteableRegistry,
-                    namedXContentRegistry
-                );
-                result.add(indexMetadata);
+                result.add(INDEX_METADATA_FORMAT.read(indexContainer(index),
+                    repositoryData.indexMetaDataGenerations().indexMetaBlobId(snapshotId, index), namedWriteableRegistry, namedXContentRegistry));
             }
             return CompletableFuture.completedFuture(result);
-        } catch (Throwable ex) {
+        } catch (IOException ex) {
             return CompletableFuture.failedFuture(ex);
         }
     }
