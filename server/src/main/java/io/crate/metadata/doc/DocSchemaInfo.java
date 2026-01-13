@@ -31,7 +31,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Predicate;
-import java.util.stream.Stream;
 import java.util.stream.StreamSupport;
 
 import org.elasticsearch.cluster.ClusterChangedEvent;
@@ -43,13 +42,12 @@ import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.collect.ImmutableOpenMap;
 import org.elasticsearch.index.Index;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.blob.v2.BlobIndex;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.ResourceUnknownException;
 import io.crate.metadata.IndexName;
-import io.crate.metadata.IndexParts;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.table.SchemaInfo;
@@ -186,26 +184,6 @@ public class DocSchemaInfo implements SchemaInfo {
     @Override
     public ViewInfo getViewInfo(String name) {
         return viewInfoFactory.create(new RelationName(schemaName, name), clusterService.state());
-    }
-
-    private Collection<String> viewNames() {
-        ViewsMetadata viewMetadata = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
-        if (viewMetadata == null) {
-            return Collections.emptySet();
-        }
-        Set<String> views = new HashSet<>();
-        extractRelationNamesForSchema(StreamSupport.stream(viewMetadata.names().spliterator(), false),
-            schemaName, views);
-        return views;
-    }
-
-    private static void extractRelationNamesForSchema(Stream<String> stream, String schema, Set<String> target) {
-        stream.filter(NO_BLOB_NOR_DANGLING)
-            .map(IndexName::decode)
-            .filter(indexParts -> !indexParts.isPartitioned())
-            .filter(indexParts -> indexParts.schema().equals(schema))
-            .map(IndexParts::table)
-            .forEach(target::add);
     }
 
     @Override
@@ -355,10 +333,17 @@ public class DocSchemaInfo implements SchemaInfo {
 
     @Override
     public Iterable<ViewInfo> getViews() {
-        return viewNames().stream()
-            .map(this::getViewInfo)
-            .filter(Objects::nonNull)
-            ::iterator;
+        ViewsMetadata viewMetadata = clusterService.state().metadata().custom(ViewsMetadata.TYPE);
+        if (viewMetadata == null) {
+            return Collections.emptySet();
+        }
+        return () ->
+            StreamSupport.stream(viewMetadata.names().spliterator(), false)
+                .map(IndexName::decode)
+                .filter(indexParts -> indexParts.schema().equals(schemaName))
+                .map(indexParts -> getViewInfo(indexParts.table()))
+                .filter(Objects::nonNull)
+                .iterator();
     }
 
     @Override
