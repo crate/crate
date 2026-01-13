@@ -90,6 +90,11 @@ public class SchemaMetadata implements Diffable<SchemaMetadata> {
         return relations.get(relation.name());
     }
 
+    @Nullable
+    public RelationMetadata get(String name) {
+        return relations.get(name);
+    }
+
     /// True if schema was created explicitly via CREATE SCHEMA
     /// Explicit schemas are not removed if the last table within a relation is dropped.
     public boolean explicit() {
