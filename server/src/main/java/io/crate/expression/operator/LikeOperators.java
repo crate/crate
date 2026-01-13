@@ -116,7 +116,10 @@ public class LikeOperators {
                 if (isIndexed) {
                     String regex = patternToRegex(pattern, escapeChar);
                     Term term = new Term(fqColumn, regex);
-                    return new CrateRegexQuery(term, Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE);
+                    return new CrateRegexQuery(
+                        term,
+                        Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE | Pattern.DOTALL
+                    );
                 }
                 return null;
             }
