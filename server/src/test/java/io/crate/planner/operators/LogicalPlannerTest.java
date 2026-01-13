@@ -23,7 +23,6 @@ package io.crate.planner.operators;
 
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.MemoryLimits.assertMaxBytesAllocated;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -837,5 +836,33 @@ public class LogicalPlannerTest extends CrateDummyClusterServiceUnitTest {
         // Before 5.10.13, circuit breaker memory was not released
         // if multiphased execution failed on sub-query and addWithoutBreaking() was never called.
         verify(circuitBreaker, times(1)).addWithoutBreaking(anyLong());
+    }
+
+    /**
+     * Verifies a fix for a regression
+     * introduced with <a href="https://github.com/crate/crate/commit/1ece4b40e51ea2b95af0ac8894318cba5359bbda">...</a>
+     * Tests scenario from <a href="https://github.com/crate/crate/issues/18860">...</a>.
+     */
+    @Test
+    public void test_do_not_apply_eliminate_cross_join_for_non_equi_join() throws Exception {
+        LogicalPlan plan = sqlExecutor.logicalPlan("""
+            SELECT t1.*, users.awesome FROM t1, users
+            INNER JOIN (SELECT 1 AS col0) AS sub0
+            ON (CASE sub0.col0 WHEN sub0.col0 THEN users.awesome ELSE false END)
+            """
+        );
+        // An INNER JOIN of users and subquery table is done first (on CASE expression).
+        // A CROSS JOIN of t1 and users used to be done first due to incorrect EliminateCrossJoin rule application.
+        assertThat(plan)
+            .as("Must first do an INNER JOIN of users and subquery table")
+            .hasOperators(
+                "Eval[a, x, i, awesome]",
+                "  └ NestedLoopJoin[CROSS]",
+                "    ├ Collect[doc.t1 | [a, x, i] | true]",
+                "    └ NestedLoopJoin[INNER | CASE WHEN (col0 = col0) THEN awesome ELSE false END]",
+                "      ├ Collect[doc.users | [awesome] | true]",
+                "      └ Rename[col0] AS sub0",
+                "        └ TableFunction[empty_row | [1 AS col0] | true]"
+            );
     }
 }

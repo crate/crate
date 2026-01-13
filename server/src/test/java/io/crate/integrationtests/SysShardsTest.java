@@ -485,4 +485,33 @@ public class SysShardsTest extends IntegTestCase {
         long lastTimeBefore2 = (long) response.rows()[0][0];
         assertThat(lastTimeBefore2).isGreaterThan(lastTimeBefore1);
     }
+
+    @Test
+    public void test_table_names_of_renamed_tables() throws Exception {
+        execute("create table a (a int) clustered into 1 shards with (number_of_replicas=1)");
+        execute("create table b (b int) clustered into 1 shards partitioned by (b) with (number_of_replicas=1)");
+        execute("insert into b values (1), (2)");
+        execute("refresh table b");
+
+        execute("alter table a rename to x");
+        execute("alter table b rename to y");
+
+        assertBusy(() -> {
+            execute("select table_name, count(*) from sys.shards where table_name in ('x','y') group by (table_name) order by table_name");
+            assertThat(response).hasRows(
+                "x| 2",
+                "y| 4"
+            );
+        });
+
+        execute("alter cluster swap table x to y");
+
+        assertBusy(() -> {
+            execute("select table_name, count(*) from sys.shards where table_name in ('x','y') group by (table_name) order by table_name");
+            assertThat(response).hasRows(
+                "x| 4",
+                "y| 2"
+            );
+        });
+    }
 }

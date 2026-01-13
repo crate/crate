@@ -60,6 +60,7 @@ import io.netty.handler.codec.http.HttpResponse;
 import io.netty.handler.codec.http.HttpResponseStatus;
 import io.netty.handler.codec.http.HttpUtil;
 import io.netty.handler.codec.http.HttpVersion;
+import io.netty.util.ReferenceCountUtil;
 
 
 public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object> {
@@ -127,6 +128,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                 Locale.ENGLISH,
                 "No valid auth.host_based.config entry found for host \"%s\", user \"%s\", protocol \"%s\". Did you enable TLS in your client?",
                 address.getHostAddress(), username, Protocol.HTTP);
+            // HttpAuthUpstreamHandler has auto-release disabled,
+            // releasing request as we are not forwarding it.
+            ReferenceCountUtil.release(request);
             sendUnauthorized(ctx.channel(), errorMessage);
         } else {
             try {
@@ -141,6 +145,9 @@ public class HttpAuthUpstreamHandler extends SimpleChannelInboundHandler<Object>
                     LOGGER.info("{} authentication failed for user={} from connection={}",
                                 authMethod.name(), username, connectionProperties.address());
                 }
+                // HttpAuthUpstreamHandler has auto-release disabled,
+                // releasing request as we are not forwarding it.
+                ReferenceCountUtil.release(request);
                 sendUnauthorized(ctx.channel(), e.getMessage());
             } finally {
                 // Release the password object.
