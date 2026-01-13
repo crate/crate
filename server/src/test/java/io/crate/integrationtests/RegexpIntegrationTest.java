@@ -22,13 +22,14 @@
 package io.crate.integrationtests;
 
 import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThat;
 
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.expression.operator.RegexpMatchCaseInsensitiveOperator;
 import io.crate.expression.operator.RegexpMatchOperator;
-import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.lucene.match.RegexQuery;
 import io.crate.protocols.postgres.PGErrorStatus;
 import io.crate.testing.Asserts;
 import io.netty.handler.codec.http.HttpResponseStatus;
@@ -130,7 +131,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
      * <p>
      * This engine is active when using the case-insensitive regexp tilde operator `~*`.
      *
-     * @see {@link CrateRegexQuery}
+     * @see {@link RegexQuery}
      * @see {@link java.util.regex}
      */
     @Test
@@ -163,7 +164,7 @@ public class RegexpIntegrationTest extends IntegTestCase {
      * implementation {@link org.apache.lucene.util.automaton.RegExp}
      * isn't capable of.
      *
-     * @see {@link CrateRegexQuery}
+     * @see {@link RegexQuery}
      * @see {@link java.util.regex}
      */
     @Test

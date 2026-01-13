@@ -21,15 +21,15 @@
 
 package io.crate.lucene.match;
 
+import java.io.IOException;
+import java.util.Objects;
+
 import org.apache.lucene.index.FilteredTermsEnum;
 import org.apache.lucene.index.Term;
 import org.apache.lucene.index.Terms;
 import org.apache.lucene.search.MultiTermQuery;
 import org.apache.lucene.search.QueryVisitor;
 import org.apache.lucene.util.AttributeSource;
-
-import java.io.IOException;
-import java.util.Objects;
 
 
 /**
@@ -38,20 +38,20 @@ import java.util.Objects;
  * It was formerly implemented by Lucene's deprecated RegexQuery and the
  * functionality is no longer available in newer Lucene versions.
  */
-public class CrateRegexQuery extends MultiTermQuery {
+public class RegexQuery extends MultiTermQuery {
 
     private final Term term;
     private final int flags;
 
     /** Constructs a query for terms matching <code>term</code>. */
-    public CrateRegexQuery(Term term) {
+    public RegexQuery(Term term) {
         super(term.field(), MultiTermQuery.CONSTANT_SCORE_REWRITE);
         this.term = term;
         this.flags = 0;
     }
 
     /** Constructs a query for terms matching <code>term</code>. */
-    public CrateRegexQuery(Term term, int flags) {
+    public RegexQuery(Term term, int flags) {
         super(term.field(), MultiTermQuery.CONSTANT_SCORE_REWRITE);
         this.term = term;
         this.flags = flags;
@@ -59,7 +59,7 @@ public class CrateRegexQuery extends MultiTermQuery {
 
     @Override
     protected FilteredTermsEnum getTermsEnum(Terms terms, AttributeSource atts) throws IOException {
-        return new CrateRegexTermsEnum(terms.iterator(), term, flags);
+        return new RegexTermsEnum(terms.iterator(), term, flags);
     }
 
     @Override
@@ -84,7 +84,7 @@ public class CrateRegexQuery extends MultiTermQuery {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         if (!super.equals(o)) return false;
-        CrateRegexQuery query = (CrateRegexQuery) o;
+        RegexQuery query = (RegexQuery) o;
         return flags == query.flags &&
                Objects.equals(term, query.term);
     }

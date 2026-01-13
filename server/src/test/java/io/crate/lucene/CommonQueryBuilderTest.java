@@ -57,7 +57,7 @@ import io.crate.expression.operator.EqOperator;
 import io.crate.expression.symbol.AliasSymbol;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
-import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.lucene.match.RegexQuery;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
@@ -224,7 +224,7 @@ public class CommonQueryBuilderTest extends LuceneQueryBuilderTest {
     @Test
     public void testRegexQueryPcre() throws Exception {
         Query query = convert("name ~ '\\D'");
-        assertThat(query).isExactlyInstanceOf(CrateRegexQuery.class);
+        assertThat(query).isExactlyInstanceOf(RegexQuery.class);
     }
 
     @Test

@@ -21,14 +21,14 @@
 
 package io.crate.lucene.match;
 
-import org.apache.lucene.util.BytesRef;
-import org.apache.lucene.util.CharsRefBuilder;
-
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.lucene.util.BytesRef;
+import org.apache.lucene.util.CharsRefBuilder;
+
 /**
- * An implementation tying Java's built-in java.util.regex to {@link CrateRegexQuery}.
+ * An implementation tying Java's built-in java.util.regex to {@link RegexQuery}.
  */
 public final class CrateRegexCapabilities {
 

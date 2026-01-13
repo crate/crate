@@ -39,7 +39,7 @@ import org.junit.Test;
 import io.crate.data.Input;
 import io.crate.expression.operator.any.AnyLikeOperatorTest;
 import io.crate.expression.operator.any.AnyNotLikeOperatorTest;
-import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.lucene.match.RegexQuery;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.TransactionContext;
 import io.crate.testing.QueryTester;
@@ -67,7 +67,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(likeBQuery.clauses()).hasSize(3);
         for (int i = 0; i < 2; i++) {
             Query filteredQuery = likeBQuery.clauses().get(i).query();
-            assertThat(filteredQuery).isExactlyInstanceOf(CrateRegexQuery.class);
+            assertThat(filteredQuery).isExactlyInstanceOf(RegexQuery.class);
         }
     }
 
@@ -97,7 +97,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
         assertThat(((BooleanQuery) clause.query()).clauses()).hasSize(3);
         for (BooleanClause innerClause : ((BooleanQuery) clause.query()).clauses()) {
             assertThat(innerClause.occur()).isEqualTo(BooleanClause.Occur.MUST);
-            assertThat(innerClause.query()).isExactlyInstanceOf(CrateRegexQuery.class);
+            assertThat(innerClause.query()).isExactlyInstanceOf(RegexQuery.class);
         }
     }
 

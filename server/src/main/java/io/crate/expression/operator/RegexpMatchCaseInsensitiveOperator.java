@@ -28,7 +28,7 @@ import org.apache.lucene.search.Query;
 
 import io.crate.data.Input;
 import io.crate.expression.symbol.Literal;
-import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.lucene.match.RegexQuery;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -78,7 +78,7 @@ public class RegexpMatchCaseInsensitiveOperator extends Operator<String> {
     @Override
     public Query toQuery(Reference ref, Literal<?> literal) {
         String pattern = (String) literal.value();
-        return new CrateRegexQuery(
+        return new RegexQuery(
             new Term(ref.storageIdent(), pattern),
             Pattern.CASE_INSENSITIVE | Pattern.UNICODE_CASE
         );

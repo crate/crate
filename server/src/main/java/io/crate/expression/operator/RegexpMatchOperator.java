@@ -36,7 +36,7 @@ import org.apache.lucene.util.automaton.RegExp;
 import io.crate.data.Input;
 import io.crate.expression.RegexpFlags;
 import io.crate.expression.symbol.Literal;
-import io.crate.lucene.match.CrateRegexQuery;
+import io.crate.lucene.match.RegexQuery;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.NodeContext;
@@ -95,7 +95,7 @@ public class RegexpMatchOperator extends Operator<String> {
         String pattern = (String) literal.value();
         Term term = new Term(ref.storageIdent(), pattern);
         if (RegexpFlags.isPcrePattern(pattern)) {
-            return new CrateRegexQuery(term);
+            return new RegexQuery(term);
         } else {
             // In Lucene 10, COMPLEMENT FLAG is deprecated and not included in ALL
             return new ConstantScoreQuery(new RegexpQuery(term, RegExp.ALL | RegExp.DEPRECATED_COMPLEMENT));
