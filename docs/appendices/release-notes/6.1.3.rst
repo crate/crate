@@ -46,6 +46,9 @@ series.
 Fixes
 =====
 
+- Fixed an issue that prevented ``ILIKE`` from matching records with text
+  containing newline characters.
+
 - Fixed an issue that could lead to a ``Couldn't create executionContexts from
   [...] Can't handle Symbol`` error when running ``SELECT`` queries involving
   expressions using multiple columns like ``CASE`` and a ``LIMIT`` clause.
