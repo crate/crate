@@ -64,7 +64,7 @@ None
 SQL Standard and PostgreSQL Compatibility
 -----------------------------------------
 
-None
+- Added the :ref:`pg_sleep <scalar-pg_sleep>` function, which pauses a session.
 
 Data Types
 ----------
