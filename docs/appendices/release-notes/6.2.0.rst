@@ -101,7 +101,6 @@ SQL Standard and PostgreSQL Compatibility
   versions than the server supports. The client is expected to downgrade it's
   used minor version in such cases.
 
-- Added the :ref:`pg_sleep <scalar-pg_sleep>` function, which pauses a session.
 
 Data Types
 ----------
