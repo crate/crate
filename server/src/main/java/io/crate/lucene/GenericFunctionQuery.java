@@ -117,8 +117,9 @@ public class GenericFunctionQuery extends Query {
                 return new ScorerSupplier() {
                     @Override
                     public Scorer get(long leadCost) throws IOException {
+                        ReaderContext readerContext = new ReaderContext(context);
                         for (LuceneCollectorExpression<?> expression : expressions) {
-                            expression.setNextReader(new ReaderContext(context));
+                            expression.setNextReader(readerContext);
                         }
                         var twoPhaseIterator = new FilteredTwoPhaseIterator(
                             context.reader(),
