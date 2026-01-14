@@ -114,7 +114,7 @@ class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object>
             boundSig,
             IntervalType.INSTANCE,
             value -> IntervalType.toStandardDuration(value).doubleValue(),
-            x -> new Period((long) x).normalizedStandard(PeriodType.dayTime())
+            x -> new Period((long) x).normalizedStandard(PeriodType.yearMonthDayTime())
         );
 
         TypeSignature intervalArraySignature = new ArrayType<>(DataTypes.INTERVAL).getTypeSignature();

@@ -113,7 +113,8 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
         Object result = execSingleFractionPercentile(rows);
         assertThat(result).isInstanceOf(Period.class);
         Period period = (Period) result;
-        assertThat(period.getHours()).isBetween(5, 6);
+        assertThat(period.toStandardDuration().getMillis())
+            .isEqualTo(Period.hours(6).toStandardDuration().getMillis());
     }
 
     @Test
@@ -127,9 +128,12 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
         assertThat(result).isInstanceOf(List.class);
         @SuppressWarnings("unchecked")
         List<Period> periods = (List<Period>) result;
-        assertThat(periods).hasSize(2);
-        assertThat(periods.get(0).getHours()).isBetween(5, 6);
-        assertThat(periods.get(1).getHours()).isBetween(9, 10);
+        assertThat(periods).satisfiesExactly(
+            p -> assertThat(p.toStandardDuration().getMillis())
+                .isEqualTo(Period.hours(6).toStandardDuration().getMillis()),
+            p -> assertThat(p.toStandardDuration().getMillis())
+                .isEqualTo(Period.hours(10).toStandardDuration().getMillis())
+        );
     }
 
     @Test
@@ -142,7 +146,8 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
         Object result = execSingleFractionPercentile(rows);
         assertThat(result).isInstanceOf(Period.class);
         Period period = (Period) result;
-        assertThat(period.getDays()).isBetween(1, 5);
+        assertThat(period.toStandardDuration().getMillis())
+            .isEqualTo(Period.days(2).plusHours(12).toStandardDuration().getMillis());
     }
 
     @Test
@@ -261,8 +266,8 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
 
         assertThat(result).isInstanceOf(Period.class);
         Period period = (Period) result;
-        int totalHours = period.getDays() * 24 + period.getHours();
-        assertThat(totalHours).isBetween(50, 51);
+        assertThat(period.toStandardDuration().getMillis())
+            .isEqualTo(Period.days(2).plusHours(3).toStandardDuration().getMillis());
     }
 
     @Test
@@ -275,7 +280,7 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
         Object result = execSingleFractionPercentile(rows);
         assertThat(result).isInstanceOf(Period.class);
         Period period = (Period) result;
-        assertThat(period.getMillis()).isBetween(180, 220);
+        assertThat(period.toStandardDuration().getMillis()).isEqualTo(200);
     }
 
     @Test
@@ -287,9 +292,8 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
         Object result = execSingleFractionPercentile(rows);
         assertThat(result).isInstanceOf(Period.class);
         Period period = (Period) result;
-        assertThat(period.getDays()).isBetween(5, 6);
-        assertThat(period.getYears()).isEqualTo(0);
-        assertThat(period.getMonths()).isEqualTo(0);
+        assertThat(period.toStandardDuration().getMillis())
+            .isEqualTo(Period.days(6).toStandardDuration().getMillis());
     }
 
     @Test
@@ -299,8 +303,9 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
             {Period.days(5), 0.0},
             {Period.days(10), 0.0}
         };
-        Object minResult = execSingleFractionPercentile(rows);
-        assertThat(((Period) minResult).getDays()).isEqualTo(1);
+        Period minResult = (Period) execSingleFractionPercentile(rows);
+        assertThat(minResult.toStandardDuration().getMillis())
+            .isEqualTo(Period.days(1).toStandardDuration().getMillis());
 
         rows = new Object[][]{
             {Period.days(1), 1.0},
@@ -330,7 +335,8 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
             {Period.days(6), 0.5}
         });
         assertThat(result).isInstanceOf(Period.class);
-        assertThat(((Period) result).getDays()).isEqualTo(4);
+        assertThat(((Period) result).toStandardDuration().getMillis())
+            .isEqualTo(Period.days(4).toStandardDuration().getMillis());
     }
 
     @Test
@@ -341,7 +347,8 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
             {Period.days(-1), 0.5}
         });
         assertThat(result).isInstanceOf(Period.class);
-        assertThat(((Period) result).getDays()).isEqualTo(-3);
+        assertThat(((Period) result).toStandardDuration().getMillis())
+            .isEqualTo(Period.days(3).negated().toStandardDuration().getMillis());
     }
 
     @Test
@@ -354,8 +361,8 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
         Object result = execSingleFractionPercentile(rows);
         assertThat(result).isInstanceOf(Period.class);
         Period period = (Period) result;
-        assertThat(period.getDays()).isEqualTo(730);
-        assertThat(period.getYears()).isEqualTo(0);
+        assertThat(period.toStandardDuration().getMillis())
+            .isEqualTo(Period.days(730).toStandardDuration().getMillis());
     }
 
     @Test
@@ -389,7 +396,11 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
         assertThat(result).isInstanceOf(List.class);
         @SuppressWarnings("unchecked")
         List<Period> periods = (List<Period>) result;
-        assertThat(periods).hasSize(3);
+        assertThat(periods).satisfiesExactly(
+            p -> assertThat(p.toStandardDuration().getMillis()).isEqualTo(93600000L),
+            p -> assertThat(p.toStandardDuration().getMillis()).isEqualTo(181800000L),
+            p -> assertThat(p.toStandardDuration().getMillis()).isEqualTo(273600000L)
+        );
     }
 
     @Test
@@ -406,12 +417,12 @@ public class IntervalPercentileAggregationTest extends AggregationTestCase {
             new ArrayType<>(DataTypes.INTERVAL)
         );
         io.crate.testing.PlainRamAccounting ramAccounting = new io.crate.testing.PlainRamAccounting();
-        Object state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
+        TDigestState state = impl.newState(ramAccounting, Version.CURRENT, memoryManager);
         assertThat(ramAccounting.totalBytes()).isEqualTo(120L);
         Literal<List<Double>> fractions = Literal.of(Collections.singletonList(0.95D), DataTypes.DOUBLE_ARRAY);
-        impl.iterate(ramAccounting, memoryManager, (TDigestState) state,
+        impl.iterate(ramAccounting, memoryManager, state,
             Literal.of(DataTypes.INTERVAL, Period.hours(10)), fractions);
-        impl.iterate(ramAccounting, memoryManager, (TDigestState) state,
+        impl.iterate(ramAccounting, memoryManager, state,
             Literal.of(DataTypes.INTERVAL, Period.hours(20)), fractions);
         assertThat(ramAccounting.totalBytes()).isEqualTo(192L);
     }
