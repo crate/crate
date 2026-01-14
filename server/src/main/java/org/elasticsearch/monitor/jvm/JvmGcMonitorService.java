@@ -330,17 +330,17 @@ public class JvmGcMonitorService extends AbstractLifecycleComponent {
         switch (threshold) {
             case WARN:
                 if (logger.isWarnEnabled()) {
-                    logger.warn(OVERHEAD_LOG_MESSAGE, seq, TimeValue.timeValueMillis(current), TimeValue.timeValueMillis(elapsed));
+                    // logger.warn(OVERHEAD_LOG_MESSAGE, seq, TimeValue.timeValueMillis(current), TimeValue.timeValueMillis(elapsed));
                 }
                 break;
             case INFO:
                 if (logger.isInfoEnabled()) {
-                    logger.info(OVERHEAD_LOG_MESSAGE, seq, TimeValue.timeValueMillis(current), TimeValue.timeValueMillis(elapsed));
+                    // logger.info(OVERHEAD_LOG_MESSAGE, seq, TimeValue.timeValueMillis(current), TimeValue.timeValueMillis(elapsed));
                 }
                 break;
             case DEBUG:
                 if (logger.isDebugEnabled()) {
-                    logger.debug(OVERHEAD_LOG_MESSAGE, seq, TimeValue.timeValueMillis(current), TimeValue.timeValueMillis(elapsed));
+                    // logger.debug(OVERHEAD_LOG_MESSAGE, seq, TimeValue.timeValueMillis(current), TimeValue.timeValueMillis(elapsed));
                 }
                 break;
 
