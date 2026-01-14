@@ -26,9 +26,9 @@ import static com.carrotsearch.randomizedtesting.RandomizedTest.$$;
 import static io.crate.testing.Asserts.assertThat;
 import static io.crate.testing.DataTypeTesting.randomType;
 import static io.crate.testing.TestingHelpers.printedTable;
-import static org.assertj.core.api.Assertions.assertThat;
 
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 import org.elasticsearch.common.settings.Settings;
@@ -38,9 +38,10 @@ import org.junit.Test;
 import io.crate.lucene.LuceneQueryBuilder;
 import io.crate.sql.SqlFormatter;
 import io.crate.testing.DataTypeTesting;
+import io.crate.testing.UseRandomizedSchema;
 import io.crate.types.DataType;
 
-@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST)
+@IntegTestCase.ClusterScope(scope = IntegTestCase.Scope.TEST, numDataNodes = 1)
 public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
 
     private static final int NUMBER_OF_BOOLEAN_CLAUSES = 10_000;
@@ -88,6 +89,34 @@ public class LuceneQueryBuilderIntegrationTest extends IntegTestCase {
 
         execute("select * from t where a = [null, null]");
         assertThat(response).hasRowCount(1L);
+    }
+
+    @Test
+    @UseRandomizedSchema(random = false)
+    public void debug() throws Exception {
+        execute("create table t (o object(ignored))");
+
+        execute("insert into t (o) values(?)",
+            new Object[][]{
+                new Object[]{
+                    Map.of("dyn", 0)
+                }
+            }
+        );
+        execute("refresh table t");
+
+        for (int i = 1; i < 10_000_000; i++) {
+            // UsageTrackingQueryCachingPolicy.minFrequencyToCache is hardcoded for queries (2 or 5)
+            // and is 5 for GenericFunctionQuery because UsageTrackingQueryCachingPolicy.isCostly doesn't know about it.
+            // Run a query 5 times to ensure that GenericFunctionQuery is stored in cache.
+            for (int j = 0; j < 5; j++) {
+                // We need to generate 10 mil different queries,
+                // and they need to return some result to be cached.
+                // We inserted only 1 record in order to not waste test time and heap on insertion.
+                // Generating a query that matches our single record with the current i.
+                execute("select count(*) from t where o['dyn'] = ANY([0, " + i + "])");
+            }
+        }
     }
 
     @Test

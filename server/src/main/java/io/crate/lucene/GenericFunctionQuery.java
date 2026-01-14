@@ -59,6 +59,7 @@ public class GenericFunctionQuery extends Query implements Accountable {
 
     private final Function function;
     private final LuceneCollectorExpression<?>[] expressions;
+    private String retainedDemo;
     private final Input<Boolean> condition;
     private final Runnable raiseIfKilled;
     private final long ramBytesUsed;
@@ -130,6 +131,11 @@ public class GenericFunctionQuery extends Query implements Accountable {
                         for (LuceneCollectorExpression<?> expression : expressions) {
                             expression.setNextReader(readerContext);
                         }
+                        StringBuilder sb = new StringBuilder();
+                        for (int i = 0; i < 10000; i++) {
+                            sb.append("abdadaskdjaskdjkasdjaksdjaskjdkjdaskjd");
+                        }
+                        retainedDemo = sb.toString();
                         var twoPhaseIterator = new FilteredTwoPhaseIterator(
                             context.reader(),
                             condition,
@@ -202,5 +208,9 @@ public class GenericFunctionQuery extends Query implements Accountable {
             // Arbitrary number, we don't have a way to get the cost of the condition
             return 10;
         }
+    }
+
+    public void reset() {
+        retainedDemo = null;
     }
 }

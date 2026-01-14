@@ -35,6 +35,9 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.LongAdder;
 import java.util.concurrent.locks.ReentrantReadWriteLock;
 import java.util.function.Predicate;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
@@ -71,6 +74,8 @@ import io.crate.common.annotations.VisibleForTesting;
  */
 public class CustomLRUQueryCache implements QueryCache, Accountable {
 
+
+    private static final Logger LOGGER = LogManager.getLogger(CustomLRUQueryCache.class);
     private final int maxSize;
     private final long maxRamBytesUsed;
     private final Predicate<LeafReaderContext> leavesToCache;
@@ -101,6 +106,8 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
      *
      * <p>Also, clauses whose cost is {@code skipCacheFactor} times more than the cost of the
      * top-level query will not be cached in order to not slow down queries too much.
+     *
+     * cost = skip * cost_top
      */
     public CustomLRUQueryCache(
         int maxSize,
@@ -307,6 +314,12 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
     private void putIfAbsent(Query query, CacheAndCount cached, IndexReader.CacheHelper cacheHelper) {
         assert query instanceof BoostQuery == false;
         assert query instanceof ConstantScoreQuery == false;
+        /*
+        if (query instanceof GenericFunctionQuery genericFunctionQuery) {
+            genericFunctionQuery.reset();
+            query = genericFunctionQuery;
+        }
+        */
         // under a lock to make sure that mostRecentlyUsedQueries and cache remain sync'ed
         writeLock.lock();
         try {
@@ -316,7 +329,11 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
                     q -> {
                         long queryRamBytesUsed = getRamBytesUsed(q);
                         onQueryCache(q, queryRamBytesUsed);
+                        // LOGGER.info("========================= ADDED A QUERY TO uniqueQueries =========================\n"
+                        //     + "size of map: {}", RamUsageEstimator.sizeOfMap(uniqueQueries));
+
                         return new QueryMetadata(q, queryRamBytesUsed);
+
                     });
             query = record.query;
             final IndexReader.CacheKey key = cacheHelper.getKey();
@@ -324,6 +341,7 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
             if (leafCache == null) {
                 leafCache = new LeafCache(key);
                 final LeafCache previous = cache.put(key, leafCache);
+                // LOGGER.info("========================= ADDED A LeafCache entry TO CACHE =========================");
                 ramBytesUsed += HASHTABLE_RAM_BYTES_PER_ENTRY;
                 assert previous == null;
                 // we just created a new leaf cache, need to register a close listener
@@ -364,6 +382,7 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
 
     /** Remove all cache entries for the given core cache key. */
     public void clearCoreCacheKey(Object coreKey) {
+        LOGGER.info("========================= CLEARING CORE CACHE ENTRY WITH KEY ========================= {}", coreKey);
         writeLock.lock();
         try {
             final LeafCache leafCache = cache.remove(coreKey);
@@ -397,6 +416,7 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
 
     private void onEviction(Query singleton, long querySizeInBytes) {
         assert writeLock.isHeldByCurrentThread();
+        LOGGER.info("========================= onEviction =========================");
         onQueryEviction(singleton, querySizeInBytes);
         for (LeafCache leafCache : cache.values()) {
             leafCache.remove(singleton);
@@ -660,6 +680,7 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
         }
 
         private void onDocIdSetEviction(long ramBytesUsed) {
+            LOGGER.info("========================= onDocIdSetEviction =========================");
             assert writeLock.isHeldByCurrentThread();
             this.ramBytesUsed -= ramBytesUsed;
             CustomLRUQueryCache.this.onDocIdSetEviction(key, 1, ramBytesUsed);
