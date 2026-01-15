@@ -84,3 +84,8 @@ Fixes
     SELECT * FROM t1 WHERE NOT EXISTS
       (SELECT 1 FROM (SELECT c2 FROM t1 WHERE bool_col) AS sub0
        WHERE t1.bool_col OR t1.bool_col);
+
+- Fixed an issue that allowed :ref:`ref-create-schema` and :ref:`ref-drop-schema`
+  on reserved schemas (e.g., ``sys``, ``doc``). This was harmless; for example,
+  no tables could be created in the ``sys`` schema regardless, but the
+  operations are now blocked.
