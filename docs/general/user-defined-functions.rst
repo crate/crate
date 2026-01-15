@@ -171,6 +171,17 @@ Determinism
     values, because CrateDB might cache the returned values and reuse the value
     if the function is called multiple times with the same arguments.
 
+.. _udf-privileges:
+
+Privileges
+==========
+
+.. NOTE::
+
+    A user-defined function can be executed by a user only if the user has the
+    ``DQL`` :ref:`privileges <administration-privileges>` for the schema under
+    which the function is defined.
+
 
 .. _udf-drop-function:
 
