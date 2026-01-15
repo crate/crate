@@ -36,6 +36,8 @@ import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.apache.lucene.util.SetOnce;
 import org.elasticsearch.common.Strings;
 import org.elasticsearch.common.blobstore.BlobContainer;
@@ -76,6 +78,8 @@ class S3BlobContainer extends AbstractBlobContainer {
      */
     private static final int MAX_BULK_DELETES = 1000;
 
+    private static final Logger LOGGER = LogManager.getLogger(S3BlobContainer.class);
+
     private final S3BlobStore blobStore;
     private final String keyPath;
 
@@ -96,8 +100,10 @@ class S3BlobContainer extends AbstractBlobContainer {
 
     @Override
     public InputStream readBlob(String blobName) throws IOException {
+        LOGGER.info("\u001B[31m"+"readBlob" + "\u001B[0m");
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
             final S3Object s3Object = clientReference.client().getObject(blobStore.bucket(), buildKey(blobName));
+            LOGGER.info("\u001B[31m"+"FINISHED readBlob" + "\u001B[0m");
             return s3Object.getObjectContent();
         } catch (final AmazonClientException e) {
             if (e instanceof AmazonS3Exception) {
@@ -232,6 +238,7 @@ class S3BlobContainer extends AbstractBlobContainer {
         if (blobNames.isEmpty()) {
             return;
         }
+        LOGGER.info("deleteBlobsIgnoringIfNotExists processing {} blobs", blobNames.size());
         final Set<String> outstanding = blobNames.stream().map(this::buildKey).collect(Collectors.toSet());
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
             // S3 API only allows 1k blobs per delete so we split up the given blobs into requests of max. 1k deletes
@@ -284,6 +291,7 @@ class S3BlobContainer extends AbstractBlobContainer {
 
     @Override
     public Map<String, BlobMetadata> listBlobsByPrefix(@Nullable String blobNamePrefix) throws IOException {
+        LOGGER.info("\u001B[31m"+"listBlobsByPrefix, prefix: {}" + "\u001B[0m", blobNamePrefix);
         final HashMap<String, BlobMetadata> blobsBuilder = new HashMap<>();
         try (AmazonS3Reference clientReference = blobStore.clientReference()) {
             ObjectListing prevListing = null;
@@ -291,14 +299,18 @@ class S3BlobContainer extends AbstractBlobContainer {
                 ObjectListing list;
                 if (prevListing != null) {
                     final ObjectListing finalPrevListing = prevListing;
+                    LOGGER.info("\u001B[31m"+"listNextBatchOfObjects" + "\u001B[0m");
                     list = clientReference.client().listNextBatchOfObjects(finalPrevListing);
                 } else {
                     if (blobNamePrefix != null) {
+                        LOGGER.info("\u001B[31m"+"listObjects with prefix" + "\u001B[0m");
                         list = clientReference.client().listObjects(blobStore.bucket(), buildKey(blobNamePrefix));
                     } else {
+                        LOGGER.info("\u001B[31m"+"listObjects without prefix" + "\u001B[0m");
                         list = clientReference.client().listObjects(blobStore.bucket(), keyPath);
                     }
                 }
+                LOGGER.info("\u001B[31m"+"listNextBatchOfObjects got {} objects" + "\u001B[0m", list.getObjectSummaries().size());
                 for (final S3ObjectSummary summary : list.getObjectSummaries()) {
                     final String name = summary.getKey().substring(keyPath.length());
                     blobsBuilder.put(name, new PlainBlobMetadata(name, summary.getSize()));
@@ -309,6 +321,7 @@ class S3BlobContainer extends AbstractBlobContainer {
                     break;
                 }
             }
+            LOGGER.info("\u001B[31m"+"FINISHED listBlobsByPrefix" + "\u001B[0m");
             return Map.copyOf(blobsBuilder);
         } catch (final AmazonClientException e) {
             throw new IOException("Exception when listing blobs by prefix [" + blobNamePrefix + "]", e);

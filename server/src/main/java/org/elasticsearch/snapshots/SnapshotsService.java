@@ -389,6 +389,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
     }
 
     private static ShardGenerations buildGenerations(SnapshotsInProgress.Entry snapshot, Metadata metadata) {
+        LOGGER.info("buildGenerations for SnapshotsInProgress.Entry {}", snapshot);
         ShardGenerations.Builder builder = ShardGenerations.builder();
         final Map<String, IndexId> indexLookup = new HashMap<>();
         snapshot.indices().forEach(idx -> indexLookup.put(idx.getName(), idx));
@@ -492,6 +493,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 // We don't remove old master when master flips anymore. So, we need to check for change in master
                 SnapshotsInProgress snapshotsInProgress = event.state().custom(SnapshotsInProgress.TYPE, SnapshotsInProgress.EMPTY);
                 final boolean newMaster = event.previousState().nodes().isLocalNodeElectedMaster() == false;
+                LOGGER.info("cluster change on master, processExternalChanges");
                 processExternalChanges(
                     newMaster || removedNodesCleanupNeeded(snapshotsInProgress, event.nodesDelta().removedNodes()),
                     event.routingTableChanged() && waitingShardsStartedOrUnassigned(snapshotsInProgress, event)
@@ -578,7 +580,9 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      * @param startShards  true iff any waiting shards were started due to a routing change
      */
     private void processExternalChanges(boolean changedNodes, boolean startShards) {
+        LOGGER.info("processExternalChanges, changedNodes:{}, startShards: {}", changedNodes, startShards);
         if (changedNodes == false && startShards == false) {
+            LOGGER.info("processExternalChanges is a no-op (maybe full restart related)");
             // nothing to do, no relevant external change happened
             return;
         }
@@ -610,6 +614,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 // a node leaving or shard becoming unassigned for one snapshot, we will also fail it for all subsequent enqueued snapshots
                 // for the same repository
                 final Map<String, Map<ShardId, ShardSnapshotStatus>> knownFailures = new HashMap<>();
+                LOGGER.info("processExternalChanges is processing {} in progress snapshots", snapshots.entries().size());
 
                 for (final SnapshotsInProgress.Entry snapshot : snapshots.entries()) {
                     if (statesToUpdate.contains(snapshot.state())) {
@@ -651,6 +656,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     ).v1();
                 for (SnapshotDeletionsInProgress.Entry delete
                         : res.custom(SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress.EMPTY).getEntries()) {
+                    LOGGER.info("processExternalChanges is processing a ready deletion {}", delete);
                     if (delete.state() == SnapshotDeletionsInProgress.State.STARTED) {
                         deletionsToExecute.add(delete);
                     }
@@ -669,6 +675,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 final SnapshotDeletionsInProgress snapshotDeletionsInProgress =
                         newState.custom(SnapshotDeletionsInProgress.TYPE, SnapshotDeletionsInProgress.EMPTY);
                 if (finishedSnapshots.isEmpty() == false) {
+                    LOGGER.info("clusterStateProcessed, we have non empty finishedShapshots {}", finishedSnapshots);
                     // If we found snapshots that should be finalized as a result of the CS update we try to initiate finalization for them
                     // unless there is an executing snapshot delete already. If there is an executing snapshot delete we don't have to
                     // enqueue the snapshot finalizations here because the ongoing delete will take care of that when removing the delete
@@ -793,6 +800,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
 
     private static boolean removedNodesCleanupNeeded(SnapshotsInProgress snapshotsInProgress, List<DiscoveryNode> removedNodes) {
         if (removedNodes.isEmpty()) {
+            LOGGER.info("removedNodesCleanupNeeded getting false as removedNodes is empty -> can be full restart specific?");
             // Nothing to do, no nodes removed
             return false;
         }
@@ -1239,6 +1247,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                     repositoryName
                 );
                 if (snapshotEntries.isEmpty() || minNodeVersion.onOrAfter(SnapshotsService.FULL_CONCURRENCY_VERSION)) {
+                    LOGGER.info("\u001B[31m"+"no in progress, running createDeleteStateUpdate" + "\u001B[0m");
                     deleteFromRepoTask = createDeleteStateUpdate(snapshotIds, repositoryName, repositoryData, Priority.NORMAL, listener);
                     return deleteFromRepoTask.execute(currentState);
                 }
@@ -1315,6 +1324,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
             @Override
             public void clusterStateProcessed(String source, ClusterState oldState, ClusterState newState) {
                 if (deleteFromRepoTask != null) {
+                    LOGGER.info("\u001B[31m"+"clusterStateProcessed -> deleteFromRepoTask" + "\u001B[0m");
                     assert outstandingDeletes == null : "Shouldn't have outstanding deletes after already starting delete task";
                     deleteFromRepoTask.clusterStateProcessed(source, oldState, newState);
                     return;
@@ -1640,6 +1650,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
                 minCompatVersion = minCompatVersion.before(known) ? minCompatVersion : known;
             }
         }
+        LOGGER.info("minCompatibleVersion {}", minCompatVersion);
         return minCompatVersion;
     }
 
@@ -1670,6 +1681,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
      */
     private void deleteSnapshotsFromRepository(SnapshotDeletionsInProgress.Entry deleteEntry, Version minNodeVersion) {
         final long expectedRepoGen = deleteEntry.repositoryStateId();
+        LOGGER.info("deleteSnapshotsFromRepository, deleteEntry {}, minNodeVersion {}", deleteEntry, minNodeVersion);
         repositoriesService.getRepositoryData(deleteEntry.repository()).whenComplete(new ActionListener<RepositoryData>() {
             @Override
             public void onResponse(RepositoryData repositoryData) {
