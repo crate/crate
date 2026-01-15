@@ -67,9 +67,9 @@ error message::
 Schemas
 -------
 
-Tables can be created in different schemas. These are created implicitly on
-table creation and cannot be created explicitly. If a schema did not exist yet,
-it will be created.
+Tables can be created in different schemas. A schema is created explicitly via
+:ref:`ref-create-schema` or implicitly during table creation if it does not
+already exist.
 
 You can create a table called ``my_table`` in a schema called ``my_schema``
 schema like so::
@@ -104,9 +104,9 @@ The following schema names are reserved and may not be used:
    Schemas are primarily namespaces for tables. You can use :ref:`privileges
    <administration-privileges>` to control access to schemas.
 
-A user-created schema exists as long as there are tables with the same schema
-name. If the last table with that schema is dropped, the schema is gone (except
-for the ``blob`` and ``doc`` schema)::
+An implicitly created schema via ``CREATE TABLE`` exists as long as there are
+tables with the same schema name. If the last table with that schema is dropped,
+the schema is gone (except for the ``blob`` and ``doc`` schema)::
 
     cr> drop table my_schema.my_table ;
     DROP OK, 1 row affected (... sec)
@@ -135,6 +135,10 @@ the ``doc`` schema::
 
     cr> drop table my_doc_table;
     DROP OK, 1 row affected (... sec)
+
+On the other hand, a schema created explicitly via :ref:`ref-create-schema` is
+not dropped when its last table is deleted. Instead, :ref:`ref-drop-schema`
+must be called to drop the schema.
 
 
 .. _ddl-create-table-naming:
