@@ -23,15 +23,20 @@ package io.crate.execution.engine.aggregation.impl;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.function.DoubleFunction;
+import java.util.function.ToDoubleFunction;
 
 import org.elasticsearch.Version;
 import org.elasticsearch.common.breaker.CircuitBreakingException;
+import org.joda.time.Period;
+import org.joda.time.PeriodType;
 import org.jspecify.annotations.Nullable;
 
 import io.crate.data.Input;
 import io.crate.data.breaker.RamAccounting;
 import io.crate.execution.engine.aggregation.AggregationFunction;
 import io.crate.memory.MemoryManager;
+import io.crate.metadata.FunctionProvider.FunctionFactory;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.Functions;
 import io.crate.metadata.Scalar;
@@ -40,8 +45,10 @@ import io.crate.metadata.functions.Signature;
 import io.crate.types.ArrayType;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
+import io.crate.types.IntervalType;
+import io.crate.types.TypeSignature;
 
-class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
+class PercentileAggregation<T> extends AggregationFunction<TDigestState, Object> {
 
     public static final String NAME = "percentile";
 
@@ -100,14 +107,93 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
                 PercentileAggregation::new
             );
         }
+
+        // Interval type support
+        FunctionFactory newIntervalPercentileAgg = (sig, boundSig) -> new PercentileAggregation<Period>(
+            sig,
+            boundSig,
+            IntervalType.INSTANCE,
+            value -> IntervalType.toStandardDuration(value).doubleValue(),
+            x -> new Period((long) x).normalizedStandard(PeriodType.dayTime())
+        );
+
+        TypeSignature intervalArraySignature = new ArrayType<>(DataTypes.INTERVAL).getTypeSignature();
+
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                )
+                .returnType(DataTypes.INTERVAL.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            newIntervalPercentileAgg
+        );
+
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE_ARRAY.getTypeSignature()
+                )
+                .returnType(intervalArraySignature)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            newIntervalPercentileAgg
+        );
+
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                )
+                .returnType(DataTypes.INTERVAL.getTypeSignature())
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            newIntervalPercentileAgg
+        );
+
+        builder.add(
+            Signature.builder(NAME, FunctionType.AGGREGATE)
+                .argumentTypes(
+                    DataTypes.INTERVAL.getTypeSignature(),
+                    DataTypes.DOUBLE_ARRAY.getTypeSignature(),
+                    DataTypes.DOUBLE.getTypeSignature()
+                )
+                .returnType(intervalArraySignature)
+                .features(Scalar.Feature.DETERMINISTIC)
+                .build(),
+            newIntervalPercentileAgg
+        );
     }
 
     private final Signature signature;
     private final BoundSignature boundSignature;
+    private final DataType<T> valueType;
+    private final ToDoubleFunction<T> valueToDouble;
+    private final DoubleFunction<T> doubleToValue;
 
     private PercentileAggregation(Signature signature, BoundSignature boundSignature) {
         this.signature = signature;
         this.boundSignature = boundSignature;
+        this.valueType = (DataType<T>) signature.getArgumentDataTypes().get(0);
+        this.valueToDouble = x -> ((Number) x).doubleValue();
+        this.doubleToValue = x -> (T) (Double) x;
+    }
+
+    private PercentileAggregation(Signature signature,
+                                  BoundSignature boundSignature,
+                                  DataType<T> valueType,
+                                  ToDoubleFunction<T> valueToDouble,
+                                  DoubleFunction<T> doubleToValue) {
+        this.signature = signature;
+        this.boundSignature = boundSignature;
+        this.valueType = valueType;
+        this.valueToDouble = valueToDouble;
+        this.doubleToValue = doubleToValue;
     }
 
     @Override
@@ -142,9 +228,9 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
             }
             initState(state, fractionValue, ramAccounting);
         }
-        Double value = DataTypes.DOUBLE.sanitizeValue(args[0].value());
+        T value = valueType.sanitizeValue(args[0].value());
         if (value != null) {
-            int delta = state.addGetSizeDelta(value);
+            int delta = state.addGetSizeDelta(valueToDouble.applyAsDouble(value));
             if (delta > 0) {
                 ramAccounting.addBytes(delta);
             }
@@ -193,14 +279,14 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
         if (state.isEmpty()) {
             return null;
         }
-        List<Double> percentiles = new ArrayList<>(state.fractions().length);
         if (boundSignature.returnType() instanceof ArrayType) {
+            List<T> percentiles = new ArrayList<>(state.fractions().length);
             for (int i = 0; i < state.fractions().length; i++) {
                 double percentile = state.quantile(state.fractions()[i]);
                 if (Double.isNaN(percentile)) {
                     percentiles.add(null);
                 } else {
-                    percentiles.add(percentile);
+                    percentiles.add(doubleToValue.apply(percentile));
                 }
             }
             return percentiles;
@@ -209,7 +295,7 @@ class PercentileAggregation extends AggregationFunction<TDigestState, Object> {
             if (Double.isNaN(percentile)) {
                 return null;
             } else {
-                return percentile;
+                return doubleToValue.apply(percentile);
             }
         }
     }
