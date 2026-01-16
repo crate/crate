@@ -34,6 +34,7 @@ import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.blob.v2.BlobIndex;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.doc.DocSchemaInfo;
 
 public final class IndexName {
 
@@ -101,7 +102,7 @@ public final class IndexName {
         String[] parts = indexName.split("\\.", 6);
         return switch (parts.length) {
             // "table_name"
-            case 1 -> new IndexParts(Schemas.DOC_SCHEMA_NAME, indexName, null);
+            case 1 -> new IndexParts(DocSchemaInfo.NAME, indexName, null);
 
             // "schema"."table_name"
             case 2 -> new IndexParts(parts[0], parts[1], null);
@@ -110,7 +111,7 @@ public final class IndexName {
             case 4 -> {
                 assertEmpty(parts[0]);
                 assertPartitionPrefix(parts[1]);
-                yield new IndexParts(Schemas.DOC_SCHEMA_NAME, parts[2], parts[3]);
+                yield new IndexParts(DocSchemaInfo.NAME, parts[2], parts[3]);
             }
 
             // "schema".""."partitioned"."table_name". ["ident"]
@@ -132,12 +133,12 @@ public final class IndexName {
      */
     public static String encode(String schema, String table, @Nullable String partitionIdent) {
         if (partitionIdent == null) {
-            if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
+            if (schema.equals(DocSchemaInfo.NAME)) {
                 return table;
             }
             return schema + "." + table;
         }
-        if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
+        if (schema.equals(DocSchemaInfo.NAME)) {
             return IndexName.PARTITIONED_TABLE_PART + table + "." + partitionIdent;
         }
         return schema + "." + IndexName.PARTITIONED_TABLE_PART + table + "." + partitionIdent;

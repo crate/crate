@@ -50,7 +50,7 @@ import io.crate.execution.dsl.projection.builder.ProjectionBuilder;
 import io.crate.fdw.ForeignDataWrappers;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.planner.DependencyCarrier;
 import io.crate.planner.ExecutionPlan;
 import io.crate.planner.Merge;
@@ -1158,8 +1158,8 @@ public class JoinTest extends CrateDummyClusterServiceUnitTest {
         // optimizer_reorder_nested_loop_join moves the smaller table to the right side,
         // therefore we make t2 bigger and it becomes the top-most-left-table
         Map<RelationName, Stats> rowCountByTable = new HashMap<>();
-        rowCountByTable.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "t1"), new Stats(10, 10, Map.of()));
-        rowCountByTable.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "t2"), new Stats(200, 200, Map.of()));
+        rowCountByTable.put(new RelationName(DocSchemaInfo.NAME, "t1"), new Stats(10, 10, Map.of()));
+        rowCountByTable.put(new RelationName(DocSchemaInfo.NAME, "t2"), new Stats(200, 200, Map.of()));
         e.updateTableStats(rowCountByTable);
 
         QueriedSelectRelation mss = e.analyze(

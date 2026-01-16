@@ -58,7 +58,6 @@ import io.crate.metadata.IndexType;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.table.TableInfo;
@@ -75,7 +74,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetColumnInfo() throws Exception {
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
+        RelationName relationName = new RelationName(DocSchemaInfo.NAME, "dummy");
 
         ColumnIdent columnIdent = ColumnIdent.of("o", List.of());
         DocTableInfo info = new DocTableInfo(
@@ -135,7 +134,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testGetColumnInfoStrictParent() throws Exception {
-        RelationName dummy = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
+        RelationName dummy = new RelationName(DocSchemaInfo.NAME, "dummy");
         ColumnIdent column = ColumnIdent.of("foobar");
         SimpleReference strictParent = new SimpleReference(
             dummy,
@@ -252,7 +251,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_lookup_name_by_source_with_columns_with_and_without_oids_added_to_table_created_before_5_5_0() {
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
+        RelationName relationName = new RelationName(DocSchemaInfo.NAME, "dummy");
         SimpleReference withoutOid = new SimpleReference(
             relationName,
             ColumnIdent.of("withoutOid", List.of()),
@@ -308,7 +307,7 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_lookup_name_by_source_returns_null_for_deleted_columns() throws Exception {
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "dummy");
+        RelationName relationName = new RelationName(DocSchemaInfo.NAME, "dummy");
 
         ColumnIdent a = ColumnIdent.of("a", List.of());
         ColumnIdent b = ColumnIdent.of("b", List.of());

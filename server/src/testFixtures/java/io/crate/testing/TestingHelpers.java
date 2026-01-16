@@ -68,6 +68,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
 import io.crate.planner.optimizer.LoadedRules;
 import io.crate.role.Role;
@@ -238,7 +239,7 @@ public class TestingHelpers {
 
     public static Reference createReference(String tableName, ColumnIdent columnIdent, DataType<?> dataType) {
         return new SimpleReference(
-            new RelationName(Schemas.DOC_SCHEMA_NAME, tableName),
+            new RelationName(DocSchemaInfo.NAME, tableName),
             columnIdent,
             RowGranularity.DOC,
             dataType,
@@ -277,7 +278,7 @@ public class TestingHelpers {
         }
         return switch (parts.length) {
             case 2 -> new SimpleReference(
-                new RelationName(Schemas.DOC_SCHEMA_NAME, parts[0]),
+                new RelationName(DocSchemaInfo.NAME, parts[0]),
                 ColumnIdent.of(parts[1], nestedParts),
                 rowGranularity,
                 dataType,
