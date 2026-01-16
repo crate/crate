@@ -54,8 +54,8 @@ import io.crate.metadata.NodeContext;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.types.DataTypes;
 
@@ -99,7 +99,7 @@ public class EvaluatingNormalizerTest extends ESTestCase {
         );
 
         Symbol name_ref = new SimpleReference(
-            new RelationName(Schemas.DOC_SCHEMA_NAME, "foo"),
+            new RelationName(DocSchemaInfo.NAME, "foo"),
             ColumnIdent.of("name"),
             RowGranularity.DOC,
             DataTypes.STRING,

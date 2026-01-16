@@ -47,7 +47,7 @@ import io.crate.expression.udf.UserDefinedFunctionMetadata;
 import io.crate.expression.udf.UserDefinedFunctionService;
 import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionProvider;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.types.DataType;
 import io.crate.types.DataTypes;
 
@@ -71,7 +71,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
                                              List<DataType<?>> types,
                                              String definition) throws ScriptException {
         UserDefinedFunctionMetadata udf = new UserDefinedFunctionMetadata(
-            Schemas.DOC_SCHEMA_NAME,
+            DocSchemaInfo.NAME,
             name,
             types.stream().map(FunctionArgumentDefinition::of).collect(Collectors.toList()),
             returnType,
@@ -80,7 +80,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
 
         String validation = udfService.getLanguage(JS).validate(udf);
         if (validation == null) {
-            var functionName = new FunctionName(Schemas.DOC_SCHEMA_NAME, udf.name());
+            var functionName = new FunctionName(DocSchemaInfo.NAME, udf.name());
             var resolvers = functionImplementations.computeIfAbsent(
                 functionName, k -> new ArrayList<>());
             resolvers.add(udfService.buildFunctionResolver(udf));
@@ -108,7 +108,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
     @Test
     public void testValidateCatchesScriptException() {
         var udfMeta = new UserDefinedFunctionMetadata(
-            Schemas.DOC_SCHEMA_NAME,
+            DocSchemaInfo.NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
             DataTypes.DOUBLE_ARRAY,
@@ -124,7 +124,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
     @Test
     public void testValidateCatchesAssertionError() {
         var udfMeta = new UserDefinedFunctionMetadata(
-            Schemas.DOC_SCHEMA_NAME,
+            DocSchemaInfo.NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
             DataTypes.DOUBLE_ARRAY,
@@ -146,7 +146,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
     @Test
     public void testValidJavascript() {
         var udfMeta = new UserDefinedFunctionMetadata(
-            Schemas.DOC_SCHEMA_NAME,
+            DocSchemaInfo.NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE_ARRAY)),
             DataTypes.DOUBLE,
@@ -249,7 +249,7 @@ public class JavascriptUserDefinedFunctionTest extends ScalarTestCase {
     @Test
     public void testFunctionWrongNameInFunctionBody() {
         var udfMeta = new UserDefinedFunctionMetadata(
-            Schemas.DOC_SCHEMA_NAME,
+            DocSchemaInfo.NAME,
             "f",
             Collections.singletonList(FunctionArgumentDefinition.of(DataTypes.DOUBLE)),
             DataTypes.DOUBLE_ARRAY,

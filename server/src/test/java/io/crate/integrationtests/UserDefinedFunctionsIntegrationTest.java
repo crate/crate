@@ -50,8 +50,8 @@ import io.crate.metadata.FunctionName;
 import io.crate.metadata.FunctionType;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.Scalar;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.TransactionContext;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.functions.BoundSignature;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.pgcatalog.OidHash;
@@ -265,7 +265,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
     @Test
     public void test_pg_function_is_visible() throws Exception {
         Signature signature = Signature
-            .builder(new FunctionName(Schemas.DOC_SCHEMA_NAME, "my_func"), FunctionType.SCALAR)
+            .builder(new FunctionName(DocSchemaInfo.NAME, "my_func"), FunctionType.SCALAR)
             .argumentTypes(
                 TypeSignature.parse("array(array(integer))"),
                 TypeSignature.parse("integer"),
@@ -291,7 +291,7 @@ public class UserDefinedFunctionsIntegrationTest extends IntegTestCase {
     public void test_pg_get_function_result() throws Exception {
         TypeSignature returnTypeSig = TypeSignature.parse("array(array(integer))");
         String returnType = returnTypeSig.toString();
-        Signature signature = Signature.builder(new FunctionName(Schemas.DOC_SCHEMA_NAME, "make_2d_array"), FunctionType.SCALAR)
+        Signature signature = Signature.builder(new FunctionName(DocSchemaInfo.NAME, "make_2d_array"), FunctionType.SCALAR)
             .argumentTypes(DataTypes.INTEGER.getTypeSignature())
             .returnType(returnTypeSig)
             .build();

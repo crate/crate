@@ -55,13 +55,13 @@ import org.junit.Test;
 import io.crate.execution.dml.ShardResponse;
 import io.crate.execution.jobs.TasksService;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.netty.NettyBootstrap;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 
 public class TransportShardDeleteActionTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
+    private static final RelationName TABLE_IDENT = new RelationName(DocSchemaInfo.NAME, "characters");
 
     private TransportShardDeleteAction transportShardDeleteAction;
     private IndexShard indexShard;

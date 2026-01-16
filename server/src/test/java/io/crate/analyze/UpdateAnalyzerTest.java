@@ -63,7 +63,7 @@ import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.planner.operators.SubQueryResults;
 import io.crate.sql.tree.ColumnPolicy;
@@ -192,7 +192,7 @@ public class UpdateAnalyzerTest extends CrateDummyClusterServiceUnitTest {
     public void testUpdateAssignments() throws Exception {
         AnalyzedUpdateStatement update = analyze("update users set name='Trillian'");
         assertThat(update.assignmentByTargetCol()).hasSize(1);
-        assertThat(((DocTableRelation) update.table()).tableInfo().ident()).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "users"));
+        assertThat(((DocTableRelation) update.table()).tableInfo().ident()).isEqualTo(new RelationName(DocSchemaInfo.NAME, "users"));
 
         Reference ref = update.assignmentByTargetCol().keySet().iterator().next();
         assertThat(ref.relation().name()).isEqualTo("users");

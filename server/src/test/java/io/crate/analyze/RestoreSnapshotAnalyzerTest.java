@@ -55,7 +55,7 @@ import io.crate.exceptions.RelationUnknown;
 import io.crate.exceptions.SchemaUnknownException;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.settings.AnalyzerSettings;
 import io.crate.planner.PlannerContext;
 import io.crate.planner.node.ddl.CreateSnapshotPlan;
@@ -303,7 +303,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(statement.restoreTables()).hasSize(1);
         var table = statement.restoreTables().iterator().next();
         assertThat(table.partitionName()).isEqualTo(partition);
-        assertThat(table.tableIdent()).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "parted"));
+        assertThat(table.tableIdent()).isEqualTo(new RelationName(DocSchemaInfo.NAME, "parted"));
         assertThat(statement.includeTables()).isTrue();
         assertThat(statement.includeCustomMetadata()).isFalse();
         assertThat(statement.includeGlobalSettings()).isFalse();
@@ -319,7 +319,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
         assertThat(statement.restoreTables()).hasSize(1);
         var table = statement.restoreTables().iterator().next();
         assertThat(table.partitionName()).isEqualTo(partitionName);
-        assertThat(table.tableIdent()).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "unknown_parted"));
+        assertThat(table.tableIdent()).isEqualTo(new RelationName(DocSchemaInfo.NAME, "unknown_parted"));
     }
 
     @Test

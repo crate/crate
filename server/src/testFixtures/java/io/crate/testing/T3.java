@@ -31,6 +31,7 @@ import io.crate.analyze.relations.DocTableRelation;
 import io.crate.common.collections.MapBuilder;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 
 public class T3 {
 
@@ -73,11 +74,11 @@ public class T3 {
         "  ts timestamp without time zone" +
         ")";
 
-    public static final RelationName T1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
-    public static final RelationName T2 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t2");
-    public static final RelationName T3 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t3");
-    public static final RelationName T4 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t4");
-    public static final RelationName T5 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t5");
+    public static final RelationName T1 = new RelationName(DocSchemaInfo.NAME, "t1");
+    public static final RelationName T2 = new RelationName(DocSchemaInfo.NAME, "t2");
+    public static final RelationName T3 = new RelationName(DocSchemaInfo.NAME, "t3");
+    public static final RelationName T4 = new RelationName(DocSchemaInfo.NAME, "t4");
+    public static final RelationName T5 = new RelationName(DocSchemaInfo.NAME, "t5");
 
     private static final Map<RelationName, String> RELATION_DEFINITIONS = Map.of(
         T1, T1_DEFINITION,
