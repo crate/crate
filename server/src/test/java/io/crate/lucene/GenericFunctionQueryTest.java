@@ -23,6 +23,7 @@ package io.crate.lucene;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.ScoreMode;
 import org.elasticsearch.Version;
 import org.junit.Test;
@@ -65,6 +66,38 @@ public class GenericFunctionQueryTest extends CrateDummyClusterServiceUnitTest {
             var weight = query.createWeight(searcher, ScoreMode.COMPLETE_NO_SCORES, 1.0f);
             assertThat(weight.isCacheable(searcher.getTopReaderContext().leaves().get(0))).isTrue();
             assertThat(tester.runQuery("x", "abs(x) = 1")).containsExactly(1);
+        }
+    }
+
+    @Test
+    public void test_standalone_generic_function_query_is_accounted_by_cache() throws Exception {
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a int, b int)"
+        );
+        try (QueryTester tester = builder.build()) {
+            var query = tester.toQuery("abs(a) * abs(b) = 1");
+            assertThat(query).isInstanceOf(GenericFunctionQuery.class);
+            assertThat(CustomLRUQueryCache.getRamBytesUsed(query)).isEqualTo(1684L);
+        }
+    }
+
+    @Test
+    public void test_generic_function_query_in_boolean_query_is_accounted_by_cache() throws Exception {
+        // We often combine GenericFunctionQuery with other queries and create a BooleanQuery.
+        // When a GenericFunctionQuery is a leaf of a BooleanQuery, it must be accounted as well.
+        QueryTester.Builder builder = new QueryTester.Builder(
+            THREAD_POOL,
+            clusterService,
+            Version.CURRENT,
+            "create table t (a int, b int)"
+        );
+        try (QueryTester tester = builder.build()) {
+            var query = tester.toQuery("abs(a) = 1 AND abs(b) = 1");
+            assertThat(query).isInstanceOf(BooleanQuery.class);
+            assertThat(CustomLRUQueryCache.getRamBytesUsed(query)).isEqualTo(1808L);
         }
     }
 }

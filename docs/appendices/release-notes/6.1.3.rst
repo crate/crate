@@ -95,3 +95,6 @@ Fixes
     INSERT INTO t1 (obj) VALUES ({a = {b = NULL}});
     INSERT INTO t1 (obj) VALUES ({a = {c = 1}});
 
+- Fixed an issue that caused under-accounting of memory usage of some queries
+  stored in cache. It affected cache eviction that is depending on query memory
+  usage, potentially leading to an ``OutOfMemoryError``.
