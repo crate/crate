@@ -46,4 +46,8 @@ public abstract class LuceneCollectorExpression<ReturnType> implements Input<Ret
 
     public void setScorer(Scorable scorer) {
     }
+
+    public boolean canResetReader() {
+        return false;
+    }
 }
