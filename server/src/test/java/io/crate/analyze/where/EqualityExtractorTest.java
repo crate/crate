@@ -532,6 +532,15 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
             s -> assertThat(s).satisfiesExactly(isLiteral(true)),
             s -> assertThat(s).satisfiesExactly(isLiteral(null))
         );
+
+        matches = analyzeExact(ee, query(expressions, "b"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(true))
+        );
+
+        // PK extraction is not possible for NOT expressions in general (although it could work for boolean columns)
+        matches = analyzeExact(ee, query(expressions, "NOT b"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).isNull();
     }
 
 
