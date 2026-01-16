@@ -56,7 +56,7 @@ import io.crate.execution.jobs.SharedShardContexts;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.planner.fetch.IndexBaseBuilder;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
@@ -93,7 +93,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
         ibb.allocate("i1", shards);
 
         Map<RelationName, Collection<String>> tableIndices = new HashMap<>();
-        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i1"), List.of("i1"));
+        tableIndices.put(new RelationName(DocSchemaInfo.NAME, "i1"), List.of("i1"));
 
         Metadata metadata = Metadata.builder()
             .put(IndexMetadata.builder("i1")

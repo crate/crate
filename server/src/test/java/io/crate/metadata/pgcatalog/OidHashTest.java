@@ -35,8 +35,8 @@ import org.junit.Before;
 import org.junit.Test;
 
 import io.crate.metadata.RelationInfo;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.ConstraintInfo;
 import io.crate.metadata.view.ViewInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
@@ -65,7 +65,7 @@ public class OidHashTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSchemaOid() {
-        assertThat(schemaOid(Schemas.DOC_SCHEMA_NAME)).isEqualTo(-2048275947);
+        assertThat(schemaOid(DocSchemaInfo.NAME)).isEqualTo(-2048275947);
     }
 
     @Test

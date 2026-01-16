@@ -72,6 +72,7 @@ import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.table.TableInfo;
 import io.crate.planner.distribution.DistributionInfo;
@@ -202,7 +203,7 @@ public class DocLevelCollectTest extends IntegTestCase {
 
     @Test
     public void testCollectWithPartitionedColumns() throws Throwable {
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, PARTITIONED_TABLE_NAME);
+        RelationName relationName = new RelationName(DocSchemaInfo.NAME, PARTITIONED_TABLE_NAME);
         TableInfo tableInfo = schemas.getTableInfo(relationName);
         Routing routing = tableInfo.getRouting(
             clusterService().state(),

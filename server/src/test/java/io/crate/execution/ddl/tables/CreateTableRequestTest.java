@@ -40,8 +40,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.types.DataTypes;
@@ -50,7 +50,7 @@ public class CreateTableRequestTest {
 
     @Test
     public void test_streaming() throws Exception {
-        RelationName rel = RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME);
+        RelationName rel = RelationName.of(QualifiedName.of("t1"), DocSchemaInfo.NAME);
 
         Reference ref1 = new SimpleReference(
             rel,

@@ -41,7 +41,7 @@ import org.junit.Test;
 import io.crate.common.unit.TimeValue;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
 
@@ -102,7 +102,7 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor.builder(clusterService).build()
             .addTable("CREATE TABLE doc.my_table (id INT, name STRING) PARTITIONED BY (name)");
 
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table");
+        RelationName relationName = new RelationName(DocSchemaInfo.NAME, "my_table");
         SnapshotInfo snapshotInfo = new SnapshotInfo(
             new SnapshotId("snapshot1", UUIDs.randomBase64UUID()),
             List.of(),
@@ -144,7 +144,7 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE doc.restoreme (id INT, name STRING) PARTITIONED BY (name)", partitionValues);
 
         Metadata metadata = clusterService.state().metadata();
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme");
+        RelationName relationName = new RelationName(DocSchemaInfo.NAME, "restoreme");
         Index index1 = resolveIndex("doc.restoreme", partitionValues, null, metadata);
 
         SnapshotInfo snapshotInfo = new SnapshotInfo(
@@ -186,7 +186,7 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
         SQLExecutor.builder(clusterService).build()
             .addTable("CREATE TABLE doc.restoreme (id INT, name STRING) PARTITIONED BY (name)");
 
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, "restoreme");
+        RelationName relationName = new RelationName(DocSchemaInfo.NAME, "restoreme");
         Metadata metadata = clusterService.state().metadata();
 
         SnapshotInfo snapshotInfo = new SnapshotInfo(
@@ -233,8 +233,8 @@ public class RestoreServiceTest extends CrateDummyClusterServiceUnitTest {
             .addTable("CREATE TABLE doc.my_table (id INT, name STRING)")
             .addTable("CREATE TABLE doc.my_partitioned_table (id INT, name STRING) PARTITIONED BY (name)", partitionValues);
 
-        RelationName relationName1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_table");
-        RelationName relationName2 = new RelationName(Schemas.DOC_SCHEMA_NAME, "my_partitioned_table");
+        RelationName relationName1 = new RelationName(DocSchemaInfo.NAME, "my_table");
+        RelationName relationName2 = new RelationName(DocSchemaInfo.NAME, "my_partitioned_table");
         Metadata metadata = clusterService.state().metadata();
         Index index1 = resolveIndex("doc.my_table", null, metadata);
         Index index2 = resolveIndex("doc.my_partitioned_table", partitionValues, null, metadata);

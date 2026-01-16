@@ -39,6 +39,7 @@ import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.sql.Identifiers;
 import io.crate.sql.tree.QualifiedName;
 import io.crate.sql.tree.Table;
@@ -155,7 +156,7 @@ public final class RelationName implements Writeable, Accountable {
             throw new IllegalStateException(
                 "indexNameOrAlias can only be generated from a RelationName that is fully qualified.");
         }
-        if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
+        if (schema.equals(DocSchemaInfo.NAME)) {
             return name;
         } else if (schema.equals(BlobSchemaInfo.NAME)) {
             return BlobIndex.fullIndexName(name);

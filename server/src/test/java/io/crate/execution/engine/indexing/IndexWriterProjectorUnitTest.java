@@ -59,15 +59,15 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.types.DataTypes;
 
 public class IndexWriterProjectorUnitTest extends CrateDummyClusterServiceUnitTest {
 
     private static final ColumnIdent ID_IDENT = ColumnIdent.of("id");
-    private static final RelationName BULK_IMPORT_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "bulk_import");
+    private static final RelationName BULK_IMPORT_IDENT = new RelationName(DocSchemaInfo.NAME, "bulk_import");
     private static final SimpleReference RAW_SOURCE_REFERENCE = new SimpleReference(
         BULK_IMPORT_IDENT,
         ColumnIdent.of("_raw"),
