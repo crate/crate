@@ -241,6 +241,12 @@ public final class GroupRowsByShard<TReq extends ShardRequest<TReq, TItem>, TIte
                     true,
                     x -> x
                 );
+                if (indexMetadata == null) {
+                    // indexMetadata may not be found if the table is renamed/swapped.
+                    // However, renamed/swapped tables' indexMetadata.index still holds the previous names which can
+                    // be used here.
+                    indexMetadata = metadata.getIndexByName(partitionName.asIndexName());
+                }
                 ShardLocation shardLocation = getShardLocation(
                     state,
                     indexMetadata,
