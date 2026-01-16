@@ -57,3 +57,8 @@ Fixes
 - Fixed an issue that caused under-accounting of memory usage of some queries
   stored in cache. It affected cache eviction that is depending on query memory
   usage, potentially leading to an ``OutOfMemoryError``.
+
+- Fixed an issue that allowed :ref:`ref-create-schema` and :ref:`ref-drop-schema`
+  on reserved schemas (e.g., ``sys``, ``doc``). This was harmless; for example,
+  no tables could be created in the ``sys`` schema regardless, but the
+  operations are now blocked.

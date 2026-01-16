@@ -42,7 +42,6 @@ import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.common.collections.Lists;
 import io.crate.metadata.NodeContext;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.table.Operation;
 import io.crate.metadata.view.ViewInfoFactory;
 import io.crate.replication.logical.metadata.Publication;
@@ -162,7 +161,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     private PublicationsMetadata publicationsMetadata(String name, boolean allTables, List<String> tables) {
-        var relationNames = Lists.map(tables, x -> new RelationName(Schemas.DOC_SCHEMA_NAME, x));
+        var relationNames = Lists.map(tables, x -> new RelationName(DocSchemaInfo.NAME, x));
         var publications = Map.of(name, new Publication("user1", allTables, relationNames));
         return new PublicationsMetadata(publications);
     }
@@ -177,7 +176,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private DocTableInfo docTableInfo(String name) {
         return new DocTableInfo(
-            new RelationName(Schemas.DOC_SCHEMA_NAME, name),
+            new RelationName(DocSchemaInfo.NAME, name),
             Map.of(),
             Map.of(),
             Set.of(),

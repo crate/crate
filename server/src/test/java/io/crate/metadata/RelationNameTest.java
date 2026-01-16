@@ -32,12 +32,13 @@ import org.junit.Test;
 import io.crate.blob.v2.BlobIndex;
 import io.crate.exceptions.InvalidRelationName;
 import io.crate.exceptions.InvalidSchemaNameException;
+import io.crate.metadata.doc.DocSchemaInfo;
 
 public class RelationNameTest extends ESTestCase {
 
     @Test
     public void testIndexName() throws Exception {
-        RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
+        RelationName ti = new RelationName(DocSchemaInfo.NAME, "t");
         assertThat(ti.indexNameOrAlias()).isEqualTo("t");
         ti = new RelationName("s", "t");
         assertThat(ti.indexNameOrAlias()).isEqualTo("s.t");
@@ -45,14 +46,14 @@ public class RelationNameTest extends ESTestCase {
 
     @Test
     public void testFromIndexName() throws Exception {
-        assertThat(RelationName.fromIndexName("t")).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "t"));
+        assertThat(RelationName.fromIndexName("t")).isEqualTo(new RelationName(DocSchemaInfo.NAME, "t"));
         assertThat(RelationName.fromIndexName("s.t")).isEqualTo(new RelationName("s", "t"));
 
         PartitionName pn = new PartitionName(new RelationName("s", "t"), List.of("v1"));
         assertThat(RelationName.fromIndexName(pn.asIndexName())).isEqualTo(new RelationName("s", "t"));
 
         pn = new PartitionName(new RelationName("doc", "t"), List.of("v1"));
-        assertThat(RelationName.fromIndexName(pn.asIndexName())).isEqualTo(new RelationName(Schemas.DOC_SCHEMA_NAME, "t"));
+        assertThat(RelationName.fromIndexName(pn.asIndexName())).isEqualTo(new RelationName(DocSchemaInfo.NAME, "t"));
     }
 
     @Test
@@ -65,14 +66,14 @@ public class RelationNameTest extends ESTestCase {
 
     @Test
     public void testDefaultSchema() throws Exception {
-        RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
+        RelationName ti = new RelationName(DocSchemaInfo.NAME, "t");
         assertThat(ti.schema()).isEqualTo("doc");
         assertThat(ti).isEqualTo(new RelationName("doc", "t"));
     }
 
     @Test
     public void testFQN() throws Exception {
-        RelationName ti = new RelationName(Schemas.DOC_SCHEMA_NAME, "t");
+        RelationName ti = new RelationName(DocSchemaInfo.NAME, "t");
         assertThat(ti.fqn()).isEqualTo("doc.t");
 
         ti = new RelationName("s", "t");
@@ -81,9 +82,9 @@ public class RelationNameTest extends ESTestCase {
 
     @Test
     public void testFqnFromIndexName() throws Exception {
-        assertThat(RelationName.fqnFromIndexName("t1")).isEqualTo(Schemas.DOC_SCHEMA_NAME + ".t1");
+        assertThat(RelationName.fqnFromIndexName("t1")).isEqualTo(DocSchemaInfo.NAME + ".t1");
         assertThat(RelationName.fqnFromIndexName("my_schema.t1")).isEqualTo("my_schema.t1");
-        assertThat(RelationName.fqnFromIndexName(".partitioned.t1.abc")).isEqualTo(Schemas.DOC_SCHEMA_NAME + ".t1");
+        assertThat(RelationName.fqnFromIndexName(".partitioned.t1.abc")).isEqualTo(DocSchemaInfo.NAME + ".t1");
         assertThat(RelationName.fqnFromIndexName("my_schema..partitioned.t1.abc")).isEqualTo("my_schema.t1");
     }
 

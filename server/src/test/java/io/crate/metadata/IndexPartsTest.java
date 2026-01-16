@@ -26,6 +26,8 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import org.junit.Test;
 
+import io.crate.metadata.doc.DocSchemaInfo;
+
 public class IndexPartsTest {
 
     @Test
@@ -36,9 +38,9 @@ public class IndexPartsTest {
         String partitionedTable = ".partitioned.table." + ident;
         String schemaPartitionedTable = "schema..partitioned.table." + ident;
 
-        assertThat(IndexName.decode(table).schema()).isEqualTo(Schemas.DOC_SCHEMA_NAME);
+        assertThat(IndexName.decode(table).schema()).isEqualTo(DocSchemaInfo.NAME);
         assertThat(IndexName.decode(schemaTable).schema()).isEqualTo("schema");
-        assertThat(IndexName.decode(partitionedTable).schema()).isEqualTo(Schemas.DOC_SCHEMA_NAME);
+        assertThat(IndexName.decode(partitionedTable).schema()).isEqualTo(DocSchemaInfo.NAME);
         assertThat(IndexName.decode(schemaPartitionedTable).schema()).isEqualTo("schema");
 
         assertThat(IndexName.decode(table).table()).isEqualTo(table);

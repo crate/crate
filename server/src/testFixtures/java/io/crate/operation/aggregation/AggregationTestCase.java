@@ -125,9 +125,9 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.Routing;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.functions.Signature;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
@@ -139,7 +139,7 @@ import io.crate.types.StorageSupport;
 public abstract class AggregationTestCase extends ESTestCase {
 
     protected static final RamAccounting RAM_ACCOUNTING = RamAccounting.NO_ACCOUNTING;
-    public static final PartitionName PARTITION_NAME = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "index"), List.of());
+    public static final PartitionName PARTITION_NAME = new PartitionName(new RelationName(DocSchemaInfo.NAME, "index"), List.of());
 
     protected NodeContext nodeCtx;
     protected MemoryManager memoryManager;

@@ -50,7 +50,7 @@ import org.junit.Test;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.replication.logical.metadata.Publication;
 import io.crate.replication.logical.metadata.RelationMetadata;
 import io.crate.role.Permission;
@@ -195,8 +195,8 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
             .startShards("doc.t1", "doc.t2");
         var publication = new Publication("publisher", false,
             List.of(
-                RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME),
-                RelationName.of(QualifiedName.of("t2"), Schemas.DOC_SCHEMA_NAME)
+                RelationName.of(QualifiedName.of("t1"), DocSchemaInfo.NAME),
+                RelationName.of(QualifiedName.of("t2"), DocSchemaInfo.NAME)
             )
         );
 

@@ -23,6 +23,7 @@ package io.crate.analyze;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Locale;
 
 import org.elasticsearch.cluster.service.ClusterService;
 import org.elasticsearch.common.inject.Singleton;
@@ -776,11 +777,19 @@ public class Analyzer {
 
         @Override
         public AnalyzedStatement visitCreateSchema(CreateSchema createSchema, Analysis context) {
+            if (Schemas.RESERVED_SCHEMAS.contains(createSchema.name())) {
+                throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Schema '%s' is reserved", createSchema.name()));
+            }
             return new AnalyzedCreateSchema(createSchema);
         }
 
         @Override
         public AnalyzedStatement visitDropSchema(DropSchema dropSchema, Analysis context) {
+            for (String schema : dropSchema.names()) {
+                if (Schemas.RESERVED_SCHEMAS.contains(schema)) {
+                    throw new IllegalArgumentException(String.format(Locale.ENGLISH, "Cannot drop reserved schema '%s'", schema));
+                }
+            }
             return new AnalyzedDropSchema(dropSchema);
         }
 

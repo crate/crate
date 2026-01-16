@@ -30,11 +30,12 @@ import java.util.stream.Collectors;
 import org.junit.Test;
 
 import io.crate.common.collections.Lists;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.types.DataTypes;
 
 public class DocReferencesTest {
 
-    private static final RelationName RELATION_ID = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
+    private static final RelationName RELATION_ID = new RelationName(DocSchemaInfo.NAME, "users");
 
     private static Reference stringRef(String path) {
         ColumnIdent columnIdent = ColumnIdent.fromPath(path);

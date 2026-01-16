@@ -31,6 +31,7 @@ import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 
 /**
@@ -70,7 +71,7 @@ public final class SearchPath implements Iterable<String>, Writeable {
 
     private SearchPath() {
         this.pgCatalogIsSetExplicitly = false;
-        this.searchPath = List.of(PgCatalogSchemaInfo.NAME, Schemas.DOC_SCHEMA_NAME);
+        this.searchPath = List.of(PgCatalogSchemaInfo.NAME, DocSchemaInfo.NAME);
     }
 
     private SearchPath(boolean pgCatalogIsSetExplicitly, List<String> searchPath) {

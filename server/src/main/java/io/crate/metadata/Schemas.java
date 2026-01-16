@@ -22,7 +22,6 @@
 package io.crate.metadata;
 
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
@@ -56,6 +55,7 @@ import io.crate.expression.udf.UserDefinedFunctionsMetadata;
 import io.crate.fdw.ForeignTable;
 import io.crate.fdw.ForeignTablesMetadata;
 import io.crate.metadata.blob.BlobSchemaInfo;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
@@ -79,19 +79,17 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
 
     private static final Logger LOGGER = LogManager.getLogger(Schemas.class);
 
-    public static final Collection<String> READ_ONLY_SYSTEM_SCHEMAS = Set.of(
+    public static final Set<String> READ_ONLY_SYSTEM_SCHEMAS = Set.of(
         SysSchemaInfo.NAME,
         InformationSchemaInfo.NAME,
         PgCatalogSchemaInfo.NAME
     );
 
-
-    /**
-     * CrateDB's default schema name if the user hasn't specified anything.
-     * Caution: Don't assume that this schema is _always_ set as the default!
-     * {@see SessionContext}
-     */
-    public static final String DOC_SCHEMA_NAME = "doc";
+    public static final Set<String> RESERVED_SCHEMAS = Sets.concat(
+        READ_ONLY_SYSTEM_SCHEMAS,
+        BlobSchemaInfo.NAME,
+        DocSchemaInfo.NAME
+    );
 
     private final ClusterService clusterService;
     private final DocSchemaInfoFactory docSchemaInfoFactory;
@@ -397,7 +395,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         Set<String> schemas = new HashSet<>();
         // 'doc' schema is always available and has the special property that its indices
         // don't have to be prefixed with the schema name
-        schemas.add(DOC_SCHEMA_NAME);
+        schemas.add(DocSchemaInfo.NAME);
 
         UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
         if (udfMetadata != null) {

@@ -53,7 +53,7 @@ import org.junit.Test;
 
 import io.crate.concurrent.FutureActionListener;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.replication.logical.LogicalReplicationService;
 import io.crate.replication.logical.metadata.ConnectionInfo;
 import io.crate.role.Roles;
@@ -120,7 +120,7 @@ public class TransportCreateSubscriptionTest {
         doAnswer(invocation -> responseFuture.complete(new AcknowledgedResponse(true)))
             .when(clusterService).submitStateUpdateTask(anyString(), any());
 
-        RelationName relationName = RelationName.of(QualifiedName.of("t1"), Schemas.DOC_SCHEMA_NAME);
+        RelationName relationName = RelationName.of(QualifiedName.of("t1"), DocSchemaInfo.NAME);
 
         // Not necessary to set a valid version, only fact that version is higher than CURRENT is important for this test.
         Settings relationSettings = Settings.builder()
