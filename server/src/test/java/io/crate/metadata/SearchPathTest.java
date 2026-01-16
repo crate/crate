@@ -30,6 +30,7 @@ import java.util.Iterator;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
 import org.junit.Test;
 
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.pgcatalog.PgCatalogSchemaInfo;
 
 public class SearchPathTest {
@@ -40,7 +41,7 @@ public class SearchPathTest {
         Iterator<String> pathIterator = searchPath.iterator();
         pathIterator.next();
         String secondInPath = pathIterator.next();
-        assertThat(secondInPath).isEqualTo(Schemas.DOC_SCHEMA_NAME);
+        assertThat(secondInPath).isEqualTo(DocSchemaInfo.NAME);
     }
 
     @Test

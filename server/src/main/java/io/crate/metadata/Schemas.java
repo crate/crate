@@ -86,13 +86,6 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
     );
 
 
-    /**
-     * CrateDB's default schema name if the user hasn't specified anything.
-     * Caution: Don't assume that this schema is _always_ set as the default!
-     * {@see SessionContext}
-     */
-    public static final String DOC_SCHEMA_NAME = "doc";
-
     private final ClusterService clusterService;
     private final DocSchemaInfoFactory docSchemaInfoFactory;
     private final Roles roles;
@@ -397,7 +390,7 @@ public class Schemas extends AbstractLifecycleComponent implements Iterable<Sche
         Set<String> schemas = new HashSet<>();
         // 'doc' schema is always available and has the special property that its indices
         // don't have to be prefixed with the schema name
-        schemas.add(DOC_SCHEMA_NAME);
+        schemas.add(DocSchemaInfo.NAME);
 
         UserDefinedFunctionsMetadata udfMetadata = metadata.custom(UserDefinedFunctionsMetadata.TYPE);
         if (udfMetadata != null) {

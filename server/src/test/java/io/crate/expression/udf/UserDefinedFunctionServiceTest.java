@@ -31,25 +31,25 @@ import org.junit.Test;
 import io.crate.analyze.FunctionArgumentDefinition;
 import io.crate.exceptions.UserDefinedFunctionAlreadyExistsException;
 import io.crate.exceptions.UserDefinedFunctionUnknownException;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.types.DataTypes;
 
 public class UserDefinedFunctionServiceTest extends UdfUnitTest {
 
     private final UserDefinedFunctionMetadata same1 = new UserDefinedFunctionMetadata(
-        Schemas.DOC_SCHEMA_NAME, "same", List.of(), DataTypes.INTEGER,
+        DocSchemaInfo.NAME, "same", List.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function same(){ return 3; }"
     );
     private final UserDefinedFunctionMetadata same2 = new UserDefinedFunctionMetadata(
-        Schemas.DOC_SCHEMA_NAME, "same", List.of(), DataTypes.INTEGER,
+        DocSchemaInfo.NAME, "same", List.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function same() { return 2; }"
     );
     private final UserDefinedFunctionMetadata different = new UserDefinedFunctionMetadata(
-        Schemas.DOC_SCHEMA_NAME, "different", List.of(), DataTypes.INTEGER,
+        DocSchemaInfo.NAME, "different", List.of(), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function different() { return 3; }"
     );
     private static final UserDefinedFunctionMetadata FOO = new UserDefinedFunctionMetadata(
-        Schemas.DOC_SCHEMA_NAME, "foo", List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)), DataTypes.INTEGER,
+        DocSchemaInfo.NAME, "foo", List.of(FunctionArgumentDefinition.of("i", DataTypes.INTEGER)), DataTypes.INTEGER,
         DUMMY_LANG.name(), "function foo(i) { return i; }"
     );
 
@@ -116,7 +116,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
             .addUDFLanguage(DUMMY_LANG)
             .addUDF(FOO)
             .addUDF(new UserDefinedFunctionMetadata(
-                Schemas.DOC_SCHEMA_NAME,
+                DocSchemaInfo.NAME,
                 "foo",
                 List.of(FunctionArgumentDefinition.of("i", DataTypes.LONG)),
                 DataTypes.LONG,
@@ -125,11 +125,11 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
             ))
             .addTable("create table doc.t1 (id int, gen as foo(id))");
 
-        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.LONG)))
+        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(DocSchemaInfo.NAME, "foo", List.of(DataTypes.LONG)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot drop function 'doc.foo'. It is in use by column 'gen' of table 'doc.t1'");
 
-        sqlExecutor.udfService().ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.INTEGER));
+        sqlExecutor.udfService().ensureFunctionIsUnused(DocSchemaInfo.NAME, "foo", List.of(DataTypes.INTEGER));
     }
 
     @Test
@@ -139,7 +139,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
             .addUDF(FOO)
             .addTable("create table doc.p1 (id int, p int, gen as foo(id)) partitioned by (p)");
 
-        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.INTEGER)))
+        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(DocSchemaInfo.NAME, "foo", List.of(DataTypes.INTEGER)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot drop function 'doc.foo'. It is in use by column 'gen' of table 'doc.p1'");
     }
@@ -151,7 +151,7 @@ public class UserDefinedFunctionServiceTest extends UdfUnitTest {
             .addUDF(FOO)
             .addTable("create table doc.p1 (o object as (id int), gen as foo(o['id'])) partitioned by (o['id'])");
 
-        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(Schemas.DOC_SCHEMA_NAME, "foo", List.of(DataTypes.INTEGER)))
+        assertThatThrownBy(() -> udfService.ensureFunctionIsUnused(DocSchemaInfo.NAME, "foo", List.of(DataTypes.INTEGER)))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessageContaining("Cannot drop function 'doc.foo'. It is in use by column 'gen' of table 'doc.p1'");
     }

@@ -38,8 +38,8 @@ import io.crate.execution.dsl.phases.FetchPhase;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.types.DataTypes;
 
 public class FetchPhaseTest {
@@ -47,7 +47,7 @@ public class FetchPhaseTest {
     @Test
     public void testStreaming() throws Exception {
 
-        RelationName t1 = new RelationName(Schemas.DOC_SCHEMA_NAME, "t1");
+        RelationName t1 = new RelationName(DocSchemaInfo.NAME, "t1");
 
         TreeMap<String, Integer> bases = new TreeMap<>();
         bases.put(t1.name(), 0);
@@ -55,7 +55,7 @@ public class FetchPhaseTest {
 
         HashMap<RelationName, Collection<String>> tableIndices = new HashMap<>();
         tableIndices.put(t1, List.of(t1.name()));
-        tableIndices.put(new RelationName(Schemas.DOC_SCHEMA_NAME, "i2"), List.of("i2_s1", "i2_s2"));
+        tableIndices.put(new RelationName(DocSchemaInfo.NAME, "i2"), List.of("i2_s1", "i2_s2"));
 
         SimpleReference name = new SimpleReference(
             t1,

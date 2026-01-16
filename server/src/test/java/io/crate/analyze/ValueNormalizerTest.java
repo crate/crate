@@ -43,8 +43,8 @@ import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.table.TableInfo;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -53,7 +53,7 @@ import io.crate.types.DataTypes;
 
 public class ValueNormalizerTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationName TEST_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "test1");
+    private static final RelationName TEST_TABLE_IDENT = new RelationName(DocSchemaInfo.NAME, "test1");
     private TableInfo userTableInfo;
     private EvaluatingNormalizer normalizer;
 
