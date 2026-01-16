@@ -26,13 +26,13 @@ import static java.util.Collections.singletonList;
 import java.util.List;
 
 import io.crate.metadata.RelationName;
-import io.crate.metadata.Schemas;
+import io.crate.metadata.doc.DocSchemaInfo;
 
 public final class TableDefinitions {
 
     private TableDefinitions() {}
 
-    public static final RelationName USER_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
+    public static final RelationName USER_TABLE_IDENT = new RelationName(DocSchemaInfo.NAME, "users");
 
     public static final String USER_TABLE_DEFINITION =
         "create table doc.users (" +
@@ -79,7 +79,7 @@ public final class TableDefinitions {
         "  friends array(object)" +
         ")" +
         " clustered by (id)";
-    static final RelationName TEST_PARTITIONED_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "parted");
+    static final RelationName TEST_PARTITIONED_TABLE_IDENT = new RelationName(DocSchemaInfo.NAME, "parted");
 
     public static final String TEST_PARTITIONED_TABLE_DEFINITION =
         "create table doc.parted (" +
@@ -135,7 +135,7 @@ public final class TableDefinitions {
         "  ))" +
         ")";
 
-    public static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "locations");
+    public static final RelationName TEST_DOC_LOCATIONS_TABLE_IDENT = new RelationName(DocSchemaInfo.NAME, "locations");
 
     public static final String TEST_DOC_LOCATIONS_TABLE_DEFINITION =
         "create table doc.locations (" +

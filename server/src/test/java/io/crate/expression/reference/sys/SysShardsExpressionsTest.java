@@ -72,6 +72,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SystemTable;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocSchemaInfoFactory;
 import io.crate.metadata.doc.DocTableInfoFactory;
 import io.crate.metadata.shard.ShardReferenceResolver;
@@ -96,7 +97,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
         String indexName = "wikipedia_de";
         SQLExecutor.builder(clusterService).build()
             .addTable("CREATE TABLE " + indexName + " (id INT) CLUSTERED INTO 1 SHARDS WITH (number_of_replicas = 0)");
-        RelationName relationName = new RelationName(Schemas.DOC_SCHEMA_NAME, indexName);
+        RelationName relationName = new RelationName(DocSchemaInfo.NAME, indexName);
         prepare(relationName, List.of());
     }
 
@@ -260,7 +261,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testTableNameOfPartition() throws Exception {
         List<String> partitionValues = List.of("foo");
-        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), partitionValues);
+        PartitionName partitionName = new PartitionName(new RelationName(DocSchemaInfo.NAME, "wikipedia_d1"), partitionValues);
         SQLExecutor.builder(clusterService)
             .build()
             .addTable(
@@ -277,7 +278,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testPartitionIdent() throws Exception {
         List<String> partitionValues = List.of("foo");
-        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), partitionValues);
+        PartitionName partitionName = new PartitionName(new RelationName(DocSchemaInfo.NAME, "wikipedia_d1"), partitionValues);
         SQLExecutor.builder(clusterService)
             .build()
             .addTable(
@@ -301,7 +302,7 @@ public class SysShardsExpressionsTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testOrphanPartition() throws Exception {
-        PartitionName partitionName = new PartitionName(new RelationName(Schemas.DOC_SCHEMA_NAME, "wikipedia_d1"), List.of("foo"));
+        PartitionName partitionName = new PartitionName(new RelationName(DocSchemaInfo.NAME, "wikipedia_d1"), List.of("foo"));
         SQLExecutor.builder(clusterService).build()
             .addTable("CREATE TABLE doc.wikipedia_d1 (id INT, p TEXT) CLUSTERED INTO 1 SHARDS PARTITIONED BY (p) WITH (number_of_replicas = 0)");
         // simulate orphan partition

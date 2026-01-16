@@ -174,6 +174,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.SessionSettings;
@@ -1347,7 +1348,7 @@ public abstract class IntegTestCase extends ESTestCase {
     }
 
     public String getFqn(String schema, String tableName) {
-        if (schema.equals(Schemas.DOC_SCHEMA_NAME)) {
+        if (schema.equals(DocSchemaInfo.NAME)) {
             return tableName;
         }
         return String.format(Locale.ENGLISH, "%s.%s", schema, tableName);
@@ -1933,7 +1934,7 @@ public abstract class IntegTestCase extends ESTestCase {
     private String randomizedSchema() {
         UseRandomizedSchema annotation = getTestAnnotation(UseRandomizedSchema.class);
         if (annotation == null || annotation.random() == false) {
-            return Schemas.DOC_SCHEMA_NAME;
+            return DocSchemaInfo.NAME;
         }
 
         Random random = RandomizedContext.current().getRandom();

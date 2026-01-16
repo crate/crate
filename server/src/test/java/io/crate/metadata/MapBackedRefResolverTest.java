@@ -31,11 +31,12 @@ import org.junit.Test;
 
 import io.crate.expression.NestableInput;
 import io.crate.expression.reference.ReferenceResolver;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.types.DataTypes;
 
 public class MapBackedRefResolverTest {
 
-    private static final RelationName USERS_TI = new RelationName(Schemas.DOC_SCHEMA_NAME, "users");
+    private static final RelationName USERS_TI = new RelationName(DocSchemaInfo.NAME, "users");
 
     @Test
     public void testGetImplementation() throws Exception {

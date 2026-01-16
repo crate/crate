@@ -144,6 +144,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RoutingProvider;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
 import io.crate.metadata.settings.session.SessionSettingRegistry;
@@ -221,7 +222,7 @@ public class SQLExecutor {
     @Nullable
     private LongSupplier columnOidSupplier;
     private Role user = Role.CRATE_USER;
-    private String[] searchPath = new String[] { Schemas.DOC_SCHEMA_NAME };
+    private String[] searchPath = new String[] { DocSchemaInfo.NAME};
 
 
     /**
@@ -840,7 +841,7 @@ public class SQLExecutor {
     }
 
     public SQLExecutor closeTable(String tableName) throws IOException {
-        RelationName relationName = RelationName.of(QualifiedName.of(tableName), Schemas.DOC_SCHEMA_NAME);
+        RelationName relationName = RelationName.of(QualifiedName.of(tableName), DocSchemaInfo.NAME);
         ClusterState prevState = clusterService.state();
         var metadata = prevState.metadata();
         List<IndexMetadata> indices = metadata.getIndices(

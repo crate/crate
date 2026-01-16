@@ -36,8 +36,8 @@ import org.junit.Test;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.table.Operation;
 import io.crate.sql.tree.ColumnPolicy;
@@ -45,7 +45,7 @@ import io.crate.types.DataTypes;
 
 public class TableStatsTest extends ESTestCase {
 
-    private final RelationName testRelation = new RelationName(Schemas.DOC_SCHEMA_NAME, "test");
+    private final RelationName testRelation = new RelationName(DocSchemaInfo.NAME, "test");
     private final SimpleReference idRef = new SimpleReference(
         testRelation,
         ColumnIdent.of("id"),

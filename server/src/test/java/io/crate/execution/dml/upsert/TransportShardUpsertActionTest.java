@@ -77,9 +77,9 @@ import io.crate.metadata.PartitionName;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.settings.SessionSettings;
 import io.crate.netty.NettyBootstrap;
 import io.crate.sql.tree.ColumnPolicy;
@@ -90,7 +90,7 @@ import io.crate.types.ObjectType;
 
 public class TransportShardUpsertActionTest extends CrateDummyClusterServiceUnitTest {
 
-    private static final RelationName TABLE_IDENT = new RelationName(Schemas.DOC_SCHEMA_NAME, "characters");
+    private static final RelationName TABLE_IDENT = new RelationName(DocSchemaInfo.NAME, "characters");
     private static final List<String> PARTITION_VALUES = List.of("1395874800000");
     private static final String PARTITION_INDEX = new PartitionName(TABLE_IDENT, PARTITION_VALUES).asIndexName();
     private static final SimpleReference ID_REF = new SimpleReference(

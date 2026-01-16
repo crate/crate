@@ -54,8 +54,8 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.IndexType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
-import io.crate.metadata.Schemas;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.planner.node.dql.Collect;
 import io.crate.planner.node.dql.QueryThenFetch;
 import io.crate.planner.node.dql.join.Join;
@@ -371,7 +371,7 @@ public class InsertPlannerTest extends CrateDummyClusterServiceUnitTest {
         assertThat(toCollect).hasSize(2);
         assertThat(toCollect.get(0)).isReference().hasName("_doc['id']");
         SimpleReference expected = new SimpleReference(
-            new RelationName(Schemas.DOC_SCHEMA_NAME, "parted_pks"),
+            new RelationName(DocSchemaInfo.NAME, "parted_pks"),
             ColumnIdent.of("date"),
             RowGranularity.PARTITION,
             DataTypes.TIMESTAMPZ,
