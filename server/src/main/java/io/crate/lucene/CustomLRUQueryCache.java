@@ -63,6 +63,8 @@ import org.apache.lucene.util.FixedBitSet;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.apache.lucene.util.RoaringDocIdSet;
 
+import io.crate.common.annotations.VisibleForTesting;
+
 /**
  * Copy of {@link org.apache.lucene.search.LRUQueryCache}
  * with applied patch https://github.com/apache/lucene/commit/e706267b893576cd334a783e6dfa8b4008cdc7b2
@@ -415,7 +417,8 @@ public class CustomLRUQueryCache implements QueryCache, Accountable {
         }
     }
 
-    private static long getRamBytesUsed(Query query) {
+    @VisibleForTesting
+    public static long getRamBytesUsed(Query query) {
         // Here 32 represents a rough shallow size for a query object
         long queryRamBytesUsed = RamUsageEstimator.sizeOf(query, 32);
         return LINKED_HASHTABLE_RAM_BYTES_PER_ENTRY + queryRamBytesUsed;
