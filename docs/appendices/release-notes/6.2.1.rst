@@ -49,4 +49,6 @@ series.
 Fixes
 =====
 
-None
+- Fixed an issue that caused under-accounting of memory usage of some queries
+  stored in cache. It affected cache eviction that is depending on query memory
+  usage, potentially leading to an ``OutOfMemoryError``.
