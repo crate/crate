@@ -120,7 +120,7 @@ public class TasksService extends AbstractLifecycleComponent implements Transpor
                         rootTask.jobId(),
                         task.name(),
                         rootTask.started(),
-                        task::bytesUsed
+                        task.bytesUsed()
                     ))
             )
             .iterator();
