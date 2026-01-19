@@ -75,8 +75,8 @@ None
 Scalar and Aggregation Functions
 --------------------------------
 
-- Added support for ``interval`` type to the :ref:`percentile
-  <aggregation-percentile>` aggregation function.
+- `Dhruv Patel <https://github.com/DHRUV6029>`_ added support for ``interval``
+  type to the :ref:`percentile <aggregation-percentile>` aggregation function.
 
 Performance and Resilience Improvements
 ---------------------------------------
