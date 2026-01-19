@@ -30,6 +30,7 @@ import java.util.List;
 import org.apache.lucene.search.BooleanClause;
 import org.apache.lucene.search.BooleanQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.ScoreMode;
 import org.apache.lucene.search.TermQuery;
 import org.apache.lucene.search.WildcardQuery;
 import org.assertj.core.api.Assertions;
@@ -191,7 +192,7 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
     }
 
     @Test
-    public void test_like_ilike_with_trailing_escape_char() {
+    public void test_like_ilike_with_trailing_escape_char() throws Exception {
         assertThatThrownBy(() -> convert("name like '\\'"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("pattern '\\' must not end with escape character '\\'");
@@ -200,10 +201,17 @@ public class LikeQueryBuilderTest extends LuceneQueryBuilderTest {
             .hasMessage("pattern '\\' must not end with escape character '\\'");
 
         // no index
-        assertThatThrownBy(() -> convert("text_no_index like '\\'"))
+        Query query = convert("text_no_index like '\\'");
+        assertThat(query).isInstanceOf(GenericFunctionQuery.class);
+        GenericFunctionQuery genericFunctionQuery1 = (GenericFunctionQuery) query;
+        assertThatThrownBy(() -> genericFunctionQuery1.createWeight(null, ScoreMode.COMPLETE, 1))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("pattern '\\' must not end with escape character '\\'");
-        assertThatThrownBy(() -> convert("text_no_index ilike '\\'"))
+
+        query = convert("text_no_index ilike '\\'");
+        assertThat(query).isInstanceOf(GenericFunctionQuery.class);
+        GenericFunctionQuery genericFunctionQuery2 = (GenericFunctionQuery) query;
+        assertThatThrownBy(() -> genericFunctionQuery2.createWeight(null, ScoreMode.COMPLETE, 1))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("pattern '\\' must not end with escape character '\\'");
     }
