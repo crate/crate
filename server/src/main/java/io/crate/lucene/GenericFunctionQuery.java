@@ -39,7 +39,9 @@ import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.ScorerSupplier;
 import org.apache.lucene.search.TwoPhaseIterator;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.util.Accountable;
 import org.apache.lucene.util.Bits;
+import org.apache.lucene.util.RamUsageEstimator;
 
 import io.crate.data.Input;
 import io.crate.execution.engine.fetch.ReaderContext;
@@ -53,12 +55,13 @@ import io.crate.metadata.Reference;
  *
  * This query is very slow.
  */
-public class GenericFunctionQuery extends Query {
+public class GenericFunctionQuery extends Query implements Accountable {
 
     private final Function function;
     private final LuceneCollectorExpression<?>[] expressions;
     private final Input<Boolean> condition;
     private final Runnable raiseIfKilled;
+    private final long ramBytesUsed;
 
     GenericFunctionQuery(Function function,
                          Collection<? extends LuceneCollectorExpression<?>> expressions,
@@ -69,6 +72,12 @@ public class GenericFunctionQuery extends Query {
         this.expressions = expressions.toArray(new LuceneCollectorExpression[0]);
         this.condition = condition;
         this.raiseIfKilled = raiseIfKilled;
+        this.ramBytesUsed =
+            function.ramBytesUsed()
+            + RamUsageEstimator.shallowSizeOf(expressions)
+            + RamUsageEstimator.shallowSizeOf(condition)
+            + RamUsageEstimator.NUM_BYTES_OBJECT_HEADER // raiseIfKilled
+            + 8; // ramBytesUsed
     }
 
     @Override
@@ -141,11 +150,18 @@ public class GenericFunctionQuery extends Query {
 
     @Override
     public void visit(QueryVisitor visitor) {
+        // Used by the RamUsageQueryVisitor.
+        visitor.visitLeaf(this);
     }
 
     @Override
     public String toString(String field) {
         return function.toString();
+    }
+
+    @Override
+    public long ramBytesUsed() {
+        return ramBytesUsed;
     }
 
     private static class FilteredTwoPhaseIterator extends TwoPhaseIterator {

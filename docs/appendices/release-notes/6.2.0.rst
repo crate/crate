@@ -101,6 +101,7 @@ SQL Standard and PostgreSQL Compatibility
   versions than the server supports. The client is expected to downgrade it's
   used minor version in such cases.
 
+
 Data Types
 ----------
 
