@@ -224,13 +224,13 @@ public class SubscriptFunction extends Scalar<Object, Object> {
         } else if (base instanceof Map<?, ?> map) {
             Object value = map.get(name);
             ColumnPolicy columnPolicy = baseType.columnPolicy();
-            if (value == null) {
-                assert baseType instanceof ObjectType;
-                ObjectType objType = (ObjectType) baseType;
-                if (columnPolicy == ColumnPolicy.IGNORED
-                    || (columnPolicy == ColumnPolicy.DYNAMIC && !errorOnUnknownObjectKey)
-                    || (objType.innerTypes().containsKey(name))) {
-                    return null;
+            if (value == null && errorOnUnknownObjectKey) {
+                // Type could also be "undefined"
+                if (baseType instanceof ObjectType objType) {
+                    if (columnPolicy == ColumnPolicy.IGNORED
+                        || objType.innerTypes().containsKey(name)) {
+                        return null;
+                    }
                 }
                 throw ColumnUnknownException.ofUnknownRelation("The object `" + base + "` does not contain the key `" + name + "`");
             }
