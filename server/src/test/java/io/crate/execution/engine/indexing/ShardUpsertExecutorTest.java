@@ -31,6 +31,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.breaker.ChildMemoryCircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -148,7 +149,8 @@ public class ShardUpsertExecutorTest extends IntegTestCase {
             NumberOfReplicas.effectiveNumReplicas(table.parameters(), state.nodes()),
             UpsertResultContext.forRowCount(),
             UpsertResults::containsErrors,
-            UpsertResults::resultsToFailure
+            UpsertResults::resultsToFailure,
+            Metadata.TABLE_OID_UNASSIGNED
         );
 
         BatchIterator<Row> rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 10_000)

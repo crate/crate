@@ -32,6 +32,7 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 import org.elasticsearch.cluster.ClusterState;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.common.breaker.NoopCircuitBreaker;
 import org.elasticsearch.common.settings.ClusterSettings;
 import org.elasticsearch.common.settings.Settings;
@@ -113,7 +114,8 @@ public class IndexWriterProjectorTest extends IntegTestCase {
             false,
             UUID.randomUUID(),
             UpsertResultContext.forRowCount(),
-            false
+            false,
+            Metadata.TABLE_OID_UNASSIGNED
         );
 
         BatchIterator<Row> rowsIterator = InMemoryBatchIterator.of(IntStream.range(0, 100)

@@ -188,6 +188,7 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
         }
 
         Metadata.Builder mdBuilder = Metadata.builder();
+        mdBuilder.nextTableOID(currentState.metadata().nextTableOID());
         mdBuilder.clusterUUID(currentState.metadata().clusterUUID());
 
         if (request.metadata()) {
@@ -209,7 +210,8 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
                             table.partitionedBy(),
                             table.state(),
                             table.indexUUIDs(),
-                            table.tableVersion()
+                            table.tableVersion(),
+                            table.tableOID()
                         );
                         for (String indexUUID : table.indexUUIDs()) {
                             IndexMetadata indexMetadata = currentState.metadata().index(indexUUID);

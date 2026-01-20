@@ -465,7 +465,8 @@ public class MetadataCreateIndexService {
                     table.partitionedBy(),
                     table.state(),
                     table.indexUUIDs(),
-                    table.tableVersion() + 1
+                    table.tableVersion() + 1,
+                    table.tableOID()
                 );
             }
 

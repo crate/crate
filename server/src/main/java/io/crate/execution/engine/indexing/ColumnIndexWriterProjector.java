@@ -87,8 +87,8 @@ public class ColumnIndexWriterProjector implements Projector {
                                       boolean autoCreateIndices,
                                       List<Symbol> returnValues,
                                       UUID jobId,
-                                      long fullDocSizeEstimate
-                                      ) {
+                                      long fullDocSizeEstimate,
+                                      long tableOID) {
         RowShardResolver rowShardResolver = new RowShardResolver(
             txnCtx, nodeCtx, primaryKeyIdents, primaryKeySymbols, clusteredByColumn, routingSymbol);
         assert columnReferences.size() == insertInputs.size()
@@ -154,7 +154,8 @@ public class ColumnIndexWriterProjector implements Projector {
             targetTableNumReplicas,
             upsertResultContext,
             _ -> false,
-            UpsertResults::resultsToFailure
+            UpsertResults::resultsToFailure,
+            tableOID
         );
     }
 

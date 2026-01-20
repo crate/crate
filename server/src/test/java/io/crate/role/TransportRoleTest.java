@@ -61,7 +61,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCreateFirstUser() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder();
+        Metadata.Builder mdBuilder = Metadata.builder();
         TransportCreateRole.putRole(mdBuilder,
             "root",
             true,
@@ -81,7 +81,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_create_user_with_matching_jwt_props_exists() throws Exception {
         // Users have different "aud" property values - still clashing as only iss/username matters.
-        Metadata.Builder mdBuilder = new Metadata.Builder();
+        Metadata.Builder mdBuilder = Metadata.builder();
         TransportCreateRole.putRole(mdBuilder,
             "user1",
             true,
@@ -101,7 +101,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_create_user_with_existing_name_but_different_jwt_props() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder();
+        Metadata.Builder mdBuilder = Metadata.builder();
         TransportCreateRole.putRole(mdBuilder,
             "user1",
             true,
@@ -120,14 +120,14 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCreateUserAlreadyExists() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder()
+        Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
         assertThat(TransportCreateRole.putRole(mdBuilder, "Arthur", true, null, null, Map.of())).isTrue();
     }
 
     @Test
     public void testCreateUser() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder()
+        Metadata.Builder mdBuilder = Metadata.builder()
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
         TransportCreateRole.putRole(mdBuilder, "Trillian", true, null, null, Map.of());
         RolesMetadata newMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);

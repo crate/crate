@@ -46,16 +46,19 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
 
     private final Function<ShardId, TReq> requestFactory;
     private final RamAccounting ramAccounting;
+    private final long tableOID;
 
     private int location = -1;
     private long usedMemoryEstimate = 0L;
 
     /**
      * @param requestFactory function to create a request
+     * @param tableOID
      */
-    public ShardedRequests(Function<ShardId, TReq> requestFactory, RamAccounting ramAccounting) {
+    public ShardedRequests(Function<ShardId, TReq> requestFactory, RamAccounting ramAccounting, long tableOID) {
         this.requestFactory = requestFactory;
         this.ramAccounting = ramAccounting;
+        this.tableOID = tableOID;
     }
 
     public void add(TItem item, PartitionName partitionName, String routing, RowSourceInfo rowSourceInfo) {
@@ -125,5 +128,9 @@ public final class ShardedRequests<TReq extends ShardRequest<TReq, TItem>, TItem
             + ", bytesUsed=" + usedMemoryEstimate
             + ", sizePerShard=" + usedMemoryEstimate / Math.max(1, itemsByShard.size())
             + "}";
+    }
+
+    public long tableOID() {
+        return tableOID;
     }
 }

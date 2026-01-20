@@ -183,7 +183,8 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                         request.partitionedBy(),
                         State.OPEN,
                         newIndexUUIDs,
-                        0
+                        0,
+                        currentState.metadata().nextTableOID()
                     ).build();
                 table = newMetadata.getRelation(relationName);
                 assert table != null : "table must not be null";

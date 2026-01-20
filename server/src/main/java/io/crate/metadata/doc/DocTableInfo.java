@@ -170,6 +170,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public static final Setting<Long> DEPTH_LIMIT_SETTING =
         Setting.longSetting("index.mapping.depth.limit", 100L, 1, Property.Dynamic, Property.IndexScope);
 
+    private final long tableOID;
     private final List<Reference> rootColumns;
     private final Set<Reference> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
@@ -203,7 +204,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private ReferenceTree refTree;     // lazily initialised
     private final long tableVersion;
 
-    public DocTableInfo(RelationName ident,
+    public DocTableInfo(long tableOID,
+                        RelationName ident,
                         Map<ColumnIdent, Reference> references,
                         Map<ColumnIdent, IndexReference> indexColumns,
                         Set<Reference> droppedColumns,
@@ -219,6 +221,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         boolean closed,
                         Set<Operation> supportedOperations,
                         long tableVersion) {
+        this.tableOID = tableOID;
         this.notNullColumns = references.values().stream()
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> !primaryKeys.contains(r.column()))
@@ -886,6 +889,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return this;
         }
         return new DocTableInfo(
+            tableOID,
             ident,
             allColumns,
             indexColumns,
@@ -958,6 +962,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
         newDroppedColumns.addAll(droppedColumns);
         return new DocTableInfo(
+            tableOID,
             ident,
             newReferences,
             indexColumns,
@@ -1060,6 +1065,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         var renamedPartitionedBy = Lists.map(partitionedBy, renameColumnIfMatch);
         var renamedCheckConstraints = Lists.map(checkConstraints, renameCheckConstraints);
         return new DocTableInfo(
+            tableOID,
             ident,
             renamedReferences,
             renamedIndexColumns,
@@ -1183,7 +1189,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             partitionedBy,
             closed ? State.CLOSE : State.OPEN,
             indexUUIDs,
-            tableVersion
+            tableVersion,
+            tableOID
         );
         return metadataBuilder;
     }
@@ -1324,6 +1331,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
         }
         return new DocTableInfo(
+            tableOID,
             ident,
             newReferences,
             indexColumns,
@@ -1348,5 +1356,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      **/
     public List<Reference> allReferences() {
         return Lists.concat(Lists.concat(allColumns.values(), droppedColumns), indexColumns.values());
+    }
+
+    public long tableOID() {
+        return tableOID;
     }
 }

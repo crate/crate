@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -379,7 +380,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                                      Object[][] data,
                                      List<Reference> targetColumns) throws IOException {
         DocTableInfo table = new DocTableInfo(
-            PARTITION_NAME.relationName(),
+                Metadata.TABLE_OID_UNASSIGNED, PARTITION_NAME.relationName(),
             targetColumns.stream().collect(Collectors.toMap(Reference::column, r -> r)),
             Map.of(),
             Set.of(),

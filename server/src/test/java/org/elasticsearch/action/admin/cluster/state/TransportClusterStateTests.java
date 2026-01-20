@@ -83,8 +83,8 @@ public class TransportClusterStateTests extends ESTestCase {
                     List.of(),
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID1),
-                    0
-                )
+                    0,
+                    Metadata.TABLE_OID_UNASSIGNED)
                 .setTable(
                     relationName2,
                     List.of(),
@@ -100,8 +100,8 @@ public class TransportClusterStateTests extends ESTestCase {
                     List.of(ColumnIdent.of("parted")),
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID2),
-                    0
-                )
+                    0,
+                    Metadata.TABLE_OID_UNASSIGNED)
                 .put(IndexMetadata.builder(indexUUID1)
                         .settings(settings(Version.CURRENT)
                             .put(SETTING_INDEX_UUID, indexUUID1))

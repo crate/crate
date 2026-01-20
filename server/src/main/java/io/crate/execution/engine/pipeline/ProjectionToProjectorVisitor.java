@@ -455,7 +455,8 @@ public class ProjectionToProjectorVisitor
             projection.overwriteDuplicates(),
             context.jobId,
             upsertResultContext,
-            projection.failFast()
+            projection.failFast(),
+            tableInfo.tableOID()
         );
     }
 
@@ -519,7 +520,8 @@ public class ProjectionToProjectorVisitor
             projection.autoCreateIndices(),
             projection.returnValues(),
             context.jobId,
-            projection.fullDocSizeEstimate()
+            projection.fullDocSizeEstimate(),
+            tableInfo.tableOID()
         );
     }
 

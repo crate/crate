@@ -60,7 +60,7 @@ public class FixCorruptedMetadataCommandTest {
 
         ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
         mapBuilder.put(corruptedName, corrupted);
-        Metadata.Builder fixedMetadata = new Metadata.Builder();
+        Metadata.Builder fixedMetadata = Metadata.builder();
         fixNameOfTemplateMetadata(mapBuilder.build(), fixedMetadata);
 
         // only the name of the corrupted template is fixed
@@ -95,7 +95,7 @@ public class FixCorruptedMetadataCommandTest {
         ImmutableOpenMap.Builder<String, IndexTemplateMetadata> mapBuilder = ImmutableOpenMap.builder();
         mapBuilder.put(corruptedName, corrupted);
         mapBuilder.put(nameOfExistingTemplate, existingTemplate);
-        Metadata.Builder fixedMetadata = new Metadata.Builder();
+        Metadata.Builder fixedMetadata = Metadata.builder();
         fixNameOfTemplateMetadata(mapBuilder.build(), fixedMetadata);
 
         // only the name of the corrupted template is fixed
@@ -138,7 +138,7 @@ public class FixCorruptedMetadataCommandTest {
         mapBuilder.put(corruptedName, corrupted);
         mapBuilder.put(dummyName, dummy);
         mapBuilder.put(nameOfExistingTemplate, existingTemplate);
-        Metadata.Builder fixedMetadata = new Metadata.Builder();
+        Metadata.Builder fixedMetadata = Metadata.builder();
         fixNameOfTemplateMetadata(mapBuilder.build(), fixedMetadata);
 
         // only the name of the corrupted template is fixed

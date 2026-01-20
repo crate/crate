@@ -163,6 +163,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         );
 
         return new DocTableInfo(
+            table.tableOID(),
             table.name(),
             columns,
             indexColumns,
@@ -323,6 +324,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         }
 
         return new DocTableInfo(
+            Metadata.TABLE_OID_UNASSIGNED, // TODO: confirm if this is ok
             relationName,
             references,
             indexColumns.entrySet().stream()

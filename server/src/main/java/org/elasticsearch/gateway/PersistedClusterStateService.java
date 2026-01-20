@@ -489,6 +489,7 @@ public class PersistedClusterStateService {
             builder.put(indexMetadata, false);
         });
 
+        builder.nextTableOID(1); // TODO: ?? test fails without this test_swap_tables_does_not_affect_tables_with_identical_names_in_different_schemas
         final Map<String, String> userData = reader.getIndexCommit().getUserData();
         LOGGER.trace("loaded metadata [{}] from [{}]", userData, reader.directory());
         assert userData.size() == COMMIT_DATA_SIZE : userData;

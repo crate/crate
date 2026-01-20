@@ -798,7 +798,8 @@ public class SQLExecutor {
             Lists.map(boundCreateTable.partitionedBy(), Reference::toColumn),
             State.OPEN,
             indexUUIDs,
-            0
+            0,
+            Metadata.TABLE_OID_UNASSIGNED
         );
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(mdBuilder.build())
@@ -864,8 +865,8 @@ public class SQLExecutor {
                 table.partitionedBy(),
                 State.CLOSE,
                 table.indexUUIDs(),
-                table.tableVersion()
-            );
+                table.tableVersion(),
+                table.tableOID());
         }
         ClusterBlocks.Builder blocksBuilder = ClusterBlocks.builder()
             .blocks(clusterService.state().blocks());
