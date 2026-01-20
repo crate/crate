@@ -184,7 +184,7 @@ public class TransportCreateTable extends TransportMasterNodeAction<CreateTableR
                         State.OPEN,
                         newIndexUUIDs,
                         0,
-                        currentState.metadata().nextTableOID()
+                        currentState.metadata().tableOID() + 1
                     ).build();
                 table = newMetadata.getRelation(relationName);
                 assert table != null : "table must not be null";

@@ -449,7 +449,7 @@ public class SnapshotsService extends AbstractLifecycleComponent implements Clus
         if (snapshot.includeGlobalState() == false) {
             // Remove global state from the cluster state
             builder = Metadata.builder();
-            builder.nextTableOID(metadata.nextTableOID());
+            builder.nextTableOID(metadata.tableOID());
             List<String> allIndexUUIDs = new ArrayList<>();
             for (IndexId index : snapshot.indices()) {
                 IndexMetadata indexMetadata = metadata.getIndexByName(index.getName());

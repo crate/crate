@@ -131,7 +131,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             }
 
             Metadata.Builder metadataBuilder = Metadata.builder();
-            metadataBuilder.nextTableOID(state.metadata().nextTableOID());
+            metadataBuilder.nextTableOID(state.metadata().tableOID());
             List<String> unknownPublications = new ArrayList<>();
             for (var publicationName : request.publications()) {
                 var publication = publicationsMetadata.publications().get(publicationName);

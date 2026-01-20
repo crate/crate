@@ -188,7 +188,7 @@ public class TransportClusterState extends TransportMasterNodeReadAction<Cluster
         }
 
         Metadata.Builder mdBuilder = Metadata.builder();
-        mdBuilder.nextTableOID(currentState.metadata().nextTableOID());
+        mdBuilder.nextTableOID(currentState.metadata().tableOID());
         mdBuilder.clusterUUID(currentState.metadata().clusterUUID());
 
         if (request.metadata()) {

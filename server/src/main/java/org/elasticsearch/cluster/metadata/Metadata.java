@@ -137,7 +137,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     public static final ClusterBlock CLUSTER_READ_ONLY_ALLOW_DELETE_BLOCK = new ClusterBlock(13, "cluster read-only / allow delete (api)",
         false, false, true, HttpErrorStatus.RELATION_READ_DELETE_ONLY, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
 
-    public static final Metadata EMPTY_METADATA = new Metadata.Builder().nextTableOID(1).build();
+    public static final Metadata EMPTY_METADATA = new Metadata.Builder().nextTableOID(0).build();
 
     public static final String CONTEXT_MODE_PARAM = "context_mode";
 
@@ -154,7 +154,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final long version;
     @Deprecated
     private final long columnOID;
-    private long nextTableOID;
+    private final long tableOID;
 
     private final CoordinationMetadata coordinationMetadata;
 
@@ -177,7 +177,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
              boolean clusterUUIDCommitted,
              long version,
              long columnOID,
-             long nextTableOID,
+             long tableOID,
              CoordinationMetadata coordinationMetadata,
              Settings transientSettings,
              Settings persistentSettings,
@@ -190,7 +190,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.clusterUUIDCommitted = clusterUUIDCommitted;
         this.version = version;
         this.columnOID = columnOID;
-        this.nextTableOID = nextTableOID;
+        this.tableOID = tableOID;
         this.coordinationMetadata = coordinationMetadata;
         this.transientSettings = transientSettings;
         this.persistentSettings = persistentSettings;
@@ -236,8 +236,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return this.columnOID;
     }
 
-    public long nextTableOID() {
-        return this.nextTableOID++;
+    // Returns the max value of OIDs already taken
+    public long tableOID() {
+        return this.tableOID;
     }
 
     public String clusterUUID() {
@@ -474,7 +475,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         private final long version;
         private final long columnOID;
-        private final long nextTableOID;
+        private final long tableOID;
 
         private final String clusterUUID;
         private final boolean clusterUUIDCommitted;
@@ -487,7 +488,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final Diff<ImmutableOpenMap<String, SchemaMetadata>> schemas;
 
         MetadataDiff(Version v, Metadata before, Metadata after) {
-            nextTableOID = after.nextTableOID;
+            tableOID = after.tableOID;
             clusterUUID = after.clusterUUID;
             clusterUUIDCommitted = after.clusterUUIDCommitted;
             version = after.version;
@@ -518,9 +519,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 columnOID = COLUMN_OID_UNASSIGNED;
             }
             if (in.getVersion().after(Version.V_6_2_0)) {
-                nextTableOID = in.readLong();
+                tableOID = in.readLong();
             } else {
-                nextTableOID = Metadata.TABLE_OID_UNASSIGNED;
+                tableOID = Metadata.TABLE_OID_UNASSIGNED;
             }
             coordinationMetadata = new CoordinationMetadata(in);
             transientSettings = Settings.readSettingsFromStream(in);
@@ -549,7 +550,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 out.writeLong(columnOID);
             }
             if (out.getVersion().after(Version.V_6_2_0)) {
-                out.writeLong(nextTableOID);
+                out.writeLong(tableOID);
             }
             coordinationMetadata.writeTo(out);
             Settings.writeSettingsToStream(out, transientSettings);
@@ -569,7 +570,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             builder.clusterUUIDCommitted(clusterUUIDCommitted);
             builder.version(version);
             builder.columnOID(columnOID);
-            builder.nextTableOID(nextTableOID);
+            builder.nextTableOID(tableOID);
             builder.coordinationMetadata(coordinationMetadata);
             builder.transientSettings(transientSettings);
             builder.persistentSettings(persistentSettings);
@@ -632,7 +633,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             out.writeLong(columnOID);
         }
         if (out.getVersion().after(Version.V_6_2_0)) {
-            out.writeLong(nextTableOID);
+            out.writeLong(tableOID);
         }
         out.writeString(clusterUUID);
         out.writeBoolean(clusterUUIDCommitted);
@@ -679,8 +680,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
     }
 
+    // WARNING: Cannot persist the Metadata built from this unless Metadata.nextTableOID is correctly set.
     public static Builder builder() {
-        return new Builder();
+        return new Builder().nextTableOID(TABLE_OID_UNASSIGNED);
     }
 
     public static Builder builder(Metadata metadata) {
@@ -716,7 +718,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         public Builder(Metadata metadata) {
-            this.nextTableOID = metadata.nextTableOID;
+            this.nextTableOID = metadata.tableOID;
             this.clusterUUID = metadata.clusterUUID;
             this.clusterUUIDCommitted = metadata.clusterUUIDCommitted;
             this.coordinationMetadata = metadata.coordinationMetadata;
@@ -816,8 +818,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state) {
-            // TODO: split add/set table
-            setRelation(new RelationMetadata.BlobTable(nextTableOID++, name, indexUUID, settings, state));
+            // TODO: fix
+            setRelation(new RelationMetadata.BlobTable(nextTableOID, name, indexUUID, settings, state));
             return this;
         }
 
@@ -1196,6 +1198,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 tableVersion
             );
             setRelation(table);
+            nextTableOID(tableOID);
             return this;
         }
 
@@ -1550,7 +1553,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                                   List<String> partitionValues,
                                   boolean strict,
                                   Function<IndexMetadata, T> as) {
-        RelationMetadata relationMetadata = Objects.requireNonNull(getRelation(tableOID));
+        RelationMetadata relationMetadata = Objects.requireNonNull(getRelation(tableOID), "Cannot find RelationMetadata with oid: " + tableOID);
         return getIndices(relationMetadata.name(), partitionValues, strict, as);
     }
 
