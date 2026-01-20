@@ -24,7 +24,6 @@ package io.crate.lucene;
 import static io.crate.expression.eval.NullEliminator.eliminateNullsIfPossible;
 import static io.crate.metadata.DocReferences.inverseSourceLookup;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -48,10 +47,8 @@ import io.crate.data.Input;
 import io.crate.exceptions.UnsupportedFeatureException;
 import io.crate.exceptions.VersioningValidationException;
 import io.crate.execution.engine.collect.DocInputFactory;
-import io.crate.expression.InputFactory;
 import io.crate.expression.eval.EvaluatingNormalizer;
 import io.crate.expression.reference.doc.lucene.CollectorContext;
-import io.crate.expression.reference.doc.lucene.LuceneCollectorExpression;
 import io.crate.expression.reference.doc.lucene.LuceneReferenceResolver;
 import io.crate.expression.reference.doc.lucene.StoredRowLookup;
 import io.crate.expression.symbol.Function;
@@ -398,16 +395,9 @@ public class LuceneQueryBuilder {
         function = (Function) DocReferences.toDocLookup(function,
             r -> context.tableInfo().isIgnoredOrImmediateChildOfIgnored(r) || r.valueType() == DataTypes.GEO_POINT);
 
-        final InputFactory.Context<? extends LuceneCollectorExpression<?>> ctx = context.docInputFactory.getCtx(context.txnCtx);
-        @SuppressWarnings("unchecked")
-        final Input<Boolean> condition = (Input<Boolean>) ctx.add(function);
-        final Collection<? extends LuceneCollectorExpression<?>> expressions = ctx.expressions();
         final CollectorContext collectorContext
             = new CollectorContext(() -> StoredRowLookup.create(context.shardCreatedVersion, context.table, context.partitionValues));
-        for (LuceneCollectorExpression<?> expression : expressions) {
-            expression.startCollect(collectorContext);
-        }
-        return new GenericFunctionQuery(function, expressions, condition, context.raiseIfKilled);
+        return new GenericFunctionQuery(function, collectorContext, context.docInputFactory, context.txnCtx, context.raiseIfKilled);
     }
 
     private static void raiseUnsupported(Function function) {
