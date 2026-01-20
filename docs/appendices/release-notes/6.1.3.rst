@@ -107,3 +107,12 @@ Fixes
   :ref:`user defined functions <user-defined-functions>`, even if they lacked
   privileges on the schema under which a ``UDF`` is defined. Now ``DQL``
   :ref:`privilege <administration-privileges>` on the schema is required.
+
+- Fixed a regression introduced in :ref:`version_6.0.0` that caused statements
+  ``SELECT unnest(obj['arr'])['subcol']`` to fail with a ``ClassCastException``
+  if ``obj`` column had a type :ref:`IGNORED <type-object-columns-ignored>`
+  and ``subcol`` was missing in the record. Error was thrown regardless of the
+  value specified in :ref:`conf-session-error_on_unknown_object_key`.
+  Now it returns ``NULL`` if :ref:`conf-session-error_on_unknown_object_key` is
+  set to ``false`` and throws ``ColumnUnknownException`` if it has default
+  value ``true``.
