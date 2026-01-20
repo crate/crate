@@ -49,10 +49,6 @@ series.
 Fixes
 =====
 
-- Fixed an issue that caused under-accounting of memory usage of some queries
-  stored in cache. It affected cache eviction that is depending on query memory
-  usage, potentially leading to an ``OutOfMemoryError``.
-
 - Fixed an issue that allowed inserting ``NULL`` values into child columns of
   ``ARRAY(OBJECT)`` columns despite ``NOT NULL`` constraint on those child
   columns if a sibling column had a value.
@@ -62,3 +58,15 @@ Fixes
   privileges on the schema under which a ``UDF`` is defined. Now ``DQL``
   :ref:`privilege <administration-privileges>` on the schema is required.
 
+- Fixed an issue that caused under-accounting of memory usage of some queries
+  stored in cache. It affected cache eviction that is depending on query memory
+  usage, potentially leading to an ``OutOfMemoryError``.
+
+- Fixed a regression introduced in :ref:`version_6.0.0` that caused statements
+  ``SELECT unnest(obj['arr'])['subcol']`` to fail with a ``ClassCastException``
+  if ``obj`` column had a type :ref:`IGNORED <type-object-columns-ignored>`
+  and ``subcol`` was missing in the record. Error was thrown regardless of the
+  value specified in :ref:`conf-session-error_on_unknown_object_key`.
+  Now it returns ``NULL`` if :ref:`conf-session-error_on_unknown_object_key` is
+  set to ``false`` and throws ``ColumnUnknownException`` if it has default
+  value ``true``.
