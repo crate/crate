@@ -1742,6 +1742,51 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage("'aa' is too long for the text type of length: 1");
     }
 
+    @Test
+    public void test_not_null_constraint_on_array_object_children() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable(
+                """
+                create table t (
+                    points array(object(strict) as (
+                        x int not null,
+                        y int not null
+                    ))
+                )
+                """
+            );
+        DocTableInfo table = executor.resolveTableInfo("t");
+        Indexer insertIndexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            List.of(table.getReference(ColumnIdent.of("points"))),
+            null,
+            null
+        );
+
+        assertThatThrownBy(() -> insertIndexer.index(item(List.of(Map.of("x", 1)))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"points['y']\" must not be null");
+
+        Indexer updateIndexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            List.of(),
+            new String[] { "points" },
+            null
+        );
+
+        assertThatThrownBy(() -> updateIndexer.index(item(List.of(Map.of("x", 1)))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"points['y']\" must not be null");
+    }
+
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
         assertTranslogParses(doc, info, Version.CURRENT);
     }
