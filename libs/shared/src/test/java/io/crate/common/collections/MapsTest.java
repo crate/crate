@@ -56,6 +56,19 @@ class MapsTest {
     }
 
     @Test
+    void test_get_by_path_on_list_of_maps() {
+        List<Map<String, Integer>> rootObjects = List.of(Map.of("x", 1), Map.of("x", 2));
+        Object actual = Maps.getByPath(rootObjects, List.of("x"));
+        assertThat(actual).isEqualTo(List.of(1, 2));
+
+        actual = Maps.getByPath(rootObjects, List.of());
+        assertThat(actual).isEqualTo(rootObjects);
+
+        actual = Maps.getByPath(List.of(Map.of("x", Map.of("x1", 1))), List.of("x", "x1"));
+        assertThat(actual).isEqualTo(List.of(1));
+    }
+
+    @Test
     public void testExtractValueFromNestedObject() {
         Map<String, Map<String, Integer>> map = Map.of("x", Map.of("y", 10));
         Object o = Maps.getByPath(map, Arrays.asList("x", "y"));
