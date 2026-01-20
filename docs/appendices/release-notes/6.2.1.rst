@@ -49,6 +49,10 @@ series.
 Fixes
 =====
 
+- Fixed an issue that allowed inserting ``NULL`` values into child columns of
+  ``ARRAY(OBJECT)`` columns despite ``NOT NULL`` constraint on those child
+  columns if a sibling column had a value.
+
 - Fixed an issue with users being able to execute
   :ref:`user defined functions <user-defined-functions>`, even if they lacked
   privileges on the schema under which a ``UDF`` is defined. Now ``DQL``
