@@ -103,6 +103,17 @@ public final class Maps {
         return getByPath(value, path, 0);
     }
 
+    @Nullable
+    public static Object getByPath(Object value, List<String> path) {
+        if (value instanceof Map<?, ?> map) {
+            return getByPath(map, path);
+        } else if (value instanceof List<?> list) {
+            return getByPath(list, path, -1);
+        } else {
+            return null;
+        }
+    }
+
     private static Object getByPath(Map<?, ?> value, List<String> path, int startIndex) {
         assert path instanceof RandomAccess : "Path must support random access for fast iteration";
         Map<?, ?> map = value;

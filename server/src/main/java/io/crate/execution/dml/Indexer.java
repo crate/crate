@@ -46,9 +46,9 @@ import org.apache.lucene.document.Field;
 import org.elasticsearch.Version;
 import org.elasticsearch.index.mapper.ParsedDocument;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
 import io.crate.analyze.SymbolEvaluator;
+import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.data.Row;
@@ -239,11 +239,7 @@ public class Indexer {
                 return NestableCollectExpression.constant(null);
             }
             Function<IndexItem, Object> getValue = item -> {
-                Object val = item.insertValues()[rootIndex];
-                if (val instanceof Map<?, ?> m) {
-                    List<String> path = column.path();
-                    val = Maps.getByPath(m, path);
-                }
+                Object val = Maps.getByPath(item.insertValues()[rootIndex], column.path());
                 if (val == null) {
                     Symbol defaultExpression = ref.defaultExpression();
                     if (defaultExpression != null) {
@@ -328,13 +324,25 @@ public class Indexer {
         void verify(Object[] values);
     }
 
-    record NotNullTableConstraint(ColumnIdent column, Input<?> input) implements TableConstraint {
+    record NotNullTableConstraint(int dimensions, ColumnIdent column, Input<?> input) implements TableConstraint {
 
         @Override
         public void verify(Object[] values) {
-            Object value = input.value();
+            verify(input.value(), 0);
+        }
+
+        private void verify(Object value, int dimension) {
             if (value == null) {
                 throw new IllegalArgumentException("\"" + column + "\" must not be null");
+            } else if (dimension < dimensions) {
+                if (value instanceof Iterable<?> values) {
+                    int newDimension = dimension + 1;
+                    for (Object v : values) {
+                        verify(v, newDimension);
+                    }
+                } else {
+                    assert false : "Expected an Iterable value but got: " + value;
+                }
             }
         }
     }
@@ -805,15 +813,17 @@ public class Indexer {
                                               Context<CollectExpression<IndexItem, Object>> ctxForRefs) {
         for (var column : table.notNullColumns()) {
             Reference ref = table.getReference(column);
+            DataType<?> readType = table.getReadType(column);
+            int arrayProjectionDimensions = ArrayType.dimensions(readType) - ArrayType.dimensions(ref.valueType());
             assert ref != null : "Column in #notNullColumns must be available via table.getReference";
             if (targetColumns.contains(ref)) {
                 columnConstraints.merge(ref.column(), new NotNull(column), MultiCheck::merge);
             } else if (ref instanceof GeneratedReference generated) {
                 Input<?> input = ctxForRefs.add(generated.generatedExpression());
-                tableConstraints.add(new NotNullTableConstraint(column, input));
+                tableConstraints.add(new NotNullTableConstraint(arrayProjectionDimensions, column, input));
             } else {
                 Input<?> input = ctxForRefs.add(ref);
-                tableConstraints.add(new NotNullTableConstraint(column, input));
+                tableConstraints.add(new NotNullTableConstraint(arrayProjectionDimensions, column, input));
             }
         }
     }
