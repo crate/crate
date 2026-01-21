@@ -116,13 +116,18 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
             public ValueIndexer<? super Object> valueIndexer(RelationName table, Reference ref, Function<ColumnIdent, Reference> getRef) {
                 return new ValueIndexer<>() {
                     @Override
+<<<<<<< HEAD
                     public void indexValue(@NotNull Object value, IndexDocumentBuilder docBuilder) {
                         throw new UnsupportedOperationException();
+=======
+                    public void indexValue(Object value, IndexDocumentBuilder docBuilder) {
+                        throw new UnsupportedOperationException("Cannot index values for type `undefined`");
+>>>>>>> 312c6a6a62 (Improve error message if using ValueIndexer of UndefinedType)
                     }
 
                     @Override
                     public String storageIdentLeafName() {
-                        throw new UnsupportedOperationException();
+                        return ref.storageIdentLeafName();
                     }
                 };
             }
