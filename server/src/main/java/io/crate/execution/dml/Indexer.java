@@ -33,7 +33,6 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
@@ -52,6 +51,7 @@ import io.crate.common.annotations.VisibleForTesting;
 import io.crate.common.collections.Maps;
 import io.crate.data.Input;
 import io.crate.data.Row;
+import io.crate.execution.dml.ValueIndexer.Synthetics;
 import io.crate.execution.engine.collect.CollectExpression;
 import io.crate.execution.engine.collect.NestableCollectExpression;
 import io.crate.expression.InputFactory;
@@ -855,10 +855,35 @@ public class Indexer {
      */
     @SuppressWarnings("unchecked")
     public List<Reference> collectSchemaUpdates(IndexItem item) throws IOException {
-        LinkedHashSet<Reference> newColumns = new LinkedHashSet<>();
+        LinkedHashMap<ColumnIdent, Reference> newColumns = new LinkedHashMap<>();
         Consumer<? super Reference> onDynamicColumn = ref -> {
-            ref.column().validForCreate();
-            newColumns.add(ref);
+            ColumnIdent column = ref.column();
+            column.validForCreate();
+            Reference prev = newColumns.put(column, ref);
+            // For `array(object)` we can detect the same new column many times
+            // Need to use the most specific type and ensure they're compatible:
+            if (prev != null) {
+                DataType<?> prevType = prev.valueType();
+                DataType<?> newType = ref.valueType();
+                DataType<?> highestType;
+                try {
+                    highestType = DataTypes.merge(prevType, newType);
+                } catch (IllegalArgumentException ex) {
+                    throw new IllegalArgumentException(
+                        String.format(
+                            Locale.ENGLISH,
+                            "Column `%s` present in payload many times with incompatible types `%s` and `%s`",
+                            column,
+                            prevType,
+                            newType
+                        ),
+                        ex
+                    );
+                }
+                if (!highestType.equals(newType)) {
+                    newColumns.put(column, ref.withValueType(highestType));
+                }
+            }
         };
 
         for (var expression : expressions) {
@@ -866,6 +891,7 @@ public class Indexer {
         }
 
         Object[] values = item.insertValues();
+        Synthetics syntheticsLookup = synthetics::get;
         for (int i = 0; i < values.length; i++) {
             Reference reference = columns.get(i);
             Object value = values[i];
@@ -874,7 +900,8 @@ public class Indexer {
                 continue;
             }
             ValueIndexer<Object> valueIndexer = (ValueIndexer<Object>) valueIndexers.get(i);
-            valueIndexer.collectSchemaUpdates(reference.valueType().sanitizeValue(value), onDynamicColumn, synthetics::get);
+            Object sanitizedValue = reference.valueType().sanitizeValue(value);
+            valueIndexer.collectSchemaUpdates(sanitizedValue, onDynamicColumn, syntheticsLookup);
         }
         // Generated columns can result in new columns. For example: details object generated always as {\"a1\" = {\"b1\" = 'test'}},
         for (var entry : synthetics.entrySet()) {
@@ -891,10 +918,10 @@ public class Indexer {
             indexer.collectSchemaUpdates(
                 value,
                 onDynamicColumn,
-                synthetics::get
+                syntheticsLookup
             );
         }
-        return newColumns.stream().toList();
+        return newColumns.values().stream().toList();
     }
 
     /**
