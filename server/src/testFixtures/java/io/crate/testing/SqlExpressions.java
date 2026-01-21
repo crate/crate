@@ -33,6 +33,7 @@ import io.crate.analyze.expressions.ExpressionAnalysisContext;
 import io.crate.analyze.expressions.ExpressionAnalyzer;
 import io.crate.analyze.expressions.SubqueryAnalyzer;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.FieldProvider;
 import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
 import io.crate.analyze.relations.ParentRelations;
@@ -82,19 +83,39 @@ public class SqlExpressions {
                           List<Role> additionalUsers,
                           Schemas schemas,
                           String... searchPaths) {
+        this(sources,
+             fieldResolver,
+             null,
+             sessionUser,
+             additionalUsers,
+             schemas,
+             searchPaths
+        );
+    }
+
+    public SqlExpressions(Map<RelationName, AnalyzedRelation> sources,
+                          @Nullable FieldResolver fieldResolver,
+                          @Nullable FieldProvider<?> fieldProvider,
+                          Role sessionUser,
+                          List<Role> additionalUsers,
+                          Schemas schemas,
+                          String... searchPaths) {
         this.nodeCtx = createNodeContext(schemas, Lists.concat(additionalUsers, sessionUser));
         // In test_throws_error_when_user_is_not_found we explicitly inject null user but SessionContext user cannot be not null.
         Role role = sessionUser == null ? Role.CRATE_USER : sessionUser;
         var sessionSettings = new CoordinatorSessionSettings(role, role, LoadedRules.INSTANCE.disabledRules(), searchPaths);
         coordinatorTxnCtx = new CoordinatorTxnCtx(sessionSettings);
+        if (fieldProvider == null) {
+            fieldProvider = new FullQualifiedNameFieldProvider(
+                sources,
+                ParentRelations.NO_PARENTS,
+                sessionSettings.searchPath().currentSchema());
+        }
         expressionAnalyzer = new ExpressionAnalyzer(
             coordinatorTxnCtx,
             nodeCtx,
             ParamTypeHints.EMPTY,
-            new FullQualifiedNameFieldProvider(
-                sources,
-                ParentRelations.NO_PARENTS,
-                sessionSettings.searchPath().currentSchema()),
+            fieldProvider,
             new SubqueryAnalyzer(
                 new RelationAnalyzer(nodeCtx),
                 new StatementAnalysisContext(ParamTypeHints.EMPTY, Operation.READ, coordinatorTxnCtx)
