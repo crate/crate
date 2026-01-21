@@ -127,12 +127,12 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
                 return new ValueIndexer<>() {
                     @Override
                     public void indexValue(Object value, IndexDocumentBuilder docBuilder) {
-                        throw new UnsupportedOperationException();
+                        throw new UnsupportedOperationException("Cannot index values for type `undefined`");
                     }
 
                     @Override
                     public String storageIdentLeafName() {
-                        throw new UnsupportedOperationException();
+                        return ref.storageIdentLeafName();
                     }
                 };
             }
