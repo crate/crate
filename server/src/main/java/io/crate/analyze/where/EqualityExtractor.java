@@ -49,6 +49,7 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -419,6 +420,14 @@ public class EqualityExtractor {
         public Symbol visitMatchPredicate(MatchPredicate matchPredicate, Context ctx) {
             ctx.unknowns.add(matchPredicate);
             return Literal.BOOLEAN_TRUE;
+        }
+
+        @Override
+        public Symbol visitOuterColumn(OuterColumn outerColumn, Context ctx) {
+            if (ctx.isUnderOrOperator) {
+                ctx.foundNonPKColumnUnderOr = true;
+            }
+            return outerColumn;
         }
 
         @Override
