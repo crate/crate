@@ -27,7 +27,6 @@ import java.util.function.Function;
 import org.apache.lucene.util.RamUsageEstimator;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
-import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
 import io.crate.Streamer;
@@ -115,14 +114,9 @@ public class UndefinedType extends DataType<Object> implements Streamer<Object> 
             @Override
             public ValueIndexer<? super Object> valueIndexer(RelationName table, Reference ref, Function<ColumnIdent, Reference> getRef) {
                 return new ValueIndexer<>() {
-                    @Override
-<<<<<<< HEAD
-                    public void indexValue(@NotNull Object value, IndexDocumentBuilder docBuilder) {
-                        throw new UnsupportedOperationException();
-=======
+
                     public void indexValue(Object value, IndexDocumentBuilder docBuilder) {
                         throw new UnsupportedOperationException("Cannot index values for type `undefined`");
->>>>>>> 312c6a6a62 (Improve error message if using ValueIndexer of UndefinedType)
                     }
 
                     @Override
