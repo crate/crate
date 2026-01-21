@@ -116,3 +116,9 @@ Fixes
   Now it returns ``NULL`` if :ref:`conf-session-error_on_unknown_object_key` is
   set to ``false`` and throws ``ColumnUnknownException`` if it has default
   value ``true``.
+
+- Improved error message thrown when providing empty value for configuration
+  settings, e.g.:
+
+      $> bin/crate -Cauth.host_based.enabled
+      $> bin/crate -Cauth.host_based.enabled=
