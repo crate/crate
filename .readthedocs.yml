@@ -6,7 +6,7 @@ version: 2
 build:
   os: "ubuntu-22.04"
   tools:
-    python: "3.13"
+    python: "3.14"
 
   jobs:
 
@@ -17,7 +17,7 @@ build:
       - asdf global uv latest
       - uv venv
     install:
-      - uv pip install -r docs/requirements.txt
+      - uv pip install --upgrade -r docs/requirements.txt
 
     # Invoke the build using `uv`.
     build:

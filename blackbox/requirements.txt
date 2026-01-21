@@ -15,7 +15,7 @@ pyjnius
 dnslib
 
 # Documentation
-crate-docs-theme>=0.42.0
+crate-docs-theme>=0.47.1.dev5
 sphinx-csv-filter==0.4.2
 
 # docutils 0.21 currently has problems with the `sphinx-csv-filter` addon.
@@ -26,4 +26,4 @@ sphinx-csv-filter==0.4.2
 docutils<0.21
 
 # Documentation: local development
-sphinx-autobuild<2024
+sphinx-autobuild>=2024
