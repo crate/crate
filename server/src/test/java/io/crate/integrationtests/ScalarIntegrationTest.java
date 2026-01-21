@@ -21,10 +21,12 @@
 
 package io.crate.integrationtests;
 
+import static io.crate.protocols.postgres.PGErrorStatus.UNDEFINED_COLUMN;
+import static io.crate.testing.Asserts.assertSQLError;
 import static io.crate.testing.Asserts.assertThat;
+import static io.netty.handler.codec.http.HttpResponseStatus.NOT_FOUND;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
@@ -83,17 +85,16 @@ public class ScalarIntegrationTest extends IntegTestCase {
     }
 
     @Test
-    @UseJdbc(value = 0) // To avoid usage of assertSQLError that cannot handle multiple errors
     public void test_subscript_of_missing_column_when_object_type_cannot_be_inferred() {
         execute("CREATE TABLE tbl (obj OBJECT(IGNORED))");
         execute("INSERT INTO tbl VALUES ({arr = [{}]})");
         execute("REFRESH TABLE tbl");
 
         // Default error_on_unknown_object_key = true, must throw
-        assertThatThrownBy(() -> execute("SELECT unnest(obj['arr'])['missing'] FROM tbl"))
-            .isOfAnyClassIn(ColumnUnknownException.class, NotSerializableExceptionWrapper.class)
+        assertSQLError(() -> execute("SELECT unnest(obj['arr'])['missing'] FROM tbl"))
+            .hasPGError(UNDEFINED_COLUMN)
+            .hasHTTPError(NOT_FOUND, 4043)
             .hasMessageContaining("The object `{}` does not contain the key `missing`");
-
 
         // Must return null
         try (var session = sqlExecutor.newSession()) {

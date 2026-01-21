@@ -44,6 +44,7 @@ import org.elasticsearch.transport.TcpTransport;
 
 import io.crate.common.CheckedFunction;
 import io.crate.exceptions.ArrayViaDocValuesUnsupportedException;
+import io.crate.exceptions.ColumnUnknownException;
 import io.crate.exceptions.DependentObjectsExists;
 import io.crate.exceptions.RoleUnknownException;
 import io.crate.exceptions.SQLExceptions;
@@ -755,6 +756,12 @@ public class ElasticsearchException extends RuntimeException implements Writeabl
             DependentObjectsExists::new,
             185,
             Version.V_6_2_0
+        ),
+        COLUMN_UNKNOWN(
+            ColumnUnknownException.class,
+            ColumnUnknownException::new,
+            186,
+            Version.V_6_3_0
         );
 
         final Class<? extends ElasticsearchException> exceptionClass;
