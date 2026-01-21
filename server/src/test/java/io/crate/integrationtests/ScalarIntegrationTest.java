@@ -21,14 +21,15 @@
 
 package io.crate.integrationtests;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import static io.crate.testing.Asserts.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-import org.assertj.core.api.Assertions;
+import org.elasticsearch.common.io.stream.NotSerializableExceptionWrapper;
 import org.elasticsearch.test.IntegTestCase;
 import org.junit.Test;
 
 import io.crate.exceptions.ColumnUnknownException;
-import io.crate.testing.Asserts;
+
 import io.crate.testing.TestingHelpers;
 import io.crate.testing.UseJdbc;
 import io.crate.types.DataTypes;
@@ -49,13 +50,13 @@ public class ScalarIntegrationTest extends IntegTestCase {
     public void testSubscriptFunctionFromUnnest() {
         try (var session = sqlExecutor.newSession()) {
             session.sessionSettings().setErrorOnUnknownObjectKey(true);
-            Assertions.assertThatThrownBy(() -> sqlExecutor.exec(
+            assertThatThrownBy(() -> sqlExecutor.exec(
                         "SELECT unnest['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                         session))
                 .isExactlyInstanceOf(ColumnUnknownException.class)
                 .hasMessageContaining("The object `{y=2, z=3}` does not contain the key `x`");
             // Different error due to wrapping the unnest in an array
-            Assertions.assertThatThrownBy(() -> sqlExecutor.exec(
+            assertThatThrownBy(() -> sqlExecutor.exec(
                     "SELECT [unnest]['x'] FROM UNNEST(['{\"x\":1,\"y\":2}','{\"y\":2,\"z\":3}']::ARRAY(OBJECT))",
                     session))
                 .isExactlyInstanceOf(ColumnUnknownException.class)
@@ -76,8 +77,29 @@ public class ScalarIntegrationTest extends IntegTestCase {
     @Test
     public void testCurrentDatabase() {
         execute("select * FROM (SELECT current_database()) as vt");
-        Asserts.assertThat(response)
+        assertThat(response)
             .hasColumns("current_database")
             .hasRows("crate");
+    }
+
+    @Test
+    @UseJdbc(value = 0) // To avoid usage of assertSQLError that cannot handle multiple errors
+    public void test_subscript_of_missing_column_when_object_type_cannot_be_inferred() {
+        execute("CREATE TABLE tbl (obj OBJECT(IGNORED))");
+        execute("INSERT INTO tbl VALUES ({arr = [{}]})");
+        execute("REFRESH TABLE tbl");
+
+        // Default error_on_unknown_object_key = true, must throw
+        assertThatThrownBy(() -> execute("SELECT unnest(obj['arr'])['missing'] FROM tbl"))
+            .isOfAnyClassIn(ColumnUnknownException.class, NotSerializableExceptionWrapper.class)
+            .hasMessageContaining("The object `{}` does not contain the key `missing`");
+
+
+        // Must return null
+        try (var session = sqlExecutor.newSession()) {
+            execute("SET SESSION error_on_unknown_object_key=false", session);
+            execute("SELECT unnest(obj['arr'])['missing'] FROM tbl", session);
+            assertThat(response).hasRows("NULL");
+        }
     }
 }
