@@ -64,8 +64,8 @@ public abstract class EnvironmentAwareCommand extends Command {
     protected void execute(Terminal terminal, OptionSet options) throws Exception {
         final Map<String, String> settings = new HashMap<>();
         for (final KeyValuePair kvp : settingOption.values(options)) {
-            if (kvp.value.isEmpty()) {
-                throw new UserException(ExitCodes.USAGE, "setting [" + kvp.key + "] must not be empty");
+            if (kvp.value == null || kvp.value.isEmpty()) {
+                throw new UserException(ExitCodes.USAGE, "no value provided for setting [" + kvp.key + "]");
             }
             if (settings.containsKey(kvp.key)) {
                 final String message = String.format(
