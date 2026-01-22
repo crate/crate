@@ -1753,6 +1753,88 @@ public class IndexerTest extends CrateDummyClusterServiceUnitTest {
             .hasMessage("'aa' is too long for the text type of length: 1");
     }
 
+    @Test
+    public void test_not_null_constraint_on_array_object_children() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable(
+                """
+                create table t (
+                    points array(object(strict) as (
+                        x int not null,
+                        y int not null
+                    ))
+                )
+                """
+            );
+        DocTableInfo table = executor.resolveTableInfo("t");
+        Indexer insertIndexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            List.of(table.getReference(ColumnIdent.of("points"))),
+            null,
+            null
+        );
+
+        assertThatThrownBy(() -> insertIndexer.index(item(List.of(Map.of("x", 1)))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"points['y']\" must not be null");
+
+        Indexer updateIndexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            List.of(),
+            new String[] { "points" },
+            null
+        );
+
+        assertThatThrownBy(() -> updateIndexer.index(item(List.of(Map.of("x", 1)))))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("\"points['y']\" must not be null");
+    }
+
+    @Test
+    public void test_schema_update_on_object_arrays_uses_most_specific_type() throws Exception {
+        SQLExecutor executor = SQLExecutor.of(clusterService)
+            .addTable("create table t (points array(object(dynamic)))");
+        DocTableInfo table = executor.resolveTableInfo("t");
+        Indexer indexer = new Indexer(
+            List.of(),
+            table,
+            Version.CURRENT,
+            new CoordinatorTxnCtx(executor.getSessionSettings()),
+            executor.nodeCtx,
+            new ArrayList<>(List.of(table.getReference(ColumnIdent.of("points")))),
+            null,
+            null
+        );
+        IndexItem item1 = item(List.of(
+            Map.of("x", 1),
+            MapBuilder.newMapBuilder().put("x", null).map())
+        );
+        List<Reference> newColumns = indexer.collectSchemaUpdates(item1);
+        assertThat(newColumns).satisfiesExactly(
+            x -> assertThat(x).hasType(DataTypes.LONG).hasName("points['x']")
+        );
+
+        IndexItem item2 = item(List.of(Map.of("x", 1), Map.of("x", Map.of("y", "incompatible"))));
+        assertThatThrownBy(() -> indexer.collectSchemaUpdates(item2))
+            .isExactlyInstanceOf(IllegalArgumentException.class)
+            .hasMessage("Column `points['x']` present in payload many times with incompatible types `bigint` and `object`");
+
+
+        DocTableInfo updatedTable = addColumns(executor, table, newColumns);
+        indexer.updateTargets(updatedTable);
+        ParsedDocument parsedDoc = indexer.index(item1, updatedTable.rootColumns());
+        assertThat(source(parsedDoc, updatedTable)).isEqualTo("{\"points\":[{\"x\":1},{\"x\":null}]}");
+        assertTranslogParses(parsedDoc, updatedTable);
+    }
+
     public static void assertTranslogParses(ParsedDocument doc, DocTableInfo info) {
         assertTranslogParses(doc, info, Version.CURRENT);
     }
