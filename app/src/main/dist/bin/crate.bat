@@ -106,6 +106,9 @@ if NOT "%CRATE_HEAP_DUMP_PATH%" == "" (
     set JAVA_OPTS=%JAVA_OPTS% -XX:HeapDumpPath=%CRATE_HEAP_DUMP_PATH%
 )
 
+REM Fix regression caused by Lucene 10.2 upgrade, setting flag back to old value.
+set JAVA_OPTS=%JAVA_OPTS% -Dorg.apache.lucene.store.defaultReadAdvice=NORMAL
+
 if "%CRATE_CLASSPATH%" == "" (
     set CRATE_CLASSPATH=%CRATE_HOME%/lib/*
 ) else (
