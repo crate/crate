@@ -128,3 +128,11 @@ Fixes
 
       $> bin/crate -Cauth.host_based.enabled
       $> bin/crate -Cauth.host_based.enabled=
+
+- Fixed an issue that caused incorrect results when using an ``Anti-Join``
+  (``WHERE NOT EXISTS``) with a ``WHERE`` clause containing ``BOOLEAN`` typed
+  columns combined by an ``OR`` operator. Example::
+
+    SELECT * FROM t1 WHERE NOT EXISTS
+      (SELECT 1 FROM (SELECT c2 FROM t1 WHERE bool_col) AS sub0
+       WHERE t1.bool_col OR t1.bool_col);
