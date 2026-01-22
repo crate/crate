@@ -136,3 +136,9 @@ Fixes
     SELECT * FROM t1 WHERE NOT EXISTS
       (SELECT 1 FROM (SELECT c2 FROM t1 WHERE bool_col) AS sub0
        WHERE t1.bool_col OR t1.bool_col);
+
+- Fixed a regression introduced in :ref:`version_6.0.0` with upgrade to
+  Lucene 10.2 that caused increase in IOPS and slow recovery times on node
+  restarts. Flag mentioned in :ref:`version_6.0.0_breaking_changes` and
+  :ref:`version_6.1.0_breaking_changes` is already set to ``NORMAL`` starting
+  from this version and won't be needed at all starting from CrateDB 6.2.0.
