@@ -21,8 +21,14 @@
 
 package io.crate.exceptions;
 
+import java.io.IOException;
 import java.util.Collections;
 import java.util.Locale;
+
+import org.elasticsearch.ElasticsearchException;
+import org.elasticsearch.common.io.stream.StreamInput;
+import org.elasticsearch.common.io.stream.StreamOutput;
+import org.jspecify.annotations.Nullable;
 
 import io.crate.expression.scalar.cast.ExplicitCastFunction;
 import io.crate.expression.symbol.Function;
@@ -34,12 +40,13 @@ import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
 import io.crate.sql.SqlFormatter;
 
-public class ColumnUnknownException extends RuntimeException implements ResourceUnknownException, TableScopeException {
+public class ColumnUnknownException extends ElasticsearchException implements ResourceUnknownException, TableScopeException {
 
     public enum RelationType {
         TABLE, TABLE_FUNCTION, UNKNOWN
     }
 
+    @Nullable
     private final RelationName relationName;
     private final RelationType relationType;
 
@@ -49,10 +56,32 @@ public class ColumnUnknownException extends RuntimeException implements Resource
              RelationType.TABLE);
     }
 
-    private ColumnUnknownException(String message, RelationName relationName, RelationType relationType) {
+    public ColumnUnknownException(StreamInput in) throws IOException {
+        super(in);
+        if (in.readBoolean()) {
+            relationName = new RelationName(in);
+        } else {
+            relationName = null;
+        }
+        relationType = in.readEnum(RelationType.class);
+    }
+
+    private ColumnUnknownException(String message,
+                                   @Nullable RelationName relationName,
+                                   RelationType relationType) {
         super(message);
         this.relationName = relationName;
         this.relationType = relationType;
+    }
+
+    @Override
+    public void writeTo(StreamOutput out) throws IOException {
+        super.writeTo(out);
+        out.writeBoolean(relationName != null);
+        if (relationName != null) {
+            relationName.writeTo(out);
+        }
+        out.writeEnum(relationType);
     }
 
     /**
