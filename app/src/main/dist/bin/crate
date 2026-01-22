@@ -173,6 +173,9 @@ if [ "x$CRATE_HEAP_DUMP_PATH" != "x" ]; then
     JAVA_OPTS="$JAVA_OPTS -XX:HeapDumpPath=$CRATE_HEAP_DUMP_PATH"
 fi
 
+# Fix regression caused by Lucene 10.2 upgrade, setting flag back to old value.
+JAVA_OPTS="$JAVA_OPTS -Dorg.apache.lucene.store.defaultReadAdvice=NORMAL"
+
 JAVA="$CRATE_HOME/jdk/bin/java"
 
 if [ -z "$CRATE_CLASSPATH" ]; then
