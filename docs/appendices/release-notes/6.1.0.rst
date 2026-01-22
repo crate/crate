@@ -65,6 +65,12 @@ Breaking Changes
   of the available processors, improving the performance of the :ref:`optimize`
   operation on machines with more than ``15`` cores.
 
+- Lucene 10.2 opens files with the ``MADV_RANDOM`` advice by default on Linux
+  and Mac OS. If you experience an increase in IOPS and degraded performance,
+  especially slow recovery times on node restarts,
+  set ``CRATE_JAVA_OPTS=-Dorg.apache.lucene.store.defaultReadAdvice=NORMAL``
+  to restore previous behavior.
+
 Deprecations
 ============
 
