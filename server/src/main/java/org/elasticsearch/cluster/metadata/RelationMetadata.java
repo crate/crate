@@ -48,6 +48,8 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
 
     static RelValueSerializer<String> VALUE_SERIALIZER = new RelValueSerializer<>();
 
+    long oid();
+
     short ord();
 
     RelationName name();
@@ -150,7 +152,8 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
 
     RelationMetadata withIndexUUIDs(List<String> indexUUIDs);
 
-    record BlobTable(RelationName name,
+    record BlobTable(long tableOID,
+                     RelationName name,
                      String indexUUID,
                      Settings settings,
                      IndexMetadata.State state) implements RelationMetadata {
@@ -158,19 +161,26 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         private static final short ORD = 0;
 
         static BlobTable of(StreamInput in) throws IOException {
+            long tableOID = in.readLong();
             RelationName name = new RelationName(in);
             String indexUUID = in.readString();
             Settings settings = Settings.readSettingsFromStream(in);
             IndexMetadata.State state = in.readEnum(IndexMetadata.State.class);
-            return new BlobTable(name, indexUUID, settings, state);
+            return new BlobTable(tableOID, name, indexUUID, settings, state);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
+            out.writeLong(tableOID);
             name.writeTo(out);
             out.writeString(indexUUID);
             Settings.writeSettingsToStream(out, settings);
             out.writeEnum(state);
+        }
+
+        @Override
+        public long oid() {
+            return tableOID;
         }
 
         @Override
@@ -187,15 +197,16 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         public RelationMetadata withIndexUUIDs(List<String> indexUUIDs) {
             assert indexUUIDs.size() == 1 : "Must have exactly one index linked with blob table";
             return new BlobTable(
+                tableOID,
                 name,
                 indexUUIDs.getFirst(),
                 settings,
-                state
-            );
+                state);
         }
     }
 
-    record Table(RelationName name,
+    record Table(long tableOID,
+                 RelationName name,
                  List<Reference> columns,
                  Settings settings,
                  @Nullable ColumnIdent routingColumn,
@@ -220,11 +231,22 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         private static final short ORD = 1;
 
         @Override
+        public long oid() {
+            return tableOID;
+        }
+
+        @Override
         public short ord() {
             return ORD;
         }
 
         public static Table of(StreamInput in) throws IOException {
+            long tableOID;
+            if (in.getVersion().after(Version.V_6_2_0)) {
+                tableOID = in.readLong();
+            } else {
+                tableOID = Metadata.TABLE_OID_UNASSIGNED;
+            }
             RelationName name = new RelationName(in);
             List<Reference> columns = in.readList(Reference::fromStream);
             Settings settings = Settings.readSettingsFromStream(in);
@@ -239,6 +261,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
             List<String> indexUUIDs = in.readStringList();
             long tableVersion = in.readLong();
             return new Table(
+                tableOID,
                 name,
                 columns,
                 settings,
@@ -250,12 +273,12 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
                 partitionedBy,
                 state,
                 indexUUIDs,
-                tableVersion
-            );
+                tableVersion);
         }
 
         @Override
         public void writeTo(StreamOutput out) throws IOException {
+            out.writeLong(tableOID);
             name.writeTo(out);
             out.writeCollection(columns, Reference::toStream);
             Settings.writeSettingsToStream(out, settings);
@@ -273,6 +296,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         @Override
         public RelationMetadata withIndexUUIDs(List<String> indexUUIDs) {
             return new Table(
+                tableOID,
                 name,
                 columns,
                 settings,
@@ -284,8 +308,7 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
                 partitionedBy,
                 state,
                 indexUUIDs,
-                tableVersion
-            );
+                tableVersion);
         }
     }
 }

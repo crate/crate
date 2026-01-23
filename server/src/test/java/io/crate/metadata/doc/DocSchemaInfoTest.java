@@ -69,7 +69,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
     public void testNoNPEIfDeletedIndicesNotInPreviousClusterState() throws Exception {
         // sometimes on startup it occurs that a ClusterChangedEvent contains deleted indices
         // which are not in the previousState.
-        Metadata metadata = new Metadata.Builder().build();
+        Metadata metadata = Metadata.builder().build();
         docSchemaInfo.invalidateFromIndex(new Index("my_index", "asdf"), metadata);
     }
 
@@ -176,6 +176,7 @@ public class DocSchemaInfoTest extends CrateDummyClusterServiceUnitTest {
 
     private DocTableInfo docTableInfo(String name) {
         return new DocTableInfo(
+            Metadata.TABLE_OID_UNASSIGNED,
             new RelationName(DocSchemaInfo.NAME, name),
             Map.of(),
             Map.of(),

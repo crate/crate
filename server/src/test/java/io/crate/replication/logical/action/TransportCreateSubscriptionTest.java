@@ -148,8 +148,8 @@ public class TransportCreateSubscriptionTest {
                 List.of(),
                 IndexMetadata.State.OPEN,
                 List.of(indexUUID),
-                0L
-                )
+                0L,
+                Metadata.TABLE_OID_UNASSIGNED)
             .put(IndexMetadata.builder(indexUUID).indexName(relationName.indexNameOrAlias()).settings(indexSettings))
             .build();
 

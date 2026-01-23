@@ -98,6 +98,7 @@ import com.carrotsearch.hppc.cursors.ObjectCursor;
 
 import io.crate.common.io.IOUtils;
 import io.crate.common.unit.TimeValue;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.server.xcontent.LoggingDeprecationHandler;
 
 /**
@@ -489,6 +490,7 @@ public class PersistedClusterStateService {
             builder.put(indexMetadata, false);
         });
 
+        builder.tableOidSupplier(new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED));
         final Map<String, String> userData = reader.getIndexCommit().getUserData();
         LOGGER.trace("loaded metadata [{}] from [{}]", userData, reader.directory());
         assert userData.size() == COMMIT_DATA_SIZE : userData;

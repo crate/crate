@@ -411,8 +411,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                 List.of(),
                 State.OPEN,
                 List.of(indexMetadata.getIndexUUID()),
-                1
-            )
+                1,
+                Metadata.TABLE_OID_UNASSIGNED)
             .build();
 
         Metadata upgraded = metadataUpgradeService.upgradeMetadata(metadata);
@@ -492,8 +492,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                     List.of(),
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID),
-                    0
-                );
+                    0,
+                    Metadata.TABLE_OID_UNASSIGNED);
             }
         }
         return builder.build();
