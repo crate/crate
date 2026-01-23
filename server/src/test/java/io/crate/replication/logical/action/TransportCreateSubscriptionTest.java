@@ -136,6 +136,7 @@ public class TransportCreateSubscriptionTest {
         }
 
         Metadata publisherMetadata = Metadata.builder()
+            .tableOidSupplier(clusterState.metadata().tableOidSupplier())
             .setTable(
                 relationName,
                 List.of(),
@@ -149,7 +150,7 @@ public class TransportCreateSubscriptionTest {
                 IndexMetadata.State.OPEN,
                 List.of(indexUUID),
                 0L,
-                Metadata.TABLE_OID_UNASSIGNED)
+                clusterState.metadata().tableOidSupplier().getAsLong())
             .put(IndexMetadata.builder(indexUUID).indexName(relationName.indexNameOrAlias()).settings(indexSettings))
             .build();
 

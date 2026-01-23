@@ -107,6 +107,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication("publisher", true, List.of());
 
         Metadata.Builder metadataBuilder = Metadata.builder();
+        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -152,6 +153,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication("publisher", true, List.of());
 
         Metadata.Builder metadataBuilder = Metadata.builder();
+        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -201,6 +203,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         );
 
         Metadata.Builder metadataBuilder = Metadata.builder();
+        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -239,6 +242,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication("some_user", true, List.of());
 
         Metadata.Builder metadataBuilder = Metadata.builder();
+        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -282,6 +286,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         );
 
         Metadata.Builder metadataBuilder = Metadata.builder();
+        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -324,6 +329,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication("some_user", true, List.of());
 
         Metadata.Builder metadataBuilder = Metadata.builder();
+        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -366,6 +372,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         );
 
         Metadata.Builder metadataBuilder = Metadata.builder();
+        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
@@ -410,6 +417,7 @@ public class PublicationsStateActionTest extends CrateDummyClusterServiceUnitTes
         var publication = new Publication("publisher", true, List.of());
 
         Metadata.Builder metadataBuilder = Metadata.builder();
+        metadataBuilder.tableOidSupplier(clusterService.state().metadata().tableOidSupplier());
         publication.resolveCurrentRelations(
             clusterService.state(),
             roles,
