@@ -682,7 +682,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     public static Builder builder() {
-        return new Builder();
+        return new Builder().tableOidSupplier(new DocTableInfo.OidSupplier(0));
     }
 
     public static Builder builder(Metadata metadata) {
@@ -1005,7 +1005,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = Collections.unmodifiableSortedMap(buildAliasAndIndexLookup());
 
-            assert tableOidSupplier != null : "not null";
             //TODO: check that nextTableOID >= max tableOIDs currently assigned
             return new Metadata(
                 clusterUUID,
