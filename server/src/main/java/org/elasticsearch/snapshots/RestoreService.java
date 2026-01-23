@@ -617,6 +617,7 @@ public class RestoreService implements ClusterStateApplier {
                     table.tableVersion(),
                     table.oid()
                 );
+                mdBuilder.tableOidSupplier(currentMetadata.tableOidSupplier());
             } else if (existingRelation == null) {
                 if (snapshotRelation instanceof RelationMetadata.Table table) {
                     LongSupplier columnOidSupplier = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings())
@@ -642,6 +643,7 @@ public class RestoreService implements ClusterStateApplier {
                         table.tableVersion(),
                         table.tableOID()
                     );
+                    mdBuilder.tableOidSupplier(snapshotMetadata.tableOidSupplier());
                 }
             } else {
                 throw new IllegalArgumentException(String.format(
