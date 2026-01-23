@@ -115,7 +115,7 @@ public class MetadataTrackerTest extends ESTestCase {
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID),
                     1L,
-                    Metadata.TABLE_OID_UNASSIGNED)
+                    clusterState.metadata().tableOidSupplier().getAsLong())
                 .build();
 
             clusterState = ClusterState.builder(clusterState)
@@ -186,7 +186,7 @@ public class MetadataTrackerTest extends ESTestCase {
                     IndexMetadata.State.OPEN,
                     List.of(),
                     1L,
-                    Metadata.TABLE_OID_UNASSIGNED)
+                    clusterState.metadata().tableOidSupplier().getAsLong())
                 .build();
 
             clusterState = ClusterState.builder(clusterState)
@@ -343,6 +343,7 @@ public class MetadataTrackerTest extends ESTestCase {
         PublicationsMetadata publicationsMetadata = publisherState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get(publicationName);
         Metadata.Builder mdBuilder = Metadata.builder();
+        mdBuilder.tableOidSupplier(publisherState.metadata().tableOidSupplier());
         publication.resolveCurrentRelations(
             publisherState,
             () -> List.of(CRATE_USER),

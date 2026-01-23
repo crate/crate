@@ -1216,7 +1216,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 tableVersion
             );
             setRelation(table);
-            tableOidSupplier(tableOidSupplier);
             return this;
         }
 
