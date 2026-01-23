@@ -159,7 +159,7 @@ public class JoinHelperTests extends ESTestCase {
         MockTransport mockTransport = new MockTransport();
         DiscoveryNode localNode = new DiscoveryNode("node0", buildNewFakeTransportAddress(), Version.CURRENT);
 
-        final ClusterState localClusterState = ClusterState.builder(ClusterName.DEFAULT).metadata(Metadata.builder()
+        final ClusterState localClusterState = ClusterState.builder(ClusterName.DEFAULT).metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .generateClusterUuidIfNeeded().clusterUUIDCommitted(true)).build();
 
         TransportService transportService = mockTransport.createTransportService(Settings.EMPTY,
@@ -170,7 +170,7 @@ public class JoinHelperTests extends ESTestCase {
         transportService.start();
         transportService.acceptIncomingRequests();
 
-        final ClusterState otherClusterState = ClusterState.builder(ClusterName.DEFAULT).metadata(Metadata.builder()
+        final ClusterState otherClusterState = ClusterState.builder(ClusterName.DEFAULT).metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .generateClusterUuidIfNeeded()).build();
 
         final PlainFuture<TransportResponse.Empty> future = new PlainFuture<>();

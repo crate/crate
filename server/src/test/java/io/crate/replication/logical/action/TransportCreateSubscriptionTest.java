@@ -135,7 +135,8 @@ public class TransportCreateSubscriptionTest {
             indexSettings.put(IndexMetadata.SETTING_VERSION_CREATED, internalVersionId);
         }
 
-        Metadata publisherMetadata = Metadata.builder()
+        var mdBuilder = Metadata.builder(clusterState.metadata().currentMaxTableOid());
+        Metadata publisherMetadata = mdBuilder
             .setTable(
                 relationName,
                 List.of(),
@@ -148,8 +149,8 @@ public class TransportCreateSubscriptionTest {
                 List.of(),
                 IndexMetadata.State.OPEN,
                 List.of(indexUUID),
-                0L
-                )
+                0L,
+                mdBuilder.tableOidSupplier().nextOid())
             .put(IndexMetadata.builder(indexUUID).indexName(relationName.indexNameOrAlias()).settings(indexSettings))
             .build();
 

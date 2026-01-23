@@ -114,7 +114,7 @@ public class NodeJoinTests extends ESTestCase {
             .nodes(DiscoveryNodes.builder()
                 .add(localNode)
                 .localNodeId(localNode.getId()))
-            .metadata(Metadata.builder()
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
                     .coordinationMetadata(
                         CoordinationMetadata.builder()
                         .term(term)

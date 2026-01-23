@@ -44,7 +44,7 @@ public class ClusterHealthAllocationTests extends ESAllocationTestCase {
         }
         assertThat(getClusterHealthStatus(clusterState)).isEqualTo(Health.GREEN);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test")
                 .settings(settings(Version.CURRENT).put(AutoExpandReplicas.SETTING.getKey(), false))
                 .numberOfShards(2)

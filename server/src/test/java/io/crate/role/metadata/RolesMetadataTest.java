@@ -127,7 +127,7 @@ public class RolesMetadataTest extends ESTestCase {
         var oldUsersMetadata = usersMetadataOf(DUMMY_USERS);
         var oldUserPrivilegesMetadata = new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES);
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
-        Metadata.Builder mdBuilder = new Metadata.Builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         var newRolesMetadata = RolesMetadata.of(mdBuilder, oldUsersMetadata, oldUserPrivilegesMetadata, oldRolesMetadata);

@@ -47,7 +47,7 @@ public class JoinTaskExecutorTests extends ESTestCase {
 
     public void testPreventJoinClusterWithNewerIndices() {
         Settings.builder().build();
-        Metadata.Builder metaBuilder = Metadata.builder();
+        Metadata.Builder metaBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         IndexMetadata indexMetadata = IndexMetadata.builder("test")
             .settings(settings(Version.CURRENT))
             .numberOfShards(1)
@@ -62,7 +62,7 @@ public class JoinTaskExecutorTests extends ESTestCase {
 
     public void testSuccess() {
         Settings.builder().build();
-        Metadata.Builder metaBuilder = Metadata.builder();
+        Metadata.Builder metaBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         IndexMetadata indexMetadata = IndexMetadata.builder("test")
             .settings(settings(VersionUtils.randomVersionBetween(random(),
                 Version.CURRENT.minimumIndexCompatibilityVersion(), Version.CURRENT)))
@@ -83,7 +83,7 @@ public class JoinTaskExecutorTests extends ESTestCase {
     @Test
     public void test_nodes_with_same_major_and_minor_version_can_join() {
         Settings.builder().build();
-        Metadata.Builder metaBuilder = Metadata.builder();
+        Metadata.Builder metaBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         IndexMetadata indexMetadata = IndexMetadata.builder("test")
             .settings(settings(Version.V_5_3_3))
             .numberOfShards(1)

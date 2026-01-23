@@ -81,7 +81,7 @@ public class MetaStateService {
 
         final Metadata.Builder metadataBuilder;
         if (manifest.isGlobalGenerationMissing()) {
-            metadataBuilder = Metadata.builder();
+            metadataBuilder = Metadata.builder(Metadata.OID_UNASSIGNED);
         } else {
             final Metadata globalMetadata = METADATA_FORMAT.loadGeneration(
                 LOGGER,
@@ -135,7 +135,7 @@ public class MetaStateService {
             // TODO https://github.com/elastic/elasticsearch/issues/38556
             // assert Version.CURRENT.major < 8 : "failed to find manifest file, which is mandatory staring with Elasticsearch version 8.0";
         } else {
-            metadataBuilder = Metadata.builder();
+            metadataBuilder = Metadata.builder(Metadata.OID_UNASSIGNED);
         }
 
         for (String indexFolderName : nodeEnv.availableIndexFolders()) {

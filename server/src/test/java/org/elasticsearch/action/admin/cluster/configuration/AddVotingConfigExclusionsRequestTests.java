@@ -290,7 +290,7 @@ public class AddVotingConfigExclusionsRequestTests extends ESTestCase {
 
         final VotingConfigExclusion existingVotingConfigExclusion = new VotingConfigExclusion(node1);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                                     .coordinationMetadata(CoordinationMetadata.builder()
                                         .addVotingConfigExclusion(existingVotingConfigExclusion).build())
                                     .build();
@@ -330,7 +330,7 @@ public class AddVotingConfigExclusionsRequestTests extends ESTestCase {
 
         final ClusterState.Builder builder = ClusterState.builder(new ClusterName("cluster")).nodes(new Builder()
             .add(localNode).add(otherNode1).add(otherNode2).localNodeId(localNode.getId()));
-        builder.metadata(Metadata.builder()
+        builder.metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .coordinationMetadata(CoordinationMetadata.builder().addVotingConfigExclusion(otherNode1Exclusion).build()));
         final ClusterState clusterState = builder.build();
 

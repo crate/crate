@@ -189,7 +189,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
         final DiscoveryNode localNode = new DiscoveryNode("local", buildNewFakeTransportAddress(), Version.CURRENT);
         final ClusterState clusterState = ClusterState.builder(ClusterName.DEFAULT)
             .version(7L)
-            .metadata(Metadata.builder().coordinationMetadata(CoordinationMetadata.builder().term(4L).build()))
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).coordinationMetadata(CoordinationMetadata.builder().term(4L).build()))
             .nodes(DiscoveryNodes.builder().add(localNode).localNodeId(localNode.getId())).build();
 
 
@@ -240,7 +240,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
     private static ClusterState state(DiscoveryNode localNode, String[] acceptedConfig, String[] committedConfig) {
         return ClusterState.builder(ClusterName.DEFAULT)
             .nodes(DiscoveryNodes.builder().add(localNode).localNodeId(localNode.getId()))
-            .metadata(Metadata.builder().coordinationMetadata(CoordinationMetadata.builder()
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).coordinationMetadata(CoordinationMetadata.builder()
                 .lastAcceptedConfiguration(config(acceptedConfig))
                 .lastCommittedConfiguration(config(committedConfig)).build())).build();
     }
@@ -390,7 +390,7 @@ public class ClusterFormationFailureHelperTests extends ESTestCase {
         String[] configNodeIds = new String[]{"n1", "n2"};
         final ClusterState stateWithOtherNodes = ClusterState.builder(ClusterName.DEFAULT)
             .nodes(DiscoveryNodes.builder().add(localNode).localNodeId(localNode.getId()).add(otherMasterNode).add(otherNonMasterNode))
-            .metadata(Metadata.builder().coordinationMetadata(CoordinationMetadata.builder()
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).coordinationMetadata(CoordinationMetadata.builder()
                 .lastAcceptedConfiguration(config(configNodeIds))
                 .lastCommittedConfiguration(config(configNodeIds)).build())).build();
 

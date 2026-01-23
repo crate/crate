@@ -76,7 +76,7 @@ import io.crate.common.collections.Tuple;
 public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
 
     private ClusterState clusterStateWithUnassignedIndex(IndexMetadata indexMetadata, boolean masterEligible) {
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(indexMetadata, false)
             .build();
 
@@ -102,7 +102,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         ClusterState oldClusterState = clusterStateWithUnassignedIndex(indexMetadata, masterEligible);
         RoutingTable routingTable = strategy.reroute(oldClusterState, "reroute").routingTable();
 
-        Metadata metadataNewClusterState = Metadata.builder()
+        Metadata metadataNewClusterState = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(oldClusterState.metadata().index("test"), false)
             .build();
 
@@ -113,7 +113,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
     private ClusterState clusterStateWithNonReplicatedClosedIndex(IndexMetadata indexMetadata, boolean masterEligible) {
         ClusterState oldClusterState = clusterStateWithAssignedIndex(indexMetadata, masterEligible);
 
-        Metadata metadataNewClusterState = Metadata.builder()
+        Metadata metadataNewClusterState = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(
                 IndexMetadata.builder("test").settings(settings(Version.CURRENT)
                     .put(IndexMetadata.SETTING_INDEX_UUID, indexMetadata.getIndexUUID())
@@ -135,7 +135,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
     private ClusterState clusterStateWithReplicatedClosedIndex(IndexMetadata indexMetadata, boolean masterEligible, boolean assigned) {
         ClusterState oldClusterState = clusterStateWithAssignedIndex(indexMetadata, masterEligible);
 
-        Metadata metadataNewClusterState = Metadata.builder()
+        Metadata metadataNewClusterState = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(
                 IndexMetadata.builder("test").settings(settings(Version.CURRENT)
                 .put(IndexMetadata.VERIFIED_BEFORE_CLOSE_SETTING.getKey(), true)
@@ -248,13 +248,13 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
         IndexMetadata newIndex = createIndexMetadata("new_index");
         relevantIndices.add(newIndex.getIndex());
 
-        Metadata oldMetadata = Metadata.builder()
+        Metadata oldMetadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(removedIndex, false)
             .put(versionChangedIndex, false)
             .put(notChangedIndex, false)
             .build();
 
-        Metadata newMetadata = Metadata.builder()
+        Metadata newMetadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(versionChangedIndex, true)
             .put(notChangedIndex, false)
             .put(newIndex, false)
@@ -383,7 +383,7 @@ public class IncrementalClusterStateWriterTests extends ESAllocationTestCase {
 
     private static Metadata randomMetadataForTx() {
         int settingNo = randomIntBetween(0, 10);
-        Metadata.Builder builder = Metadata.builder()
+        Metadata.Builder builder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .persistentSettings(Settings.builder().put("setting" + settingNo, randomAlphaOfLength(5)).build());
         int numOfIndices = randomIntBetween(0, 3);
 

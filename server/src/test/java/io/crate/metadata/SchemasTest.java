@@ -93,7 +93,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSchemasFromUDF() {
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(
                 UserDefinedFunctionsMetadata.TYPE,
                 UserDefinedFunctionsMetadata.of(
@@ -106,7 +106,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testSchemasFromViews() {
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(
                 ViewsMetadata.TYPE,
                 ViewsMetadataTest.createMetadata()
@@ -117,7 +117,7 @@ public class SchemasTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCurrentSchemas() throws Exception {
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder(UUIDs.randomBase64UUID())
                 .state(IndexMetadata.State.OPEN)
                 .settings(Settings.builder()

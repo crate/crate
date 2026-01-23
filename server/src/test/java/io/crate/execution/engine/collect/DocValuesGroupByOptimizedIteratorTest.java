@@ -27,7 +27,7 @@ import static io.crate.operation.aggregation.AggregationTestCase.createCollectTa
 import static io.crate.operation.aggregation.AggregationTestCase.newStartedPrimaryShard;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.mockito.Mockito.mock;
 
 import java.io.IOException;
@@ -134,7 +134,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
-                COLUMN_OID_UNASSIGNED,
+                OID_UNASSIGNED,
                 false,
                 null)
             ),
@@ -155,7 +155,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
-                COLUMN_OID_UNASSIGNED,
+                OID_UNASSIGNED,
                 false,
                 null
             ),
@@ -195,7 +195,7 @@ public class DocValuesGroupByOptimizedIteratorTest extends CrateDummyClusterServ
                 true,
                 true,
                 0,
-                COLUMN_OID_UNASSIGNED,
+                OID_UNASSIGNED,
                 false,
                 null)
             ),

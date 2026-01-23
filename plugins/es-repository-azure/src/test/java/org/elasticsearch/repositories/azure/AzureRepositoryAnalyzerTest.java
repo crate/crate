@@ -45,8 +45,7 @@ public class AzureRepositoryAnalyzerTest extends CrateDummyClusterServiceUnitTes
                     Settings.builder().put("location", "/tmp/my_repo").build()
                 )));
         ClusterState clusterState = ClusterState.builder(new ClusterName("testing"))
-            .metadata(Metadata.builder()
-                          .putCustom(RepositoriesMetadata.TYPE, repositoriesMetadata))
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).putCustom(RepositoriesMetadata.TYPE, repositoriesMetadata))
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);
         e = SQLExecutor.builder(clusterService).build();

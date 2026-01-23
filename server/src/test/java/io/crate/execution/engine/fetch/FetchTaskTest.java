@@ -95,7 +95,7 @@ public class FetchTaskTest extends CrateDummyClusterServiceUnitTest {
         Map<RelationName, Collection<String>> tableIndices = new HashMap<>();
         tableIndices.put(new RelationName(DocSchemaInfo.NAME, "i1"), List.of("i1"));
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("i1")
                      .settings(Settings.builder()
                                    .put(SETTING_NUMBER_OF_SHARDS, 1)

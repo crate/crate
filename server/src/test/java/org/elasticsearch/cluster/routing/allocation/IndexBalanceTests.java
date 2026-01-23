@@ -62,7 +62,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
         logger.info("Building initial routing table");
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test")
                 .settings(indexSettings())
                 .numberOfShards(3)
@@ -187,7 +187,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
         logger.info("Building initial routing table");
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test")
                 .settings(indexSettings())
                 .numberOfShards(3)
@@ -336,7 +336,7 @@ public class IndexBalanceTests extends ESAllocationTestCase {
 
         logger.info("Building initial routing table");
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test")
                 .settings(indexSettings())
                 .numberOfShards(3)

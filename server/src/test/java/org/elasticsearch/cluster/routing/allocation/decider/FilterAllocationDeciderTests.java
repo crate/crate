@@ -199,7 +199,7 @@ public class FilterAllocationDeciderTests extends ESAllocationTestCase {
 
 
     private static ClusterState buildClusterState(Settings.Builder indexSettings) {
-        Metadata.Builder metadata = Metadata.builder();
+        Metadata.Builder metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         metadata.persistentSettings(Settings.EMPTY);
 
         final IndexMetadata.Builder indexMetadataBuilder = IndexMetadata.builder("t1")

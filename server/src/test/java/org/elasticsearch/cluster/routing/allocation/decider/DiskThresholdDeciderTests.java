@@ -106,7 +106,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         AllocationService strategy = new AllocationService(deciders,
                 new TestGatewayAllocator(), new BalancedShardsAllocator(Settings.EMPTY), cis, EmptySnapshotsInfoService.INSTANCE);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
@@ -291,7 +291,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         AllocationService strategy = new AllocationService(deciders, new TestGatewayAllocator(),
                 new BalancedShardsAllocator(Settings.EMPTY), cis, EmptySnapshotsInfoService.INSTANCE);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
@@ -535,7 +535,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         AllocationService strategy = new AllocationService(deciders, new TestGatewayAllocator(),
                 new BalancedShardsAllocator(Settings.EMPTY), cis, EmptySnapshotsInfoService.INSTANCE);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_REPLICAS, 0)
@@ -604,7 +604,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         AllocationService strategy = new AllocationService(deciders, new TestGatewayAllocator(),
                 new BalancedShardsAllocator(Settings.EMPTY), cis, EmptySnapshotsInfoService.INSTANCE);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(
                 Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
                     .put(IndexMetadata.SETTING_NUMBER_OF_SHARDS, 1)
@@ -697,7 +697,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes);
 
         DiskThresholdDecider diskThresholdDecider = makeDecider(diskSettings);
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
@@ -831,7 +831,7 @@ public class DiskThresholdDeciderTests extends ESAllocationTestCase {
         final ClusterInfo clusterInfo = new DevNullClusterInfo(usages, usages, shardSizes.build());
 
         DiskThresholdDecider diskThresholdDecider = makeDecider(diskSettings);
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0))
             .build();
         RoutingTable initialRoutingTable = RoutingTable.builder()

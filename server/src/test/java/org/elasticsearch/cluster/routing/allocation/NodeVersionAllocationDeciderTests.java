@@ -93,7 +93,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
 
         logger.info("Building initial routing table");
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test")
                      .settings(settings(Version.CURRENT).put(AutoExpandReplicas.SETTING.getKey(), false))
                      .numberOfShards(5)
@@ -190,7 +190,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
                                                                 .build());
 
         logger.info("Building initial routing table");
-        Metadata.Builder builder = Metadata.builder();
+        Metadata.Builder builder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         RoutingTable.Builder rtBuilder = RoutingTable.builder();
         int numIndices = between(1, 20);
         for (int i = 0; i < numIndices; i++) {
@@ -245,7 +245,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
 
         logger.info("Building initial routing table");
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test")
                      .settings(settings(Version.CURRENT).put(AutoExpandReplicas.SETTING.getKey(), false))
                      .numberOfShards(5)
@@ -319,7 +319,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         AllocationId allocationId1R = AllocationId.newInitializing();
         AllocationId allocationId2P = AllocationId.newInitializing();
         AllocationId allocationId2R = AllocationId.newInitializing();
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder(shard1.getIndexUUID()).settings(settings(Version.CURRENT).put(Settings.EMPTY)).numberOfShards(1)
                      .numberOfReplicas(1).putInSyncAllocationIds(0, Set.of(allocationId1P.getId(), allocationId1R.getId())))
             .put(IndexMetadata.builder(shard2.getIndexUUID()).settings(settings(Version.CURRENT).put(Settings.EMPTY)).numberOfShards(1)
@@ -382,7 +382,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
         for (int i = 0; i < numberOfShards; i++) {
             indexMetadata.putInSyncAllocationIds(i, Collections.singleton("_test_"));
         }
-        Metadata metadata = Metadata.builder().put(indexMetadata).build();
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED).put(indexMetadata).build();
 
         final ImmutableOpenMap.Builder<InternalSnapshotsInfoService.SnapshotShard, Long> snapshotShardSizes =
             ImmutableOpenMap.builder(numberOfShards);
@@ -472,7 +472,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
 
     public void testMessages() {
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1))
             .build();
 
@@ -569,7 +569,7 @@ public class NodeVersionAllocationDeciderTests extends ESAllocationTestCase {
                                                          MASTER_DATA_ROLES, Version.V_4_4_1);
         AllocationId allocationId1P = AllocationId.newInitializing();
         AllocationId allocationId1R = AllocationId.newInitializing();
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder(shard1.getIndexUUID())
                 .settings(settings(Version.CURRENT)
                     .put(AutoExpandReplicas.SETTING.getKey(), "false")

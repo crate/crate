@@ -23,7 +23,7 @@
 package io.crate.execution.engine.collect.collectors;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
 
@@ -73,7 +73,7 @@ public class OptimizeQueryForSearchAfterTest {
     public void test_short_range_query_with_and_without_docvalues() {
         OrderBy orderBy = new OrderBy(List.of(
             new SimpleReference(relationName, ColumnIdent.of("x"), RowGranularity.DOC, DataTypes.SHORT,
-                    IndexType.PLAIN, true, true, 1, COLUMN_OID_UNASSIGNED, false, null)
+                    IndexType.PLAIN, true, true, 1, OID_UNASSIGNED, false, null)
         ));
         var optimize = new OptimizeQueryForSearchAfter(orderBy);
         FieldDoc lastCollected = new FieldDoc(1, 1.0f, new Object[] { (short) 10 });
@@ -87,7 +87,7 @@ public class OptimizeQueryForSearchAfterTest {
 
         orderBy = new OrderBy(List.of(
                 new SimpleReference(relationName, ColumnIdent.of("x"), RowGranularity.DOC, DataTypes.SHORT,
-                                    IndexType.PLAIN, true, false, 1, COLUMN_OID_UNASSIGNED, false, null)
+                                    IndexType.PLAIN, true, false, 1, OID_UNASSIGNED, false, null)
         ));
         optimize = new OptimizeQueryForSearchAfter(orderBy);
         lastCollected = new FieldDoc(1, 1.0f, new Object[] { (short) 10 });
@@ -115,7 +115,7 @@ public class OptimizeQueryForSearchAfterTest {
                             true,
                             false,
                             1,
-                            COLUMN_OID_UNASSIGNED,
+                            OID_UNASSIGNED,
                             false,
                             null)),
                     new boolean[]{reverseFlag},

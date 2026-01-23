@@ -93,7 +93,7 @@ public class AlterTableRenameTableAnalyzerTest extends CrateDummyClusterServiceU
     private ClusterService clusterServiceWithPublicationMetadata(boolean allTablesPublished, RelationName... tables) {
         var publications = Map.of("pub1", new Publication("user1", allTablesPublished, Arrays.asList(tables)));
         var publicationsMetadata = new PublicationsMetadata(publications);
-        var metadata = new Metadata.Builder().putCustom(PublicationsMetadata.TYPE, publicationsMetadata).build();
+        var metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED).putCustom(PublicationsMetadata.TYPE, publicationsMetadata).build();
         return createClusterService(additionalClusterSettings(), metadata, Version.CURRENT);
     }
 }

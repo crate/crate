@@ -422,7 +422,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
     }
 
     private RoutingAllocation getRestoreRoutingAllocation(AllocationDeciders allocationDeciders, Long shardSize, String... allocIds) {
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder(shardId.getIndexUUID()).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0)
                 .putInSyncAllocationIds(0, Set.of(allocIds)))
             .build();
@@ -448,7 +448,7 @@ public class PrimaryShardAllocatorTests extends ESAllocationTestCase {
 
     private RoutingAllocation routingAllocationWithOnePrimaryNoReplicas(AllocationDeciders deciders, UnassignedInfo.Reason reason,
                                                                         String... activeAllocationIds) {
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .put(IndexMetadata.builder(shardId.getIndexUUID()).settings(settings(Version.CURRENT))
                     .numberOfShards(1).numberOfReplicas(0).putInSyncAllocationIds(shardId.id(), Set.of(activeAllocationIds)))
                 .build();

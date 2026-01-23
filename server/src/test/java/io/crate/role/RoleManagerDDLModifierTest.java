@@ -46,7 +46,7 @@ public class RoleManagerDDLModifierTest extends ESTestCase {
     public void test_transferTablePrivileges_from_old_users_and_privileges_metadata() {
         // given
         Privilege oldGrantDQL = new Privilege(Policy.GRANT, Permission.DQL, Securable.SCHEMA, "mySchema", "crate");
-        Metadata.Builder mdBuilder = Metadata.builder();
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         Map<String, Role> rolesMap = new HashMap<>();
         rolesMap.put("Ford", userOf("Ford", Set.of(oldGrantDQL), null));
 

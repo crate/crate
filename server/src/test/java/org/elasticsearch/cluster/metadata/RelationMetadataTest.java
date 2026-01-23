@@ -23,15 +23,21 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.io.IOException;
+import java.util.List;
+import java.util.Map;
+
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.Diff;
 import org.elasticsearch.cluster.metadata.IndexMetadata.State;
 import org.elasticsearch.common.UUIDs;
 import org.elasticsearch.common.io.stream.BytesStreamOutput;
+import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.settings.Settings;
 import org.junit.Test;
 
 import io.crate.metadata.RelationName;
+import io.crate.sql.tree.ColumnPolicy;
 
 public class RelationMetadataTest {
 
@@ -39,17 +45,17 @@ public class RelationMetadataTest {
     public void test_diff_streaming() throws Exception {
         RelationName t1 = new RelationName("blob", "t1");
         RelationMetadata.BlobTable t1Open = new RelationMetadata.BlobTable(
-            t1,
-            UUIDs.randomBase64UUID(),
-            Settings.EMPTY,
-            State.OPEN
-        );
+                Metadata.OID_UNASSIGNED,
+                t1,
+                UUIDs.randomBase64UUID(),
+                Settings.EMPTY,
+                State.OPEN);
         RelationMetadata.BlobTable t1Close = new RelationMetadata.BlobTable(
-            t1,
-            UUIDs.randomBase64UUID(),
-            Settings.EMPTY,
-            State.CLOSE
-        );
+                Metadata.OID_UNASSIGNED,
+                t1,
+                UUIDs.randomBase64UUID(),
+                Settings.EMPTY,
+                State.CLOSE);
 
         Diff<RelationMetadata> diff = t1Close.diff(Version.CURRENT, t1Open);
         try (var out = new BytesStreamOutput()) {
@@ -62,6 +68,70 @@ public class RelationMetadataTest {
                 assertThat(blobIn.state()).isEqualTo(State.CLOSE);
             }
         }
+    }
+
+    @Test
+    public void test_streaming_table_oid() throws IOException {
+        final int tableOID = 123;
+        RelationMetadata table1 = new RelationMetadata.Table(
+            tableOID,
+            new RelationName("doc", "dummy"),
+            List.of(),
+            Settings.builder().put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT).build(),
+            null,
+            ColumnPolicy.DYNAMIC,
+            null,
+            Map.of(),
+            List.of(),
+            List.of(),
+            State.OPEN,
+            List.of(UUIDs.randomBase64UUID()),
+            0
+        );
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        RelationMetadata.toStream(out, table1);
+
+        StreamInput in = out.bytes().streamInput();
+        var table2 = RelationMetadata.of(in);
+
+        assertThat(table2.oid()).isEqualTo(table1.oid());
+
+        out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_2_0);
+        RelationMetadata.toStream(out, table1);
+
+        in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_2_0);
+        table2 = RelationMetadata.of(in);
+
+        assertThat(table2.oid()).isEqualTo(Metadata.OID_UNASSIGNED);
+
+        // blob table
+        table1 = new RelationMetadata.BlobTable(
+            tableOID,
+            new RelationName("doc", "dummy"),
+            UUIDs.randomBase64UUID(),
+            Settings.EMPTY,
+            State.OPEN);
+
+        out = new BytesStreamOutput();
+        RelationMetadata.toStream(out, table1);
+
+        in = out.bytes().streamInput();
+        table2 = RelationMetadata.of(in);
+
+        assertThat(table2.oid()).isEqualTo(table1.oid());
+
+        out = new BytesStreamOutput();
+        out.setVersion(Version.V_6_2_0);
+        RelationMetadata.toStream(out, table1);
+
+        in = out.bytes().streamInput();
+        in.setVersion(Version.V_6_2_0);
+        table2 = RelationMetadata.of(in);
+
+        assertThat(table2.oid()).isEqualTo(Metadata.OID_UNASSIGNED);
     }
 }
 

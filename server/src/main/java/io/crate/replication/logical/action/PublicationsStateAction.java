@@ -130,7 +130,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
                 throw new IllegalStateException("Cannot build publication state, no publications found");
             }
 
-            Metadata.Builder metadataBuilder = Metadata.builder();
+            Metadata.Builder metadataBuilder = Metadata.builder(state.metadata().currentMaxTableOid());
             List<String> unknownPublications = new ArrayList<>();
             for (var publicationName : request.publications()) {
                 var publication = publicationsMetadata.publications().get(publicationName);
@@ -217,7 +217,7 @@ public class PublicationsStateAction extends ActionType<PublicationsStateAction.
             if (in.getVersion().before(Version.V_6_0_0)) {
                 Map<RelationName, RelationMetadata> relationsInPublications = in.readMap(RelationName::new, RelationMetadata::new);
                 this.relationsInPublications = relationsInPublications;
-                Metadata.Builder mdBuilder = Metadata.builder();
+                Metadata.Builder mdBuilder = Metadata.builder(Metadata.OID_UNASSIGNED);
                 for (Map.Entry<RelationName, RelationMetadata> entry : relationsInPublications.entrySet()) {
                     RelationMetadata relationMetadata = entry.getValue();
                     for (IndexMetadata indexMetadata : relationMetadata.indices()) {

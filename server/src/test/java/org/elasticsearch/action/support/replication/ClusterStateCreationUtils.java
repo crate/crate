@@ -153,7 +153,7 @@ public class ClusterStateCreationUtils {
 
         ClusterState.Builder state = ClusterState.builder(new ClusterName("test"));
         state.nodes(discoBuilder);
-        state.metadata(Metadata.builder().put(indexMetadataBuilder.build(), false).generateClusterUuidIfNeeded());
+        state.metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).put(indexMetadataBuilder.build(), false).generateClusterUuidIfNeeded());
         state.routingTable(RoutingTable.builder().add(IndexRoutingTable.builder(indexMetadata.getIndex())
                                                           .addIndexShard(indexShardRoutingTable)).build());
         return state.build();
@@ -192,7 +192,7 @@ public class ClusterStateCreationUtils {
 
         ClusterState.Builder state = ClusterState.builder(new ClusterName("test"));
         state.nodes(discoBuilder);
-        state.metadata(Metadata.builder().put(indexMetadata, false).generateClusterUuidIfNeeded());
+        state.metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).put(indexMetadata, false).generateClusterUuidIfNeeded());
         state.routingTable(RoutingTable.builder().add(indexRoutingTable).build());
         return state.build();
     }
@@ -212,7 +212,7 @@ public class ClusterStateCreationUtils {
         }
         discoBuilder.localNodeId(newNode(0).getId());
         discoBuilder.masterNodeId(newNode(0).getId());
-        Metadata.Builder metadata = Metadata.builder();
+        Metadata.Builder metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         RoutingTable.Builder routingTable = RoutingTable.builder();
         List<String> nodesList = new ArrayList<>(nodes);
         int currentNodeToAssign = 0;
@@ -303,7 +303,7 @@ public class ClusterStateCreationUtils {
 
         ClusterState.Builder state = ClusterState.builder(new ClusterName("test"));
         state.nodes(discoBuilder);
-        state.metadata(Metadata.builder().generateClusterUuidIfNeeded());
+        state.metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).generateClusterUuidIfNeeded());
         return state.build();
     }
 

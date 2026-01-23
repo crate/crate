@@ -22,7 +22,7 @@
 package io.crate.metadata.upgrade;
 
 import static io.crate.execution.ddl.tables.MappingUtil.DROPPED_COLUMN_NAME_PREFIX;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
@@ -162,7 +162,7 @@ public class MetadataIndexUpgrader {
     public static boolean removeInvalidPropertyGeneratedByDroppingSysCols(Map<String, Object> defaultMapping) {
         Map<String, Object> properties = Maps.get(defaultMapping, "properties");
         if (properties != null) {
-            String droppedUnassigned = DROPPED_COLUMN_NAME_PREFIX + COLUMN_OID_UNASSIGNED;
+            String droppedUnassigned = DROPPED_COLUMN_NAME_PREFIX + OID_UNASSIGNED;
             if (properties.containsKey(droppedUnassigned)) {
                 properties.remove(droppedUnassigned);
                 return true;

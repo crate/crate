@@ -121,7 +121,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             if (in.getVersion().onOrAfter(Version.V_6_2_0)) {
                 for (int i = 0; i < missingAssignmentsColumnsSize; i++) {
                     long oid = in.readLong();
-                    Reference ref = oid == Metadata.COLUMN_OID_UNASSIGNED
+                    Reference ref = oid == Metadata.OID_UNASSIGNED
                         ? Reference.fromStream(in)
                         : tableInfo.getReference(oid);
                     if (ref == null) {
@@ -178,7 +178,7 @@ public final class ShardUpsertRequest extends ShardRequest<ShardUpsertRequest, S
             if (out.getVersion().onOrAfter(Version.V_6_2_0)) {
                 for (Reference reference : insertColumns) {
                     out.writeLong(reference.oid());
-                    if (reference.oid() == Metadata.COLUMN_OID_UNASSIGNED) {
+                    if (reference.oid() == Metadata.OID_UNASSIGNED) {
                         Reference.toStream(out, reference);
                     }
                 }

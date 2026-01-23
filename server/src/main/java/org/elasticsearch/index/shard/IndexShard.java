@@ -73,6 +73,7 @@ import org.elasticsearch.action.admin.indices.forcemerge.ForceMergeRequest;
 import org.elasticsearch.action.support.replication.PendingReplicationActions;
 import org.elasticsearch.action.support.replication.ReplicationResponse;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
 import org.elasticsearch.cluster.routing.RecoverySource;
 import org.elasticsearch.cluster.routing.RecoverySource.SnapshotRecoverySource;
@@ -1748,7 +1749,7 @@ public class IndexShard extends AbstractIndexShardComponent {
             // we are the first primary, recover from the gateway
             // if its post api allocation, the index should exists
             assert shardRouting.primary() : "recover from local shards only makes sense if the shard is a primary shard";
-            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::create);
+            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, indexMetadata -> tableFactory.create(indexMetadata, Metadata.OID_UNASSIGNED));
             storeRecovery.recoverFromLocalShards(this, snapshots, recoveryListener);
             success = true;
         } finally {
@@ -1763,7 +1764,7 @@ public class IndexShard extends AbstractIndexShardComponent {
         // if its post api allocation, the index should exists
         assert shardRouting.primary() : "recover from store only makes sense if the shard is a primary shard";
         assert shardRouting.initializing() : "can only start recovery on initializing shard";
-        StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::create);
+        StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, indexMetadata -> tableFactory.create(indexMetadata, Metadata.OID_UNASSIGNED));
         storeRecovery.recoverFromStore(this, listener);
     }
 
@@ -1772,7 +1773,7 @@ public class IndexShard extends AbstractIndexShardComponent {
             assert shardRouting.primary() : "recover from store only makes sense if the shard is a primary shard";
             assert recoveryState.getRecoverySource().getType() == RecoverySource.Type.SNAPSHOT : "invalid recovery type: " +
                 recoveryState.getRecoverySource();
-            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, tableFactory::create);
+            StoreRecovery storeRecovery = new StoreRecovery(shardId, logger, indexMetadata -> tableFactory.create(indexMetadata, Metadata.OID_UNASSIGNED));
             storeRecovery.recoverFromRepository(this, repository, listener);
         } catch (Exception e) {
             listener.onFailure(e);

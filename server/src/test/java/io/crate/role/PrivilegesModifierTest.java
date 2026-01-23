@@ -222,7 +222,7 @@ public class PrivilegesModifierTest {
 
     @Test
     public void testDropTablePrivileges() {
-        var mdBuilder = Metadata.builder();
+        var mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         long affectedPrivileges = PrivilegesModifier.dropTableOrViewPrivileges(mdBuilder, rolesMetadata, GRANT_TABLE_DQL.subject().ident());
         assertThat(affectedPrivileges).isEqualTo(1L);
 
@@ -246,7 +246,7 @@ public class PrivilegesModifierTest {
 
     @Test
     public void testDropViewPrivileges() {
-        var mdBuilder = Metadata.builder();
+        var mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         long affectedPrivileges = PrivilegesModifier.dropTableOrViewPrivileges(mdBuilder, rolesMetadata, GRANT_VIEW_DQL.subject().ident());
         assertThat(affectedPrivileges).isEqualTo(1L);
 

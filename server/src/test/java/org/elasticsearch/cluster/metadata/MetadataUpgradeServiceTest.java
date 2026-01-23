@@ -241,7 +241,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             "dummy",
             "def foo(): return 1"
         ));
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(indexMetadata, false)
             .put(indexTemplateMetadata)
             .putCustom(UserDefinedFunctionsMetadata.TYPE, udfs)
@@ -292,7 +292,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             "dummy",
             "def foo(): return 1"
         ));
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(UserDefinedFunctionsMetadata.TYPE, udfs)
             .put(template)
             .build();
@@ -369,7 +369,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .numberOfShards(1)
             .numberOfReplicas(1)
             .build();
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(indexMetadata, false)
             .put(indexMetadataAlreadyUpgraded, false)
             .put(indexMetadataCreatedOnCurrentVersion, false)
@@ -397,7 +397,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .build();
 
         RelationName tblName = new RelationName("doc", "tbl");
-        Metadata metadata = Metadata.builder()
+        var mdBuilder = Metadata.builder(Metadata.OID_UNASSIGNED);
+        Metadata metadata = mdBuilder
             .put(indexMetadata, false)
             .setTable(
                 tblName,
@@ -411,8 +412,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                 List.of(),
                 State.OPEN,
                 List.of(indexMetadata.getIndexUUID()),
-                1
-            )
+                1,
+                mdBuilder.tableOidSupplier().nextOid())
             .build();
 
         Metadata upgraded = metadataUpgradeService.upgradeMetadata(metadata);
@@ -432,7 +433,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .numberOfReplicas(1)
             .build();
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(indexMetadata, false)
             .build();
 
@@ -465,7 +466,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
     }
 
     public static Metadata randomMetadata(boolean withRelationMetadata, TestCustomMetadata... customMetadatas) {
-        Metadata.Builder builder = Metadata.builder();
+        Metadata.Builder builder = Metadata.builder(Metadata.OID_UNASSIGNED);
         for (TestCustomMetadata customMetadata : customMetadatas) {
             builder.putCustom(customMetadata.getWriteableName(), customMetadata);
         }
@@ -492,8 +493,9 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                     List.of(),
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID),
-                    0
-                );
+                    0,
+                    builder.tableOidSupplier().nextOid()
+                    );
             }
         }
         return builder.build();

@@ -44,7 +44,7 @@ public class LogicalReplicationSettingsTest extends CrateDummyClusterServiceUnit
         var replicationSettings = new LogicalReplicationSettings(Settings.EMPTY, clusterService);
 
         ClusterState newState = ClusterState.builder(clusterService.state())
-            .metadata(Metadata.builder().transientSettings(
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).transientSettings(
                 Settings.builder()
                     .put(REPLICATION_CHANGE_BATCH_SIZE.getKey(), 20)
                     .put(REPLICATION_READ_POLL_DURATION.getKey(), "1s")

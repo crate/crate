@@ -281,8 +281,8 @@ public class MetadataCreateIndexService {
                 .build();
 
             return indicesService.withTempIndexService(indexMetadata, indexService -> {
-                Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata())
-                    .setBlobTable(relationName, indexUUID, settings, State.OPEN);
+                Metadata.Builder mdBuilder = Metadata.builder(currentState.metadata());
+                mdBuilder.setBlobTable(relationName, indexUUID, settings, State.OPEN);
                 ClusterState updatedState = addIndex(
                     allocationService,
                     indexService,
@@ -465,7 +465,8 @@ public class MetadataCreateIndexService {
                     table.partitionedBy(),
                     table.state(),
                     table.indexUUIDs(),
-                    table.tableVersion() + 1
+                    table.tableVersion() + 1,
+                    table.oid()
                 );
             }
 

@@ -124,7 +124,8 @@ public class MetadataDeleteIndexService {
                 table.partitionedBy(),
                 table.state(),
                 newIndexUUIDs,
-                table.tableVersion() + 1
+                table.tableVersion() + 1,
+                table.oid()
             );
         }
 

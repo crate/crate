@@ -65,7 +65,7 @@ public class PrimaryTermsTests extends ESAllocationTestCase {
         this.numberOfReplicas = randomIntBetween(0, 5);
         logger.info("Setup test with {} shards and {} replicas.", this.numberOfShards, this.numberOfReplicas);
         this.primaryTermsPerIndex.clear();
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(createIndexMetadata(TEST_INDEX_1))
             .put(createIndexMetadata(TEST_INDEX_2))
             .build();

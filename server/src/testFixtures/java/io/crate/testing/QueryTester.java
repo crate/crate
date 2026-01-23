@@ -22,7 +22,7 @@
 package io.crate.testing;
 
 import static java.util.Objects.requireNonNull;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.Collections;
@@ -95,7 +95,7 @@ public final class QueryTester implements AutoCloseable {
                 createTableStmt,
                 // Disable OID generation for columns/references in order to be able to compare the query outcome with
                 // expected ones.
-                () -> COLUMN_OID_UNASSIGNED);
+                () -> OID_UNASSIGNED);
         }
 
         public Builder(ThreadPool threadPool,

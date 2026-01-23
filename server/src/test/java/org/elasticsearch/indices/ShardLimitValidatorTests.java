@@ -94,7 +94,7 @@ public class ShardLimitValidatorTests extends CrateDummyClusterServiceUnitTest {
             .creationDate(randomLong())
             .numberOfShards(shardsInIndex)
             .numberOfReplicas(replicas);
-        Metadata.Builder metadata = Metadata.builder().put(indexMetadata);
+        Metadata.Builder metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED).put(indexMetadata);
         return ClusterState.builder(ClusterName.DEFAULT)
             .metadata(metadata)
             .nodes(nodes)

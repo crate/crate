@@ -105,7 +105,7 @@ public class TransportClearVotingConfigExclusionsTests extends ESTestCase {
         final ClusterState.Builder builder = builder(new ClusterName("cluster"))
             .nodes(new Builder().add(localNode).add(otherNode1).add(otherNode2)
                 .localNodeId(localNode.getId()).masterNodeId(localNode.getId()));
-        builder.metadata(Metadata.builder()
+        builder.metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .coordinationMetadata(CoordinationMetadata.builder()
                         .addVotingConfigExclusion(otherNode1Exclusion)
                         .addVotingConfigExclusion(otherNode2Exclusion)

@@ -21,7 +21,7 @@
 
 package io.crate.metadata.doc;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -164,7 +164,7 @@ public class SysColumns {
             false,
             false,
             position,
-            COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
             false,
             null
         );

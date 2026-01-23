@@ -115,7 +115,7 @@ public class DecisionsImpactOnClusterHealthTests extends ESAllocationTestCase {
 
         logger.info("Building initial routing table");
         final int numShards = randomIntBetween(1, 5);
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                                 .put(IndexMetadata.builder(indexName)
                                          .settings(settings(Version.CURRENT))
                                          .numberOfShards(numShards)

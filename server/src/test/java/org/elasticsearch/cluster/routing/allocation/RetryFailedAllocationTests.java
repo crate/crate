@@ -50,7 +50,7 @@ public class RetryFailedAllocationTests extends ESAllocationTestCase {
     @Override
     public void setUp() throws Exception {
         super.setUp();
-        Metadata metadata = Metadata.builder().put(
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED).put(
             IndexMetadata.builder(INDEX_UUID)
                 .settings(settings(Version.CURRENT))
                 .numberOfShards(1)

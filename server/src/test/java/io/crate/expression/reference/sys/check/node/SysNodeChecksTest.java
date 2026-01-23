@@ -382,7 +382,7 @@ public class SysNodeChecksTest extends CrateDummyClusterServiceUnitTest {
         var routingTable = RoutingTable.builder().add(indexRoutingTableBuilder).build();
         var meta = IndexMetadata.builder(index.getUUID()).settings(settings(Version.CURRENT)).numberOfShards(numberOfShards).numberOfReplicas(0);
         var clusterState = ClusterState.builder(new ClusterName("crate")).version(1L)
-            .metadata(Metadata.builder().put(meta)).routingTable(routingTable).nodes(discoveryNodes).build();
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).put(meta)).routingTable(routingTable).nodes(discoveryNodes).build();
 
         // Validate that with `cluster.max_shards_per_node = 100` and 85 shards the check passes
         var setting = Settings.builder().put(ShardLimitValidator.SETTING_CLUSTER_MAX_SHARDS_PER_NODE.getKey(), 100).build();
