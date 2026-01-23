@@ -799,7 +799,7 @@ public class SQLExecutor {
             State.OPEN,
             indexUUIDs,
             0,
-            Metadata.TABLE_OID_UNASSIGNED
+            prevState.metadata().tableOidSupplier().getAsLong()
         );
         ClusterState newState = ClusterState.builder(prevState)
             .metadata(mdBuilder.build())
