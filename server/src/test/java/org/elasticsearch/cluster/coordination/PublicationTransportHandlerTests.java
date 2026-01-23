@@ -69,6 +69,7 @@ import io.crate.metadata.IndexType;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 import io.crate.types.DataTypes;
 
@@ -156,9 +157,10 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         localTransportService.start();
         localTransportService.acceptIncomingRequests();
 
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
         RelationName relationName = new RelationName("my_schema", "my_table");
         RelationMetadata.Table table = new RelationMetadata.Table(
-            Metadata.TABLE_OID_UNASSIGNED,
+                tableOidSupplier.getAsLong(),
                 relationName,
                 List.of(new SimpleReference(
                     relationName,
@@ -193,6 +195,7 @@ public class PublicationTransportHandlerTests extends ESTestCase {
         // Thus, we will add a table here and not a template.
         ClusterState clusterState = ClusterState.builder(new ClusterName("test"))
             .metadata(Metadata.builder()
+                .tableOidSupplier(tableOidSupplier)
                 .setTable(
                     table.name(),
                     table.columns(),

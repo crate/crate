@@ -52,6 +52,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SearchPath;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.doc.SysColumns;
 import io.crate.metadata.upgrade.IndexTemplateUpgrader;
 import io.crate.sql.tree.ColumnPolicy;
@@ -396,8 +397,10 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
             .numberOfReplicas(1)
             .build();
 
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
         RelationName tblName = new RelationName("doc", "tbl");
         Metadata metadata = Metadata.builder()
+            .tableOidSupplier(tableOidSupplier)
             .put(indexMetadata, false)
             .setTable(
                 tblName,
@@ -412,7 +415,7 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                 State.OPEN,
                 List.of(indexMetadata.getIndexUUID()),
                 1,
-                Metadata.TABLE_OID_UNASSIGNED)
+                tableOidSupplier.getAsLong())
             .build();
 
         Metadata upgraded = metadataUpgradeService.upgradeMetadata(metadata);
@@ -466,6 +469,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
 
     public static Metadata randomMetadata(boolean withRelationMetadata, TestCustomMetadata... customMetadatas) {
         Metadata.Builder builder = Metadata.builder();
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
+        builder.tableOidSupplier(tableOidSupplier);
         for (TestCustomMetadata customMetadata : customMetadatas) {
             builder.putCustom(customMetadata.getWriteableName(), customMetadata);
         }
@@ -493,7 +498,8 @@ public class MetadataUpgradeServiceTest extends CrateDummyClusterServiceUnitTest
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID),
                     0,
-                    Metadata.TABLE_OID_UNASSIGNED);
+                    tableOidSupplier.getAsLong()
+                    );
             }
         }
         return builder.build();

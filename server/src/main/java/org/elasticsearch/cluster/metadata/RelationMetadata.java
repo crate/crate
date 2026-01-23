@@ -52,6 +52,8 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
 
     short ord();
 
+    Settings settings();
+
     RelationName name();
 
     static RelationMetadata of(StreamInput in) throws IOException {
@@ -184,6 +186,11 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         }
 
         @Override
+        public Settings settings() {
+            return settings;
+        }
+
+        @Override
         public short ord() {
             return ORD;
         }
@@ -233,6 +240,11 @@ public sealed interface RelationMetadata extends Diffable<RelationMetadata> perm
         @Override
         public long oid() {
             return tableOID;
+        }
+
+        @Override
+        public Settings settings() {
+            return settings;
         }
 
         @Override

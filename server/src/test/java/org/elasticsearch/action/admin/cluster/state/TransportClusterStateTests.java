@@ -50,6 +50,7 @@ import org.junit.Test;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.PartitionName;
 import io.crate.metadata.RelationName;
+import io.crate.metadata.doc.DocTableInfo;
 import io.crate.sql.tree.ColumnPolicy;
 
 public class TransportClusterStateTests extends ESTestCase {
@@ -65,8 +66,10 @@ public class TransportClusterStateTests extends ESTestCase {
         var indexUUID1 = UUIDs.randomBase64UUID();
         var indexUUID2 = UUIDs.randomBase64UUID();
         var relationName2 = new RelationName("doc", "t2");
+        var tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
         clusterState = ClusterState.builder(new ClusterName("test"))
             .metadata(Metadata.builder()
+                .tableOidSupplier(tableOidSupplier)
                 .persistentSettings(Settings.builder().put("setting1", "bar").build())
                 .setTable(
                     relationName1,
@@ -84,7 +87,8 @@ public class TransportClusterStateTests extends ESTestCase {
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID1),
                     0,
-                    Metadata.TABLE_OID_UNASSIGNED)
+                    tableOidSupplier.getAsLong()
+                    )
                 .setTable(
                     relationName2,
                     List.of(),
@@ -101,7 +105,7 @@ public class TransportClusterStateTests extends ESTestCase {
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID2),
                     0,
-                    Metadata.TABLE_OID_UNASSIGNED)
+                    tableOidSupplier.getAsLong())
                 .put(IndexMetadata.builder(indexUUID1)
                         .settings(settings(Version.CURRENT)
                             .put(SETTING_INDEX_UUID, indexUUID1))
