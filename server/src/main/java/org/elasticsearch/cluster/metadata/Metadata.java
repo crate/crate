@@ -206,7 +206,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             var indexMetadata = cursor.value;
             totalNumberOfShards += indexMetadata.getTotalNumberOfShards();
             numberOfShards += indexMetadata.getNumberOfShards();
-            if (IndexMetadata.State.OPEN.equals(indexMetadata.getState())) {
+            if (State.OPEN.equals(indexMetadata.getState())) {
                 totalOpenIndexShards += indexMetadata.getTotalNumberOfShards();
             }
         }
@@ -523,8 +523,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
             }
             coordinationMetadata = new CoordinationMetadata(in);
-            transientSettings = Settings.readSettingsFromStream(in);
-            persistentSettings = Settings.readSettingsFromStream(in);
+            transientSettings = readSettingsFromStream(in);
+            persistentSettings = readSettingsFromStream(in);
             indices = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), INDEX_METADATA_DIFF_VALUE_READER);
             templates = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), TEMPLATES_DIFF_VALUE_READER);
             customs = Diffs.readMapDiff(in, Diffs.stringKeySerializer(), CUSTOM_VALUE_SERIALIZER);
@@ -552,8 +552,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 out.writeLong(tableOidSupplier.peek());
             }
             coordinationMetadata.writeTo(out);
-            Settings.writeSettingsToStream(out, transientSettings);
-            Settings.writeSettingsToStream(out, persistentSettings);
+            writeSettingsToStream(out, transientSettings);
+            writeSettingsToStream(out, persistentSettings);
             indices.writeTo(out);
             templates.writeTo(out);
             customs.writeTo(out);
@@ -1005,7 +1005,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = Collections.unmodifiableSortedMap(buildAliasAndIndexLookup());
 
-            //TODO: check that nextTableOID >= max tableOIDs currently assigned
+            assert validateTableOIDs(tableOidSupplier.peek());
+
             return new Metadata(
                 clusterUUID,
                 clusterUUIDCommitted,
@@ -1021,6 +1022,21 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 schemas.build(),
                 aliasAndIndexLookup
             );
+        }
+
+        private boolean validateTableOIDs(long tableOidSupplierValue) {
+            for (var e : schemas.values()) {
+                SchemaMetadata schemaMetadata = e.value;
+                for (var e2 : schemaMetadata.relations().values()) {
+                    RelationMetadata relationMetadata = e2.value;
+                    long relationOID = relationMetadata.oid();
+                    // below assert also implicitly validates that the current table OID supplier's value is greater than
+                    // zero when there is at least one relationMetadata
+                    assert relationOID > 0 && relationOID <= tableOidSupplierValue :
+                        "All OIDs assigned to tables are > 0 and they all are less than or equal to the current table OID supplier's value";
+                }
+            }
+            return true;
         }
 
         private SortedMap<String, AliasOrIndex> buildAliasAndIndexLookup() {
@@ -1311,7 +1327,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         @Override
         public EnumSet<XContentContext> context() {
-            return EnumSet.of(Metadata.XContentContext.API, Metadata.XContentContext.GATEWAY);
+            return EnumSet.of(XContentContext.API, XContentContext.GATEWAY);
         }
 
         @Override
@@ -1388,20 +1404,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     @Nullable
     public RelationMetadata getRelation(String indexUUID) {
         return indexUUIDsRelations.get(indexUUID);
-    }
-
-    @Nullable
-    public <T extends RelationMetadata> T getRelation(long tableOID) {
-        for (ObjectCursor<SchemaMetadata> s : schemas.values()) {
-            SchemaMetadata schemaMetadata = s.value;
-            for (ObjectCursor<RelationMetadata> r : schemaMetadata.relations().values()) {
-                RelationMetadata relationMetadata = r.value;
-                if (relationMetadata.oid() == tableOID) {
-                    return (T) relationMetadata;
-                }
-            }
-        }
-        return null;
     }
 
     /**
@@ -1551,14 +1553,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         throw new UnsupportedOperationException("Unsupported relation type: " + relation.getClass().getName());
     }
 
-    public <T> List<T> getIndices(long tableOID,
-                                  List<String> partitionValues,
-                                  boolean strict,
-                                  Function<IndexMetadata, T> as) {
-        RelationMetadata relationMetadata = Objects.requireNonNull(getRelation(tableOID), "Cannot find RelationMetadata with oid: " + tableOID);
-        return getIndices(relationMetadata.name(), partitionValues, strict, as);
-    }
-
     @Nullable
     public <T> T getIndex(RelationName relationName,
                           List<String> partitionValues,
@@ -1567,20 +1561,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         List<T> indices = getIndices(relationName, partitionValues, strict, as);
         if (indices.size() > 1) {
             throw new IllegalArgumentException("Expected a single index for " + relationName + " but got " + indices.size());
-        } else if (indices.size() == 1) {
-            return indices.getFirst();
-        }
-        return null;
-    }
-
-    @Nullable
-    public <T> T getIndex(long tableOID,
-                          List<String> partitionValues,
-                          boolean strict,
-                          Function<IndexMetadata, T> as) {
-        List<T> indices = getIndices(tableOID, partitionValues, strict, as);
-        if (indices.size() > 1) {
-            throw new IllegalArgumentException("TableOID unknown " + tableOID);
         } else if (indices.size() == 1) {
             return indices.getFirst();
         }
