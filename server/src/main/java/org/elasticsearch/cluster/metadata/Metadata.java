@@ -1026,6 +1026,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         private boolean validateTableOIDs(long tableOidSupplierValue) {
+            Set<Long> relationOIDs = new HashSet<>();
             for (var e : schemas.values()) {
                 SchemaMetadata schemaMetadata = e.value;
                 for (var e2 : schemaMetadata.relations().values()) {
@@ -1043,6 +1044,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                     // zero when there is at least one relationMetadata
                     assert relationOID > 0 && relationOID <= tableOidSupplierValue :
                         "All OIDs assigned to tables are > 0 and they all are less than or equal to the current table OID supplier's value";
+                    assert !relationOIDs.contains(relationOID) : "All Table OIDs are unique";
+                    relationOIDs.add(relationOID);
                 }
             }
             return true;
