@@ -21,7 +21,7 @@
 
 package io.crate.analyze;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -281,7 +281,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     nullable,
                     hasDocValues,
                     position,
-                    COLUMN_OID_UNASSIGNED,
+                    OID_UNASSIGNED,
                     false,
                     defaultExpression,
                     sources,
@@ -298,7 +298,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     indexType,
                     nullable,
                     position,
-                    COLUMN_OID_UNASSIGNED,
+                    OID_UNASSIGNED,
                     false,
                     defaultExpression,
                     indexMethod,
@@ -316,7 +316,7 @@ public class TableElementsAnalyzer implements FieldProvider<Reference> {
                     nullable,
                     hasDocValues,
                     position,
-                    COLUMN_OID_UNASSIGNED,
+                    OID_UNASSIGNED,
                     false,
                     defaultExpression
                 );

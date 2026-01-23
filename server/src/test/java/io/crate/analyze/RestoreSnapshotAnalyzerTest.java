@@ -79,7 +79,7 @@ public class RestoreSnapshotAnalyzerTest extends CrateDummyClusterServiceUnitTes
                     Settings.builder().put("location", "/tmp/my_repo").build()
             )));
         ClusterState clusterState = ClusterState.builder(new ClusterName("testing"))
-            .metadata(Metadata.builder()
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .putCustom(RepositoriesMetadata.TYPE, repositoriesMetadata))
             .build();
         ClusterServiceUtils.setState(clusterService, clusterState);

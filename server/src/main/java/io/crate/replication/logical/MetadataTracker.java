@@ -385,7 +385,8 @@ public final class MetadataTracker implements Closeable {
                     publisherTable.partitionedBy(),
                     subscriberTable.state(),
                     subscriberTable.indexUUIDs(),
-                    publisherTable.tableVersion()
+                    publisherTable.tableVersion(),
+                    subscriberTable.oid()
                 );
                 updateClusterState = true;
             }

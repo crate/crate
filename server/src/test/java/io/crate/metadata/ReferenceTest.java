@@ -23,7 +23,7 @@ package io.crate.metadata;
 
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.List;
@@ -124,7 +124,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             false,
             true,
             0,
-            COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
             false,
             Literal.of(dataType, List.of(Map.of("f", 10))
             )
@@ -213,7 +213,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             false,
             true,
             0,
-            COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
             false,
             null
         );
@@ -267,7 +267,7 @@ public class ReferenceTest extends CrateDummyClusterServiceUnitTest {
             false,
             true,
             0,
-            COLUMN_OID_UNASSIGNED,  // important! with an oid the storageIdent is the oid itself
+            OID_UNASSIGNED,  // important! with an oid the storageIdent is the oid itself
             false,
             null
         );

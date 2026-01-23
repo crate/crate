@@ -73,7 +73,7 @@ public class ClusterStateTest extends CrateDummyClusterServiceUnitTest {
         indicesRouting.put(indexMetadata.getIndex().getName(), indexRouting);
 
         ClusterState clusterState = ClusterState.builder(new ClusterName("test"))
-            .metadata(Metadata.builder()
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .put(indexMetadata, false)
                 .build())
             .routingTable(routingTableBuilder.build())

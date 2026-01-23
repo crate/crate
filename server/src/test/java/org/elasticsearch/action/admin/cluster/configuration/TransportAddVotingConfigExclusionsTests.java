@@ -133,7 +133,7 @@ public class TransportAddVotingConfigExclusionsTests extends ESTestCase {
         setState(clusterService, builder(new ClusterName("cluster"))
             .nodes(new Builder().add(localNode).add(otherNode1).add(otherNode2).add(otherDataNode)
                 .localNodeId(localNode.getId()).masterNodeId(localNode.getId()))
-            .metadata(Metadata.builder()
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .coordinationMetadata(CoordinationMetadata.builder().lastAcceptedConfiguration(allNodesConfig)
                     .lastCommittedConfiguration(allNodesConfig).build())));
 

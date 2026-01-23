@@ -61,7 +61,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCreateFirstUser() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder();
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         TransportCreateRole.putRole(mdBuilder,
             "root",
             true,
@@ -81,7 +81,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_create_user_with_matching_jwt_props_exists() throws Exception {
         // Users have different "aud" property values - still clashing as only iss/username matters.
-        Metadata.Builder mdBuilder = new Metadata.Builder();
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         TransportCreateRole.putRole(mdBuilder,
             "user1",
             true,
@@ -101,7 +101,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void test_create_user_with_existing_name_but_different_jwt_props() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder();
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         TransportCreateRole.putRole(mdBuilder,
             "user1",
             true,
@@ -120,14 +120,14 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testCreateUserAlreadyExists() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
         assertThat(TransportCreateRole.putRole(mdBuilder, "Arthur", true, null, null, Map.of())).isTrue();
     }
 
     @Test
     public void testCreateUser() throws Exception {
-        Metadata.Builder mdBuilder = new Metadata.Builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY));
         TransportCreateRole.putRole(mdBuilder, "Trillian", true, null, null, Map.of());
         RolesMetadata newMetadata = (RolesMetadata) mdBuilder.getCustom(RolesMetadata.TYPE);
@@ -138,7 +138,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
     public void test_create_user_with_old_users_metadata() throws Exception {
         var oldUsersMetadata = usersMetadataOf(DUMMY_USERS);
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         boolean res = TransportCreateRole.putRole(mdBuilder, "RoleFoo", false, null, null, Map.of());
@@ -154,7 +154,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
         var oldUsersMetadata = usersMetadataOf(DUMMY_USERS_WITHOUT_PASSWORD);
         var oldUsersPrivilegesMetadata = new UsersPrivilegesMetadata(OLD_DUMMY_USERS_PRIVILEGES);
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(UsersPrivilegesMetadata.TYPE, oldUsersPrivilegesMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
@@ -181,13 +181,13 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
 
     @Test
     public void testDropUserNoUsersAtAll() throws Exception {
-        assertThat(DropRoleTask.dropRole(Metadata.builder(), "root")).isFalse();
+        assertThat(DropRoleTask.dropRole(new Metadata.Builder(Metadata.OID_UNASSIGNED), "root")).isFalse();
     }
 
     @Test
     public void testDropNonExistingUser() throws Exception {
         boolean res = DropRoleTask.dropRole(
-                Metadata.builder().putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY)),
+                new Metadata.Builder(Metadata.OID_UNASSIGNED).putCustom(RolesMetadata.TYPE, new RolesMetadata(SINGLE_USER_ONLY)),
                 "trillian"
         );
         assertThat(res).isFalse();
@@ -196,7 +196,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void testDropUser() throws Exception {
         RolesMetadata metadata = new RolesMetadata(DUMMY_USERS);
-        Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED).putCustom(RolesMetadata.TYPE, metadata);
         boolean res = DropRoleTask.dropRole(mdBuilder, "Arthur");
         assertThat(roles(mdBuilder)).containsExactlyEntriesOf(Map.of("Ford", DUMMY_USERS.get("Ford")));
         assertThat(res).isTrue();
@@ -213,7 +213,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
             "role3", role3
         );
         RolesMetadata metadata = new RolesMetadata(roles);
-        Metadata.Builder mdBuilder = Metadata.builder().putCustom(RolesMetadata.TYPE, metadata);
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED).putCustom(RolesMetadata.TYPE, metadata);
         assertThatThrownBy(() -> DropRoleTask.dropRole(mdBuilder, "role2"))
             .isExactlyInstanceOf(IllegalArgumentException.class)
             .hasMessage("Cannot drop ROLE: role2 as it is granted on role: role3");
@@ -223,7 +223,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
     public void test_drop_user_with_old_users_metadata() throws Exception {
         var oldUsersMetadata = usersMetadataOf(DUMMY_USERS);
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(UsersMetadata.TYPE, oldUsersMetadata)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         boolean res = DropRoleTask.dropRole(mdBuilder, "Arthur");
@@ -237,7 +237,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
             "role1", RolesHelper.roleOf("role1")
         );
         RolesMetadata rolesMetadata = new RolesMetadata(roles);
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, rolesMetadata)
             .build();
         ClusterState clusterState = ClusterState.builder(clusterService.state()).metadata(metadata).build();
@@ -261,7 +261,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_alter_user_cannot_set_password_to_role() throws Exception {
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         // Set new password
         assertThatThrownBy(() -> TransportAlterRole.alterRole(
@@ -291,7 +291,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_alter_user_cannot_set_jwt_to_role() throws Exception {
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         // Set new jwt
         assertThatThrownBy(() -> TransportAlterRole.alterRole(
@@ -330,7 +330,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
             new JwtProperties("https:dummy.org", "test", null))
         );
         var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         boolean exists = TransportAlterRole.alterRole(
             mdBuilder,
@@ -366,7 +366,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
            )
         );
         var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         var newPwd = getSecureHash("new-pwd");
 
@@ -425,7 +425,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
             new JwtProperties("https:dummy.org", "test", null))
         );
         var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         boolean exists = TransportAlterRole.alterRole(
             mdBuilder,
@@ -468,7 +468,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
             new JwtProperties("john's valid iss", "john's valid username", "aud2"))
         );
         var oldRolesMetadata = new RolesMetadata(roleWithJwtAndPassword);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         assertThatThrownBy(() -> TransportAlterRole.alterRole(
             mdBuilder,
@@ -492,7 +492,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
             Map.of("search_path", "my_schema"))
         );
         var oldRolesMetadata = new RolesMetadata(role);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         boolean exists = TransportAlterRole.alterRole(
             mdBuilder,
@@ -524,7 +524,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
             Map.of("search_path", "my_schema"))
         );
         var oldRolesMetadata = new RolesMetadata(role);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         boolean exists = TransportAlterRole.alterRole(
             mdBuilder,
@@ -556,7 +556,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
             Map.of("search_path", "my_schema", "enable_hashjoin", false))
         );
         var oldRolesMetadata = new RolesMetadata(role);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         boolean exists = TransportAlterRole.alterRole(
             mdBuilder,
@@ -588,7 +588,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
             Map.of("search_path", "my_schema", "enable_hashjoin", false))
         );
         var oldRolesMetadata = new RolesMetadata(role);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         boolean exists = TransportAlterRole.alterRole(
             mdBuilder,
@@ -613,7 +613,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_cannot_set_session_settings_to_a_role() throws Exception {
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         assertThatThrownBy(() -> TransportAlterRole.alterRole(
             mdBuilder,
@@ -630,7 +630,7 @@ public class TransportRoleTest extends CrateDummyClusterServiceUnitTest {
     @Test
     public void test_cannot_reset_session_settings_to_a_role() throws Exception {
         var oldRolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES_WITHOUT_PASSWORD);
-        Metadata.Builder mdBuilder = Metadata.builder()
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .putCustom(RolesMetadata.TYPE, oldRolesMetadata);
         // Reset ALL
         assertThatThrownBy(() -> TransportAlterRole.alterRole(

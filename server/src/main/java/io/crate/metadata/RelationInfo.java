@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.Collection;
 import java.util.List;
@@ -93,7 +93,7 @@ public interface RelationInfo extends Iterable<Reference> {
             .filter(ref -> !ref.column().isSystemColumn())
             .mapToLong(Reference::oid)
             .max()
-            .orElse(COLUMN_OID_UNASSIGNED);
+            .orElse(OID_UNASSIGNED);
     }
 
     RowGranularity rowGranularity();

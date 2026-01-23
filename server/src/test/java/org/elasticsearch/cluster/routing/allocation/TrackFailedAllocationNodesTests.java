@@ -43,7 +43,7 @@ public class TrackFailedAllocationNodesTests extends ESAllocationTestCase {
     public void testTrackFailedNodes() {
         int maxRetries = MaxRetryAllocationDecider.SETTING_ALLOCATION_MAX_RETRY.get(Settings.EMPTY);
         AllocationService allocationService = createAllocationService();
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("idx").settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)

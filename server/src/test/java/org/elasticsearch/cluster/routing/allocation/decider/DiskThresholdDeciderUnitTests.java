@@ -66,7 +66,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         ClusterSettings nss = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         DiskThresholdDecider decider = new DiskThresholdDecider(Settings.EMPTY, nss);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1))
             .build();
 
@@ -125,7 +125,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         ClusterSettings nss = new ClusterSettings(Settings.EMPTY, ClusterSettings.BUILT_IN_CLUSTER_SETTINGS);
         DiskThresholdDecider decider = new DiskThresholdDecider(Settings.EMPTY, nss);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1))
             .build();
 
@@ -188,7 +188,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         DiscoveryNode node_1 = new DiscoveryNode("node_1", buildNewFakeTransportAddress(), Collections.emptyMap(),
                 new HashSet<>(DiscoveryNodeRole.BUILT_IN_ROLES), Version.CURRENT);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1))
             .build();
         final IndexMetadata indexMetadata = metadata.index("test");
@@ -291,7 +291,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
         shardSizes.put("[test/1234][2][r]", 1000L);
         shardSizes.put("[other/5678][0][p]", 10000L);
         ClusterInfo info = new DevNullClusterInfo(ImmutableOpenMap.of(), ImmutableOpenMap.of(), shardSizes.build());
-        Metadata.Builder metaBuilder = Metadata.builder();
+        Metadata.Builder metaBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         metaBuilder.put(IndexMetadata.builder("1234")
             .settings(settings(Version.CURRENT)
                 .put("index.uuid", "1234"))
@@ -404,7 +404,7 @@ public class DiskThresholdDeciderUnitTests extends ESAllocationTestCase {
 
         // Setting the creation date is important here as shards of newer indices are allocated first, see PriorityComparator
         // Shards of the source index must be allocated first, so set the highest creation date
-        Metadata.Builder metaBuilder = Metadata.builder();
+        Metadata.Builder metaBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         metaBuilder.put(IndexMetadata.builder(index.getUUID())
             .settings(settings(Version.CURRENT)
                 .put("index.uuid", index.getUUID())

@@ -51,7 +51,7 @@ public class ViewInfoFactoryTest {
         ViewsMetadata views = new ViewsMetadata(Map.of(ident.fqn(), viewMetadata));
 
         ClusterState state = ClusterState.builder(ClusterState.EMPTY_STATE)
-            .metadata(Metadata.builder().putCustom(ViewsMetadata.TYPE, views)).build();
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).putCustom(ViewsMetadata.TYPE, views)).build();
 
         // `definition` col includes a hint about an error in the view's query
         ViewInfo viewInfo = factory.create(ident, state);

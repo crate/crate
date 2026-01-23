@@ -54,7 +54,7 @@ public class TransportPrivilegesTest extends ESTestCase {
     @Test
     public void testApplyPrivilegesCreatesNewPrivilegesInstance() {
         // given
-        Metadata.Builder mdBuilder = Metadata.builder();
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         Map<String, Role> rolesMap = new HashMap<>();
         rolesMap.put("Ford", userOf("Ford", new HashSet<>(PRIVILEGES), null));
 
@@ -96,7 +96,7 @@ public class TransportPrivilegesTest extends ESTestCase {
 
     @Test
     public void test_validate_response_when_roles_do_not_exist() {
-        Metadata.Builder mdBuilder = Metadata.builder();
+        Metadata.Builder mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         var rolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
         mdBuilder.putCustom(RolesMetadata.TYPE, rolesMetadata);
 
@@ -117,7 +117,7 @@ public class TransportPrivilegesTest extends ESTestCase {
 
     @Test
     public void test_grant_revoke_user_to_another_user_is_not_allowed() {
-        var mdBuilder = Metadata.builder();
+        var mdBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         var rolesMetadata = new RolesMetadata(DUMMY_USERS_AND_ROLES);
         mdBuilder.putCustom(RolesMetadata.TYPE, rolesMetadata);
 

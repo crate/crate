@@ -21,7 +21,7 @@
 
 package io.crate.metadata.doc;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -163,6 +163,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
         );
 
         return new DocTableInfo(
+            table.oid(),
             table.name(),
             columns,
             indexColumns,
@@ -197,7 +198,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
      */
     @Deprecated
     @Nullable
-    public DocTableInfo create(IndexMetadata indexMetadata) {
+    public DocTableInfo create(IndexMetadata indexMetadata, int newTableOID) {
         String indexName = indexMetadata.getIndex().getName();
         if (IndexName.isDangling(indexName)) {
             return null;
@@ -216,7 +217,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             versionUpgraded,
             indexMetadata.getState(),
             indexMetadata.getVersion(),
-            false
+            false,
+            newTableOID
         );
     }
 
@@ -227,7 +229,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
      * See https://github.com/crate/crate/pull/17178
      */
     @Deprecated
-    public DocTableInfo create(IndexTemplateMetadata template, Metadata metadata) {
+    public DocTableInfo create(IndexTemplateMetadata template, int newTableOID) {
         RelationName relationName = RelationName.fromIndexName(template.name());
         Map<String, Object> mappingSource = IndexTemplateUpgrader.updateMapping(template.mapping());
         mappingSource = Maps.getOrDefault(mappingSource, "default", mappingSource);
@@ -245,7 +247,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             versionUpgraded,
             state,
             tableVersion == null ? 0 : tableVersion.longValue(),
-            true
+            true,
+            newTableOID
         );
     }
 
@@ -256,7 +259,8 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                                 Version versionUpgraded,
                                 State state,
                                 long tableVersion,
-                                boolean fromTemplate) {
+                                boolean fromTemplate,
+                                int tableOID) {
         final Map<String, Object> metaMap = Maps.getOrDefault(mappingSource, "_meta", Map.of());
         final List<ColumnIdent> partitionedBy = parsePartitionedByStringsList(
             Maps.getOrDefault(metaMap, "partitioned_by", List.of())
@@ -317,12 +321,13 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
             // can be wrong; inferring the correct version from partitions can also fail if old partitions
             // are deleted.
             // This is another safety mechanism. If a column doesn't have OIDs the table must be from < 5.5.0
-            if (references.values().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
+            if (references.values().stream().anyMatch(ref -> ref.oid() == OID_UNASSIGNED)) {
                 versionCreated = Version.V_5_4_0;
             }
         }
 
         return new DocTableInfo(
+            tableOID,
             relationName,
             references,
             indexColumns.entrySet().stream()
@@ -419,7 +424,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                 : Booleans.parseBoolean(docValues.toString());
 
             int position = Maps.getOrDefault(columnProperties, "position", 0);
-            Number oidNum = Maps.getOrDefault(columnProperties, "oid", COLUMN_OID_UNASSIGNED);
+            Number oidNum = Maps.getOrDefault(columnProperties, "oid", OID_UNASSIGNED);
             long oid = oidNum.longValue();
             DataType<?> elementType = ArrayType.unnest(type);
 
@@ -488,7 +493,7 @@ public class DocTableInfoFactory implements TableInfoFactory<DocTableInfo> {
                     );
                 }
             } else if (type != DataTypes.NOT_SUPPORTED) {
-                var indicesKey = oid == COLUMN_OID_UNASSIGNED ? column.fqn() : Long.toString(oid);
+                var indicesKey = oid == OID_UNASSIGNED ? column.fqn() : Long.toString(oid);
                 if (indicesMap.containsKey(indicesKey)) {
                     List<String> sources = Maps.get(columnProperties, "sources");
                     if (sources != null) {

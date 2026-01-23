@@ -64,6 +64,7 @@ import org.elasticsearch.action.ActionListener;
 import org.elasticsearch.action.bulk.BackoffPolicy;
 import org.elasticsearch.cluster.ClusterState;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.routing.RoutingNode;
 import org.elasticsearch.cluster.routing.ShardRouting;
@@ -501,7 +502,7 @@ public class IndicesService extends AbstractLifecycleComponent
             );
             closeables.add(() -> service.close("metadata verification", false));
             if (metadata.equals(metadataUpdate) == false) {
-                tableFactory.create(metadataUpdate);
+                tableFactory.create(metadataUpdate, Metadata.OID_UNASSIGNED);
                 service.updateMetadata(metadata, metadataUpdate);
             }
         } finally {

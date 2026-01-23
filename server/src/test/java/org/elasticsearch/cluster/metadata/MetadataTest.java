@@ -24,6 +24,7 @@ package org.elasticsearch.cluster.metadata;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
+import java.io.IOException;
 import java.util.List;
 
 import org.elasticsearch.Version;
@@ -44,7 +45,7 @@ public class MetadataTest {
 
     @Test
     public void test_bwc_read_writes_with_6_1_0() throws Exception {
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .columnOID(123L)
                 // builder() adds IndexGraveyard custom, which causes "can't read named writeable from StreamInput" error on reads.
                 // In production NamedWriteableAwareStreamInput is used.
@@ -64,7 +65,7 @@ public class MetadataTest {
     @Test
     public void test_cant_drop_schema_with_dependent_view() throws Exception {
         assertThatThrownBy(() ->
-            Metadata.builder()
+            new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .createSchema("foo")
                 .putCustom(
                     ViewsMetadata.TYPE,
@@ -83,7 +84,7 @@ public class MetadataTest {
     @Test
     public void test_cant_drop_schema_with_dependent_udf() throws Exception {
         assertThatThrownBy(() ->
-            Metadata.builder()
+            new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .createSchema("foo")
                 .putCustom(
                     UserDefinedFunctionsMetadata.TYPE,
@@ -98,7 +99,7 @@ public class MetadataTest {
     @Test
     public void test_cant_drop_schema_with_dependent_foreign_table() throws Exception {
         assertThatThrownBy(() ->
-            Metadata.builder()
+            new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .createSchema("foo")
                 .putCustom(
                     ForeignTablesMetadata.TYPE,
@@ -111,5 +112,53 @@ public class MetadataTest {
                 )
                 .dropSchema("foo")
         ).isExactlyInstanceOf(DependentObjectsExists.class);
+    }
+
+    @Test
+    public void test_streaming_table_oid() throws IOException {
+        int tableOID = 123;
+        Metadata metadata = Metadata.builder(tableOID)
+            // builder() adds IndexGraveyard custom, which causes "can't read named writeable from StreamInput" error on reads.
+            // In production NamedWriteableAwareStreamInput is used.
+            // Resetting it here for simplicity as it's irrelevant for the test.
+            .removeCustom(IndexGraveyard.TYPE)
+            .build();
+        assertThat(metadata.currentMaxTableOid()).isEqualTo(tableOID);
+
+        BytesStreamOutput out = new BytesStreamOutput();
+        out.setVersion(Version.fromString("6.2.0"));
+        metadata.writeTo(out);
+        var in = out.bytes().streamInput();
+        in.setVersion(Version.fromString("6.2.0"));
+        Metadata recievedMetadata = Metadata.readFrom(in);
+        assertThat(recievedMetadata.currentMaxTableOid()).isEqualTo(Metadata.OID_UNASSIGNED);
+
+        out = new BytesStreamOutput();
+        metadata.writeTo(out);
+        in = out.bytes().streamInput();
+        recievedMetadata = Metadata.readFrom(in);
+        assertThat(recievedMetadata.currentMaxTableOid()).isEqualTo(tableOID);
+
+        // diff streaming
+        Metadata prevMetadata = Metadata.builder(100)
+            .removeCustom(IndexGraveyard.TYPE)
+            .build();
+        var metadataDiff = metadata.diff(Version.CURRENT, prevMetadata);
+
+        out = new BytesStreamOutput();
+        metadataDiff.writeTo(out);
+        in = out.bytes().streamInput();
+        var receivedMetadataDiff = Metadata.readDiffFrom(in);
+        var emptyMetadata = Metadata.builder(777).build(); // check tableOID is overwritten
+        assertThat(receivedMetadataDiff.apply(emptyMetadata).currentMaxTableOid()).isEqualTo(tableOID);
+
+        out = new BytesStreamOutput();
+        out.setVersion(Version.fromString("6.2.0"));
+        metadataDiff.writeTo(out);
+        in = out.bytes().streamInput();
+        in.setVersion(Version.fromString("6.2.0"));
+        receivedMetadataDiff = Metadata.readDiffFrom(in);
+        emptyMetadata = Metadata.builder(777).build(); // check tableOID is overwritten
+        assertThat(receivedMetadataDiff.apply(emptyMetadata).currentMaxTableOid()).isEqualTo(Metadata.OID_UNASSIGNED);
     }
 }

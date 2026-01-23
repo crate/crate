@@ -24,7 +24,7 @@ package io.crate.execution.ddl.tables;
 import static io.crate.testing.Asserts.assertThat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.List;
 import java.util.Map;
@@ -73,7 +73,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             true,
             true,
             3,
-            COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
             false,
             null
         );
@@ -122,7 +122,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             IndexType.PLAIN,
             true,
             2,
-            COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
             false,
             null,
             null,
@@ -139,7 +139,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
             IndexType.PLAIN,
             true,
             3,
-            COLUMN_OID_UNASSIGNED,
+            OID_UNASSIGNED,
             false,
             null,
             null,
@@ -289,7 +289,7 @@ public class AddColumnTaskTest extends CrateDummyClusterServiceUnitTest {
         DocTableInfo newTable = new DocTableInfoFactory(e.nodeCtx).create(tbl.ident(), newState.metadata());
 
         Reference addedColumn = newTable.getReference(colToAdd.column());
-        assertThat(addedColumn).hasOid(COLUMN_OID_UNASSIGNED);
+        assertThat(addedColumn).hasOid(OID_UNASSIGNED);
     }
 
     @Test

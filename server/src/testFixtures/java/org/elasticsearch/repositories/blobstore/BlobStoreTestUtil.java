@@ -283,7 +283,7 @@ public final class BlobStoreTestUtil {
      */
     public static ClusterService mockClusterService(RepositoryMetadata metadata) {
         return mockClusterService(ClusterState.builder(ClusterState.EMPTY_STATE).metadata(
-            Metadata.builder().putCustom(RepositoriesMetadata.TYPE,
+            new Metadata.Builder(Metadata.OID_UNASSIGNED).putCustom(RepositoriesMetadata.TYPE,
                                          new RepositoriesMetadata(Collections.singletonList(metadata))).build()).build());
     }
 

@@ -24,7 +24,7 @@ package io.crate.operation.aggregation;
 import static io.crate.testing.TestingHelpers.createNodeContext;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.fail;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.index.shard.IndexShardTestCase.EMPTY_EVENT_LISTENER;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -43,6 +43,7 @@ import java.util.stream.Collectors;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.Version;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -338,7 +339,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     true,
                     true,
                     i + 1,
-                    COLUMN_OID_UNASSIGNED,
+                    OID_UNASSIGNED,
                     false,
                     null
                 )
@@ -379,7 +380,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                                      Object[][] data,
                                      List<Reference> targetColumns) throws IOException {
         DocTableInfo table = new DocTableInfo(
-            PARTITION_NAME.relationName(),
+                Metadata.OID_UNASSIGNED, PARTITION_NAME.relationName(),
             targetColumns.stream().collect(Collectors.toMap(Reference::column, r -> r)),
             Map.of(),
             Set.of(),
@@ -636,7 +637,7 @@ public abstract class AggregationTestCase extends ESTestCase {
                     true,
                     storageSupport.docValuesDefault(),
                     i + 1,
-                    COLUMN_OID_UNASSIGNED,
+                    OID_UNASSIGNED,
                     false,
                     null)
             );

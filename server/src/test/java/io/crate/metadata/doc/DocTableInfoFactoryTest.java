@@ -95,7 +95,7 @@ public class DocTableInfoFactoryTest extends ESTestCase {
                 "    }" +
                 "  }" +
                 "}");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .put(indexMetadataBuilder)
                 .build();
 
@@ -157,7 +157,7 @@ public class DocTableInfoFactoryTest extends ESTestCase {
             .numberOfShards(5)
             .putMapping(
                 mapping);
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .put(indexMetadataBuilder)
                 .put(template)
                 .build();
@@ -204,7 +204,7 @@ public class DocTableInfoFactoryTest extends ESTestCase {
             .putMapping(mapping)
             .putAlias(new AliasMetadata(tbl.indexNameOrAlias()))
             .build();
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .put(template)
                 .build();
         metadata = metadataUpgradeService.upgradeMetadata(metadata);
@@ -265,7 +265,7 @@ public class DocTableInfoFactoryTest extends ESTestCase {
             .numberOfShards(5)
             .putMapping(mapping);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(indexMetadataBuilder)
             .build();
         metadata = metadataUpgradeService.upgradeMetadata(metadata);

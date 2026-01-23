@@ -63,7 +63,7 @@ public class EnableAllocationShortCircuitTests extends ESAllocationTestCase {
             discoveryNodesBuilder.add(newNode("node" + i));
         }
 
-        final Metadata.Builder metadataBuilder = Metadata.builder();
+        final Metadata.Builder metadataBuilder = new Metadata.Builder(Metadata.OID_UNASSIGNED);
         final RoutingTable.Builder routingTableBuilder = RoutingTable.builder();
         for (int i = randomIntBetween(1, 10); i >= 0; i--) {
             final IndexMetadata indexMetadata = IndexMetadata.builder("test" + i)
@@ -157,7 +157,7 @@ public class EnableAllocationShortCircuitTests extends ESAllocationTestCase {
                 .put(CLUSTER_ROUTING_ALLOCATION_ENABLE_SETTING.getKey(), EnableAllocationDecider.Allocation.NONE.name()),
             plugin);
 
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0))
             .build();
 

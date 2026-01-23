@@ -39,7 +39,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Objects;
 import java.util.Set;
-import java.util.UUID;
 import java.util.concurrent.BrokenBarrierException;
 import java.util.concurrent.CyclicBarrier;
 import java.util.concurrent.ExecutionException;
@@ -157,7 +156,7 @@ public class TransportReplicationAllPermitsAcquisitionTests extends IndexShardTe
             indexDoc(primary, id, "{\"value\":" + id + "}");
         }
 
-        state.metadata(Metadata.builder().put(indexMetadata, false).generateClusterUuidIfNeeded());
+        state.metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED).put(indexMetadata, false).generateClusterUuidIfNeeded());
 
         replica = newShard(primary.shardId(), false, node2.getId(), indexMetadata, null);
         recoverReplica(replica, primary, true);

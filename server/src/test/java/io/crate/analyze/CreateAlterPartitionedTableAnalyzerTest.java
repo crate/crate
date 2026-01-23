@@ -69,7 +69,7 @@ public class CreateAlterPartitionedTableAnalyzerTest extends CrateDummyClusterSe
     public void prepare() throws IOException {
         String analyzerSettings = FulltextAnalyzerResolver.encodeSettings(
             Settings.builder().put("search", "foobar").build()).utf8ToString();
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .persistentSettings(
                 Settings.builder()
                     .put(ANALYZER.buildSettingName("ft_search"), analyzerSettings)

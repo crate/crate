@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -302,7 +302,7 @@ public final class SystemTable<T> implements TableInfo {
                         column.isNullable,
                         false,
                         position,
-                        COLUMN_OID_UNASSIGNED, // No oid for system tables
+                        OID_UNASSIGNED, // No oid for system tables
                         false, // Columns cannot be dropped from system tables
                         null
                     )

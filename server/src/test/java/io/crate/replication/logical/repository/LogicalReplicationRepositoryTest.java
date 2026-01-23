@@ -57,7 +57,7 @@ public class LogicalReplicationRepositoryTest {
     public void test_getRemoteClusterState_upgrades_indexMetadata() throws Exception {
         // This test basically checks RelationMetadata was created based on IndexMetadata, where RelationMetadata
         // was introduced to 6.0, which implicitly verifies the upgrade.
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test")
                 .settings(settings(Version.V_5_10_0))
                 .numberOfShards(1)

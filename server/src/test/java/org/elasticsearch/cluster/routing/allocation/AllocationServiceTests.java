@@ -101,7 +101,7 @@ public class AllocationServiceTests extends ESTestCase {
         nodesBuilder.add(new DiscoveryNode("node1", buildNewFakeTransportAddress(), Version.CURRENT));
         nodesBuilder.add(new DiscoveryNode("node2", buildNewFakeTransportAddress(), Version.CURRENT));
 
-        final Metadata.Builder metadata = Metadata.builder().put(indexMetadata("index", Settings.builder()
+        final Metadata.Builder metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED).put(indexMetadata("index", Settings.builder()
             .put(ExistingShardsAllocator.EXISTING_SHARDS_ALLOCATOR_SETTING.getKey(), "unknown")));
 
         final RoutingTable.Builder routingTableBuilder = RoutingTable.builder().addAsRecovery(metadata.get("index"));

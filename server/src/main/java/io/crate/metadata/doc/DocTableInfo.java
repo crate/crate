@@ -22,7 +22,7 @@
 package io.crate.metadata.doc;
 
 import static io.crate.expression.reference.doc.lucene.SourceParser.UNKNOWN_COLUMN_PREFIX;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -170,6 +170,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     public static final Setting<Long> DEPTH_LIMIT_SETTING =
         Setting.longSetting("index.mapping.depth.limit", 100L, 1, Property.Dynamic, Property.IndexScope);
 
+    private final int tableOID;
     private final List<Reference> rootColumns;
     private final Set<Reference> droppedColumns;
     private final List<GeneratedReference> generatedColumns;
@@ -203,7 +204,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
     private ReferenceTree refTree;     // lazily initialised
     private final long tableVersion;
 
-    public DocTableInfo(RelationName ident,
+    public DocTableInfo(int tableOID,
+                        RelationName ident,
                         Map<ColumnIdent, Reference> references,
                         Map<ColumnIdent, IndexReference> indexColumns,
                         Set<Reference> droppedColumns,
@@ -219,6 +221,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                         boolean closed,
                         Set<Operation> supportedOperations,
                         long tableVersion) {
+        this.tableOID = tableOID;
         this.notNullColumns = references.values().stream()
             .filter(r -> !r.column().isSystemColumn())
             .filter(r -> !primaryKeys.contains(r.column()))
@@ -248,7 +251,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         this.indexColumns = indexColumns;
         leafByOid = new HashMap<>();
         Stream.concat(Stream.concat(this.allColumns.values().stream(), indexColumns.values().stream()), droppedColumns.stream())
-            .filter(r -> r.oid() != COLUMN_OID_UNASSIGNED)
+            .filter(r -> r.oid() != OID_UNASSIGNED)
             .forEach(r -> leafByOid.put(Long.toString(r.oid()), r));
         this.ident = ident;
         this.pkConstraintName = pkConstraintName;
@@ -422,16 +425,16 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 .filter(ref -> !ref.column().isSystemColumn())
                 .mapToLong(Reference::oid)
                 .max()
-                .orElse(COLUMN_OID_UNASSIGNED),
+                .orElse(OID_UNASSIGNED),
             indexColumns.values().stream()
                 .mapToLong(IndexReference::oid)
                 .max()
-                .orElse(COLUMN_OID_UNASSIGNED)
+                .orElse(OID_UNASSIGNED)
         );
         long maxDropped = droppedColumns.stream()
             .mapToLong(Reference::oid)
             .max()
-            .orElse(COLUMN_OID_UNASSIGNED);
+            .orElse(OID_UNASSIGNED);
         return Math.max(maxNonDropped, maxDropped);
     }
 
@@ -899,6 +902,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             return this;
         }
         return new DocTableInfo(
+            tableOID,
             ident,
             allColumns,
             indexColumns,
@@ -971,6 +975,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         }
         newDroppedColumns.addAll(droppedColumns);
         return new DocTableInfo(
+            tableOID,
             ident,
             newReferences,
             indexColumns,
@@ -1073,6 +1078,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         var renamedPartitionedBy = Lists.map(partitionedBy, renameColumnIfMatch);
         var renamedCheckConstraints = Lists.map(checkConstraints, renameCheckConstraints);
         return new DocTableInfo(
+            tableOID,
             ident,
             renamedReferences,
             renamedIndexColumns,
@@ -1184,7 +1190,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
         metadataBuilder.setTable(
             versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION) ?
                 new OidSupplier(maxOid()) :
-                () -> Metadata.COLUMN_OID_UNASSIGNED,
+                () -> Metadata.OID_UNASSIGNED,
             ident,
             allColumns,
             tableParameters,
@@ -1196,7 +1202,8 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             partitionedBy,
             closed ? State.CLOSE : State.OPEN,
             indexUUIDs,
-            tableVersion
+            tableVersion,
+            tableOID
         );
         return metadataBuilder;
     }
@@ -1223,7 +1230,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
                 }
                 addedColumn = true;
                 // Oid is assigned in setTable
-                newReferences.put(newColumn, newRef.withOidAndPosition(() -> COLUMN_OID_UNASSIGNED, positions::incrementAndGet));
+                newReferences.put(newColumn, newRef.withOidAndPosition(() -> OID_UNASSIGNED, positions::incrementAndGet));
             } else if (undefinedRefinement(exists.valueType(), newRef.valueType())) {
                 newReferences.put(newColumn, newRef);
                 addedColumn = true;
@@ -1337,6 +1344,7 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
         }
         return new DocTableInfo(
+            tableOID,
             ident,
             newReferences,
             indexColumns,
@@ -1361,5 +1369,9 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
      **/
     public List<Reference> allReferences() {
         return Lists.concat(Lists.concat(allColumns.values(), droppedColumns), indexColumns.values());
+    }
+
+    public int tableOID() {
+        return tableOID;
     }
 }

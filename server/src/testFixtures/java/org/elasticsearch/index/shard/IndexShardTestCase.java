@@ -47,6 +47,7 @@ import org.elasticsearch.Version;
 import org.elasticsearch.action.support.PlainFuture;
 import org.elasticsearch.action.support.replication.TransportReplicationAction;
 import org.elasticsearch.cluster.metadata.IndexMetadata;
+import org.elasticsearch.cluster.metadata.Metadata;
 import org.elasticsearch.cluster.node.DiscoveryNode;
 import org.elasticsearch.cluster.node.DiscoveryNodeRole;
 import org.elasticsearch.cluster.routing.IndexShardRoutingTable;
@@ -242,7 +243,7 @@ public abstract class IndexShardTestCase extends ESTestCase {
         NodeContext nodeCtx = createNodeContext();
         DocTableInfoFactory tableFactory = new DocTableInfoFactory(nodeCtx);
         IndexMetadata indexMetadata = getIndexMetadata.get();
-        return tableFactory.create(indexMetadata);
+        return tableFactory.create(indexMetadata, Metadata.OID_UNASSIGNED);
     }
 
     protected void assertDocCount(IndexShard shard, int docDount) throws IOException {

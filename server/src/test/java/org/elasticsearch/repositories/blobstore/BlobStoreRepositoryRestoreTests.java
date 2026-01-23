@@ -178,7 +178,7 @@ public class BlobStoreRepositoryRestoreTests extends IndexShardTestCase {
                 createNodeContext(), IndexScopedSettings.DEFAULT_SCOPED_SETTINGS, null
             );
             Metadata metadata = metadataUpgradeService.upgradeMetadata(
-                Metadata.builder().put(shard.indexSettings().getIndexMetadata(), false).build()
+                new Metadata.Builder(Metadata.OID_UNASSIGNED).put(shard.indexSettings().getIndexMetadata(), false).build()
             );
 
             // snapshot the shard

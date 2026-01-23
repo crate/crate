@@ -61,7 +61,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
     @Test
     public void test_unknown_table_raises_exception() {
         var pub = new Publication("owner", false, List.of());
-        var metadata = Metadata.builder().build();
+        var metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED).build();
         var request = new TransportAlterPublication.Request(
             "pub1",
             AlterPublication.Operation.SET,
@@ -75,7 +75,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
     @Test
     public void test_set_tables_on_existing_publication() {
         var oldPublication = new Publication("owner", false, List.of(RelationName.fromIndexName("t1")));
-        var metadata = Metadata.builder()
+        var metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("t2")
                 .settings(settings(Version.CURRENT))
                 .numberOfShards(1)
@@ -99,7 +99,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
     @Test
     public void test_add_table_on_existing_publication() {
         var oldPublication = new Publication("owner", false, List.of(RelationName.fromIndexName("t1")));
-        var metadata = Metadata.builder()
+        var metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("t2")
                 .settings(settings(Version.CURRENT))
                 .numberOfShards(1)
@@ -128,7 +128,7 @@ public class TransportAlterPublicationTest extends CrateDummyClusterServiceUnitT
             false,
             List.of(RelationName.fromIndexName("t1"), RelationName.fromIndexName("t2"))
         );
-        var metadata = Metadata.builder()
+        var metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("t2")
                 .settings(settings(Version.CURRENT))
                 .numberOfShards(1)

@@ -811,7 +811,7 @@ public class CoordinationStateTests extends ESTestCase {
         return setValue(ClusterState.builder(ClusterName.DEFAULT)
             .version(version)
             .nodes(discoveryNodes)
-            .metadata(Metadata.builder()
+            .metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .clusterUUID(UUIDs.randomBase64UUID(random())) // generate cluster UUID deterministically for repeatable tests
                 .coordinationMetadata(CoordinationMetadata.builder()
                         .term(term)
@@ -856,7 +856,7 @@ public class CoordinationStateTests extends ESTestCase {
 
         void setInitialState(VotingConfiguration initialConfig, long initialValue) {
             final ClusterState.Builder builder = ClusterState.builder(state.getLastAcceptedState());
-            builder.metadata(Metadata.builder()
+            builder.metadata(new Metadata.Builder(Metadata.OID_UNASSIGNED)
                     .coordinationMetadata(CoordinationMetadata.builder()
                         .lastAcceptedConfiguration(initialConfig)
                         .lastCommittedConfiguration(initialConfig)

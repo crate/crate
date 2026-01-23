@@ -21,7 +21,7 @@ package org.elasticsearch.cluster.metadata;
 
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_CREATED;
 import static org.elasticsearch.cluster.metadata.IndexMetadata.SETTING_VERSION_UPGRADED;
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 import static org.elasticsearch.cluster.metadata.Metadata.Builder.NO_OID_COLUMN_OID_SUPPLIER;
 
 import java.util.List;
@@ -103,7 +103,7 @@ public class MetadataUpgradeService {
             assert relation == null
                 : "If there is still a template present there shouldn't be any RelationMetadata";
 
-            DocTableInfo docTable = tableFactory.create(template, metadata);
+            DocTableInfo docTable = tableFactory.create(template, newMetadata.tableOidSupplier().nextOid());
             Version versionCreated = getFixedVersionCreated(metadata, docTable);
 
             // versionCreated could be missing from the template settings and "calculated" afterwards
@@ -132,7 +132,8 @@ public class MetadataUpgradeService {
                 docTable.partitionedBy(),
                 docTable.isClosed() ? IndexMetadata.State.CLOSE : IndexMetadata.State.OPEN,
                 List.of(),
-                docTable.tableVersion()
+                docTable.tableVersion(),
+                docTable.tableOID()
             );
         }
 
@@ -157,7 +158,7 @@ public class MetadataUpgradeService {
                 RelationName relationName = indexParts.toRelationName();
                 relation = newMetadata.getRelation(relationName);
                 if (!BlobIndex.isBlobIndex(indexName)) {
-                    tableInfo = tableFactory.create(newIndexMetadata);
+                    tableInfo = tableFactory.create(newIndexMetadata, newMetadata.tableOidSupplier().nextOid());
                 }
             }
             if (relation == null) {
@@ -181,7 +182,8 @@ public class MetadataUpgradeService {
                         docTable.partitionedBy(),
                         newIndexMetadata.getState(),
                         List.of(newIndexMetadata.getIndexUUID()),
-                        docTable.tableVersion()
+                        docTable.tableVersion(),
+                        docTable.tableOID()
                     );
                 } else if (BlobIndex.isBlobIndex(indexName)) {
                     newMetadata.setBlobTable(
@@ -242,7 +244,7 @@ public class MetadataUpgradeService {
         // This does another "correction" by checking oid assignment
         // If a column doesn't have OIDs the table must be from < 5.5.0
         if (versionCreated.onOrAfter(DocTableInfo.COLUMN_OID_VERSION)) {
-            if (docTable.rootColumns().stream().anyMatch(ref -> ref.oid() == COLUMN_OID_UNASSIGNED)) {
+            if (docTable.rootColumns().stream().anyMatch(ref -> ref.oid() == OID_UNASSIGNED)) {
                 versionCreated = Version.V_5_4_0;
             }
         }
@@ -311,7 +313,7 @@ public class MetadataUpgradeService {
     @VisibleForTesting
     void checkMappingsCompatibility(IndexMetadata indexMetadata) {
         try {
-            tableFactory.create(indexMetadata);
+            tableFactory.create(indexMetadata, OID_UNASSIGNED);
 
             // We cannot instantiate real analysis server or similarity service at this point because the node
             // might not have been started yet. However, we don't really need real analyzers or similarities at

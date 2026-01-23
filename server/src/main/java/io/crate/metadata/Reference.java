@@ -21,7 +21,7 @@
 
 package io.crate.metadata;
 
-import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
+import static org.elasticsearch.cluster.metadata.Metadata.OID_UNASSIGNED;
 
 import java.io.IOException;
 import java.util.ArrayList;
@@ -114,7 +114,7 @@ public interface Reference extends Symbol, ScopedColumn {
      */
     default String storageIdent() {
         long oid = oid();
-        if (oid == COLUMN_OID_UNASSIGNED) {
+        if (oid == OID_UNASSIGNED) {
             ColumnIdent column = column();
             if (column.isRoot() == false && column.name().equals(SysColumns.Names.DOC)) {
                 column = column.shiftRight();
@@ -131,7 +131,7 @@ public interface Reference extends Symbol, ScopedColumn {
      * if no OID is assigned.
      */
     default String storageIdentLeafName() {
-        return oid() == COLUMN_OID_UNASSIGNED ? column().leafName() : Long.toString(oid());
+        return oid() == OID_UNASSIGNED ? column().leafName() : Long.toString(oid());
     }
 
     /**

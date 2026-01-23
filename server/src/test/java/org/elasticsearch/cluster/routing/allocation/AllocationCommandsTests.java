@@ -86,7 +86,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             .put("cluster.routing.allocation.node_concurrent_recoveries", 10).build());
 
         logger.info("creating an index with 1 shard, no replica");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)
@@ -151,7 +151,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         final String index = "test";
 
         logger.info("--> building initial routing table");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .put(IndexMetadata.builder(index).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1)
                     .putInSyncAllocationIds(0, Collections.singleton("asdf"))
                     .putInSyncAllocationIds(1, Collections.singleton("qwertz")))
@@ -286,7 +286,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         final String index = "test";
 
         logger.info("--> building initial routing table");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder(index).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1)
                 .putInSyncAllocationIds(0, Collections.singleton("asdf")).putInSyncAllocationIds(1, Collections.singleton("qwertz")))
             .build();
@@ -336,7 +336,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
                 .build());
 
         logger.info("--> building initial routing table");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
                 .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1))
                 .build();
         RoutingTable routingTable = RoutingTable.builder()
@@ -578,7 +578,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
 
         logger.info("creating an index with 1 shard, no replica");
         String indexUUID = UUIDs.randomBase64UUID();
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder(indexUUID).settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0).indexName("test"))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
@@ -620,7 +620,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
             .put("cluster.routing.allocation.node_concurrent_recoveries", 10).build());
 
         logger.info("creating an index with 1 shard, no replica");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(0))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
@@ -667,7 +667,7 @@ public class AllocationCommandsTests extends ESAllocationTestCase {
         final String index2 = "test2";
         final String index3 = "test3";
         logger.info("--> building initial routing table");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder(index1).settings(
                 Settings.builder()
                     .put(IndexMetadata.SETTING_VERSION_CREATED, Version.CURRENT)

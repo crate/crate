@@ -101,7 +101,8 @@ public class MetadataTrackerTest extends ESTestCase {
                 .build();
 
             String indexUUID = UUIDs.randomBase64UUID();
-            Metadata metadata = Metadata.builder(clusterState.metadata())
+            var mdBuilder = Metadata.builder(clusterState.metadata());
+            Metadata metadata = mdBuilder
                 .setTable(
                     relationName,
                     columns,
@@ -114,8 +115,8 @@ public class MetadataTrackerTest extends ESTestCase {
                     List.of(),
                     IndexMetadata.State.OPEN,
                     List.of(indexUUID),
-                    1L
-                )
+                    1L,
+                    mdBuilder.tableOidSupplier().nextOid())
                 .build();
 
             clusterState = ClusterState.builder(clusterState)
@@ -170,7 +171,8 @@ public class MetadataTrackerTest extends ESTestCase {
         }
 
         public Builder addPartitionedTable(RelationName relationName, List<PartitionName> partitions) throws IOException {
-            Metadata metadata = Metadata.builder(clusterState.metadata())
+            var mdBuilder = Metadata.builder(clusterState.metadata());
+            Metadata metadata = mdBuilder
                 .setTable(
                     relationName,
                     buildReferences(relationName, Map.of("p1", 1)),
@@ -185,8 +187,8 @@ public class MetadataTrackerTest extends ESTestCase {
                     List.of(ColumnIdent.of("p1")),
                     IndexMetadata.State.OPEN,
                     List.of(),
-                    1L
-                )
+                    1L,
+                    mdBuilder.tableOidSupplier().nextOid())
                 .build();
 
             clusterState = ClusterState.builder(clusterState)
@@ -222,8 +224,8 @@ public class MetadataTrackerTest extends ESTestCase {
                     table.partitionedBy(),
                     table.state(),
                     table.indexUUIDs(),
-                    table.tableVersion() + 1
-                )
+                    table.tableVersion() + 1,
+                    table.oid())
                 .build();
 
             DocTableInfoFactory docTableInfoFactory = new DocTableInfoFactory(createNodeContext());
@@ -257,8 +259,8 @@ public class MetadataTrackerTest extends ESTestCase {
                 table.partitionedBy(),
                 table.state(),
                 table.indexUUIDs(),
-                table.tableVersion() + 1L
-            );
+                table.tableVersion() + 1L,
+                table.oid());
 
             for (String indexUUID : table.indexUUIDs()) {
                 var indexMetadata = clusterState.metadata().index(indexUUID);
@@ -342,7 +344,7 @@ public class MetadataTrackerTest extends ESTestCase {
                                                                            String publicationName) {
         PublicationsMetadata publicationsMetadata = publisherState.metadata().custom(PublicationsMetadata.TYPE);
         Publication publication = publicationsMetadata.publications().get(publicationName);
-        Metadata.Builder mdBuilder = Metadata.builder();
+        Metadata.Builder mdBuilder = Metadata.builder(publisherState.metadata().currentMaxTableOid());
         publication.resolveCurrentRelations(
             publisherState,
             () -> List.of(CRATE_USER),

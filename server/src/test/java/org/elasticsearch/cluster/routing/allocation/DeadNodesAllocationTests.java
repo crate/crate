@@ -48,7 +48,7 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
                                                                    .build());
 
         logger.info("--> building initial routing table");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
@@ -96,7 +96,7 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
                                                                    .build());
 
         logger.info("--> building initial routing table");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
@@ -166,7 +166,7 @@ public class DeadNodesAllocationTests extends ESAllocationTestCase {
                                                                    .build());
 
         logger.info("--> building initial routing table");
-        Metadata metadata = Metadata.builder()
+        Metadata metadata = new Metadata.Builder(Metadata.OID_UNASSIGNED)
             .put(IndexMetadata.builder("test").settings(settings(Version.CURRENT)).numberOfShards(1).numberOfReplicas(1))
             .build();
         RoutingTable routingTable = RoutingTable.builder()
