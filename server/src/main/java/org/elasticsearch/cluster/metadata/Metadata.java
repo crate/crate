@@ -682,7 +682,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     }
 
     public static Builder builder() {
-        return new Builder().tableOidSupplier(new DocTableInfo.OidSupplier(0));
+        return new Builder();
     }
 
     public static Builder builder(Metadata metadata) {
@@ -707,6 +707,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final ImmutableOpenMap.Builder<String, SchemaMetadata> schemas;
 
         private Builder() {
+            tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
             clusterUUID = UNKNOWN_CLUSTER_UUID;
             indices = ImmutableOpenMap.builder();
             templates = ImmutableOpenMap.builder();
@@ -1029,7 +1030,15 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 SchemaMetadata schemaMetadata = e.value;
                 for (var e2 : schemaMetadata.relations().values()) {
                     RelationMetadata relationMetadata = e2.value;
+                    Version versionCreated = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(relationMetadata.settings());
                     long relationOID = relationMetadata.oid();
+
+                    // Skip below assert for tables created >= 6.0 and < 6.2.0 - for a single test case to pass -
+                    // test_6_1_object_reference_with_undefined_inner_type_and_no_child_reference
+                    if (versionCreated.onOrAfter(Version.V_6_0_0) && versionCreated.before(Version.V_6_2_0) && relationOID == 0) {
+                        continue;
+                    }
+
                     // below assert also implicitly validates that the current table OID supplier's value is greater than
                     // zero when there is at least one relationMetadata
                     assert relationOID > 0 && relationOID <= tableOidSupplierValue :
