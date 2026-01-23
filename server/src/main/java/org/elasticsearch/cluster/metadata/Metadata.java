@@ -96,7 +96,7 @@ import io.crate.sql.tree.ColumnPolicy;
 public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
     private static final Logger LOGGER = LogManager.getLogger(Metadata.class);
-    public static final long TABLE_OID_UNASSIGNED = -1L; // signals nextTableOID in Metadata is invalid
+    public static final long TABLE_OID_UNASSIGNED = 0L;
     public static final long COLUMN_OID_UNASSIGNED = 0L;
 
     public static final String ALL = "_all";
@@ -137,7 +137,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     public static final ClusterBlock CLUSTER_READ_ONLY_ALLOW_DELETE_BLOCK = new ClusterBlock(13, "cluster read-only / allow delete (api)",
         false, false, true, HttpErrorStatus.RELATION_READ_DELETE_ONLY, EnumSet.of(ClusterBlockLevel.WRITE, ClusterBlockLevel.METADATA_WRITE));
 
-    public static final Metadata EMPTY_METADATA = new Metadata.Builder().nextTableOID(0).build();
+    public static final Metadata EMPTY_METADATA = Metadata.builder().tableOidSupplier(new DocTableInfo.OidSupplier(TABLE_OID_UNASSIGNED)).build();
 
     public static final String CONTEXT_MODE_PARAM = "context_mode";
 
@@ -154,7 +154,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
     private final long version;
     @Deprecated
     private final long columnOID;
-    private final long tableOID;
+    private final DocTableInfo.OidSupplier tableOidSupplier;
 
     private final CoordinationMetadata coordinationMetadata;
 
@@ -177,7 +177,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
              boolean clusterUUIDCommitted,
              long version,
              long columnOID,
-             long tableOID,
+             DocTableInfo.OidSupplier tableOidSupplier,
              CoordinationMetadata coordinationMetadata,
              Settings transientSettings,
              Settings persistentSettings,
@@ -190,7 +190,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         this.clusterUUIDCommitted = clusterUUIDCommitted;
         this.version = version;
         this.columnOID = columnOID;
-        this.tableOID = tableOID;
+        this.tableOidSupplier = tableOidSupplier;
         this.coordinationMetadata = coordinationMetadata;
         this.transientSettings = transientSettings;
         this.persistentSettings = persistentSettings;
@@ -236,9 +236,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         return this.columnOID;
     }
 
-    // Returns the max value of OIDs already taken
-    public long tableOID() {
-        return this.tableOID;
+    public DocTableInfo.OidSupplier tableOidSupplier() {
+        return this.tableOidSupplier;
     }
 
     public String clusterUUID() {
@@ -475,7 +474,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
         private final long version;
         private final long columnOID;
-        private final long tableOID;
+        private final DocTableInfo.OidSupplier tableOidSupplier;
 
         private final String clusterUUID;
         private final boolean clusterUUIDCommitted;
@@ -488,7 +487,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final Diff<ImmutableOpenMap<String, SchemaMetadata>> schemas;
 
         MetadataDiff(Version v, Metadata before, Metadata after) {
-            tableOID = after.tableOID;
+            tableOidSupplier = after.tableOidSupplier;
             clusterUUID = after.clusterUUID;
             clusterUUIDCommitted = after.clusterUUIDCommitted;
             version = after.version;
@@ -519,9 +518,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 columnOID = COLUMN_OID_UNASSIGNED;
             }
             if (in.getVersion().after(Version.V_6_2_0)) {
-                tableOID = in.readLong();
+                tableOidSupplier = new DocTableInfo.OidSupplier(in.readLong());
             } else {
-                tableOID = Metadata.TABLE_OID_UNASSIGNED;
+                tableOidSupplier = new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED);
             }
             coordinationMetadata = new CoordinationMetadata(in);
             transientSettings = Settings.readSettingsFromStream(in);
@@ -550,7 +549,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 out.writeLong(columnOID);
             }
             if (out.getVersion().after(Version.V_6_2_0)) {
-                out.writeLong(tableOID);
+                out.writeLong(tableOidSupplier.peek());
             }
             coordinationMetadata.writeTo(out);
             Settings.writeSettingsToStream(out, transientSettings);
@@ -570,7 +569,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             builder.clusterUUIDCommitted(clusterUUIDCommitted);
             builder.version(version);
             builder.columnOID(columnOID);
-            builder.nextTableOID(tableOID);
+            builder.tableOidSupplier(tableOidSupplier);
             builder.coordinationMetadata(coordinationMetadata);
             builder.transientSettings(transientSettings);
             builder.persistentSettings(persistentSettings);
@@ -589,7 +588,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             builder.columnOID(in.readLong());
         }
         if (in.getVersion().after(Version.V_6_2_0)) {
-            builder.nextTableOID(in.readLong());
+            builder.tableOidSupplier(new DocTableInfo.OidSupplier(in.readLong()));
+        } else {
+            builder.tableOidSupplier(new DocTableInfo.OidSupplier(Metadata.TABLE_OID_UNASSIGNED));
         }
         builder.clusterUUID = in.readString();
         builder.clusterUUIDCommitted = in.readBoolean();
@@ -633,7 +634,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             out.writeLong(columnOID);
         }
         if (out.getVersion().after(Version.V_6_2_0)) {
-            out.writeLong(tableOID);
+            out.writeLong(tableOidSupplier.peek());
         }
         out.writeString(clusterUUID);
         out.writeBoolean(clusterUUIDCommitted);
@@ -680,9 +681,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
     }
 
-    // WARNING: Cannot persist the Metadata built from this unless Metadata.nextTableOID is correctly set.
     public static Builder builder() {
-        return new Builder().nextTableOID(TABLE_OID_UNASSIGNED);
+        return new Builder();
     }
 
     public static Builder builder(Metadata metadata) {
@@ -696,7 +696,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private boolean clusterUUIDCommitted;
         private long version;
         private long columnOID;
-        private long nextTableOID;
+        private DocTableInfo.OidSupplier tableOidSupplier;
         private CoordinationMetadata coordinationMetadata = CoordinationMetadata.EMPTY_METADATA;
         private Settings transientSettings = Settings.EMPTY;
         private Settings persistentSettings = Settings.EMPTY;
@@ -707,7 +707,6 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         private final ImmutableOpenMap.Builder<String, SchemaMetadata> schemas;
 
         private Builder() {
-            nextTableOID = TABLE_OID_UNASSIGNED;
             clusterUUID = UNKNOWN_CLUSTER_UUID;
             indices = ImmutableOpenMap.builder();
             templates = ImmutableOpenMap.builder();
@@ -718,7 +717,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
         }
 
         public Builder(Metadata metadata) {
-            this.nextTableOID = metadata.tableOID;
+            this.tableOidSupplier = metadata.tableOidSupplier;
             this.clusterUUID = metadata.clusterUUID;
             this.clusterUUIDCommitted = metadata.clusterUUIDCommitted;
             this.coordinationMetadata = metadata.coordinationMetadata;
@@ -817,9 +816,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return Metadata.getRelation(relation, schemas::get);
         }
 
-        public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state) {
-            // TODO: fix
-            setRelation(new RelationMetadata.BlobTable(nextTableOID, name, indexUUID, settings, state));
+        public Builder setBlobTable(RelationName name, String indexUUID, Settings settings, State state, long tableOID) {
+            setRelation(new RelationMetadata.BlobTable(tableOID, name, indexUUID, settings, state));
             return this;
         }
 
@@ -951,8 +949,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
             return this;
         }
 
-        public Builder nextTableOID(long nextTableOID) {
-            this.nextTableOID = nextTableOID;
+        public Builder tableOidSupplier(DocTableInfo.OidSupplier tableOidSupplier) {
+            this.tableOidSupplier = tableOidSupplier;
             return this;
         }
 
@@ -1007,12 +1005,14 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
 
             SortedMap<String, AliasOrIndex> aliasAndIndexLookup = Collections.unmodifiableSortedMap(buildAliasAndIndexLookup());
 
+            assert tableOidSupplier != null : "not null";
+            //TODO: check that nextTableOID >= max tableOIDs currently assigned
             return new Metadata(
                 clusterUUID,
                 clusterUUIDCommitted,
                 version,
                 columnOID,
-                nextTableOID,
+                tableOidSupplier,
                 coordinationMetadata,
                 transientSettings,
                 persistentSettings,
@@ -1116,8 +1116,8 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                         builder.version = parser.longValue();
                     } else if ("column_oid".equals(currentFieldName)) {
                         builder.columnOID = parser.longValue();
-                    } else if ("next_table_oid".equals(currentFieldName)) {
-                        builder.nextTableOID = parser.longValue();
+                    } else if ("table_oid".equals(currentFieldName)) { // TODO: where is the version for writing?
+                        builder.tableOidSupplier = new DocTableInfo.OidSupplier(parser.longValue());
                     } else if ("cluster_uuid".equals(currentFieldName) || "uuid".equals(currentFieldName)) {
                         builder.clusterUUID = parser.text();
                     } else if ("cluster_uuid_committed".equals(currentFieldName)) {
@@ -1128,6 +1128,9 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 } else {
                     throw new IllegalArgumentException("Unexpected token " + token);
                 }
+            }
+            if (builder.tableOidSupplier == null) { // TODO: is this needed?
+                builder.tableOidSupplier = new DocTableInfo.OidSupplier(TABLE_OID_UNASSIGNED);
             }
             return builder.build();
         }
@@ -1198,7 +1201,7 @@ public class Metadata implements Iterable<IndexMetadata>, Diffable<Metadata> {
                 tableVersion
             );
             setRelation(table);
-            nextTableOID(tableOID);
+            tableOidSupplier(tableOidSupplier);
             return this;
         }
 

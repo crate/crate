@@ -311,6 +311,10 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             next++;
             return next;
         }
+
+        public long peek() {
+            return next;
+        }
     }
 
     /**

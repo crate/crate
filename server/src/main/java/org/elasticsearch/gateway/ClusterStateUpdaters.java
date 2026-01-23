@@ -128,7 +128,7 @@ public final class ClusterStateUpdaters {
                 blocks.removeIndexBlocks(indexMetadata.getIndex().getUUID());
             }
             final Metadata metadata = Metadata.builder()
-                    .nextTableOID(state.metadata().tableOID())
+                    .tableOidSupplier(state.metadata().tableOidSupplier())
                     .clusterUUID(state.metadata().clusterUUID())
                     .coordinationMetadata(state.metadata().coordinationMetadata())
                     .build();

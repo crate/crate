@@ -969,7 +969,7 @@ public class SQLExecutor {
         ).build();
 
         Metadata.Builder mdBuilder = Metadata.builder(prevState.metadata())
-            .setBlobTable(relationName, indexMetadata.getIndexUUID(), settings, State.OPEN)
+            .setBlobTable(relationName, indexMetadata.getIndexUUID(), settings, State.OPEN, prevState.metadata().tableOidSupplier().getAsLong())
             .put(indexMetadata, true);
         ClusterState state = ClusterState.builder(prevState)
             .metadata(mdBuilder)
