@@ -608,6 +608,52 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
     }
 
     @Test
+    public void test_added_null_sub_column_doesnt_propagate_its_undefined_type_if_parent_has_concrete_type() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (a int))");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        // Imitate dynamic mapping update of an existing typed sub-column
+        // It can happen when one shard is collecting schema updates
+        // and is not aware yet about schema updates done by another shard.
+        SimpleReference overwritingTypedCol = new SimpleReference(
+            new ReferenceIdent(table.ident(), ColumnIdent.of("o", List.of("a"))),
+            RowGranularity.DOC,
+            DataTypes.UNDEFINED,
+            -1,
+            null
+        );
+
+        // It's important to have at least one non-existing column,
+        // so that addNewReferences returns true and we don't short circuit.
+        // This way we ensure that we hit parent propagation logic.
+        SimpleReference dummyNewCol = new SimpleReference(
+            new ReferenceIdent(table.ident(), ColumnIdent.of("o", List.of("b"))),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            -2,
+            null
+        );
+        DocTableInfo newTable = table.addColumns(
+            e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
+            List.of(overwritingTypedCol, dummyNewCol),
+            new IntArrayList(),
+            Map.of()
+        );
+
+        ObjectType innerObject = (ObjectType) ArrayType.unnest(
+            newTable
+            .getReference(ColumnIdent.of("o"))
+            .valueType()
+        );
+
+        // Type of sub-column "a" must not be overwritten to undefined.
+        assertThat(innerObject.innerType("a")).isEqualTo(DataTypes.INTEGER);
+        assertThat(innerObject.innerType("b")).isEqualTo(DataTypes.INTEGER);
+    }
+
+    @Test
     public void test_add_columns_fails_eagerly_on_too_many_columns() throws Exception {
         SQLExecutor e = SQLExecutor.of(clusterService)
             .addTable("create table tbl (x int) with (\"mapping.total_fields.limit\" = 3)");
