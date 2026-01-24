@@ -23,7 +23,6 @@ package io.crate.metadata.doc;
 
 import static io.crate.testing.Asserts.assertThat;
 import static java.util.Collections.singletonList;
-import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.elasticsearch.cluster.metadata.Metadata.COLUMN_OID_UNASSIGNED;
 
@@ -616,6 +615,54 @@ public class DocTableInfoTest extends CrateDummyClusterServiceUnitTest {
         assertThat(newTable.getReference(ColumnIdent.of("o")))
             .hasName("o")
             .hasType(oType);
+    }
+
+    @Test
+    public void test_added_null_sub_column_doesnt_propagate_its_undefined_type_if_parent_has_concrete_type() throws Exception {
+        SQLExecutor e = SQLExecutor.of(clusterService)
+            .addTable("create table tbl (o object as (a int))");
+        DocTableInfo table = e.resolveTableInfo("tbl");
+
+        // Imitate dynamic mapping update of an existing typed sub-column
+        // It can happen when one shard is collecting schema updates
+        // and is not aware yet about schema updates done by another shard.
+        SimpleReference overwritingTypedCol = new SimpleReference(
+            table.ident(),
+            ColumnIdent.of("o", List.of("a")),
+            RowGranularity.DOC,
+            DataTypes.UNDEFINED,
+            -1,
+            null
+        );
+
+        // It's important to have at least one non-existing column,
+        // so that addNewReferences returns true and we don't short circuit.
+        // This way we ensure that we hit parent propagation logic.
+        SimpleReference dummyNewCol = new SimpleReference(
+            table.ident(),
+            ColumnIdent.of("o", List.of("b")),
+            RowGranularity.DOC,
+            DataTypes.INTEGER,
+            -2,
+            null
+        );
+        DocTableInfo newTable = table.addColumns(
+            e.nodeCtx,
+            e.fulltextAnalyzerResolver(),
+            List.of(overwritingTypedCol, dummyNewCol),
+            new IntArrayList(),
+            Map.of()
+        );
+
+        ObjectType innerObject = (ObjectType) ArrayType.unnest(
+            newTable
+            .getReference(ColumnIdent.of("o"))
+            .valueType()
+        );
+
+        // Type of sub-column "a" must not be overwritten to undefined.
+        assertThat(innerObject.innerType("a")).isEqualTo(DataTypes.INTEGER);
+        assertThat(innerObject.innerType("b")).isEqualTo(DataTypes.INTEGER);
     }
 
     @Test

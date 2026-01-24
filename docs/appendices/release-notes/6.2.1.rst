@@ -109,3 +109,8 @@ Fixes
       ) AS obj_arr
     ) AS sub1
     --> now returns 'correct_id' instead of returning 'wrong_id'
+
+- Fixed a regression introduced in ref:`version_6.2.0` that caused inserts to
+  fail with a ``UnsupportedFeatureException`` error if a sub-column of a
+  ``OBJECT`` typed column, previously created with a ``NULL`` value, is then
+  inserted using a non-NULL value and such using a concrete data type.
