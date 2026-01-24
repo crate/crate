@@ -867,9 +867,22 @@ public class DocTableInfo implements TableInfo, ShardedTable, StoredTable {
             }
             DataType<?> newParentType = ArrayType.updateLeaf(
                 parentRef.valueType(),
-                leaf -> childType[0] == null ?
-                    ((ObjectType) leaf).withoutChild(child[0].leafName()) :
-                    ((ObjectType) leaf).withChild(child[0].leafName(), childType[0])
+                leaf -> {
+                    ObjectType objType = (ObjectType) leaf;
+                    if (childType[0] == null) {
+                        return objType.withoutChild(child[0].leafName());
+                    } else {
+                        DataType<?> currentInnerType = objType.innerTypes().get(child[0].leafName());
+                        if (currentInnerType != null
+                            && staleUndefined(currentInnerType, childType[0])) {
+                            // We shouldn't propagate undefined type
+                            // if parent column has a concrete type for the same sub-column.
+                            return objType;
+                        } else {
+                            return objType.withChild(child[0].leafName(), childType[0]);
+                        }
+                    }
+                }
             );
             Reference updatedParent = parentRef.withValueType(newParentType);
             newReferences.replace(parent, updatedParent);
