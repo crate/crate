@@ -617,7 +617,6 @@ public class RestoreService implements ClusterStateApplier {
                     table.tableVersion(),
                     table.oid()
                 );
-                mdBuilder.tableOidSupplier(currentMetadata.tableOidSupplier());
             } else if (existingRelation == null) {
                 if (snapshotRelation instanceof RelationMetadata.Table table) {
                     LongSupplier columnOidSupplier = IndexMetadata.SETTING_INDEX_VERSION_CREATED.get(table.settings())
@@ -641,9 +640,8 @@ public class RestoreService implements ClusterStateApplier {
                         table.state(),
                         indexUUIDs,
                         table.tableVersion(),
-                        table.tableOID()
+                        currentMetadata.tableOidSupplier().getAsLong() // adding a new table - existingRelation == null
                     );
-                    mdBuilder.tableOidSupplier(snapshotMetadata.tableOidSupplier());
                 }
             } else {
                 throw new IllegalArgumentException(String.format(
