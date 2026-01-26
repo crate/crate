@@ -113,3 +113,32 @@ Fixes
   :ref:`user defined functions <user-defined-functions>`, even if they lacked
   privileges on the schema under which a ``UDF`` is defined. Now ``DQL``
   :ref:`privilege <administration-privileges>` on the schema is required.
+
+- Fixed a regression introduced in :ref:`version_6.0.0` that caused statements
+  ``SELECT unnest(obj['arr'])['subcol']`` to fail with a ``ClassCastException``
+  if ``obj`` column had a type :ref:`IGNORED <type-object-columns-ignored>`
+  and ``subcol`` was missing in the record. Error was thrown regardless of the
+  value specified in :ref:`conf-session-error_on_unknown_object_key`.
+  Now it returns ``NULL`` if :ref:`conf-session-error_on_unknown_object_key` is
+  set to ``false`` and throws ``ColumnUnknownException`` if it has default
+  value ``true``.
+
+- Improved error message thrown when providing empty value for configuration
+  settings, e.g.:
+
+      $> bin/crate -Cauth.host_based.enabled
+      $> bin/crate -Cauth.host_based.enabled=
+
+- Fixed an issue that caused incorrect results when using an ``Anti-Join``
+  (``WHERE NOT EXISTS``) with a ``WHERE`` clause containing ``BOOLEAN`` typed
+  columns combined by an ``OR`` operator. Example::
+
+    SELECT * FROM t1 WHERE NOT EXISTS
+      (SELECT 1 FROM (SELECT c2 FROM t1 WHERE bool_col) AS sub0
+       WHERE t1.bool_col OR t1.bool_col);
+
+- Fixed a regression introduced in :ref:`version_6.0.0` with upgrade to
+  Lucene 10.2 that caused increase in IOPS and slow recovery times on node
+  restarts. Flag mentioned in :ref:`version_6.0.0_breaking_changes` and
+  :ref:`version_6.1.0_breaking_changes` is already set to ``NORMAL`` starting
+  from this version and won't be needed at all starting from CrateDB 6.2.0.

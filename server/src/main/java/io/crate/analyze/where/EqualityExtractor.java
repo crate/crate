@@ -50,6 +50,7 @@ import io.crate.expression.predicate.NotPredicate;
 import io.crate.expression.symbol.Function;
 import io.crate.expression.symbol.Literal;
 import io.crate.expression.symbol.MatchPredicate;
+import io.crate.expression.symbol.OuterColumn;
 import io.crate.expression.symbol.Symbol;
 import io.crate.expression.symbol.SymbolType;
 import io.crate.expression.symbol.SymbolVisitor;
@@ -394,7 +395,7 @@ public class EqualityExtractor {
             private boolean isUnderOrOperator = false;
             private boolean foundNonPKColumnUnderOr = false;
             private boolean foundPKColumnUnderOr = false;
-            private boolean isUnderLogicalOperator = false;
+            private String lastProcessedFunctionName = null;
 
             private Context(Collection<ColumnIdent> references) {
                 comparisons = LinkedHashMap.newLinkedHashMap(references.size());
@@ -424,6 +425,14 @@ public class EqualityExtractor {
         }
 
         @Override
+        public Symbol visitOuterColumn(OuterColumn outerColumn, Context ctx) {
+            if (ctx.isUnderOrOperator) {
+                ctx.foundNonPKColumnUnderOr = true;
+            }
+            return outerColumn;
+        }
+
+        @Override
         public Symbol visitReference(Reference ref, Context ctx) {
             var comparison = ctx.comparisons.get(ref.column());
             if (comparison != null) {
@@ -436,9 +445,7 @@ public class EqualityExtractor {
 
                 // A boolean PK column must be treated as col = true and add another one comparison.
                 // Otherwise, we might not create a DocKey with value TRUE if it's not added in other parts of the expression.
-                // This should be done only for columns under logical operator,
-                // to avoid transforming 'x = literal' to 'EqProxy(x = true) = literal'
-                if (ref.valueType().equals(DataTypes.BOOLEAN) && ctx.isUnderLogicalOperator) {
+                if (processStandaloneBoolean(ref, ctx)) {
                     // Duplicate entries are eliminated in comparison.add() method.
                     ctx.proxyBelow = true;
                     return comparison.add(
@@ -455,19 +462,33 @@ public class EqualityExtractor {
             return super.visitReference(ref, ctx);
         }
 
+        private static boolean processStandaloneBoolean(Reference ref, Context ctx) {
+            if (ref.valueType().equals(DataTypes.BOOLEAN) == false) {
+                return false;
+            }
+            if (ctx.lastProcessedFunctionName == null) {
+                // standalone reference
+                return true;
+            }
+            return Operators.LOGICAL_OPERATORS.contains(ctx.lastProcessedFunctionName);
+        }
+
         @Override
         public Symbol visitFunction(Function function, Context ctx) {
             String functionName = function.name();
             List<Symbol> arguments = function.arguments();
             boolean prevIsUnderNotPredicate = ctx.isUnderNotPredicate;
 
-            ctx.isUnderLogicalOperator = false;
+            String prevFunctionName = ctx.lastProcessedFunctionName;
+            ctx.lastProcessedFunctionName = functionName;
+
             if (functionName.equals(EqOperator.NAME)) {
                 Symbol firstArg = arguments.get(0).accept(this, ctx);
                 if (firstArg instanceof Reference ref && arguments.get(1).any(Symbol.IS_COLUMN) == false) {
                     Comparison comparison = ctx.comparisons.get(ref.column());
                     if (comparison != null) {
                         ctx.proxyBelow = true;
+                        ctx.lastProcessedFunctionName = prevFunctionName;
                         return comparison.add(function);
                     }
                 }
@@ -478,11 +499,11 @@ public class EqualityExtractor {
                     Comparison comparison = ctx.comparisons.get(ref.column());
                     if (comparison != null) {
                         ctx.proxyBelow = true;
+                        ctx.lastProcessedFunctionName = prevFunctionName;
                         return comparison.add(function);
                     }
                 }
             } else if (Operators.LOGICAL_OPERATORS.contains(functionName)) {
-                ctx.isUnderLogicalOperator = true;
                 switch (functionName) {
                     case OrOperator.NAME -> ctx.isUnderOrOperator = true;
                     case NotPredicate.NAME -> ctx.isUnderNotPredicate = true;
@@ -501,17 +522,21 @@ public class EqualityExtractor {
                     newArgs.add(arg.accept(this, ctx));
                     proxyBelowPost = ctx.proxyBelow || proxyBelowPost;
                 }
+
+                ctx.isUnderNotPredicate = prevIsUnderNotPredicate;
+                ctx.proxyBelow = proxyBelowPost;
+                ctx.lastProcessedFunctionName = prevFunctionName;
+
                 if ((ctx.foundPKColumnUnderOr && ctx.foundNonPKColumnUnderOr) || ctx.foundPKColumnUnderNot) {
                     return Literal.BOOLEAN_FALSE;
                 }
-                ctx.isUnderNotPredicate = prevIsUnderNotPredicate;
-                ctx.proxyBelow = proxyBelowPost;
-                if (!ctx.proxyBelow && function.valueType().equals(DataTypes.BOOLEAN)) {
+                if (!ctx.proxyBelow) {
                     return Literal.BOOLEAN_TRUE;
                 }
                 return new Function(function.signature(), newArgs, function.valueType());
             }
             ctx.unknowns.add(function);
+            ctx.lastProcessedFunctionName = prevFunctionName;
             return Literal.BOOLEAN_TRUE;
         }
     }

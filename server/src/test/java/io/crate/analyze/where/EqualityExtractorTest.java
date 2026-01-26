@@ -34,6 +34,8 @@ import org.junit.Test;
 
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.DocTableRelation;
+import io.crate.analyze.relations.FullQualifiedNameFieldProvider;
+import io.crate.analyze.relations.ParentRelations;
 import io.crate.analyze.relations.TableRelation;
 import io.crate.common.unit.TimeValue;
 import io.crate.exceptions.JobKilledException;
@@ -45,6 +47,7 @@ import io.crate.metadata.RelationName;
 import io.crate.metadata.doc.DocSchemaInfo;
 import io.crate.metadata.doc.DocTableInfo;
 import io.crate.metadata.settings.CoordinatorSessionSettings;
+import io.crate.role.Role;
 import io.crate.session.Session;
 import io.crate.test.integration.CrateDummyClusterServiceUnitTest;
 import io.crate.testing.SQLExecutor;
@@ -532,8 +535,68 @@ public class EqualityExtractorTest extends CrateDummyClusterServiceUnitTest {
             s -> assertThat(s).satisfiesExactly(isLiteral(true)),
             s -> assertThat(s).satisfiesExactly(isLiteral(null))
         );
+
+        matches = analyzeExact(ee, query(expressions, "b"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(true))
+        );
+
+        matches = analyzeExact(ee, query(expressions, "true and b"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).satisfiesExactlyInAnyOrder(
+            s -> assertThat(s).satisfiesExactly(isLiteral(true))
+        );
+
+        // PK extraction is not possible for AND expressions that ALWAYS evaluate to false, query must always return no results
+        matches = analyzeExact(ee, query(expressions, "false and b"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).isNull();
+
+        // PK extraction is not possible for NOT expressions in general (although it could work for boolean columns)
+        matches = analyzeExact(ee, query(expressions, "NOT b"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).isNull();
     }
 
+    @Test
+    public void test_no_pk_extraction_if_contains_outer_column() {
+        DocTableInfo tableInfo = SQLExecutor.tableInfo(
+            new RelationName(DocSchemaInfo.NAME, "t1"),
+            "create table t1 (b boolean, primary key(b))",
+            clusterService
+        );
+        DocTableInfo tableInfoOuter = SQLExecutor.tableInfo(
+            new RelationName(DocSchemaInfo.NAME, "t2"),
+            "create table t2 (b boolean, primary key(b))",
+            clusterService
+        );
+        TableRelation tableRelation = new TableRelation(tableInfo);
+        TableRelation tableRelationOuter = new TableRelation(tableInfoOuter);
+        Map<RelationName, AnalyzedRelation> tableSources = Map.of(tableInfo.ident(), tableRelation);
+        FullQualifiedNameFieldProvider fieldProvider = new FullQualifiedNameFieldProvider(
+            tableSources,
+            ParentRelations.NO_PARENTS
+                .newLevel(Map.of(tableInfoOuter.ident(), tableRelationOuter))
+                .newLevel(tableSources),
+            DocSchemaInfo.NAME
+        );
+        SqlExpressions expressions = new SqlExpressions(
+            tableSources,
+            tableRelation,
+            fieldProvider,
+            Role.CRATE_USER,
+            List.of(),
+            null
+            );
+        EvaluatingNormalizer normalizer = EvaluatingNormalizer.functionOnlyNormalizer(expressions.nodeCtx);
+        EqualityExtractor ee = new EqualityExtractor(normalizer);
+
+        List<List<Symbol>> matches = analyzeExact(ee, query(expressions, "t2.b and t1.b"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).isNull();
+
+        matches = analyzeExact(ee, query(expressions, "t2.b or t1.b"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).isNull();
+
+        matches = analyzeExact(ee, query(expressions, "t2.b and (t1.b or t1.b)"), List.of(ColumnIdent.of("b")));
+        assertThat(matches).isNull();
+    }
 
     public static class TestToken extends Session.TimeoutToken {
 
