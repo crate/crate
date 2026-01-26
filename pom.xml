@@ -300,8 +300,8 @@
       ./mvnw -P jmods -Dos.arch=aarch64 -Dos.name="Mac OS X" package -DskipTests=true
     To verify the version is available for both platforms
     -->
-    <versions.jdk>25.0.1</versions.jdk>
-    <versions.jdkbuild>25.0.1+8</versions.jdkbuild>
+    <versions.jdk>25.0.2</versions.jdk>
+    <versions.jdkbuild>25.0.2+10</versions.jdkbuild>
 
     <versions.jspecify>1.0.0</versions.jspecify>
     <versions.log4j>2.25.2</versions.log4j>
