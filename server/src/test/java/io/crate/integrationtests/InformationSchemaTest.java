@@ -1434,20 +1434,28 @@ public class InformationSchemaTest extends IntegTestCase {
     public void test_view_column_usage() throws Exception {
         execute("create table doc.t1 (x int)");
         execute("create table doc.t2 (y int)");
-        execute("create view doc.v1 as (select * from doc.t1, doc.t2)");
-        execute("select * from information_schema.view_column_usage order by column_name");
-        assertThat(response).hasColumns(
-            "column_name",
-            "table_catalog",
-            "table_name",
-            "table_schema",
-            "view_catalog",
-            "view_name",
-            "view_schema"
+        execute("create table doc.t3 (name text)");
+        execute("create view doc.v1 as (select *, 1 + 1 as calc from doc.t1, doc.t2, (select x as a from doc.t1) as t3)");
+        execute("create view doc.v2 as (select * from doc.v1, doc.t3, (select name as aliased_name from doc.t3) t31)");
+        execute(
+            """
+            select
+                view_name,
+                table_name,
+                column_name
+            from
+                information_schema.view_column_usage
+            order by view_name, column_name
+            """
         );
         assertThat(response).hasRows(
-            "x| crate| t1| doc| crate| v1| doc",
-            "y| crate| t2| doc| crate| v1| doc"
+            "v1| t1| x",
+            "v1| t2| y",
+            "v2| v1| a",
+            "v2| v1| calc",
+            "v2| t3| name",
+            "v2| v1| x",
+            "v2| v1| y"
         );
     }
 }

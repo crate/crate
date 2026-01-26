@@ -32,6 +32,7 @@ import java.util.stream.Stream;
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
 
+import io.crate.expression.symbol.ScopedColumn;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
@@ -46,7 +47,7 @@ public class ViewInfo implements RelationInfo {
     private final String definition;
     private final List<Reference> rootColumns;
     private final List<Reference> allColumns;
-    private final List<Reference> usedSourceColumns;
+    private final List<ScopedColumn> usedSourceColumns;
     private final String owner;
     private final SearchPath searchPath;
     private final boolean errorOnUnknownObjectKey;
@@ -57,7 +58,7 @@ public class ViewInfo implements RelationInfo {
     public ViewInfo(RelationName ident,
                     String definition,
                     List<Reference> allColumns,
-                    List<Reference> usedSourceColumns,
+                    List<ScopedColumn> usedSourceColumns,
                     @Nullable String owner,
                     SearchPath searchPath,
                     boolean errorOnUnknownObjectKey) {
@@ -94,7 +95,7 @@ public class ViewInfo implements RelationInfo {
     /// ```
     ///
     /// This would return `[t1.x, t2.y]`
-    public List<Reference> usedSourceColumns() {
+    public List<ScopedColumn> usedSourceColumns() {
         return usedSourceColumns;
     }
 

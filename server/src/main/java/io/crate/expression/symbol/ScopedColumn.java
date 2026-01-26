@@ -19,30 +19,15 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.metadata.information;
 
-import static io.crate.types.DataTypes.STRING;
+package io.crate.expression.symbol;
 
-import io.crate.Constants;
-import io.crate.expression.symbol.ScopedColumn;
+import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.RelationName;
-import io.crate.metadata.SystemTable;
 
-public class InformationSchemaViewColumnUsage {
+public interface ScopedColumn {
 
-    public static final String NAME = "view_column_usage";
-    public static final RelationName IDENT = new RelationName(InformationSchemaInfo.NAME, NAME);
+    RelationName relation();
 
-    public record ViewColumn(RelationName view, ScopedColumn usedColumn) {
-    }
-
-    public static SystemTable<ViewColumn> TABLE = SystemTable.<ViewColumn>builder(IDENT)
-        .add("view_catalog", STRING, _ -> Constants.DB_NAME)
-        .add("view_schema", STRING, x -> x.view.schema())
-        .add("view_name", STRING, x -> x.view.name())
-        .add("table_catalog", STRING, _ -> Constants.DB_NAME)
-        .add("table_schema", STRING, x -> x.usedColumn.relation().schema())
-        .add("table_name", STRING, x -> x.usedColumn.relation().name())
-        .add("column_name", STRING, x -> x.usedColumn.column().sqlFqn())
-        .build();
+    ColumnIdent column();
 }

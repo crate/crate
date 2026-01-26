@@ -23,6 +23,7 @@ package io.crate.metadata.view;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
@@ -30,8 +31,12 @@ import java.util.Locale;
 import org.elasticsearch.cluster.ClusterState;
 
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedView;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.expression.symbol.ScopedColumn;
+import io.crate.expression.symbol.ScopedSymbol;
 import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
@@ -39,6 +44,7 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
+import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Query;
 import io.crate.types.DataType;
@@ -62,7 +68,7 @@ public class ViewInfoFactory {
             return null;
         }
         List<Reference> columns;
-        LinkedHashSet<Reference> usedSourceColumns = new LinkedHashSet<>();
+        LinkedHashSet<ScopedColumn> usedSourceColumns = new LinkedHashSet<>();
         boolean analyzeError = false;
         boolean errorOnUnknownObjectKey = view.errorOnUnknownObjectKey();
         try {
@@ -75,6 +81,12 @@ public class ViewInfoFactory {
                 transactionContext,
                 ParamTypeHints.EMPTY
             );
+            HashMap<RelationName, AnalyzedRelation> from = new HashMap<>();
+            if (relation instanceof QueriedSelectRelation selectRelation) {
+                for (AnalyzedRelation rel : selectRelation.from()) {
+                    from.put(rel.relationName(), rel);
+                }
+            }
             List<Symbol> outputs = relation.outputs();
             columns = new ArrayList<>(outputs.size());
             int position = 1;
@@ -90,7 +102,19 @@ public class ViewInfoFactory {
                         null
                     )
                 );
-                field.visit(Reference.class, ref -> usedSourceColumns.add(ref));
+                field.visit(Reference.class, x -> usedSourceColumns.add(x));
+                // Peek into in-line aliased relations like in:
+                //      create view v1 as (select * from t1, (select x as y from t1) t2)
+                // To only consider "t1.x" as used column
+                field.visit(ScopedSymbol.class, x -> {
+                    AnalyzedRelation sourceRel = from.get(x.relation());
+                    if (sourceRel instanceof AnalyzedView || sourceRel == null) {
+                        usedSourceColumns.add(x);
+                    } else {
+                        Symbol innerField = sourceRel.getField(x.column(), Operation.READ);
+                        innerField.visit(Reference.class, ix -> usedSourceColumns.add(x));
+                    }
+                });
             }
             // Now add all sub-columns.
             // We do it after handling top level columns to ensure that ordinals in the information_schema.columns are stable
