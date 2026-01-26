@@ -34,6 +34,7 @@ import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.AnalyzedView;
+import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.RelationAnalyzer;
 import io.crate.expression.symbol.ScopedColumn;
 import io.crate.expression.symbol.ScopedSymbol;
@@ -44,7 +45,6 @@ import io.crate.metadata.Reference;
 import io.crate.metadata.RelationName;
 import io.crate.metadata.RowGranularity;
 import io.crate.metadata.SimpleReference;
-import io.crate.metadata.table.Operation;
 import io.crate.sql.parser.SqlParser;
 import io.crate.sql.tree.Query;
 import io.crate.types.DataType;
@@ -102,18 +102,24 @@ public class ViewInfoFactory {
                         null
                     )
                 );
-                field.visit(Reference.class, x -> usedSourceColumns.add(x));
                 // Peek into in-line aliased relations like in:
                 //      create view v1 as (select * from t1, (select x as y from t1) t2)
                 // To only consider "t1.x" as used column
-                field.visit(ScopedSymbol.class, x -> {
-                    AnalyzedRelation sourceRel = from.get(x.relation());
-                    if (sourceRel instanceof AnalyzedView || sourceRel == null) {
-                        usedSourceColumns.add(x);
-                    } else {
-                        Symbol innerField = sourceRel.getField(x.column(), Operation.READ);
-                        innerField.visit(Reference.class, ix -> usedSourceColumns.add(x));
+                field.any(x -> {
+                    if (x instanceof Reference ref) {
+                        usedSourceColumns.add(ref);
+                    } else if (x instanceof ScopedSymbol scopedSymbol) {
+                        AnalyzedRelation sourceRel = from.get(scopedSymbol.relation());
+                        if (sourceRel instanceof AnalyzedView || sourceRel == null) {
+                            usedSourceColumns.add(scopedSymbol);
+                        } else if (sourceRel instanceof FieldResolver fieldResolver) {
+                            Symbol innerField = fieldResolver.resolveField(scopedSymbol);
+                            if (innerField != null) {
+                                innerField.visit(Reference.class, ix -> usedSourceColumns.add(ix));
+                            }
+                        }
                     }
+                    return false;
                 });
             }
             // Now add all sub-columns.
