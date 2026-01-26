@@ -50,7 +50,7 @@ import io.crate.types.DataType;
  * }
  * </pre>
  */
-public final class ScopedSymbol implements Symbol {
+public final class ScopedSymbol implements Symbol, ScopedColumn {
 
     private final RelationName relation;
     private final ColumnIdent column;

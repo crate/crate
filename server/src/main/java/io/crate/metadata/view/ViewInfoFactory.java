@@ -23,14 +23,22 @@ package io.crate.metadata.view;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 
 import org.elasticsearch.cluster.ClusterState;
 
 import io.crate.analyze.ParamTypeHints;
+import io.crate.analyze.QueriedSelectRelation;
 import io.crate.analyze.relations.AnalyzedRelation;
+import io.crate.analyze.relations.AnalyzedView;
+import io.crate.analyze.relations.FieldResolver;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.expression.symbol.ScopedColumn;
+import io.crate.expression.symbol.ScopedSymbol;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
@@ -60,6 +68,7 @@ public class ViewInfoFactory {
             return null;
         }
         List<Reference> columns;
+        LinkedHashSet<ScopedColumn> usedSourceColumns = new LinkedHashSet<>();
         boolean analyzeError = false;
         boolean errorOnUnknownObjectKey = view.errorOnUnknownObjectKey();
         try {
@@ -72,12 +81,18 @@ public class ViewInfoFactory {
                 transactionContext,
                 ParamTypeHints.EMPTY
             );
-            final List<Reference> collectedColumns = new ArrayList<>(relation.outputs().size());
-            List<Reference> subColumns = new ArrayList<>();
+            HashMap<RelationName, AnalyzedRelation> from = new HashMap<>();
+            if (relation instanceof QueriedSelectRelation selectRelation) {
+                for (AnalyzedRelation rel : selectRelation.from()) {
+                    from.put(rel.relationName(), rel);
+                }
+            }
+            List<Symbol> outputs = relation.outputs();
+            columns = new ArrayList<>(outputs.size());
             int position = 1;
-            for (var field : relation.outputs()) {
+            for (var field : outputs) {
                 ColumnIdent columnIdent = field.toColumn();
-                collectedColumns.add(
+                columns.add(
                     new SimpleReference(
                         ident,
                         ColumnIdent.of(columnIdent.sqlFqn()),
@@ -87,16 +102,34 @@ public class ViewInfoFactory {
                         null
                     )
                 );
-
+                // Peek into in-line aliased relations like in:
+                //      create view v1 as (select * from t1, (select x as y from t1) t2)
+                // To only consider "t1.x" as used column
+                field.any(x -> {
+                    if (x instanceof Reference ref) {
+                        usedSourceColumns.add(ref);
+                    } else if (x instanceof ScopedSymbol scopedSymbol) {
+                        AnalyzedRelation sourceRel = from.get(scopedSymbol.relation());
+                        if (sourceRel instanceof AnalyzedView || sourceRel == null) {
+                            usedSourceColumns.add(scopedSymbol);
+                        } else if (sourceRel instanceof FieldResolver fieldResolver) {
+                            Symbol innerField = fieldResolver.resolveField(scopedSymbol);
+                            if (innerField != null) {
+                                innerField.visit(Reference.class, ix -> usedSourceColumns.add(ix));
+                            }
+                        }
+                    }
+                    return false;
+                });
             }
-            columns = collectedColumns;
             // Now add all sub-columns.
             // We do it after handling top level columns to ensure that ordinals in the information_schema.columns are stable
             // and sub-columns, added or dropped after view definition don't change ordinals of other columns in the view.
-            for (Reference ref: columns) {
-                position = addSubColumns(subColumns, ident, ref.column(), ref.valueType(), position);
+            int size = columns.size();
+            for (int i = 0; i < size; i++) {
+                Reference ref = columns.get(i);
+                position = addSubColumns(columns, ident, ref.column(), ref.valueType(), position);
             }
-            columns.addAll(subColumns);
         } catch (Exception e) {
             // Statement could not be analyzed, because the referenced table either not found
             // or has been updated and view definition became incompatible with the new schema (https://github.com/crate/crate/issues/14377).
@@ -104,7 +137,15 @@ public class ViewInfoFactory {
             analyzeError = true;
         }
         String viewDefinition = analyzeError ? String.format(Locale.ENGLISH, "/* Corrupted view, needs fix */\n%s", view.stmt()) : view.stmt();
-        return new ViewInfo(ident, viewDefinition, columns, view.owner(), view.searchPath(), errorOnUnknownObjectKey);
+        return new ViewInfo(
+            ident,
+            viewDefinition,
+            columns,
+            List.copyOf(usedSourceColumns),
+            view.owner(),
+            view.searchPath(),
+            errorOnUnknownObjectKey
+        );
     }
 
     private static int addSubColumns(List<Reference> subColumns,

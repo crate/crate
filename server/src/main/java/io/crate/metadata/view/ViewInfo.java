@@ -31,8 +31,8 @@ import java.util.stream.Stream;
 
 import org.elasticsearch.common.settings.Settings;
 import org.jspecify.annotations.Nullable;
-import io.crate.common.annotations.VisibleForTesting;
 
+import io.crate.expression.symbol.ScopedColumn;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.Reference;
 import io.crate.metadata.RelationInfo;
@@ -45,26 +45,31 @@ public class ViewInfo implements RelationInfo {
 
     private final RelationName ident;
     private final String definition;
-    private final List<Reference> columns;
-    private final List<Reference> references;
+    private final List<Reference> rootColumns;
+    private final List<Reference> allColumns;
+    private final List<ScopedColumn> usedSourceColumns;
     private final String owner;
     private final SearchPath searchPath;
     private final boolean errorOnUnknownObjectKey;
 
-    @VisibleForTesting
+
+    /// @param allColumns all output columns (including sub-columns) with relation=ident of the view
+    /// @param usedSourceColumns columns from other tables/views used in the view definition
     public ViewInfo(RelationName ident,
                     String definition,
-                    List<Reference> references,
+                    List<Reference> allColumns,
+                    List<ScopedColumn> usedSourceColumns,
                     @Nullable String owner,
                     SearchPath searchPath,
                     boolean errorOnUnknownObjectKey) {
         this.ident = ident;
         this.definition = definition;
-        this.references = references
+        this.allColumns = allColumns
             .stream()
             .sorted(Reference.CMP_BY_POSITION_THEN_NAME)
             .toList();
-        this.columns = this.references.stream()
+        this.usedSourceColumns = usedSourceColumns;
+        this.rootColumns = this.allColumns.stream()
             .filter(r -> r.column().isRoot())
             .toList();
         this.owner = owner;
@@ -72,9 +77,31 @@ public class ViewInfo implements RelationInfo {
         this.errorOnUnknownObjectKey = errorOnUnknownObjectKey;
     }
 
+    /// Columns from other tables or views used in the view definition.
+    ///
+    /// For example in:
+    ///
+    /// ```sql
+    /// create view v1 as (
+    ///     select
+    ///         *,
+    ///         t1.x + t2.y as z,
+    ///         1 + 1 as calc
+    ///     from
+    ///         t1,
+    ///         t2,
+    ///         (select t1 as a from t1) t3
+    /// )
+    /// ```
+    ///
+    /// This would return `[t1.x, t2.y]`
+    public List<ScopedColumn> usedSourceColumns() {
+        return usedSourceColumns;
+    }
+
     @Override
     public Collection<Reference> rootColumns() {
-        return columns;
+        return rootColumns;
     }
 
     @Override
@@ -109,13 +136,13 @@ public class ViewInfo implements RelationInfo {
 
     @Override
     public Iterator<Reference> iterator() {
-        return references.iterator();
+        return allColumns.iterator();
     }
 
     @Override
     public Stream<Reference> allColumnsSorted() {
-        // references are sorted
-        return references.stream();
+        // `allColumns` are already sorted
+        return allColumns.stream();
     }
 
     @Override
