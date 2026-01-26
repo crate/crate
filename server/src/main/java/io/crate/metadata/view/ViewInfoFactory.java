@@ -23,6 +23,7 @@ package io.crate.metadata.view;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Locale;
 
@@ -31,6 +32,7 @@ import org.elasticsearch.cluster.ClusterState;
 import io.crate.analyze.ParamTypeHints;
 import io.crate.analyze.relations.AnalyzedRelation;
 import io.crate.analyze.relations.RelationAnalyzer;
+import io.crate.expression.symbol.Symbol;
 import io.crate.metadata.ColumnIdent;
 import io.crate.metadata.CoordinatorTxnCtx;
 import io.crate.metadata.Reference;
@@ -60,6 +62,7 @@ public class ViewInfoFactory {
             return null;
         }
         List<Reference> columns;
+        LinkedHashSet<Reference> usedSourceColumns = new LinkedHashSet<>();
         boolean analyzeError = false;
         boolean errorOnUnknownObjectKey = view.errorOnUnknownObjectKey();
         try {
@@ -72,12 +75,12 @@ public class ViewInfoFactory {
                 transactionContext,
                 ParamTypeHints.EMPTY
             );
-            final List<Reference> collectedColumns = new ArrayList<>(relation.outputs().size());
-            List<Reference> subColumns = new ArrayList<>();
+            List<Symbol> outputs = relation.outputs();
+            columns = new ArrayList<>(outputs.size());
             int position = 1;
-            for (var field : relation.outputs()) {
+            for (var field : outputs) {
                 ColumnIdent columnIdent = field.toColumn();
-                collectedColumns.add(
+                columns.add(
                     new SimpleReference(
                         ident,
                         ColumnIdent.of(columnIdent.sqlFqn()),
@@ -87,16 +90,16 @@ public class ViewInfoFactory {
                         null
                     )
                 );
-
+                field.visit(Reference.class, ref -> usedSourceColumns.add(ref));
             }
-            columns = collectedColumns;
             // Now add all sub-columns.
             // We do it after handling top level columns to ensure that ordinals in the information_schema.columns are stable
             // and sub-columns, added or dropped after view definition don't change ordinals of other columns in the view.
-            for (Reference ref: columns) {
-                position = addSubColumns(subColumns, ident, ref.column(), ref.valueType(), position);
+            int size = columns.size();
+            for (int i = 0; i < size; i++) {
+                Reference ref = columns.get(i);
+                position = addSubColumns(columns, ident, ref.column(), ref.valueType(), position);
             }
-            columns.addAll(subColumns);
         } catch (Exception e) {
             // Statement could not be analyzed, because the referenced table either not found
             // or has been updated and view definition became incompatible with the new schema (https://github.com/crate/crate/issues/14377).
@@ -104,7 +107,15 @@ public class ViewInfoFactory {
             analyzeError = true;
         }
         String viewDefinition = analyzeError ? String.format(Locale.ENGLISH, "/* Corrupted view, needs fix */\n%s", view.stmt()) : view.stmt();
-        return new ViewInfo(ident, viewDefinition, columns, view.owner(), view.searchPath(), errorOnUnknownObjectKey);
+        return new ViewInfo(
+            ident,
+            viewDefinition,
+            columns,
+            List.copyOf(usedSourceColumns),
+            view.owner(),
+            view.searchPath(),
+            errorOnUnknownObjectKey
+        );
     }
 
     private static int addSubColumns(List<Reference> subColumns,

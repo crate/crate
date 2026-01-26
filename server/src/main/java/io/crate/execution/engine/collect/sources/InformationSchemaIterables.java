@@ -65,6 +65,7 @@ import io.crate.metadata.RoutineInfos;
 import io.crate.metadata.Schemas;
 import io.crate.metadata.blob.BlobSchemaInfo;
 import io.crate.metadata.information.InformationSchemaInfo;
+import io.crate.metadata.information.InformationSchemaViewColumnUsage.ViewColumn;
 import io.crate.metadata.information.UserMappingOptionsTableInfo;
 import io.crate.metadata.information.UserMappingsTableInfo.UserMapping;
 import io.crate.metadata.pgcatalog.OidHash;
@@ -608,4 +609,14 @@ public class InformationSchemaIterables {
     public record RoleTableGrant(String grantor, String grantee, String tableCatalog,
                                  String tableSchema, String tableName, String privilegeType,
                                  boolean isGrantable, boolean withHierarchy) {}
+
+    public Iterable<ViewColumn> viewColumnUsage(Role role, Roles roles) {
+        return () -> viewsStream(schemas)
+            .flatMap(viewInfo ->
+                viewInfo.usedSourceColumns().stream()
+                    .filter(ref -> roles.hasAnyPrivilege(role, Securable.TABLE, ref.relation().fqn()))
+                    .map(ref -> new ViewColumn(viewInfo.ident(), ref))
+            )
+            .iterator();
+    }
 }

@@ -94,6 +94,7 @@ number of replicas.
     | information_schema | tables                            | BASE TABLE |             NULL | NULL               |
     | information_schema | user_mapping_options              | BASE TABLE |             NULL | NULL               |
     | information_schema | user_mappings                     | BASE TABLE |             NULL | NULL               |
+    | information_schema | view_column_usage                 | BASE TABLE |             NULL | NULL               |
     | information_schema | views                             | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_am                             | BASE TABLE |             NULL | NULL               |
     | pg_catalog         | pg_attrdef                        | BASE TABLE |             NULL | NULL               |
@@ -149,7 +150,7 @@ number of replicas.
     | sys                | summits                           | BASE TABLE |             NULL | NULL               |
     | sys                | users                             | BASE TABLE |             NULL | NULL               |
     +--------------------+-----------------------------------+------------+------------------+--------------------+
-    SELECT 78 rows in set (... sec)
+    SELECT 79 rows in set (... sec)
 
 
 The table also contains additional information such as the specified
@@ -305,6 +306,47 @@ options of all available views.
 
    cr> DROP view galaxies;
    DROP OK, 1 row affected (... sec)
+
+.. _information_schema_view_column_usage:
+
+``view_column_usage``
+---------------------
+
+The table ``information_schema.view_column_usage`` lists all columns used in the
+query definition of a view.
+
+Only columns of tables for which the current user has privileges are included in the output.
+
+.. list-table::
+    :header-rows: 1
+
+    * - Column Name
+      - Return Type
+      - Description
+    * - ``view_catalog``
+      - ``TEXT``
+      - Name of the database that contains the view
+    * - ``view_schema``
+      - ``TEXT``
+      - Name of the schema that contains the view
+    * - ``view_name``
+      - ``TEXT``
+      - Name of the view
+    * - ``table_catalog``
+      - ``TEXT``
+      - Name of the database that contains the table that contains the column
+        used by the view
+    * - ``table_schema``
+      - ``TEXT``
+      - Name of the schema that contains the table of the column used by the
+        view.
+    * - ``table_name``
+      - ``TEXT``
+      - Name of the table of the column used by the view.
+    * - ``column_name``
+      - ``TEXT``
+      - Name of the column used by the view
+
 
 .. _information_schema_columns:
 
