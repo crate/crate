@@ -135,7 +135,6 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     @Override
-    @SuppressWarnings("unchecked")
     public Map<String, Object> sanitizeValue(Object value) {
         if (value == null) {
             return null;
@@ -209,14 +208,16 @@ public class GeoShapeType extends DataType<Map<String, Object>> implements Strea
     }
 
     private static long sizeOf(Map<?, ?> map) {
-        long bytes = map instanceof LinkedHashMap
-            ? ObjectType.LINKED_HASHMAP_SIZE
-            : ObjectType.HASHMAP_SIZE;
-        long entrySize = -1;
+        long bytes;
+        long entrySize;
+        if (map instanceof LinkedHashMap) {
+            bytes = ObjectType.LINKED_HASHMAP_SIZE;
+            entrySize = ObjectType.LINKED_HM_ENTRY_SIZE;
+        } else {
+            bytes = ObjectType.HASHMAP_SIZE;
+            entrySize = ObjectType.HM_ENTRY_SIZE;
+        }
         for (var entry : map.entrySet()) {
-            if (entrySize == -1) {
-                entrySize = RamUsageEstimator.shallowSizeOf(entry);
-            }
             bytes += entrySize;
 
             // Keys should be strings, no problem with depth here:

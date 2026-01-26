@@ -204,14 +204,25 @@ public class GeoShapeTypeTest extends DataTypeTestCase<Map<String, Object>> {
         UnaryOperator<Map<String, Object>> normalize = geoJson -> {
             return type.implicitCast(GeoJSONUtils.map2Shape(geoJson));
         };
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(0)))).isEqualTo(280);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(1)))).isEqualTo(336);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(2)))).isEqualTo(440);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(3)))).isEqualTo(616);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(4)))).isEqualTo(872);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(5)))).isEqualTo(440);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(6)))).isEqualTo(1368);
-        assertThat(type.valueBytes(normalize.apply(geoJson.get(7)))).isEqualTo(928);
+        assertThat(List.of(
+            type.valueBytes(normalize.apply(geoJson.get(0))),
+            type.valueBytes(normalize.apply(geoJson.get(1))),
+            type.valueBytes(normalize.apply(geoJson.get(2))),
+            type.valueBytes(normalize.apply(geoJson.get(3))),
+            type.valueBytes(normalize.apply(geoJson.get(4))),
+            type.valueBytes(normalize.apply(geoJson.get(5))),
+            type.valueBytes(normalize.apply(geoJson.get(6))),
+            type.valueBytes(normalize.apply(geoJson.get(7)))
+        )).containsExactly(
+            312L,
+            368L,
+            472L,
+            648L,
+            952L,
+            472L,
+            1448L,
+            1008L
+        );
     }
 
     @Test

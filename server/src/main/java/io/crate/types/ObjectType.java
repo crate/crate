@@ -78,6 +78,22 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
     public static final long LINKED_HASHMAP_SIZE = RamUsageEstimator.shallowSizeOfInstance(LinkedHashMap.class);
     public static final long HASHMAP_SIZE = RamUsageEstimator.shallowSizeOfInstance(HashMap.class);
 
+    public static final long LINKED_HM_ENTRY_SIZE;
+    public static final long HM_ENTRY_SIZE;
+
+    static {
+        // Adding dummy values to have one `Entry` instance
+        // The values themselves are not considered in `shallowSizeOf`, only the class fields
+        HashMap<String, Integer> hm = HashMap.newHashMap(1);
+        hm.put("x", 1);
+        HM_ENTRY_SIZE = RamUsageEstimator.shallowSizeOf(hm.entrySet().iterator().next());
+
+        LinkedHashMap<String, Integer> lhm = LinkedHashMap.newLinkedHashMap(1);
+        lhm.put("x", 1);
+        LINKED_HM_ENTRY_SIZE = RamUsageEstimator.shallowSizeOf(lhm.entrySet().iterator().next());
+    }
+
+
     private static final StorageSupport<Map<String, Object>> STORAGE = new StorageSupport<>(false, false, null) {
 
         @Override
@@ -480,14 +496,16 @@ public class ObjectType extends DataType<Map<String, Object>> implements Streame
         if (map == null) {
             return 0;
         }
-        long size = map instanceof LinkedHashMap
-            ? LINKED_HASHMAP_SIZE
-            : HASHMAP_SIZE;
-        long sizeOfEntry = -1;
+        long size;
+        long sizeOfEntry;
+        if (map instanceof LinkedHashMap) {
+            size = LINKED_HASHMAP_SIZE;
+            sizeOfEntry = LINKED_HM_ENTRY_SIZE;
+        } else {
+            size = HASHMAP_SIZE;
+            sizeOfEntry = HM_ENTRY_SIZE;
+        }
         for (Map.Entry<?, ?> entry : map.entrySet()) {
-            if (sizeOfEntry == -1) {
-                sizeOfEntry = RamUsageEstimator.shallowSizeOf(entry);
-            }
             size += sizeOfEntry;
 
             // In most cases key has type String but for ignored object can be another type.
