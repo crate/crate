@@ -21,19 +21,55 @@
 
 package io.crate.copy.s3;
 
-import io.crate.copy.s3.common.S3Protocol;
-import io.crate.execution.engine.collect.files.FileInput;
-import io.crate.execution.engine.collect.files.FileInputFactory;
+import java.net.URI;
+
+import org.apache.opendal.AsyncExecutor;
+import org.apache.opendal.AsyncOperator;
+import org.apache.opendal.Operator;
+import org.apache.opendal.ServiceConfig.S3;
 import org.elasticsearch.common.settings.Settings;
 
-import java.net.URI;
+import io.crate.copy.s3.common.S3Env;
+import io.crate.copy.s3.common.S3URI;
+import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.execution.engine.collect.files.Globs;
+import io.crate.opendal.OpenDALFileInput;
 
 public class S3FileInputFactory implements FileInputFactory {
 
     public static final String NAME = "s3";
+    private final AsyncExecutor executor;
+
+    public S3FileInputFactory(AsyncExecutor executor) {
+        this.executor = executor;
+    }
 
     @Override
-    public FileInput create(URI uri, Settings withClauseOptions) {
-        return new S3FileInput(uri, S3Protocol.get(withClauseOptions));
+    public OpenDALFileInput create(URI uri, Settings withClause) {
+        S3URI s3uri = S3URI.of(uri);
+        S3 s3 = S3Env.getServiceConfig(s3uri, withClause);
+        Operator operator = AsyncOperator.of(s3, executor).blocking();
+        StringBuilder newURI = new StringBuilder();
+        newURI
+            .append(s3.scheme())
+            .append("://")
+            .append(s3uri.bucket())
+            .append("/");
+        String path = s3uri.path();
+        int globIdx = path.indexOf("*");
+        String preGlobPath = null;
+        Globs.GlobPredicate globPredicate = null;
+        if (globIdx == -1) {
+            newURI.append(path);
+        } else {
+            preGlobPath = path.substring(0, globIdx);
+            globPredicate = new Globs.GlobPredicate(path);
+        }
+        return new OpenDALFileInput(
+            operator,
+            URI.create(newURI.toString()),
+            preGlobPath,
+            globPredicate
+        );
     }
 }

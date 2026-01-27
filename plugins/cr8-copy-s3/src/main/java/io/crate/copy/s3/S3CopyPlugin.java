@@ -21,20 +21,43 @@
 
 package io.crate.copy.s3;
 
-import io.crate.execution.engine.collect.files.FileInputFactory;
-import io.crate.execution.engine.export.FileOutputFactory;
-import io.crate.plugin.CopyPlugin;
+import java.io.IOException;
+import java.util.Map;
+
+import org.elasticsearch.common.inject.Inject;
+import org.elasticsearch.common.settings.Settings;
 import org.elasticsearch.plugins.Plugin;
 
-import java.util.Map;
+import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.execution.engine.export.FileOutputFactory;
+import io.crate.opendal.SharedAsyncExecutor;
+import io.crate.plugin.CopyPlugin;
 
 public class S3CopyPlugin extends Plugin implements CopyPlugin {
 
+    private final SharedAsyncExecutor sharedAsyncExecutor;
+
+    @Inject
+    public S3CopyPlugin(Settings settings) {
+        this.sharedAsyncExecutor = new SharedAsyncExecutor(settings);
+    }
+
     public Map<String, FileInputFactory> getFileInputFactories() {
-        return Map.of(S3FileInputFactory.NAME, new S3FileInputFactory());
+        return Map.of(
+            S3FileInputFactory.NAME,
+            new S3FileInputFactory(sharedAsyncExecutor.asyncExecutor())
+        );
     }
 
     public Map<String, FileOutputFactory> getFileOutputFactories() {
-        return Map.of(S3FileOutputFactory.NAME, new S3FileOutputFactory());
+        return Map.of(
+            S3FileOutputFactory.NAME,
+            new S3FileOutputFactory(sharedAsyncExecutor.asyncExecutor())
+        );
+    }
+
+    @Override
+    public void close() throws IOException {
+        sharedAsyncExecutor.close();
     }
 }

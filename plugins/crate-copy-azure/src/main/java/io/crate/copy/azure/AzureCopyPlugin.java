@@ -21,9 +21,10 @@
 
 package io.crate.copy.azure;
 
-import io.crate.execution.engine.collect.files.FileInputFactory;
-import io.crate.execution.engine.export.FileOutputFactory;
-import io.crate.plugin.CopyPlugin;
+import java.util.Collection;
+import java.util.Collections;
+import java.util.Map;
+import java.util.function.Supplier;
 
 import org.elasticsearch.client.Client;
 import org.elasticsearch.cluster.service.ClusterService;
@@ -37,10 +38,10 @@ import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.repositories.RepositoriesService;
 import org.elasticsearch.threadpool.ThreadPool;
 
-import java.util.Collection;
-import java.util.Collections;
-import java.util.Map;
-import java.util.function.Supplier;
+import io.crate.execution.engine.collect.files.FileInputFactory;
+import io.crate.execution.engine.export.FileOutputFactory;
+import io.crate.opendal.SharedAsyncExecutor;
+import io.crate.plugin.CopyPlugin;
 
 public class AzureCopyPlugin extends Plugin implements CopyPlugin {
 
@@ -59,7 +60,7 @@ public class AzureCopyPlugin extends Plugin implements CopyPlugin {
     }
 
     public Map<String, FileOutputFactory> getFileOutputFactories() {
-        return Map.of(USER_FACING_SCHEME, new AzureFileOutputFactory(sharedAsyncExecutor));
+        return Map.of(USER_FACING_SCHEME, new AzureFileOutputFactory(sharedAsyncExecutor.asyncExecutor()));
     }
 
     @Override

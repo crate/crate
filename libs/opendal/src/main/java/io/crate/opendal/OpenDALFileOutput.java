@@ -19,45 +19,37 @@
  * software solely pursuant to the terms of the relevant commercial agreement.
  */
 
-package io.crate.copy.azure;
-
-import static io.crate.copy.azure.AzureCopyPlugin.OPEN_DAL_SCHEME;
+package io.crate.opendal;
 
 import java.io.IOException;
 import java.io.OutputStream;
-import java.net.URI;
-import java.util.Map;
 import java.util.concurrent.Executor;
 import java.util.zip.GZIPOutputStream;
 
-import org.apache.opendal.AsyncOperator;
 import org.apache.opendal.Operator;
-import org.elasticsearch.common.settings.Settings;
 
-import io.crate.execution.dsl.projection.WriterProjection;
+import io.crate.execution.dsl.projection.WriterProjection.CompressionType;
 import io.crate.execution.engine.export.FileOutput;
 
-public class AzureFileOutput implements FileOutput {
-
-    private final Map<String, String> config;
-    private final Operator operator;
-    private final String resourcePath;
+public class OpenDALFileOutput implements FileOutput {
 
     // 256 KiB, 16x size of the OperatorOutputStream's default buffer size.
-    // Helps to avoid uploading too many chunks which causes BlockCountExceedsLimit error.
-    // This also speeds up file upload to the Azure Blob Storage.
+    // Helps to avoid uploading too many chunks (which causes BlockCountExceedsLimit error on azure).
+    // This also speeds up file upload
     private static final int MAX_BYTES = 262144;
 
-    public AzureFileOutput(URI uri, SharedAsyncExecutor sharedAsyncExecutor, Settings settings) {
-        AzureURI azureURI = AzureURI.of(uri);
-        this.config = OperatorHelper.config(azureURI, settings, false);
-        this.resourcePath = azureURI.resourcePath();
-        this.operator = AsyncOperator.of(OPEN_DAL_SCHEME, config, sharedAsyncExecutor.asyncExecutor()).blocking();
+    private final Operator operator;
+    private final String path;
+
+    /// @param operator OpenDAL operator. Is closed when the FileInput is closed
+    public OpenDALFileOutput(Operator operator, String path) {
+        this.operator = operator;
+        this.path = path;
     }
 
     @Override
-    public OutputStream acquireOutputStream(Executor executor, WriterProjection.CompressionType compressionType) throws IOException {
-        OutputStream outputStream = operator.createOutputStream(resourcePath, MAX_BYTES);
+    public OutputStream acquireOutputStream(Executor executor, CompressionType compressionType) throws IOException {
+        OutputStream outputStream = operator.createOutputStream(path, MAX_BYTES);
         if (compressionType != null) {
             outputStream = new GZIPOutputStream(outputStream);
         }
@@ -66,8 +58,6 @@ public class AzureFileOutput implements FileOutput {
 
     @Override
     public void close() {
-        assert operator != null : "Operator must be created before FileOutput is closed";
         operator.close();
     }
-
 }

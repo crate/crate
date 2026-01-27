@@ -19,19 +19,27 @@
       <version>${project.version}</version>
     </dependency>
     <dependency>
+      <groupId>io.crate</groupId>
+      <artifactId>crate-libs-opendal</artifactId>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
       <groupId>org.jspecify</groupId>
       <artifactId>jspecify</artifactId>
       <version>${versions.jspecify}</version>
-    </dependency>
-    <dependency>
-      <groupId>com.amazonaws</groupId>
-      <artifactId>aws-java-sdk-s3</artifactId>
-      <version>${versions.aws}</version>
     </dependency>
 
     <dependency>
       <groupId>io.crate</groupId>
       <artifactId>crate-server</artifactId>
+      <version>${project.version}</version>
+      <type>test-jar</type>
+      <scope>test</scope>
+      <classifier>tests</classifier>
+    </dependency>
+    <dependency>
+      <groupId>io.crate</groupId>
+      <artifactId>crate-libs-dex</artifactId>
       <version>${project.version}</version>
       <type>test-jar</type>
       <scope>test</scope>
